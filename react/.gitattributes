@@ -1,0 +1,5 @@
+# Ensure consistent line endings
+* text=auto
+
+# Force LF for package-lock.json to prevent cross-platform diffs
+package-lock.json text eol=lf

@@ -1,0 +1,37 @@
+variables:
+  DEPLOY_PATH: /src/aoms/rui/
+
+
+default:
+  image: ${NODE_IMAGE}
+  tags: [airport]
+
+
+deploy:
+  stage: deploy
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    #- if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH' #commit 될때 마다 배포 할때 사용
+  script:
+    - |
+      echo "1. React Build"
+      echo ">>> 캐시 제거"
+      npm cache clean --force
+      echo ">>> 라이브러리 로딩"
+      npm install
+      echo ">>> 빌드 진행"
+      npm run build:dev
+
+    - |
+      echo "2. ssh 설정"
+      mkdir -p ~/.ssh
+      echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_rsa
+      ssh-keyscan -p ${SSH_PORT} ${AOMS_WEB_IP} >>  ~/.ssh/known_hosts
+      chmod 600 ~/.ssh/id_rsa
+
+    - |
+      echo "3. server 배포"
+      echo ">>> 이전 파일을 삭제"
+      ssh -p ${SSH_PORT} -o StrictHostKeyChecking=no tmax@${AOMS_WEB_IP} "rm -rf ${DEPLOY_PATH}"
+      echo ">>> 생성된 파일을 서버에 전송"
+      scp -r -P ${SSH_PORT} ./dist/* tmax@${AOMS_WEB_IP}:${DEPLOY_PATH}
