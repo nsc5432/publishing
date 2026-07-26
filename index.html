@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=1920"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>PM 예측관리 / 일일 시뮬레이션 결과 조회</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@1.3.9/dist/web/static/pretendard.css"/>
 <link rel="stylesheet" href="styles.css"/>
@@ -452,6 +452,31 @@
   var host = document.getElementById('panels');
   host.appendChild(makePanel({ cls: 'panel-blue',  view: 'summary', gauge: '#2f7ff0', big: 'svg/t1-white.svg' }));
   host.appendChild(makePanel({ cls: 'panel-green', view: 'table',   gauge: '#2f7ff0', big: 'svg/t2-dark.svg' }));
+
+  /* ============ fit-to-screen ============
+     디자인 기준 1920x1080 을 뷰포트에 맞춰 축소/확대한다.
+     scale = min(vw/1920, vh/1080) 이므로 어떤 해상도에서도 잘리는 요소가 없고,
+     남는 공간은 .app 의 논리 크기를 키워 flex 영역이 흡수한다(레터박스 없음).
+     단, 화면비가 크게 다를 때 과도하게 늘어나지 않도록 확장 한도를 둔다. */
+  var DW = 1920, DH = 1080, MAXW = DW * 1.35, MAXH = DH * 1.25;
+  var app = document.querySelector('.app');
+  var raf = 0;
+  function fit() {
+    raf = 0;
+    var vw = window.innerWidth, vh = window.innerHeight;
+    var s = Math.min(vw / DW, vh / DH);
+    var w = Math.min(Math.round(vw / s), MAXW);
+    var h = Math.min(Math.round(vh / s), MAXH);
+    app.style.setProperty('--scale', s);
+    app.style.setProperty('--app-w', w + 'px');
+    app.style.setProperty('--app-h', h + 'px');
+    app.style.setProperty('--app-x', Math.round((vw - w * s) / 2) + 'px');
+    app.style.setProperty('--app-y', Math.round((vh - h * s) / 2) + 'px');
+  }
+  function onResize() { if (!raf) raf = requestAnimationFrame(fit); }
+  window.addEventListener('resize', onResize);
+  if (window.visualViewport) window.visualViewport.addEventListener('resize', onResize);
+  fit();
 })();
 </script>
 </body>
