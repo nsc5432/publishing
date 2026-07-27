@@ -28,6 +28,7 @@ export { default as Terminal1BigIcon } from '@/assets/svg/terminal1-big-icon.svg
 export { default as Terminal1Icon } from '@/assets/svg/terminal1-icon.svg?react';
 export { default as Terminal2BigIcon } from '@/assets/svg/terminal2-big-icon.svg?react';
 export { default as Terminal2Icon } from '@/assets/svg/terminal2-icon.svg?react';
+export { default as Terminal2Plan } from '@/assets/svg/terminal2-plan.svg?react';
 
 
 
