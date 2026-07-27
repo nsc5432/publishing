@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1600">
+<title>PM 예측관리 / 일일 시뮬레이션 결과 조회</title>
+<link rel="stylesheet" href="css/reset.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- header -->
+  <header class="header">
+    <h1 class="header__title">PM 예측관리 / <strong>일일 시뮬레이션 결과 조회</strong></h1>
+
+    <div class="search-bar">
+      <div class="search-bar__field">
+        <label class="search-bar__label" for="baseDate">기준일자</label>
+        <span class="input-date">
+          <i class="ico ico-calendar" aria-hidden="true"></i>
+          <input type="text" id="baseDate" class="input-date__input" value="2024/10/23" readonly>
+        </span>
+      </div>
+
+      <div class="search-bar__field">
+        <span class="search-bar__label">터미널선택</span>
+        <div class="radio-group">
+          <span class="radio">
+            <input type="radio" id="term1" name="terminal" checked>
+            <label for="term1">T1터미널</label>
+          </span>
+          <span class="radio">
+            <input type="radio" id="term2" name="terminal">
+            <label for="term2">T2터미널</label>
+          </span>
+        </div>
+      </div>
+
+      <button type="button" class="btn-search">
+        <i class="ico ico-search" aria-hidden="true"></i>
+        <span class="blind">조회</span>
+      </button>
+    </div>
+
+    <dl class="header__summary">
+      <div class="header__summary-item">
+        <dt>운항</dt>
+        <dd>1,234,567</dd>
+      </div>
+      <div class="header__summary-item">
+        <dt>여객</dt>
+        <dd>1,234,567</dd>
+      </div>
+    </dl>
+  </header>
+  <!-- //header -->
+
+  <!-- container -->
+  <main class="container">
+
+    <!-- 혼잡 알림 -->
+    <section class="notice">
+      <h2 class="notice__badge">
+        <i class="ico ico-warning" aria-hidden="true"></i>
+        <span>혼잡</span>
+      </h2>
+      <ul class="notice__list">
+        <li>체크인카운터 M11 <em>(3개 부스 OPEN)</em></li>
+        <li>체크인카운터 K09 <em>(4개 부스 OPEN)</em></li>
+        <li>출국장 DG02 <em>(2개 부스 OPEN)</em></li>
+        <li>보안검색대 SG14 <em>(2개 부스 OPEN)</em></li>
+        <li>체크인카운터 L10 <em>(2개 부스 OPEN)</em></li>
+        <li>체크인카운터 C10 <em>(2개 부스 OPEN)</em></li>
+      </ul>
+    </section>
+    <!-- //혼잡 알림 -->
+
+    <!-- 맵 영역 -->
+    <section class="map-area">
+      <p class="map-area__guide">해당구역을 클릭하세요</p>
+
+      <!-- 운영시간 카드 -->
+      <div class="oper-cards">
+        <div class="oper-card">
+          <div class="donut">
+            <svg class="donut__chart" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="donut__track" cx="60" cy="60" r="52"></circle>
+              <circle class="donut__value" cx="60" cy="60" r="52" style="--rate:75"></circle>
+            </svg>
+            <span class="donut__mark donut__mark--t">0시</span>
+            <span class="donut__mark donut__mark--r">6시</span>
+            <span class="donut__mark donut__mark--b">12시</span>
+            <span class="donut__mark donut__mark--l">18시</span>
+            <div class="donut__info">
+              <strong class="donut__time">05:30-23:30</strong>
+              <span class="donut__desc">하루 18시간 운영</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="oper-card">
+          <div class="donut">
+            <svg class="donut__chart" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="donut__track" cx="60" cy="60" r="52"></circle>
+              <circle class="donut__value" cx="60" cy="60" r="52" style="--rate:75"></circle>
+            </svg>
+            <span class="donut__mark donut__mark--t">0시</span>
+            <span class="donut__mark donut__mark--r">6시</span>
+            <span class="donut__mark donut__mark--b">12시</span>
+            <span class="donut__mark donut__mark--l">18시</span>
+            <div class="donut__info">
+              <strong class="donut__time">05:30-23:30</strong>
+              <span class="donut__desc">하루 18시간 운영</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="oper-card">
+          <div class="donut">
+            <svg class="donut__chart" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="donut__track" cx="60" cy="60" r="52"></circle>
+              <circle class="donut__value" cx="60" cy="60" r="52" style="--rate:75"></circle>
+            </svg>
+            <span class="donut__mark donut__mark--t">0시</span>
+            <span class="donut__mark donut__mark--r">6시</span>
+            <span class="donut__mark donut__mark--b">12시</span>
+            <span class="donut__mark donut__mark--l">18시</span>
+            <div class="donut__info">
+              <strong class="donut__time">05:30-23:30</strong>
+              <span class="donut__desc">하루 18시간 운영</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="oper-card oper-card--empty" aria-hidden="true"></div>
+
+        <div class="oper-card">
+          <div class="donut">
+            <svg class="donut__chart" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="donut__track" cx="60" cy="60" r="52"></circle>
+              <circle class="donut__value" cx="60" cy="60" r="52" style="--rate:75"></circle>
+            </svg>
+            <span class="donut__mark donut__mark--t">0시</span>
+            <span class="donut__mark donut__mark--r">6시</span>
+            <span class="donut__mark donut__mark--b">12시</span>
+            <span class="donut__mark donut__mark--l">18시</span>
+            <div class="donut__info">
+              <strong class="donut__time">05:30-23:30</strong>
+              <span class="donut__desc">하루 18시간 운영</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="oper-card is-dim">
+          <div class="donut">
+            <svg class="donut__chart" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="donut__track" cx="60" cy="60" r="52"></circle>
+              <circle class="donut__value" cx="60" cy="60" r="52" style="--rate:75"></circle>
+            </svg>
+            <span class="donut__mark donut__mark--t">0시</span>
+            <span class="donut__mark donut__mark--r">6시</span>
+            <span class="donut__mark donut__mark--b">12시</span>
+            <span class="donut__mark donut__mark--l">18시</span>
+            <div class="donut__info">
+              <strong class="donut__time">05:30-23:30</strong>
+              <span class="donut__desc">하루 18시간 운영</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="oper-card is-dim">
+          <div class="donut">
+            <svg class="donut__chart" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="donut__track" cx="60" cy="60" r="52"></circle>
+              <circle class="donut__value" cx="60" cy="60" r="52" style="--rate:75"></circle>
+            </svg>
+            <span class="donut__mark donut__mark--t">0시</span>
+            <span class="donut__mark donut__mark--r">6시</span>
+            <span class="donut__mark donut__mark--b">12시</span>
+            <span class="donut__mark donut__mark--l">18시</span>
+            <div class="donut__info">
+              <strong class="donut__time">05:30-23:30</strong>
+              <span class="donut__desc">하루 18시간 운영</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- //운영시간 카드 -->
+
+      <!-- 맵 -->
+      <div class="map">
+        <!-- T1 터미널 도면.
+             preserveAspectRatio="none" 이므로 viewBox(22×14) 안의 좌표 (x, y)는
+             언제나 무대 박스의 (x/22, y/14) 지점에 그려진다.
+             아래 .markers 가 똑같은 박스를 쓰므로 마커의 --x/--y 비율이
+             도면 좌표와 1:1 로 대응한다. → 화면 크기가 변해도 어긋나지 않음. -->
+        <svg class="map__bg" viewBox="0 0 22 14" preserveAspectRatio="none"
+             aria-hidden="true" focusable="false">
+          <path d="M5.46215 2.73905L5.40938 2.93805L7.1 7.80215H7.34659C7.34659 7.80215 9.72421 6.68994 14.8753 7.84746L16.5659 2.7484L16.3721 2.69421L17.156 0.334328C17.156 0.334328 18.292 -0.506484 18.4858 0.903746L17.7724 3.1277H17.4995L15.8352 8.18145C15.8352 8.18145 18.327 9.37493 19.146 10.1616C19.9649 10.9482 21.9813 13.145 21.9813 13.145C21.9813 13.145 22.2015 14.1937 21.1182 13.9676L19.0927 11.7255L17.4198 13.7233C17.4198 13.7233 15.0158 11.6349 12.4976 11.2915C9.97944 10.9482 7.23194 11.4181 4.60774 13.6603L2.84659 11.7255L0.997183 13.8952C0.997183 13.8952 -0.14158 14.2568 0.0140159 13.1628C0.0140159 13.1628 3.0081 9.40156 6.10774 8.20854L4.42302 3.14545H4.24695L3.4808 0.939247C3.4808 0.939247 3.25196 0.369829 3.93849 0.0713409C4.62503 -0.227148 4.85433 0.496418 4.85433 0.496418L5.62184 2.72364"/>
+        </svg>
+
+        <!-- 구역 마커 : 좌표는 도면 viewBox 기준 비율 (x/22, y/14) -->
+        <div class="markers">
+          <!-- 대구역 -->
+          <button type="button" class="marker marker--zone" style="--x:16.65%; --y:79.59%">6</button>
+          <button type="button" class="marker marker--zone" style="--x:27.16%; --y:69.76%">5</button>
+          <button type="button" class="marker marker--zone" style="--x:38.22%; --y:63.50%">4</button>
+          <button type="button" class="marker marker--zone" style="--x:61.68%; --y:63.50%">3</button>
+          <button type="button" class="marker marker--zone" style="--x:72.69%; --y:69.76%">2</button>
+          <button type="button" class="marker marker--zone" style="--x:82.87%; --y:79.59%">1</button>
+
+          <!-- 아일랜드 -->
+          <button type="button" class="marker marker--island is-crowded" style="--x:19.21%; --y:90.68%">N</button>
+          <button type="button" class="marker marker--island is-normal" style="--x:22.93%; --y:87.19%" data-popup="popupIsland">M</button>
+          <button type="button" class="marker marker--island is-normal" style="--x:27.16%; --y:82.46%">L</button>
+          <button type="button" class="marker marker--island is-normal" style="--x:31.94%; --y:78.79%">K</button>
+          <button type="button" class="marker marker--island is-normal" style="--x:36.55%; --y:76.02%">J</button>
+          <button type="button" class="marker marker--island is-crowded" style="--x:41.94%; --y:74.23%">H</button>
+          <button type="button" class="marker marker--island is-normal" style="--x:53.18%; --y:73.34%">G</button>
+          <button type="button" class="marker marker--island is-normal" style="--x:58.12%; --y:74.23%">F</button>
+          <button type="button" class="marker marker--island is-normal" style="--x:63.07%; --y:76.02%">E</button>
+          <button type="button" class="marker marker--island is-busy" style="--x:67.91%; --y:78.52%">D</button>
+          <button type="button" class="marker marker--island is-crowded" style="--x:72.80%; --y:82.19%">C</button>
+          <button type="button" class="marker marker--island is-crowded" style="--x:77.14%; --y:86.30%">B</button>
+          <button type="button" class="marker marker--island is-normal" style="--x:80.75%; --y:90.68%">A</button>
+
+          <!-- 게이트 : 탑승동 아치 안쪽 라인 위에 배치 -->
+          <button type="button" class="marker marker--gate" style="--x:21.37%; --y:97.12%">14</button>
+          <button type="button" class="marker marker--gate" style="--x:25.21%; --y:92.29%">13</button>
+          <button type="button" class="marker marker--gate" style="--x:29.71%; --y:88.27%">12</button>
+          <button type="button" class="marker marker--gate" style="--x:33.72%; --y:84.87%">11</button>
+          <button type="button" class="marker marker--gate" style="--x:38.50%; --y:82.46%">10</button>
+          <button type="button" class="marker marker--gate" style="--x:42.83%; --y:80.85%">9</button>
+          <button type="button" class="marker marker--gate" style="--x:47.39%; --y:79.86%">8</button>
+          <button type="button" class="marker marker--gate" style="--x:52.40%; --y:79.86%">7</button>
+          <button type="button" class="marker marker--gate" style="--x:56.96%; --y:80.85%">6</button>
+          <button type="button" class="marker marker--gate" style="--x:61.46%; --y:82.72%">5</button>
+          <button type="button" class="marker marker--gate" style="--x:66.27%; --y:85.23%">4</button>
+          <button type="button" class="marker marker--gate" style="--x:70.24%; --y:88.53%">3</button>
+          <button type="button" class="marker marker--gate" style="--x:74.75%; --y:92.38%">2</button>
+          <button type="button" class="marker marker--gate" style="--x:78.53%; --y:97.12%">1</button>
+        </div>
+      </div>
+      <!-- //맵 -->
+
+      <!-- 타임라인 -->
+      <div class="timeline">
+        <div class="timeline__ctrl">
+          <button type="button" class="btn-play btn-play--prev">
+            <i class="ico ico-prev" aria-hidden="true"></i>
+            <span class="blind">이전</span>
+          </button>
+          <button type="button" class="btn-play btn-play--play" aria-pressed="false">
+            <i class="ico ico-play" aria-hidden="true"></i>
+            <span class="blind">재생</span>
+          </button>
+          <button type="button" class="btn-play btn-play--next">
+            <i class="ico ico-next" aria-hidden="true"></i>
+            <span class="blind">다음</span>
+          </button>
+        </div>
+
+        <div class="timeline__slider">
+          <span class="timeline__now">00:00</span>
+          <div class="range">
+            <!-- 00:00 ~ 24:00 을 30분(48스텝) 단위로 분할 -->
+            <input type="range" id="timeRange" class="range__input" min="0" max="48" step="1" value="0"
+                   aria-label="시간 선택">
+          </div>
+        </div>
+
+        <div class="timeline__scale">
+          <span>00:00</span>
+          <span>24:00</span>
+        </div>
+      </div>
+      <!-- //타임라인 -->
+    </section>
+    <!-- //맵 영역 -->
+
+  </main>
+  <!-- //container -->
+</div>
+
+<!-- 아일랜드 상세 팝업 -->
+<div class="modal" id="popupIsland" hidden>
+  <div class="modal__dim" data-close></div>
+
+  <div class="modal__panel" role="dialog" aria-modal="true" aria-labelledby="popupIslandTitle">
+    <div class="modal__head">
+      <h2 class="modal__title" id="popupIslandTitle">M아일랜드 <span>(T1-3RD-M01-01)</span></h2>
+      <button type="button" class="modal__close" data-close>
+        <i class="ico ico-close" aria-hidden="true"></i>
+        <span class="blind">닫기</span>
+      </button>
+    </div>
+
+    <div class="modal__body">
+      <!-- 시설 유형 -->
+      <ul class="facility">
+        <li class="facility__item">
+          <i class="ico ico-counter" aria-hidden="true"></i>
+          <strong class="facility__name">체크인카운터</strong>
+          <span class="facility__rate">처리율 90%</span>
+        </li>
+        <li class="facility__item">
+          <i class="ico ico-selfcheck" aria-hidden="true"></i>
+          <strong class="facility__name">셀프체크인</strong>
+          <span class="facility__rate">처리율 100%</span>
+        </li>
+        <li class="facility__item">
+          <i class="ico ico-store" aria-hidden="true"></i>
+          <strong class="facility__name">상업시설</strong>
+        </li>
+      </ul>
+
+      <!-- 시설 혼잡 현황 -->
+      <div class="sec-head">
+        <h3 class="sec-head__title">시설 혼잡 현황</h3>
+        <span class="state-badge state-badge--crowded">혼잡</span>
+      </div>
+
+      <ul class="stat">
+        <li class="stat__item">
+          <i class="ico ico-wait-people" aria-hidden="true"></i>
+          <span class="stat__label">대기인원</span>
+          <strong class="stat__value is-point">3<em>명</em></strong>
+        </li>
+        <li class="stat__item">
+          <i class="ico ico-wait-time" aria-hidden="true"></i>
+          <span class="stat__label">대기시간</span>
+          <strong class="stat__value is-point">16<em>초</em></strong>
+        </li>
+        <li class="stat__item">
+          <i class="ico ico-done-people" aria-hidden="true"></i>
+          <span class="stat__label">처리인원</span>
+          <strong class="stat__value">20<em>명</em></strong>
+        </li>
+        <li class="stat__item">
+          <i class="ico ico-done-time" aria-hidden="true"></i>
+          <span class="stat__label">처리시간</span>
+          <strong class="stat__value">30<em>초</em></strong>
+        </li>
+      </ul>
+
+      <!-- 매출 정보 -->
+      <table class="tbl-sales">
+        <caption class="blind">상업시설 매출 정보</caption>
+        <colgroup>
+          <col style="width:112px">
+          <col>
+          <col style="width:112px">
+          <col style="width:86px">
+        </colgroup>
+        <tbody>
+          <tr>
+            <th scope="row">총 매출</th>
+            <td>33,063,915원</td>
+            <th scope="row">상업시설 수</th>
+            <td>9개</td>
+          </tr>
+          <tr>
+            <th scope="row">인원대비 매출</th>
+            <td colspan="3">1,742원</td>
+          </tr>
+          <tr>
+            <th scope="row">매출 인원 증감</th>
+            <td colspan="3">
+              8명
+              <span class="rate rate--up">+15%</span>
+              <span class="rate__base">vs 2023</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="modal__foot">
+      <button type="button" class="btn-detail">+ 상세보기</button>
+    </div>
+  </div>
+</div>
+<!-- //아일랜드 상세 팝업 -->
+
+<script src="js/main.js"></script>
+</body>
+</html>
