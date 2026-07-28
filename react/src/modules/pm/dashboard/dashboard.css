@@ -101,20 +101,20 @@ i[data-ic] > svg {
 .body {
     display: flex;
     flex: 1;
-    gap: 21px;
-    padding: 15px 25px 18px 20px;
+    gap: 24px;
+    padding: 20px 30px 24px 26px;
     min-height: 0;
 }
 .main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 25px;
+    gap: 28px;
     min-width: 0;
 }
 .row {
     display: flex;
-    gap: 25px;
+    gap: 28px;
     min-width: 0;
 }
 .row--top {
@@ -314,60 +314,8 @@ i[data-ic] > svg {
     font-weight: 600;
 }
 
-/* ============ sidebar ============ */
-.sidebar {
-    width: 79px;
-    flex-shrink: 0;
-    display: flex;
-}
-.sidebar-inner {
-    background: linear-gradient(180deg, #f1f1f7 0%, #f5f5f9 55%, #f6f7fa 100%);
-    border-radius: 40px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 33px 0 30px;
-    box-shadow: var(--sh);
-}
-.nav-list {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 25px;
-}
-.nav-item {
-    width: 46px;
-    height: 46px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    color: #6e7683;
-    background: none;
-    border: none;
-    padding: 0;
-    font-family: inherit;
-}
-.nav-item.active {
-    background: linear-gradient(150deg, #4441cc, #5b57de);
-    color: #fff;
-    box-shadow: 0 5px 13px rgba(68, 65, 204, 0.35);
-}
-.nav-item.on {
-    color: #3b39c9;
-}
-.nav-sep {
-    width: 44px;
-    height: 1px;
-    background: #e0e0ea;
-    margin: 16px 0;
-}
-.logout {
-    margin-top: auto;
-    color: #6e7683;
-}
+/* ============ sidebar ============
+   화면 공용 LNB 컴포넌트로 분리했다. 스타일은 @/components/lnb/lnb.css 참고. */
 
 /* ============ row 1 : cards ============ */
 .c-plan {

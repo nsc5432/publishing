@@ -1,14 +1,23 @@
 import './terminalMap.css';
 import { useMemo, useState } from 'react';
+import { Lnb } from '@/components/lnb';
 import { CongestionNotice } from './components/CongestionNotice';
 import { Header } from './components/Header';
 import { IslandModal } from './components/IslandModal';
-import { Lnb } from './components/Lnb';
 import { MapStage } from './components/MapStage';
 import { OperCards } from './components/OperCards';
 import { Timeline } from './components/Timeline';
 import { useTimeline } from './hooks/useTimeline';
-import { buildIslandDetail, HEADER, NOTICES, OPER_CARDS, SUMMARY, TERMINAL_MAP } from './mock';
+import {
+    buildIslandDetail,
+    DEFAULT_NAV_BOTTOM,
+    DEFAULT_NAV_TOP,
+    HEADER,
+    NOTICES,
+    OPER_CARDS,
+    SUMMARY,
+    TERMINAL_MAP,
+} from './mock';
 import type { IslandMarker, TerminalKind } from './types';
 
 /**
@@ -53,7 +62,7 @@ function TerminalMap() {
             />
 
             <div className="body">
-                <Lnb />
+                <Lnb defaultTop={DEFAULT_NAV_TOP} defaultBottom={DEFAULT_NAV_BOTTOM} />
 
                 <main className="container">
                     <CongestionNotice

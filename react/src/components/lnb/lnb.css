@@ -1,0 +1,97 @@
+/* =====================================================================
+   공용 LNB (좌측 네비게이션 레일)
+   - 기준: 맵 형태 조회(terminalMap) 시안의 레일.
+   - Lnb.tsx 가 직접 import 하므로 이 컴포넌트를 쓰는 화면은 별도 설정이 필요 없다.
+   - 화면별 CSS(reset 유무)가 달라도 동일하게 보이도록 버튼 초기화까지 여기서 한다.
+   ===================================================================== */
+.sidebar {
+    display: flex;
+    flex: none;
+    width: 79px;
+}
+.sidebar-inner {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 0 26px;
+    border-radius: 40px;
+    background: linear-gradient(180deg, #f1f1f7 0%, #f5f5f9 55%, #f6f7fa 100%);
+    box-shadow: 0 2px 10px rgba(63, 84, 145, 0.08);
+}
+.nav-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+}
+.nav-item {
+    display: flex;
+    position: relative; /* 메뉴명 툴팁(.nav-tip) 기준 */
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: #6e7683;
+    font-family: inherit;
+    cursor: pointer;
+}
+.nav-item.active {
+    background: linear-gradient(150deg, #4441cc, #5b57de);
+    color: #fff;
+    box-shadow: 0 5px 13px rgba(68, 65, 204, 0.35);
+}
+.nav-item.on {
+    color: #3b39c9;
+}
+.nav-sep {
+    width: 44px;
+    height: 1px;
+    margin: 16px 0;
+    background: #e0e0ea;
+}
+.nav-item.logout {
+    margin-top: auto;
+}
+
+/* 아이콘 메뉴명 툴팁 : 레일 오른쪽에 붙는다 -------------------------------- */
+.nav-tip {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 12px);
+    z-index: 30;
+    padding: 7px 11px;
+    border-radius: 8px;
+    background: #2f3440;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    opacity: 0;
+    box-shadow: 0 6px 16px rgba(30, 40, 70, 0.22);
+    pointer-events: none;
+    transform: translate(-4px, -50%);
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+}
+/* 말풍선 꼬리 */
+.nav-tip::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    border: 5px solid transparent;
+    border-right-color: #2f3440;
+    transform: translateY(-50%);
+}
+.nav-item:hover .nav-tip,
+.nav-item:focus-visible .nav-tip {
+    opacity: 1;
+    transform: translate(0, -50%);
+}

@@ -1,4 +1,3 @@
-import type { IconName } from '@/modules/pm/dashboard/components/PmIcons';
 import type {
     CongestionLevel,
     DepGateMarker,
@@ -32,27 +31,7 @@ export const SUMMARY: Record<TerminalKind, HeaderSummary> = {
 
 /* ================= 좌측 네비게이션(Lnb) ================= */
 
-export interface NavItem {
-    id: string;
-    icon: IconName;
-    /** 아이콘 마우스 오버 시 노출되는 메뉴명 */
-    label: string;
-}
-export const LNB_TOP: NavItem[] = [
-    { id: 'chart', icon: 'chart', label: '대시보드' },
-    { id: 'user', icon: 'user', label: '여객 예측' },
-    { id: 'monitor', icon: 'monitor', label: '실시간 모니터링' },
-    { id: 'pin', icon: 'pin', label: '시설 현황' },
-];
-export const LNB_BOTTOM: NavItem[] = [
-    { id: 'grid', icon: 'grid', label: '표 형태 조회' },
-    { id: 'map', icon: 'map', label: '맵 형태 조회' },
-    { id: 'pass', icon: 'pass', label: '출국장 현황' },
-    { id: 'luggage', icon: 'luggage', label: '수하물 현황' },
-    { id: 'planeline', icon: 'planeline', label: '운항 스케줄' },
-];
-/** 하단 고정 항목 */
-export const LNB_LOGOUT = { id: 'logout', icon: 'logout' as IconName, label: '로그아웃' };
+/* 메뉴 구성은 화면 공용(@/components/lnb)이라 여기서는 활성 항목만 지정한다. */
 /** 시안 기준 활성 항목 (상단: 강조 배경 / 하단: 맵 화면이므로 map 강조) */
 export const DEFAULT_NAV_TOP = 'chart';
 export const DEFAULT_NAV_BOTTOM = 'map';

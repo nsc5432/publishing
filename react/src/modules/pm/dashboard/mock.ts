@@ -45,23 +45,7 @@ export const DEFAULT_QUICK_TILE = 'pax';
 
 /* ================= 좌측 네비게이션(Lnb) ================= */
 
-export interface NavItem {
-    id: string;
-    icon: IconName;
-}
-export const LNB_TOP: NavItem[] = [
-    { id: 'chart', icon: 'chart' },
-    { id: 'user', icon: 'user' },
-    { id: 'monitor', icon: 'monitor' },
-    { id: 'pin', icon: 'pin' },
-];
-export const LNB_BOTTOM: NavItem[] = [
-    { id: 'grid', icon: 'grid' },
-    { id: 'map', icon: 'map' },
-    { id: 'pass', icon: 'pass' },
-    { id: 'luggage', icon: 'luggage' },
-    { id: 'planeline', icon: 'planeline' },
-];
+/* 메뉴 구성은 화면 공용(@/components/lnb)이라 여기서는 활성 항목만 지정한다. */
 /** 최초 활성 네비 (상단: 강조 배경 / 하단: 텍스트 강조) */
 export const DEFAULT_NAV_TOP = 'chart';
 export const DEFAULT_NAV_BOTTOM = 'grid';

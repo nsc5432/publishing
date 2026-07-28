@@ -1,10 +1,10 @@
 import './dashboard.css';
 import { useState } from 'react';
+import { Lnb } from '@/components/lnb';
 import { HeaderSummary } from './components/HeaderSummary';
-import { Lnb } from './components/Lnb';
 import { TerminalSummary } from './components/TerminalSummary';
 import { useFitToScreen } from './hooks/useFitToScreen';
-import { HEADER } from './mock';
+import { DEFAULT_NAV_BOTTOM, DEFAULT_NAV_TOP, HEADER } from './mock';
 import type { SimulationType } from './types';
 
 /**
@@ -31,7 +31,7 @@ function Dashboard() {
                 planDate={HEADER.planDate}
                 lastCalc={HEADER.lastCalc}
                 nextCalc={HEADER.nextCalc}
-                sidebar={<Lnb />}
+                sidebar={<Lnb defaultTop={DEFAULT_NAV_TOP} defaultBottom={DEFAULT_NAV_BOTTOM} />}
             >
                 <section className="row row--panels">
                     {/* 제1터미널 = 왼쪽 / 제2터미널 = 오른쪽 */}
