@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM 예측관리 / 사용자 시뮬레이션 - 운항편/여객수</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== 배경 데코 ===== -->
+<div class="bg-deco">
+  <span class="bg-deco__t1"></span>
+  <span class="bg-deco__t2"></span>
+</div>
+
+<!-- ===== 헤더 ===== -->
+<header class="gnb">
+  <h1 class="gnb__title">PM 예측관리 / 사용자 시뮬레이션</h1>
+
+  <div class="gnb__center">
+    <div class="date-picker">
+      <span class="date-picker__label">기준일자</span>
+      <img class="date-picker__icon" src="../svg/calendar-icon.svg" alt="">
+      <span class="date-picker__value">2024/10/23</span>
+      <button type="button" class="date-picker__search" aria-label="검색">
+        <img src="../svg/search-white-icon.svg" alt="">
+      </button>
+    </div>
+  </div>
+
+  <div class="gnb__right">
+    <button type="button" class="btn btn--run">
+      <img src="../svg/play-icon.svg" alt="">
+      <span>시뮬레이션 실행</span>
+    </button>
+    <a href="#" class="gnb__link">시뮬레이션 이력</a>
+  </div>
+</header>
+
+<!-- ===== 본문 ===== -->
+<main class="content">
+
+  <!-- 탭 -->
+  <nav class="tabs">
+    <button type="button" class="tabs__item is-active">운항편/여객수</button>
+    <button type="button" class="tabs__item">체크인 카운터</button>
+    <button type="button" class="tabs__item">셀프체크인/백드롭</button>
+    <button type="button" class="tabs__item">출국장</button>
+    <button type="button" class="tabs__item">보안 검색대</button>
+  </nav>
+
+  <!-- 패널 영역 -->
+  <div class="panels">
+
+    <!-- ---------- 좌측 : 제1터미널 (선택/활성) ---------- -->
+    <section class="panel panel--active">
+      <div class="panel__head">
+        <div class="terminal-badge terminal-badge--t1">
+          <img src="../svg/t1-white.svg" alt="T1">
+        </div>
+        <div class="summary">
+          <div class="summary__group">
+            <span class="summary__label">운항편</span>
+            <strong class="summary__value">15</strong>
+          </div>
+          <div class="summary__group">
+            <span class="summary__label">여객</span>
+            <strong class="summary__value">1,234,567</strong>
+          </div>
+          <div class="summary__group">
+            <span class="summary__label">피크</span>
+            <strong class="summary__value summary__value--accent">14:00</strong>
+          </div>
+        </div>
+      </div>
+
+      <!-- 차트 : 운항편 수 -->
+      <div class="chart">
+        <div class="chart__head">
+          <h3 class="chart__title">운항편 수</h3>
+          <p class="chart__total">전체(누적) <strong>1,234</strong> 편</p>
+        </div>
+        <div class="chart__body">
+          <div class="chart__axis">
+            <span>300</span><span>200</span><span>100</span><span>0</span>
+          </div>
+          <div class="chart__plot">
+            <div class="chart__bars">
+              <span class="bar" style="--h:5%"></span>
+              <span class="bar" style="--h:8%"></span>
+              <span class="bar" style="--h:6%"></span>
+              <span class="bar" style="--h:33%"></span>
+              <span class="bar" style="--h:40%"></span>
+              <span class="bar" style="--h:67%"></span>
+              <span class="bar" style="--h:68%"></span>
+              <span class="bar" style="--h:67%"></span>
+              <span class="bar" style="--h:33%"></span>
+              <span class="bar" style="--h:33%"></span>
+              <span class="bar" style="--h:16%"></span>
+              <span class="bar" style="--h:6%"></span>
+            </div>
+          </div>
+        </div>
+        <div class="chart__scale">
+          <span>04</span><span>06</span><span>08</span><span>10</span>
+          <span>12</span><span>14</span><span>16</span><span>18</span>
+          <span>20</span><span>22</span><span>00</span><span>02</span>
+        </div>
+      </div>
+
+      <!-- 차트 : 여객 수 -->
+      <div class="chart">
+        <div class="chart__head">
+          <h3 class="chart__title">여객 수</h3>
+          <p class="chart__total">전체(누적) <strong>1,234,567</strong> 명</p>
+        </div>
+        <div class="chart__body">
+          <div class="chart__axis">
+            <span>300</span><span>200</span><span>100</span><span>0</span>
+          </div>
+          <div class="chart__plot">
+            <div class="chart__bars">
+              <span class="bar" style="--h:6%"></span>
+              <span class="bar" style="--h:10%"></span>
+              <span class="bar" style="--h:7%"></span>
+              <span class="bar" style="--h:34%"></span>
+              <span class="bar" style="--h:39%"></span>
+              <span class="bar" style="--h:68%"></span>
+              <span class="bar" style="--h:68%"></span>
+              <span class="bar" style="--h:67%"></span>
+              <span class="bar" style="--h:34%"></span>
+              <span class="bar" style="--h:33%"></span>
+              <span class="bar" style="--h:15%"></span>
+              <span class="bar" style="--h:6%"></span>
+            </div>
+          </div>
+        </div>
+        <div class="chart__scale">
+          <span>04</span><span>06</span><span>08</span><span>10</span>
+          <span>12</span><span>14</span><span>16</span><span>18</span>
+          <span>20</span><span>22</span><span>00</span><span>02</span>
+        </div>
+      </div>
+
+      <!-- 편집 영역 -->
+      <div class="editor">
+        <div class="editor__opts">
+          <label class="radio">
+            <input type="radio" name="mode-t1" value="ratio" checked>
+            <span class="radio__mark"></span>
+            <span class="radio__text">운항편 전체 비율로 수정</span>
+          </label>
+          <div class="stepper">
+            <button type="button" class="stepper__btn" data-step="-5" aria-label="감소">
+              <img src="../svg/chevron-left-icon.svg" alt="">
+            </button>
+            <span class="stepper__value">10%</span>
+            <button type="button" class="stepper__btn" data-step="5" aria-label="증가">
+              <img src="../svg/chevron-right-icon.svg" alt="">
+            </button>
+          </div>
+        </div>
+
+        <label class="radio">
+          <input type="radio" name="mode-t1" value="hourly">
+          <span class="radio__mark"></span>
+          <span class="radio__text">시간대별 운항편 수정</span>
+        </label>
+
+        <div class="table-wrap scroll-area is-dim">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">시작시간</th>
+                <th scope="col">종료시간</th>
+                <th scope="col">수정</th>
+                <th scope="col">승객 수</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>04:00</td><td>05:00</td><td class="is-num">10%</td><td class="is-num">12,340명</td></tr>
+              <tr><td>05:00</td><td>06:00</td><td class="is-num">0%</td><td class="is-num">18,220명</td></tr>
+              <tr><td>06:00</td><td>07:00</td><td class="is-num">5%</td><td class="is-num">24,510명</td></tr>
+              <tr><td>07:00</td><td>08:00</td><td class="is-num">0%</td><td class="is-num">31,080명</td></tr>
+              <tr><td>08:00</td><td>09:00</td><td class="is-num">-5%</td><td class="is-num">44,760명</td></tr>
+              <tr><td>09:00</td><td>10:00</td><td class="is-num">0%</td><td class="is-num">52,300명</td></tr>
+              <tr><td>10:00</td><td>11:00</td><td class="is-num">15%</td><td class="is-num">61,940명</td></tr>
+              <tr><td>11:00</td><td>12:00</td><td class="is-num">0%</td><td class="is-num">58,120명</td></tr>
+              <tr><td>12:00</td><td>13:00</td><td class="is-num">0%</td><td class="is-num">49,870명</td></tr>
+              <tr><td>13:00</td><td>14:00</td><td class="is-num">10%</td><td class="is-num">55,430명</td></tr>
+              <tr><td>14:00</td><td>15:00</td><td class="is-num">0%</td><td class="is-num">67,210명</td></tr>
+              <tr><td>15:00</td><td>16:00</td><td class="is-num">0%</td><td class="is-num">63,050명</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel__foot">
+        <button type="button" class="btn btn--save">현재상태 저장</button>
+      </div>
+    </section>
+
+    <!-- ---------- 우측 : 제2터미널 (미선택/비활성) ---------- -->
+    <section class="panel panel--disabled" aria-disabled="true">
+      <div class="panel__head">
+        <div class="terminal-badge terminal-badge--t2">
+          <img src="../svg/t2-white.svg" alt="T2">
+        </div>
+        <div class="summary">
+          <div class="summary__group">
+            <span class="summary__label">운항편</span>
+            <strong class="summary__value">9</strong>
+          </div>
+          <div class="summary__group">
+            <span class="summary__label">여객</span>
+            <strong class="summary__value">842,310</strong>
+          </div>
+          <div class="summary__group">
+            <span class="summary__label">피크</span>
+            <strong class="summary__value summary__value--accent">16:00</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart">
+        <div class="chart__head">
+          <h3 class="chart__title">운항편 수</h3>
+          <p class="chart__total">전체(누적) <strong>842</strong> 편</p>
+        </div>
+        <div class="chart__body">
+          <div class="chart__axis">
+            <span>300</span><span>200</span><span>100</span><span>0</span>
+          </div>
+          <div class="chart__plot">
+            <div class="chart__bars">
+              <span class="bar" style="--h:4%"></span>
+              <span class="bar" style="--h:6%"></span>
+              <span class="bar" style="--h:9%"></span>
+              <span class="bar" style="--h:22%"></span>
+              <span class="bar" style="--h:31%"></span>
+              <span class="bar" style="--h:44%"></span>
+              <span class="bar" style="--h:52%"></span>
+              <span class="bar" style="--h:48%"></span>
+              <span class="bar" style="--h:27%"></span>
+              <span class="bar" style="--h:21%"></span>
+              <span class="bar" style="--h:11%"></span>
+              <span class="bar" style="--h:5%"></span>
+            </div>
+          </div>
+        </div>
+        <div class="chart__scale">
+          <span>04</span><span>06</span><span>08</span><span>10</span>
+          <span>12</span><span>14</span><span>16</span><span>18</span>
+          <span>20</span><span>22</span><span>00</span><span>02</span>
+        </div>
+      </div>
+
+      <div class="chart">
+        <div class="chart__head">
+          <h3 class="chart__title">여객 수</h3>
+          <p class="chart__total">전체(누적) <strong>842,310</strong> 명</p>
+        </div>
+        <div class="chart__body">
+          <div class="chart__axis">
+            <span>300</span><span>200</span><span>100</span><span>0</span>
+          </div>
+          <div class="chart__plot">
+            <div class="chart__bars">
+              <span class="bar" style="--h:5%"></span>
+              <span class="bar" style="--h:7%"></span>
+              <span class="bar" style="--h:10%"></span>
+              <span class="bar" style="--h:23%"></span>
+              <span class="bar" style="--h:30%"></span>
+              <span class="bar" style="--h:45%"></span>
+              <span class="bar" style="--h:53%"></span>
+              <span class="bar" style="--h:47%"></span>
+              <span class="bar" style="--h:26%"></span>
+              <span class="bar" style="--h:20%"></span>
+              <span class="bar" style="--h:12%"></span>
+              <span class="bar" style="--h:4%"></span>
+            </div>
+          </div>
+        </div>
+        <div class="chart__scale">
+          <span>04</span><span>06</span><span>08</span><span>10</span>
+          <span>12</span><span>14</span><span>16</span><span>18</span>
+          <span>20</span><span>22</span><span>00</span><span>02</span>
+        </div>
+      </div>
+
+      <div class="editor">
+        <div class="editor__opts">
+          <label class="radio">
+            <input type="radio" name="mode-t2" value="ratio" checked disabled>
+            <span class="radio__mark"></span>
+            <span class="radio__text">운항편 전체 비율로 수정</span>
+          </label>
+          <div class="stepper">
+            <button type="button" class="stepper__btn" data-step="-5" aria-label="감소" disabled>
+              <img src="../svg/chevron-left-icon.svg" alt="">
+            </button>
+            <span class="stepper__value">0%</span>
+            <button type="button" class="stepper__btn" data-step="5" aria-label="증가" disabled>
+              <img src="../svg/chevron-right-icon.svg" alt="">
+            </button>
+          </div>
+        </div>
+
+        <label class="radio">
+          <input type="radio" name="mode-t2" value="hourly" disabled>
+          <span class="radio__mark"></span>
+          <span class="radio__text">시간대별 운항편 수정</span>
+        </label>
+
+        <div class="table-wrap scroll-area is-dim">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th scope="col">시작시간</th>
+                <th scope="col">종료시간</th>
+                <th scope="col">수정</th>
+                <th scope="col">승객 수</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>04:00</td><td>05:00</td><td class="is-num">0%</td><td class="is-num">8,120명</td></tr>
+              <tr><td>05:00</td><td>06:00</td><td class="is-num">0%</td><td class="is-num">11,460명</td></tr>
+              <tr><td>06:00</td><td>07:00</td><td class="is-num">0%</td><td class="is-num">16,900명</td></tr>
+              <tr><td>07:00</td><td>08:00</td><td class="is-num">0%</td><td class="is-num">21,340명</td></tr>
+              <tr><td>08:00</td><td>09:00</td><td class="is-num">0%</td><td class="is-num">29,770명</td></tr>
+              <tr><td>09:00</td><td>10:00</td><td class="is-num">0%</td><td class="is-num">35,010명</td></tr>
+              <tr><td>10:00</td><td>11:00</td><td class="is-num">0%</td><td class="is-num">41,220명</td></tr>
+              <tr><td>11:00</td><td>12:00</td><td class="is-num">0%</td><td class="is-num">39,880명</td></tr>
+              <tr><td>12:00</td><td>13:00</td><td class="is-num">0%</td><td class="is-num">33,150명</td></tr>
+              <tr><td>13:00</td><td>14:00</td><td class="is-num">0%</td><td class="is-num">37,600명</td></tr>
+              <tr><td>14:00</td><td>15:00</td><td class="is-num">0%</td><td class="is-num">45,730명</td></tr>
+              <tr><td>15:00</td><td>16:00</td><td class="is-num">0%</td><td class="is-num">42,090명</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="panel__foot"></div>
+    </section>
+
+  </div>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>

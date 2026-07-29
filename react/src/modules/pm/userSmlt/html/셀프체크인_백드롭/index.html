@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM 예측관리 / 사용자 시뮬레이션 - 셀프체크인/백드롭</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== 배경 데코 ===== -->
+<div class="bg-deco">
+  <span class="bg-deco__t1"></span>
+  <span class="bg-deco__t2"></span>
+</div>
+
+<!-- ===== 헤더 ===== -->
+<header class="gnb">
+  <h1 class="gnb__title">PM 예측관리 / 사용자 시뮬레이션</h1>
+
+  <div class="gnb__center">
+    <div class="date-picker">
+      <span class="date-picker__label">기준일자</span>
+      <img class="date-picker__icon" src="../svg/calendar-icon.svg" alt="">
+      <span class="date-picker__value">2024/10/23</span>
+      <button type="button" class="date-picker__search" aria-label="검색">
+        <img src="../svg/search-white-icon.svg" alt="">
+      </button>
+    </div>
+  </div>
+
+  <div class="gnb__right">
+    <button type="button" class="btn btn--run">
+      <img src="../svg/play-icon.svg" alt="">
+      <span>시뮬레이션 실행</span>
+    </button>
+    <a href="#" class="gnb__link">시뮬레이션 이력</a>
+  </div>
+</header>
+
+<!-- ===== 본문 ===== -->
+<main class="content">
+
+  <!-- 탭 -->
+  <nav class="tabs">
+    <button type="button" class="tabs__item">운항편/여객수</button>
+    <button type="button" class="tabs__item">체크인 카운터</button>
+    <button type="button" class="tabs__item is-active">셀프체크인/백드롭</button>
+    <button type="button" class="tabs__item">출국장</button>
+    <button type="button" class="tabs__item">보안 검색대</button>
+  </nav>
+
+  <!-- 패널 영역 -->
+  <div class="panels">
+
+    <!-- ---------- 좌측 : 제1터미널 (선택/활성) ---------- -->
+    <section class="panel panel--active">
+      <div class="panel__head">
+        <div class="terminal-badge terminal-badge--t1">
+          <img src="../svg/t1-white.svg" alt="T1">
+        </div>
+        <div class="summary">
+          <div class="summary__group">
+            <span class="summary__label">전체</span>
+            <strong class="summary__value">14</strong>
+          </div>
+          <div class="summary__group">
+            <span class="summary__label">운영</span>
+            <strong class="summary__value">4</strong>
+          </div>
+          <div class="summary__group">
+            <span class="summary__label">아일랜드</span>
+            <strong class="summary__value summary__value--island">A</strong>
+          </div>
+          <button type="button" class="summary__map" aria-label="지도 보기">
+            <img src="../svg/map-white-icon.svg" alt="">
+          </button>
+        </div>
+      </div>
+
+      <!-- 기기별 운영시간 -->
+      <div class="devices">
+        <div class="device">
+          <div class="device__head">
+            <h3 class="device__name">셀프체크인 키오스크</h3>
+            <label class="checkbox">
+              <input type="checkbox">
+              <span class="checkbox__mark"></span>
+              <span class="checkbox__text">미운영</span>
+            </label>
+          </div>
+          <div class="device__info">
+            <p class="device__line"><span>운영 대수</span><strong>8</strong></p>
+            <p class="device__line"><span>선택 범위</span><strong>06:00 - 14:00, 16:00 - 22:00</strong></p>
+          </div>
+          <div class="timebar" role="group" aria-label="셀프체크인 키오스크 운영 시간">
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+          </div>
+          <div class="timebar__scale">
+            <span>00:00</span><span>04:00</span><span>08:00</span><span>12:00</span>
+            <span>16:00</span><span>20:00</span><span>24:00</span>
+          </div>
+        </div>
+
+        <div class="device">
+          <div class="device__head">
+            <h3 class="device__name">셀프백드롭</h3>
+            <label class="checkbox">
+              <input type="checkbox">
+              <span class="checkbox__mark"></span>
+              <span class="checkbox__text">미운영</span>
+            </label>
+          </div>
+          <div class="device__info">
+            <p class="device__line"><span>운영 대수</span><strong>6</strong></p>
+            <p class="device__line"><span>선택 범위</span><strong>06:00 - 14:00, 16:00 - 21:00</strong></p>
+          </div>
+          <div class="timebar" role="group" aria-label="셀프백드롭 운영 시간">
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot is-on"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+          </div>
+          <div class="timebar__scale">
+            <span>00:00</span><span>04:00</span><span>08:00</span><span>12:00</span>
+            <span>16:00</span><span>20:00</span><span>24:00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 아일랜드 -->
+      <div class="islands">
+        <button type="button" class="island is-active">A</button>
+        <button type="button" class="island">B</button>
+        <button type="button" class="island">C</button>
+        <button type="button" class="island">D</button>
+        <button type="button" class="island">E</button>
+        <button type="button" class="island">F</button>
+        <button type="button" class="island">G</button>
+        <button type="button" class="island">H</button>
+        <button type="button" class="island">J</button>
+        <button type="button" class="island">K</button>
+        <button type="button" class="island">L</button>
+        <button type="button" class="island">M</button>
+        <button type="button" class="island">N</button>
+      </div>
+
+      <div class="panel__foot">
+        <button type="button" class="btn btn--save">현재상태 저장</button>
+      </div>
+    </section>
+
+    <!-- ---------- 우측 : 제2터미널 (미선택/비활성) ---------- -->
+    <section class="panel panel--disabled" aria-disabled="true">
+      <div class="panel__head">
+        <div class="terminal-badge terminal-badge--t2">
+          <img src="../svg/t2-white.svg" alt="T2">
+        </div>
+        <div class="summary">
+          <div class="summary__group">
+            <span class="summary__label">전체</span>
+            <strong class="summary__value">8</strong>
+          </div>
+          <div class="summary__group">
+            <span class="summary__label">운영</span>
+            <strong class="summary__value">0</strong>
+          </div>
+          <div class="summary__group">
+            <span class="summary__label">아일랜드</span>
+            <strong class="summary__value summary__value--island"></strong>
+          </div>
+          <button type="button" class="summary__map" aria-label="지도 보기" disabled>
+            <img src="../svg/map-white-icon.svg" alt="">
+          </button>
+        </div>
+      </div>
+
+      <div class="devices">
+        <div class="device">
+          <div class="device__head">
+            <h3 class="device__name">셀프체크인 키오스크</h3>
+            <label class="checkbox">
+              <input type="checkbox" disabled>
+              <span class="checkbox__mark"></span>
+              <span class="checkbox__text">미운영</span>
+            </label>
+          </div>
+          <div class="device__info">
+            <p class="device__line"><span>운영 대수</span><strong></strong></p>
+            <p class="device__line"><span>선택 범위</span><strong></strong></p>
+          </div>
+          <div class="timebar">
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+          </div>
+          <div class="timebar__scale">
+            <span>00:00</span><span>04:00</span><span>08:00</span><span>12:00</span>
+            <span>16:00</span><span>20:00</span><span>24:00</span>
+          </div>
+        </div>
+
+        <div class="device">
+          <div class="device__head">
+            <h3 class="device__name">셀프백드롭</h3>
+            <label class="checkbox">
+              <input type="checkbox" disabled>
+              <span class="checkbox__mark"></span>
+              <span class="checkbox__text">미운영</span>
+            </label>
+          </div>
+          <div class="device__info">
+            <p class="device__line"><span>운영 대수</span><strong></strong></p>
+            <p class="device__line"><span>선택 범위</span><strong></strong></p>
+          </div>
+          <div class="timebar">
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+            <span class="timebar__slot"></span>
+          </div>
+          <div class="timebar__scale">
+            <span>00:00</span><span>04:00</span><span>08:00</span><span>12:00</span>
+            <span>16:00</span><span>20:00</span><span>24:00</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="islands">
+        <button type="button" class="island" disabled>A</button>
+        <button type="button" class="island" disabled>B</button>
+        <button type="button" class="island" disabled>C</button>
+        <button type="button" class="island" disabled>D</button>
+        <button type="button" class="island" disabled>E</button>
+        <button type="button" class="island" disabled>F</button>
+        <button type="button" class="island" disabled>G</button>
+        <button type="button" class="island" disabled>H</button>
+        <button type="button" class="island" disabled>J</button>
+        <button type="button" class="island" disabled>K</button>
+        <button type="button" class="island" disabled>L</button>
+        <button type="button" class="island" disabled>M</button>
+        <button type="button" class="island" disabled>N</button>
+      </div>
+
+      <div class="panel__foot"></div>
+    </section>
+
+  </div>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM 예측관리 / 사용자 시뮬레이션</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== 배경 데코 ===== -->
+<div class="bg-deco">
+  <span class="bg-deco__t1"></span>
+  <span class="bg-deco__t2"></span>
+</div>
+
+<!-- ===== 헤더 ===== -->
+<header class="gnb">
+  <h1 class="gnb__title">PM 예측관리 / 사용자 시뮬레이션</h1>
+
+  <div class="gnb__center">
+    <div class="date-picker">
+      <span class="date-picker__label">기준일자</span>
+      <img class="date-picker__icon" src="../svg/calendar-icon.svg" alt="">
+      <span class="date-picker__value">2024/10/23</span>
+      <button type="button" class="date-picker__search" aria-label="검색">
+        <img src="../svg/search-white-icon.svg" alt="">
+      </button>
+    </div>
+  </div>
+
+  <div class="gnb__right">
+    <button type="button" class="btn btn--run">
+      <img src="../svg/play-icon.svg" alt="">
+      <span>시뮬레이션 실행</span>
+    </button>
+    <a href="#" class="gnb__link">시뮬레이션 이력</a>
+  </div>
+</header>
+
+<!-- ===== 본문 ===== -->
+<main class="content">
+
+  <!-- 탭 -->
+  <nav class="tabs">
+    <button type="button" class="tabs__item">운항편/여객수</button>
+    <button type="button" class="tabs__item is-active">체크인 카운터</button>
+    <button type="button" class="tabs__item">셀프체크인/백드롭</button>
+    <button type="button" class="tabs__item">출국장</button>
+    <button type="button" class="tabs__item">보안 검색대</button>
+  </nav>
+
+  <!-- 패널 영역 -->
+  <div class="panels">
+
+    <!-- ---------- 좌측 : 선택(활성) ---------- -->
+    <section class="panel panel--active">
+      <div class="panel__head">
+        <div class="terminal-badge terminal-badge--t1">
+          <img src="../svg/t1-white.svg" alt="T1">
+        </div>
+        <div class="summary">
+          <div class="summary__group">
+            <span class="summary__label">전체</span>
+            <strong class="summary__value">36</strong>
+          </div>
+          <div class="summary__group">
+            <span class="summary__label">운영</span>
+            <strong class="summary__value">0</strong>
+          </div>
+          <div class="summary__group">
+            <span class="summary__label">아일랜드</span>
+            <strong class="summary__value summary__value--island">A</strong>
+          </div>
+          <button type="button" class="summary__map" aria-label="지도 보기">
+            <img src="../svg/map-white-icon.svg" alt="">
+          </button>
+        </div>
+      </div>
+
+      <div class="counter-grid">
+        <!-- 항공사 (상단) -->
+        <div class="counter-grid__row">
+          <span class="chip">항공사</span>
+          <div class="cells">
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+          </div>
+        </div>
+
+        <!-- 번호 -->
+        <div class="counter-grid__row counter-grid__row--num">
+          <span class="chip">번호</span>
+          <div class="cells">
+            <span class="cell-num">1</span>
+            <span class="cell-num">2</span>
+            <span class="cell-num">3</span>
+            <span class="cell-num">4</span>
+            <span class="cell-num">5</span>
+            <span class="cell-num">6</span>
+            <span class="cell-num">7</span>
+            <span class="cell-num">8</span>
+            <span class="cell-num">9</span>
+            <span class="cell-num">10</span>
+            <span class="cell-num">11</span>
+            <span class="cell-num">12</span>
+            <span class="cell-num">13</span>
+            <span class="cell-num">14</span>
+            <span class="cell-num">15</span>
+            <span class="cell-num">16</span>
+            <span class="cell-num">17</span>
+            <span class="cell-num">18</span>
+          </div>
+        </div>
+
+        <!-- 항공사 (하단) -->
+        <div class="counter-grid__row">
+          <span class="chip">항공사</span>
+          <div class="cells">
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell is-custom">Cus<br>tom</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+            <button type="button" class="cell">N/A</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 운영시간 -->
+      <div class="timebox">
+        <div class="timebox__info">
+          <p class="timebox__line"><span>카운터</span><strong>11</strong></p>
+          <p class="timebox__line"><span>선택 범위</span><strong>06:00 - 15:00</strong></p>
+        </div>
+        <div class="timebar" role="group" aria-label="운영 시간 선택">
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot is-on"></span>
+          <span class="timebar__slot is-on"></span>
+          <span class="timebar__slot is-on"></span>
+          <span class="timebar__slot is-on"></span>
+          <span class="timebar__slot is-on"></span>
+          <span class="timebar__slot is-on"></span>
+          <span class="timebar__slot is-on"></span>
+          <span class="timebar__slot is-on"></span>
+          <span class="timebar__slot is-on"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+        </div>
+        <div class="timebar__scale">
+          <span>00:00</span><span>04:00</span><span>08:00</span><span>12:00</span>
+          <span>16:00</span><span>20:00</span><span>24:00</span>
+        </div>
+      </div>
+
+      <!-- 아일랜드 -->
+      <div class="islands">
+        <button type="button" class="island is-active">A</button>
+        <button type="button" class="island">B</button>
+        <button type="button" class="island">C</button>
+        <button type="button" class="island">D</button>
+        <button type="button" class="island">E</button>
+        <button type="button" class="island">F</button>
+        <button type="button" class="island">G</button>
+        <button type="button" class="island">H</button>
+        <button type="button" class="island">J</button>
+        <button type="button" class="island">K</button>
+        <button type="button" class="island">L</button>
+        <button type="button" class="island">M</button>
+        <button type="button" class="island">N</button>
+      </div>
+
+      <div class="panel__foot">
+        <button type="button" class="btn btn--save">현재상태 저장</button>
+      </div>
+    </section>
+
+    <!-- ---------- 우측 : 미선택(비활성) ---------- -->
+    <section class="panel panel--disabled" aria-disabled="true">
+      <div class="panel__head">
+        <div class="terminal-badge terminal-badge--t2">
+          <img src="../svg/t2-white.svg" alt="T2">
+        </div>
+        <div class="summary">
+          <div class="summary__group">
+            <span class="summary__label">전체</span>
+            <strong class="summary__value">36</strong>
+          </div>
+          <div class="summary__group">
+            <span class="summary__label">운영</span>
+            <strong class="summary__value">0</strong>
+          </div>
+          <div class="summary__group">
+            <span class="summary__label">아일랜드</span>
+            <strong class="summary__value summary__value--island"></strong>
+          </div>
+          <button type="button" class="summary__map" aria-label="지도 보기" disabled>
+            <img src="../svg/map-white-icon.svg" alt="">
+          </button>
+        </div>
+      </div>
+
+      <div class="counter-grid">
+        <div class="counter-grid__row">
+          <span class="chip">항공사</span>
+          <div class="cells">
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+          </div>
+        </div>
+
+        <div class="counter-grid__row counter-grid__row--num">
+          <span class="chip">번호</span>
+          <div class="cells">
+            <span class="cell-num">1</span>
+            <span class="cell-num">2</span>
+            <span class="cell-num">3</span>
+            <span class="cell-num">4</span>
+            <span class="cell-num">5</span>
+            <span class="cell-num">6</span>
+            <span class="cell-num">7</span>
+            <span class="cell-num">8</span>
+            <span class="cell-num">9</span>
+            <span class="cell-num">10</span>
+            <span class="cell-num">11</span>
+            <span class="cell-num">12</span>
+            <span class="cell-num">13</span>
+            <span class="cell-num">14</span>
+            <span class="cell-num">15</span>
+            <span class="cell-num">16</span>
+            <span class="cell-num">17</span>
+            <span class="cell-num">18</span>
+          </div>
+        </div>
+
+        <div class="counter-grid__row">
+          <span class="chip">항공사</span>
+          <div class="cells">
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+            <button type="button" class="cell" disabled>N/A</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="timebox">
+        <div class="timebox__info">
+          <p class="timebox__line"><span>카운터</span><strong></strong></p>
+          <p class="timebox__line"><span>선택 범위</span><strong></strong></p>
+        </div>
+        <div class="timebar">
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+          <span class="timebar__slot"></span>
+        </div>
+        <div class="timebar__scale">
+          <span>00:00</span><span>04:00</span><span>08:00</span><span>12:00</span>
+          <span>16:00</span><span>20:00</span><span>24:00</span>
+        </div>
+      </div>
+
+      <div class="islands">
+        <button type="button" class="island" disabled>A</button>
+        <button type="button" class="island" disabled>B</button>
+        <button type="button" class="island" disabled>C</button>
+        <button type="button" class="island" disabled>D</button>
+        <button type="button" class="island" disabled>E</button>
+        <button type="button" class="island" disabled>F</button>
+        <button type="button" class="island" disabled>G</button>
+        <button type="button" class="island" disabled>H</button>
+        <button type="button" class="island" disabled>J</button>
+        <button type="button" class="island" disabled>K</button>
+        <button type="button" class="island" disabled>L</button>
+        <button type="button" class="island" disabled>M</button>
+        <button type="button" class="island" disabled>N</button>
+      </div>
+
+      <div class="panel__foot"></div>
+    </section>
+
+  </div>
+</main>
+
+</body>
+</html>
