@@ -26,11 +26,22 @@
 }
 
 html,
-body {
+body,
+#root {
     margin: 0;
     padding: 0;
     height: 100%;
     overflow: hidden;
+}
+
+/* 원본 퍼블리싱은 body 바로 아래에 GNB/본문이 있었지만 React 는 #root 가 한 겹 끼어든다.
+   #root 가 flex 사슬을 이어주지 않으면 .content → .panels → .panel 의 높이가 전부
+   auto 로 풀려 카드 안 요소들이 겹쳐 보인다. */
+#root {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
 }
 
 body {
@@ -263,14 +274,24 @@ a {
 /* =========================================================
    Content
    ========================================================= */
-.content {
+
+/* GNB 아래 본문 — 좌측 LNB 레일 + 탭/패널 영역 (맵 형태 조회 화면과 동일 구성) */
+.body {
     position: relative;
     z-index: 1;
     flex: 1 1 auto;
     display: flex;
-    flex-direction: column;
+    gap: 16px;
     min-height: 0;
     padding: clamp(12px, 2vh, 22px) 24px clamp(14px, 2.6vh, 28px);
+}
+
+.content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
 }
 
 /* 탭 */
@@ -428,6 +449,35 @@ a {
     color: var(--primary);
 }
 
+/* 아일랜드 요약 — 선택 전에도 자리를 유지한다 */
+.summary__value--island {
+    min-width: 12px;
+    color: var(--primary);
+}
+
+/* 요약 우측 지도 버튼 */
+.summary__map {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-left: auto;
+    border-radius: 50%;
+    background: var(--primary);
+    transition: background 0.15s;
+}
+.summary__map:hover {
+    background: var(--primary-dark);
+}
+.summary__map svg {
+    width: 17px;
+    height: 17px;
+}
+.panel--disabled .summary__map {
+    background: #c3c3c3;
+}
+
 /* --- 패널 푸터 --- */
 .panel__foot {
     flex: 0 0 auto;
@@ -436,6 +486,103 @@ a {
     justify-content: center;
     min-height: clamp(38px, 4.3vh, 46px);
     margin-top: clamp(10px, 1.8vh, 20px);
+}
+
+/* =========================================================
+   체크박스 (셀프체크인/백드롭 · 보안 검색대 공용)
+   ========================================================= */
+.checkbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+}
+.checkbox input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.checkbox__mark {
+    position: relative;
+    flex: 0 0 auto;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid #b9bdcb;
+    border-radius: 5px;
+    background: #fff;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
+}
+.checkbox__mark::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('../../../assets/svg/check-white-icon.svg') center / 12px 12px no-repeat;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.checkbox input:checked + .checkbox__mark {
+    border-color: var(--primary);
+    background: var(--primary);
+}
+.checkbox input:checked + .checkbox__mark::after {
+    opacity: 1;
+}
+
+.checkbox__text {
+    font-size: 13px;
+    color: #5e6470;
+}
+.checkbox input:checked ~ .checkbox__text {
+    font-weight: 700;
+    color: var(--primary);
+}
+
+/* =========================================================
+   아일랜드 선택 (체크인 카운터 · 셀프체크인/백드롭 공용)
+   ========================================================= */
+.islands {
+    flex: 0 0 auto;
+    display: flex;
+    justify-content: center;
+    gap: clamp(6px, 0.9vw, 12px);
+    margin-bottom: clamp(14px, 3.1vh, 34px);
+}
+
+/* 아일랜드 14개가 좁은 패널에서도 잘리지 않도록 폭만 줄어들게 둔다
+   (글자는 한 글자라 폭이 줄어도 읽힌다) */
+.island {
+    flex: 0 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: clamp(36px, 4.6vh, 50px);
+    height: clamp(36px, 4.6vh, 50px);
+    border-radius: 8px;
+    background: rgba(226, 226, 242, 0.85);
+    font-size: clamp(14px, 1.6vh, 17px);
+    font-weight: 500;
+    color: var(--text);
+    transition:
+        background 0.15s,
+        color 0.15s;
+}
+.island:hover {
+    background: #d3d3ee;
+}
+
+.island.is-active {
+    background: var(--primary);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(68, 65, 204, 0.28);
 }
 
 /* =========================================================
@@ -471,7 +618,8 @@ a {
 }
 
 @media (max-width: 1200px) {
-    .content {
+    .body {
+        gap: 12px;
         padding-left: 14px;
         padding-right: 14px;
     }

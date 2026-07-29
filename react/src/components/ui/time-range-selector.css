@@ -45,16 +45,27 @@
     transition: background 0.15s;
 }
 
+.timebar__slot:hover {
+    background: #d4d4dc;
+}
+
 .timebar__slot.is-on {
     background: var(--primary-light, #a09eff);
 }
 
-/* 드래그 중 미리보기 — 추가는 진한 보라, 해제는 회색 점선 느낌의 옅은 색 */
-.timebar__slot.is-preview-add {
+.timebar__slot.is-on:hover {
+    background: #8c8af0;
+}
+
+/* 드래그 중 미리보기 — 추가는 진한 보라, 해제는 회색 점선 느낌의 옅은 색
+   (:hover 규칙보다 우선해야 하므로 동일하게 :hover 를 붙여 특이도를 맞춘다) */
+.timebar__slot.is-preview-add,
+.timebar__slot.is-preview-add:hover {
     background: var(--primary, #4441cc);
 }
 
-.timebar__slot.is-preview-remove {
+.timebar__slot.is-preview-remove,
+.timebar__slot.is-preview-remove:hover {
     background: #d3d5de;
 }
 
