@@ -1,4 +1,3 @@
-import './departure.css';
 import { useState } from 'react';
 import type { TimeRange } from '@/components/ui/time-range-selector';
 import { SummaryMapButton } from '../../components/SummaryMapButton';

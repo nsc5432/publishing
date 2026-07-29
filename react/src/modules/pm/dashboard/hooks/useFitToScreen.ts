@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 
 /**
  * index.html 의 fit-to-screen 로직 이식.
@@ -6,6 +6,9 @@ import { useEffect, useRef } from 'react';
  * scale = min(vw/1920, vh/1080) 이므로 어떤 해상도에서도 잘리는 요소가 없고,
  * 남는 공간은 .app 의 논리 크기를 키워 flex 영역이 흡수한다(레터박스 없음).
  * 단, 화면비가 크게 다를 때 과도하게 늘어나지 않도록 확장 한도를 둔다.
+ *
+ * 계산 결과는 :root 에 올린다. 축소 대상인 .app 뿐 아니라 그 밖에 있는
+ * LNB 레일도 같은 값으로 위치를 잡아야 하기 때문이다(dashboard.css 의 sidebar 참고).
  */
 const DW = 1920;
 const DH = 1080;
@@ -20,13 +23,12 @@ const GUTTER = 24;
  */
 const ZOOM = 0.92;
 
-export function useFitToScreen<T extends HTMLElement>() {
-    const ref = useRef<T>(null);
+/** :root 에 올리는 CSS 변수 목록 (언마운트 시 되돌린다) */
+const VARS = ['--scale', '--app-w', '--app-h', '--app-x', '--app-y'] as const;
 
+export function useFitToScreen() {
     useEffect(() => {
-        const app = ref.current;
-        if (!app) return;
-
+        const root = document.documentElement;
         let raf = 0;
 
         const fit = () => {
@@ -39,11 +41,11 @@ export function useFitToScreen<T extends HTMLElement>() {
             const s = Math.min(availW / DW, availH / DH) * ZOOM;
             const w = Math.min(Math.round(availW / s), MAXW);
             const h = Math.min(Math.round(availH / s), MAXH);
-            app.style.setProperty('--scale', String(s));
-            app.style.setProperty('--app-w', `${w}px`);
-            app.style.setProperty('--app-h', `${h}px`);
-            app.style.setProperty('--app-x', `${Math.round((vw - w * s) / 2)}px`);
-            app.style.setProperty('--app-y', `${Math.round((vh - h * s) / 2)}px`);
+            root.style.setProperty('--scale', String(s));
+            root.style.setProperty('--app-w', `${w}px`);
+            root.style.setProperty('--app-h', `${h}px`);
+            root.style.setProperty('--app-x', `${Math.round((vw - w * s) / 2)}px`);
+            root.style.setProperty('--app-y', `${Math.round((vh - h * s) / 2)}px`);
         };
 
         const onResize = () => {
@@ -58,8 +60,7 @@ export function useFitToScreen<T extends HTMLElement>() {
             if (raf) cancelAnimationFrame(raf);
             window.removeEventListener('resize', onResize);
             window.visualViewport?.removeEventListener('resize', onResize);
+            VARS.forEach((name) => root.style.removeProperty(name));
         };
     }, []);
-
-    return ref;
 }

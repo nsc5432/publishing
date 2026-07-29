@@ -1,4 +1,3 @@
-import './flightPax.css';
 import { useState } from 'react';
 import { TerminalPanel } from '../../components/TerminalPanel';
 import { TERMINALS, type TerminalKind } from '../../types';

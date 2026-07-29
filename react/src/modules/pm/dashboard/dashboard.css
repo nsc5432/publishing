@@ -1,24 +1,27 @@
-/* ===== PM 예측관리 대시보드 — static styles (index.html 이식) ===== */
+@charset "utf-8";
+
+/* =====================================================================
+   PM 예측관리 / 대시보드 (일일 시뮬레이션 결과 조회 — 요약)
+   전역 리셋·토큰·공용 컴포넌트는 src/reset.css, src/common.css 참고.
+   여기에는 이 화면에서만 쓰는 스타일만 둔다.
+   ===================================================================== */
+
+/* =====================================================================
+   0. 화면 기본값
+   ===================================================================== */
+/* 대시보드는 드래그 선택이 필요 없는 조회 화면이라 텍스트 선택을 막는다 */
 * {
-    box-sizing: border-box;
     -webkit-user-select: none;
     user-select: none;
 }
+
 html,
 body {
-    margin: 0;
-    padding: 0;
     width: 100%;
-    height: 100%;
     overflow: hidden;
 }
+
 body {
-    font-family:
-        Pretendard,
-        system-ui,
-        -apple-system,
-        'Malgun Gothic',
-        sans-serif;
     color: var(--ink);
     background:
         radial-gradient(120% 70% at 8% 3%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 55%),
@@ -27,9 +30,7 @@ body {
         linear-gradient(150deg, #eceaf4 0%, #e7e7f2 45%, #e7ecf3 100%);
     background-attachment: fixed;
 }
-img {
-    display: block;
-}
+
 i[data-ic] {
     display: inline-flex;
     align-items: center;
@@ -41,6 +42,9 @@ i[data-ic] > svg {
     display: block;
 }
 
+/* =====================================================================
+   1. 화면 전용 토큰
+   ===================================================================== */
 :root {
     --purple: #4441cc;
     --blue: #3f80ea;
@@ -98,11 +102,13 @@ i[data-ic] > svg {
     flex-direction: column;
     overflow: hidden;
 }
+/* LNB 레일은 .app 밖에 있으므로(축소 제외) 그만큼 왼쪽을 비워둔다.
+   비워야 하는 실제 폭 = 레일 79px + 본문과의 간격 16px = 95px.
+   .body 는 축소 좌표계라 실제 px 로 환산하려면 --scale 로 나눈다. */
 .body {
     display: flex;
     flex: 1;
-    gap: 24px;
-    padding: 20px 30px 24px 26px;
+    padding: 20px 30px 24px calc(95px / var(--scale, 1));
     min-height: 0;
 }
 .main {
@@ -315,7 +321,20 @@ i[data-ic] > svg {
 }
 
 /* ============ sidebar ============
-   화면 공용 LNB 컴포넌트로 분리했다. 스타일은 @/components/lnb/lnb.css 참고. */
+   레일 자체의 모양은 화면 공용이다(src/common.css 의 4-1 참고).
+   이 화면만 배치가 다르다 : .app 은 fit-to-screen 으로 축소되는데 그 안에 레일을
+   두면 다른 화면(terminalMap / userSmlt)보다 레일이 작게 보인다. transform 안에서는
+   축소를 벗어날 수 없어 레일을 .app 의 형제로 빼고 여기서 고정 배치한다.
+   → 폭 79px · 좌측 24px 로 다른 화면과 실제 픽셀이 같아진다.
+   위아래는 축소된 본문(첫 카드 행 ~ 하단)에 맞춰 --scale / --app-y 로 환산한다. */
+.sidebar {
+    position: fixed;
+    /* topbar(70px) + .body 상단 여백(20px) 만큼 내려 첫 카드 행과 위를 맞춘다 */
+    top: calc(var(--app-y, 0px) + 90px * var(--scale, 1));
+    bottom: calc(var(--app-y, 0px) + 24px * var(--scale, 1));
+    left: var(--app-x, 24px);
+    z-index: 20;
+}
 
 /* ============ row 1 : cards ============ */
 .c-plan {

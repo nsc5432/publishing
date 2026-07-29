@@ -1,4 +1,3 @@
-import './security.css';
 import { useState } from 'react';
 import { MinusIcon, PlusWhiteIcon } from '@/components/icons';
 import { TerminalPanel } from '../../components/TerminalPanel';

@@ -1,0 +1,356 @@
+@charset "utf-8";
+
+/* =====================================================================
+   common.css — 화면 공통 자산
+   main.tsx 에서 reset.css 다음에 불러온다.
+
+   1. 디자인 토큰 (shadcn/ui · tailwind.config.js 와 연동)
+   2. 기본 타이포그래피
+   3. 공용 유틸 (.blind / .scroll-area / 애니메이션)
+   4. 공용 컴포넌트 (LNB 레일 / 시간대 선택바)
+
+   화면 전용 스타일은 modules/pm/<화면>/<화면>.css 에서 관리한다.
+     - dashboard   : modules/pm/dashboard/dashboard.css
+     - terminalMap : modules/pm/terminalMap/terminalMap.css
+     - userSmlt    : modules/pm/userSmlt/userSmlt.css
+   ===================================================================== */
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================================================
+   1. 디자인 토큰
+   HSL 3요소만 담아 tailwind 의 hsl(var(--토큰)) 문법과 맞춘다.
+   ===================================================================== */
+:root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 221 83% 53%; /* Navy Blue */
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%; /* Red alert */
+    --destructive-foreground: 210 40% 98%;
+    --warning: 48 96% 53%; /* Yellow alert */
+    --warning-foreground: 222 47% 11%;
+    --success: 142 71% 45%; /* Green alert */
+    --success-foreground: 210 40% 98%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 221 83% 53%;
+    --radius: 0.5rem;
+
+    /* Charts (HSL 근사치) */
+    --chart-1: 221 83% 53%;
+    --chart-2: 48 96% 53%;
+    --chart-3: 0 84% 60%;
+    --chart-4: 199 89% 48%;
+    --chart-5: 280 67% 55%;
+
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+.dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 19% 27%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 19% 27%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 19% 27%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 19% 27%;
+    --input: 217 19% 27%;
+    --ring: 224 76% 48%;
+
+    --sidebar: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+/* shadcn/ui 컴포넌트의 border 기본색. 개별 지정이 있으면 그쪽이 이긴다. */
+* {
+    border-color: hsl(var(--border));
+}
+
+/* =====================================================================
+   2. 기본 타이포그래피
+   폰트만 공통으로 두고 배경/글자색/자간처럼 화면마다 다른 값은
+   각 화면 CSS 에서 덮어쓴다.
+
+   ⚠ 한글 폴백 순서 주의 : Pretendard 에 없는 한자(예: 同)는 다음 폰트로
+   넘어간다. Windows 기준 폰트인 'Malgun Gothic' 을 'Noto Sans KR' 보다
+   앞에 두어야 기존 퍼블리싱과 같은 글자 모양이 나온다.
+   ===================================================================== */
+body {
+    font-family:
+        Pretendard,
+        'Apple SD Gothic Neo',
+        'Malgun Gothic',
+        '맑은 고딕',
+        'Noto Sans KR',
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        sans-serif;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* =====================================================================
+   3. 공용 유틸
+   ===================================================================== */
+
+/* 화면 낭독기 전용 텍스트 */
+.blind {
+    overflow: hidden;
+    position: absolute;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    border: 0;
+    white-space: nowrap;
+}
+
+/* 세로 스크롤 영역 */
+.scroll-area {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+.scroll-area::-webkit-scrollbar {
+    width: 6px;
+}
+.scroll-area::-webkit-scrollbar-track {
+    background: transparent;
+}
+.scroll-area::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background: rgba(120, 124, 150, 0.28);
+}
+
+/* 로딩바 애니메이션 (components/ui/loading-bar.tsx) */
+@keyframes loading-bar-shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+/* =====================================================================
+   4. 공용 컴포넌트
+   ===================================================================== */
+
+/* ---------------------------------------------------------------------
+   4-1. LNB — 좌측 네비게이션 레일 (components/lnb/Lnb.tsx)
+   기준: 맵 형태 조회(terminalMap) 시안의 레일.
+   화면별 CSS 와 무관하게 동일하게 보이도록 버튼 초기화까지 여기서 한다.
+   --------------------------------------------------------------------- */
+.sidebar {
+    display: flex;
+    flex: none;
+    width: 79px;
+}
+.sidebar-inner {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    align-items: center;
+    padding: 28px 0 26px;
+    border-radius: 40px;
+    background: linear-gradient(180deg, #f1f1f7 0%, #f5f5f9 55%, #f6f7fa 100%);
+    box-shadow: 0 2px 10px rgba(63, 84, 145, 0.08);
+}
+.nav-list {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 25px;
+}
+.nav-item {
+    display: flex;
+    position: relative; /* 메뉴명 툴팁(.nav-tip) 기준 */
+    align-items: center;
+    justify-content: center;
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: #6e7683;
+    font-family: inherit;
+    cursor: pointer;
+}
+.nav-item.active {
+    background: linear-gradient(150deg, #4441cc, #5b57de);
+    color: #fff;
+    box-shadow: 0 5px 13px rgba(68, 65, 204, 0.35);
+}
+.nav-item.on {
+    color: #3b39c9;
+}
+.nav-sep {
+    width: 44px;
+    height: 1px;
+    margin: 16px 0;
+    background: #e0e0ea;
+}
+.nav-item.logout {
+    margin-top: auto;
+}
+
+/* 아이콘 메뉴명 툴팁 : 레일 오른쪽에 붙는다 */
+.nav-tip {
+    position: absolute;
+    top: 50%;
+    left: calc(100% + 12px);
+    z-index: 30;
+    padding: 7px 11px;
+    border-radius: 8px;
+    background: #2f3440;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.2;
+    white-space: nowrap;
+    opacity: 0;
+    box-shadow: 0 6px 16px rgba(30, 40, 70, 0.22);
+    pointer-events: none;
+    transform: translate(-4px, -50%);
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+}
+/* 말풍선 꼬리 */
+.nav-tip::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 100%;
+    border: 5px solid transparent;
+    border-right-color: #2f3440;
+    transform: translateY(-50%);
+}
+.nav-item:hover .nav-tip,
+.nav-item:focus-visible .nav-tip {
+    opacity: 1;
+    transform: translate(0, -50%);
+}
+
+/* ---------------------------------------------------------------------
+   4-2. TimeRangeSelector — 24슬롯 시간대 드래그 선택 바
+   (components/ui/time-range-selector.tsx)
+   퍼블리싱 .timebar (사용자 시뮬레이션 화면) 디자인 기준.
+   토큰(--primary 등)이 없는 화면에서도 쓰일 수 있어 fallback 을 둔다.
+   --------------------------------------------------------------------- */
+.timebar {
+    display: flex;
+    flex-direction: column;
+}
+
+/* 선택 범위 안내 */
+.timebar__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 clamp(8px, 1.5vh, 16px);
+    font-size: 13px;
+}
+.timebar__label {
+    color: var(--text-mute, #9aa0ac);
+}
+.timebar__value {
+    font-weight: 700;
+    color: var(--text, #333333);
+}
+
+/* 슬롯 트랙 */
+.timebar__track {
+    display: grid;
+    grid-template-columns: repeat(var(--slots, 24), minmax(0, 1fr));
+    gap: 7px;
+    margin-bottom: 8px;
+    cursor: crosshair;
+    user-select: none;
+}
+.timebar__slot {
+    height: clamp(14px, 2vh, 22px);
+    border-radius: 3px;
+    background: #e6e6e6;
+    transition: background 0.15s;
+}
+.timebar__slot:hover {
+    background: #d4d4dc;
+}
+.timebar__slot.is-on {
+    background: var(--primary-light, #a09eff);
+}
+.timebar__slot.is-on:hover {
+    background: #8c8af0;
+}
+
+/* 드래그 중 미리보기 — 추가는 진한 보라, 해제는 옅은 회색
+   (:hover 규칙보다 우선해야 하므로 동일하게 :hover 를 붙여 특이도를 맞춘다) */
+.timebar__slot.is-preview-add,
+.timebar__slot.is-preview-add:hover {
+    background: var(--primary, #4441cc);
+}
+.timebar__slot.is-preview-remove,
+.timebar__slot.is-preview-remove:hover {
+    background: #d3d5de;
+}
+
+/* 하단 시간 스케일 */
+.timebar__scale {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #6e747f;
+}
+
+/* 비활성 */
+.timebar.is-disabled .timebar__track {
+    cursor: not-allowed;
+}
+.timebar.is-disabled .timebar__slot {
+    background: #cfd0d1;
+}
+.timebar.is-disabled .timebar__slot.is-on {
+    background: #b6b7bd;
+}

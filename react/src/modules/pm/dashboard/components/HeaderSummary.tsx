@@ -26,8 +26,6 @@ interface HeaderSummaryProps {
     lastCalc: string;
     /** 재계산 예정 시각 */
     nextCalc: string;
-    /** 좌측 사이드바 슬롯 (Lnb) — 원본 DOM(.body > .sidebar + .main)을 유지하기 위해 주입 */
-    sidebar: ReactNode;
     /** .main 하단 영역 슬롯 (터미널 패널 등) */
     children: ReactNode;
 }
@@ -96,7 +94,6 @@ export function HeaderSummary({
     planDate,
     lastCalc,
     nextCalc,
-    sidebar,
     children,
 }: HeaderSummaryProps) {
     const [selHour, setSelHour] = useState(hour);
@@ -156,8 +153,8 @@ export function HeaderSummary({
                 </div>
             </header>
 
+            {/* LNB 는 .app 밖에 있다 (Dashboard.tsx 참고). 여기서는 레일 폭만 비워둔다. */}
             <div className="body">
-                {sidebar}
                 <main className="main">
                     {/* ============ ROW 1 ============ */}
                     <section className="row row--top">

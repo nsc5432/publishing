@@ -5,7 +5,7 @@ export type EditMode = 'ratio' | 'hourly';
 export interface ChartBar {
     /** 하단 스케일 라벨 (예: 04) */
     label: string;
-    /** 막대 높이 비율 0~100 (%) — flightPax.css 의 --h 로 전달 */
+    /** 막대 높이 비율 0~100 (%) — userSmlt.css 의 --h 로 전달 */
     ratio: number;
 }
 

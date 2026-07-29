@@ -1,4 +1,3 @@
-import './lnb.css';
 import { useState } from 'react';
 // PM 화면 공용 아이콘 세트 (레일 아이콘은 전 화면이 동일하다)
 import { Icon, type IconName } from '@/modules/pm/dashboard/components/PmIcons';

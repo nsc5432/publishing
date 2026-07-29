@@ -19,27 +19,32 @@ function Dashboard() {
     const [simulationType] = useState<SimulationType>(HEADER.defaultSimulation);
 
     // 1920x1080 기준을 뷰포트에 맞춰 축소/확대 (fit-to-screen)
-    const appRef = useFitToScreen<HTMLDivElement>();
+    useFitToScreen();
 
     return (
-        <div className="app" ref={appRef}>
-            <HeaderSummary
-                simulationType={simulationType}
-                baseDate={HEADER.baseDate}
-                hour={HEADER.defaultHour}
-                minute={HEADER.defaultMinute}
-                planDate={HEADER.planDate}
-                lastCalc={HEADER.lastCalc}
-                nextCalc={HEADER.nextCalc}
-                sidebar={<Lnb defaultTop={DEFAULT_NAV_TOP} defaultBottom={DEFAULT_NAV_BOTTOM} />}
-            >
-                <section className="row row--panels">
-                    {/* 제1터미널 = 왼쪽 / 제2터미널 = 오른쪽 */}
-                    <TerminalSummary terminal="T1" />
-                    <TerminalSummary terminal="T2" />
-                </section>
-            </HeaderSummary>
-        </div>
+        <>
+            {/* LNB 는 전 화면 공용 크롬이라 .app 의 축소(transform) 밖에 둔다.
+                안에 두면 다른 화면보다 레일이 작게 보인다. 배치는 dashboard.css 참고. */}
+            <Lnb defaultTop={DEFAULT_NAV_TOP} defaultBottom={DEFAULT_NAV_BOTTOM} />
+
+            <div className="app">
+                <HeaderSummary
+                    simulationType={simulationType}
+                    baseDate={HEADER.baseDate}
+                    hour={HEADER.defaultHour}
+                    minute={HEADER.defaultMinute}
+                    planDate={HEADER.planDate}
+                    lastCalc={HEADER.lastCalc}
+                    nextCalc={HEADER.nextCalc}
+                >
+                    <section className="row row--panels">
+                        {/* 제1터미널 = 왼쪽 / 제2터미널 = 오른쪽 */}
+                        <TerminalSummary terminal="T1" />
+                        <TerminalSummary terminal="T2" />
+                    </section>
+                </HeaderSummary>
+            </div>
+        </>
     );
 }
 

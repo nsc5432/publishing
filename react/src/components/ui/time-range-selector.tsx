@@ -1,4 +1,3 @@
-import './time-range-selector.css';
 import { useState, useEffect, type CSSProperties } from 'react';
 
 export interface TimeRange {

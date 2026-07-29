@@ -1,4 +1,3 @@
-import './selfCheckin.css';
 import { useState } from 'react';
 import type { TimeRange } from '@/components/ui/time-range-selector';
 import { IslandPicker } from '../../components/IslandPicker';

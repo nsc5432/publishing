@@ -2,49 +2,18 @@
 
 /* =====================================================================
    PM 예측관리 / 일일 시뮬레이션 결과 조회 (맵 형태)
-   html/css/reset.css + html/css/style.css 이식본.
+   전역 리셋·토큰·공용 컴포넌트(LNB)는 src/reset.css, src/common.css 참고.
+   여기에는 이 화면에서만 쓰는 스타일만 둔다.
    - 원본 퍼블리싱 클래스명을 그대로 유지한다(마크업 대조 용이).
-   - 시안(일일-맵형태 조회T1.png)의 좌측 LNB 레일을 추가로 반영.
    ===================================================================== */
 
 /* ==========================================================================
-   0. Reset (html/css/reset.css)
+   0. 화면 기본값
    ========================================================================== */
-*,
-*::before,
-*::after {
-    box-sizing: border-box;
-}
-
-/* .wrap 이 height:100% 이므로 루트까지 높이를 내려준다 */
-html,
-body,
-#root {
-    height: 100%;
-    margin: 0;
-    padding: 0;
-}
-
 /* 최소 너비(1440px) 미만에서는 가로 스크롤, 세로는 항상 한 화면 */
 body {
     overflow-x: auto;
     overflow-y: hidden;
-}
-
-html {
-    font-size: 16px;
-    -webkit-text-size-adjust: 100%;
-}
-
-body {
-    font-family:
-        Pretendard,
-        'Noto Sans KR',
-        -apple-system,
-        BlinkMacSystemFont,
-        'Malgun Gothic',
-        '맑은 고딕',
-        sans-serif;
     font-size: 14px;
     line-height: 1.4;
     color: #1f2430;
@@ -52,83 +21,8 @@ body {
     background: #eef1f8;
 }
 
-/* 원본 reset.css 와 동일하게 엘리먼트 셀렉터로 둔다.
-   (.wrap 스코프를 붙이면 특정도가 올라가 .btn-search / .modal__dim 등의
-   배경 지정을 덮어써 버린다) */
-h1,
-h2,
-h3,
-p,
-em,
-strong,
-dl,
-dt,
-dd,
-ol,
-ul,
-li,
-table,
-caption,
-tbody,
-tr,
-th,
-td,
-button,
-input {
-    margin: 0;
-    padding: 0;
-    border: 0;
-    font: inherit;
-    vertical-align: baseline;
-}
-
-ol,
-ul {
-    list-style: none;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    border-spacing: 0;
-}
-
-button {
-    background: none;
-    color: inherit;
-    cursor: pointer;
-    font-family: inherit;
-}
-
-input {
-    background: none;
-    font-family: inherit;
-}
-
-input[type='text']:focus,
-button:focus {
-    outline: none;
-}
-
-input[type='text']:focus-visible,
-button:focus-visible {
-    outline: 2px solid #4f46e5;
-    outline-offset: 2px;
-}
-
-.blind {
-    overflow: hidden;
-    position: absolute;
-    clip: rect(0 0 0 0);
-    clip-path: inset(50%);
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    white-space: nowrap;
-}
-
 /* ==========================================================================
-   1. Variables
+   1. 화면 전용 토큰
    ========================================================================== */
 :root {
     --c-primary: #4a44c9;
@@ -188,12 +82,7 @@ button:focus-visible {
 }
 
 /* ==========================================================================
-   3. LNB (좌측 네비게이션 레일)
-   → 화면 공용 컴포넌트로 분리했다. 스타일은 @/components/lnb/lnb.css 참고.
-   ========================================================================== */
-
-/* ==========================================================================
-   4. Header
+   3. Header
    ========================================================================== */
 .header {
     display: flex;
@@ -348,7 +237,7 @@ button:focus-visible {
 }
 
 /* ==========================================================================
-   5. 혼잡 알림
+   4. 혼잡 알림
    ========================================================================== */
 .notice {
     display: flex;
@@ -411,7 +300,7 @@ button:focus-visible {
 }
 
 /* ==========================================================================
-   6. 맵 영역
+   5. 맵 영역
    ========================================================================== */
 .map-area {
     display: flex;
@@ -779,7 +668,7 @@ button:focus-visible {
 }
 
 /* ==========================================================================
-   7. 팝업
+   6. 팝업
    ========================================================================== */
 .modal {
     display: flex;
@@ -1067,7 +956,7 @@ button:focus-visible {
 }
 
 /* ==========================================================================
-   8. Icons
+   7. Icons
    assets/svg 로 대체하지 못한 아이콘(달력/경고/닫기/재생 컨트롤/지표)만 남긴다.
    ========================================================================== */
 .ico {
@@ -1189,7 +1078,7 @@ button:focus-visible {
 }
 
 /* ==========================================================================
-   9. 해상도 대응
+   8. 해상도 대응
    ========================================================================== */
 @media screen and (max-height: 900px) {
     .header {

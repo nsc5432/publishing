@@ -1,4 +1,3 @@
-import './checkinCounter.css';
 import { useState } from 'react';
 import { TimeRangeSelector, type TimeRange } from '@/components/ui/time-range-selector';
 import { IslandPicker } from '../../components/IslandPicker';
