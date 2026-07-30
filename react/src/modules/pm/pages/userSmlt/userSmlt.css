@@ -19,11 +19,11 @@
 /* =====================================================================
    0. 화면 기본값
    ===================================================================== */
-:root {
-    --primary: #4441cc;
-    --primary-dark: #3a37b8;
-    --primary-light: #a09eff;
-    --primary-soft: #e2e2f2;
+html[data-page='userSmlt'] {
+    --pm-primary: #4441cc;
+    --pm-primary-dark: #3a37b8;
+    --pm-primary-light: #a09eff;
+    --pm-primary-soft: #e2e2f2;
     --text: #333333;
     --text-sub: #7a7f8a;
     --text-mute: #9aa0ac;
@@ -31,23 +31,23 @@
     --panel-radius: 20px;
 }
 
-html,
-body,
-#root {
+html[data-page='userSmlt'],
+html[data-page='userSmlt'] body,
+html[data-page='userSmlt'] #root {
     overflow: hidden;
 }
 
 /* 원본 퍼블리싱은 body 바로 아래에 GNB/본문이 있었지만 React 는 #root 가 한 겹 끼어든다.
    #root 가 flex 사슬을 이어주지 않으면 .content → .panels → .panel 의 높이가 전부
    auto 로 풀려 카드 안 요소들이 겹쳐 보인다. */
-#root {
+html[data-page='userSmlt'] #root {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
     min-height: 0;
 }
 
-body {
+html[data-page='userSmlt'] body {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -60,7 +60,7 @@ body {
 /* =====================================================================
    1. 배경 데코 (터미널 실루엣)
    ===================================================================== */
-.bg-deco {
+html[data-page='userSmlt'] .bg-deco {
     position: fixed;
     inset: 0;
     z-index: 0;
@@ -68,8 +68,8 @@ body {
     overflow: hidden;
 }
 
-.bg-deco__t1,
-.bg-deco__t2 {
+html[data-page='userSmlt'] .bg-deco__t1,
+html[data-page='userSmlt'] .bg-deco__t2 {
     position: absolute;
     top: 16%;
     width: 52%;
@@ -80,34 +80,34 @@ body {
     filter: blur(14px);
 }
 
-.bg-deco__t1 {
+html[data-page='userSmlt'] .bg-deco__t1 {
     left: -2%;
-    background-image: url('../../../assets/svg/t1-blue.svg');
+    background-image: url('../../../../assets/svg/t1-blue.svg');
     opacity: 0.16;
 }
 
-.bg-deco__t2 {
+html[data-page='userSmlt'] .bg-deco__t2 {
     right: -2%;
-    background-image: url('../../../assets/svg/t2-teal-full.svg');
+    background-image: url('../../../../assets/svg/t2-teal-full.svg');
     opacity: 0.18;
 }
 
 /* =====================================================================
    2. GNB
    ===================================================================== */
-.gnb {
+html[data-page='userSmlt'] .gnb {
     position: relative;
     z-index: 2;
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     gap: 16px;
-    height: clamp(54px, 6.3vh, 68px);
-    padding: 0 24px;
+    height: var(--pm-header-h);
+    padding: 0 var(--pm-shell-x);
     background: linear-gradient(90deg, #ebe9f4 0%, #edecf5 45%, #f4f2f8 100%);
 }
 
-.gnb__title {
+html[data-page='userSmlt'] .gnb__title {
     margin: 0;
     font-size: 17px;
     font-weight: 700;
@@ -115,30 +115,30 @@ body {
     white-space: nowrap;
 }
 
-.gnb__center {
+html[data-page='userSmlt'] .gnb__center {
     flex: 1;
     display: flex;
     justify-content: center;
 }
 
-.gnb__right {
+html[data-page='userSmlt'] .gnb__right {
     display: flex;
     align-items: center;
     gap: 18px;
     white-space: nowrap;
 }
 
-.gnb__link {
+html[data-page='userSmlt'] .gnb__link {
     font-size: 13px;
     font-weight: 500;
-    color: var(--primary);
+    color: var(--pm-primary);
 }
-.gnb__link:hover {
+html[data-page='userSmlt'] .gnb__link:hover {
     text-decoration: underline;
 }
 
 /* 기준일자 --------------------------------------------------------------- */
-.date-picker {
+html[data-page='userSmlt'] .date-picker {
     display: flex;
     align-items: center;
     gap: 10px;
@@ -149,22 +149,22 @@ body {
     box-shadow: 0 2px 8px rgba(80, 78, 140, 0.08);
 }
 
-.date-picker__label {
+html[data-page='userSmlt'] .date-picker__label {
     font-size: 13px;
     color: #5a5f6b;
 }
-.date-picker__icon {
+html[data-page='userSmlt'] .date-picker__icon {
     width: 18px;
     height: 18px;
     display: block;
 }
-.date-picker__value {
+html[data-page='userSmlt'] .date-picker__value {
     font-size: 15px;
     font-weight: 500;
     letter-spacing: 0.2px;
 }
 
-.date-picker__search {
+html[data-page='userSmlt'] .date-picker__search {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -172,19 +172,19 @@ body {
     height: 32px;
     margin-left: 6px;
     border-radius: 50%;
-    background: var(--primary);
+    background: var(--pm-primary);
     transition: background 0.15s;
 }
-.date-picker__search:hover {
-    background: var(--primary-dark);
+html[data-page='userSmlt'] .date-picker__search:hover {
+    background: var(--pm-primary-dark);
 }
-.date-picker__search svg {
+html[data-page='userSmlt'] .date-picker__search svg {
     width: 16px;
     height: 16px;
 }
 
 /* 버튼 ------------------------------------------------------------------- */
-.btn {
+html[data-page='userSmlt'] .btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -196,50 +196,51 @@ body {
         box-shadow 0.15s;
 }
 
-.btn--run {
+html[data-page='userSmlt'] .btn--run {
     height: clamp(34px, 3.9vh, 42px);
     padding: 0 24px;
     font-size: 14px;
     color: #fff;
-    background: var(--primary);
+    background: var(--pm-primary);
     box-shadow: 0 4px 12px rgba(68, 65, 204, 0.28);
 }
-.btn--run:hover {
-    background: var(--primary-dark);
+html[data-page='userSmlt'] .btn--run:hover {
+    background: var(--pm-primary-dark);
 }
-.btn--run svg {
+html[data-page='userSmlt'] .btn--run svg {
     width: 11px;
     height: 13px;
 }
 
-.btn--save {
+html[data-page='userSmlt'] .btn--save {
     height: clamp(38px, 4.3vh, 46px);
     padding: 0 34px;
     font-size: 14px;
     color: #fff;
-    background: var(--primary);
+    background: var(--pm-primary);
     box-shadow: 0 6px 16px rgba(68, 65, 204, 0.25);
 }
-.btn--save:hover {
-    background: var(--primary-dark);
+html[data-page='userSmlt'] .btn--save:hover {
+    background: var(--pm-primary-dark);
 }
 
 /* =====================================================================
    3. 본문 · 탭바
    ===================================================================== */
 
-/* GNB 아래 본문 — 좌측 LNB 레일 + 탭/패널 영역 (맵 형태 조회 화면과 동일 구성) */
-.body {
+/* GNB 아래 본문 — 좌측 LNB 레일 + 탭/패널 영역.
+   여백은 화면 공용 셸 규격(common.css --pm-shell-*)을 따른다 */
+html[data-page='userSmlt'] .body {
     position: relative;
     z-index: 1;
     flex: 1 1 auto;
     display: flex;
-    gap: 16px;
+    gap: var(--pm-shell-gap);
     min-height: 0;
-    padding: clamp(12px, 2vh, 22px) 24px clamp(14px, 2.6vh, 28px);
+    padding: var(--pm-shell-top) var(--pm-shell-x) var(--pm-shell-bottom);
 }
 
-.content {
+html[data-page='userSmlt'] .content {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
@@ -247,7 +248,7 @@ body {
     min-height: 0;
 }
 
-.tabs {
+html[data-page='userSmlt'] .tabs {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
@@ -260,7 +261,7 @@ body {
     backdrop-filter: blur(6px);
 }
 
-.tabs__item {
+html[data-page='userSmlt'] .tabs__item {
     height: clamp(36px, 4.1vh, 44px);
     padding: 0 28px;
     border-radius: 999px;
@@ -271,19 +272,19 @@ body {
         color 0.15s,
         background 0.15s;
 }
-.tabs__item:hover {
-    color: var(--primary);
+html[data-page='userSmlt'] .tabs__item:hover {
+    color: var(--pm-primary);
 }
 
-.tabs__item.is-active {
+html[data-page='userSmlt'] .tabs__item.is-active {
     background: #fff;
-    color: var(--primary);
+    color: var(--pm-primary);
     font-weight: 700;
     box-shadow: 0 2px 8px rgba(80, 78, 140, 0.12);
 }
 
 /* 미구현 탭 안내 */
-.tab-placeholder {
+html[data-page='userSmlt'] .tab-placeholder {
     flex: 1 1 auto;
     display: flex;
     align-items: center;
@@ -299,7 +300,7 @@ body {
 /* =====================================================================
    4. 패널 (T1/T2 공통 셸)
    ===================================================================== */
-.panels {
+html[data-page='userSmlt'] .panels {
     display: flex;
     gap: 24px;
     align-items: stretch;
@@ -307,7 +308,7 @@ body {
     min-height: 0;
 }
 
-.panel {
+html[data-page='userSmlt'] .panel {
     flex: 1 1 0;
     display: flex;
     flex-direction: column;
@@ -327,7 +328,7 @@ body {
 }
 
 /* 비활성 (미선택) 패널 */
-.panel--disabled {
+html[data-page='userSmlt'] .panel--disabled {
     filter: grayscale(1);
     opacity: 0.9;
     background: linear-gradient(
@@ -338,13 +339,13 @@ body {
     border-color: rgba(255, 255, 255, 0.45);
     cursor: pointer;
 }
-.panel--disabled * {
+html[data-page='userSmlt'] .panel--disabled * {
     cursor: pointer;
     pointer-events: none;
 }
 
 /* 패널 헤드 -------------------------------------------------------------- */
-.panel__head {
+html[data-page='userSmlt'] .panel__head {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
@@ -352,7 +353,7 @@ body {
     margin-bottom: clamp(12px, 2.4vh, 26px);
 }
 
-.terminal-badge {
+html[data-page='userSmlt'] .terminal-badge {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
@@ -361,28 +362,28 @@ body {
     height: clamp(58px, 7.6vh, 82px);
     border-radius: clamp(14px, 2vh, 22px);
 }
-.terminal-badge svg {
+html[data-page='userSmlt'] .terminal-badge svg {
     width: 74%;
     height: 74%;
 }
 
-.terminal-badge--t1 {
+html[data-page='userSmlt'] .terminal-badge--t1 {
     background: linear-gradient(160deg, #6e9ddb 0%, #4e7fc4 100%);
     box-shadow: 0 6px 16px rgba(78, 127, 196, 0.28);
 }
 
-.terminal-badge--t2 {
+html[data-page='userSmlt'] .terminal-badge--t2 {
     background: linear-gradient(160deg, #6fc7ba 0%, #46a192 100%);
     box-shadow: 0 6px 16px rgba(70, 161, 146, 0.28);
 }
 
 /* 미선택 터미널 뱃지는 회색 (활성화되면 위의 고유 색으로 돌아온다) */
-.panel--disabled .terminal-badge {
+html[data-page='userSmlt'] .panel--disabled .terminal-badge {
     background: linear-gradient(160deg, #cfd1d3 0%, #bfc2c4 100%);
     box-shadow: none;
 }
 
-.summary {
+html[data-page='userSmlt'] .summary {
     flex: 1 1 auto;
     display: flex;
     align-items: center;
@@ -392,37 +393,37 @@ body {
     border-radius: 12px;
     background: #eaf3ff;
 }
-.panel--disabled .summary {
+html[data-page='userSmlt'] .panel--disabled .summary {
     background: #e6e6e6;
 }
 
-.summary__group {
+html[data-page='userSmlt'] .summary__group {
     display: flex;
     align-items: baseline;
     gap: 12px;
 }
-.summary__label {
+html[data-page='userSmlt'] .summary__label {
     font-size: 14px;
     color: #5e6470;
 }
 
-.summary__value {
+html[data-page='userSmlt'] .summary__value {
     font-size: clamp(17px, 1.95vh, 21px);
     font-weight: 700;
     letter-spacing: -0.2px;
 }
-.summary__value--accent {
-    color: var(--primary);
+html[data-page='userSmlt'] .summary__value--accent {
+    color: var(--pm-primary);
 }
 
 /* 아일랜드 요약 — 선택 전에도 자리를 유지한다 */
-.summary__value--island {
+html[data-page='userSmlt'] .summary__value--island {
     min-width: 12px;
-    color: var(--primary);
+    color: var(--pm-primary);
 }
 
 /* 요약 우측 지도 버튼 */
-.summary__map {
+html[data-page='userSmlt'] .summary__map {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -430,28 +431,33 @@ body {
     height: 34px;
     margin-left: auto;
     border-radius: 50%;
-    background: var(--primary);
+    background: var(--pm-primary);
     transition: background 0.15s;
 }
-.summary__map:hover {
-    background: var(--primary-dark);
+html[data-page='userSmlt'] .summary__map:hover {
+    background: var(--pm-primary-dark);
 }
-.summary__map svg {
+html[data-page='userSmlt'] .summary__map svg {
     width: 17px;
     height: 17px;
 }
-.panel--disabled .summary__map {
+html[data-page='userSmlt'] .panel--disabled .summary__map {
     background: #c3c3c3;
 }
 
 /* 패널 푸터 -------------------------------------------------------------- */
-.panel__foot {
+/* 탭마다 본문이 높이를 다 쓰지 않을 수 있어(예: 체크인 카운터) 남는 높이는 전부
+   푸터 위쪽으로 몰아 저장 버튼이 항상 패널 바닥에 붙게 한다.
+   여백이 없을 때 margin-top:auto 는 0 이 되므로 최소 간격은 padding 으로 확보한다. */
+html[data-page='userSmlt'] .panel__foot {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: clamp(38px, 4.3vh, 46px);
-    margin-top: clamp(10px, 1.8vh, 20px);
+    /* 버튼이 없는(미선택) 패널도 같은 높이를 차지해야 T1/T2 의 본문 바닥이 맞는다 */
+    min-height: calc(clamp(38px, 4.3vh, 46px) + clamp(10px, 1.8vh, 20px));
+    margin-top: auto;
+    padding-top: clamp(10px, 1.8vh, 20px);
 }
 
 /* =====================================================================
@@ -459,7 +465,7 @@ body {
    ===================================================================== */
 
 /* 체크박스 (셀프체크인/백드롭 · 보안 검색대 공용) ------------------------- */
-.checkbox {
+html[data-page='userSmlt'] .checkbox {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -467,7 +473,7 @@ body {
     cursor: pointer;
     user-select: none;
 }
-.checkbox input {
+html[data-page='userSmlt'] .checkbox input {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -475,7 +481,7 @@ body {
     pointer-events: none;
 }
 
-.checkbox__mark {
+html[data-page='userSmlt'] .checkbox__mark {
     position: relative;
     flex: 0 0 auto;
     width: 18px;
@@ -487,33 +493,33 @@ body {
         border-color 0.15s,
         background 0.15s;
 }
-.checkbox__mark::after {
+html[data-page='userSmlt'] .checkbox__mark::after {
     content: '';
     position: absolute;
     inset: 0;
-    background: url('../../../assets/svg/check-white-icon.svg') center / 12px 12px no-repeat;
+    background: url('../../../../assets/svg/check-white-icon.svg') center / 12px 12px no-repeat;
     opacity: 0;
     transition: opacity 0.15s;
 }
-.checkbox input:checked + .checkbox__mark {
-    border-color: var(--primary);
-    background: var(--primary);
+html[data-page='userSmlt'] .checkbox input:checked + .checkbox__mark {
+    border-color: var(--pm-primary);
+    background: var(--pm-primary);
 }
-.checkbox input:checked + .checkbox__mark::after {
+html[data-page='userSmlt'] .checkbox input:checked + .checkbox__mark::after {
     opacity: 1;
 }
 
-.checkbox__text {
+html[data-page='userSmlt'] .checkbox__text {
     font-size: 13px;
     color: #5e6470;
 }
-.checkbox input:checked ~ .checkbox__text {
+html[data-page='userSmlt'] .checkbox input:checked ~ .checkbox__text {
     font-weight: 700;
-    color: var(--primary);
+    color: var(--pm-primary);
 }
 
 /* 아일랜드 선택 (체크인 카운터 · 셀프체크인/백드롭 공용) ------------------- */
-.islands {
+html[data-page='userSmlt'] .islands {
     flex: 0 0 auto;
     display: flex;
     justify-content: center;
@@ -523,7 +529,7 @@ body {
 
 /* 아일랜드 14개가 좁은 패널에서도 잘리지 않도록 폭만 줄어들게 둔다
    (글자는 한 글자라 폭이 줄어도 읽힌다) */
-.island {
+html[data-page='userSmlt'] .island {
     flex: 0 1 auto;
     min-width: 0;
     display: flex;
@@ -540,12 +546,12 @@ body {
         background 0.15s,
         color 0.15s;
 }
-.island:hover {
+html[data-page='userSmlt'] .island:hover {
     background: #d3d3ee;
 }
 
-.island.is-active {
-    background: var(--primary);
+html[data-page='userSmlt'] .island.is-active {
+    background: var(--pm-primary);
     color: #fff;
     font-weight: 700;
     box-shadow: 0 4px 12px rgba(68, 65, 204, 0.28);
@@ -556,7 +562,7 @@ body {
    ===================================================================== */
 
 /* 차트 ------------------------------------------------------------------- */
-.chart {
+html[data-page='userSmlt'] .chart {
     flex: 1 1 0;
     display: flex;
     flex-direction: column;
@@ -566,11 +572,11 @@ body {
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.55);
 }
-.panel--disabled .chart {
+html[data-page='userSmlt'] .panel--disabled .chart {
     background: rgba(255, 255, 255, 0.32);
 }
 
-.chart__head {
+html[data-page='userSmlt'] .chart__head {
     flex: 0 0 auto;
     display: flex;
     align-items: baseline;
@@ -579,38 +585,38 @@ body {
     margin-bottom: clamp(6px, 1vh, 12px);
 }
 
-.chart__title {
+html[data-page='userSmlt'] .chart__title {
     margin: 0;
     font-size: clamp(13px, 1.5vh, 15px);
     font-weight: 700;
     letter-spacing: -0.2px;
 }
 
-.chart__total {
+html[data-page='userSmlt'] .chart__total {
     margin: 0;
     font-size: 12px;
     color: var(--text-mute);
     white-space: nowrap;
 }
-.chart__total strong {
+html[data-page='userSmlt'] .chart__total strong {
     font-size: 13px;
     font-weight: 700;
-    color: var(--primary);
+    color: var(--pm-primary);
 }
 
-.chart__body {
+html[data-page='userSmlt'] .chart__body {
     flex: 1 1 auto;
     display: flex;
     gap: 8px;
     min-height: 0;
 }
 
-.chart__axis {
+html[data-page='userSmlt'] .chart__axis {
     position: relative;
     flex: 0 0 auto;
     width: 26px;
 }
-.chart__axis span {
+html[data-page='userSmlt'] .chart__axis span {
     position: absolute;
     right: 0;
     transform: translateY(50%);
@@ -618,20 +624,20 @@ body {
     line-height: 1;
     color: var(--text-mute);
 }
-.chart__axis span:nth-child(1) {
+html[data-page='userSmlt'] .chart__axis span:nth-child(1) {
     bottom: 100%;
 }
-.chart__axis span:nth-child(2) {
+html[data-page='userSmlt'] .chart__axis span:nth-child(2) {
     bottom: 66.666%;
 }
-.chart__axis span:nth-child(3) {
+html[data-page='userSmlt'] .chart__axis span:nth-child(3) {
     bottom: 33.333%;
 }
-.chart__axis span:nth-child(4) {
+html[data-page='userSmlt'] .chart__axis span:nth-child(4) {
     bottom: 0;
 }
 
-.chart__plot {
+html[data-page='userSmlt'] .chart__plot {
     position: relative;
     flex: 1 1 auto;
     min-width: 0;
@@ -643,7 +649,7 @@ body {
     );
 }
 
-.chart__bars {
+html[data-page='userSmlt'] .chart__bars {
     position: absolute;
     inset: 0;
     display: grid;
@@ -651,15 +657,15 @@ body {
     align-items: end;
 }
 
-.bar {
+html[data-page='userSmlt'] .bar {
     width: clamp(6px, 0.55vw, 11px);
     height: var(--h, 0%);
     margin: 0 auto;
     border-radius: 2px 2px 0 0;
-    background: linear-gradient(180deg, var(--primary-light) 0%, var(--primary) 100%);
+    background: linear-gradient(180deg, var(--pm-primary-light) 0%, var(--pm-primary) 100%);
 }
 
-.chart__scale {
+html[data-page='userSmlt'] .chart__scale {
     flex: 0 0 auto;
     display: grid;
     grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -670,7 +676,7 @@ body {
 }
 
 /* 편집 영역 -------------------------------------------------------------- */
-.editor {
+html[data-page='userSmlt'] .editor {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
@@ -679,11 +685,11 @@ body {
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.55);
 }
-.panel--disabled .editor {
+html[data-page='userSmlt'] .panel--disabled .editor {
     background: rgba(255, 255, 255, 0.32);
 }
 
-.editor__opts {
+html[data-page='userSmlt'] .editor__opts {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
@@ -693,14 +699,14 @@ body {
 }
 
 /* 라디오 */
-.radio {
+html[data-page='userSmlt'] .radio {
     display: inline-flex;
     align-items: center;
     gap: 8px;
     cursor: pointer;
     user-select: none;
 }
-.radio input {
+html[data-page='userSmlt'] .radio input {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -708,7 +714,7 @@ body {
     pointer-events: none;
 }
 
-.radio__mark {
+html[data-page='userSmlt'] .radio__mark {
     flex: 0 0 auto;
     position: relative;
     width: 18px;
@@ -720,7 +726,7 @@ body {
         border-color 0.15s,
         background 0.15s;
 }
-.radio__mark::after {
+html[data-page='userSmlt'] .radio__mark::after {
     content: '';
     position: absolute;
     inset: 3.5px;
@@ -729,29 +735,29 @@ body {
     transform: scale(0);
     transition: transform 0.15s;
 }
-.radio input:checked + .radio__mark {
-    border-color: var(--primary);
-    background: var(--primary);
+html[data-page='userSmlt'] .radio input:checked + .radio__mark {
+    border-color: var(--pm-primary);
+    background: var(--pm-primary);
 }
-.radio input:checked + .radio__mark::after {
+html[data-page='userSmlt'] .radio input:checked + .radio__mark::after {
     transform: scale(1);
 }
 
-.radio__text {
+html[data-page='userSmlt'] .radio__text {
     font-size: clamp(12px, 1.35vh, 14px);
     color: #3d4350;
 }
-.radio input:checked ~ .radio__text {
+html[data-page='userSmlt'] .radio input:checked ~ .radio__text {
     font-weight: 700;
 }
 
-.editor > .radio {
+html[data-page='userSmlt'] .editor > .radio {
     flex: 0 0 auto;
     margin-bottom: clamp(5px, 0.8vh, 9px);
 }
 
 /* 스테퍼 */
-.stepper {
+html[data-page='userSmlt'] .stepper {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
@@ -762,7 +768,7 @@ body {
     overflow: hidden;
 }
 
-.stepper__btn {
+html[data-page='userSmlt'] .stepper__btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -770,28 +776,28 @@ body {
     height: 100%;
     transition: background 0.15s;
 }
-.stepper__btn:hover {
+html[data-page='userSmlt'] .stepper__btn:hover {
     background: #f1f1f8;
 }
-.stepper__btn svg {
+html[data-page='userSmlt'] .stepper__btn svg {
     width: 13px;
     height: 13px;
 }
 
-.stepper.is-dim {
+html[data-page='userSmlt'] .stepper.is-dim {
     opacity: 0.45;
 }
 
-.stepper__value {
+html[data-page='userSmlt'] .stepper__value {
     min-width: 52px;
     font-size: 13px;
     font-weight: 700;
     text-align: center;
-    color: var(--primary);
+    color: var(--pm-primary);
 }
 
 /* 표 */
-.table-wrap {
+html[data-page='userSmlt'] .table-wrap {
     flex: 1 1 auto;
     min-height: 0;
     border: 1px solid var(--line);
@@ -799,17 +805,17 @@ body {
     background: #fff;
     transition: opacity 0.15s;
 }
-.table-wrap.is-dim {
+html[data-page='userSmlt'] .table-wrap.is-dim {
     opacity: 0.45;
 }
 
-.data-table {
+html[data-page='userSmlt'] .data-table {
     width: 100%;
     border-collapse: collapse;
     font-size: clamp(11px, 1.25vh, 13px);
 }
 
-.data-table th {
+html[data-page='userSmlt'] .data-table th {
     position: sticky;
     top: 0;
     z-index: 1;
@@ -822,7 +828,7 @@ body {
     white-space: nowrap;
 }
 
-.data-table td {
+html[data-page='userSmlt'] .data-table td {
     height: clamp(26px, 3vh, 34px);
     padding: 0 8px;
     border-bottom: 1px solid #f0f1f6;
@@ -830,10 +836,10 @@ body {
     color: #3d4350;
     white-space: nowrap;
 }
-.data-table tr:last-child td {
+html[data-page='userSmlt'] .data-table tr:last-child td {
     border-bottom: 0;
 }
-.data-table td.is-num {
+html[data-page='userSmlt'] .data-table td.is-num {
     font-weight: 500;
 }
 
@@ -842,7 +848,7 @@ body {
    ===================================================================== */
 
 /* 카운터 그리드 ---------------------------------------------------------- */
-.counter-grid {
+html[data-page='userSmlt'] .counter-grid {
     flex: 0 1 auto;
     display: flex;
     flex-direction: column;
@@ -851,7 +857,7 @@ body {
     margin-bottom: clamp(14px, 2.8vh, 30px);
 }
 
-.counter-grid__row {
+html[data-page='userSmlt'] .counter-grid__row {
     flex: 0 1 76px;
     display: flex;
     align-items: stretch;
@@ -859,12 +865,12 @@ body {
     min-height: 38px;
 }
 
-.counter-grid__row--num {
+html[data-page='userSmlt'] .counter-grid__row--num {
     flex: 0 0 auto;
     align-items: center;
 }
 
-.chip {
+html[data-page='userSmlt'] .chip {
     flex: 0 0 auto;
     align-self: center;
     display: inline-flex;
@@ -879,7 +885,7 @@ body {
     color: #4a5666;
 }
 
-.cells {
+html[data-page='userSmlt'] .cells {
     flex: 1 1 auto;
     display: grid;
     grid-template-columns: repeat(18, minmax(0, 1fr));
@@ -888,7 +894,7 @@ body {
     height: 100%;
 }
 
-.cell {
+html[data-page='userSmlt'] .cell {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -911,7 +917,7 @@ body {
         background 0.15s,
         color 0.15s;
 }
-.cell:hover {
+html[data-page='userSmlt'] .cell:hover {
     background: #fff;
     box-shadow: 0 0 0 1px rgba(68, 65, 204, 0.25);
 }
@@ -919,32 +925,32 @@ body {
 /* 'Custom' 은 셀 폭(약 36px)보다 길어 13px 로는 'Custo/m' 처럼 단어 중간에서 끊긴다.
    원본 퍼블리싱은 'Cus<br>tom' 으로 직접 끊었지만, 여기서는 데이터가 문자열 하나이므로
    폰트만 줄여 한 줄로 담는다. */
-.cell.is-custom {
+html[data-page='userSmlt'] .cell.is-custom {
     background: #fff;
-    border: 1.5px dashed var(--primary);
+    border: 1.5px dashed var(--pm-primary);
     color: var(--text);
     font-size: 10px;
     letter-spacing: -0.3px;
 }
 
 /* 운영 중인 카운터 — 아일랜드 선택과 같은 톤을 쓴다 */
-.cell.is-on {
-    background: var(--primary);
+html[data-page='userSmlt'] .cell.is-on {
+    background: var(--pm-primary);
     color: #fff;
     font-weight: 700;
 }
-.cell.is-on:hover {
-    background: var(--primary-dark);
+html[data-page='userSmlt'] .cell.is-on:hover {
+    background: var(--pm-primary-dark);
 }
-.cell.is-custom.is-on {
+html[data-page='userSmlt'] .cell.is-custom.is-on {
     border-color: #fff;
 }
 
-.counter-grid__row--num .cells {
+html[data-page='userSmlt'] .counter-grid__row--num .cells {
     gap: 5px;
 }
 
-.cell-num {
+html[data-page='userSmlt'] .cell-num {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -955,36 +961,36 @@ body {
 }
 
 /* 운영 시간 -------------------------------------------------------------- */
-.timebox {
+html[data-page='userSmlt'] .timebox {
     flex: 0 0 auto;
     padding: clamp(10px, 1.7vh, 18px) 20px clamp(10px, 1.3vh, 14px);
     margin-bottom: clamp(12px, 2.4vh, 26px);
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.55);
 }
-.panel--disabled .timebox {
+html[data-page='userSmlt'] .panel--disabled .timebox {
     background: rgba(255, 255, 255, 0.32);
 }
 
 /* 아래로 TimeRangeSelector 의 .timebar__head(선택 범위)가 이어지므로 줄 간격만 준다 */
-.timebox__info {
+html[data-page='userSmlt'] .timebox__info {
     margin-bottom: 4px;
 }
 
-.timebox__line {
+html[data-page='userSmlt'] .timebox__line {
     display: flex;
     align-items: center;
     gap: 10px;
     margin: 0 0 4px;
     font-size: 13px;
 }
-.timebox__line:last-child {
+html[data-page='userSmlt'] .timebox__line:last-child {
     margin-bottom: 0;
 }
-.timebox__line span {
+html[data-page='userSmlt'] .timebox__line span {
     color: var(--text-mute);
 }
-.timebox__line strong {
+html[data-page='userSmlt'] .timebox__line strong {
     font-weight: 700;
     color: var(--text);
 }
@@ -992,7 +998,7 @@ body {
 /* =====================================================================
    8. 탭 — 셀프체크인/백드롭 (tabs/selfCheckin)
    ===================================================================== */
-.devices {
+html[data-page='userSmlt'] .devices {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
@@ -1003,12 +1009,12 @@ body {
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.55);
 }
-.panel--disabled .devices {
+html[data-page='userSmlt'] .panel--disabled .devices {
     background: rgba(255, 255, 255, 0.32);
 }
 
 /* 두 기기 블록이 카드 높이를 반씩 나눠 갖고, 각자 그 안에서 세로 중앙 정렬 */
-.device {
+html[data-page='userSmlt'] .device {
     flex: 1 1 0;
     display: flex;
     flex-direction: column;
@@ -1016,7 +1022,7 @@ body {
     min-height: 0;
 }
 
-.device__head {
+html[data-page='userSmlt'] .device__head {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1024,53 +1030,53 @@ body {
     margin-bottom: clamp(8px, 1.5vh, 16px);
 }
 
-.device__name {
+html[data-page='userSmlt'] .device__name {
     margin: 0;
     font-size: clamp(13px, 1.55vh, 16px);
     font-weight: 700;
     letter-spacing: -0.2px;
 }
-.device.is-off .device__name {
+html[data-page='userSmlt'] .device.is-off .device__name {
     color: var(--text-mute);
 }
 
 /* 아래로 TimeRangeSelector 의 .timebar__head(선택 범위)가 이어지므로 줄 간격만 준다 */
-.device__info {
+html[data-page='userSmlt'] .device__info {
     margin-bottom: 4px;
 }
 
-.device__line {
+html[data-page='userSmlt'] .device__line {
     display: flex;
     align-items: center;
     gap: 10px;
     margin: 0 0 4px;
     font-size: 13px;
 }
-.device__line:last-child {
+html[data-page='userSmlt'] .device__line:last-child {
     margin-bottom: 0;
 }
-.device__line span {
+html[data-page='userSmlt'] .device__line span {
     color: var(--text-mute);
 }
-.device__line strong {
+html[data-page='userSmlt'] .device__line strong {
     font-weight: 700;
     color: var(--text);
 }
-.device.is-off .device__line strong {
+html[data-page='userSmlt'] .device.is-off .device__line strong {
     color: var(--text-mute);
 }
 
 /* 시간 막대 — 기기 블록에서는 더 두껍게 쓴다.
    미운영 기기의 막대는 TimeRangeSelector 에 disabled 를 넘겨 회색으로 죽인다
    (.timebar.is-disabled — src/common.css) */
-.device .timebar__slot {
+html[data-page='userSmlt'] .device .timebar__slot {
     height: clamp(18px, 3.6vh, 42px);
 }
 
 /* =====================================================================
    9. 탭 — 출국장 (tabs/departure)
    ===================================================================== */
-.gate-list {
+html[data-page='userSmlt'] .gate-list {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
@@ -1081,18 +1087,18 @@ body {
 
 /* 제1터미널 6개 행이 1080 높이에서 스크롤 없이 들어가도록 압축.
    행 1개가 100px 안쪽이어야 6행 + 간격이 패널 안에 들어온다. */
-.gate-row {
+html[data-page='userSmlt'] .gate-row {
     flex: 0 0 auto;
     padding: clamp(5px, 0.65vh, 9px) clamp(14px, 1.2vw, 20px) clamp(4px, 0.55vh, 7px);
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.62);
     transition: background 0.15s;
 }
-.panel--disabled .gate-row {
+html[data-page='userSmlt'] .panel--disabled .gate-row {
     background: rgba(255, 255, 255, 0.32);
 }
 
-.gate-row__head {
+html[data-page='userSmlt'] .gate-row__head {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1100,7 +1106,7 @@ body {
     margin-bottom: clamp(3px, 0.35vh, 5px);
 }
 
-.gate-row__name {
+html[data-page='userSmlt'] .gate-row__name {
     margin: 0;
     font-size: clamp(12px, 1.35vh, 14px);
     font-weight: 700;
@@ -1108,20 +1114,20 @@ body {
 }
 
 /* 미사용 상태 — 시간 막대는 TimeRangeSelector 의 disabled 가 처리한다 */
-.gate-row.is-off {
+html[data-page='userSmlt'] .gate-row.is-off {
     background: rgba(244, 244, 246, 0.55);
 }
-.gate-row.is-off .gate-row__name {
+html[data-page='userSmlt'] .gate-row.is-off .gate-row__name {
     color: var(--text-mute);
 }
 
 /* 사용 / 미사용 선택 */
-.select {
+html[data-page='userSmlt'] .select {
     position: relative;
     flex: 0 0 auto;
 }
 
-.select select {
+html[data-page='userSmlt'] .select select {
     appearance: none;
     -webkit-appearance: none;
     height: clamp(24px, 2.3vh, 27px);
@@ -1134,12 +1140,12 @@ body {
     color: var(--text);
     cursor: pointer;
 }
-.select select:focus {
-    outline: 2px solid var(--primary-soft);
+html[data-page='userSmlt'] .select select:focus {
+    outline: 2px solid var(--pm-primary-soft);
     outline-offset: 1px;
 }
 
-.select::after {
+html[data-page='userSmlt'] .select::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -1147,26 +1153,26 @@ body {
     width: 14px;
     height: 14px;
     margin-top: -7px;
-    background: url('../../../assets/svg/chevron-down-icon.svg') center / 14px 14px no-repeat;
+    background: url('../../../../assets/svg/chevron-down-icon.svg') center / 14px 14px no-repeat;
     pointer-events: none;
 }
 
 /* 시간 막대 — 행이 6개까지 쌓이므로 얇게 쓴다 */
-.gate-row .timebar__head {
+html[data-page='userSmlt'] .gate-row .timebar__head {
     margin-bottom: clamp(3px, 0.35vh, 5px);
     font-size: 12px;
 }
 
-.gate-row .timebar__track {
+html[data-page='userSmlt'] .gate-row .timebar__track {
     gap: 6px;
     margin-bottom: 4px;
 }
 
-.gate-row .timebar__slot {
+html[data-page='userSmlt'] .gate-row .timebar__slot {
     height: clamp(12px, 1.45vh, 16px);
 }
 
-.gate-row .timebar__scale {
+html[data-page='userSmlt'] .gate-row .timebar__scale {
     font-size: 11px;
     line-height: 1.2;
 }
@@ -1176,7 +1182,7 @@ body {
    ===================================================================== */
 
 /* 운영계획 헤더 ---------------------------------------------------------- */
-.sec-head {
+html[data-page='userSmlt'] .sec-head {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
@@ -1185,7 +1191,7 @@ body {
     margin-bottom: clamp(8px, 1.4vh, 14px);
 }
 
-.sec-title {
+html[data-page='userSmlt'] .sec-title {
     margin: 0;
     font-size: clamp(13px, 1.55vh, 16px);
     font-weight: 700;
@@ -1194,58 +1200,58 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
 }
-.sec-title strong {
-    color: var(--primary);
+html[data-page='userSmlt'] .sec-title strong {
+    color: var(--pm-primary);
 }
-.panel--disabled .sec-title {
+html[data-page='userSmlt'] .panel--disabled .sec-title {
     font-weight: 500;
     color: var(--text-mute);
 }
 
-.sec-actions {
+html[data-page='userSmlt'] .sec-actions {
     flex: 0 0 auto;
     display: flex;
     gap: 8px;
 }
 
-.btn--add,
-.btn--del {
+html[data-page='userSmlt'] .btn--add,
+html[data-page='userSmlt'] .btn--del {
     height: clamp(28px, 3.2vh, 34px);
     padding: 0 16px;
     font-size: 13px;
     gap: 6px;
 }
-.btn--add svg,
-.btn--del svg {
+html[data-page='userSmlt'] .btn--add svg,
+html[data-page='userSmlt'] .btn--del svg {
     width: 11px;
     height: 11px;
 }
-.btn--add:disabled,
-.btn--del:disabled {
+html[data-page='userSmlt'] .btn--add:disabled,
+html[data-page='userSmlt'] .btn--del:disabled {
     opacity: 0.45;
     cursor: default;
 }
 
-.btn--add {
+html[data-page='userSmlt'] .btn--add {
     color: #fff;
-    background: var(--primary);
+    background: var(--pm-primary);
     box-shadow: 0 3px 10px rgba(68, 65, 204, 0.22);
 }
-.btn--add:not(:disabled):hover {
-    background: var(--primary-dark);
+html[data-page='userSmlt'] .btn--add:not(:disabled):hover {
+    background: var(--pm-primary-dark);
 }
 
-.btn--del {
-    color: var(--primary);
+html[data-page='userSmlt'] .btn--del {
+    color: var(--pm-primary);
     background: #fff;
-    box-shadow: inset 0 0 0 1px var(--primary-soft);
+    box-shadow: inset 0 0 0 1px var(--pm-primary-soft);
 }
-.btn--del:not(:disabled):hover {
+html[data-page='userSmlt'] .btn--del:not(:disabled):hover {
     background: #f4f4fc;
 }
 
 /* 운영시간 표 ------------------------------------------------------------ */
-.sec-table {
+html[data-page='userSmlt'] .sec-table {
     flex: 1 1 auto;
     min-height: 0;
     margin-bottom: clamp(12px, 2.4vh, 26px);
@@ -1253,25 +1259,25 @@ body {
     border-radius: 12px;
     background: #fff;
 }
-.panel--disabled .sec-table {
+html[data-page='userSmlt'] .panel--disabled .sec-table {
     border-color: rgba(255, 255, 255, 0.5);
     background: rgba(255, 255, 255, 0.5);
 }
 
-.sec-table table {
+html[data-page='userSmlt'] .sec-table table {
     width: 100%;
     border-collapse: collapse;
     table-layout: fixed;
 }
 
-.col-sel {
+html[data-page='userSmlt'] .col-sel {
     width: clamp(60px, 6vw, 88px);
 }
-.col-cnt {
+html[data-page='userSmlt'] .col-cnt {
     width: clamp(88px, 8vw, 118px);
 }
 
-.sec-table th {
+html[data-page='userSmlt'] .sec-table th {
     position: sticky;
     top: 0;
     z-index: 1;
@@ -1284,31 +1290,31 @@ body {
     color: #5e6470;
 }
 
-.sec-table td {
+html[data-page='userSmlt'] .sec-table td {
     height: clamp(34px, 4.1vh, 48px);
     padding: 0 8px;
     border-bottom: 1px solid #f0f1f6;
     text-align: center;
 }
-.sec-table tbody tr:last-child td {
+html[data-page='userSmlt'] .sec-table tbody tr:last-child td {
     border-bottom: 0;
 }
 
 /* 신규 입력 행 */
-.sec-table tr.is-new {
+html[data-page='userSmlt'] .sec-table tr.is-new {
     background: #efeffa;
 }
 
 /* 데이터 없음 */
-.sec-table tr.is-empty td {
+html[data-page='userSmlt'] .sec-table tr.is-empty td {
     height: clamp(60px, 8vh, 90px);
     font-size: 13px;
     color: var(--text-mute);
 }
 
 /* 시간 / 갯수 셀 */
-.time-input,
-.count-input {
+html[data-page='userSmlt'] .time-input,
+html[data-page='userSmlt'] .count-input {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1316,19 +1322,19 @@ body {
     font-size: clamp(11px, 1.3vh, 13px);
 }
 
-.time-input em {
+html[data-page='userSmlt'] .time-input em {
     font-style: normal;
     margin: 0 clamp(4px, 0.6vw, 12px);
     color: var(--text-mute);
 }
 
-.time-input span,
-.count-input span {
+html[data-page='userSmlt'] .time-input span,
+html[data-page='userSmlt'] .count-input span {
     color: #6e747f;
 }
 
-.time-input b,
-.count-input b {
+html[data-page='userSmlt'] .time-input b,
+html[data-page='userSmlt'] .count-input b {
     display: inline-block;
     min-width: 22px;
     font-weight: 500;
@@ -1336,8 +1342,8 @@ body {
     color: #3d4350;
 }
 
-.time-input input,
-.count-input input {
+html[data-page='userSmlt'] .time-input input,
+html[data-page='userSmlt'] .count-input input {
     width: clamp(32px, 3vw, 44px);
     height: clamp(24px, 2.8vh, 30px);
     padding: 0 4px;
@@ -1349,20 +1355,20 @@ body {
     text-align: center;
     color: var(--text);
 }
-.time-input input:focus,
-.count-input input:focus {
-    outline: 2px solid var(--primary-soft);
+html[data-page='userSmlt'] .time-input input:focus,
+html[data-page='userSmlt'] .count-input input:focus {
+    outline: 2px solid var(--pm-primary-soft);
     outline-offset: 1px;
-    border-color: var(--primary);
+    border-color: var(--pm-primary);
 }
-.time-input input:disabled,
-.count-input input:disabled {
+html[data-page='userSmlt'] .time-input input:disabled,
+html[data-page='userSmlt'] .count-input input:disabled {
     background: #f4f4f6;
     color: var(--text-mute);
 }
 
 /* 출국장 선택 ------------------------------------------------------------ */
-.gate-tabs {
+html[data-page='userSmlt'] .gate-tabs {
     flex: 0 0 auto;
     display: flex;
     flex-wrap: wrap;
@@ -1371,7 +1377,7 @@ body {
     margin-bottom: clamp(14px, 3.1vh, 34px);
 }
 
-.gate-tab {
+html[data-page='userSmlt'] .gate-tab {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
@@ -1388,12 +1394,12 @@ body {
         background 0.15s,
         color 0.15s;
 }
-.gate-tab:hover {
+html[data-page='userSmlt'] .gate-tab:hover {
     background: #d3d3ee;
 }
 
-.gate-tab.is-active {
-    background: var(--primary);
+html[data-page='userSmlt'] .gate-tab.is-active {
+    background: var(--pm-primary);
     color: #fff;
     font-weight: 700;
     box-shadow: 0 4px 12px rgba(68, 65, 204, 0.28);
@@ -1404,142 +1410,137 @@ body {
    ===================================================================== */
 @media (max-width: 1500px) {
     /* 셸 */
-    .panels {
+    html[data-page='userSmlt'] .panels {
         gap: 16px;
     }
-    .summary {
+    html[data-page='userSmlt'] .summary {
         gap: 18px;
         padding-left: 18px;
     }
-    .tabs__item {
+    html[data-page='userSmlt'] .tabs__item {
         padding: 0 20px;
     }
 
     /* 운항편/여객수 */
-    .chart {
+    html[data-page='userSmlt'] .chart {
         padding-left: 12px;
         padding-right: 12px;
     }
-    .editor {
+    html[data-page='userSmlt'] .editor {
         padding-left: 12px;
         padding-right: 12px;
     }
 
     /* 체크인 카운터 */
-    .cell {
+    html[data-page='userSmlt'] .cell {
         font-size: 12px;
     }
-    .cell-num {
+    html[data-page='userSmlt'] .cell-num {
         font-size: 13px;
     }
-    .chip {
+    html[data-page='userSmlt'] .chip {
         width: 48px;
         font-size: 11px;
     }
-    .counter-grid__row {
+    html[data-page='userSmlt'] .counter-grid__row {
         gap: 10px;
     }
 
     /* 셀프체크인/백드롭 */
-    .device .timebar__track {
+    html[data-page='userSmlt'] .device .timebar__track {
         gap: 5px;
     }
 
     /* 출국장 */
-    .gate-row .timebar__track {
+    html[data-page='userSmlt'] .gate-row .timebar__track {
         gap: 5px;
     }
 
     /* 보안 검색대 */
-    .btn--add,
-    .btn--del {
+    html[data-page='userSmlt'] .btn--add,
+    html[data-page='userSmlt'] .btn--del {
         padding: 0 12px;
     }
 }
 
 @media (max-width: 1200px) {
-    /* 셸 */
-    .body {
+    /* 셸 여백(.body)은 세 화면이 같아야 하므로 여기서 줄이지 않는다 */
+    html[data-page='userSmlt'] .panels {
         gap: 12px;
+    }
+    html[data-page='userSmlt'] .panel {
         padding-left: 14px;
         padding-right: 14px;
     }
-    .panels {
-        gap: 12px;
-    }
-    .panel {
-        padding-left: 14px;
-        padding-right: 14px;
-    }
-    .gnb__title {
+    html[data-page='userSmlt'] .gnb__title {
         font-size: 15px;
     }
-    .tabs__item {
+    html[data-page='userSmlt'] .tabs__item {
         padding: 0 14px;
         font-size: 13px;
     }
-    .summary {
+    html[data-page='userSmlt'] .summary {
         gap: 12px;
         padding-left: 14px;
     }
-    .summary__label {
+    html[data-page='userSmlt'] .summary__label {
         font-size: 12px;
     }
 
     /* 운항편/여객수 */
-    .chart__scale {
+    html[data-page='userSmlt'] .chart__scale {
         margin-left: 30px;
         font-size: 9px;
     }
-    .stepper__value {
+    html[data-page='userSmlt'] .stepper__value {
         min-width: 42px;
     }
 
     /* 체크인 카운터 */
-    .cells {
+    html[data-page='userSmlt'] .cells {
         gap: 3px;
     }
-    .timebox {
+    html[data-page='userSmlt'] .timebox {
         padding-left: 14px;
         padding-right: 14px;
     }
-    .timebox .timebar__track {
+    html[data-page='userSmlt'] .timebox .timebar__track {
         gap: 4px;
     }
 
     /* 셀프체크인/백드롭 */
-    .device .timebar__track {
+    html[data-page='userSmlt'] .device .timebar__track {
         gap: 4px;
     }
-    .device .timebar__scale {
+    html[data-page='userSmlt'] .device .timebar__scale {
         font-size: 11px;
     }
-    .devices {
+    html[data-page='userSmlt'] .devices {
         padding-left: 12px;
         padding-right: 12px;
     }
 
     /* 출국장 */
-    .gate-row .timebar__track {
+    html[data-page='userSmlt'] .gate-row .timebar__track {
         gap: 4px;
     }
-    .gate-row .timebar__scale {
+    html[data-page='userSmlt'] .gate-row .timebar__scale {
         font-size: 10px;
     }
-    .gate-row {
+    html[data-page='userSmlt'] .gate-row {
         padding-left: 12px;
         padding-right: 12px;
     }
 
     /* 보안 검색대 */
-    .sec-title {
+    html[data-page='userSmlt'] .sec-title {
         font-size: 12px;
     }
-    .gate-tab {
+    html[data-page='userSmlt'] .gate-tab {
         padding: 0 10px;
         font-size: 12px;
     }
-    .time-input em {
+    html[data-page='userSmlt'] .time-input em {
         margin: 0 4px;
     }
 }

@@ -10,18 +10,18 @@
    0. 화면 기본값
    ===================================================================== */
 /* 대시보드는 드래그 선택이 필요 없는 조회 화면이라 텍스트 선택을 막는다 */
-* {
+html[data-page='dashboard'] * {
     -webkit-user-select: none;
     user-select: none;
 }
 
-html,
-body {
+html[data-page='dashboard'],
+html[data-page='dashboard'] body {
     width: 100%;
     overflow: hidden;
 }
 
-body {
+html[data-page='dashboard'] body {
     color: var(--ink);
     background:
         radial-gradient(120% 70% at 8% 3%, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0) 55%),
@@ -31,7 +31,7 @@ body {
     background-attachment: fixed;
 }
 
-i[data-ic] {
+html[data-page='dashboard'] i[data-ic] {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -39,20 +39,20 @@ i[data-ic] {
     flex-shrink: 0;
 }
 
-i[data-ic]>svg {
+html[data-page='dashboard'] i[data-ic] > svg {
     display: block;
 }
 
 /* =====================================================================
    1. 화면 전용 토큰
    ===================================================================== */
-:root {
+html[data-page='dashboard'] {
     --purple: #4441cc;
     --blue: #3f80ea;
     --teal: #00b3ab;
     --red: #dd0000;
     --ink: #23272f;
-    --muted: #7a8496;
+    --muted-ink: #7a8496;
     --faint: #9aa3b2;
     --sh: 0 1px 2px rgba(46, 50, 94, 0.04), 0 6px 16px rgba(46, 50, 94, 0.06);
     --sh-lg: 0 1px 3px rgba(46, 50, 94, 0.05), 0 10px 30px rgba(46, 50, 94, 0.08);
@@ -65,38 +65,39 @@ i[data-ic]>svg {
 }
 
 /* icon sizing helpers */
-.i-26>svg {
+html[data-page='dashboard'] .i-26 > svg {
     width: 26px;
     height: 26px;
 }
 
-.i-32>svg {
+html[data-page='dashboard'] .i-32 > svg {
     width: 32px;
     height: 32px;
 }
 
-.i-plane-lg>svg {
+html[data-page='dashboard'] .i-plane-lg > svg {
     width: 47px;
     height: 47px;
 }
 
-.i-people-lg>svg {
+html[data-page='dashboard'] .i-people-lg > svg {
     width: 51px;
     height: 51px;
 }
 
-.i-blue {
+html[data-page='dashboard'] .i-blue {
     color: var(--blue);
 }
 
-.i-teal {
+html[data-page='dashboard'] .i-teal {
     color: var(--teal);
 }
 
 /* ============ layout skeleton ============ */
-/* 1920x1080 기준으로 만들고, JS(fit)가 --scale/--app-w/--app-h 를 계산해
-   어떤 해상도에서도 스크롤 없이 한 화면에 들어가도록 축소·확대한다. */
-.app {
+/* 헤더(.topbar)와 LNB 레일은 화면 공용 크롬이라 실제 px 로 그리고(다른 화면과 같은 크기),
+   그 아래 본문(.app)만 1920x1010 기준으로 만든다. JS(fit)가 --scale/--app-w/--app-h 를
+   계산해 어떤 해상도에서도 스크롤 없이 한 화면에 들어가도록 축소·확대한다. */
+html[data-page='dashboard'] .app {
     position: absolute;
     top: var(--app-y, 0);
     left: var(--app-x, 0);
@@ -109,17 +110,19 @@ i[data-ic]>svg {
     overflow: hidden;
 }
 
-/* LNB 레일은 .app 밖에 있으므로(축소 제외) 그만큼 왼쪽을 비워둔다.
-   비워야 하는 실제 폭 = 레일 79px + 본문과의 간격 16px = 95px.
+/* 본문 여백은 다른 화면과 실제 px 이 같아야 하므로 공용 셸 토큰을 쓴다.
+   왼쪽은 .app 밖에 있는 LNB 레일 자리(좌측 여백 + 레일 폭 + 간격)까지 비운다.
    .body 는 축소 좌표계라 실제 px 로 환산하려면 --scale 로 나눈다. */
-.body {
+html[data-page='dashboard'] .body {
     display: flex;
     flex: 1;
-    padding: 20px 30px 24px calc(95px / var(--scale, 1));
+    padding: calc(var(--pm-shell-top) / var(--scale, 1)) calc(var(--pm-shell-x) / var(--scale, 1))
+        calc(var(--pm-shell-bottom) / var(--scale, 1))
+        calc((var(--pm-shell-x) + var(--pm-lnb-w) + var(--pm-shell-gap)) / var(--scale, 1));
     min-height: 0;
 }
 
-.main {
+html[data-page='dashboard'] .main {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -127,23 +130,23 @@ i[data-ic]>svg {
     min-width: 0;
 }
 
-.row {
+html[data-page='dashboard'] .row {
     display: flex;
     gap: 28px;
     min-width: 0;
 }
 
-.row--top {
+html[data-page='dashboard'] .row--top {
     height: 197px;
     flex-shrink: 0;
 }
 
-.row--panels {
+html[data-page='dashboard'] .row--panels {
     flex: 1;
     min-height: 0;
 }
 
-.card {
+html[data-page='dashboard'] .card {
     background: var(--card-bg);
     border-radius: 20px;
     padding: 14px 16px;
@@ -154,26 +157,27 @@ i[data-ic]>svg {
     min-width: 0;
 }
 
-.muted {
-    color: var(--muted);
+html[data-page='dashboard'] .muted {
+    color: var(--muted-ink);
 }
 
-.danger {
+html[data-page='dashboard'] .danger {
     color: var(--red);
 }
 
 /* ============ topbar ============ */
-.topbar {
-    height: 70px;
+/* .app 밖의 실제 px 크롬 — 맵 형태 조회(.header) / 사용자 시뮬레이션(.gnb)과 같은 규격 */
+html[data-page='dashboard'] .topbar {
+    height: var(--pm-header-h);
     flex-shrink: 0;
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 0 25px 0 29px;
+    padding: 0 var(--pm-shell-x);
     background: rgba(255, 255, 255, 0.34);
 }
 
-.topbar h1 {
+html[data-page='dashboard'] .topbar h1 {
     font-size: 19px;
     font-weight: 800;
     margin: 0;
@@ -181,16 +185,16 @@ i[data-ic]>svg {
     letter-spacing: -0.3px;
 }
 
-.topbar h1 span {
+html[data-page='dashboard'] .topbar h1 span {
     color: #949ab0;
     font-weight: 600;
 }
 
-.topbar .spacer {
+html[data-page='dashboard'] .topbar .spacer {
     flex: 1;
 }
 
-.datebox {
+html[data-page='dashboard'] .datebox {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -201,24 +205,24 @@ i[data-ic]>svg {
     box-shadow: 0 2px 8px rgba(46, 50, 94, 0.07);
 }
 
-.datebox .lbl {
+html[data-page='dashboard'] .datebox .lbl {
     font-size: 15px;
     color: #5a6478;
     padding-left: 20px;
 }
 
-.datebox .cal {
+html[data-page='dashboard'] .datebox .cal {
     color: #4a63e7;
 }
 
-.datebox .val {
+html[data-page='dashboard'] .datebox .val {
     font-size: 18px;
     font-weight: 600;
     color: #1f2430;
     letter-spacing: -0.4px;
 }
 
-.pill-sm {
+html[data-page='dashboard'] .pill-sm {
     position: relative;
     display: flex;
     align-items: center;
@@ -232,25 +236,25 @@ i[data-ic]>svg {
     cursor: pointer;
 }
 
-.pill-sm .caret {
+html[data-page='dashboard'] .pill-sm .caret {
     color: #b0b7c6;
     font-size: 11px;
     margin: 2px 0 0 1px;
     transition: transform 0.15s;
 }
 
-.pill-sm.open .caret {
+html[data-page='dashboard'] .pill-sm.open .caret {
     transform: rotate(180deg);
 }
 
-.pill-sm .unit {
+html[data-page='dashboard'] .pill-sm .unit {
     color: #5a6478;
     font-weight: 500;
     font-size: 14px;
     margin-left: 5px;
 }
 
-.pill-menu {
+html[data-page='dashboard'] .pill-menu {
     position: absolute;
     top: calc(100% + 10px);
     left: 50%;
@@ -265,7 +269,7 @@ i[data-ic]>svg {
     min-width: 68px;
 }
 
-.pill-menu button {
+html[data-page='dashboard'] .pill-menu button {
     display: block;
     width: 100%;
     border: none;
@@ -280,16 +284,16 @@ i[data-ic]>svg {
     color: #2b313d;
 }
 
-.pill-menu button:hover {
+html[data-page='dashboard'] .pill-menu button:hover {
     background: #eff2fb;
 }
 
-.pill-menu button.sel {
+html[data-page='dashboard'] .pill-menu button.sel {
     background: var(--purple);
     color: #fff;
 }
 
-.search-btn {
+html[data-page='dashboard'] .search-btn {
     width: 34px;
     height: 34px;
     border-radius: 50%;
@@ -303,14 +307,14 @@ i[data-ic]>svg {
     margin-left: 12px;
 }
 
-.top-right {
+html[data-page='dashboard'] .top-right {
     display: flex;
     align-items: center;
     gap: 18px;
     flex-shrink: 0;
 }
 
-.btn-primary {
+html[data-page='dashboard'] .btn-primary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -327,32 +331,32 @@ i[data-ic]>svg {
     font-family: inherit;
 }
 
-.calc {
+html[data-page='dashboard'] .calc {
     display: flex;
     align-items: center;
     gap: 9px;
     font-size: 13px;
 }
 
-.calc .clk {
+html[data-page='dashboard'] .calc .clk {
     color: #98a0b0;
 }
 
-.calc .txt {
+html[data-page='dashboard'] .calc .txt {
     line-height: 1.6;
     white-space: nowrap;
 }
 
-.calc .txt .muted {
+html[data-page='dashboard'] .calc .txt .muted {
     color: #6a7385;
 }
 
-.calc .strong {
+html[data-page='dashboard'] .calc .strong {
     color: #2b313d;
     font-weight: 600;
 }
 
-.calc .danger {
+html[data-page='dashboard'] .calc .danger {
     font-weight: 600;
 }
 
@@ -361,58 +365,57 @@ i[data-ic]>svg {
    이 화면만 배치가 다르다 : .app 은 fit-to-screen 으로 축소되는데 그 안에 레일을
    두면 다른 화면(terminalMap / userSmlt)보다 레일이 작게 보인다. transform 안에서는
    축소를 벗어날 수 없어 레일을 .app 의 형제로 빼고 여기서 고정 배치한다.
-   → 폭 79px · 좌측 24px 로 다른 화면과 실제 픽셀이 같아진다.
-   위아래는 축소된 본문(첫 카드 행 ~ 하단)에 맞춰 --scale / --app-y 로 환산한다. */
-.sidebar {
+   자리 값은 전부 공용 셸 토큰이라 다른 화면의 레일과 실제 픽셀이 같다.
+   (.body 의 padding 도 같은 토큰을 쓰므로 첫 카드 행과 위가 맞는다) */
+html[data-page='dashboard'] .sidebar {
     position: fixed;
-    /* topbar(70px) + .body 상단 여백(20px) 만큼 내려 첫 카드 행과 위를 맞춘다 */
-    top: calc(var(--app-y, 0px) + 90px * var(--scale, 1));
-    bottom: calc(var(--app-y, 0px) + 24px * var(--scale, 1));
-    left: var(--app-x, 24px);
+    top: calc(var(--pm-header-h) + var(--pm-shell-top));
+    bottom: var(--pm-shell-bottom);
+    left: var(--pm-shell-x);
     z-index: 20;
 }
 
 /* ============ row 1 : cards ============ */
-.c-plan {
+html[data-page='dashboard'] .c-plan {
     flex: 450 0 0;
 }
 
-.c-hourly {
+html[data-page='dashboard'] .c-hourly {
     flex: 449 0 0;
 }
 
-.c-dow {
+html[data-page='dashboard'] .c-dow {
     flex: 199 0 0;
 }
 
-.c-wx {
+html[data-page='dashboard'] .c-wx {
     flex: 338 0 0;
 }
 
-.c-quick {
+html[data-page='dashboard'] .c-quick {
     flex: 239 0 0;
 }
 
-.card-head {
+html[data-page='dashboard'] .card-head {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
 }
 
-.card-title {
+html[data-page='dashboard'] .card-title {
     font-size: 18.5px;
     font-weight: 700;
     letter-spacing: -0.5px;
 }
 
-.card-date {
+html[data-page='dashboard'] .card-date {
     font-size: 14px;
     color: #5f6a7e;
     font-weight: 500;
 }
 
 /* 일일 운항계획 */
-.plan-body {
+html[data-page='dashboard'] .plan-body {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -421,76 +424,76 @@ i[data-ic]>svg {
     padding-bottom: 10px;
 }
 
-.stat-row {
+html[data-page='dashboard'] .stat-row {
     display: flex;
     align-items: center;
 }
 
-.stat-row>.ic {
+html[data-page='dashboard'] .stat-row > .ic {
     width: 58px;
     display: flex;
     justify-content: center;
     flex-shrink: 0;
 }
 
-.stat-cells {
+html[data-page='dashboard'] .stat-cells {
     flex: 1;
     display: flex;
 }
 
-.stat-cells>div {
+html[data-page='dashboard'] .stat-cells > div {
     flex: 1;
     text-align: center;
 }
 
-.stat-cells .k {
+html[data-page='dashboard'] .stat-cells .k {
     font-size: 13px;
     color: #858ea0;
     margin-bottom: 1px;
 }
 
-.stat-cells .v {
+html[data-page='dashboard'] .stat-cells .v {
     font-size: 31px;
     font-weight: 500;
     letter-spacing: -1.2px;
     line-height: 1.1;
 }
 
-.stat-cells .v.blue {
+html[data-page='dashboard'] .stat-cells .v.blue {
     color: #1c6ff0;
     font-weight: 600;
 }
 
-.stat-cells .v.teal {
+html[data-page='dashboard'] .stat-cells .v.teal {
     color: #00b3ab;
     font-weight: 600;
 }
 
-.stat-cells .u {
+html[data-page='dashboard'] .stat-cells .u {
     font-size: 16px;
     color: #3c4350;
     margin-left: 5px;
 }
 
 /* 시간대별 출발여객 */
-.tval {
+html[data-page='dashboard'] .tval {
     font-size: 15px;
     color: #2b313d;
     font-weight: 600;
 }
 
-.tval .t1c {
+html[data-page='dashboard'] .tval .t1c {
     color: #1c6ff0;
     font-weight: 700;
 }
 
-.tval .t2c {
+html[data-page='dashboard'] .tval .t2c {
     color: #00b3ab;
     font-weight: 700;
     margin-left: 10px;
 }
 
-.hourly-body {
+html[data-page='dashboard'] .hourly-body {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -498,31 +501,31 @@ i[data-ic]>svg {
     gap: 2px;
 }
 
-.hourly-row {
+html[data-page='dashboard'] .hourly-row {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.hourly-row>.ic {
+html[data-page='dashboard'] .hourly-row > .ic {
     width: 52px;
     display: flex;
     justify-content: center;
     flex-shrink: 0;
 }
 
-.hourly-row>.ic .tico {
+html[data-page='dashboard'] .hourly-row > .ic .tico {
     width: 42px;
     height: auto;
 }
 
-.hourly-row>svg {
+html[data-page='dashboard'] .hourly-row > svg {
     flex: 1;
     height: 48px;
     min-width: 0;
 }
 
-.ylab {
+html[data-page='dashboard'] .ylab {
     width: 44px;
     flex-shrink: 0;
     display: flex;
@@ -534,17 +537,17 @@ i[data-ic]>svg {
     text-align: right;
 }
 
-.axis-row {
+html[data-page='dashboard'] .axis-row {
     display: flex;
     gap: 8px;
 }
 
-.axis-row>.ic {
+html[data-page='dashboard'] .axis-row > .ic {
     width: 52px;
     flex-shrink: 0;
 }
 
-.axis {
+html[data-page='dashboard'] .axis {
     flex: 1;
     display: flex;
     font-size: 12px;
@@ -552,13 +555,13 @@ i[data-ic]>svg {
     padding-right: 44px;
 }
 
-.axis span {
+html[data-page='dashboard'] .axis span {
     flex: 1;
     text-align: center;
 }
 
 /* 요일 속성 */
-.dow-val {
+html[data-page='dashboard'] .dow-val {
     flex: 1;
     display: flex;
     align-items: center;
@@ -566,14 +569,14 @@ i[data-ic]>svg {
     padding-bottom: 6px;
 }
 
-.dow-val span {
+html[data-page='dashboard'] .dow-val span {
     font-size: 29px;
     font-weight: 700;
     color: #1c4de8;
     letter-spacing: -1.2px;
 }
 
-.card-foot {
+html[data-page='dashboard'] .card-foot {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -582,7 +585,7 @@ i[data-ic]>svg {
     padding-top: 11px;
 }
 
-.tag-chip {
+html[data-page='dashboard'] .tag-chip {
     font-size: 14.5px;
     color: #5a6478;
     background: rgba(150, 158, 190, 0.18);
@@ -590,7 +593,7 @@ i[data-ic]>svg {
     padding: 3px 10px;
 }
 
-.dow-hl {
+html[data-page='dashboard'] .dow-hl {
     color: #1c4de8;
     font-weight: 700;
     font-size: 18px;
@@ -598,7 +601,7 @@ i[data-ic]>svg {
 }
 
 /* 기상정보 */
-.wx-row {
+html[data-page='dashboard'] .wx-row {
     flex: 1;
     display: flex;
     align-items: center;
@@ -606,29 +609,29 @@ i[data-ic]>svg {
     padding: 0 2px 6px;
 }
 
-.wx-ic {
+html[data-page='dashboard'] .wx-ic {
     flex-shrink: 0;
     display: flex;
 }
 
-.wx-ic>svg {
+html[data-page='dashboard'] .wx-ic > svg {
     width: 64px;
     height: 48px;
 }
 
-.wx-temp {
+html[data-page='dashboard'] .wx-temp {
     font-size: 39px;
     font-weight: 500;
     letter-spacing: -1.8px;
 }
 
-.wx-temp small {
+html[data-page='dashboard'] .wx-temp small {
     font-size: 23px;
     font-weight: 500;
     letter-spacing: -1px;
 }
 
-.wx-side {
+html[data-page='dashboard'] .wx-side {
     margin-left: auto;
     text-align: right;
     font-size: 15px;
@@ -636,20 +639,20 @@ i[data-ic]>svg {
     line-height: 1.8;
 }
 
-.wx-side b {
+html[data-page='dashboard'] .wx-side b {
     color: #23272f;
     font-weight: 600;
     margin-left: 6px;
 }
 
-.wx-foot-r {
+html[data-page='dashboard'] .wx-foot-r {
     text-align: right;
     font-size: 14.5px;
     color: #5a6478;
     line-height: 1.35;
 }
 
-.wx-foot-r b {
+html[data-page='dashboard'] .wx-foot-r b {
     color: #23272f;
     font-weight: 600;
     font-size: 15.5px;
@@ -657,7 +660,7 @@ i[data-ic]>svg {
 }
 
 /* quick access */
-.quick {
+html[data-page='dashboard'] .quick {
     background: linear-gradient(150deg, #fcfcfd, #f6f6fa);
     border: 1px solid #dbd8f3;
     border-radius: 20px;
@@ -669,7 +672,7 @@ i[data-ic]>svg {
     box-shadow: var(--sh);
 }
 
-.qtile {
+html[data-page='dashboard'] .qtile {
     border-radius: 14px;
     display: flex;
     flex-direction: column;
@@ -684,25 +687,25 @@ i[data-ic]>svg {
     padding: 0;
 }
 
-.qtile>i>svg {
+html[data-page='dashboard'] .qtile > i > svg {
     width: 30px;
     height: 30px;
 }
 
-.qtile span {
+html[data-page='dashboard'] .qtile span {
     font-size: 13px;
     font-weight: 700;
     letter-spacing: -0.4px;
 }
 
-.qtile.active {
+html[data-page='dashboard'] .qtile.active {
     background: linear-gradient(122deg, #3d3ac8 0%, #4a53d6 48%, #5f8ce4 100%);
     border-color: transparent;
     color: #fff;
 }
 
 /* ============ panels ============ */
-.panel {
+html[data-page='dashboard'] .panel {
     background: var(--panel-bg);
     border-radius: 20px;
     padding: 12px 16px 11px;
@@ -717,7 +720,7 @@ i[data-ic]>svg {
 }
 
 /* 터미널별 백그라운드 워터마크 — 브랜드 색 비행기 실루엣을 은은하게 (요구사항 3) */
-.panel .wm {
+html[data-page='dashboard'] .panel .wm {
     position: absolute;
     inset: 0;
     pointer-events: none;
@@ -729,50 +732,52 @@ i[data-ic]>svg {
     mask: radial-gradient(70% 64% at 50% 44%, #000 30%, transparent 82%);
 }
 
-.panel-blue .wm {
+html[data-page='dashboard'] .panel-blue .wm {
     opacity: 0.16;
 }
 
-.panel-green .wm {
+html[data-page='dashboard'] .panel-green .wm {
     opacity: 0.18;
 }
 
-.panel::after {
+html[data-page='dashboard'] .panel::after {
     content: '';
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: radial-gradient(50% 36% at 60% 58%,
-            rgba(255, 255, 255, 0.8),
-            rgba(255, 255, 255, 0) 72%);
+    background: radial-gradient(
+        50% 36% at 60% 58%,
+        rgba(255, 255, 255, 0.8),
+        rgba(255, 255, 255, 0) 72%
+    );
 }
 
-.panel>* {
+html[data-page='dashboard'] .panel > * {
     position: relative;
     z-index: 2;
 }
 
-.panel-blue {
+html[data-page='dashboard'] .panel-blue {
     --acc: #1c6ff0;
     --acc-soft: #12b0b8;
     --title: #1d1efe;
 }
 
-.panel-green {
+html[data-page='dashboard'] .panel-green {
     --acc: #10a34a;
     --acc-soft: #10a34a;
     --title: #0b7c39;
 }
 
 /* --- panel top --- */
-.p-top {
+html[data-page='dashboard'] .p-top {
     display: flex;
     gap: 20px;
     height: 199px;
     flex-shrink: 0;
 }
 
-.p-iconbox {
+html[data-page='dashboard'] .p-iconbox {
     width: 79px;
     border-radius: 24px;
     display: flex;
@@ -788,7 +793,7 @@ i[data-ic]>svg {
 }
 
 /* 상단에 부드러운 광택을 더해 입체감 부여 */
-.p-iconbox::before {
+html[data-page='dashboard'] .p-iconbox::before {
     content: '';
     position: absolute;
     inset: 0;
@@ -796,20 +801,22 @@ i[data-ic]>svg {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 42%);
 }
 
-.panel-blue .p-iconbox {
+html[data-page='dashboard'] .panel-blue .p-iconbox {
     background: linear-gradient(180deg, #0106ff 0%, #0043e2 36%, #0083c6 72%, #00a8b8 100%);
 }
 
-.panel-green .p-iconbox {
-    background: linear-gradient(180deg,
-            #ffff00 0%,
-            #ffff00 22%,
-            #c9e829 46%,
-            #60bb78 72%,
-            #0c98b7 100%);
+html[data-page='dashboard'] .panel-green .p-iconbox {
+    background: linear-gradient(
+        180deg,
+        #ffff00 0%,
+        #ffff00 22%,
+        #c9e829 46%,
+        #60bb78 72%,
+        #0c98b7 100%
+    );
 }
 
-.p-iconbox .tbig {
+html[data-page='dashboard'] .p-iconbox .tbig {
     width: 68px;
     height: 68px;
     position: relative;
@@ -817,7 +824,7 @@ i[data-ic]>svg {
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18));
 }
 
-.p-mid {
+html[data-page='dashboard'] .p-mid {
     width: 298px;
     flex-shrink: 0;
     display: flex;
@@ -825,7 +832,7 @@ i[data-ic]>svg {
     gap: 8px;
 }
 
-.p-stats {
+html[data-page='dashboard'] .p-stats {
     flex: 98 0 0;
     background: var(--box-blue);
     border-radius: 14px;
@@ -834,20 +841,20 @@ i[data-ic]>svg {
     flex-direction: column;
 }
 
-.p-note {
+html[data-page='dashboard'] .p-note {
     text-align: right;
     font-size: 13px;
     color: #7c8698;
 }
 
-.p-stat-main {
+html[data-page='dashboard'] .p-stat-main {
     flex: 1;
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.p-stat-lines {
+html[data-page='dashboard'] .p-stat-lines {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -856,12 +863,12 @@ i[data-ic]>svg {
     min-width: 0;
 }
 
-.p-line {
+html[data-page='dashboard'] .p-line {
     display: flex;
     align-items: center;
 }
 
-.p-delta {
+html[data-page='dashboard'] .p-delta {
     color: var(--red);
     font-size: 14px;
     font-weight: 600;
@@ -869,20 +876,20 @@ i[data-ic]>svg {
     text-align: center;
 }
 
-.p-big {
+html[data-page='dashboard'] .p-big {
     font-size: 25px;
     font-weight: 700;
     letter-spacing: -1.2px;
 }
 
-.p-u {
+html[data-page='dashboard'] .p-u {
     font-size: 15px;
     color: #3c4350;
     margin-left: 6px;
     width: 20px;
 }
 
-.board {
+html[data-page='dashboard'] .board {
     width: 71px;
     flex-shrink: 0;
     background: #fff;
@@ -892,27 +899,27 @@ i[data-ic]>svg {
     box-shadow: 0 1px 4px rgba(46, 50, 94, 0.08);
 }
 
-.board .k {
+html[data-page='dashboard'] .board .k {
     font-size: 14px;
     font-weight: 700;
     color: #2b313d;
     margin-bottom: 1px;
 }
 
-.board .v {
+html[data-page='dashboard'] .board .v {
     font-size: 26px;
     font-weight: 700;
     color: var(--acc);
     letter-spacing: -1.2px;
 }
 
-.board .u {
+html[data-page='dashboard'] .board .u {
     font-size: 14px;
     color: #3c4350;
     margin-left: 3px;
 }
 
-.p-peak {
+html[data-page='dashboard'] .p-peak {
     flex: 92 0 0;
     background: var(--box-mint);
     border: 1px solid #9fdcd8;
@@ -922,24 +929,24 @@ i[data-ic]>svg {
     flex-direction: column;
 }
 
-.panel-green .p-peak {
+html[data-page='dashboard'] .panel-green .p-peak {
     border-color: #a8dfb4;
 }
 
-.peak-title {
+html[data-page='dashboard'] .peak-title {
     font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.5px;
 }
 
-.peak-body {
+html[data-page='dashboard'] .peak-body {
     flex: 1;
     display: flex;
     align-items: center;
     gap: 4px;
 }
 
-.peak-badge {
+html[data-page='dashboard'] .peak-badge {
     width: 70px;
     flex-shrink: 0;
     background: #d7f0ee;
@@ -948,17 +955,17 @@ i[data-ic]>svg {
     text-align: center;
 }
 
-.panel-green .peak-badge {
+html[data-page='dashboard'] .panel-green .peak-badge {
     background: #dcf0dd;
 }
 
-.peak-badge .k {
+html[data-page='dashboard'] .peak-badge .k {
     font-size: 13px;
     color: #2b313d;
     line-height: 1.3;
 }
 
-.peak-badge .v {
+html[data-page='dashboard'] .peak-badge .v {
     font-size: 20px;
     font-weight: 700;
     color: var(--acc-soft);
@@ -966,38 +973,38 @@ i[data-ic]>svg {
     line-height: 1.2;
 }
 
-.peak-cells {
+html[data-page='dashboard'] .peak-cells {
     flex: 1;
     display: flex;
     align-items: center;
 }
 
-.peak-cells .cell {
+html[data-page='dashboard'] .peak-cells .cell {
     flex: 1;
     text-align: center;
 }
 
-.peak-cells .k {
+html[data-page='dashboard'] .peak-cells .k {
     font-size: 12.5px;
     color: #7c8698;
     line-height: 1.3;
     white-space: nowrap;
 }
 
-.peak-cells b {
+html[data-page='dashboard'] .peak-cells b {
     font-size: 19px;
     font-weight: 700;
     color: var(--acc-soft);
     letter-spacing: -1px;
 }
 
-.peak-cells .u {
+html[data-page='dashboard'] .peak-cells .u {
     font-size: 11px;
     color: #3c4350;
     margin-left: 1px;
 }
 
-.sep {
+html[data-page='dashboard'] .sep {
     color: #ccd4dd;
     font-size: 17px;
     font-weight: 300;
@@ -1005,7 +1012,7 @@ i[data-ic]>svg {
     transform: translateY(6px);
 }
 
-.chartbox {
+html[data-page='dashboard'] .chartbox {
     flex: 1;
     min-width: 0;
     background: rgba(255, 255, 255, 0.85);
@@ -1014,7 +1021,7 @@ i[data-ic]>svg {
     padding: 6px 8px 2px;
 }
 
-.legend {
+html[data-page='dashboard'] .legend {
     position: absolute;
     top: 10px;
     right: 18px;
@@ -1024,21 +1031,21 @@ i[data-ic]>svg {
     z-index: 2;
 }
 
-.legend>span {
+html[data-page='dashboard'] .legend > span {
     display: flex;
     align-items: center;
     gap: 6px;
     color: #3c4350;
 }
 
-.legend>span>i {
+html[data-page='dashboard'] .legend > span > i {
     width: 24px;
     height: 2px;
     position: relative;
     display: inline-block;
 }
 
-.legend>span>i::after {
+html[data-page='dashboard'] .legend > span > i::after {
     content: '';
     position: absolute;
     left: 50%;
@@ -1051,7 +1058,7 @@ i[data-ic]>svg {
 }
 
 /* 차트 뒷배경 — 터미널 로고를 은은하게 (요구사항) */
-.chart-bg {
+html[data-page='dashboard'] .chart-bg {
     position: absolute;
     inset: 6px 8px 2px;
     z-index: 0;
@@ -1064,7 +1071,7 @@ i[data-ic]>svg {
     mask: radial-gradient(72% 72% at 50% 52%, #000 55%, transparent 92%);
 }
 
-.chartbox>svg {
+html[data-page='dashboard'] .chartbox > svg {
     width: 100%;
     height: 100%;
     display: block;
@@ -1073,7 +1080,7 @@ i[data-ic]>svg {
 }
 
 /* --- panel title row --- */
-.p-title-row {
+html[data-page='dashboard'] .p-title-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1082,7 +1089,7 @@ i[data-ic]>svg {
     flex-shrink: 0;
 }
 
-.p-title {
+html[data-page='dashboard'] .p-title {
     font-size: 22px;
     font-weight: 800;
     color: var(--title);
@@ -1092,7 +1099,7 @@ i[data-ic]>svg {
     gap: 11px;
 }
 
-.p-title::before {
+html[data-page='dashboard'] .p-title::before {
     content: '';
     width: 5px;
     align-self: stretch;
@@ -1102,34 +1109,36 @@ i[data-ic]>svg {
     flex-shrink: 0;
 }
 
-.p-title em {
+html[data-page='dashboard'] .p-title em {
     font-style: normal;
     font-weight: 800;
     color: var(--acc-soft);
-    background: linear-gradient(transparent 62%,
-            color-mix(in srgb, var(--acc-soft) 22%, transparent) 0);
+    background: linear-gradient(
+        transparent 62%,
+        color-mix(in srgb, var(--acc-soft) 22%, transparent) 0
+    );
     padding: 0 2px;
     border-radius: 3px;
 }
 
-.panel-green .p-title {
+html[data-page='dashboard'] .panel-green .p-title {
     -webkit-text-stroke: 0;
 }
 
-.panel-green .p-title em {
+html[data-page='dashboard'] .panel-green .p-title em {
     -webkit-text-stroke: 0;
     color: #1a7a2e;
     background: linear-gradient(transparent 62%, rgba(26, 122, 46, 0.16) 0);
 }
 
-.toggle {
+html[data-page='dashboard'] .toggle {
     display: flex;
     background: #e9ecf3;
     border-radius: 14px;
     padding: 2px;
 }
 
-.toggle button {
+html[data-page='dashboard'] .toggle button {
     border: none;
     cursor: pointer;
     font-size: 13px;
@@ -1142,12 +1151,12 @@ i[data-ic]>svg {
     font-family: inherit;
 }
 
-.toggle button.on {
+html[data-page='dashboard'] .toggle button.on {
     background: linear-gradient(100deg, #4441cc, #6868d6);
     color: #fff;
 }
 
-.p-bar {
+html[data-page='dashboard'] .p-bar {
     height: 40px;
     border-radius: 10px;
     color: #fff;
@@ -1160,20 +1169,22 @@ i[data-ic]>svg {
     flex-shrink: 0;
 }
 
-.panel-blue .p-bar {
+html[data-page='dashboard'] .panel-blue .p-bar {
     background: linear-gradient(90deg, #0101ff 0%, #0043e2 34%, #018ec1 74%, #00aab5 100%);
 }
 
-.panel-green .p-bar {
-    background: linear-gradient(90deg,
-            #ffff00 0%,
-            #ffff00 32%,
-            #8ecf56 66%,
-            #42af8e 86%,
-            #0294bf 100%);
+html[data-page='dashboard'] .panel-green .p-bar {
+    background: linear-gradient(
+        90deg,
+        #ffff00 0%,
+        #ffff00 32%,
+        #8ecf56 66%,
+        #42af8e 86%,
+        #0294bf 100%
+    );
 }
 
-.view {
+html[data-page='dashboard'] .view {
     display: flex;
     flex-direction: column;
     flex: 1;
@@ -1181,26 +1192,26 @@ i[data-ic]>svg {
     padding-top: 12px;
 }
 
-.view[hidden] {
+html[data-page='dashboard'] .view[hidden] {
     display: none;
 }
 
 /* --- summary view --- */
-.sum-top {
+html[data-page='dashboard'] .sum-top {
     display: flex;
     gap: 16px;
     height: 94px;
     flex-shrink: 0;
 }
 
-.sum-two {
+html[data-page='dashboard'] .sum-two {
     flex: 378 0 0;
     background: var(--box-blue);
     border-radius: 14px;
     display: flex;
 }
 
-.sum-cell {
+html[data-page='dashboard'] .sum-cell {
     flex: 1;
     display: flex;
     align-items: center;
@@ -1208,30 +1219,30 @@ i[data-ic]>svg {
     gap: 14px;
 }
 
-.sum-cell .big {
+html[data-page='dashboard'] .sum-cell .big {
     font-size: 29px;
     font-weight: 700;
     letter-spacing: -1.4px;
 }
 
-.sum-cell .u {
+html[data-page='dashboard'] .sum-cell .u {
     font-size: 16px;
     color: #3c4350;
     margin-left: 6px;
 }
 
-.sum-cell .sub {
+html[data-page='dashboard'] .sum-cell .sub {
     font-size: 13px;
     color: #7c8698;
     margin-top: 3px;
 }
 
-.sum-cell .sub .danger {
+html[data-page='dashboard'] .sum-cell .sub .danger {
     margin-left: 14px;
     font-weight: 600;
 }
 
-.sum-info {
+html[data-page='dashboard'] .sum-info {
     flex: 1;
     border-radius: 14px;
     display: flex;
@@ -1242,12 +1253,12 @@ i[data-ic]>svg {
     border: 1px solid #bbe8e3;
 }
 
-.panel-green .sum-info {
+html[data-page='dashboard'] .panel-green .sum-info {
     background: linear-gradient(102deg, #eafbec 0%, #d8f2da 20%, #f1fdf2 70%, #f7fff8 100%);
     border-color: #c1e6c5;
 }
 
-.sum-info .lbl {
+html[data-page='dashboard'] .sum-info .lbl {
     font-size: 17px;
     font-weight: 700;
     line-height: 1.25;
@@ -1255,21 +1266,21 @@ i[data-ic]>svg {
     flex-shrink: 0;
 }
 
-.sum-info .cells {
+html[data-page='dashboard'] .sum-info .cells {
     flex: 1;
     display: flex;
     align-items: center;
     justify-content: space-around;
 }
 
-.sum-info .cell {
+html[data-page='dashboard'] .sum-info .cell {
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 10px;
 }
 
-.sum-info .k {
+html[data-page='dashboard'] .sum-info .k {
     font-size: 13.5px;
     color: #7c8698;
     line-height: 1.35;
@@ -1277,29 +1288,29 @@ i[data-ic]>svg {
     white-space: nowrap;
 }
 
-.sum-info .val {
+html[data-page='dashboard'] .sum-info .val {
     white-space: nowrap;
 }
 
-.sum-info b {
+html[data-page='dashboard'] .sum-info b {
     font-size: 27px;
     font-weight: 700;
     color: var(--acc-soft);
     letter-spacing: -1.2px;
 }
 
-.sum-info .u {
+html[data-page='dashboard'] .sum-info .u {
     font-size: 14px;
     color: #3c4350;
     margin-left: 4px;
 }
 
-.sum-info .sep {
+html[data-page='dashboard'] .sum-info .sep {
     margin: 0 4px;
 }
 
 /* --- gates --- */
-.gates {
+html[data-page='dashboard'] .gates {
     display: flex;
     gap: 38px;
     flex: 1;
@@ -1307,7 +1318,7 @@ i[data-ic]>svg {
     margin-top: 9px;
 }
 
-.gate {
+html[data-page='dashboard'] .gate {
     flex: 1;
     min-width: 0;
     border-radius: 16px;
@@ -1322,32 +1333,32 @@ i[data-ic]>svg {
     position: relative;
 }
 
-.gate-head {
+html[data-page='dashboard'] .gate-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-shrink: 0;
 }
 
-.gate-head b {
+html[data-page='dashboard'] .gate-head b {
     font-size: 17px;
     font-weight: 700;
     letter-spacing: -0.5px;
 }
 
-.gate-head .warn {
+html[data-page='dashboard'] .gate-head .warn {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-.gate-head .warn>span {
+html[data-page='dashboard'] .gate-head .warn > span {
     font-size: 14px;
     color: var(--red);
     font-weight: 600;
 }
 
-.gate-head .plus {
+html[data-page='dashboard'] .gate-head .plus {
     width: 25px;
     height: 25px;
     background: #fff;
@@ -1366,20 +1377,20 @@ i[data-ic]>svg {
         box-shadow 0.15s ease;
 }
 
-.panel-green .gate-head .plus {
+html[data-page='dashboard'] .panel-green .gate-head .plus {
     background: #eceefb;
 }
 
-.gate-head .plus:hover {
+html[data-page='dashboard'] .gate-head .plus:hover {
     box-shadow: 0 2px 7px rgba(59, 57, 201, 0.28);
 }
 
-.gate-head .plus>i>svg {
+html[data-page='dashboard'] .gate-head .plus > i > svg {
     width: 14px;
     height: 14px;
 }
 
-.gate-mid {
+html[data-page='dashboard'] .gate-mid {
     background: rgba(255, 255, 255, 0.7);
     border-radius: 14px;
     margin-top: 9px;
@@ -1388,12 +1399,12 @@ i[data-ic]>svg {
     flex-shrink: 0;
 }
 
-.gate-mid .isl {
+html[data-page='dashboard'] .gate-mid .isl {
     font-size: 15px;
     color: #3c4350;
 }
 
-.gate-mid .num {
+html[data-page='dashboard'] .gate-mid .num {
     font-size: 30px;
     font-weight: 700;
     color: #ee1111;
@@ -1401,32 +1412,32 @@ i[data-ic]>svg {
     line-height: 1.3;
 }
 
-.gate-mid .num small {
+html[data-page='dashboard'] .gate-mid .num small {
     font-size: 25px;
     font-weight: 700;
 }
 
-.gate-mid .meta {
+html[data-page='dashboard'] .gate-mid .meta {
     font-size: 15px;
     color: #6c7688;
     margin-top: 1px;
 }
 
-.gate-mid .meta>span {
+html[data-page='dashboard'] .gate-mid .meta > span {
     margin: 0 8px;
 }
 
-.gate-mid .meta b {
+html[data-page='dashboard'] .gate-mid .meta b {
     color: #23272f;
     font-weight: 600;
     margin-left: 6px;
 }
 
-.gate-mid .meta b.acc {
+html[data-page='dashboard'] .gate-mid .meta b.acc {
     color: #4a56d8;
 }
 
-.gate-arrow {
+html[data-page='dashboard'] .gate-arrow {
     position: absolute;
     top: 49%;
     width: 27px;
@@ -1445,20 +1456,20 @@ i[data-ic]>svg {
     padding: 0;
 }
 
-.gate-arrow.prev {
+html[data-page='dashboard'] .gate-arrow.prev {
     left: 0;
 }
 
-.gate-arrow.next {
+html[data-page='dashboard'] .gate-arrow.next {
     left: 100%;
 }
 
-.gate-arrow>i>svg {
+html[data-page='dashboard'] .gate-arrow > i > svg {
     width: 17px;
     height: 17px;
 }
 
-.gauge-row {
+html[data-page='dashboard'] .gauge-row {
     display: flex;
     gap: 9px;
     margin-top: 7px;
@@ -1466,7 +1477,7 @@ i[data-ic]>svg {
     min-height: 0;
 }
 
-.gauge {
+html[data-page='dashboard'] .gauge {
     flex: 1;
     background: rgba(255, 255, 255, 0.85);
     border-radius: 12px;
@@ -1477,19 +1488,19 @@ i[data-ic]>svg {
     gap: 1px;
 }
 
-.gauge .k {
+html[data-page='dashboard'] .gauge .k {
     font-size: 14px;
     color: #2b313d;
     font-weight: 500;
 }
 
-.gauge .donut>svg {
+html[data-page='dashboard'] .gauge .donut > svg {
     width: 72px;
     height: 72px;
     display: block;
 }
 
-.rec {
+html[data-page='dashboard'] .rec {
     flex: 1;
     background: var(--box-blue);
     border-radius: 12px;
@@ -1499,11 +1510,11 @@ i[data-ic]>svg {
     justify-content: center;
 }
 
-.panel-green .rec {
+html[data-page='dashboard'] .panel-green .rec {
     background: #edf6ee;
 }
 
-.rec .tag {
+html[data-page='dashboard'] .rec .tag {
     background: #e00000;
     color: #fff;
     font-size: 14px;
@@ -1512,39 +1523,39 @@ i[data-ic]>svg {
     padding: 0 14px 1px;
 }
 
-.rec .name {
+html[data-page='dashboard'] .rec .name {
     font-size: 16px;
     font-weight: 700;
     color: #23272f;
     margin-top: 5px;
 }
 
-.rec .cnt {
+html[data-page='dashboard'] .rec .cnt {
     font-size: 21px;
     font-weight: 700;
     color: #4a56d8;
     letter-spacing: -0.6px;
 }
 
-.rec .cnt small {
+html[data-page='dashboard'] .rec .cnt small {
     font-size: 14px;
     font-weight: 600;
     color: #23272f;
     margin-left: 4px;
 }
 
-.rec .cap {
+html[data-page='dashboard'] .rec .cap {
     font-size: 15px;
     font-weight: 700;
     color: #23272f;
 }
 
-.rec .cap.u {
+html[data-page='dashboard'] .rec .cap.u {
     text-decoration: underline;
     text-underline-offset: 2px;
 }
 
-.chips {
+html[data-page='dashboard'] .chips {
     display: flex;
     gap: 6px;
     justify-content: center;
@@ -1553,7 +1564,7 @@ i[data-ic]>svg {
     flex-wrap: wrap;
 }
 
-.chip {
+html[data-page='dashboard'] .chip {
     width: 19px;
     height: 19px;
     border-radius: 5px;
@@ -1575,60 +1586,60 @@ i[data-ic]>svg {
     outline-offset: 2px;
 }
 
-.chip:hover {
+html[data-page='dashboard'] .chip:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(46, 50, 94, 0.22);
 }
 
-.chip:active {
+html[data-page='dashboard'] .chip:active {
     transform: translateY(0);
 }
 
-.chip.sel {
+html[data-page='dashboard'] .chip.sel {
     outline-color: #4a56d8;
     box-shadow: 0 4px 10px rgba(74, 86, 216, 0.35);
     transform: translateY(-2px);
 }
 
-.chip.r {
+html[data-page='dashboard'] .chip.r {
     background: #dd0000;
 }
 
-.chip.g {
+html[data-page='dashboard'] .chip.g {
     background: #0f7d00;
 }
 
-.chip.o {
+html[data-page='dashboard'] .chip.o {
     background: #e59500;
 }
 
-.chip.gray {
+html[data-page='dashboard'] .chip.gray {
     background: #979797;
 }
 
-.chip.gray2 {
+html[data-page='dashboard'] .chip.gray2 {
     background: #c9c9c9;
 }
 
-.chip.k {
+html[data-page='dashboard'] .chip.k {
     background: #4b4b4b;
 }
 
 /* --- table view --- */
-.table {
+html[data-page='dashboard'] .table {
     flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
 }
 
-.thead,
-.trow {
+html[data-page='dashboard'] .thead,
+html[data-page='dashboard'] .trow {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
 }
 
-.thead {
+html[data-page='dashboard'] .thead {
     background: #e0e4f7;
     border-radius: 8px;
     font-size: 15px;
@@ -1639,11 +1650,11 @@ i[data-ic]>svg {
     flex-shrink: 0;
 }
 
-.thead div {
+html[data-page='dashboard'] .thead div {
     text-align: center;
 }
 
-.trow {
+html[data-page='dashboard'] .trow {
     flex: 1 0 44px;
     min-height: 44px;
     align-items: center;
@@ -1652,16 +1663,16 @@ i[data-ic]>svg {
     border-radius: 8px;
 }
 
-.trow div {
+html[data-page='dashboard'] .trow div {
     text-align: center;
     color: #2b313d;
 }
 
-.trow .w {
+html[data-page='dashboard'] .trow .w {
     color: #3c4350;
 }
 
-.trow.sel {
+html[data-page='dashboard'] .trow.sel {
     border: 1.5px dashed #7a80bd;
     background: rgba(236, 237, 249, 0.6);
 }

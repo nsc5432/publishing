@@ -1,8 +1,8 @@
 import { useState } from 'react';
 // PM 화면 공용 아이콘 세트 (레일 아이콘은 전 화면이 동일하다)
 import { Icon, type IconName } from '@/modules/pm/pages/dashboard/components/PmIcons';
-import { LNB_BOTTOM, LNB_LOGOUT, LNB_TOP, type NavItem } from './navItems';
-import { useNavigate } from 'react-router-dom';
+import { LNB_BOTTOM, LNB_HOME_PATH, LNB_LOGOUT, LNB_TOP, type NavItem } from './navItems';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface NavButtonProps {
     icon: IconName;
@@ -30,8 +30,6 @@ function NavButton({ icon, label, className, onClick }: NavButtonProps) {
 }
 
 interface LnbProps {
-    /** 상단 그룹 초기 활성 메뉴 id (예: chart) */
-    defaultTop?: string;
     /** 하단 그룹 초기 활성 메뉴 id — 화면마다 다르다 (대시보드: grid / 맵: map) */
     defaultBottom?: string;
     /** 메뉴 구성을 바꿔야 할 때만 전달 (기본값: 공용 메뉴) */
@@ -44,19 +42,29 @@ interface LnbProps {
 }
 
 /**
+ * 현재 경로에 해당하는 상단 메뉴 id.
+ * 활성 표시를 화면별 Props(초기값)로 두면 화면을 옮길 때마다 레일이 새로 그려지면서
+ * 표시가 풀리거나 엉뚱한 곳에 남는다. 경로가 곧 활성 메뉴이므로 경로에서 끌어온다.
+ */
+function useActiveTop(items: NavItem[]) {
+    const { pathname } = useLocation();
+    // '/rui/pm' 진입 시에는 대시보드가 열리므로 첫 메뉴를 활성으로 본다.
+    if (pathname === LNB_HOME_PATH) return items[0]?.id;
+    return items.find((item) => item.path && pathname.startsWith(item.path))?.id;
+}
+
+/**
  * 좌측 사이드바 네비게이션 레일 — 전 화면 공용.
- * 상단(강조 배경)과 하단(아이콘 색 강조) 그룹은 각각 하나만 활성이며,
- * 활성 상태는 내부에서 관리하고 초기값만 Props 로 받는다.
+ * 상단(강조 배경)은 현재 경로를, 하단(아이콘 색 강조)은 화면 안에서의 보기 선택을 뜻한다.
  */
 export function Lnb({
-    defaultTop = LNB_TOP[0].id,
     defaultBottom = LNB_BOTTOM[0].id,
     topItems = LNB_TOP,
     bottomItems = LNB_BOTTOM,
     onSelect,
     onLogout,
 }: LnbProps) {
-    const [activeTop, setActiveTop] = useState(defaultTop);
+    const activeTop = useActiveTop(topItems);
     const [activeBottom, setActiveBottom] = useState(defaultBottom);
     const navigate = useNavigate();
 
@@ -71,9 +79,9 @@ export function Lnb({
                             label={item.label}
                             className={`nav-item${item.id === activeTop ? ' active' : ''}`}
                             onClick={() => {
-                                setActiveTop(item.id);
                                 onSelect?.(item.id);
-                                navigate(`/rui/pm/${item.id}`)
+                                // 아직 화면이 없는 메뉴는 빈 화면으로 나가지 않도록 이동을 막는다.
+                                if (item.path) navigate(item.path);
                             }}
                         />
                     ))}
