@@ -1,4 +1,4 @@
-import type { IconName } from '@/modules/pm/dashboard/components/PmIcons';
+import type { IconName } from '@/modules/pm/pages/dashboard/components/PmIcons';
 
 /**
  * 화면 공용 좌측 네비게이션(LNB) 메뉴 정의.
@@ -14,8 +14,10 @@ export interface NavItem {
 
 /** 상단 그룹 : 활성 시 원형 배경으로 강조 */
 export const LNB_TOP: NavItem[] = [
-    { id: 'chart', icon: 'chart', label: '대시보드' },
-    { id: 'user', icon: 'user', label: '여객 예측' },
+    { id: 'daily-smlt/dashboard', icon: 'chart', label: '대시보드' },
+    { id: 'daily-smlt/terminalMap', icon: 'map', label: '맵 형태 조회' },
+    { id: 'user-smlt/config', icon: 'user', label: '사용자 시뮬레이션' },
+
     { id: 'monitor', icon: 'monitor', label: '실시간 모니터링' },
     { id: 'pin', icon: 'pin', label: '시설 현황' },
 ];

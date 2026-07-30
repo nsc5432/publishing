@@ -1,15 +1,41 @@
-import Dashboard from '@/modules/pm/dashboard/Dashboard';
-// import TerminalMap from '@/modules/pm/terminalMap/TerminalMap';
-// import UserSmltConfig from '@/modules/pm/userSmlt/UserSmltConfig';
-/**
- * 라우터 도입 전까지 화면 하나만 렌더한다.
- * 다른 화면을 보려면 아래 import 를 교체한다.
- * - 대시보드: @/modules/pm/dashboard/Dashboard
- * - 터미널 맵: @/modules/pm/terminalMap/TerminalMap
- * - 사용자 시뮬레이션: @/modules/pm/userSmlt/UserSmltConfig
- */
+import { lazy, Suspense } from 'react';
+import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
+import { LoadingBar } from './components/ui/loading-bar';
+import { DialogProvider } from './components/ui/dialog-provider';
+
+
+const DashboardPage = lazy(() => import('./modules/pm/pages/dashboard/Dashboard'));
+const TerminalMapPage = lazy(() => import('./modules/pm/pages/terminalMap/TerminalMap'));
+const UserSmltConfigPage = lazy(() => import('./modules/pm/pages/userSmlt/UserSmltConfig'));
+
+const PmLayout = () => {
+    return (
+        <div className="flex h-screen overflow-hidden select-none">
+            <div className="flex-1 overflow-auto">
+                <Outlet />
+            </div>
+        </div>
+    )
+};
+
 function App() {
-    return <Dashboard />;
+    return (
+        <BrowserRouter>
+            <Suspense>
+                <DialogProvider>
+                    <LoadingBar />
+                    <Routes>
+                        <Route element={<PmLayout />}>
+                            <Route path="/rui/pm" element={<DashboardPage />} />
+                            <Route path="/rui/pm/daily-smlt/dashboard" element={<DashboardPage />} />
+                            <Route path="/rui/pm/daily-smlt/terminalMap" element={<TerminalMapPage />} />
+                            <Route path="/rui/pm/user-smlt/config" element={<UserSmltConfigPage />} />
+                        </Route>
+                    </Routes>
+                </DialogProvider>
+            </Suspense>
+        </BrowserRouter>
+    );
 }
 
 export default App;

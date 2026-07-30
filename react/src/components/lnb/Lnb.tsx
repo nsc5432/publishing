@@ -1,7 +1,8 @@
 import { useState } from 'react';
 // PM 화면 공용 아이콘 세트 (레일 아이콘은 전 화면이 동일하다)
-import { Icon, type IconName } from '@/modules/pm/dashboard/components/PmIcons';
+import { Icon, type IconName } from '@/modules/pm/pages/dashboard/components/PmIcons';
 import { LNB_BOTTOM, LNB_LOGOUT, LNB_TOP, type NavItem } from './navItems';
+import { useNavigate } from 'react-router-dom';
 
 interface NavButtonProps {
     icon: IconName;
@@ -57,6 +58,7 @@ export function Lnb({
 }: LnbProps) {
     const [activeTop, setActiveTop] = useState(defaultTop);
     const [activeBottom, setActiveBottom] = useState(defaultBottom);
+    const navigate = useNavigate();
 
     return (
         <nav className="sidebar">
@@ -71,6 +73,7 @@ export function Lnb({
                             onClick={() => {
                                 setActiveTop(item.id);
                                 onSelect?.(item.id);
+                                navigate(`/rui/pm/${item.id}`)
                             }}
                         />
                     ))}
