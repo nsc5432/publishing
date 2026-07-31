@@ -118,8 +118,14 @@ export function LoadingBar() {
                 >
 
                     <AirplaneIcon
-                        className="w-5 h-5 text-white"
-                        style={{ transform: 'rotate(90deg)', display: 'block' }} />
+                        style={{
+                            width: '1.25rem',
+                            height: '1.25rem',
+                            color: '#fff',
+                            transform: 'rotate(90deg)',
+                            display: 'block',
+                        }}
+                    />
                 </div>
             </div>
             <div>

@@ -1,10 +1,18 @@
-'use client';
-
 import * as React from 'react';
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 
-import { cn } from '@/lib/utils';
-import { buttonVariants } from '@/components/ui/button';
+/**
+ * 확인/알림 다이얼로그 (dialog-provider.tsx 전용)
+ *
+ * 동작(포커스 트랩·ESC·포털)은 Radix 가 맡고, 모양은 common.css 의
+ * `.alert-dialog__*` 클래스가 맡는다. 열림/닫힘 애니메이션은 Radix 가 붙여 주는
+ * data-state 속성을 CSS 에서 직접 받는다.
+ */
+
+/** className 을 합칠 때 undefined/빈 값을 걸러 준다. */
+function join(...classes: (string | undefined | false)[]) {
+    return classes.filter(Boolean).join(' ');
+}
 
 function AlertDialog({ ...props }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
     return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
@@ -27,10 +35,7 @@ function AlertDialogOverlay({
     return (
         <AlertDialogPrimitive.Overlay
             data-slot="alert-dialog-overlay"
-            className={cn(
-                'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50',
-                className,
-            )}
+            className={join('alert-dialog__overlay', className)}
             {...props}
         />
     );
@@ -45,10 +50,7 @@ function AlertDialogContent({
             <AlertDialogOverlay />
             <AlertDialogPrimitive.Content
                 data-slot="alert-dialog-content"
-                className={cn(
-                    'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-1/2 left-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg',
-                    className,
-                )}
+                className={join('alert-dialog__content', className)}
                 {...props}
             />
         </AlertDialogPortal>
@@ -59,7 +61,7 @@ function AlertDialogHeader({ className, ...props }: React.ComponentProps<'div'>)
     return (
         <div
             data-slot="alert-dialog-header"
-            className={cn('flex flex-col gap-2 text-center sm:text-left', className)}
+            className={join('alert-dialog__header', className)}
             {...props}
         />
     );
@@ -69,7 +71,7 @@ function AlertDialogFooter({ className, ...props }: React.ComponentProps<'div'>)
     return (
         <div
             data-slot="alert-dialog-footer"
-            className={cn('flex flex-col-reverse gap-2 sm:flex-row sm:justify-end', className)}
+            className={join('alert-dialog__footer', className)}
             {...props}
         />
     );
@@ -82,7 +84,7 @@ function AlertDialogTitle({
     return (
         <AlertDialogPrimitive.Title
             data-slot="alert-dialog-title"
-            className={cn('text-lg font-semibold', className)}
+            className={join('alert-dialog__title', className)}
             {...props}
         />
     );
@@ -95,7 +97,7 @@ function AlertDialogDescription({
     return (
         <AlertDialogPrimitive.Description
             data-slot="alert-dialog-description"
-            className={cn('text-muted-foreground text-sm', className)}
+            className={join('alert-dialog__desc', className)}
             {...props}
         />
     );
@@ -105,7 +107,12 @@ function AlertDialogAction({
     className,
     ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Action>) {
-    return <AlertDialogPrimitive.Action className={cn(buttonVariants(), className)} {...props} />;
+    return (
+        <AlertDialogPrimitive.Action
+            className={join('alert-dialog__btn', 'alert-dialog__btn--primary', className)}
+            {...props}
+        />
+    );
 }
 
 function AlertDialogCancel({
@@ -114,7 +121,7 @@ function AlertDialogCancel({
 }: React.ComponentProps<typeof AlertDialogPrimitive.Cancel>) {
     return (
         <AlertDialogPrimitive.Cancel
-            className={cn(buttonVariants({ variant: 'outline' }), className)}
+            className={join('alert-dialog__btn', 'alert-dialog__btn--outline', className)}
             {...props}
         />
     );

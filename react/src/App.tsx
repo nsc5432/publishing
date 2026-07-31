@@ -49,10 +49,10 @@ function usePreloadPages() {
  */
 const PmLayout = () => {
     return (
-        <div className="flex h-screen overflow-hidden select-none">
+        <div className="pm-shell">
             {/* 화면이 최소 너비(맵 형태 조회 = 1440px)보다 좁으면 가로로 스크롤한다.
                 세로는 각 화면이 한 화면에 맞추므로 잠근다. */}
-            <div className="flex flex-1 flex-col min-w-0 min-h-0 overflow-x-auto overflow-y-hidden">
+            <div className="pm-shell__body">
                 <Outlet />
             </div>
         </div>

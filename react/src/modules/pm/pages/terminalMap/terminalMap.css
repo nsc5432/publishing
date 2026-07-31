@@ -69,8 +69,8 @@ html[data-page='terminalMap'] .body {
     padding: var(--pm-shell-top) var(--pm-shell-x) var(--pm-shell-bottom);
 }
 
-/* Tailwind 의 .container 유틸(max-width: 1536px 등)과 클래스명이 겹친다.
-   원본 퍼블리싱 클래스명을 유지하되, 화면 가로를 꽉 채우도록 폭 제한만 해제한다. */
+/* 원본 퍼블리싱 클래스명(.container)을 유지하되, 화면 가로를 꽉 채우도록
+   폭 제한을 해제한다. */
 html[data-page='terminalMap'] .container {
     display: flex;
     flex: 1;
