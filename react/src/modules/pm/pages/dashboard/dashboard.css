@@ -222,76 +222,7 @@ html[data-page='dashboard'] .datebox .val {
     letter-spacing: -0.4px;
 }
 
-html[data-page='dashboard'] .pill-sm {
-    position: relative;
-    display: flex;
-    align-items: center;
-    font-size: 17px;
-    font-weight: 600;
-    color: #1f2430;
-    padding-left: 10px;
-    background: none;
-    border: none;
-    font-family: inherit;
-    cursor: pointer;
-}
-
-html[data-page='dashboard'] .pill-sm .caret {
-    color: #b0b7c6;
-    font-size: 11px;
-    margin: 2px 0 0 1px;
-    transition: transform 0.15s;
-}
-
-html[data-page='dashboard'] .pill-sm.open .caret {
-    transform: rotate(180deg);
-}
-
-html[data-page='dashboard'] .pill-sm .unit {
-    color: #5a6478;
-    font-weight: 500;
-    font-size: 14px;
-    margin-left: 5px;
-}
-
-html[data-page='dashboard'] .pill-menu {
-    position: absolute;
-    top: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(46, 50, 94, 0.18);
-    padding: 6px;
-    z-index: 30;
-    max-height: 232px;
-    overflow-y: auto;
-    min-width: 68px;
-}
-
-html[data-page='dashboard'] .pill-menu button {
-    display: block;
-    width: 100%;
-    border: none;
-    background: none;
-    font-family: inherit;
-    font-size: 15px;
-    font-weight: 600;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    text-align: center;
-    color: #2b313d;
-}
-
-html[data-page='dashboard'] .pill-menu button:hover {
-    background: #eff2fb;
-}
-
-html[data-page='dashboard'] .pill-menu button.sel {
-    background: var(--purple);
-    color: #fff;
-}
+/* 시/분 드롭다운(.pill-sm / .pill-menu)은 화면 공용이라 common.css 4-3 절에 있다 */
 
 html[data-page='dashboard'] .search-btn {
     width: 34px;

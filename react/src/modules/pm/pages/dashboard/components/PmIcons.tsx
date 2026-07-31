@@ -27,7 +27,11 @@ export type IconName =
     | 'plus'
     | 'chevL'
     | 'chevR'
-    | 'weather';
+    | 'weather'
+    | 'layers'
+    | 'checkCircle'
+    | 'spinner'
+    | 'planeDep';
 
 const LINE = {
     fill: 'none' as const,
@@ -62,6 +66,26 @@ const ICONS: Record<IconName, ReactNode> = {
         <svg viewBox="0 0 24 24" {...LINE} width={19} height={19}>
             <circle cx="12" cy="12" r="9.2" />
             <path d="M12 6.6V12l3.4 2.2" />
+        </svg>
+    ),
+    /* 시뮬레이션 모니터링 KPI — 전체 수행 / 완료 / 진행중 */
+    layers: (
+        <svg viewBox="0 0 24 24" {...LINE} width={19} height={19}>
+            <path d="M12 3 3 7.5l9 4.5 9-4.5L12 3Z" />
+            <path d="m3 12 9 4.5L21 12" />
+            <path d="m3 16.5 9 4.5 9-4.5" />
+        </svg>
+    ),
+    checkCircle: (
+        <svg viewBox="0 0 24 24" {...LINE} width={19} height={19}>
+            <circle cx="12" cy="12" r="9.2" />
+            <path d="m8 12.2 2.8 2.8L16 9.8" />
+        </svg>
+    ),
+    /* 진행중 : 점선 원호 (계산이 도는 중임을 나타낸다) */
+    spinner: (
+        <svg viewBox="0 0 24 24" {...LINE} width={19} height={19} strokeDasharray="3 3.2">
+            <circle cx="12" cy="12" r="8.4" />
         </svg>
     ),
     chart: (
@@ -141,6 +165,14 @@ const ICONS: Record<IconName, ReactNode> = {
     plane: (
         <svg viewBox="0 0 24 24" fill="currentColor">
             <g transform="rotate(90 12 12)">
+                <path d="M21.6 16.3v-1.9l-7.9-4.9V3.1c0-.85-.7-1.55-1.55-1.55h-.3c-.85 0-1.55.7-1.55 1.55v6.4l-7.9 4.9v1.9l7.9-2.5v5.6l-2.1 1.55v1.5l3.8-1.05 3.8 1.05v-1.5l-2.1-1.55v-5.6l7.9 2.5z" />
+            </g>
+        </svg>
+    ),
+    /* 출국장 메뉴용 — plane 과 같은 도형을 시안처럼 비스듬히 눕힌 것 */
+    planeDep: (
+        <svg viewBox="0 0 24 24" fill="currentColor" width={23} height={23}>
+            <g transform="rotate(45 12 12)">
                 <path d="M21.6 16.3v-1.9l-7.9-4.9V3.1c0-.85-.7-1.55-1.55-1.55h-.3c-.85 0-1.55.7-1.55 1.55v6.4l-7.9 4.9v1.9l7.9-2.5v5.6l-2.1 1.55v1.5l3.8-1.05 3.8 1.05v-1.5l-2.1-1.55v-5.6l7.9 2.5z" />
             </g>
         </svg>

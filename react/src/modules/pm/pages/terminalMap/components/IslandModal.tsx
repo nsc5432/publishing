@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
 import { CounterConIcon, PlusIcon, SelfCheckinIcon } from '@/components/icons';
+import { useModalDismiss } from '../hooks/useModalDismiss';
 import { CONGESTION_LABEL, type FacilityKind, type IslandDetail } from '../types';
 
 interface IslandModalProps {
@@ -17,29 +17,7 @@ function FacilityIcon({ kind }: { kind: FacilityKind }) {
 
 /** 아일랜드 상세 팝업 (시안: 일일-맵형태 조회T1-팝업.png) */
 export function IslandModal({ detail, onClose, onDetailClick }: IslandModalProps) {
-    const closeRef = useRef<HTMLButtonElement>(null);
-    // 리렌더(타임라인 재생 등)마다 포커스가 튀지 않도록 콜백은 ref 로 참조한다
-    const onCloseRef = useRef(onClose);
-
-    useEffect(() => {
-        onCloseRef.current = onClose;
-    }, [onClose]);
-
-    // 열릴 때 닫기 버튼으로 포커스 이동, ESC 로 닫기 (main.js 동작 이식)
-    useEffect(() => {
-        const lastFocused = document.activeElement as HTMLElement | null;
-        closeRef.current?.focus();
-
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onCloseRef.current();
-        };
-        document.addEventListener('keydown', onKeyDown);
-
-        return () => {
-            document.removeEventListener('keydown', onKeyDown);
-            lastFocused?.focus();
-        };
-    }, []);
+    const closeRef = useModalDismiss(onClose);
 
     return (
         <div className="modal">

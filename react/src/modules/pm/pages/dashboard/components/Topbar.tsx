@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
+import { PillSelect } from '@/components/ui/pill-select';
 import { Icon } from './PmIcons';
 import { HOUR_OPTIONS, MINUTE_OPTIONS } from '../mock';
 import { SIMULATION_LABEL, type SimulationType } from '../types';
@@ -16,62 +17,6 @@ interface TopbarProps {
     lastCalc: string;
     /** 재계산 예정 시각 */
     nextCalc: string;
-}
-
-/** 기준 시/분 선택 드롭다운 pill */
-function PillSelect({
-    value,
-    options,
-    unit,
-    onChange,
-}: {
-    value: string;
-    options: string[];
-    unit: string;
-    onChange: (v: string) => void;
-}) {
-    const [open, setOpen] = useState(false);
-    const ref = useRef<HTMLButtonElement>(null);
-
-    useEffect(() => {
-        if (!open) return;
-        const onDown = (e: MouseEvent) => {
-            if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-        };
-        document.addEventListener('mousedown', onDown);
-        return () => document.removeEventListener('mousedown', onDown);
-    }, [open]);
-
-    return (
-        <button
-            ref={ref}
-            type="button"
-            className={`pill-sm${open ? ' open' : ''}`}
-            onClick={() => setOpen((v) => !v)}
-        >
-            {value}
-            <span className="caret">▾</span>
-            <span className="unit">{unit}</span>
-            {open && (
-                <span className="pill-menu">
-                    {options.map((opt) => (
-                        <button
-                            key={opt}
-                            type="button"
-                            className={opt === value ? 'sel' : undefined}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onChange(opt);
-                                setOpen(false);
-                            }}
-                        >
-                            {opt}
-                        </button>
-                    ))}
-                </span>
-            )}
-        </button>
-    );
 }
 
 /**

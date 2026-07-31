@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Lnb } from '@/components/lnb';
 import { usePageScope } from '@/hooks/usePageScope';
 import { CongestionNotice } from './components/CongestionNotice';
+import { FacilityMiniModal } from './components/FacilityMiniModal';
 import { Header } from './components/Header';
 import { IslandModal } from './components/IslandModal';
 import { MapStage } from './components/MapStage';
@@ -10,6 +11,7 @@ import { OperCards } from './components/OperCards';
 import { Timeline } from './components/Timeline';
 import { useTimeline } from './hooks/useTimeline';
 import {
+    buildDepGateDetail,
     buildIslandDetail,
     DEFAULT_NAV_BOTTOM,
     HEADER,
@@ -18,7 +20,7 @@ import {
     SUMMARY,
     TERMINAL_MAP,
 } from './mock';
-import type { IslandMarker, TerminalKind } from './types';
+import type { DepGateMarker, IslandMarker, TerminalKind } from './types';
 
 /**
  * PM 예측관리 / 일일 시뮬레이션 결과 조회 — 맵 형태.
@@ -35,6 +37,8 @@ function TerminalMap() {
     const [terminal, setTerminal] = useState<TerminalKind>(HEADER.defaultTerminal);
     // 상세 팝업이 열린 아일랜드
     const [selectedIsland, setSelectedIsland] = useState<IslandMarker | null>(null);
+    // 미니 팝업이 열린 출국장
+    const [selectedDepGate, setSelectedDepGate] = useState<DepGateMarker | null>(null);
     // 하단 타임라인 (30분 단위 / 재생)
     const timeline = useTimeline();
 
@@ -43,10 +47,27 @@ function TerminalMap() {
         () => (selectedIsland ? buildIslandDetail(terminal, selectedIsland) : null),
         [terminal, selectedIsland],
     );
+    const depGateDetail = useMemo(
+        () => (selectedDepGate ? buildDepGateDetail(selectedDepGate) : null),
+        [selectedDepGate],
+    );
+
+    // 팝업은 한 번에 하나만 열린다
+    const handleIslandClick = (island: IslandMarker) => {
+        setSelectedDepGate(null);
+        setSelectedIsland(island);
+    };
+
+    const handleDepGateClick = (depGate: DepGateMarker) => {
+        setSelectedIsland(null);
+        setSelectedDepGate(depGate);
+    };
 
     const handleTerminalChange = (kind: TerminalKind) => {
         setTerminal(kind);
-        setSelectedIsland(null); // 터미널이 바뀌면 열려 있던 팝업은 닫는다
+        // 터미널이 바뀌면 열려 있던 팝업은 닫는다
+        setSelectedIsland(null);
+        setSelectedDepGate(null);
     };
 
     const handleSearch = () => {
@@ -81,8 +102,9 @@ function TerminalMap() {
                         <MapStage
                             terminal={terminal}
                             data={mapData}
-                            activeIslandId={selectedIsland?.id}
-                            onIslandClick={setSelectedIsland}
+                            activeMarkerId={selectedIsland?.id ?? selectedDepGate?.id}
+                            onIslandClick={handleIslandClick}
+                            onDepGateClick={handleDepGateClick}
                         />
 
                         <Timeline timeline={timeline} />
@@ -92,6 +114,13 @@ function TerminalMap() {
 
             {islandDetail && (
                 <IslandModal detail={islandDetail} onClose={() => setSelectedIsland(null)} />
+            )}
+
+            {depGateDetail && (
+                <FacilityMiniModal
+                    detail={depGateDetail}
+                    onClose={() => setSelectedDepGate(null)}
+                />
             )}
         </div>
     );

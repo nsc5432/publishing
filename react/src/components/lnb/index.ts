@@ -1,2 +1,2 @@
 export { Lnb } from './Lnb';
-export { LNB_BOTTOM, LNB_LOGOUT, LNB_TOP, type NavItem } from './navItems';
+export { LNB_BOTTOM, LNB_TOP, LNB_USER, type NavItem } from './navItems';

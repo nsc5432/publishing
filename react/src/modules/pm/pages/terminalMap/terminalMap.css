@@ -967,6 +967,34 @@ html[data-page='terminalMap'] .btn-detail svg {
     height: 18px;
 }
 
+/* 시설 혼잡 현황 미니 팝업 (components/FacilityMiniModal.tsx) ------------
+   껍데기 / 지표 / 상태 뱃지는 아일랜드 상세 팝업과 같은 클래스를 쓰고,
+   시안에서 달라지는 폭·여백·버튼 모양만 여기서 덮어쓴다. */
+html[data-page='terminalMap'] .modal--mini .modal__panel {
+    width: 480px;
+}
+html[data-page='terminalMap'] .modal--mini .modal__head {
+    padding: 20px 24px 14px;
+}
+html[data-page='terminalMap'] .modal__head-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+html[data-page='terminalMap'] .modal--mini .modal__body {
+    padding: 0 24px;
+}
+html[data-page='terminalMap'] .modal--mini .stat {
+    margin-top: 0;
+    padding: 4px 0;
+}
+html[data-page='terminalMap'] .modal--mini .modal__foot {
+    padding: 16px 24px 22px;
+}
+html[data-page='terminalMap'] .btn-detail--round {
+    border-radius: 999px;
+}
+
 /* ==========================================================================
    7. Icons
    assets/svg 로 대체하지 못한 아이콘(달력/경고/닫기/재생 컨트롤/지표)만 남긴다.

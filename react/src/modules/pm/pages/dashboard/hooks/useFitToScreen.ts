@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 
 /**
  * index.html 의 fit-to-screen 로직 이식.
@@ -12,6 +12,11 @@ import { useEffect } from 'react';
  *
  * 계산 결과는 :root 에 올린다. 축소 대상인 .app 뿐 아니라 그 안에서 실제 px 여백을
  * 잡아야 하는 .body 도 같은 값을 쓰기 때문이다(dashboard.css 참고).
+ *
+ * 첫 계산은 반드시 paint 전에 끝나야 한다(useLayoutEffect).
+ * 지연시키면 변수가 비어 있는 프레임이 한 번 그려지는데, 그때 .app 은 fallback 값인
+ * 1920x1080 를 scale(1) 로 좌상단에 그린다 → 화면 밖으로 넘친 원본 크기가 한 프레임
+ * 번쩍인 뒤 제자리로 줄어드는(= 깜빡이며 크기가 잡히는) 것처럼 보인다.
  */
 const DW = 1920;
 /** 1080 - 상단 바 70 = 본문 영역의 디자인 높이 */
@@ -29,7 +34,7 @@ function readToken(root: HTMLElement, name: string, fallback: number) {
 }
 
 export function useFitToScreen() {
-    useEffect(() => {
+    useLayoutEffect(() => {
         const root = document.documentElement;
         let raf = 0;
 

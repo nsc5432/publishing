@@ -23,10 +23,12 @@ export interface MarkerPoint {
     y: number;
 }
 
-/** 출국장 마커 (T1: 1~6 / T2: 1~2) */
+/** 출국장 마커 (T1: 1~6 / T2: 1~2) — 클릭 시 미니 팝업 */
 export interface DepGateMarker extends MarkerPoint {
     id: string;
     label: string;
+    /** 미니 팝업의 상태 뱃지 / 지표 값을 정한다 */
+    level: CongestionLevel;
 }
 
 /** 아일랜드 마커 (A~N) — 클릭 시 상세 팝업 */
@@ -153,4 +155,19 @@ export interface IslandDetail {
     facilities: FacilityItem[];
     stats: IslandStat[];
     sales: IslandSales;
+}
+
+/* ================= 시설 미니 팝업 ================= */
+
+/**
+ * 시설 하나의 혼잡 현황 (지표 4개 + 상세보기).
+ * 아일랜드 상세 팝업에서 시설 유형 / 매출을 덜어낸 축약본이라
+ * 지표는 IslandStat 을 그대로 쓴다.
+ */
+export interface FacilityDetail {
+    id: string;
+    /** 예: 출국장 3 */
+    title: string;
+    level: CongestionLevel;
+    stats: IslandStat[];
 }

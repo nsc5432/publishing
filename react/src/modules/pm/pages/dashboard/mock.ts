@@ -46,7 +46,7 @@ export const DEFAULT_QUICK_TILE = 'pax';
 /* ================= 좌측 네비게이션(Lnb) ================= */
 
 /** 최초 활성 네비 (하단 그룹: 아이콘 색 강조. 상단은 경로에서 정해진다) */
-export const DEFAULT_NAV_BOTTOM = 'grid';
+export const DEFAULT_NAV_BOTTOM = 'summary';
 
 /* ================= 터미널 요약 패널 ================= */
 

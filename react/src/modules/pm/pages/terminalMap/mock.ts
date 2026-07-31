@@ -1,10 +1,12 @@
 import type {
     CongestionLevel,
     DepGateMarker,
+    FacilityDetail,
     GateMarker,
     HeaderSummary,
     IslandDetail,
     IslandMarker,
+    IslandStat,
     NoticeData,
     OperCard,
     TerminalKind,
@@ -96,18 +98,18 @@ const STAGE_ASPECT = '1798.6 / 1118.7';
 
 /** 출국장 : 도면 상단 라인 위 (T1 = 6곳) */
 const T1_DEP_GATES: DepGateMarker[] = [
-    { id: 'dg6', label: '6', x: 16.65, y: 79.59 },
-    { id: 'dg5', label: '5', x: 27.16, y: 69.76 },
-    { id: 'dg4', label: '4', x: 38.22, y: 63.5 },
-    { id: 'dg3', label: '3', x: 61.68, y: 63.5 },
-    { id: 'dg2', label: '2', x: 72.69, y: 69.76 },
-    { id: 'dg1', label: '1', x: 82.87, y: 79.59 },
+    { id: 'dg6', label: '6', level: 'normal', x: 16.65, y: 79.59 },
+    { id: 'dg5', label: '5', level: 'busy', x: 27.16, y: 69.76 },
+    { id: 'dg4', label: '4', level: 'normal', x: 38.22, y: 63.5 },
+    { id: 'dg3', label: '3', level: 'crowded', x: 61.68, y: 63.5 },
+    { id: 'dg2', label: '2', level: 'normal', x: 72.69, y: 69.76 },
+    { id: 'dg1', label: '1', level: 'busy', x: 82.87, y: 79.59 },
 ];
 
 /** 출국장 : T2 는 2곳만 운영한다 (T1 의 가운데 두 자리) */
 const T2_DEP_GATES: DepGateMarker[] = [
-    { id: 'dg2', label: '2', x: 38.22, y: 63.5 },
-    { id: 'dg1', label: '1', x: 61.68, y: 63.5 },
+    { id: 'dg2', label: '2', level: 'crowded', x: 38.22, y: 63.5 },
+    { id: 'dg1', label: '1', level: 'normal', x: 61.68, y: 63.5 },
 ];
 
 /** 아일랜드 A~N : 두 터미널 공통 구성 */
@@ -154,7 +156,7 @@ export const TERMINAL_MAP: Record<TerminalKind, TerminalMapData> = {
     T2: { stageAspect: STAGE_ASPECT, depGates: T2_DEP_GATES, islands: ISLANDS, gates: GATES },
 };
 
-/* ================= 아일랜드 상세 팝업 ================= */
+/* ================= 상세 팝업 ================= */
 
 /** 혼잡도별 대기 지표 (시안: 혼잡 = 빨간 강조) */
 const LEVEL_STAT: Record<CongestionLevel, { wait: string; waitTime: string }> = {
@@ -163,6 +165,31 @@ const LEVEL_STAT: Record<CongestionLevel, { wait: string; waitTime: string }> = 
     crowded: { wait: '3', waitTime: '16' },
 };
 
+/** 혼잡 현황 지표 4종 — 아일랜드 상세 / 시설 미니 팝업이 함께 쓴다 */
+function buildStats(level: CongestionLevel): IslandStat[] {
+    const wait = LEVEL_STAT[level];
+
+    return [
+        { ico: 'wait-people', label: '대기인원', value: wait.wait, unit: '명', point: true },
+        { ico: 'wait-time', label: '대기시간', value: wait.waitTime, unit: '초', point: true },
+        { ico: 'done-people', label: '처리인원', value: '20', unit: '명' },
+        { ico: 'done-time', label: '처리시간', value: '30', unit: '초' },
+    ];
+}
+
+/**
+ * 출국장 마커 하나의 미니 팝업 정보를 만든다.
+ * 시안(2_맵_시설_클릭시.png) 기준 — 제목 + 상태 뱃지 + 지표 4개만 보여준다.
+ */
+export function buildDepGateDetail(depGate: DepGateMarker): FacilityDetail {
+    return {
+        id: depGate.id,
+        title: `출국장 ${depGate.label}`,
+        level: depGate.level,
+        stats: buildStats(depGate.level),
+    };
+}
+
 /**
  * 아일랜드 마커 하나의 상세 정보를 만든다.
  * 시안(일일-맵형태 조회T1-팝업.png)의 M아일랜드를 기준으로,
@@ -170,7 +197,6 @@ const LEVEL_STAT: Record<CongestionLevel, { wait: string; waitTime: string }> = 
  */
 export function buildIslandDetail(terminal: TerminalKind, island: IslandMarker): IslandDetail {
     const seed = island.label.charCodeAt(0) - 65; // A=0
-    const level = LEVEL_STAT[island.level];
 
     return {
         id: island.id,
@@ -182,12 +208,7 @@ export function buildIslandDetail(terminal: TerminalKind, island: IslandMarker):
             { kind: 'selfcheck', name: '셀프체크인', rate: '처리율 100%' },
             { kind: 'store', name: '상업시설' },
         ],
-        stats: [
-            { ico: 'wait-people', label: '대기인원', value: level.wait, unit: '명', point: true },
-            { ico: 'wait-time', label: '대기시간', value: level.waitTime, unit: '초', point: true },
-            { ico: 'done-people', label: '처리인원', value: '20', unit: '명' },
-            { ico: 'done-time', label: '처리시간', value: '30', unit: '초' },
-        ],
+        stats: buildStats(island.level),
         sales: {
             total: `${(33063915 + seed * 121500).toLocaleString()}원`,
             storeCount: `${9 - (seed % 4)}개`,

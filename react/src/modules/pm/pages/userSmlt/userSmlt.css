@@ -283,6 +283,80 @@ html[data-page='userSmlt'] .tabs__item.is-active {
     box-shadow: 0 2px 8px rgba(80, 78, 140, 0.12);
 }
 
+/* ---------------------------------------------------------------------
+   3-1. 도입 — 터미널 선택 (components/TerminalIntro.tsx)
+   카드 두 장 중 하나를 골라야 설정 화면(탭바 + 2패널)으로 넘어간다.
+   --------------------------------------------------------------------- */
+html[data-page='userSmlt'] .intro {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(16px, 1.6vw, 30px);
+    min-height: 0;
+}
+
+html[data-page='userSmlt'] .intro__card {
+    display: flex;
+    position: relative;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--panel-radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition:
+        border-color 0.15s,
+        box-shadow 0.15s,
+        transform 0.15s;
+}
+
+/* 터미널 도형 — 배경 데코(.bg-deco)와 같은 SVG 를 선명하게 크게 깐다 */
+html[data-page='userSmlt'] .intro__card::before {
+    content: '';
+    position: absolute;
+    inset: 6%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    opacity: 0.55;
+}
+
+html[data-page='userSmlt'] .intro__card--t1 {
+    background: linear-gradient(150deg, #c9ecf1 0%, #e7f6f9 55%, #f6fbfc 100%);
+}
+html[data-page='userSmlt'] .intro__card--t1::before {
+    background-image: url('../../../../assets/svg/t1-blue.svg');
+}
+
+html[data-page='userSmlt'] .intro__card--t2 {
+    background: linear-gradient(150deg, #f1f3f6 0%, #f8fafb 55%, #fdfdfe 100%);
+}
+html[data-page='userSmlt'] .intro__card--t2::before {
+    background-image: url('../../../../assets/svg/t2-teal-full.svg');
+}
+
+html[data-page='userSmlt'] .intro__card:hover,
+html[data-page='userSmlt'] .intro__card:focus-visible {
+    border-color: var(--pm-primary-light);
+    box-shadow: 0 10px 26px rgba(80, 78, 140, 0.16);
+    transform: translateY(-2px);
+}
+
+html[data-page='userSmlt'] .intro__label {
+    position: relative; /* 도형(::before) 위로 */
+    font-size: clamp(34px, 3.6vw, 58px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+html[data-page='userSmlt'] .intro__card--t1 .intro__label {
+    color: #5b7fb8;
+}
+html[data-page='userSmlt'] .intro__card--t2 .intro__label {
+    color: #20b8a0;
+}
+
 /* 미구현 탭 안내 */
 html[data-page='userSmlt'] .tab-placeholder {
     flex: 1 1 auto;

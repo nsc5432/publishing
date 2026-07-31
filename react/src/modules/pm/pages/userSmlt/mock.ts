@@ -7,6 +7,3 @@ export const HEADER = {
     defaultTab: 'flightPax' as SmltTabKey,
     defaultTerminal: 'T1' as TerminalKind,
 };
-
-/** 하단 조회 메뉴(표/맵/출국장…) 중 해당하는 항목이 없어 아무것도 강조하지 않는다. */
-export const DEFAULT_NAV_BOTTOM = '';

@@ -1,13 +1,16 @@
 import type { CSSProperties } from 'react';
 import { Terminal1Icon, Terminal2Plan } from '@/components/icons';
-import type { IslandMarker, TerminalKind, TerminalMapData } from '../types';
+import type { DepGateMarker, IslandMarker, TerminalKind, TerminalMapData } from '../types';
 
 interface MapStageProps {
     terminal: TerminalKind;
     data: TerminalMapData;
-    /** 팝업이 열려 있는 아일랜드 id */
-    activeIslandId?: string;
+    /** 팝업이 열려 있는 마커 id (아일랜드 / 출국장 공용) */
+    activeMarkerId?: string;
+    /** 아일랜드 클릭 → 상세 팝업 */
     onIslandClick: (island: IslandMarker) => void;
+    /** 출국장 클릭 → 혼잡 현황 미니 팝업 */
+    onDepGateClick: (depGate: DepGateMarker) => void;
 }
 
 /** 도면 무대 기준 비율 좌표를 CSS 변수로 변환 */
@@ -22,7 +25,13 @@ function pos(x: number, y: number) {
  * preserveAspectRatio="none" 이므로 viewBox 좌표가 무대 박스에 비율 그대로
  * 대응한다. 마커도 같은 박스를 공유해 화면 크기가 변해도 어긋나지 않는다.
  */
-export function MapStage({ terminal, data, activeIslandId, onIslandClick }: MapStageProps) {
+export function MapStage({
+    terminal,
+    data,
+    activeMarkerId,
+    onIslandClick,
+    onDepGateClick,
+}: MapStageProps) {
     const Plan = terminal === 'T1' ? Terminal1Icon : Terminal2Plan;
     const stage = { '--stage-ar': data.stageAspect } as CSSProperties;
 
@@ -42,9 +51,12 @@ export function MapStage({ terminal, data, activeIslandId, onIslandClick }: MapS
                     <button
                         type="button"
                         key={depGate.id}
-                        className="marker marker--dep-gate"
+                        className={`marker marker--dep-gate${
+                            depGate.id === activeMarkerId ? ' is-active' : ''
+                        }`}
                         style={pos(depGate.x, depGate.y)}
                         aria-label={`출국장 ${depGate.label}`}
+                        onClick={() => onDepGateClick(depGate)}
                     >
                         {depGate.label}
                     </button>
@@ -56,7 +68,7 @@ export function MapStage({ terminal, data, activeIslandId, onIslandClick }: MapS
                         type="button"
                         key={island.id}
                         className={`marker marker--island is-${island.level}${
-                            island.id === activeIslandId ? ' is-active' : ''
+                            island.id === activeMarkerId ? ' is-active' : ''
                         }`}
                         style={pos(island.x, island.y)}
                         onClick={() => onIslandClick(island)}

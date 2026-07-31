@@ -1,0 +1,362 @@
+@charset "utf-8";
+
+/* =====================================================================
+   PM 예측관리 / 시뮬레이션 모니터링
+   전역 리셋·토큰·공용 컴포넌트(LNB / PillSelect)는
+   src/reset.css, src/common.css 참고.
+
+     0. 화면 기본값
+     1. GNB (제목 · 조회 기간)
+     2. 본문
+     3. 상단 KPI 카드
+     4. 시뮬레이션 이력 표
+   ===================================================================== */
+
+/* =====================================================================
+   0. 화면 기본값
+   ===================================================================== */
+html[data-page='monitoring'] {
+    --purple: #4441cc; /* common.css 의 PillSelect 선택 색 */
+    --blue: #2f6ff0;
+    --teal: #12b09a;
+    --text: #333333;
+    --text-sub: #7a7f8a;
+    --line: #e4e6ee;
+    --card-radius: 18px;
+}
+
+html[data-page='monitoring'],
+html[data-page='monitoring'] body,
+html[data-page='monitoring'] #root {
+    overflow: hidden;
+}
+
+/* 원본 퍼블리싱과 달리 React 는 #root 가 한 겹 끼어든다.
+   #root 가 flex 사슬을 이어주지 않으면 .content → .history → 표의 높이가
+   전부 auto 로 풀려 본문이 화면 밖으로 흘러넘친다. (userSmlt.css 와 동일) */
+html[data-page='monitoring'] #root {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+}
+
+html[data-page='monitoring'] body {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    font-size: 14px;
+    color: var(--text);
+    background: linear-gradient(180deg, #f1eff7 0%, #f5f6fa 22%, #f8f9fb 60%, #f3f6f8 100%);
+}
+
+/* =====================================================================
+   1. GNB
+   ===================================================================== */
+html[data-page='monitoring'] .gnb {
+    flex: 0 0 auto;
+    display: flex;
+    position: relative;
+    z-index: 2;
+    align-items: center;
+    gap: 16px;
+    height: var(--pm-header-h);
+    padding: 0 var(--pm-shell-x);
+    background: linear-gradient(90deg, #ebe9f4 0%, #edecf5 45%, #f4f2f8 100%);
+}
+
+html[data-page='monitoring'] .gnb__title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+}
+
+html[data-page='monitoring'] .gnb__center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+}
+
+/* 시작일시 ~ 종료일시 (대시보드 .datebox 와 같은 규격) */
+html[data-page='monitoring'] .datebox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 42px;
+    padding: 0 4px 0 0;
+    border-radius: 21px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(46, 50, 94, 0.07);
+}
+
+html[data-page='monitoring'] .datebox .lbl {
+    padding-left: 20px;
+    color: #5a6478;
+    font-size: 15px;
+}
+html[data-page='monitoring'] .datebox .cal {
+    color: #4a63e7;
+}
+html[data-page='monitoring'] .datebox .val {
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2430;
+    letter-spacing: -0.4px;
+}
+html[data-page='monitoring'] .datebox__tilde {
+    padding: 0 12px;
+    color: #9aa0ac;
+    font-size: 16px;
+}
+
+html[data-page='monitoring'] .search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-left: 12px;
+    border: none;
+    border-radius: 50%;
+    background: var(--purple);
+    color: #fff;
+    cursor: pointer;
+}
+
+/* =====================================================================
+   2. 본문
+   ===================================================================== */
+html[data-page='monitoring'] .body {
+    flex: 1 1 auto;
+    display: flex;
+    position: relative;
+    z-index: 1;
+    gap: var(--pm-shell-gap);
+    min-height: 0;
+    padding: var(--pm-shell-top) var(--pm-shell-x) var(--pm-shell-bottom);
+}
+
+html[data-page='monitoring'] .content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(12px, 1.5vh, 18px);
+    min-width: 0;
+    min-height: 0;
+}
+
+/* =====================================================================
+   3. 상단 KPI 카드
+   ===================================================================== */
+html[data-page='monitoring'] .kpi {
+    flex: 0 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: clamp(12px, 1vw, 18px);
+}
+
+html[data-page='monitoring'] .kpi__card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: clamp(88px, 11vh, 112px);
+    padding: 0 clamp(16px, 1.4vw, 24px);
+    border-radius: var(--card-radius);
+    background: linear-gradient(120deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.42));
+    box-shadow: 0 2px 10px rgba(63, 84, 145, 0.07);
+}
+
+html[data-page='monitoring'] .kpi__ico {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.86);
+    color: #4a63e7;
+    box-shadow: 0 2px 8px rgba(63, 84, 145, 0.08);
+}
+html[data-page='monitoring'] .kpi__ico svg {
+    width: 26px;
+    height: 26px;
+}
+
+html[data-page='monitoring'] .kpi__body {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    text-align: right;
+}
+
+html[data-page='monitoring'] .kpi__label {
+    font-size: clamp(13px, 1.4vh, 15px);
+    color: var(--text-sub);
+}
+
+html[data-page='monitoring'] .kpi__value {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0;
+}
+html[data-page='monitoring'] .kpi__value strong {
+    font-size: clamp(26px, 3.4vh, 38px);
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+html[data-page='monitoring'] .kpi__value em {
+    margin-left: 3px;
+    font-size: clamp(12px, 1.5vh, 15px);
+    font-style: normal;
+    font-weight: 500;
+    color: var(--text-sub);
+}
+html[data-page='monitoring'] .kpi__value--blue strong {
+    color: var(--blue);
+}
+html[data-page='monitoring'] .kpi__value--teal strong {
+    color: var(--teal);
+}
+
+/* =====================================================================
+   4. 시뮬레이션 이력 표
+   ===================================================================== */
+html[data-page='monitoring'] .history {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(12px, 1vw, 18px);
+    min-height: 0;
+}
+
+html[data-page='monitoring'] .hist {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: clamp(14px, 1.8vh, 22px) clamp(14px, 1.2vw, 22px);
+    border-radius: var(--card-radius);
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.42));
+    box-shadow: 0 2px 10px rgba(63, 84, 145, 0.07);
+}
+
+html[data-page='monitoring'] .hist__head {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: clamp(10px, 1.4vh, 16px);
+}
+html[data-page='monitoring'] .hist__title {
+    margin: 0;
+    color: var(--purple);
+    font-size: clamp(15px, 1.8vh, 18px);
+    font-weight: 700;
+}
+html[data-page='monitoring'] .hist__badge {
+    padding: 5px 16px;
+    border-radius: 999px;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+}
+html[data-page='monitoring'] .hist__badge--standard {
+    background: var(--purple);
+}
+html[data-page='monitoring'] .hist__badge--user {
+    background: #5b57de;
+}
+
+/* 표 : 머리글 고정 + 본문만 스크롤해야 해서 table 대신 grid div 로 짠다 */
+html[data-page='monitoring'] .tbl {
+    --tbl-cols: 54px 1.15fr 0.9fr 1.7fr 1.7fr 0.85fr 0.8fr 74px;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+html[data-page='monitoring'] .tbl__head,
+html[data-page='monitoring'] .tbl__row {
+    display: grid;
+    grid-template-columns: var(--tbl-cols);
+    align-items: center;
+}
+html[data-page='monitoring'] .tbl__head > div,
+html[data-page='monitoring'] .tbl__row > div {
+    padding: 0 6px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+html[data-page='monitoring'] .tbl__head {
+    flex: 0 0 auto;
+    height: clamp(38px, 4.4vh, 46px);
+    border-radius: 8px;
+    background: #e7e5f5;
+    color: #3a3f4c;
+    font-size: clamp(12px, 1.4vh, 14px);
+    font-weight: 700;
+}
+
+html[data-page='monitoring'] .tbl__body {
+    flex: 1 1 auto;
+}
+
+html[data-page='monitoring'] .tbl__row {
+    height: clamp(38px, 4.4vh, 46px);
+    border-bottom: 1px solid rgba(228, 230, 238, 0.7);
+    font-size: clamp(12px, 1.4vh, 14px);
+}
+html[data-page='monitoring'] .tbl__row:hover {
+    background: rgba(255, 255, 255, 0.55);
+}
+
+html[data-page='monitoring'] .tbl__state.is-done {
+    color: var(--teal);
+    font-weight: 700;
+}
+html[data-page='monitoring'] .tbl__state.is-running {
+    color: var(--text-sub);
+}
+
+html[data-page='monitoring'] .btn-view {
+    width: 100%;
+    height: 28px;
+    border: 1px solid #a8bdf0;
+    border-radius: 999px;
+    background: #fff;
+    color: #2b313d;
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        border-color 0.15s;
+}
+html[data-page='monitoring'] .btn-view:hover:not(:disabled) {
+    border-color: var(--blue);
+    background: #eff3fd;
+}
+html[data-page='monitoring'] .btn-view:disabled {
+    border-color: transparent;
+    background: #c9cbd2;
+    color: #fff;
+    cursor: default;
+}
+
+/* =====================================================================
+   5. 반응형 — 폭이 좁으면 이력 표를 위아래로 쌓는다
+   ===================================================================== */
+@media screen and (max-width: 1439px) {
+    html[data-page='monitoring'] .kpi {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
