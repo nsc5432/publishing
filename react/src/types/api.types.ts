@@ -1,262 +1,521 @@
-// API 타입 정의
-interface JsonReponse {
+/**
+ * PM 예측관리 API 타입 정의.
+ *
+ * api/pm/services 의 각 함수가 주고받는 요청/응답 DTO 를 화면 단위로 모아둔다.
+ * 서버는 RESTful 이 아니라 동작 단위(POST + retrieveXxx / saveXxx / executeXxx)로 호출한다.
+ * 필드명은 서버 DTO 를 그대로 쓴다 (ymd, tmnlId, smltId, wtngPsgCnt …).
+ */
+
+/* ================= 공통 ================= */
+
+/** 서버가 모든 단건 응답에 함께 실어 보내는 오류 플래그 */
+interface JsonResponse {
     error: boolean;
     errorMessage: string;
 }
 
-export interface CounterStatus {
-    counter: number;
-    airline: string;
-    status: 'busy' | 'closed' | 'warning' | 'available';
-    waitPeople: number;
-    waitTime: number;
-    processedPeople: number;
-}
-
-export interface FacilityStatus {
-    island: string;
-    waitPeople: number;
-    waitTime: number;
-    revenue: number;
-    status: 'normal' | 'warning' | 'busy';
-    // 추가 필드들
-    processedPeople?: number; // 처리인원
-    processTime?: number; // 처리시간
-    totalRevenue?: number; // 총 매출
-    commercialCount?: number; // 상업시설 수
-    revenuePerPerson?: number; // 인원대비 매출
-    peopleChange?: number; // 매출 인원 증감
-    changeRate?: number; // 증감률 (%)
-    checkInRate?: number; // 체크인카운터 처리율 (%)
-    selfCheckInRate?: number; // 셀프체크인 처리율 (%)
-    facilityCode?: string; // 시설 코드 (예: T1-3RD-M01-01)
-}
-
-export interface TimeSlotData {
-    time: string;
-    leftCounter: string;
-    rightCounter: string;
-    leftProcessed: string;
-    rightProcessed: string;
-    leftWait: string;
-    rightWait: string;
-    highlight?: boolean;
-}
-
-export interface ChartDataPoint {
-    time: string;
-    processedPeople: number;
-    waitingCurrent: number;
-    waitingForecast: number;
-    waitingPrevWeek: number;
-}
-
-// API 응답 래퍼 타입
+/** 응답 래퍼 (래핑해서 내려주는 API 전용) */
 export interface ApiResponse<T> {
     success: boolean;
     data: T;
     message?: string;
 }
 
-// 에러 타입
+/** 클라이언트에서 정규화한 에러 (client.ts 응답 인터셉터) */
 export interface ApiError {
     status: number;
     message: string;
     code?: string;
 }
 
-// 사용자 정보 타입
-export interface UserInfo extends JsonReponse {
+/** 터미널 구분 */
+export type TmnlId = 'T1' | 'T2';
+
+/** 혼잡도 4단계 (여유 / 보통 / 혼잡 / 매우혼잡) */
+export type CongestionStatus = 'FREE' | 'NORMAL' | 'BUSY' | 'VERY_BUSY';
+
+/** 시뮬레이션 구분 (일일 / 사용자) */
+export type SmltType = 'DAILY' | 'USER';
+
+/** 여객시설 구분 */
+export type FcltType = 'CHKN' | 'SLFCHKN' | 'DEP' | 'SC' | 'CMRC';
+
+/** 운영 여부 플래그 (서버 공통 표기) */
+export type YnFlag = 'Y' | 'N';
+
+/** 사용자 정보 */
+export interface UserInfo extends JsonResponse {
     userId: string; // 유저 key
-    userNm: string; // 이름
+    userNm: string; // 성명
     deptNm: string; // 부서
 }
-// 그리드 좌표 타입
-export type GridCoordinate = string | null | undefined;
 
-// 시설 타입
-export type FacilityType = 'commercial' | 'checkin' | 'security' | 'departure' | 'selfcheckin';
+/* ================= 일일 시뮬레이션 - 요약보기(대시보드) ================= */
 
-// 터미널 타입
-export type Terminal = 'T1' | 'T2';
-
-// 그리드 컬럼 상수 (12개)
-export const GRID_COLUMNS = [
-    'E1',
-    'E2',
-    'E3',
-    'E4',
-    'M1',
-    'M2',
-    'M3',
-    'M4',
-    'W1',
-    'W2',
-    'W3',
-    'W4',
-] as const;
-
-// 그리드 행 상수 (17개)
-export const GRID_ROWS = Array.from({ length: 17 }, (_, i) => String(i + 1).padStart(2, '0'));
-
-export interface FcltType {
-    cdntLat: string;
-    cdntLng: string;
-    fcltGroupCd: string;
-    fcltNm: string;
-    fcltySn: number;
-    tmnlId: string;
+/** 조회 조건 기준 정보 — 상단 바(기준일자 / 계산 시각 / 시뮬레이션 버전) */
+export interface DsbdBaseInfoDto extends JsonResponse {
+    smltId: string; // 조회 기준 시뮬레이션 ID
+    ymd: string; // 기준일자 (yyyyMMdd)
+    smltType: SmltType; // 화면 우상단 뱃지 (일일 / 사용자)
+    lastCalcDt: string; // 마지막 계산 시각 (yyyyMMddHHmmss)
+    nextCalcDt: string; // 재계산 예정 시각 (yyyyMMddHHmmss)
+    avlTimes: string[]; // 선택 가능한 기준 시각 목록 (HHmm)
 }
 
-// 상업시설 위치 정보
-export interface CommercialFacilityPosition {
-    id: string; // 고유 ID (예: "COMM-001")
-    name: string; // 시설명 (예: "면세점 A")
-    facilityType: FacilityType; // 시설 타입
-    latitude: number; // 위도 (실제 지리 좌표)
-    longitude: number; // 경도 (실제 지리 좌표)
-    posCoord?: GridCoordinate | null; // 시작 좌표 (예: "M2-05") - 위도/경도에서 자동 계산됨
-    color: string; // 렌더링 색상 (예: "#9333ea")
-    area?: number; // 면적 (그리드 셀 개수)
-    revenue?: number; // 매출
-    description?: string; // 설명
-    castSimulationCode?: string; // CAST시뮬레이션코드
-    adjacentFacilityCode?: string; // 여객시설코드 (위치좌표)
-    displayMode?: 'circle' | 'rectangle'; // 표시 방식 (원형 또는 사각형, 기본값: circle)
+/** 일일 운항계획 카드 */
+export interface FltPlanDto {
+    depFltCnt: number; // 출발 운항편
+    arrFltCnt: number; // 도착 운항편
+    totFltCnt: number; // 총 운항편
+    depPsgCnt: number; // 출발 여객
+    totPsgCnt: number; // 총 여객
 }
 
-// 시설 타입별 색상 매핑
-export const FACILITY_TYPE_COLORS: Record<FacilityType, string> = {
-    selfcheckin: '#9CA3AF', // 회색 (셀프체크인)
-    checkin: '#F59E0B', // 주황색 (체크인카운터)
-    security: '#EF4444', // 빨간색 (보안검색대)
-    departure: '#10B981', // 초록색 (출국장)
-    commercial: '#9333EA', // 보라색 (상업시설)
-};
-
-// 시설 타입별 한글 라벨
-export const FACILITY_TYPE_LABELS: Record<FacilityType, string> = {
-    selfcheckin: '셀프체크인',
-    checkin: '체크인카운터',
-    security: '보안검색대',
-    departure: '출국장',
-    commercial: '상업시설',
-};
-
-// 그리드 셀 메타데이터
-export interface GridCell {
-    coord: GridCoordinate; // 셀 좌표 (예: "M2-05")
-    col: number; // 열 인덱스 (0-11)
-    row: number; // 행 인덱스 (0-16)
-    colLabel: string; // 열 라벨 (E1-W4)
-    rowLabel: string; // 행 라벨 (01-17)
-    isEmpty: boolean; // 셀이 비어있는지 여부
-    facilityId?: string; // 시설 ID (셀을 차지하는 시설)
+/** 시간대별 출발여객 — 막대 1개 (시간 단위) */
+export interface HourlyPsgItemDto {
+    time: string; // HH
+    psgCnt: number; // 출발 여객수 (막대)
+    fcstPsgCnt: number; // 예측 여객수 (라인)
 }
 
-// 좌표 파싱 결과
-export interface ParsedCoordinate {
-    col: number; // 열 인덱스 (0-11)
-    row: number; // 행 인덱스 (0-16)
-    colLabel: string; // 열 라벨 (E1-W4)
-    rowLabel: string; // 행 라벨 (01-17)
+/** 시간대별 출발여객 — 터미널 1개분 */
+export interface HourlyPsgDto {
+    tmnlId: TmnlId;
+    totPsgCnt: number; // 카드 헤더의 터미널 합계
+    maxPsgCnt: number; // Y축 최댓값
+    itemList: HourlyPsgItemDto[];
 }
 
-export interface SummaryFlight {
-    t1FltCnt: number; // T1 운항수
-    t1PsgCnt: number; // T1 여객수
-    t1BeforeFltCnt: number; // t1 전일 운항수
-    t1BeforePsgCnt: number; // t1 전일 여객수
-    t2FltCnt: number; // T2 운항수
-    t2PsgCnt: number; // T2 여객수
-    t2BeforeFltCnt: number; // t2 전일 운항수
-    t2BeforePsgCnt: number; // t2 전일 여객수
+/** 요일 속성 카드 */
+export interface DowAttrDto {
+    dowNm: string; // 예: 주말 전일(금)
+    dowType: 'WEEKDAY' | 'WEEKEND' | 'PRE_WEEKEND' | 'HOLIDAY';
+    spclNote: string; // 특이점 (예: 공휴일 전일)
 }
 
-export interface SmltSmry extends JsonReponse {
+/** 기상정보 카드 */
+export interface WeatherDto {
+    wthrCd: string; // 날씨 코드 (아이콘 매핑)
+    tmpr: number; // 기온 (℃)
+    rainAmt: number; // 강수량 (mm)
+    snowAmt: number; // 적설 (mm)
+    lowVisStep1Time: string; // 저시정 1단계 (HHmm, 없으면 '')
+    lowVisStep2Time: string; // 저시정 2단계 (HHmm, 없으면 '')
+}
+
+/** 대시보드 상단 카드 묶음 */
+export interface DsbdHeaderDto extends JsonResponse {
+    ymd: string; // 기준일자 (yyyyMMdd)
+    fltPlan: FltPlanDto;
+    hourlyPsgList: HourlyPsgDto[]; // T1 / T2
+    dowAttr: DowAttrDto;
+    weather: WeatherDto;
+}
+
+/** 피크시간 지표 (요약 뷰 하단 3셀과 동일) */
+export interface PeakDto {
+    ampm: 'AM' | 'PM';
+    peakTime: string; // HHmm
+    wtngPsgCnt: number; // 총 대기인원 (명)
+    maxWtngHr: number; // 최대 대기시간 (분)
+    hrlyPrcsPsgCnt: number; // 시간당 처리인원 (명)
+}
+
+/** 터미널 패널 요약 */
+export interface TmnlSmryDto extends JsonResponse {
+    tmnlId: TmnlId;
+    fltCnt: number; // 운항편
+    fltDiffCnt: number; // 지난주 同요일 대비 운항편 증감
+    befFltDiffCnt: number; // 전일 대비 운항편 증감
+    psgCnt: number; // 여객
+    psgDiffCnt: number; // 지난주 同요일 대비 여객 증감
+    befPsgDiffCnt: number; // 전일 대비 여객 증감
+    brdgRate: number; // 탑승률 (%)
+    peak: PeakDto;
+}
+
+/** 퀵 액세스 타일 = 조회 대상 지표 */
+export type DsbdCategory = 'PSG' | 'FLT' | 'CHKN' | 'DEP';
+
+/** 시간대별 결과 1행 — 터미널 패널의 차트 / 테이블 뷰 공용 */
+export interface DsbdRsltDto {
+    time: string; // HHmm
+    psgCnt: number; // 여객수
+    wtngPsgCnt: number; // 대기인원 (명)
+    wtngHr: number; // 대기시간 (분)
+    prcsPsgCnt: number; // 처리인원 (명)
+    prcsHr: number; // 처리시간 (분)
+    prcsRate: number; // 처리율 (%)
+    fcstWtngPsgCnt: number; // 예측 대기인원 (차트 점선)
+    lastWeekWtngPsgCnt: number; // 지난주 同요일 대기인원 (차트 비교선)
+}
+
+/** 게이트 카드의 추천 조치 */
+export interface FcltRecommendDto {
+    targetNm: string; // 추천 대상 (예: 대한항공 / 보안검색대)
+    addCnt: number; // 추가 필요 수량 (개)
+    needAssignYn: YnFlag; // Y=배정 필요 / N=소요 표기
+}
+
+/** 게이트 카드 하단 칩 1개 (카운터 아일랜드 / 출국장 번호) */
+export interface FcltUnitDto {
+    unitCd: string; // 칩 라벨 (예: A~N, 1~6)
+    cgnStatus: CongestionStatus;
+    useYn: YnFlag; // N 이면 미운영(회색) 표기
+}
+
+/** 게이트 카드 1장 (캐러셀 한 페이지) */
+export interface DsbdFcltCardDto {
+    cardId: string;
+    fcltType: Extract<FcltType, 'CHKN' | 'DEP'>;
+    island: string; // 체크인카운터 아일랜드 (출국장이면 '')
+    depNum: string; // 출국장 번호 (체크인카운터면 '')
+    fcltNm: string; // 표시명 (예: B / 3번)
+    fcltDesc: string; // 부가 표기 (예: 좌측 B4~B8)
+    totCnt: number; // 전체 (개)
+    oprCnt: number; // 운영 (개)
+    wtngPsgCnt: number; // 대기열 / 예상인원 (명)
+    hrlyPrcsPsgCnt: number; // 시간당 처리인원 (Pax/Min)
+    hrlyPrcsRate: number; // 시간당 처리율 게이지 (0~100)
+    cgnClearTime: string; // 혼잡해소 예상 시각 (HHmm)
+    cgnClearRate: number; // 혼잡해소 게이지 (0~100)
+    cgnStatus: CongestionStatus;
+    recommend: FcltRecommendDto;
+    unitList: FcltUnitDto[];
+}
+
+/* ================= 일일 시뮬레이션 - 맵형태보기 ================= */
+
+/** 헤더 우측 요약 (운항 / 여객) */
+export interface MapSmryDto {
+    fltCnt: number;
+    psgCnt: number;
+}
+
+/** 상단 혼잡 알림 항목 */
+export interface MapNoticeItemDto {
+    fcltNm: string; // 시설명 (예: 체크인카운터)
+    fcltCd: string; // 시설 코드 (예: M11)
+    boothCnt: number; // 조치 부스 수
+}
+
+/** 상단 혼잡 알림 */
+export interface MapNoticeDto {
+    cgnStatus: CongestionStatus; // 알림 단계
+    itemList: MapNoticeItemDto[];
+}
+
+/** 운영시간 도넛 카드 (출국장 1곳당 1개) */
+export interface MapOperCardDto {
+    depNum: string; // 출국장 번호
+    oprRate: number; // 도넛 게이지 (0~100)
+    oprBgnTime: string; // 운영 시작 (HHmm)
+    oprEndTime: string; // 운영 종료 (HHmm)
+    oprHr: number; // 하루 운영 시간
+    useYn: YnFlag; // N 이면 미운영(흐림) 표기
+}
+
+/** 도면 마커 1개 — 좌표는 도면 무대 기준 비율(%) */
+export interface MapMarkerDto {
+    markerId: string; // 예: dg3 / M / g14
+    label: string; // 표시 문구
+    cdntX: number; // 가로 비율 (0~100)
+    cdntY: number; // 세로 비율 (0~100)
+    cgnStatus?: CongestionStatus; // 출입구 게이트는 혼잡도 없음
+}
+
+/** 맵형태보기 본문 */
+export interface SmltMapDto extends JsonResponse {
     smltId: string;
-    ymd: string;
-    peakTimeT1: string;
-    peakTimeT2: string;
-    summaryFlight: SummaryFlight;
-    xovisT1Datas: SummaryRsltDto[];
-    xovisT2Datas: SummaryRsltDto[];
-    castT1Datas: SummaryRsltDto[];
-    castT2Datas: SummaryRsltDto[];
-
-    chknT1Datas: SmryChknDto[];
-    chknT2Datas: SmryChknDto[];
-    depT1Datas: SmryDepDto[];
-    depT2Datas: SmryDepDto[];
+    tmnlId: TmnlId;
+    hhmm: string; // 타임라인 기준 시각 (HHmm, 30분 단위)
+    summary: MapSmryDto;
+    notice: MapNoticeDto;
+    operCardList: MapOperCardDto[];
+    depMarkerList: MapMarkerDto[]; // 출국장 (T1 6 / T2 2)
+    chknMarkerList: MapMarkerDto[]; // 아일랜드 A~N
+    gateMarkerList: MapMarkerDto[]; // 출입구 게이트 1~14
 }
 
-export interface SummaryRsltDto {
-    time: String; // HHmm
-    wtngPsgCnt: number; // 대기인원
-    prcsHr: number; // 처리시간
-    wtngHr: number; // 대기시간
+/** 혼잡 현황 지표 4종 — 아일랜드 상세 / 출국장 미니 팝업 공용 */
+export interface MapCgnStatDto {
+    wtngPsgCnt: number; // 대기인원 (명)
+    wtngHr: number; // 대기시간 (초)
+    prcsPsgCnt: number; // 처리인원 (명)
+    prcsHr: number; // 처리시간 (초)
 }
 
-export interface SmryScDto {
-    scNum: string;
+/** 아일랜드 상세 팝업의 시설 목록 항목 */
+export interface MapFcltItemDto {
+    fcltType: FcltType;
+    fcltNm: string;
+    prcsRate: number | null; // 처리율 (%) — 상업시설은 null
+}
+
+/** 아일랜드 상세 팝업의 매출 */
+export interface MapSalesDto {
+    totAmt: number; // 총 매출 (원)
+    storeCnt: number; // 상업시설 수
+    amtPerPsg: number; // 인원대비 매출 (원)
+    psgDiffCnt: number; // 매출 인원 증감 (명)
+    diffRate: number; // 증감률 (%)
+    cmprYear: string; // 비교 기준 (예: 2023)
+}
+
+/** 아일랜드 상세 팝업 */
+export interface MapChknDetailDto extends JsonResponse {
+    island: string; // 아일랜드 (예: M)
+    fcltCd: string; // 시설 코드 (예: T1-3RD-M01-01)
     cgnStatus: CongestionStatus;
-    wtngPsgCnt: number;
-    prcsHr: number;
-    wtngHr: number;
+    fcltList: MapFcltItemDto[];
+    stat: MapCgnStatDto;
+    sales: MapSalesDto;
 }
 
-export interface SmryChknDto {
-    island: string;
-    cgnStatus: CongestionStatus;
-    wtngPsgCnt: number;
-    prcsHr: number;
-    wtngHr: number;
-}
-
-export interface SmryChknAlnDto extends SmryChknDto {
-    alnCd: string;
-    counterNum: number;
-}
-
-export interface SmryChknAlnDtoWrapper {
-    [key: string]: SmryChknAlnDto[];
-}
-
-export interface SmrySlfchknDto extends SmryChknDto {
-    type: 'KIOSK' | 'SBD';
-    counterNum: number;
-}
-
-export interface SmrySlfchknDtoWrapper {
-    [key: string]: SmrySlfchknDto[];
-}
-
-export interface SmryDepDto {
+/** 출국장 미니 팝업 */
+export interface MapDepDetailDto extends JsonResponse {
     depNum: string;
+    depNm: string; // 예: 출국장 3
     cgnStatus: CongestionStatus;
-    wtngPsgCnt: number;
-    prcsHr: number;
-    wtngHr: number;
+    stat: MapCgnStatDto;
 }
 
-export interface SmryDepDtoWrapper {
-    [key: string]: SmryDepDto[];
+/* ================= 사용자 시뮬레이션 ================= */
+
+/** 조건 설정 진입 정보 */
+export interface UserSmltInfoDto extends JsonResponse {
+    smltId: string; // 편집 대상 사용자 시뮬레이션 ID
+    ymd: string; // 기준일자 (yyyyMMdd)
+    saveDt: string; // 마지막 저장 시각 (yyyyMMddHHmmss, 없으면 '')
+    execStatus: SmltExecStatus | ''; // 직전 수행 상태 (미수행이면 '')
 }
 
-export interface SummaryMapDto {
-    scList: SmryScDto[];
-    depList: SmryDepDto[];
-    chknList: SmryChknDto[];
+/** 운영 시간 구간 (시 단위) */
+export interface OprTimeDto {
+    bgnHour: number; // 0~24
+    endHour: number; // 0~24
 }
 
-export interface SummaryMapDtoWrapper {
-    [key: string]: SummaryMapDto;
+/* --------- 운항편/여객수 탭 --------- */
+
+/** 막대 1개 (2시간 단위) */
+export interface FltPsgChartItemDto {
+    time: string; // HH
+    cnt: number;
 }
 
-export interface XovisDto {
-    time: string;
-    wtngPsgCnt: number;
+/** 막대 차트 1개 (운항편 수 / 여객 수) */
+export interface FltPsgChartDto {
+    totCnt: number; // 누적 값
+    maxCnt: number; // Y축 최댓값
+    itemList: FltPsgChartItemDto[];
 }
 
-export type CongestionType = 'PEAK_PSG' | 'PEAK_CHKN' | 'PEAK_DEP' | 'PEAK_SC';
-export type CongestionStatus = 'FREE' | 'NORMAL' | 'BUSY' | 'VERY_BUSY';
+/** 시간대별 수정 1행 */
+export interface FltPsgHourDto {
+    bgnTime: string; // HHmm
+    endTime: string; // HHmm
+    adjRate: number; // 수정 비율 (%)
+    psgCnt: number; // 승객 수 (명)
+}
+
+/** 운항편/여객수 탭 — 터미널 1개분 */
+export interface UserSmltFltPsgDto extends JsonResponse {
+    tmnlId: TmnlId;
+    fltCnt: number; // 요약: 운항편
+    psgCnt: number; // 요약: 여객
+    peakTime: string; // 요약: 피크 (HHmm)
+    adjType: 'RATIO' | 'HOURLY'; // 수정 방식
+    adjRate: number; // 전체 비율 (%)
+    fltChart: FltPsgChartDto;
+    psgChart: FltPsgChartDto;
+    hourList: FltPsgHourDto[];
+}
+
+/** 운항편/여객수 저장 요청 */
+export interface UserSmltFltPsgSaveReq {
+    smltId: string;
+    tmnlId: TmnlId;
+    adjType: 'RATIO' | 'HOURLY';
+    adjRate: number; // 전체 비율 (%) — adjType=RATIO 일 때 사용
+    hourList: Array<Pick<FltPsgHourDto, 'bgnTime' | 'endTime' | 'adjRate'>>;
+}
+
+/* --------- 체크인 카운터 탭 --------- */
+
+/** 카운터 셀 1개 */
+export interface ChknCounterDto {
+    counterId: string; // 셀 식별자 (예: U1 / L18)
+    counterNum: number; // 카운터 번호 (1~18)
+    rowType: 'U' | 'L'; // 상단 / 하단 열
+    alnCd: string; // 배정 항공사 코드 — 미배정이면 ''
+    customYn: YnFlag; // Custom 카운터 (점선 테두리)
+    oprYn: YnFlag; // 운영 여부 (초기 선택 상태)
+}
+
+/** 체크인 카운터 탭 — 터미널 1개분 */
+export interface UserSmltChknDto extends JsonResponse {
+    tmnlId: TmnlId;
+    totCnt: number; // 전체 카운터 수
+    islandList: string[]; // 아일랜드 목록
+    island: string; // 선택 아일랜드
+    counterList: ChknCounterDto[];
+    oprTimeList: OprTimeDto[];
+}
+
+/** 체크인 카운터 저장 요청 */
+export interface UserSmltChknSaveReq {
+    smltId: string;
+    tmnlId: TmnlId;
+    island: string;
+    oprCounterIdList: string[]; // 운영으로 선택한 counterId 목록
+    oprTimeList: OprTimeDto[];
+}
+
+/* --------- 셀프체크인/백드롭 탭 --------- */
+
+/** 기기 1종 */
+export interface SlfchknDeviceDto {
+    deviceType: 'KIOSK' | 'SBD'; // 셀프체크인 키오스크 / 셀프백드롭
+    deviceNm: string;
+    deviceCnt: number; // 운영 대수
+    oprYn: YnFlag; // N = 미운영
+    oprTimeList: OprTimeDto[];
+}
+
+/** 셀프체크인/백드롭 탭 — 터미널 1개분 */
+export interface UserSmltSlfchknDto extends JsonResponse {
+    tmnlId: TmnlId;
+    totCnt: number; // 전체 보유 대수
+    islandList: string[];
+    island: string;
+    deviceList: SlfchknDeviceDto[];
+}
+
+/** 셀프체크인/백드롭 저장 요청 */
+export interface UserSmltSlfchknSaveReq {
+    smltId: string;
+    tmnlId: TmnlId;
+    island: string;
+    deviceList: Array<Pick<SlfchknDeviceDto, 'deviceType' | 'deviceCnt' | 'oprYn' | 'oprTimeList'>>;
+}
+
+/* --------- 출국장 탭 --------- */
+
+/** 출국장 1개 */
+export interface UserSmltDepItemDto {
+    depNum: string; // 출국장 번호
+    depNm: string; // 표시명 (예: 출국장 1)
+    oprYn: YnFlag; // N = 미사용
+    oprTimeList: OprTimeDto[];
+}
+
+/** 출국장 탭 — 터미널 1개분 */
+export interface UserSmltDepDto extends JsonResponse {
+    tmnlId: TmnlId;
+    depList: UserSmltDepItemDto[];
+}
+
+/** 출국장 저장 요청 */
+export interface UserSmltDepSaveReq {
+    smltId: string;
+    tmnlId: TmnlId;
+    depList: Array<Pick<UserSmltDepItemDto, 'depNum' | 'oprYn' | 'oprTimeList'>>;
+}
+
+/* --------- 보안 검색대 탭 --------- */
+
+/** 보안검색대 운영계획 1행 */
+export interface ScPlanDto {
+    planSn: number; // 행 일련번호 (신규 행은 0)
+    bgnHour: string; // HH
+    bgnMin: string; // mm
+    endHour: string; // HH
+    endMin: string; // mm
+    scCnt: number; // 운영 검색대 갯수
+}
+
+/** 출국장 1개의 운영계획 */
+export interface ScGateDto {
+    depNum: string;
+    planList: ScPlanDto[];
+}
+
+/** 보안 검색대 탭 — 터미널 1개분 */
+export interface UserSmltScDto extends JsonResponse {
+    tmnlId: TmnlId;
+    depList: ScGateDto[];
+}
+
+/** 보안 검색대 저장 요청 (선택한 출국장 1곳분) */
+export interface UserSmltScSaveReq {
+    smltId: string;
+    tmnlId: TmnlId;
+    depNum: string;
+    planList: ScPlanDto[];
+}
+
+/* --------- 지도 보기 / 시뮬레이션 실행 --------- */
+
+/** 요약 바의 지도 보기 — 시설 배치 마커 */
+export interface UserSmltFcltMapDto extends JsonResponse {
+    tmnlId: TmnlId;
+    fcltType: FcltType;
+    island: string; // 아일랜드 단위 시설이 아니면 ''
+    markerList: MapMarkerDto[];
+}
+
+/** 시뮬레이션 실행 결과 */
+export interface UserSmltExecDto extends JsonResponse {
+    smltId: string;
+    execSn: number; // 수행 일련번호
+    execStatus: SmltExecStatus;
+    bgnDt: string; // 시작일시 (yyyyMMddHHmmss)
+}
+
+/* ================= 시뮬레이션 모니터링 ================= */
+
+/** 수행 상태 */
+export type SmltExecStatus = 'DONE' | 'RUNNING';
+
+/** 상단 KPI 카드 4종 */
+export interface SmltExecSmryDto extends JsonResponse {
+    totCnt: number; // 전체 수행 (건)
+    doneCnt: number; // 완료 (건)
+    runningCnt: number; // 진행중 (건)
+    avgExecMin: number; // 평균 수행시간 (분)
+    avgExecSec: number; // 평균 수행시간 (초)
+}
+
+/** 시뮬레이션 이력 1행 */
+export interface SmltExecDto {
+    rowNum: number; // No
+    smltId: string;
+    smltType: SmltType;
+    deptNm: string; // 부서
+    userNm: string; // 성명
+    bgnDt: string; // 시작일시 (yyyyMMddHHmmss)
+    endDt: string; // 종료일시 (yyyyMMddHHmmss, 진행중이면 '')
+    execMin: number; // 소요시간 (분)
+    execStatus: SmltExecStatus;
+}
+
+/** 표준 / 사용자 이력을 한 번에 내려준다 (화면이 좌우로 나란히 보여준다) */
+export interface SmltExecListDto extends JsonResponse {
+    stdList: SmltExecDto[]; // 표준 시뮬레이션
+    userList: SmltExecDto[]; // 사용자 시뮬레이션
+}
+
+/** 이력 1건의 결과 보기 */
+export interface SmltExecDetailDto extends JsonResponse {
+    smltId: string;
+    smltType: SmltType;
+    ymd: string; // 시뮬레이션 기준일자 (yyyyMMdd)
+    tmnlId: TmnlId;
+    deptNm: string;
+    userNm: string;
+    bgnDt: string;
+    endDt: string;
+    execMin: number;
+    execStatus: SmltExecStatus;
+}
