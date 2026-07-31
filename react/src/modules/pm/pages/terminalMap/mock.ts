@@ -32,8 +32,7 @@ export const SUMMARY: Record<TerminalKind, HeaderSummary> = {
 /* ================= 좌측 네비게이션(Lnb) ================= */
 
 /* 메뉴 구성은 화면 공용(@/components/lnb)이라 여기서는 활성 항목만 지정한다. */
-/** 시안 기준 활성 항목 (상단: 강조 배경 / 하단: 맵 화면이므로 map 강조) */
-export const DEFAULT_NAV_TOP = 'chart';
+/** 시안 기준 활성 항목 (하단: 맵 화면이므로 map 강조. 상단은 경로에서 정해진다) */
 export const DEFAULT_NAV_BOTTOM = 'map';
 
 /* ================= 혼잡 알림 ================= */

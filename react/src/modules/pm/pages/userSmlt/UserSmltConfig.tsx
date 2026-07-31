@@ -1,10 +1,11 @@
 import './userSmlt.css';
 import { useState } from 'react';
 import { Lnb } from '@/components/lnb';
+import { usePageScope } from '@/hooks/usePageScope';
 import { BgDeco } from './components/BgDeco';
 import { SmltGnb } from './components/SmltGnb';
 import { SmltTabs } from './components/SmltTabs';
-import { DEFAULT_NAV_BOTTOM, DEFAULT_NAV_TOP, HEADER } from './mock';
+import { DEFAULT_NAV_BOTTOM, HEADER } from './mock';
 import { CheckinCounterTab } from './tabs/checkinCounter/CheckinCounterTab';
 import { DepartureTab } from './tabs/departure/DepartureTab';
 import { FlightPaxTab } from './tabs/flightPax/FlightPaxTab';
@@ -42,6 +43,9 @@ function TabContent({ tab, ...props }: TabContentProps) {
  * - 활성 터미널(편집 대상)은 셸이 소유하며 탭이 바뀌어도 유지된다.
  */
 function UserSmltConfig() {
+    // userSmlt.css 를 이 화면에서만 적용시킨다 (hooks/usePageScope 참고)
+    usePageScope('userSmlt');
+
     const [activeTab, setActiveTab] = useState<SmltTabKey>(HEADER.defaultTab);
     const [activeTerminal, setActiveTerminal] = useState<TerminalKind>(HEADER.defaultTerminal);
 
@@ -70,7 +74,7 @@ function UserSmltConfig() {
             />
 
             <div className="body">
-                <Lnb defaultTop={DEFAULT_NAV_TOP} defaultBottom={DEFAULT_NAV_BOTTOM} />
+                <Lnb defaultBottom={DEFAULT_NAV_BOTTOM} />
 
                 <main className="content">
                     <SmltTabs activeTab={activeTab} onTabChange={setActiveTab} />

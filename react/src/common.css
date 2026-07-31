@@ -62,6 +62,29 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* -----------------------------------------------------------------
+       화면 셸 규격 — 헤더 / LNB 레일이 세 화면에서 같은 자리·같은 크기로
+       보이도록 하는 단일 기준값. 화면 CSS 는 이 토큰만 참조한다.
+       (대시보드는 본문을 fit-to-screen 으로 축소하므로 축소 좌표계에서
+        쓸 때 --scale 로 나눈다. dashboard.css 참고)
+       ----------------------------------------------------------------- */
+    --pm-header-h: 70px; /* 헤더 / GNB 높이 */
+    --pm-shell-x: 24px; /* 본문 좌우 바깥 여백 */
+    --pm-shell-top: 16px; /* 헤더 ↔ 본문 */
+    --pm-shell-bottom: 20px; /* 본문 ↔ 화면 하단 */
+    --pm-shell-gap: 16px; /* LNB 레일 ↔ 본문 */
+    --pm-lnb-w: 79px; /* LNB 레일 폭 */
+}
+
+/* 세로가 좁은 화면에서는 셸을 한 단계 줄인다. 세 화면이 같은 값을 쓰므로
+   여기 한 곳만 바꾸면 전부 함께 줄어든다. */
+@media screen and (max-height: 900px) {
+    :root {
+        --pm-header-h: 60px;
+        --pm-shell-top: 12px;
+        --pm-shell-bottom: 14px;
+    }
 }
 
 .dark {
@@ -193,14 +216,17 @@ td {
 .sidebar {
     display: flex;
     flex: none;
-    width: 79px;
+    width: var(--pm-lnb-w);
 }
+/* 레일에는 아이콘 11개 + 로그아웃이 세로로 쌓인다. 1080 기준값을 고정 px 로 두면
+   768~900 높이에서 아래쪽 메뉴와 로그아웃이 화면 밖으로 밀려나므로, 1080 에서
+   원래 값이 나오는 vh 로 잡고 낮은 화면에서만 줄어들게 한다. */
 .sidebar-inner {
     display: flex;
     flex: 1;
     flex-direction: column;
     align-items: center;
-    padding: 28px 0 26px;
+    padding: clamp(14px, 2.59vh, 28px) 0 clamp(12px, 2.41vh, 26px);
     border-radius: 40px;
     background: linear-gradient(180deg, #f1f1f7 0%, #f5f5f9 55%, #f6f7fa 100%);
     box-shadow: 0 2px 10px rgba(63, 84, 145, 0.08);
@@ -209,15 +235,15 @@ td {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 25px;
+    gap: clamp(10px, 2.31vh, 25px);
 }
 .nav-item {
     display: flex;
     position: relative; /* 메뉴명 툴팁(.nav-tip) 기준 */
     align-items: center;
     justify-content: center;
-    width: 46px;
-    height: 46px;
+    width: clamp(38px, 4.26vh, 46px);
+    height: clamp(38px, 4.26vh, 46px);
     padding: 0;
     border: none;
     border-radius: 50%;
@@ -237,7 +263,7 @@ td {
 .nav-sep {
     width: 44px;
     height: 1px;
-    margin: 16px 0;
+    margin: clamp(8px, 1.48vh, 16px) 0;
     background: #e0e0ea;
 }
 .nav-item.logout {
@@ -328,7 +354,7 @@ td {
     background: #d4d4dc;
 }
 .timebar__slot.is-on {
-    background: var(--primary-light, #a09eff);
+    background: var(--pm-primary-light, #a09eff);
 }
 .timebar__slot.is-on:hover {
     background: #8c8af0;
@@ -338,7 +364,7 @@ td {
    (:hover 규칙보다 우선해야 하므로 동일하게 :hover 를 붙여 특이도를 맞춘다) */
 .timebar__slot.is-preview-add,
 .timebar__slot.is-preview-add:hover {
-    background: var(--primary, #4441cc);
+    background: var(--pm-primary, #4441cc);
 }
 .timebar__slot.is-preview-remove,
 .timebar__slot.is-preview-remove:hover {

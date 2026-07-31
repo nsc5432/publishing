@@ -1,6 +1,7 @@
 import './terminalMap.css';
 import { useMemo, useState } from 'react';
 import { Lnb } from '@/components/lnb';
+import { usePageScope } from '@/hooks/usePageScope';
 import { CongestionNotice } from './components/CongestionNotice';
 import { Header } from './components/Header';
 import { IslandModal } from './components/IslandModal';
@@ -11,7 +12,6 @@ import { useTimeline } from './hooks/useTimeline';
 import {
     buildIslandDetail,
     DEFAULT_NAV_BOTTOM,
-    DEFAULT_NAV_TOP,
     HEADER,
     NOTICES,
     OPER_CARDS,
@@ -28,6 +28,9 @@ import type { IslandMarker, TerminalKind } from './types';
  * - 도면/마커 좌표는 mock.ts 의 비율 데이터를 그대로 사용한다.
  */
 function TerminalMap() {
+    // terminalMap.css 를 이 화면에서만 적용시킨다 (hooks/usePageScope 참고)
+    usePageScope('terminalMap');
+
     // 조회 조건: 터미널 선택 (T1 / T2)
     const [terminal, setTerminal] = useState<TerminalKind>(HEADER.defaultTerminal);
     // 상세 팝업이 열린 아일랜드
@@ -62,7 +65,7 @@ function TerminalMap() {
             />
 
             <div className="body">
-                <Lnb defaultTop={DEFAULT_NAV_TOP} defaultBottom={DEFAULT_NAV_BOTTOM} />
+                <Lnb defaultBottom={DEFAULT_NAV_BOTTOM} />
 
                 <main className="container">
                     <CongestionNotice
