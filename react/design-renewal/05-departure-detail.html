@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>시안 05 — 출국장 · 블럭 상세</title>
+<link rel="stylesheet" href="mock.css" />
+</head>
+<body>
+<script src="mock.js"></script>
+<script>
+/* 리뉴얼 핵심 화면 ④
+   출국장 블럭(4번)을 클릭하면 우측 상세 패널에서
+   사용/미사용 · 운영시간 · 시간대별 보안검색대 갯수를 한자리에서 관리한다.
+   구 '보안 검색대' 탭의 표(시작/종료 + 갯수)를 그대로 여기로 옮겼다. */
+
+var T1_GATES = [
+    { label: '1', level: 1, color: 'i1', from: 5, to: 22, sec: 8 },
+    { label: '3', level: 2, color: 'i2', from: 6, to: 21, sec: 6 },
+    { label: '4', level: 3, color: 'i3', from: 6, to: 20, sec: 10 },
+    { label: '6', level: 4, color: 'i4', from: 7, to: 19, sec: 4 },
+];
+
+var T2_GATES = [
+    { label: '1', level: 1, color: 'i1', from: 7, to: 21, sec: 5 },
+];
+
+function legendOf(list) {
+    return list.map(function (g) {
+        return { label: g.label + '출국장', color: g.color, note: '검색대 ' + g.sec };
+    });
+}
+
+function secbar(peak, offGates) {
+    var chips = offGates.map(function (n) {
+        return '<span class="offchip">' + n + '번 출국장</span>';
+    }).join('');
+    return '<div class="selfbar">' +
+        '<p class="selfbar__title">보안 검색대<span>출국장에 통합</span></p>' +
+        '<div class="selfbar__items">' +
+        '<span class="selfbar__item">피크 시간대 <b>' + peak + '</b>대 동시 운영</span></div>' +
+        '<div class="offchips" style="margin:0 0 0 auto">미운영' + chips + '</div></div>';
+}
+
+function panel(kind, disabled) {
+    var t1 = kind === 't1';
+    var list = t1 ? T1_GATES : T2_GATES;
+
+    return '<section class="panel' + (disabled ? ' panel--disabled' : '') + '">' +
+        panelHead(kind, [
+            ['전체 출국장', t1 ? '6' : '2'],
+            ['운영', t1 ? '4' : '1', true],
+            ['피크 검색대', t1 ? '28' : '5', true],
+        ], true) +
+        blockChart(list, {
+            title: '시간대별 운영 출국장',
+            unit: '(단위: 출국장 수)',
+            levels: 6,
+            rowH: 40,
+            blkFs: 14,
+            legend: legendOf(list),
+            footText: '블럭 1개 = 출국장 1개. 클릭하면 운영시간·보안검색대 갯수를 관리합니다.',
+            picking: t1,
+            sel: t1 ? { label: '4' } : null,
+        }) +
+        secbar(t1 ? 28 : 5, t1 ? [2, 5] : [2]) +
+        '<div class="panel__foot">' +
+        (disabled ? '' : '<button class="btn btn--save">현재상태 저장</button>') +
+        '</div></section>';
+}
+
+var PLAN_ROWS = [
+    ['06:00', '08:00', 4],
+    ['08:00', '12:00', 10],
+    ['12:00', '16:00', 8],
+    ['16:00', '20:00', 6],
+];
+
+function planTable() {
+    var html = '<div class="plan"><table>' +
+        '<thead><tr><th>시작</th><th>종료</th><th class="col-cnt">검색대</th>' +
+        '<th class="col-del"></th></tr></thead><tbody>';
+    PLAN_ROWS.forEach(function (r, i) {
+        html += '<tr' + (i === 1 ? ' class="is-sel"' : '') + '><td><b>' + r[0] + '</b></td>' +
+            '<td><b>' + r[1] + '</b></td>' +
+            '<td class="col-cnt"><b>' + r[2] + '</b> 개</td>' +
+            '<td class="col-del"><span class="plan__del">✕</span></td></tr>';
+    });
+    return html + '</tbody></table></div>';
+}
+
+var drawer =
+    '<aside class="drawer">' +
+    '<div class="drawer__head">' +
+    '<span class="drawer__badge" style="background:var(--i3)">4</span>' +
+    '<div class="drawer__titles"><p class="drawer__title">4번 출국장</p>' +
+    '<p class="drawer__sub">T1 · 06:00 ~ 20:00 운영 (14시간)</p></div>' +
+    '<span class="drawer__close">' + ICON.close + '</span></div>' +
+
+    '<div class="drawer__body">' +
+
+    '<div class="dsec"><div class="drow" style="padding-top:0">' +
+    '<p class="drow__label">출국장 운영 여부</p>' +
+    '<div class="seg"><button class="seg__item is-on">사용</button>' +
+    '<button class="seg__item">미사용</button></div></div></div>' +
+
+    '<div class="dsec"><p class="dsec__title">운영시간' +
+    '<span class="dsec__hint">1시간 단위</span></p>' +
+    timebar('선택 범위', '06:00 ~ 20:00', [[6, 20]]) + '</div>' +
+
+    '<div class="dsec"><p class="dsec__title">보안검색대 운영계획' +
+    '<span class="dsec__hint" style="margin-left:auto">' +
+    '<span class="btn--add">+ 구간 추가</span></span></p>' +
+    planTable() +
+    '<p class="adv-note" style="margin-bottom:0">구간을 비워 두면 여객 예측치로 검색대 갯수가 자동 배정됩니다.</p>' +
+    '</div>' +
+
+    '</div>' +
+
+    '<div class="drawer__foot">' +
+    '<button class="btn btn--ghost">취소</button>' +
+    '<button class="btn btn--primary">적용</button></div></aside>';
+
+renderShell('출국장', panel('t1', false) + panel('t2', true), drawer);
+</script>
+</body>
+</html>

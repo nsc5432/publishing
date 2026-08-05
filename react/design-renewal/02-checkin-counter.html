@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>시안 02 — 체크인 카운터 (블럭 차트)</title>
+<link rel="stylesheet" href="mock.css" />
+</head>
+<body>
+<script src="mock.js"></script>
+<script>
+/* 리뉴얼 핵심 화면 ①
+   운영시간 편집기를 첫 화면에서 걷어내고, 그 자리에 시간대별 운영 아일랜드 블럭 차트를 둔다.
+   블럭 1개 = 아일랜드 1개 × 1시간. 중앙에 아일랜드 문자.
+   블럭을 세면 그 시간대에 열린 아일랜드 수가 바로 나온다. */
+
+var T1_ISLANDS = [
+    { label: 'A', level: 1, color: 'i1', from: 5,  to: 22, booth: 8 },
+    { label: 'B', level: 2, color: 'i2', from: 6,  to: 20, booth: 6 },
+    { label: 'C', level: 3, color: 'i3', from: 7,  to: 19, booth: 5 },
+    { label: 'D', level: 4, color: 'i4', from: 9,  to: 17, booth: 4 },
+    { label: 'E', level: 5, color: 'i5', from: 11, to: 15, booth: 3 },
+    { label: 'F', level: 6, color: 'i6', from: 13, to: 15, booth: 3 },
+];
+
+var T2_ISLANDS = [
+    { label: 'A', level: 1, color: 'i1', from: 5,  to: 21, booth: 6 },
+    { label: 'B', level: 2, color: 'i2', from: 7,  to: 19, booth: 4 },
+    { label: 'C', level: 3, color: 'i3', from: 10, to: 16, booth: 3 },
+];
+
+function legendOf(list) {
+    return list.map(function (i) {
+        return { label: i.label, color: i.color, note: '부스 ' + i.booth };
+    });
+}
+
+function selfbar(kiosk, bagdrop) {
+    return '<div class="selfbar">' +
+        '<p class="selfbar__title">셀프 서비스<span>체크인 카운터에 통합</span></p>' +
+        '<div class="selfbar__items">' +
+        '<span class="selfbar__item">셀프체크인 키오스크 <b>' + kiosk + '</b>대</span>' +
+        '<span class="selfbar__item">셀프백드롭 <b>' + bagdrop + '</b>대</span>' +
+        '</div>' +
+        '<p class="selfbar__note">아일랜드 블럭을 클릭하면 아일랜드별로 조정합니다</p></div>';
+}
+
+function panel(kind, disabled) {
+    var t1 = kind === 't1';
+    var list = t1 ? T1_ISLANDS : T2_ISLANDS;
+
+    return '<section class="panel' + (disabled ? ' panel--disabled' : '') + '">' +
+        panelHead(kind, [
+            ['전체 카운터', '36'],
+            ['운영 아일랜드', t1 ? '6' : '3', true],
+            ['피크 카운터', t1 ? '29' : '13', true],
+        ], true) +
+        blockChart(list, {
+            title: '시간대별 운영 아일랜드',
+            unit: '(단위: 아일랜드 수)',
+            levels: 8,
+            legend: legendOf(list),
+            footText: '블럭 1개 = 아일랜드 1개. 클릭하면 부스 갯수를 조정할 수 있습니다.',
+            hover: t1 ? { hour: 13, level: 6, tip: '아일랜드 F · 부스 3개 · 13:00 ~ 14:00' } : null,
+        }) +
+        selfbar(t1 ? 8 : 5, t1 ? 6 : 3) +
+        '<div class="panel__foot">' +
+        (disabled ? '' : '<button class="btn btn--save">현재상태 저장</button>') +
+        '</div></section>';
+}
+
+renderShell('체크인 카운터', panel('t1', false) + panel('t2', true));
+</script>
+</body>
+</html>

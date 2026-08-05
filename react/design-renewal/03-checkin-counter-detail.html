@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<title>시안 03 — 체크인 카운터 · 블럭 상세</title>
+<link rel="stylesheet" href="mock.css" />
+</head>
+<body>
+<script src="mock.js"></script>
+<script>
+/* 리뉴얼 핵심 화면 ②
+   블럭(아일랜드 D)을 클릭하면 우측에서 상세 패널이 밀려 나온다.
+   부스 갯수 · 항공사 · 셀프체크인/백드롭 대수를 여기서 조정하고,
+   '세부 운영시간 직접 설정'은 접힌 채로 두어 원하는 사람만 펼치게 한다. */
+
+var T1_ISLANDS = [
+    { label: 'A', level: 1, color: 'i1', from: 5,  to: 22, booth: 8 },
+    { label: 'B', level: 2, color: 'i2', from: 6,  to: 20, booth: 6 },
+    { label: 'C', level: 3, color: 'i3', from: 7,  to: 19, booth: 5 },
+    { label: 'D', level: 4, color: 'i4', from: 9,  to: 17, booth: 4 },
+    { label: 'E', level: 5, color: 'i5', from: 11, to: 15, booth: 3 },
+    { label: 'F', level: 6, color: 'i6', from: 13, to: 15, booth: 3 },
+];
+
+var T2_ISLANDS = [
+    { label: 'A', level: 1, color: 'i1', from: 5,  to: 21, booth: 6 },
+    { label: 'B', level: 2, color: 'i2', from: 7,  to: 19, booth: 4 },
+    { label: 'C', level: 3, color: 'i3', from: 10, to: 16, booth: 3 },
+];
+
+function legendOf(list) {
+    return list.map(function (i) {
+        return { label: i.label, color: i.color, note: '부스 ' + i.booth };
+    });
+}
+
+function selfbar(kiosk, bagdrop) {
+    return '<div class="selfbar">' +
+        '<p class="selfbar__title">셀프 서비스<span>체크인 카운터에 통합</span></p>' +
+        '<div class="selfbar__items">' +
+        '<span class="selfbar__item">셀프체크인 키오스크 <b>' + kiosk + '</b>대</span>' +
+        '<span class="selfbar__item">셀프백드롭 <b>' + bagdrop + '</b>대</span>' +
+        '</div>' +
+        '<p class="selfbar__note">아일랜드 블럭을 클릭하면 아일랜드별로 조정합니다</p></div>';
+}
+
+function panel(kind, disabled) {
+    var t1 = kind === 't1';
+    var list = t1 ? T1_ISLANDS : T2_ISLANDS;
+
+    return '<section class="panel' + (disabled ? ' panel--disabled' : '') + '">' +
+        panelHead(kind, [
+            ['전체 카운터', '36'],
+            ['운영 아일랜드', t1 ? '6' : '3', true],
+            ['피크 카운터', t1 ? '29' : '13', true],
+        ], true) +
+        blockChart(list, {
+            title: '시간대별 운영 아일랜드',
+            unit: '(단위: 아일랜드 수)',
+            levels: 8,
+            legend: legendOf(list),
+            footText: '블럭 1개 = 아일랜드 1개. 클릭하면 부스 갯수를 조정할 수 있습니다.',
+            picking: t1,
+            sel: t1 ? { label: 'D' } : null,
+        }) +
+        selfbar(t1 ? 8 : 5, t1 ? 6 : 3) +
+        '<div class="panel__foot">' +
+        (disabled ? '' : '<button class="btn btn--save">현재상태 저장</button>') +
+        '</div></section>';
+}
+
+function stepperRow(label, sub, value) {
+    return '<div class="drow"><p class="drow__label">' + label +
+        (sub ? '<small>' + sub + '</small>' : '') + '</p>' +
+        '<div class="stepper"><span class="stepper__btn">−</span>' +
+        '<span class="stepper__value">' + value + '</span>' +
+        '<span class="stepper__btn">+</span></div></div>';
+}
+
+var drawer =
+    '<aside class="drawer">' +
+    '<div class="drawer__head">' +
+    '<span class="drawer__badge" style="background:var(--i4)">D</span>' +
+    '<div class="drawer__titles"><p class="drawer__title">아일랜드 D</p>' +
+    '<p class="drawer__sub">T1 · 09:00 ~ 17:00 운영 (8시간)</p></div>' +
+    '<span class="drawer__close">' + ICON.close + '</span></div>' +
+
+    '<div class="drawer__body">' +
+
+    '<div class="dsec"><p class="dsec__title">체크인 부스' +
+    '<span class="dsec__hint">아일랜드 D 소속</span></p>' +
+    stepperRow('운영 부스 갯수', '전체 6석 중', '4') +
+    '<div class="drow"><p class="drow__label">배정 항공사</p>' +
+    '<div class="airchips"><span class="airchip">KE</span><span class="airchip">OZ</span>' +
+    '<span class="airchip airchip--ghost">+ Custom</span></div></div></div>' +
+
+    '<div class="dsec"><p class="dsec__title">셀프 서비스' +
+    '<span class="dsec__hint">구 셀프체크인/백드롭 탭</span></p>' +
+    stepperRow('셀프체크인 키오스크', null, '2') +
+    stepperRow('셀프백드롭', null, '2') + '</div>' +
+
+    '<div class="dsec"><p class="adv-head"><span class="caret">▾</span>세부 운영시간 직접 설정</p>' +
+    '<p class="adv-note">기본값은 운항 스케줄로 자동 산출됩니다. 시뮬레이션 조건을 직접 잡을 때만 사용하세요.</p>' +
+    timebar('운영시간', '09:00 ~ 17:00', [[9, 17]]) + '</div>' +
+
+    '</div>' +
+
+    '<div class="drawer__foot">' +
+    '<button class="btn btn--ghost">취소</button>' +
+    '<button class="btn btn--primary">적용</button></div></aside>';
+
+renderShell('체크인 카운터', panel('t1', false) + panel('t2', true), drawer);
+</script>
+</body>
+</html>
