@@ -5,6 +5,8 @@ import java.util.Map;
 
 import aoms.pm.cast.dto.ChknRsltDto;
 import aoms.pm.cast.dto.SummaryRsltDto;
+import aoms.pm.cast.dto.UserSmltChknDto;
+import aoms.pm.cast.dto.UserSmltChknSearchDto;
 
 /**
  * @Classname : CastChknService.java
@@ -27,4 +29,6 @@ public interface CastChknService {
 	Map<String, List<ChknRsltDto>> retrieveChknGroupByTimeUsingDate(String ymd, String tmnlId, String island);
 
 	List<SummaryRsltDto> retrieveChknXovisGroupByTime(String ymd, String tmnlId, String island);
+
+	UserSmltChknDto retrieveChknCounterInfo(UserSmltChknSearchDto searchDto);
 }

@@ -5,12 +5,12 @@ import static java.util.stream.Collectors.toList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 
 import aoms.pm.cast.dto.PsgPrcsGrd;
+import aoms.pm.cast.dto.SlfDeviceCntRawDto;
 import aoms.pm.cast.dto.SlfchknRsltDto;
 import aoms.pm.cast.enums.CongestionStatus;
 import aoms.pm.cast.enums.PrcsGrdType;
@@ -19,12 +19,13 @@ import aoms.pm.cast.mapper.CastSlfchknMapper;
 import aoms.pm.cast.service.CastSlfchknService;
 import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.utils.SmltUtils;
+import aoms.pm.utils.TimeBucketUtils;
 
 import lombok.RequiredArgsConstructor;
 
 /**
- * @Classname : CastChknServiceImpl.java
- * @Description : 체크인카운터 ServiceImpl
+ * @Classname : CastSlfchknServiceImpl.java
+ * @Description : 셀프체크인/백드랍 ServiceImpl
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
@@ -45,7 +46,6 @@ public class CastSlfchknServiceImpl implements CastSlfchknService {
 
 	@Override
 	public Map<String, List<SlfchknRsltDto>> retrieveSlfchknGroupByTime(String smltId, String tmnlId) {
-		Map<String, List<SlfchknRsltDto>> result = new TreeMap<>();
 		String ymd = castSmltService.retrieveSmltStngByKey(smltId).getExcnYmd();
 		
 		List<SlfchknRsltDto> smltSlfchknList = castSlfchknMapper.retrieveSmltSlfchknList(smltId, ymd, tmnlId);
@@ -65,20 +65,17 @@ public class CastSlfchknServiceImpl implements CastSlfchknService {
 					.collect(toList()));
 		});
 		
-		for (int h = 0; h < 24; h++) {
-			String hour = String.format("%02d", h);
-			String tm00 = hour + "00";
-			result.put(tm00, aggregate.stream().filter(x -> x.getTime().equals(tm00)).collect(toList()));
-			String tm30 = hour + "30";
-			result.put(tm30, aggregate.stream().filter(x -> x.getTime().equals(tm30)).collect(toList()));
-		}
-		
-		return result;
+		return TimeBucketUtils.groupByBucket(aggregate);
 	}
 
 	@Override
 	public Map<String, List<SlfchknRsltDto>> retrieveSlfchknGroupByTimeUsingDate(String ymd, String tmnlId) {
 		String smltId = castSmltService.retrieveRecentSmltId(ymd);
 		return retrieveSlfchknGroupByTime(smltId, tmnlId);
+	}
+
+	@Override
+	public List<SlfDeviceCntRawDto> retrieveSlfDeviceCntList(String tmnlId) {
+		return castSlfchknMapper.retrieveSlfDeviceCntList(tmnlId);
 	}
 }

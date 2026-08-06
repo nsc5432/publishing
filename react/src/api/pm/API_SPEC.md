@@ -65,7 +65,7 @@ HTTP 상태 코드로 실패를 알리고, 클라이언트는 `client.ts` 인터
 | 공통(LNB 사용자) | 전 화면 | `retrieveUserInfoBySession` |
 | 요약보기(대시보드) | `/rui/pm/daily-smlt/dashboard` | `retrieveDailySmltBaseInfo` · `retrieveDailySmltHeader` · `retrieveDailySmltTmnlSmry` · `retrieveDailySmltTmnlRsltByTime` · `retrieveDailySmltFcltCard` |
 | 맵형태보기 | `/rui/pm/daily-smlt/terminalMap` | `retrieveSmltMap` · `retrieveSmltMapChknDetail` · `retrieveSmltMapDepDetail` |
-| 사용자 시뮬레이션 | `/rui/pm/user-smlt/config` | `retrieveUserSmltInfo` · 탭별 `retrieve*` / `save*` · `retrieveFcltMap` · `executeUserSmlt` |
+| 사용자 시뮬레이션 | `/rui/pm/user-smlt/config` | `retrieveUserSmltInfo` · 탭별 `retrieve*` **3개**(`retrieveFltPsgInfo` · `retrieveChknCounterInfo` · `retrieveDepInfo`) / `save*` · `retrieveFcltMap` · `executeUserSmlt` |
 | 시뮬레이션 모니터링 | `/rui/pm/smlt-monitoring` | `retrieveSmltExecSmry` · `retrieveSmltExecList` · `retrieveSmltExecDetail` |
 
 ---
@@ -331,8 +331,16 @@ HTTP 상태 코드로 실패를 알리고, 클라이언트는 `client.ts` 인터
 
 ## 6. 사용자 시뮬레이션 — 조건 설정
 
-탭 5개가 같은 `smltId` 를 공유하며, **터미널(T1/T2) 단위로 조회·저장**한다.
+**탭이 5개에서 3개로 줄었다.** 셀프체크인/백드롭(구 `6.4`)은 체크인 카운터(`6.3`)로, 보안 검색대(구 `6.6`)는 출국장(`6.5`)으로 흡수됐다.
+없어진 절은 **번호를 비우지 않고** 흡수처를 가리키는 안내만 남긴다 (다른 문서의 참조를 깨지 않기 위해서다).
+
+탭 3개가 같은 `smltId` 를 공유하며, **터미널(T1/T2) 단위로 조회·저장**한다.
 저장은 각 패널의 `현재상태 저장`, 실행은 GNB 의 `시뮬레이션 실행` 버튼과 1:1 이다.
+
+- **조회 API 는 구현 완료**(3단계). `save*` / `executeUserSmlt` 는 4단계다.
+- **탭당 조회는 1회다.** 드로어(자원 배정 · 셀프 서비스 · 검색대 구성)가 쓰는 값은 탭 조회 응답에 함께 실린다.
+- `tmnlId` 는 `T1` / `T2` 로 주고받는다. 서버 내부의 `P01`(제1여객터미널) / `P02`(탑승동) / `P03`(제2여객터미널) 변환은 **서버가 한 곳에서** 처리한다 — 운항편·여객수는 `T1 = P01 + P02`, 시설(체크인·출국장·검색대)은 `T1 = P01`. ([결정 로그 D1](../../../../docs/db/06-decisions.md))
+- 원천 데이터가 아직 없는 필드는 **필드를 빼지 않고 기본값**(숫자 `0` / 문자 `''` / `N`)으로 내려준다. 어느 필드가 여기 해당하는지는 각 절의 표에 표시했다. ([결정 로그 D7](../../../../docs/db/06-decisions.md))
 
 ### 6.1 진입 정보 조회
 
@@ -348,20 +356,25 @@ HTTP 상태 코드로 실패를 알리고, 클라이언트는 `client.ts` 인터
 
 **조회** `POST /pm/cast/user-smlt/retrieveFltPsgInfo` — `userSmltService.getFltPsgInfo(smltId, tmnlId)`
 
+**Request** `smltId`, `tmnlId` (`ymd` 생략 시 `smltId` 의 실행일자를 쓴다)
+
 **Response** `UserSmltFltPsgDto`
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
-| `fltCnt` / `psgCnt` | number | 요약: 운항편 / 여객 |
-| `peakTime` | string | 요약: 피크 `HHmm` |
-| `adjType` | `RATIO`\|`HOURLY` | 수정 방식 (전체 비율 / 시간대별) |
-| `adjRate` | number | 전체 비율 % (`-100`~`100`, 5 단위) |
+| `tmnlId` | TmnlId | 조회 조건 반향 |
+| `fltCnt` / `psgCnt` | number | 요약: 운항편 / 여객. **여객 = 예약탑승객 − 예약환승객** |
+| `peakTime` | string | 요약: 피크 `HHmm` — 여객수가 가장 많은 시간대 |
+| `adjType` | `RATIO`\|`HOURLY` | 수정 방식 (전체 비율 / 시간대별). **저장 구조 미확보 — 항상 `RATIO`** |
+| `adjRate` | number | 전체 비율 % (`-100`~`100`, 5 단위). **저장 구조 미확보 — 항상 `0`** |
 | `fltChart` / `psgChart` | FltPsgChartDto | 운항편 수 / 여객 수 막대 차트 |
-| `hourList[].bgnTime` / `endTime` | string | 구간 `HHmm` |
-| `hourList[].adjRate` | number | 구간 수정 비율 % |
+| `hourList[].bgnTime` / `endTime` | string | 구간 `HHmm` — **1시간 단위 24행** (`0000`~`2400`) |
+| `hourList[].adjRate` | number | 구간 수정 비율 %. **저장 구조 미확보 — 항상 `0`** |
 | `hourList[].psgCnt` | number | 구간 승객 수 (명) |
 
-`FltPsgChartDto` — `totCnt`(누적), `maxCnt`(Y축 최댓값), `itemList[].time`(`HH`, 2시간 단위 12개), `itemList[].cnt`
+`FltPsgChartDto` — `totCnt`(누적), `maxCnt`(Y축 최댓값), `itemList[].time`(`HH`, 2시간 단위 12개, **`04`시 시작**), `itemList[].cnt`
+
+원천은 `GOOWN.TN_GO_GD_DATA` 이며 유효 운항편 필터 8종(출발편 · 취소/지연사유 제외 · 여객편 · 페리 제외 · 국내선 제외)이 붙는다.
 
 **저장** `POST /pm/cast/user-smlt/saveFltPsgInfo` — `userSmltService.saveFltPsgInfo(request)`
 
@@ -378,72 +391,105 @@ HTTP 상태 코드로 실패를 알리고, 클라이언트는 `client.ts` 인터
 
 ### 6.3 체크인 카운터 탭
 
+셀프체크인/백드롭(구 `6.4`)을 흡수했다. **아일랜드 1개분이 아니라 터미널 1개분 전체**를 내려준다 — 첫 화면이 터미널의 모든 아일랜드를 한 블럭 차트에 그리기 때문이다.
+
 **조회** `POST /pm/cast/user-smlt/retrieveChknCounterInfo` — `userSmltService.getChknCounterInfo(smltId, tmnlId, island)`
+
+**Request** `smltId`, `tmnlId` (`island` 은 무시된다 — 항상 터미널 전체를 내려준다. `ymd` 생략 시 `smltId` 의 실행일자를 쓴다)
 
 **Response** `UserSmltChknDto`
 
 | 필드 | 타입 | 설명 |
 | --- | --- | --- |
-| `totCnt` | number | 전체 카운터 수 (상단 + 하단) |
-| `islandList` | string[] | 아일랜드 목록 (`I` 제외) |
-| `island` | string | 선택 아일랜드 |
-| `counterList[].counterId` | string | 셀 식별자 (`U1`~`U18` / `L1`~`L18`) |
-| `counterList[].counterNum` | number | 카운터 번호 1~18 |
-| `counterList[].rowType` | `U`\|`L` | 상단 / 하단 열 |
-| `counterList[].alnCd` | string | 배정 항공사 코드 — 미배정이면 `''` (화면 `N/A`) |
-| `counterList[].customYn` | YnFlag | Custom 카운터 (점선 테두리) |
-| `counterList[].oprYn` | YnFlag | 운영 여부 (초기 선택 상태) |
-| `oprTimeList[].bgnHour` / `endHour` | number | 운영 시간 구간 (0~24) |
+| `tmnlId` | TmnlId | 조회 조건 반향 |
+| `totCnt` | number | 요약: 전체 카운터 수 (터미널 보유 대수) |
+| `peakCounterCnt` | number | 요약: 피크 카운터 — 시간대별 운영 부스 합의 최댓값 |
+| `totKioskCnt` / `totBagDropCnt` | number | 하단 셀프 서비스 바의 터미널 합계 |
+| `waitMaxCnt` | number | 대기인원 꺾은선 우측 축 최댓값 |
+| `islandCdList` | string[] | `+ 추가` 에서 고를 수 있는 아일랜드 문자 (`A`~`N`, `I` 제외) |
+| `alnCdList` | string[] | 드로어 칩에 노출할 배정 가능 항공사 코드 |
+| `islandList[]` | ChknIslandDto[] | 블럭 차트 항목 — **배정이 있는 아일랜드만** |
+| `waitList[]` | WaitPsgDto[] | 시간대별 대기인원 **24개 고정** (`hour` 0~23, `waitPsgCnt` 명) |
+| `kpi` | SmltKpiDto | 패널 헤드 결과 지표 4종 |
 
-**저장** `POST /pm/cast/user-smlt/saveChknCounterInfo` — `userSmltService.saveChknCounterInfo(request)`
+`ChknIslandDto`
 
-**Request** `UserSmltChknSaveReq` — `smltId`, `tmnlId`, `island`, `oprCounterIdList`(운영으로 선택한 `counterId` 목록), `oprTimeList`
-
-### 6.4 셀프체크인/백드롭 탭
-
-**조회** `POST /pm/cast/user-smlt/retrieveSlfchknInfo` — `userSmltService.getSlfchknInfo(smltId, tmnlId, island)`
-
-**Response** `UserSmltSlfchknDto` — `totCnt`(전체 보유 대수), `islandList`, `island`, `deviceList`
-
-| `deviceList[]` | 타입 | 설명 |
+| 필드 | 타입 | 설명 |
 | --- | --- | --- |
-| `deviceType` | `KIOSK`\|`SBD` | 셀프체크인 키오스크 / 셀프백드롭 |
-| `deviceNm` | string | 기기명 |
-| `deviceCnt` | number | 운영 대수 |
-| `oprYn` | YnFlag | `N` = 미운영 |
-| `oprTimeList` | OprTimeDto[] | 운영 시간 구간 (복수 가능) |
+| `island` | string | 아일랜드 문자 |
+| `boothCnt` | number | 운영 부스 수 — 블럭 수 = `ceil(boothCnt / 4)` |
+| `kioskCnt` / `bagDropCnt` | number | 셀프체크인 키오스크 / 셀프백드롭 대수 (구 `6.4` `deviceCnt`) |
+| `oprTimeList[].bgnHour` / `endHour` | number | 아일랜드 운영 시간 구간 (0~24, 복수 가능) |
+| `boothList[].boothNo` | number | 아일랜드 안의 부스 번호 |
+| `boothList[].alnCd` | string | 배정 항공사 코드 — 미배정이면 `''` |
+| `boothList[].customYn` | YnFlag | Custom 배정 여부. **원천 미확보 — 항상 `N`** |
 
-**저장** `POST /pm/cast/user-smlt/saveSlfchknInfo` — `userSmltService.saveSlfchknInfo(request)`
+`SmltKpiDto` (체크인 카운터 · 출국장 공용)
 
-**Request** `UserSmltSlfchknSaveReq` — `smltId`, `tmnlId`, `island`, `deviceList[{ deviceType, deviceCnt, oprYn, oprTimeList }]`
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `avgWaitMin` | number | 평균대기 (분) |
+| `p95WaitMin` | number | P95대기 (분). **결과 상세 행 분포의 95백분위 근사** |
+| `maxQueuePsgCnt` | number | 최대 큐인원 (명) |
+| `utilRate` | number | 가동률 % = 운영 시설·시간 합 / (전체 시설 수 × 24) |
+
+> 대기 꺾은선·KPI 는 **직전 시뮬레이션 결과**(`TN_PM_SMLT_RSLT_DTL`)다. 미수행 상태면 `waitList` 24개가 전부 `0`, `kpi` 도 `0` 이다. ([결정 로그 D4·D5·D6](../../../../docs/db/06-decisions.md))
+
+**저장** `POST /pm/cast/user-smlt/saveChknCounterInfo` — 4단계
+
+**Request** `UserSmltChknSaveReq` — `smltId`, `tmnlId`, `islandList[{ island, oprTimeList, boothList, kioskCnt, bagDropCnt }]`
+(구 `oprCounterIdList` 는 부스 단위 `boothList` 로 대체됐다. 구 `saveSlfchknInfo` 도 여기로 흡수된다.)
+
+### 6.4 셀프체크인/백드롭 탭 — **삭제**
+
+`6.3` 으로 흡수됐다. 아일랜드별 대수는 `6.3` `islandList[].kioskCnt` / `bagDropCnt`, 터미널 합계는 `totKioskCnt` / `totBagDropCnt` 다.
+`retrieveSlfchknInfo` / `saveSlfchknInfo` 는 더 이상 호출하지 않는다 (엔드포인트 상수는 4단계에서 정리).
+
+> 구 `deviceList[].oprYn` / `deviceList[].oprTimeList`(기기별 운영시간)는 **리뉴얼 화면에 대응 요소가 없다.** 저장 테이블(`TN_PM_SMLT_SBD_ATRB`)에는 시각 컬럼이 실재하므로, 계속 저장할지는 4단계 결정 사항이다.
 
 ### 6.5 출국장 탭
 
+보안 검색대(구 `6.6`)를 흡수했다. **터미널의 모든 출국장 운영계획**을 한 번에 내려준다.
+
 **조회** `POST /pm/cast/user-smlt/retrieveDepInfo` — `userSmltService.getDepInfo(smltId, tmnlId)`
 
-**Response** `UserSmltDepDto` — `depList[{ depNum, depNm, oprYn, oprTimeList }]` (T1 6곳 / T2 2곳)
+**Request** `smltId`, `tmnlId`
 
-**저장** `POST /pm/cast/user-smlt/saveDepInfo` — `userSmltService.saveDepInfo(request)`
+**Response** `UserSmltDepDto`
 
-**Request** `UserSmltDepSaveReq` — `smltId`, `tmnlId`, `depList[{ depNum, oprYn, oprTimeList }]`
-
-### 6.6 보안 검색대 탭
-
-**조회** `POST /pm/cast/user-smlt/retrieveScPlanInfo` — `userSmltService.getScPlanInfo(smltId, tmnlId)`
-
-**Response** `UserSmltScDto` — `depList[{ depNum, planList }]`
-
-| `planList[]` | 타입 | 설명 |
+| 필드 | 타입 | 설명 |
 | --- | --- | --- |
-| `planSn` | number | 행 일련번호 (신규 행은 `0`) |
-| `bgnHour` / `bgnMin` | string | 시작 `HH` / `mm` |
-| `endHour` / `endMin` | string | 종료 `HH` / `mm` |
-| `scCnt` | number | 운영 검색대 갯수 |
+| `tmnlId` | TmnlId | 조회 조건 반향 |
+| `peakScCnt` | number | 요약: 피크 검색대 — 시간대별 검색대 합의 최댓값 |
+| `waitMaxCnt` | number | 대기인원 꺾은선 우측 축 최댓값 |
+| `depList[]` | DepGateDto[] | 출국장 (T1 6곳 / T2 2곳) |
+| `waitList[]` | WaitPsgDto[] | 시간대별 대기인원 24개 — `6.3` 과 동일 |
+| `kpi` | SmltKpiDto | 패널 헤드 결과 지표 4종 — `6.3` 과 동일 |
 
-**저장** `POST /pm/cast/user-smlt/saveScPlanInfo` — `userSmltService.saveScPlanInfo(request)`
+`DepGateDto`
 
-**Request** `UserSmltScSaveReq` — `smltId`, `tmnlId`, `depNum`(선택한 출국장), `planList`
-행 추가/삭제 결과를 **선택한 출국장 1곳분 전체**로 보낸다.
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `depNum` / `depNm` | string | 출국장 번호 / 표시명 |
+| `oprYn` | YnFlag | `N` 이면 차트에서 빠지고 미운영 칩으로 내려간다. **현재는 시설 마스터 `USE_YN` 값이다** |
+| `scCnt` | number | 검색대 대수 (피크 기준) — 보조 차트 블럭 수 = `ceil(scCnt / 4)` |
+| `normalCnt` / `smartPassCnt` | number | 일반 / 스마트패스 검색대 대수. **원천 미확보 — 항상 `0`** |
+| `oprTimeList[].bgnHour` / `endHour` | number | 출국장 운영 시간 구간 (0~24) |
+| `planList[].planSn` | number | 행 일련번호 (신규 행 `0`) |
+| `planList[].bgnHour` / `endHour` | number | 구간 시작 / 종료 — **분 단위가 사라졌다. 시(0~24) 정수다** |
+| `planList[].scCnt` | number | 그 구간 검색대 갯수 |
+
+> **`planList` 는 현재 구간 1개만 내려온다.** 검색대 대수를 담은 `..._SCRTY_CNTRL_ATRB.FCLTY_CNT` 에 시간축이 없어, 출국장 운영시간 전체를 덮는 구간 하나로 만든다. 다구간 편집·저장은 신규 테이블이 필요하다 — DDL 초안은 [결정 로그 D2](../../../../docs/db/06-decisions.md).
+
+**저장** `POST /pm/cast/user-smlt/saveDepInfo` — 4단계
+
+**Request** `UserSmltDepSaveReq` — `smltId`, `tmnlId`, `depList[{ depNum, oprYn, oprTimeList, normalCnt, smartPassCnt, scCnt, planList }]`
+(구 `saveScPlanInfo` 를 흡수한다. 저장 대상 테이블이 2개 이상이므로 한 트랜잭션으로 묶는다.)
+
+### 6.6 보안 검색대 탭 — **삭제**
+
+`6.5` 로 흡수됐다. 구간표는 `6.5` `depList[].planList`, 대수는 `depList[].scCnt` 다.
+`retrieveScPlanInfo` / `saveScPlanInfo` 는 더 이상 호출하지 않는다 (엔드포인트 상수는 4단계에서 정리).
 
 ### 6.7 지도 보기
 
@@ -533,7 +579,11 @@ HTTP 상태 코드로 실패를 알리고, 클라이언트는 `client.ts` 인터
 **사용자 시뮬레이션**
 
 1. 터미널 선택 → `retrieveUserSmltInfo(ymd, tmnlId)` → `smltId`
-2. 활성 탭의 `retrieve*` 호출 (탭 전환 시 그 탭만)
+2. 활성 탭의 `retrieve*` 호출 (탭 전환 시 그 탭만, **탭당 1회**)
+   - 운항편/여객수 → `retrieveFltPsgInfo`
+   - 체크인 카운터 → `retrieveChknCounterInfo` (셀프 서비스 값 포함)
+   - 출국장 → `retrieveDepInfo` (보안검색대 값 포함)
+   - 드로어를 열 때는 **재조회하지 않는다.** 2에서 받은 아일랜드/출국장 객체를 그대로 쓴다
 3. `현재상태 저장` → 해당 탭 `save*`
 4. `시뮬레이션 실행` → `executeUserSmlt`
 

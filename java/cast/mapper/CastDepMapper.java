@@ -5,7 +5,10 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
-import aoms.pm.cast.dto.DepRsltDto;                                                            
+import aoms.pm.cast.dto.DepFcltRawDto;
+import aoms.pm.cast.dto.DepOperHrRawDto;
+import aoms.pm.cast.dto.DepRsltDto;
+import aoms.pm.cast.dto.ScCntRawDto;
                                                                                                              
 /**  												                                                           
  * @Classname   : CastDepMapper.java                                                              
@@ -27,5 +30,15 @@ import aoms.pm.cast.dto.DepRsltDto;
 public interface CastDepMapper {
 	List<DepRsltDto> retrieveSmltDepList(
 		@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
+	);
+
+	List<DepFcltRawDto> retrieveDepFcltList(@Param("tmnlId") String tmnlId);
+
+	List<DepOperHrRawDto> retrieveDepOperHrList(
+		@Param("tmnlId") String tmnlId, @Param("dgRsrcId") String dgRsrcId, @Param("ymd") String ymd
+	);
+
+	List<ScCntRawDto> retrieveScCntList(
+		@Param("tmnlId") String tmnlId, @Param("scRsrcId") String scRsrcId
 	);
 }                                                                                                            

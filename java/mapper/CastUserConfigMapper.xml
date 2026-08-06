@@ -3,7 +3,7 @@
 
 <mapper namespace="aoms.pm.cast.mapper.CastUserConfigMapper">
     <select id="retrieveFlightList" resultType="aoms.pm.cast.dto.UserConfigFlightDto">
-        /* CastDepMapper.retrieveFlightList */
+        /* CastUserConfigMapper.retrieveFlightList */
         SELECT 
 		    FLTSH_ID, 
 		    GD_SE_YMD,
@@ -15,7 +15,7 @@
     </select>
     
     <select id="retrieveChknList" resultType="aoms.pm.cast.dto.ChknRawDto">
-        /* CastDepMapper.retrieveChknList */
+        /* CastUserConfigMapper.retrieveChknList */
         SELECT 
 		    SUBSTR(CKNCT_ID, 0, 1) as ISLAND, 
 		    PMOWN.FN_PM_SAFE_TO_NUMBER(SUBSTR(A.CKNCT_ID, 2, 2)) as COUNTER_NUM,

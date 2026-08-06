@@ -46,4 +46,67 @@
 		GROUP BY TIME, DEP_NUM
 		ORDER BY TIME, DEP_NUM
     </select>
+
+    <select id="retrieveDepFcltList" resultType="aoms.pm.cast.dto.DepFcltRawDto">
+        /* CastDepMapper.retrieveDepFcltList */
+        SELECT
+            SUBSTR(B.PSG_FCLT_CD, 4, 1) AS DEP_NUM,
+            B.PSG_FCLT_NM AS DEP_NM,
+            B.USE_YN
+        FROM PMOWN.TN_PM_SMLT_PSG_FCLT B
+        WHERE 1 = 1
+        AND B.TMNL_ID = #{tmnlId}
+        -- 미운영 출국장도 화면 하단 칩으로 내려가므로 USE_YN 으로 거르지 않는다
+        AND B.UP_PSG_FCLT_CD IN ('LGT')
+        ORDER BY DEP_NUM
+    </select>
+
+    <select id="retrieveDepOperHrList" resultType="aoms.pm.cast.dto.DepOperHrRawDto">
+        /* CastDepMapper.retrieveDepOperHrList */
+        SELECT
+            A.GATE_NO AS DEP_NUM,
+            B.OPER_BGNG_1_HR AS BGN_HM,
+            B.OPER_END_1_HR AS END_HM
+        FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_DPTGT_ATRB A
+            INNER JOIN (
+                SELECT
+                    C.OPER_HR_CRLTN_SN,
+                    C.ELMNT_SN,
+                    B.TMNL_ID,
+                    B.FCLT_SE_CD,
+                    C.FCLTY_TYPE_ID,
+                    C.OPER_BGNG_YMD,
+                    NVL(C.OPER_END_YMD, '21001231') AS OPER_END_YMD,
+                    C.OPER_BGNG_1_HR,
+                    C.OPER_END_1_HR
+                FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
+                    INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_ELMNT B
+                    ON A.OPER_HR_CRLTN_SN = B.OPER_HR_CRLTN_SN
+                    INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_MNG C
+                    ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN
+                    AND B.ELMNT_SN = C.ELMNT_SN
+                -- DPL 배포됨
+                WHERE A.OPER_HR_STTS_CD = 'DPL'
+            ) B
+                ON A.TMNL_ID = B.TMNL_ID
+                AND A.FCLT_SE_CD = B.FCLT_SE_CD
+                AND A.GATE_NO = B.FCLTY_TYPE_ID
+        WHERE 1 = 1
+        AND A.DPTGT_ATRB_ID = REGEXP_REPLACE(#{dgRsrcId}, 'FOTDG|FacilityOpeningTable_DepartureGate', '')
+        AND A.TMNL_ID = #{tmnlId}
+        AND #{ymd} BETWEEN B.OPER_BGNG_YMD AND B.OPER_END_YMD
+        ORDER BY DEP_NUM
+    </select>
+
+    <select id="retrieveScCntList" resultType="aoms.pm.cast.dto.ScCntRawDto">
+        /* CastDepMapper.retrieveScCntList */
+        SELECT
+            A.GATE_NO AS DEP_NUM,
+            A.FCLTY_CNT AS SC_CNT
+        FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_SCRTY_CNTRL_ATRB A
+        WHERE 1 = 1
+        AND A.SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{scRsrcId}, 'FOTSC|FacilityOpeningTable_SecurityControl', '')
+        AND A.TMNL_ID = #{tmnlId}
+        ORDER BY DEP_NUM
+    </select>
 </mapper>

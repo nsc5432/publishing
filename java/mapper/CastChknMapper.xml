@@ -55,4 +55,31 @@
 		AND A.ISLAND = #{island}
         ORDER BY YMD, TIME, COUNTER_NUM
     </select>
+
+    <select id="retrieveCknctCntList" resultType="aoms.pm.cast.dto.CknctCntRawDto">
+        /* CastChknMapper.retrieveCknctCntList */
+        SELECT
+            SUBSTR(A.CKNCT_ID, 1, 1) AS ISLAND,
+            COUNT(A.CKNCT_ID) AS CKNCT_CNT
+        FROM CAOWN.TN_CA_CKNCT A
+        WHERE 1 = 1
+        AND A.TMNL_ID = #{tmnlId}
+        AND A.USE_YN = 'Y'
+        -- A, B 유인 체크인카운터 / H 셀프백드랍
+        AND A.CKNCT_USE_CRG_APLCN_TYPE_CD IN (<foreach collection="useCrgTypeCdList" item="item" separator=",">#{item}</foreach>)
+        GROUP BY SUBSTR(A.CKNCT_ID, 1, 1)
+        ORDER BY ISLAND
+    </select>
+
+    <select id="retrieveAlnCdList" resultType="java.lang.String">
+        /* CastChknMapper.retrieveAlnCdList */
+        SELECT DISTINCT A.ALN_CD
+        FROM CAOWN.TN_CA_ALN_PGE A
+        WHERE 1 = 1
+        AND A.TMNL_ID = #{tmnlId}
+        -- C 체크인용 페이지를 가진 항공사 = 그 터미널에서 부스 배정이 가능한 항공사
+        AND A.PGE_SE_CD = 'C'
+        AND A.USE_YN = 'Y'
+        ORDER BY ALN_CD
+    </select>
 </mapper>

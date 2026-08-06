@@ -5,7 +5,8 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
-import aoms.pm.cast.dto.ChknRsltDto;                                                            
+import aoms.pm.cast.dto.ChknRsltDto;
+import aoms.pm.cast.dto.CknctCntRawDto;
                                                                                                              
 /**  												                                                           
  * @Classname   : CastChknMapper.java                                                              
@@ -26,7 +27,13 @@ import aoms.pm.cast.dto.ChknRsltDto;
 @Mapper                                                                                                     	
 public interface CastChknMapper {
 	List<ChknRsltDto> retrieveSmltChknList(
-		@Param("smltId") String smltId, @Param("ymd") String ymd, 
+		@Param("smltId") String smltId, @Param("ymd") String ymd,
 		@Param("tmnlId") String tmnlId, @Param("island") String island
 	);
+
+	List<CknctCntRawDto> retrieveCknctCntList(
+		@Param("tmnlId") String tmnlId, @Param("useCrgTypeCdList") List<String> useCrgTypeCdList
+	);
+
+	List<String> retrieveAlnCdList(@Param("tmnlId") String tmnlId);
 }                                                                                                            

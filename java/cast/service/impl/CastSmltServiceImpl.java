@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 
 import aoms.pm.cast.domains.AggData;
 import aoms.pm.cast.dto.PsgPrcsGrd;
+import aoms.pm.cast.dto.SmltKpiDto;
+import aoms.pm.cast.dto.SmltKpiRawDto;
 import aoms.pm.cast.dto.SmltSmryDepSearchDto;
 import aoms.pm.cast.dto.SmltSmryDto;
 import aoms.pm.cast.dto.SmltSmryMapSearchDto;
@@ -25,6 +27,7 @@ import aoms.pm.cast.dto.SmryScDto;
 import aoms.pm.cast.dto.SummaryFlightDto;
 import aoms.pm.cast.dto.SummaryMapDto;
 import aoms.pm.cast.dto.SummaryRsltDto;
+import aoms.pm.cast.dto.WaitPsgDto;
 import aoms.pm.cast.enums.CongestionStatus;
 import aoms.pm.cast.enums.CongestionType;
 import aoms.pm.cast.enums.PrcsGrdType;
@@ -33,6 +36,7 @@ import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.utils.DateUtils;
 import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.StringUtils;
+import aoms.pm.utils.TimeBucketUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -54,6 +58,8 @@ import lombok.RequiredArgsConstructor;
 @Service("castSmltService")
 @RequiredArgsConstructor	
 public class CastSmltServiceImpl implements CastSmltService {
+	private static final int SEC_PER_MIN = 60; // _HR 컬럼(초) → 화면 표시 단위(분)
+
 	private final CastSmltMapper castSmltMapper;
 	private final List<String> islandList = List.of("A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N");
 	private final List<String> depT1List = List.of("1", "2", "3", "4", "5", "6");
@@ -128,28 +134,20 @@ public class CastSmltServiceImpl implements CastSmltService {
 		
 		Map<CongestionStatus, PsgPrcsGrd> prcsGrdMap = retrievePrcsGrdMap(PrcsGrdType.CHKN);
 		
-		for (int h = 0; h < 24; h++) {
-			String hour = String.format("%02d", h);
-			
+		for (String hour : TimeBucketUtils.hourList()) {
 			List<SmryChknDto> chknGrouping = chknGrouping(chknDatas.stream().filter(x -> StringUtils.isMatchPatternLike(hour + "%", x.getTime())).collect(toList()), 30, prcsGrdMap);
 			List<SmryDepDto> depGrouping = depGrouping(depDatas.stream().filter(x -> StringUtils.isMatchPatternLike(hour + "%", x.getTime())).collect(toList()), searchDto.getTmnlId(), 30);
 			List<SmryScDto> scGrouping = scGrouping(scDatas.stream().filter(x -> StringUtils.isMatchPatternLike(hour + "%", x.getTime())).collect(toList()), searchDto.getTmnlId(), 30);
-			
-			String tm00 = hour + "00";
-			SummaryMapDto subResult00 = new SummaryMapDto();
-			subResult00.setChknList(chknGrouping.stream().filter(x -> x.getTime().equals(tm00)).collect(toList()));
-			subResult00.setDepList(depGrouping.stream().filter(x -> x.getTime().equals(tm00)).collect(toList()));
-			subResult00.setScList(scGrouping.stream().filter(x -> x.getTime().equals(tm00)).collect(toList()));
-			result.put(tm00, subResult00);
-			
-			String tm30 = hour + "30";
-			SummaryMapDto subResult30 = new SummaryMapDto();
-			subResult30.setChknList(chknGrouping.stream().filter(x -> x.getTime().equals(tm30)).collect(toList()));
-			subResult30.setDepList(depGrouping.stream().filter(x -> x.getTime().equals(tm30)).collect(toList()));
-			subResult30.setScList(scGrouping.stream().filter(x -> x.getTime().equals(tm30)).collect(toList()));
-			result.put(tm30, subResult30);
+
+			for (String bucket : TimeBucketUtils.bucketList(hour)) {
+				SummaryMapDto subResult = new SummaryMapDto();
+				subResult.setChknList(chknGrouping.stream().filter(x -> bucket.equals(x.getTime())).collect(toList()));
+				subResult.setDepList(depGrouping.stream().filter(x -> bucket.equals(x.getTime())).collect(toList()));
+				subResult.setScList(scGrouping.stream().filter(x -> bucket.equals(x.getTime())).collect(toList()));
+				result.put(bucket, subResult);
+			}
 		}
-		
+
 		return result;
 	}
 	
@@ -391,5 +389,39 @@ public class CastSmltServiceImpl implements CastSmltService {
 	private String getPeakTime(List<? extends AggData> castDatas) {
 		Optional<? extends AggData> peak = castDatas.stream().sorted((a, b) -> b.getWtngPsgCnt() - a.getWtngPsgCnt()).findFirst();
 		return peak.isPresent() ? peak.get().getTime() : "0000";
+	}
+
+	@Override
+	public List<WaitPsgDto> retrieveWaitPsgList(String smltId, String tmnlId, List<String> upPsgFcltCdList) {
+		Map<Integer, WaitPsgDto> retrieved = castSmltMapper.retrieveWaitPsgList(smltId, tmnlId, upPsgFcltCdList)
+				.stream().collect(Collectors.toMap(WaitPsgDto::getHour, Function.identity(), (a, b) -> a));
+
+		List<WaitPsgDto> result = new ArrayList<>();
+
+		// 결과가 없는 시간대(WTNG_PSG_CNT = 0)는 행이 없다. 24시간 축은 애플리케이션이 채운다
+		for (String hour : TimeBucketUtils.hourList()) {
+			int hourValue = Integer.parseInt(hour);
+			WaitPsgDto item = retrieved.get(hourValue);
+			result.add(item != null ? item : new WaitPsgDto().withHour(hourValue).withWaitPsgCnt(0));
+		}
+
+		return result;
+	}
+
+	@Override
+	public SmltKpiDto retrieveSmltKpi(String smltId, String tmnlId, List<String> upPsgFcltCdList) {
+		SmltKpiDto result = new SmltKpiDto();
+		SmltKpiRawDto raw = castSmltMapper.retrieveSmltKpiRaw(smltId, tmnlId, upPsgFcltCdList);
+
+		if (raw == null) {
+			return result;
+		}
+
+		// _HR 컬럼은 초 단위다 (API_SPEC.md 5.2 대기시간(초)). 화면은 분으로 표시한다
+		result.setAvgWaitMin(raw.getAvgWtngHr() / SEC_PER_MIN);
+		result.setP95WaitMin(raw.getP95WtngHr() / SEC_PER_MIN);
+		result.setMaxQueuePsgCnt(raw.getMaxWtngPsgCnt());
+
+		return result;
 	}
 }

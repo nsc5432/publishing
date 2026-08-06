@@ -6,10 +6,12 @@ import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
 import aoms.pm.cast.dto.PsgPrcsGrd;
+import aoms.pm.cast.dto.SmltKpiRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.SmltStngSearchDto;
 import aoms.pm.cast.dto.SummaryFlightDto;
-import aoms.pm.cast.dto.SummaryRsltDto;                                                            
+import aoms.pm.cast.dto.SummaryRsltDto;
+import aoms.pm.cast.dto.WaitPsgDto;
                                                                                                              
 /**  												                                                           
  * @Classname   : CastSmltMapper.java                                                              
@@ -49,4 +51,16 @@ public interface CastSmltMapper {
 	);
 
 	List<PsgPrcsGrd> retrievePrcsGrd(@Param("psgPrcsGrdCd") String psgPrcsGrdCd);
+
+	List<WaitPsgDto> retrieveWaitPsgList(
+			@Param("smltId") String smltId,
+			@Param("tmnlId") String tmnlId,
+			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
+	);
+
+	SmltKpiRawDto retrieveSmltKpiRaw(
+			@Param("smltId") String smltId,
+			@Param("tmnlId") String tmnlId,
+			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
+	);
 }                                                                                                            

@@ -4,12 +4,14 @@ import java.util.List;
 import java.util.Map;
 
 import aoms.pm.cast.dto.PsgPrcsGrd;
+import aoms.pm.cast.dto.SmltKpiDto;
 import aoms.pm.cast.dto.SmltSmryDepSearchDto;
 import aoms.pm.cast.dto.SmltSmryDto;
 import aoms.pm.cast.dto.SmltSmryMapSearchDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.SummaryMapDto;
 import aoms.pm.cast.dto.SummaryRsltDto;
+import aoms.pm.cast.dto.WaitPsgDto;
 import aoms.pm.cast.enums.CongestionStatus;
 import aoms.pm.cast.enums.CongestionType;
 import aoms.pm.cast.enums.PrcsGrdType;
@@ -43,4 +45,8 @@ public interface CastSmltService {
 	Map<CongestionStatus, PsgPrcsGrd> retrievePrcsGrdMap(PrcsGrdType prcsGrdType);
 	
 	List<SummaryRsltDto> getXovisDatas(String ymd, CongestionType congestionType, String tmnlId, String island, int interval);
+
+	List<WaitPsgDto> retrieveWaitPsgList(String smltId, String tmnlId, List<String> upPsgFcltCdList);
+
+	SmltKpiDto retrieveSmltKpi(String smltId, String tmnlId, List<String> upPsgFcltCdList);
 }

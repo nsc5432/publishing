@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 
 import aoms.pm.cast.dto.DepRsltDto;
+import aoms.pm.cast.dto.UserSmltDepDto;
+import aoms.pm.cast.dto.UserSmltDepSearchDto;
 
 /**
  * @Classname : CastDepService.java
@@ -24,4 +26,6 @@ public interface CastDepService {
 	Map<String, List<DepRsltDto>> retrieveDepGroupByTime(String smltId, String tmnlId);
 
 	Map<String, List<DepRsltDto>> retrieveDepGroupByTimeUsingDate(String ymd, String tmnlId);
+
+	UserSmltDepDto retrieveDepInfo(UserSmltDepSearchDto searchDto);
 }

@@ -16,6 +16,7 @@
 | 5.3 | [03-sql-patterns.md](03-sql-patterns.md) | 핵심 조인 패턴 · SQL 관용구 — `PSG_FCLT_CD` 자리수 규칙, enum 대응표 |
 | 5.4 | [04-screen-table-mapping.md](04-screen-table-mapping.md) | 화면 ↔ 테이블 매핑표 — `API_SPEC-DELTA.md` 전 항목 |
 | 5.5 | [05-gaps.md](05-gaps.md) | 갭 · 모순 목록 — G1~G16, 영향 범위와 결정 주체 |
+| 5.6 | [06-decisions.md](06-decisions.md) | **결정 로그 (3단계 산출물)** — G2·G7·G14 등 조회 API 착수에 필요했던 결정과 근거 |
 
 ## 분석 대상
 

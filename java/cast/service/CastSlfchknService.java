@@ -3,6 +3,7 @@ package aoms.pm.cast.service;
 import java.util.List;
 import java.util.Map;
 
+import aoms.pm.cast.dto.SlfDeviceCntRawDto;
 import aoms.pm.cast.dto.SlfchknRsltDto;
 
 /**
@@ -24,4 +25,6 @@ public interface CastSlfchknService {
 	Map<String, List<SlfchknRsltDto>> retrieveSlfchknGroupByTime(String smltId, String tmnlId);
 
 	Map<String, List<SlfchknRsltDto>> retrieveSlfchknGroupByTimeUsingDate(String ymd, String tmnlId);
+
+	List<SlfDeviceCntRawDto> retrieveSlfDeviceCntList(String tmnlId);
 }

@@ -91,7 +91,7 @@
     </select>
     
     <select id="retrievePrcsGrd" resultType="aoms.pm.cast.dto.PsgPrcsGrd">
-        /* CastSmltMapper.retrieveXovisRsltDtl */
+        /* CastSmltMapper.retrievePrcsGrd */
         SELECT 
 		    CASE 
 		        WHEN PSG_PRCS_GRD_CD = '01'
@@ -107,5 +107,41 @@
 		FROM PMOWN.TN_PM_PSG_PRCS_GRD
 		WHERE FCLT_GROUP_CD = #{psgPrcsGrdCd}
 		ORDER BY PSG_PRCS_GRD_CD
+    </select>
+
+    <select id="retrieveWaitPsgList" resultType="aoms.pm.cast.dto.WaitPsgDto">
+        /* CastSmltMapper.retrieveWaitPsgList */
+        SELECT
+            TO_NUMBER(TO_CHAR(A.SMLT_ACTL_DT, 'HH24')) AS HOUR,
+            SUM(A.WTNG_PSG_CNT) AS WAIT_PSG_CNT
+        FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+            INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
+            ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND B.TMNL_ID = #{tmnlId}
+        AND B.USE_YN = 'Y'
+        AND A.WTNG_PSG_CNT > 0
+        -- LS 랜드사이드 좌석, CC 체크인카운터, CK 셀프체크인, SBD 셀프백드랍, LGT 출국장, LC 출국심사, SC 보안검색대, SR 보안검색대RED
+        AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
+        GROUP BY TO_NUMBER(TO_CHAR(A.SMLT_ACTL_DT, 'HH24'))
+        ORDER BY HOUR
+    </select>
+
+    <select id="retrieveSmltKpiRaw" resultType="aoms.pm.cast.dto.SmltKpiRawDto">
+        /* CastSmltMapper.retrieveSmltKpiRaw */
+        SELECT
+            ROUND(AVG(A.AVG_WTNG_HR)) AS AVG_WTNG_HR,
+            ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY A.AVG_WTNG_HR)) AS P95_WTNG_HR,
+            MAX(A.WTNG_PSG_CNT) AS MAX_WTNG_PSG_CNT
+        FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+            INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
+            ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND B.TMNL_ID = #{tmnlId}
+        AND B.USE_YN = 'Y'
+        AND A.WTNG_PSG_CNT > 0
+        AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
     </select>
 </mapper>

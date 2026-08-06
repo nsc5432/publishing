@@ -341,38 +341,74 @@ export interface UserSmltFltPsgSaveReq {
     hourList: Array<Pick<FltPsgHourDto, 'bgnTime' | 'endTime' | 'adjRate'>>;
 }
 
-/* --------- 체크인 카운터 탭 --------- */
+/* --------- 조회 결과 공용 (체크인 카운터 · 출국장) --------- */
 
-/** 카운터 셀 1개 */
-export interface ChknCounterDto {
-    counterId: string; // 셀 식별자 (예: U1 / L18)
-    counterNum: number; // 카운터 번호 (1~18)
-    rowType: 'U' | 'L'; // 상단 / 하단 열
-    alnCd: string; // 배정 항공사 코드 — 미배정이면 ''
-    customYn: YnFlag; // Custom 카운터 (점선 테두리)
-    oprYn: YnFlag; // 운영 여부 (초기 선택 상태)
+/** 시간대별 대기인원 1점 — 꺾은선 (24개 고정) */
+export interface WaitPsgDto {
+    hour: number; // 0~23
+    waitPsgCnt: number; // 대기인원 (명)
 }
 
-/** 체크인 카운터 탭 — 터미널 1개분 */
+/**
+ * 패널 헤드 결과 지표 4종.
+ * 직전 시뮬레이션 결과에서 만든다. 미수행이면 전부 0 이다.
+ */
+export interface SmltKpiDto {
+    avgWaitMin: number; // 평균대기 (분)
+    p95WaitMin: number; // P95대기 (분) — 결과 상세 행 분포의 95백분위 근사
+    maxQueuePsgCnt: number; // 최대 큐인원 (명)
+    utilRate: number; // 가동률 (%) — 운영 시설·시간 합 / (전체 시설 수 × 24)
+}
+
+/* --------- 체크인 카운터 탭 (셀프체크인/백드롭 흡수) --------- */
+
+/** 부스 1석 — 드로어 자원 배정 그리드의 셀 1개 */
+export interface ChknBoothDto {
+    boothNo: number; // 아일랜드 안의 부스 번호 (1부터)
+    alnCd: string; // 배정 항공사 코드 — 미배정이면 ''
+    customYn: YnFlag; // Custom 배정 여부 — 원천 미확보라 항상 N
+}
+
+/** 아일랜드 1개 = 블럭 차트 항목 1개 */
+export interface ChknIslandDto {
+    island: string; // 아일랜드 문자 (A~N, I 제외)
+    boothCnt: number; // 운영 부스 수 — 블럭 수 = ceil(boothCnt / 4)
+    kioskCnt: number; // 셀프체크인 키오스크 대수 (구 6.4)
+    bagDropCnt: number; // 셀프백드롭 대수 (구 6.4)
+    oprTimeList: OprTimeDto[]; // 아일랜드 운영 시간 구간
+    boothList: ChknBoothDto[]; // 부스별 항공사 배정
+}
+
+/** 체크인 카운터 탭 — 터미널 1개분 전체 (아일랜드 단위가 아니다) */
 export interface UserSmltChknDto extends JsonResponse {
     tmnlId: TmnlId;
-    totCnt: number; // 전체 카운터 수
-    islandList: string[]; // 아일랜드 목록
-    island: string; // 선택 아일랜드
-    counterList: ChknCounterDto[];
-    oprTimeList: OprTimeDto[];
+    totCnt: number; // 요약: 전체 카운터 수 (보유 대수)
+    peakCounterCnt: number; // 요약: 피크 카운터 (시간대별 운영 부스 합의 최댓값)
+    totKioskCnt: number; // 하단 셀프 서비스 바 합계
+    totBagDropCnt: number; // 하단 셀프 서비스 바 합계
+    waitMaxCnt: number; // 꺾은선 우측 축 최댓값
+    islandCdList: string[]; // + 추가 에서 고를 수 있는 아일랜드 문자
+    alnCdList: string[]; // 드로어 칩의 배정 가능 항공사 코드
+    islandList: ChknIslandDto[]; // 배정이 있는 아일랜드만
+    waitList: WaitPsgDto[]; // 시간대별 대기인원 (24개)
+    kpi: SmltKpiDto;
 }
 
-/** 체크인 카운터 저장 요청 */
+/** 체크인 카운터 저장 요청 — 아일랜드 1개분이 아니라 터미널 1개분 전체 */
 export interface UserSmltChknSaveReq {
     smltId: string;
     tmnlId: TmnlId;
-    island: string;
-    oprCounterIdList: string[]; // 운영으로 선택한 counterId 목록
-    oprTimeList: OprTimeDto[];
+    islandList: Array<
+        Pick<ChknIslandDto, 'island' | 'oprTimeList' | 'boothList' | 'kioskCnt' | 'bagDropCnt'>
+    >;
 }
 
-/* --------- 셀프체크인/백드롭 탭 --------- */
+/* --------- 셀프체크인/백드롭 탭 (탭 삭제 — 체크인 카운터로 흡수) --------- */
+
+/**
+ * @deprecated 리뉴얼에서 탭이 사라졌다. 대수는 UserSmltChknDto.islandList[].kioskCnt / bagDropCnt 를 쓴다.
+ * 엔드포인트 정리는 4단계(저장 API)에서 함께 한다.
+ */
 
 /** 기기 1종 */
 export interface SlfchknDeviceDto {
@@ -400,54 +436,71 @@ export interface UserSmltSlfchknSaveReq {
     deviceList: Array<Pick<SlfchknDeviceDto, 'deviceType' | 'deviceCnt' | 'oprYn' | 'oprTimeList'>>;
 }
 
-/* --------- 출국장 탭 --------- */
+/* --------- 출국장 탭 (보안 검색대 흡수) --------- */
 
-/** 출국장 1개 */
+/**
+ * 보안검색대 운영계획 1행.
+ * 리뉴얼 타임바·블럭 차트가 1시간 단위라 분(bgnMin/endMin)이 사라지고 시(0~24) 정수가 됐다.
+ */
+export interface ScPlanDto {
+    planSn: number; // 행 일련번호 (신규 행은 0)
+    bgnHour: number; // 0~24
+    endHour: number; // 0~24
+    scCnt: number; // 그 구간 검색대 갯수
+}
+
+/** 출국장 1개 = 주 블럭 차트 항목 1개 */
 export interface UserSmltDepItemDto {
     depNum: string; // 출국장 번호
     depNm: string; // 표시명 (예: 출국장 1)
-    oprYn: YnFlag; // N = 미사용
-    oprTimeList: OprTimeDto[];
+    oprYn: YnFlag; // N = 미사용 (차트에서 빠지고 미운영 칩으로 내려간다)
+    scCnt: number; // 검색대 대수(피크 기준) — 보조 차트 블럭 수 = ceil(scCnt / 4)
+    normalCnt: number; // 일반 검색대 대수 — 원천 미확보라 항상 0
+    smartPassCnt: number; // 스마트패스 검색대 대수 — 원천 미확보라 항상 0
+    oprTimeList: OprTimeDto[]; // 출국장 운영 시간 구간
+    planList: ScPlanDto[]; // 보안검색대 운영계획 — 현재는 구간 1개만 내려온다
 }
 
 /** 출국장 탭 — 터미널 1개분 */
 export interface UserSmltDepDto extends JsonResponse {
     tmnlId: TmnlId;
+    peakScCnt: number; // 요약: 피크 검색대 (시간대별 검색대 합의 최댓값)
+    waitMaxCnt: number; // 꺾은선 우측 축 최댓값
     depList: UserSmltDepItemDto[];
+    waitList: WaitPsgDto[]; // 시간대별 대기인원 (24개)
+    kpi: SmltKpiDto;
 }
 
-/** 출국장 저장 요청 */
+/** 출국장 저장 요청 — 구 saveScPlanInfo 를 흡수한다 */
 export interface UserSmltDepSaveReq {
     smltId: string;
     tmnlId: TmnlId;
-    depList: Array<Pick<UserSmltDepItemDto, 'depNum' | 'oprYn' | 'oprTimeList'>>;
+    depList: Array<
+        Pick<
+            UserSmltDepItemDto,
+            'depNum' | 'oprYn' | 'oprTimeList' | 'normalCnt' | 'smartPassCnt' | 'scCnt' | 'planList'
+        >
+    >;
 }
 
-/* --------- 보안 검색대 탭 --------- */
+/* --------- 보안 검색대 탭 (탭 삭제 — 출국장으로 흡수) --------- */
 
-/** 보안검색대 운영계획 1행 */
-export interface ScPlanDto {
-    planSn: number; // 행 일련번호 (신규 행은 0)
-    bgnHour: string; // HH
-    bgnMin: string; // mm
-    endHour: string; // HH
-    endMin: string; // mm
-    scCnt: number; // 운영 검색대 갯수
-}
-
-/** 출국장 1개의 운영계획 */
+/**
+ * @deprecated 리뉴얼에서 탭이 사라졌다. 구간표는 UserSmltDepItemDto.planList 를 쓴다.
+ * 엔드포인트 정리는 4단계(저장 API)에서 함께 한다.
+ */
 export interface ScGateDto {
     depNum: string;
     planList: ScPlanDto[];
 }
 
-/** 보안 검색대 탭 — 터미널 1개분 */
+/** @deprecated 6.5 출국장 탭으로 흡수 */
 export interface UserSmltScDto extends JsonResponse {
     tmnlId: TmnlId;
     depList: ScGateDto[];
 }
 
-/** 보안 검색대 저장 요청 (선택한 출국장 1곳분) */
+/** @deprecated 6.5 출국장 탭으로 흡수 */
 export interface UserSmltScSaveReq {
     smltId: string;
     tmnlId: TmnlId;
