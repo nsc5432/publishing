@@ -43,7 +43,7 @@
 
 ## 진행 체크리스트
 
-- [ ] 1단계 — 디자인 리뉴얼 React 반영
-- [ ] 2단계 — 데이터베이스 구조 분석
+- [x] 1단계 — 디자인 리뉴얼 React 반영 → `react/src/api/pm/API_SPEC-DELTA.md`
+- [x] 2단계 — 데이터베이스 구조 분석 → [`docs/db/DB-ANALYSIS.md`](../db/DB-ANALYSIS.md)
 - [ ] 3단계 — API 구현 파트1 (조회)
 - [ ] 4단계 — API 구현 파트2 (저장·실행)
