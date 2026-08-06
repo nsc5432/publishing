@@ -1,110 +1,83 @@
 import type { TerminalKind } from '../../types';
-import type { CounterCell, TerminalCheckinCounter } from './types';
+import type { Booth, CheckinIsland, TerminalCheckinCounter } from './types';
 
-/** 한 아일랜드의 카운터 개수 (상/하단 각각) */
-export const COUNTER_PER_ROW = 18;
+/** 블럭 1개가 담당하는 부스 수 — 블럭 수 = ceil(부스 수 / 4) */
+export const BOOTH_PER_BLOCK = 4;
 
-/** 아일랜드 목록 — 원본 퍼블리싱과 동일하게 I 를 건너뛴다 */
-const ISLANDS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N'];
+/** 아일랜드 문자 — 원본 퍼블리싱과 동일하게 I 를 건너뛴다 */
+const ISLAND_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N'];
 
-/**
- * 항공사 배열(18개)을 셀 목록으로 만든다.
- * prefix 는 상단 'U' / 하단 'L' 이며 셀 id 로 쓰인다.
- */
-function toCells(prefix: 'U' | 'L', airlines: string[]): CounterCell[] {
-    return airlines.map((airline, i) => ({
-        id: `${prefix}${i + 1}`,
-        no: i + 1,
-        airline,
-        custom: airline === 'Custom' || undefined,
-    }));
+/** 배정 가능 항공사 */
+const AIRLINES = ['KE', 'OZ'];
+
+/** 항공사 코드 배열을 부스 목록으로 만든다 ('' = 미배정) */
+function toBooths(airlines: string[]): Booth[] {
+    return airlines.map((airline, i) => ({ no: i + 1, airline }));
 }
 
-/** 미배정 카운터 표기 */
-const NA = 'N/A';
+/** [문자, 색, 시작, 종료, 부스 항공사, 키오스크, 백드롭] 튜플을 아일랜드로 만든다 */
+function toIsland(
+    seed: [string, CheckinIsland['color'], number, number, string[], number, number],
+): CheckinIsland {
+    const [label, color, start, end, airlines, kiosk, bagdrop] = seed;
 
-const T1_UPPER = [
-    'KE',
-    'KE',
-    'KE',
-    'KE',
-    'OZ',
-    'OZ',
-    'OZ',
-    NA,
-    NA,
-    NA,
-    NA,
-    'LJ',
-    'LJ',
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-];
+    return { label, color, ranges: [{ start, end }], booths: toBooths(airlines), kiosk, bagdrop };
+}
 
-const T1_LOWER = [
-    'KE',
-    'KE',
-    'KE',
-    'OZ',
-    'OZ',
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-    'Custom',
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-];
-
-const T2_UPPER = [
-    'KE',
-    'KE',
-    'KE',
-    'KE',
-    'KE',
-    'KE',
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-    NA,
-];
-
-const T2_LOWER = ['KE', 'KE', 'KE', NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA];
+const NA = '';
 
 export const CHECKIN_COUNTER: Record<TerminalKind, TerminalCheckinCounter> = {
     T1: {
-        total: COUNTER_PER_ROW * 2,
-        islands: ISLANDS,
-        island: 'A',
-        upper: toCells('U', T1_UPPER),
-        lower: toCells('L', T1_LOWER),
-        operating: ['U1', 'U2', 'U3', 'U4', 'U5', 'U6', 'U7', 'L1', 'L2', 'L3', 'L4'],
-        ranges: [{ start: 6, end: 15 }],
+        total: 36,
+        airlines: AIRLINES,
+        islandCodes: ISLAND_CODES,
+        islands: [
+            toIsland(['A', 'i1', 5, 22, ['KE', 'KE', 'KE', 'KE', 'OZ', 'OZ', 'OZ', NA], 2, 2]),
+            toIsland(['B', 'i2', 6, 20, ['KE', 'KE', 'KE', 'OZ', 'OZ', NA], 2, 1]),
+            toIsland(['C', 'i3', 7, 19, ['OZ', 'OZ', 'KE', NA], 1, 1]),
+            toIsland(['D', 'i4', 9, 17, ['OZ', 'OZ', 'OZ', 'KE', 'KE', NA], 2, 1]),
+            toIsland(['E', 'i5', 11, 15, ['KE', 'KE', NA], 1, 1]),
+            toIsland(['F', 'i6', 13, 15, ['OZ', NA, NA], 0, 0]),
+        ],
+        wait: {
+            data: [
+                0, 0, 0, 0, 0, 40, 120, 230, 340, 300, 250, 280, 320, 360, 300, 240, 200, 170, 140,
+                100, 60, 20, 0, 0,
+            ],
+            max: 400,
+            label: '대기인원수',
+            unit: '명',
+        },
+        kpis: [
+            { label: '평균대기', value: '15', unit: '분' },
+            { label: 'P95대기', value: '12', unit: '분' },
+            { label: '최대 큐인원', value: '20', unit: '명' },
+            { label: '가동률', value: '84', unit: '%' },
+        ],
     },
     T2: {
-        total: COUNTER_PER_ROW * 2,
-        islands: ISLANDS,
-        island: 'A',
-        upper: toCells('U', T2_UPPER),
-        lower: toCells('L', T2_LOWER),
-        operating: ['U1', 'U2', 'U3', 'U4', 'U5', 'U6'],
-        ranges: [{ start: 7, end: 21 }],
+        total: 36,
+        airlines: AIRLINES,
+        islandCodes: ISLAND_CODES,
+        islands: [
+            toIsland(['A', 'i1', 5, 21, ['KE', 'KE', 'KE', 'KE', 'OZ', NA], 2, 1]),
+            toIsland(['B', 'i2', 7, 19, ['KE', 'KE', 'OZ', NA], 2, 1]),
+            toIsland(['C', 'i3', 10, 16, ['KE', 'OZ', NA], 1, 1]),
+        ],
+        wait: {
+            data: [
+                0, 0, 0, 0, 0, 20, 60, 110, 150, 130, 110, 120, 140, 160, 130, 100, 80, 60, 45, 30,
+                15, 5, 0, 0,
+            ],
+            max: 400,
+            label: '대기인원수',
+            unit: '명',
+        },
+        kpis: [
+            { label: '평균대기', value: '9', unit: '분' },
+            { label: 'P95대기', value: '7', unit: '분' },
+            { label: '최대 큐인원', value: '11', unit: '명' },
+            { label: '가동률', value: '61', unit: '%' },
+        ],
     },
 };

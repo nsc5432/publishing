@@ -10,8 +10,6 @@ import { HEADER } from './mock';
 import { CheckinCounterTab } from './tabs/checkinCounter/CheckinCounterTab';
 import { DepartureTab } from './tabs/departure/DepartureTab';
 import { FlightPaxTab } from './tabs/flightPax/FlightPaxTab';
-import { SecurityTab } from './tabs/security/SecurityTab';
-import { SelfCheckinTab } from './tabs/selfCheckin/SelfCheckinTab';
 import { type SmltTabKey, type TerminalKind } from './types';
 
 interface TabContentProps {
@@ -20,19 +18,15 @@ interface TabContentProps {
     onTerminalChange: (terminal: TerminalKind) => void;
 }
 
-/** 활성 탭의 T1/T2 패널을 그린다 — 탭 5개가 같은 props 를 받는다. */
+/** 활성 탭의 T1/T2 패널(+ 상세 드로어)을 그린다 — 탭 3개가 같은 props 를 받는다. */
 function TabContent({ tab, ...props }: TabContentProps) {
     switch (tab) {
         case 'flightPax':
             return <FlightPaxTab {...props} />;
         case 'checkinCounter':
             return <CheckinCounterTab {...props} />;
-        case 'selfCheckin':
-            return <SelfCheckinTab {...props} />;
         case 'departure':
             return <DepartureTab {...props} />;
-        case 'security':
-            return <SecurityTab {...props} />;
     }
 }
 
@@ -40,7 +34,7 @@ function TabContent({ tab, ...props }: TabContentProps) {
  * PM 예측관리 / 사용자 시뮬레이션 — 조건 설정 화면.
  * html/<화면>/index.html + script.js 를 컴포넌트로 이식한 컨테이너.
  *
- * - 5개 탭이 GNB / 탭바 / T1·T2 2패널 셸을 공유하므로 셸은 여기서 한 번만 그린다.
+ * - 3개 탭이 GNB / 탭바 / T1·T2 2패널 셸을 공유하므로 셸은 여기서 한 번만 그린다.
  * - 활성 터미널(편집 대상)은 셸이 소유하며 탭이 바뀌어도 유지된다.
  * - 진입 시에는 어느 터미널로 시뮬레이션할지 고르는 도입 화면을 먼저 보여준다.
  */

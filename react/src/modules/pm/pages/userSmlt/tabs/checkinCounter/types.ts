@@ -1,31 +1,43 @@
 import type { TimeRange } from '@/components/ui/time-range-selector';
+import type { BlockColor, PanelKpi, WaitLineData } from '../../types';
 
-/** 카운터 셀 1개 — 상/하단 열에 18개씩 놓인다 */
-export interface CounterCell {
-    /** 셀 식별자 (상단 U1~U18 / 하단 L1~L18) */
-    id: string;
-    /** 카운터 번호 (1~18) — 상/하단이 같은 번호를 공유한다 */
+/** 부스 1석 — 드로어 자원 배정 그리드의 셀 1개 */
+export interface Booth {
+    /** 부스 번호 (아일랜드 안에서 1부터) */
     no: number;
-    /** 배정 항공사 — 미배정이면 'N/A' */
+    /** 배정 항공사 코드 — 미배정이면 '' */
     airline: string;
-    /** Custom 카운터 (점선 테두리) */
-    custom?: boolean;
+}
+
+/**
+ * 아일랜드 1개 = 블럭 차트의 항목 1개.
+ * 블럭 수 = ceil(부스 수 / 4) 이므로 부스가 많은 아일랜드는 같은 시간대에 여러 칸을 차지한다.
+ */
+export interface CheckinIsland {
+    /** 아일랜드 문자 (A~N, I 제외) */
+    label: string;
+    color: BlockColor;
+    /** 운영 시간 구간 */
+    ranges: TimeRange[];
+    /** 운영 부스 */
+    booths: Booth[];
+    /** 셀프체크인 키오스크 대수 (구 셀프체크인/백드롭 탭) */
+    kiosk: number;
+    /** 셀프백드롭 대수 */
+    bagdrop: number;
 }
 
 /** 터미널 1개분 체크인 카운터 데이터 */
 export interface TerminalCheckinCounter {
-    /** 요약: 전체 카운터 수 (상단 + 하단) */
+    /** 요약: 전체 카운터 수 */
     total: number;
-    /** 아일랜드 목록 */
-    islands: string[];
-    /** 초기 선택 아일랜드 */
-    island: string;
-    /** 상단 열 */
-    upper: CounterCell[];
-    /** 하단 열 */
-    lower: CounterCell[];
-    /** 초기 운영 카운터 (CounterCell.id 목록) */
-    operating: string[];
-    /** 초기 운영 시간 */
-    ranges: TimeRange[];
+    /** 드로어에서 부스에 배정할 수 있는 항공사 코드 */
+    airlines: string[];
+    /** 신규 아일랜드에 쓸 수 있는 아일랜드 문자 (I 제외) */
+    islandCodes: string[];
+    islands: CheckinIsland[];
+    /** 시간대별 대기인원수 (꺾은선) */
+    wait: WaitLineData;
+    /** 시뮬레이션 결과 지표 */
+    kpis: PanelKpi[];
 }

@@ -1,4 +1,4 @@
-import { useState, useEffect, type CSSProperties } from 'react';
+import { useState, useEffect, type CSSProperties, type ReactNode } from 'react';
 
 export interface TimeRange {
     start: number;
@@ -12,6 +12,10 @@ interface TimeRangeSelectorProps {
     totalSlots?: number;
     /** 선택 범위 안내 문구의 라벨 */
     label?: string;
+    /** 변형 스타일용 추가 클래스 (예: timebar--valued) */
+    className?: string;
+    /** 슬롯 안에 넣을 내용 — 표시할 것이 없으면 null 을 돌려준다 */
+    renderSlot?: (index: number) => ReactNode;
 }
 
 /** 하단 스케일 라벨 (00:00 ~ 24:00 을 6등분한 7개) */
@@ -28,6 +32,8 @@ export function TimeRangeSelector({
     disabled = false,
     totalSlots = 24,
     label = '선택 범위',
+    className,
+    renderSlot,
 }: TimeRangeSelectorProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState<number | null>(null);
@@ -179,7 +185,7 @@ export function TimeRangeSelector({
     };
 
     return (
-        <div className={`timebar${disabled ? ' is-disabled' : ''}`}>
+        <div className={`timebar${disabled ? ' is-disabled' : ''}${className ? ` ${className}` : ''}`}>
             <p className="timebar__head">
                 <span className="timebar__label">{label}</span>
                 <strong className="timebar__value">{formatRangesText()}</strong>
@@ -198,7 +204,9 @@ export function TimeRangeSelector({
                         className={slotClass(i)}
                         onMouseDown={() => handleSlotMouseDown(i)}
                         onMouseEnter={() => handleSlotMouseEnter(i)}
-                    />
+                    >
+                        {renderSlot?.(i)}
+                    </span>
                 ))}
             </div>
 

@@ -5,7 +5,7 @@ interface SmltTabsProps {
     onTabChange: (tab: SmltTabKey) => void;
 }
 
-/** 시뮬레이션 대상 탭 5개 (운항편/여객수 · 체크인 카운터 · 셀프체크인/백드롭 · 출국장 · 보안 검색대) */
+/** 시뮬레이션 대상 탭 3개 (운항편/여객수 · 체크인 카운터 · 출국장) */
 export function SmltTabs({ activeTab, onTabChange }: SmltTabsProps) {
     return (
         <nav className="tabs">
