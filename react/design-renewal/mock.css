@@ -31,6 +31,9 @@
     --i4: #8f8de9;
     --i5: #a09eff;
     --i6: #12b09a;
+
+    /* 대기인원수 꺾은선 — 블럭 보라와 겹쳐도 읽히도록 보색 계열 */
+    --line-wait: #f2762e;
 }
 
 * {
@@ -336,7 +339,7 @@ body {
     flex: 1 1 auto;
     display: flex;
     align-items: center;
-    gap: 30px;
+    gap: 20px;
     height: 62px;
     padding: 0 18px 0 26px;
     border-radius: 12px;
@@ -349,6 +352,7 @@ body {
     display: flex;
     align-items: baseline;
     gap: 12px;
+    white-space: nowrap;
 }
 .summary__label {
     font-size: 14px;
@@ -362,6 +366,41 @@ body {
 .summary__value--accent {
     color: var(--pm-primary);
 }
+/* ★ 신규 — 시뮬레이션 결과 지표 (평균대기 / P95대기 / 최대 큐인원 / 가동률) */
+.summary__divider {
+    width: 1px;
+    height: 32px;
+    background: rgba(94, 100, 112, 0.18);
+}
+.summary__kpis {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+.summary__kpi {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    white-space: nowrap;
+}
+.summary__kpi span {
+    font-size: 11px;
+    color: #6a707c;
+}
+.summary__kpi b {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+    color: var(--text);
+}
+.summary__kpi b em {
+    margin-left: 2px;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 500;
+    color: #6a707c;
+}
+
 .summary__map {
     display: flex;
     align-items: center;
@@ -413,6 +452,30 @@ body {
 .bchart__unit {
     font-size: 12px;
     color: var(--text-mute);
+    white-space: nowrap;
+}
+/* "블럭 1개 = 부스 4석" 환산 문구 */
+.bchart__unitnote {
+    padding: 3px 9px;
+    border-radius: 6px;
+    background: rgba(68, 65, 204, 0.07);
+    color: #6f6ea6;
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* 보조 차트(보안검색대) — 라벨 없는 저프로필 변형 */
+.bchart--compact {
+    margin-top: 14px;
+    padding: 14px 20px 12px;
+}
+.bchart--compact .bchart__head {
+    margin-bottom: 10px;
+}
+.bchart--compact .blk {
+    border-radius: 4px;
+    box-shadow: none;
 }
 
 /* 범례 */
@@ -446,6 +509,30 @@ body {
     font-weight: 700;
     color: var(--text);
 }
+/* 대기인원수 라인 범례 — 짧은 선 + 가운데 점 */
+.legend__chip--line {
+    border-color: rgba(242, 118, 46, 0.4);
+    background: rgba(242, 118, 46, 0.08);
+}
+.legend__line {
+    position: relative;
+    width: 16px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--line-wait);
+}
+.legend__line::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 7px;
+    height: 7px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 2px solid var(--line-wait);
+    background: #fff;
+}
 
 /* 플롯 */
 .bchart__body {
@@ -467,6 +554,13 @@ body {
 .bchart__yaxis span {
     line-height: 1;
     transform: translateY(50%);
+}
+/* 우측 축 = 대기인원수(명) */
+.bchart__yaxis--right {
+    width: 32px;
+    text-align: left;
+    color: var(--line-wait);
+    font-weight: 600;
 }
 .bchart__plot {
     position: relative;
@@ -492,6 +586,53 @@ body {
         transparent 1px calc(100% / 12)
     );
     pointer-events: none;
+}
+
+/* ★ 신규 — 대기인원수 꺾은선 오버레이 (블럭 위에 겹친다) */
+.bchart__line {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+}
+.bchart__line svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+/* viewBox 종횡비가 찌그러지므로 선 굵기는 스케일 밖으로 뺀다 */
+.bchart__line polyline {
+    fill: none;
+    stroke: var(--line-wait);
+    stroke-width: 2;
+    stroke-linejoin: round;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+}
+/* 점은 SVG 원을 쓰면 타원이 되므로 HTML 로 얹는다 */
+.bchart__line i {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    margin: 0 0 -3.5px -3.5px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 2px solid var(--line-wait);
+    background: #fff;
+}
+.bchart__peak {
+    position: absolute;
+    transform: translate(-50%, -14px);
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--line-wait);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    box-shadow: 0 3px 8px rgba(242, 118, 46, 0.35);
 }
 
 /* 블럭 1개 = 운영 단위 1개 (아일랜드 / 출국장) × 1시간 */
@@ -529,8 +670,11 @@ body {
         0 4px 12px rgba(46, 50, 94, 0.28);
 }
 
-/* 호버 툴팁 (클릭 가능함을 알리는 시안용 표현) */
+/* 호버 툴팁 (클릭 가능함을 알리는 시안용 표현)
+   블럭이 z-index:1 스택 컨텍스트를 만들기 때문에, 툴팁을 띄운 블럭 자체를
+   올려 주지 않으면 나중에 그려진 블럭이 툴팁을 덮는다. */
 .blk--hover {
+    z-index: 6;
     outline: 2px solid #fff;
     outline-offset: 1px;
     filter: brightness(1.12);
@@ -595,11 +739,17 @@ body {
     color: var(--text-sub);
     font-weight: 500;
 }
-.bchart__adv {
+/* 차트 푸터 액션 — 추가 / 균등 배치 / 세부 운영시간 직접 설정 */
+.bchart__acts {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+.bchart__act {
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    margin-left: auto;
     padding: 6px 12px;
     border-radius: 999px;
     border: 1px solid var(--pm-primary-soft);
@@ -609,12 +759,24 @@ body {
     font-weight: 700;
     white-space: nowrap;
 }
+/* '추가' 는 블럭 클릭과 같은 동작이라 주동작으로 채워서 보여준다 */
+.bchart__act--add {
+    border-color: transparent;
+    background: var(--pm-primary);
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(68, 65, 204, 0.24);
+}
+.bchart__act--even {
+    border-color: rgba(18, 176, 154, 0.35);
+    background: rgba(18, 176, 154, 0.08);
+    color: #0d8d7c;
+}
 
 /* 셀프체크인/백드롭 흡수 스트립 (구 '셀프체크인/백드롭' 탭) */
 .selfbar {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 10px;
     margin-top: 16px;
     padding: 14px 20px;
     border-radius: 14px;
@@ -641,6 +803,7 @@ body {
 .selfbar__items {
     display: flex;
     gap: 8px;
+    white-space: nowrap;
 }
 .selfbar__item {
     display: inline-flex;
@@ -674,6 +837,7 @@ body {
     margin-top: 14px;
     font-size: 12px;
     color: var(--text-mute);
+    white-space: nowrap;
 }
 .offchip {
     display: inline-flex;
@@ -754,8 +918,16 @@ body {
 .drawer__body {
     flex: 1 1 auto;
     min-height: 0;
-    overflow: hidden;
+    /* 출국장 상세는 조작 항목이 많다. 넘치면 잘라내지 말고 스크롤시킨다. */
+    overflow-y: auto;
     padding: 4px 22px 18px;
+}
+.drawer__body::-webkit-scrollbar {
+    width: 6px;
+}
+.drawer__body::-webkit-scrollbar-thumb {
+    border-radius: 3px;
+    background: #d7d9e3;
 }
 .drawer__foot {
     flex: 0 0 auto;
@@ -784,7 +956,7 @@ body {
 
 /* 드로어 섹션 */
 .dsec {
-    padding: 16px 0;
+    padding: 11px 0;
     border-bottom: 1px solid var(--line);
 }
 .dsec:last-child {
@@ -794,7 +966,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-bottom: 12px;
+    margin-bottom: 9px;
     font-size: 13px;
     font-weight: 700;
     color: var(--text);
@@ -812,7 +984,7 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 7px 0;
+    padding: 5px 0;
 }
 .drow__label {
     font-size: 13px;
@@ -911,7 +1083,7 @@ body {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin: 0 0 12px;
+    margin: 0 0 8px;
     font-size: 13px;
 }
 .timebar__label {
@@ -935,6 +1107,66 @@ body {
 .timebar__slot.is-on {
     background: var(--pm-primary-light);
 }
+/* 값이 찍히는 슬롯 — 시간대별 보안검색대 대수 */
+.timebar--valued .timebar__track {
+    gap: 2px;
+}
+.timebar--valued .timebar__slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+}
+/* 슬롯 폭이 13px 남짓이라 두 자리 수까지만 들어간다 */
+.timebar--valued .timebar__slot b {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: -0.4px;
+    color: #fff;
+}
+.timebar--valued .timebar__slot.is-on {
+    background: var(--pm-primary);
+}
+
+/* 부스 ↔ 항공사 배정 그리드 (드로어 380px 폭에 맞춘 3열) */
+.boothgrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+}
+.bcell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--pm-primary);
+}
+.bcell__no {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background: #f1f2f7;
+    color: var(--text-mute);
+    font-size: 10px;
+    font-style: normal;
+    font-weight: 700;
+}
+.bcell--empty {
+    border-style: dashed;
+    border-color: #bfd9a8;
+    background: #f2f8ec;
+    color: #7d9c5e;
+    font-weight: 500;
+}
 .timebar__scale {
     display: flex;
     justify-content: space-between;
@@ -951,7 +1183,7 @@ body {
 }
 .plan th,
 .plan td {
-    height: 38px;
+    height: 27px;
     vertical-align: middle;
     font-size: 12px;
 }
@@ -994,6 +1226,19 @@ body {
     border-radius: 999px;
     background: var(--pm-primary);
     color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+}
+/* 드로어 안 '균등 배치' — 구간 추가와 나란히 놓이는 보조 버튼 */
+.btn--even {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(18, 176, 154, 0.35);
+    background: rgba(18, 176, 154, 0.08);
+    color: #0d8d7c;
     font-size: 12px;
     font-weight: 700;
 }

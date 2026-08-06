@@ -10,28 +10,44 @@
 <script>
 /* 리뉴얼 핵심 화면 ②
    블럭(아일랜드 D)을 클릭하면 우측에서 상세 패널이 밀려 나온다.
-   부스 갯수 · 항공사 · 셀프체크인/백드롭 대수를 여기서 조정하고,
-   '세부 운영시간 직접 설정'은 접힌 채로 두어 원하는 사람만 펼치게 한다. */
+   '추가' 버튼도 같은 패널을 열되 값이 비어 있는 상태로 열린다.
+   참고자료의 하단 조작부(운영시간 / 자원 배정 / 셀프체크인·백드롭)를
+   드로어 380px 폭에 맞춰 세로로 재배치했다. */
 
+/* size = 그 아일랜드의 운영 부스 수. 블럭 수 = ceil(size / 4) */
 var T1_ISLANDS = [
-    { label: 'A', level: 1, color: 'i1', from: 5,  to: 22, booth: 8 },
-    { label: 'B', level: 2, color: 'i2', from: 6,  to: 20, booth: 6 },
-    { label: 'C', level: 3, color: 'i3', from: 7,  to: 19, booth: 5 },
-    { label: 'D', level: 4, color: 'i4', from: 9,  to: 17, booth: 4 },
-    { label: 'E', level: 5, color: 'i5', from: 11, to: 15, booth: 3 },
-    { label: 'F', level: 6, color: 'i6', from: 13, to: 15, booth: 3 },
+    { label: 'A', color: 'i1', from: 5,  to: 22, size: 8 },
+    { label: 'B', color: 'i2', from: 6,  to: 20, size: 6 },
+    { label: 'C', color: 'i3', from: 7,  to: 19, size: 4 },
+    { label: 'D', color: 'i4', from: 9,  to: 17, size: 6 },
+    { label: 'E', color: 'i5', from: 11, to: 15, size: 3 },
+    { label: 'F', color: 'i6', from: 13, to: 15, size: 3 },
 ];
 
 var T2_ISLANDS = [
-    { label: 'A', level: 1, color: 'i1', from: 5,  to: 21, booth: 6 },
-    { label: 'B', level: 2, color: 'i2', from: 7,  to: 19, booth: 4 },
-    { label: 'C', level: 3, color: 'i3', from: 10, to: 16, booth: 3 },
+    { label: 'A', color: 'i1', from: 5,  to: 21, size: 6 },
+    { label: 'B', color: 'i2', from: 7,  to: 19, size: 4 },
+    { label: 'C', color: 'i3', from: 10, to: 16, size: 3 },
 ];
+
+/* 시간대별 대기인원수 (명) — 우측 축 0 ~ 400 */
+var T1_WAIT = [0, 0, 0, 0, 0, 40, 120, 230, 340, 300, 250, 280,
+               320, 360, 300, 240, 200, 170, 140, 100, 60, 20, 0, 0];
+var T2_WAIT = [0, 0, 0, 0, 0, 20, 60, 110, 150, 130, 110, 120,
+               140, 160, 130, 100, 80, 60, 45, 30, 15, 5, 0, 0];
 
 function legendOf(list) {
     return list.map(function (i) {
-        return { label: i.label, color: i.color, note: '부스 ' + i.booth };
+        return { label: i.label, color: i.color, note: i.size + '석' };
     });
+}
+
+function kpisOf(t1) {
+    return t1
+        ? [['평균대기', '15', '분'], ['P95대기', '12', '분'],
+           ['최대 큐인원', '20', '명'], ['가동률', '84', '%']]
+        : [['평균대기', '9', '분'], ['P95대기', '7', '분'],
+           ['최대 큐인원', '11', '명'], ['가동률', '61', '%']];
 }
 
 function selfbar(kiosk, bagdrop) {
@@ -52,14 +68,19 @@ function panel(kind, disabled) {
         panelHead(kind, [
             ['전체 카운터', '36'],
             ['운영 아일랜드', t1 ? '6' : '3', true],
-            ['피크 카운터', t1 ? '29' : '13', true],
-        ], true) +
+            ['피크 카운터', t1 ? '30' : '13', true],
+        ], true, kpisOf(t1)) +
         blockChart(list, {
             title: '시간대별 운영 아일랜드',
             unit: '(단위: 아일랜드 수)',
-            levels: 8,
+            unitNote: '1블럭 = 부스 4석',
+            levels: 10,
+            rowH: 22,
+            unitSize: 4,
             legend: legendOf(list),
-            footText: '블럭 1개 = 아일랜드 1개. 클릭하면 부스 갯수를 조정할 수 있습니다.',
+            line: { data: t1 ? T1_WAIT : T2_WAIT, max: 400, label: '대기인원수', unit: '명' },
+            footText: '블럭을 클릭하면 아일랜드별 배정을 조정합니다. 초기값은 배정정보로 채워집니다.',
+            actions: [['add', '+ 추가'], ['adv', '세부 운영시간 직접 설정 →']],
             picking: t1,
             sel: t1 ? { label: 'D' } : null,
         }) +
@@ -77,6 +98,13 @@ function stepperRow(label, sub, value) {
         '<span class="stepper__btn">+</span></div></div>';
 }
 
+/* 참고자료의 '부수 ↔ 항공사' 가로 표를 3열 그리드로 접었다.
+   초기값은 배정정보로 채워지고, 아직 안 채워진 부스는 빈 셀로 남는다. */
+var BOOTHS = [
+    { no: 1, air: 'OZ' }, { no: 2, air: 'OZ' }, { no: 3, air: 'OZ' },
+    { no: 4, air: 'KE' }, { no: 5, air: 'KE' }, { no: 6, air: null },
+];
+
 var drawer =
     '<aside class="drawer">' +
     '<div class="drawer__head">' +
@@ -87,27 +115,27 @@ var drawer =
 
     '<div class="drawer__body">' +
 
-    '<div class="dsec"><p class="dsec__title">체크인 부스' +
-    '<span class="dsec__hint">아일랜드 D 소속</span></p>' +
-    stepperRow('운영 부스 갯수', '전체 6석 중', '4') +
+    '<div class="dsec"><p class="dsec__title">운영시간' +
+    '<span class="dsec__hint">1시간 단위</span></p>' +
+    timebar('운영시간', '09:00 ~ 17:00', [[9, 17]]) + '</div>' +
+
+    '<div class="dsec"><p class="dsec__title">자원 배정' +
+    '<span class="dsec__hint">부스 6석 · 배정정보 기준</span></p>' +
+    boothGrid(BOOTHS) +
     '<div class="drow"><p class="drow__label">배정 항공사</p>' +
     '<div class="airchips"><span class="airchip">KE</span><span class="airchip">OZ</span>' +
     '<span class="airchip airchip--ghost">+ Custom</span></div></div></div>' +
 
     '<div class="dsec"><p class="dsec__title">셀프 서비스' +
     '<span class="dsec__hint">구 셀프체크인/백드롭 탭</span></p>' +
-    stepperRow('셀프체크인 키오스크', null, '2') +
-    stepperRow('셀프백드롭', null, '2') + '</div>' +
-
-    '<div class="dsec"><p class="adv-head"><span class="caret">▾</span>세부 운영시간 직접 설정</p>' +
-    '<p class="adv-note">기본값은 운항 스케줄로 자동 산출됩니다. 시뮬레이션 조건을 직접 잡을 때만 사용하세요.</p>' +
-    timebar('운영시간', '09:00 ~ 17:00', [[9, 17]]) + '</div>' +
+    stepperRow('셀프체크인 카운터', null, '10') +
+    stepperRow('셀프백드롭', null, '5') + '</div>' +
 
     '</div>' +
 
     '<div class="drawer__foot">' +
     '<button class="btn btn--ghost">취소</button>' +
-    '<button class="btn btn--primary">적용</button></div></aside>';
+    '<button class="btn btn--primary">변경</button></div></aside>';
 
 renderShell('체크인 카운터', panel('t1', false) + panel('t2', true), drawer);
 </script>

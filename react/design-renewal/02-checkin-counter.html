@@ -10,28 +10,69 @@
 <script>
 /* 리뉴얼 핵심 화면 ①
    운영시간 편집기를 첫 화면에서 걷어내고, 그 자리에 시간대별 운영 아일랜드 블럭 차트를 둔다.
-   블럭 1개 = 아일랜드 1개 × 1시간. 중앙에 아일랜드 문자.
-   블럭을 세면 그 시간대에 열린 아일랜드 수가 바로 나온다. */
+   블럭 1개 = 체크인 부스 4석 × 1시간. 중앙에 아일랜드 문자.
+   부스가 많은 아일랜드는 같은 시간대에 블럭이 여러 칸 쌓이므로(ex. A · D),
+   세로 높이가 곧 '그 시간에 열린 카운터 규모'가 된다.
+   여기에 대기인원수 꺾은선을 겹쳐 '이만큼 열면 이만큼 밀린다'를 한 차트에서 읽게 한다. */
 
+/* size = 그 아일랜드의 운영 부스 수. 블럭 수 = ceil(size / 4) */
 var T1_ISLANDS = [
-    { label: 'A', level: 1, color: 'i1', from: 5,  to: 22, booth: 8 },
-    { label: 'B', level: 2, color: 'i2', from: 6,  to: 20, booth: 6 },
-    { label: 'C', level: 3, color: 'i3', from: 7,  to: 19, booth: 5 },
-    { label: 'D', level: 4, color: 'i4', from: 9,  to: 17, booth: 4 },
-    { label: 'E', level: 5, color: 'i5', from: 11, to: 15, booth: 3 },
-    { label: 'F', level: 6, color: 'i6', from: 13, to: 15, booth: 3 },
+    { label: 'A', color: 'i1', from: 5,  to: 22, size: 8 },
+    { label: 'B', color: 'i2', from: 6,  to: 20, size: 6 },
+    { label: 'C', color: 'i3', from: 7,  to: 19, size: 4 },
+    { label: 'D', color: 'i4', from: 9,  to: 17, size: 6 },
+    { label: 'E', color: 'i5', from: 11, to: 15, size: 3 },
+    { label: 'F', color: 'i6', from: 13, to: 15, size: 3 },
 ];
 
 var T2_ISLANDS = [
-    { label: 'A', level: 1, color: 'i1', from: 5,  to: 21, booth: 6 },
-    { label: 'B', level: 2, color: 'i2', from: 7,  to: 19, booth: 4 },
-    { label: 'C', level: 3, color: 'i3', from: 10, to: 16, booth: 3 },
+    { label: 'A', color: 'i1', from: 5,  to: 21, size: 6 },
+    { label: 'B', color: 'i2', from: 7,  to: 19, size: 4 },
+    { label: 'C', color: 'i3', from: 10, to: 16, size: 3 },
 ];
+
+/* 시간대별 대기인원수 (명) — 우측 축 0 ~ 400 */
+var T1_WAIT = [0, 0, 0, 0, 0, 40, 120, 230, 340, 300, 250, 280,
+               320, 360, 300, 240, 200, 170, 140, 100, 60, 20, 0, 0];
+var T2_WAIT = [0, 0, 0, 0, 0, 20, 60, 110, 150, 130, 110, 120,
+               140, 160, 130, 100, 80, 60, 45, 30, 15, 5, 0, 0];
 
 function legendOf(list) {
     return list.map(function (i) {
-        return { label: i.label, color: i.color, note: '부스 ' + i.booth };
+        return { label: i.label, color: i.color, note: i.size + '석' };
     });
+}
+
+/* mock.js 의 waitLine() 과 이름이 겹치지 않게 한다 */
+function waitOf(t1) {
+    return { data: t1 ? T1_WAIT : T2_WAIT, max: 400, label: '대기인원수', unit: '명' };
+}
+
+/* 차트 옵션 — 02(조회)와 03(상세 열림)이 같은 차트를 쓴다 */
+function chartOpts(t1, extra) {
+    var o = {
+        title: '시간대별 운영 아일랜드',
+        unit: '(단위: 아일랜드 수)',
+        unitNote: '1블럭 = 부스 4석',
+        levels: 10,
+        rowH: 22,
+        unitSize: 4,
+        legend: legendOf(t1 ? T1_ISLANDS : T2_ISLANDS),
+        line: waitOf(t1),
+        footText: '블럭을 클릭하면 아일랜드별 배정을 조정합니다. 초기값은 배정정보로 채워집니다.',
+        actions: [['add', '+ 추가'], ['adv', '세부 운영시간 직접 설정 →']],
+    };
+    for (var k in extra) o[k] = extra[k];
+    return o;
+}
+
+/* 시뮬레이션 결과 지표 — 패널 헤더 우측 */
+function kpisOf(t1) {
+    return t1
+        ? [['평균대기', '15', '분'], ['P95대기', '12', '분'],
+           ['최대 큐인원', '20', '명'], ['가동률', '84', '%']]
+        : [['평균대기', '9', '분'], ['P95대기', '7', '분'],
+           ['최대 큐인원', '11', '명'], ['가동률', '61', '%']];
 }
 
 function selfbar(kiosk, bagdrop) {
@@ -52,16 +93,11 @@ function panel(kind, disabled) {
         panelHead(kind, [
             ['전체 카운터', '36'],
             ['운영 아일랜드', t1 ? '6' : '3', true],
-            ['피크 카운터', t1 ? '29' : '13', true],
-        ], true) +
-        blockChart(list, {
-            title: '시간대별 운영 아일랜드',
-            unit: '(단위: 아일랜드 수)',
-            levels: 8,
-            legend: legendOf(list),
-            footText: '블럭 1개 = 아일랜드 1개. 클릭하면 부스 갯수를 조정할 수 있습니다.',
-            hover: t1 ? { hour: 13, level: 6, tip: '아일랜드 F · 부스 3개 · 13:00 ~ 14:00' } : null,
-        }) +
+            ['피크 카운터', t1 ? '30' : '13', true],
+        ], true, kpisOf(t1)) +
+        blockChart(list, chartOpts(t1, {
+            hover: t1 ? { label: 'B', hour: 6, tip: '아일랜드 B · 부스 6석 · 06:00 ~ 07:00' } : null,
+        })) +
         selfbar(t1 ? 8 : 5, t1 ? 6 : 3) +
         '<div class="panel__foot">' +
         (disabled ? '' : '<button class="btn btn--save">현재상태 저장</button>') +

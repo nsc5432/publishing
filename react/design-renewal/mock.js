@@ -76,7 +76,10 @@ function tabsHTML(active) {
     return html + '</nav>';
 }
 
-function panelHead(kind, groups, withMap) {
+/* groups : [[라벨, 값, accent?]]            — 구성 지표 (전체 카운터 / 운영 아일랜드 …)
+   kpis   : [[라벨, 값, 단위]]                — 시뮬레이션 결과 지표 (평균대기 / P95대기 …)
+   결과 지표는 구성 지표 오른쪽에 세로 구분선을 두고 붙는다. 헤더 높이는 그대로 62px. */
+function panelHead(kind, groups, withMap, kpis) {
     var html =
         '<div class="panel__head"><div class="terminal-badge terminal-badge--' + kind + '">' +
         ICON.terminal + '</div><div class="summary">';
@@ -86,6 +89,15 @@ function panelHead(kind, groups, withMap) {
             '<strong class="summary__value' + (g[2] ? ' summary__value--accent' : '') + '">' +
             g[1] + '</strong></p>';
     });
+    if (kpis && kpis.length) {
+        html += '<span class="summary__divider"></span><div class="summary__kpis">';
+        kpis.forEach(function (k) {
+            html +=
+                '<p class="summary__kpi"><span>' + k[0] + '</span>' +
+                '<b>' + k[1] + '<em>' + k[2] + '</em></b></p>';
+        });
+        html += '</div>';
+    }
     if (withMap) {
         html +=
             '<span class="summary__map"><span style="width:17px;height:17px;display:block">' +
@@ -94,33 +106,87 @@ function panelHead(kind, groups, withMap) {
     return html + '</div></div>';
 }
 
+/* ── 대기인원수 꺾은선 오버레이 ──────────────────────────────────
+   블럭 차트 위에 겹쳐 그린다. 선은 종횡비가 찌그러진 viewBox 를 쓰므로
+   non-scaling-stroke 로 굵기를 고정하고, 점은 원이 타원이 되지 않도록
+   SVG 가 아니라 HTML 로 얹는다.
+   ------------------------------------------------------------------ */
+function waitLine(line) {
+    var max = line.max || Math.max.apply(null, line.data) || 1;
+    var y = function (v) { return (100 - (v / max) * 100).toFixed(2); };
+
+    var pts = line.data.map(function (v, h) { return (h + 0.5).toFixed(2) + ',' + y(v); });
+
+    var html =
+        '<div class="bchart__line"><svg viewBox="0 0 24 100" preserveAspectRatio="none">' +
+        '<polyline points="' + pts.join(' ') + '"/></svg>';
+
+    /* 점은 2시간 간격 + 피크에만 — 24개를 다 찍으면 블럭을 덮는다 */
+    var peak = line.data.indexOf(Math.max.apply(null, line.data));
+    line.data.forEach(function (v, h) {
+        if (h % 2 !== 0 && h !== peak) return;
+        html += '<i style="left:' + (((h + 0.5) / 24) * 100).toFixed(2) +
+            '%;bottom:' + (100 - y(v)).toFixed(2) + '%"></i>';
+    });
+
+    html += '<span class="bchart__peak" style="left:' + (((peak + 0.5) / 24) * 100).toFixed(2) +
+        '%;bottom:' + (100 - y(line.data[peak])).toFixed(2) + '%">최대 ' +
+        line.data[peak] + (line.unit || '명') + '</span>';
+
+    return html + '</div>';
+}
+
 /* ── 블럭 차트 ────────────────────────────────────────────────────
-   items: [{ label, level, color, from, to }]  level 1 = 맨 아래 단, to 는 미포함
-   opts : { levels, unit, title, legend, picking, sel:{label,hour}, hover:{hour,level,tip} }
+   items: [{ label, color, from, to, size }]   to 는 미포함, size = 그 시설의 실제 규모
+   블럭은 시간대별로 아래에서부터 쌓인다. 블럭 개수 = ceil(size / unitSize) 라서
+   오픈 시설이 많은 아일랜드는 같은 시간대에 여러 칸을 차지한다.
+   opts : { levels, rowH, blkFs, unitSize, unitNote, unit, title, legend, compact,
+            line:{data,max,unit,label}, actions:[[종류,문구]], foot:false,
+            picking, sel:{label}, hover:{label,hour,tip} }
    ------------------------------------------------------------------ */
 function blockChart(items, opts) {
     opts = opts || {};
     var levels = opts.levels || 8;
     var rowH = opts.rowH || 30;
+    var unitSize = opts.unitSize || 1;
+    var compact = !!opts.compact;
 
-    var html = '<div class="bchart' + (opts.picking ? ' is-picking' : '') + '">';
+    var html = '<div class="bchart' + (compact ? ' bchart--compact' : '') +
+        (opts.picking ? ' is-picking' : '') + '">';
 
     /* 헤드 + 범례 */
     html += '<div class="bchart__head"><p class="bchart__title">' + opts.title + '</p>';
     html += '<span class="bchart__unit">' + (opts.unit || '') + '</span>';
-    if (opts.legend) {
+    if (opts.unitNote) {
+        html += '<span class="bchart__unitnote">' + opts.unitNote + '</span>';
+    }
+    if (opts.legend || opts.line) {
         html += '<div class="legend">';
-        opts.legend.forEach(function (l) {
+        (opts.legend || []).forEach(function (l) {
             html +=
                 '<span class="legend__chip"><i class="legend__dot" style="background:var(--' +
                 l.color + ')"></i><b>' + l.label + '</b>' + (l.note ? ' ' + l.note : '') +
                 '</span>';
         });
+        if (opts.line) {
+            html += '<span class="legend__chip legend__chip--line"><i class="legend__line"></i>' +
+                '<b>' + (opts.line.label || '대기인원수') + '</b> ' +
+                (opts.line.unit || '명') + '</span>';
+        }
+        html += '</div>';
+    }
+    if (opts.headExtra) html += opts.headExtra;
+    /* 범례가 없는 보조 차트는 액션을 헤드에 둔다 (푸터 한 줄을 아낀다) */
+    if (opts.headActions) {
+        html += '<div class="bchart__acts">';
+        opts.headActions.forEach(function (a) {
+            html += '<span class="bchart__act bchart__act--' + a[0] + '">' + a[1] + '</span>';
+        });
         html += '</div>';
     }
     html += '</div>';
 
-    /* Y축 */
+    /* 좌측 Y축 = 시설수 */
     html += '<div class="bchart__body"><div class="bchart__yaxis" style="height:' +
         levels * rowH + 'px">';
     for (var y = 0; y <= levels; y++) html += '<span>' + y + '</span>';
@@ -128,59 +194,106 @@ function blockChart(items, opts) {
 
     /* 플롯 — 가로 눈금선 간격도 행 높이에 맞춘다 */
     html += '<div class="bchart__plot" style="grid-template-rows:repeat(' + levels + ',' + rowH +
-        'px);--blk-h:' + (rowH - 6) + 'px;--blk-fs:' + (opts.blkFs || 12) +
+        'px);--blk-h:' + (rowH - (compact ? 4 : 6)) + 'px;--blk-fs:' + (opts.blkFs || 12) +
         'px;background:repeating-linear-gradient(to top,#e9ebf2 0 1px,transparent 1px ' +
         rowH + 'px)">';
+
+    var stack = [];
     items.forEach(function (it) {
+        var n = Math.max(1, Math.ceil((it.size || 1) / unitSize));
+        var isSel = opts.sel && opts.sel.label === it.label;
         for (var h = it.from; h < it.to; h++) {
-            var isSel = opts.sel && opts.sel.label === it.label;
-            var isHover = opts.hover && opts.hover.hour === h && opts.hover.level === it.level;
-            html +=
-                '<span class="blk blk--' + it.color +
-                (isSel ? ' is-sel' : '') + (isHover ? ' blk--hover' : '') +
-                '" style="grid-column:' + (h + 1) + ';grid-row:' + (levels - it.level + 1) + '">' +
-                it.label +
-                (isHover ? '<span class="blk__tip">' + opts.hover.tip + '</span>' : '') +
-                '</span>';
+            var base = stack[h] || 0;
+            for (var k = 0; k < n; k++) {
+                var row = levels - (base + k);
+                if (row < 1) continue; /* 축을 넘치면 그리지 않는다 */
+                /* 툴팁은 그 시설이 그 시간에 차지한 맨 윗칸에만 */
+                var isTip = opts.hover && opts.hover.label === it.label &&
+                    opts.hover.hour === h && k === n - 1;
+                html +=
+                    '<span class="blk blk--' + it.color +
+                    (isSel ? ' is-sel' : '') + (isTip ? ' blk--hover' : '') +
+                    '" style="grid-column:' + (h + 1) + ';grid-row:' + row + '">' +
+                    (compact ? '' : it.label) +
+                    (isTip ? '<span class="blk__tip">' + opts.hover.tip + '</span>' : '') +
+                    '</span>';
+            }
+            stack[h] = base + n;
         }
     });
-    html += '</div></div>';
 
-    /* X축 */
-    html += '<div class="bchart__scale">';
-    for (var t = 0; t <= 24; t += 2) {
-        html += '<span>' + (t < 10 ? '0' + t : t) + '</span>';
+    if (opts.line) html += waitLine(opts.line);
+    html += '</div>';
+
+    /* 우측 Y축 = 대기인원수 */
+    if (opts.line) {
+        var max = opts.line.max || Math.max.apply(null, opts.line.data);
+        html += '<div class="bchart__yaxis bchart__yaxis--right" style="height:' +
+            levels * rowH + 'px">';
+        for (var r = 0; r <= 4; r++) html += '<span>' + Math.round((max * r) / 4) + '</span>';
+        html += '</div>';
     }
     html += '</div>';
 
-    /* 하단 안내 */
+    /* X축 — 바로 위 차트와 시간축이 같으면 scale:false 로 생략한다 */
+    if (opts.scale !== false) {
+        html += '<div class="bchart__scale"' + (opts.line ? ' style="margin-right:40px"' : '') + '>';
+        for (var t = 0; t <= 24; t += 2) {
+            html += '<span>' + (t < 10 ? '0' + t : t) + '</span>';
+        }
+        html += '</div>';
+    }
+
+    /* 하단 안내 + 액션 */
     if (opts.foot !== false) {
-        html +=
-            '<div class="bchart__foot"><strong>' + (opts.footText || '') + '</strong>' +
-            '<span class="bchart__adv">세부 운영시간 직접 설정 →</span></div>';
+        html += '<div class="bchart__foot"><strong>' + (opts.footText || '') + '</strong>' +
+            '<div class="bchart__acts">';
+        (opts.actions || [['adv', '세부 운영시간 직접 설정 →']]).forEach(function (a) {
+            html += '<span class="bchart__act bchart__act--' + a[0] + '">' + a[1] + '</span>';
+        });
+        html += '</div></div>';
     }
 
     return html + '</div>';
 }
 
-/* ── 24슬롯 timebar ──────────────────────────────────────────────── */
-function timebar(label, value, ranges) {
+/* ── 24슬롯 timebar ──────────────────────────────────────────────────
+   opts.values = { 시각: 값 } 을 주면 운영 슬롯 안에 숫자를 찍는다.
+   (출국장 상세의 '시간대별 보안검색대 대수' 표현) */
+function timebar(label, value, ranges, opts) {
+    opts = opts || {};
+    var vals = opts.values;
     var on = {};
     ranges.forEach(function (r) {
         for (var h = r[0]; h < r[1]; h++) on[h] = true;
     });
     var html =
-        '<div class="timebar"><p class="timebar__head"><span class="timebar__label">' +
+        '<div class="timebar' + (vals ? ' timebar--valued' : '') +
+        '"><p class="timebar__head"><span class="timebar__label">' +
         label + '</span><strong class="timebar__value">' + value + '</strong></p>' +
         '<div class="timebar__track">';
     for (var i = 0; i < 24; i++) {
-        html += '<span class="timebar__slot' + (on[i] ? ' is-on' : '') + '"></span>';
+        html += '<span class="timebar__slot' + (on[i] ? ' is-on' : '') + '">' +
+            (vals && on[i] && vals[i] != null ? '<b>' + vals[i] + '</b>' : '') + '</span>';
     }
     html += '</div><div class="timebar__scale">';
     ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'].forEach(function (t) {
         html += '<span>' + t + '</span>';
     });
     return html + '</div></div>';
+}
+
+/* ── 부스 ↔ 항공사 배정 그리드 ───────────────────────────────────────
+   참고자료는 부스를 가로 18열로 늘어놓지만 드로어 폭이 380px 이라
+   3열 컴팩트 그리드로 접는다. air 가 없으면 미배정(빈 셀). */
+function boothGrid(cells) {
+    var html = '<div class="boothgrid">';
+    cells.forEach(function (c) {
+        html += '<span class="bcell' + (c.air ? '' : ' bcell--empty') + '">' +
+            '<i class="bcell__no">' + c.no + '</i>' +
+            (c.air || '미배정') + '</span>';
+    });
+    return html + '</div>';
 }
 
 /* ── 페이지 골격 조립 ────────────────────────────────────────────── */
