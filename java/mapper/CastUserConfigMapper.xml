@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="aoms.pm.cast.mapper.CastUserConfigMapper">
+    <select id="retrieveFlightList" resultType="aoms.pm.cast.dto.UserConfigFlightDto">
+        /* CastDepMapper.retrieveFlightList */
+        SELECT 
+		    FLTSH_ID, 
+		    GD_SE_YMD,
+		    PREDC_HM AS etd,
+		    RSVT_BDPSG_CNT AS PSG_CNT
+		FROM GOOWN.TN_GO_GD_DATA
+		WHERE GD_SE_YMD = #{ymd}
+		AND TMNL_ID = #{tmnlId}
+    </select>
+    
+    <select id="retrieveChknList" resultType="aoms.pm.cast.dto.ChknRawDto">
+        /* CastDepMapper.retrieveChknList */
+        SELECT 
+		    SUBSTR(CKNCT_ID, 0, 1) as ISLAND, 
+		    PMOWN.FN_PM_SAFE_TO_NUMBER(SUBSTR(A.CKNCT_ID, 2, 2)) as COUNTER_NUM,
+		    A.ALN_CD,  
+		    PMOWN.FN_PM_SAFE_TO_NUMBER(SUBSTR(A.EST_BGNG_HM, 0, 2)) as "START",
+		    CEIL((A.EST_END_HM) / 100) as "END"
+		FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
+		WHERE OPER_YMD = #{ymd}
+		AND TMNL_ID = #{tmnlId}
+		AND USE_YN = 'Y'
+		ORDER BY ISLAND, COUNTER_NUM, ALN_CD
+    </select>
+</mapper>

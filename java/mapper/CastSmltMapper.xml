@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="aoms.pm.cast.mapper.CastSmltMapper">
+    <select id="retrieveSmltStng" parameterType="aoms.pm.cast.dto.SmltStngSearchDto" resultType="aoms.pm.cast.dto.SmltStngDto">
+        /* CastSmltMapper.retrieveSmltStng */
+        SELECT 
+		    SMLT_ID, SMLT_MDL_SN, SMLT_NM, SMLT_TYPE, CRTR_DT, EXCN_YMD, TMNL_ID, SLF_ID, PRNT_ID, 
+		    FLT_SCHDL_RSRC_ID, BAG_ALCTN_RSRC_ID, CKNCT_ALCTN_RSRC_ID, PRPT_SET_RSRC_ID, MDL_RSRC_ID, 
+		    EXCN_ID, CKNCT_SRVC_HR_RSRC_ID, CHKN_TYPE_RSRC_ID, FCLTY_OPNG_TBL_DG_RSRC_ID, FCLTY_OPNG_TBL_EMI_RSRC_ID, 
+		    FCLTY_OPNG_TBL_IMMI_RSRC_ID, FCLTY_OPNG_TBL_SCRTY_CNTRL_RSRC_ID, FCLTY_OPNG_TBL_TR_SCRTY_CNTRL_RSRC_ID, 
+		    SBD_CNTRL_ALCTN_ID, PLAN_BGNG_DT, PLAN_END_DT, SMLT_BGNG_DT, SMLT_END_DT, BDPSG_ANCE_YN
+		FROM PMOWN.TN_PM_SMLT_STNG
+		WHERE 1 = 1
+		<if test="smltId != null and smltId != ''">
+    		AND SMLT_ID = #{smltId} 
+		</if>
+		<if test="excnYmd != null and excnYmd != ''"> 
+	       	AND EXCN_YMD = #{excnYmd}
+		</if>
+		<if test="smltType != null and smltType != ''"> 
+            AND SMLT_TYPE = #{smltType}
+		</if>
+    </select>
+    
+    <select id="retrieveSummaryFlight" resultType="aoms.pm.cast.dto.SummaryFlightDto">
+        /* CastSmltMapper.retrieveSummaryFlight */
+        SELECT COUNT(*) as FLT_CNT, SUM(RSVT_BDPSG_CNT - RSVT_TRNS_BDPSG_CNT) as PSG_CNT
+	    FROM GOOWN.TN_GO_GD_DATA 
+	    WHERE GD_SE_YMD = #{ymd}
+	    AND TMNL_ID = #{tmnlId}
+	    AND ARR_DEP_SE_CD = 'D' 
+	    AND CSHR_STTS_CD != 'SL' 
+	    AND PSG_CGO_SE_CD = 'Y' 
+	    AND ARCFT_USE_SE_CD IN ('0', '1') 
+	    AND GD_FLT_PRPS_CD IN ('00', '05')  
+	    AND FRY_YN NOT IN ('Y') 
+	    AND DOM_INTL_SE_CD NOT IN ('D') 
+	    AND DLY_RSN_CD NOT IN ('2', '3')
+    </select>
+    
+    <select id="retrieveCastRsltDtl" resultType="aoms.pm.cast.dto.SummaryRsltDto">
+        /* CastSmltMapper.retrieveCastRsltDtl */
+        SELECT 
+	        REPLACE(SUBSTR(A.SMLT_ACTL_DT, 12, 5), ':', '') TIME, 
+	        B.UP_PSG_FCLT_CD,
+	        B.PSG_FCLT_CD, 
+	        B.PSG_FCLT_NM,
+	        A.WTNG_PSG_CNT, 
+	        A.AVG_PRCS_HR as PRCS_HR, 
+	        A.AVG_WTNG_HR as WTNG_HR
+	    FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+	        INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
+	        ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
+	    WHERE SMLT_ID = #{smltId}
+	    AND B.TMNL_ID = #{tmnlId}
+	    AND A.WTNG_PSG_CNT > 0
+        -- LS 랜드사이드 좌석, CC 체크인카운터, CK 셀프체크인, SBD 셀프백드랍, LGT 출국장, LC 출국심사, SC 보안검색대, SR 보안검색대RED
+        AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
+        
+        <if test="dt != null and dt != ''">
+            AND SMLT_ACTL_DT LIKE #{dt} || '%'
+        </if>
+        
+	    <if test="psgFcltCdPrefix != null and psgFcltCdPrefix != ''"> 
+            AND B.PSG_FCLT_CD LIKE #{psgFcltCdPrefix} || '%'
+        </if>
+	    ORDER BY TIME, B.UP_PSG_FCLT_CD, B.PSG_FCLT_CD, B.PSG_FCLT_NM
+    </select>
+    
+    <select id="retrieveXovisRsltDtl" resultType="aoms.pm.cast.dto.SummaryRsltDto">
+        /* CastSmltMapper.retrieveXovisRsltDtl */
+        SELECT 
+            SUBSTR(A.PSG_FLOW_DATA_CRT_DT, 9, 4) TIME,
+            A.TMNL_ID, 
+            A.CHKN_ISL_CD, 
+            A.FCLT_NM, 
+            A.FCLT_TYPE_CD,
+            A.WTNG_LINE_LEN as WTNG_PSG_CNT
+        FROM PMOWN.TN_PM_PSG_WTNG_INFO A
+        WHERE PSG_FLOW_DATA_CRT_DT LIKE #{dt} || '%'
+        AND A.TMNL_ID = #{tmnlId}
+        -- Queue 체크인카운터 줄, DG 출국장, SC 보안검색대 
+        AND A.FCLT_TYPE_CD IN (<foreach collection="fcltTypeCdList" item="item" separator=",">#{item}</foreach>)
+        AND A.WTNG_LINE_LEN > 0 
+        
+        <if test="island != null and island != ''">
+            AND A.CHKN_ISL_CD = #{island} 
+        </if>
+        ORDER BY TIME
+    </select>
+    
+    <select id="retrievePrcsGrd" resultType="aoms.pm.cast.dto.PsgPrcsGrd">
+        /* CastSmltMapper.retrieveXovisRsltDtl */
+        SELECT 
+		    CASE 
+		        WHEN PSG_PRCS_GRD_CD = '01'
+		        THEN 'FREE'
+		        WHEN PSG_PRCS_GRD_CD = '02'
+		        THEN 'NORMAL'
+		        WHEN PSG_PRCS_GRD_CD = '03'
+		        THEN 'BUSY'
+		        WHEN PSG_PRCS_GRD_CD = '04'
+		        THEN 'VERY_BUSY'
+		    END CGN_STATUS,
+		    MIN_VL, MAX_VL
+		FROM PMOWN.TN_PM_PSG_PRCS_GRD
+		WHERE FCLT_GROUP_CD = #{psgPrcsGrdCd}
+		ORDER BY PSG_PRCS_GRD_CD
+    </select>
+</mapper>

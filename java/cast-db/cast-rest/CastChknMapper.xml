@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="aoms.pm.cast.mapper.CastChknMapper">
+    <select id="retrieveSmltChknList" resultType="aoms.pm.cast.dto.ChknRsltDto">
+        /* CastChknMapper.retrieveSmltChknList */
+        SELECT 
+		    A.YMD,
+		    A.TIME, 
+		    B.TMNL_ID,
+		    C.ALN_CD,
+		    A.FCLT_CD,
+		    A.ISLAND,
+		    A.COUNTER_NUM,
+		    A.WTNG_PSG_CNT,
+		    A.PRCS_HR,
+		    A.WTNG_HR   
+		FROM (
+		    SELECT 
+		        A.SMLT_ID, 
+		        REPLACE(SUBSTR(A.SMLT_ACTL_DT, 0, 10), '/', '') YMD,
+		        REPLACE(SUBSTR(A.SMLT_ACTL_DT, 12, 5), ':', '') TIME,
+		        PSG_FCLT_CD,
+		        SUBSTR(A.PSG_FCLT_CD, 3) FCLT_CD,
+		        SUBSTR(A.PSG_FCLT_CD, 3, 1) ISLAND,
+		        PMOWN.FN_PM_SAFE_TO_NUMBER(SUBSTR(A.PSG_FCLT_CD, 4, 2) ) COUNTER_NUM,
+		        A.WTNG_PSG_CNT,
+		        A.AVG_PRCS_HR as PRCS_HR,
+		        A.AVG_WTNG_HR as WTNG_HR
+		    FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+		    WHERE A.SMLT_ID = #{smltId}
+		    AND A.WTNG_PSG_CNT > 0
+		) A
+		    INNER JOIN (
+			    SELECT *
+			    FROM PMOWN.TN_PM_SMLT_PSG_FCLT B
+			    WHERE 1 = 1
+			    AND B.TMNL_ID = #{tmnlId}
+                AND B.UP_PSG_FCLT_CD = 'CC'
+                AND B.USE_YN = 'Y'
+		    ) B
+		        ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
+		    INNER JOIN (
+		        SELECT C.TMNL_ID, C.ALN_CD, C.CKNCT_ID, C.OPER_YMD, C.EST_BGNG_HM, C.EST_END_HM
+		        FROM GOOWN.TI_GO_CKNCT_DALY_ALOT C
+		        WHERE C.OPER_YMD = #{ymd}
+		        AND C.USE_YN = 'Y'
+		    ) C
+		        ON  1 = 1
+		            AND B.TMNL_ID = C.TMNL_ID 
+		            AND A.FCLT_CD = C.CKNCT_ID 
+		            AND A.YMD = C.OPER_YMD
+		            AND A.TIME BETWEEN C.EST_BGNG_HM AND C.EST_END_HM
+		WHERE 1 = 1
+		AND A.ISLAND = #{island}
+        ORDER BY YMD, TIME, COUNTER_NUM
+    </select>
+</mapper>

@@ -1,0 +1,2255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="aoms.pm.castrest.mapper.CastRestMapper">
+    <insert id="insertSimRunStat"  parameterType="aoms.pm.cmmn.dto.SimRunStatDto" >
+        /* CastRestTestMapper.insertSimRunStat(SimRunStatDto dto) */
+    INSERT INTO PMOWN.TH_PM_SMLT_EXCN_LOG
+    (
+          SMLT_EXCN_DT
+        , SMLT_EXCN_STEP_CD
+        , SMLT_EXCN_STTS_CD
+        , FRST_RGTR_ID
+        , FRST_RGTR_IP_ADDR
+        , FRST_REG_DT
+    )
+    VALUES
+    (
+        CURRENT_TIMESTAMP
+        , #{smltExcnStepCd}
+        , #{smltExcnSttsCd}
+        , 'CAST'
+        , #{loginIpAddr}
+        , CURRENT_TIMESTAMP)
+    </insert>
+    <select id="retrieveResourceInformation" parameterType="aoms.pm.cmmn.dto.CastResourceInformationDto" resultType="aoms.pm.cmmn.dto.CastResourceInformationDto">
+        /* CastRestMapper.retrieveResourceInformation(CastResourceInformationDto dto) */
+        SELECT 'CASTModel' ResourceType
+                  , A.SMLT_MDL_EXPLN ResourceID
+                  , 'SYSTEM' Author
+                  , 'ICN CAST Model' Description
+                  , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') AS LastModified
+                  , 'cols_Model'||A.SMLT_MDL_SN tableID
+          FROM PMOWN.TN_PM_SMLT_MDL A
+        LEFT OUTER JOIN PMOWN.TN_PM_PSG_MNG_ATFL B
+             ON A.SMLT_MDL_FILE_PATH_NM = B.ATCH_FILE_ID
+        WHERE A.DEL_YN = 'N'
+             AND A.SMLT_MDL_TYPE_CD = '1'
+             AND #{modelYn} = 1
+        UNION ALL    
+        SELECT 'CASTExpressModel' ResourceType
+                  , A.SMLT_MDL_EXPLN ResourceID
+                  , 'SYSTEM' Author
+                  , 'ICN Express CAST Model' Description
+                  , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS')  LastModified
+                  , 'cols_Model'||A.SMLT_MDL_SN tableID
+          FROM PMOWN.TN_PM_SMLT_MDL A
+        LEFT OUTER JOIN PMOWN.TN_PM_PSG_MNG_ATFL B
+             ON A.SMLT_MDL_FILE_PATH_NM = B.ATCH_FILE_ID
+        WHERE A.DEL_YN = 'N'
+             AND A.SMLT_MDL_TYPE_CD = '2'
+             AND #{exModelYn} = 1
+        UNION ALL    
+        SELECT 'FlightSchedule' ResourceType
+                  , 'FS001' ResourceID
+                  , 'SYSTEM' Author
+                  , 'Operative Flight Schedule' Description
+                  , TO_CHAR(LST_MOD_TSP,'YYYY-MM-DD')||'T'||TO_CHAR(LST_MOD_TSP,'HH24:MI:SS')  LastModified
+                  , 'cols_FlightSchedule1' tableID
+          FROM PMOWN.DROP_AA_TN_FP_ACT_ARR_DEP
+        WHERE SCHD_DT =  TO_CHAR(SYSDATE,'YYYYMMDD')
+             AND LST_MOD_TSP = (SELECT MAX(LST_MOD_TSP) FROM PMOWN.DROP_AA_TN_FP_ACT_ARR_DEP WHERE SCHD_DT = TO_CHAR(SYSDATE,'YYYYMMDD'))
+             AND ROWNUM =1
+             AND #{flightYn} = 1
+        UNION ALL
+        SELECT 'FlightSchedule' ResourceType
+                  , 'FS'||A.SCHDL_ATRB_ID ResourceID
+                  , 'SYSTEM' Author
+                  , 'Operative Flight Schedule' Description
+                  , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') AS LastModified
+                  , 'cols_FlightSchedule'||A.SCHDL_ATRB_ID tableID
+           FROM PMOWN.TN_PM_SMLT_SCHDL_MSTR A
+        INNER JOIN PMOWN.TN_PM_SMLT_SCHDL_ATRB B
+             ON A.SCHDL_ATRB_ID = B.SCHDL_ATRB_GROUP_ID
+        WHERE A.USE_YN = 'Y'
+            AND #{flightYn} = 1
+        GROUP BY A.SCHDL_ATRB_ID,A.LAST_MDFCN_DT,A.FRST_REG_DT        
+        UNION ALL    
+        SELECT 'CounterAllocation' ResourceType
+                  , 'CA001' ResourceID
+                  , 'SYSTEM' Author
+                  , 'Operative Check-in Counter Allocation' Description
+                  , TO_CHAR(LST_MOD_TSP,'YYYY-MM-DD')||'T'||TO_CHAR(LST_MOD_TSP,'HH24:MI:SS')  LastModified
+                  , 'cols_CounterAllocation' tableID
+           FROM PMOWN.DROP_AA_TN_RS_CIC_DALY_ALLOC
+        WHERE  OPR_DT =  TO_CHAR(SYSDATE,'YYYYMMDD')
+             AND ROWNUM =1
+             AND #{counterYn} = 1
+        UNION ALL
+        SELECT 'CounterAllocation' ResourceType
+                  , 'CA'||A.CKNCT_ATRB_ID ResourceID
+                  , 'SYSTEM' Author
+                  , 'Operative Check-in Counter Allocation' Description
+                  , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') AS LastModified
+                  , 'cols_CounterAllocation'||A.CKNCT_ATRB_ID tableID
+           FROM PMOWN.TN_PM_SMLT_CKNCT_MSTR A
+        INNER JOIN PMOWN.TN_PM_SMLT_CKNCT_ATRB B
+             ON A.CKNCT_ATRB_ID = B.SCHDL_ATRB_GROUP_ID
+        WHERE A.USE_YN = 'Y'
+             AND #{counterYn} = 1
+        GROUP BY A.CKNCT_ATRB_ID,A.LAST_MDFCN_DT,A.FRST_REG_DT        
+        UNION ALL
+        SELECT 'CounterAllocation' ResourceType
+                  , 'SBD001' ResourceID
+                  , 'SYSTEM' Author
+                  , 'Operative self-bag drop' Description
+                  , TO_CHAR(LST_MOD_TSP,'YYYY-MM-DD')||'T'||TO_CHAR(LST_MOD_TSP,'HH24:MI:SS')  LastModified
+                  , 'cols_SBDCounterAllocation' tableID
+           FROM PMOWN.DROP_AA_TN_RS_CIC_DALY_ALLOC
+        WHERE  OPR_DT =  TO_CHAR(SYSDATE,'YYYYMMDD')
+             AND ROWNUM =1
+             AND #{sbdYn} = 1
+        UNION ALL
+        SELECT 'CounterAllocation' ResourceType
+                  , 'SBD'||A.SBD_ATRB_ID ResourceID
+                  , 'SYSTEM' Author
+                  , 'Operative self-bag drop' Description
+                  , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') LastModified
+                  ,'cols_SBDCounterAllocation'||A.SBD_ATRB_ID tableID
+           FROM PMOWN.TN_PM_SMLT_SBD_MSTR A
+        INNER JOIN PMOWN.TN_PM_SMLT_SBD_ATRB B
+             ON A.SBD_ATRB_ID = B.SCHDL_ATRB_GROUP_ID
+        WHERE A.USE_YN = 'Y'
+             AND #{sbdYn} = 1
+        GROUP BY A.SBD_ATRB_ID,A.LAST_MDFCN_DT,A.FRST_REG_DT
+        UNION ALL
+        SELECT 'PropertySet' ResourceType
+                  , 'PS'||FIX_ATRB_GROUP_ID ResourceID
+                  , 'SYSTEM' Author
+                  , 'Property Set' Description
+                  , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') AS LastModified
+                  , 'cols_PropertySet' tableID
+           FROM PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP A
+        WHERE DEL_YN = 'N'
+             AND #{handleYn} = 1
+        UNION ALL            
+        SELECT 'GenericTable' ResourceType
+                  , 'CheckinType'||A.CKNCT_TYPE_ATRB_ID ResourceID
+                  , 'SYSTEM' Author
+                  , 'Operative CheckinType' Description
+                  , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') LastModified
+                  , 'cols_Type' tableID
+           FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_MSTR A
+        WHERE A.USE_YN = 'Y'        
+             AND #{ctYn} = 1
+        UNION ALL
+        SELECT 'GenericTable' ResourceType
+                  , 'CheckinCounterServiceTime'||A.CKNCT_SRVC_ATRB_ID ResourceID
+                  , 'SYSTEM' Author
+                  , 'Operative CheckinCounterServiceTime' Description
+                  , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') LastModified
+                  , 'cols_ServiceTime' tableID
+           FROM PMOWN.TN_PM_SMLT_CKNCT_SRVC_MSTR A
+        WHERE A.USE_YN = 'Y'
+             AND #{stYn} = 1
+        UNION ALL
+        SELECT 'GenericTable' ResourceType
+              , 'FacilityOpeningTable_DepartureGate'||A.DPTGT_ATRB_ID ResourceID
+              , 'SYSTEM' Author
+              , 'Operative Facility Opening Table DepartureGate' Description
+              , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') LastModified
+              ,'cols_DepartureGate' tableID
+           FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_DPTGT_MSTR A
+        WHERE A.USE_YN = 'Y'
+             AND #{dgYn} = 1
+        UNION ALL
+        SELECT 'GenericTable' ResourceType
+              , 'FacilityOpeningTable_Immigration'||A.IMMIG_ATRB_ID ResourceID
+              , 'SYSTEM' Author
+              , 'Operative Facility Opening Table Immigration' Description
+              , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') LastModified
+              ,'cols_Immigration' tableID
+           FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_IMMIG_MSTR A
+        WHERE A.USE_YN = 'Y'
+             AND #{immiYn} = 1
+        UNION ALL
+        SELECT 'GenericTable' ResourceType
+              , 'FacilityOpeningTable_Emigration'||A.EMIG_ATRB_ID ResourceID
+              , 'SYSTEM' Author
+              , 'Operative Facility Opening Table Emigration' Description
+              , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') LastModified
+              ,'cols_Emigration' tableID
+           FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_EMIG_MSTR A
+        WHERE A.USE_YN = 'Y'
+             AND #{emiYn} = 1
+        UNION ALL
+        SELECT 'GenericTable' ResourceType
+              , 'FacilityOpeningTable_SecurityControl'||A.SCRTY_CNTRL_ATRB_ID ResourceID
+              , 'SYSTEM' Author
+              , 'Operative Facility Opening Table SecurityControl' Description
+              , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') LastModified
+              ,'cols_SecurityControl' tableID
+           FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_SCRTY_CNTRL_MSTR A
+         WHERE A.USE_YN = 'Y'
+             AND #{scYn} = 1
+        UNION ALL
+        SELECT 'GenericTable' ResourceType
+              , 'FacilityOpeningTable_TransferSecurityControl'||TRNST_SCRTY_CNTRL_ATRB_ID ResourceID
+              , 'SYSTEM' Author
+              , 'Operative Facility Opening Table TrasnferSecurityControl' Description
+              , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') LastModified
+              ,'cols_SecurityTransferControl' tableID
+           FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_TRNST_SCRTY_CNTRL_MSTR A
+         WHERE A.USE_YN = 'Y'
+             AND #{tsYn} = 1
+          UNION ALL
+        SELECT 'GenericTable' ResourceType
+              , 'ReportingProfilesTimeGroups'||A.RPT_STNG_ATRB_ID ResourceID
+              , 'SYSTEM' Author
+              , 'Reporting Profiles Time Groups' Description
+              , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') LastModified
+              ,'cols_ReportingProfilesTimeGroups' tableID
+           FROM PMOWN.TN_PM_SMLT_RPT_STNG_HR_GROUP_MSTR A
+        WHERE A.USE_YN = 'Y'
+             AND #{rptYn} = 1
+        UNION ALL
+        SELECT 'GenericTable' ResourceType
+              , 'WhatIfDefinitionTable' ResourceID
+              , 'SYSTEM' Author
+              , 'WhatIfDefinitionTable' Description
+              , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') LastModified
+              ,'cols_WhatIfDefinitionTable' tableID
+           FROM DUAL
+        WHERE #{ifYn} = 1
+        ORDER BY ResourceType DESC
+    </select>
+
+    <select id="retrieveFlightSchedule" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFlightScheduleDto">
+        /* CastRestTestMapper.retrieveFlightSchedule(CastReqGetResourceDto dto) */
+       SELECT 
+		    LISTAGG(NVL(X.domStatus, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS domStatus               
+		    , LISTAGG(NVL(X.flightDirection, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightDirection
+		    , LISTAGG(NVL(X.depArrTerminal, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS depArrTerminal
+		    , LISTAGG(NVL(X.airlineCode, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS airlineCode
+		    , LISTAGG(NVL(X.operatorCat, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS operatorCat
+		    , LISTAGG(NVL(X.flightNumber, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightNumber
+		    , LISTAGG(NVL(X.flightNumberID, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightNumberID
+		    , LISTAGG(NVL(X.scheduleTime, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS scheduleTime
+		    , LISTAGG(NVL(X.estimatedTime, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS estimatedTime
+		    , LISTAGG(NVL(X.actualTime, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS actualTime
+		    , LISTAGG(NVL(X.airportCode, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS airportCode
+		    , LISTAGG(NVL(TO_CHAR(X.standNumber), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS standNumber
+		    , LISTAGG(NVL(TO_CHAR(X.gate), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS gate
+		    , LISTAGG(NVL(X.contactRemote, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS contactRemote
+		    , LISTAGG(NVL(TO_CHAR(X.seats), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS seats
+		    , LISTAGG(NVL(TO_CHAR(X.paxCount), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS paxCount
+		    , LISTAGG(NVL(TO_CHAR(X.transferPax), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS transferPax
+		    , LISTAGG(NVL(X.belt, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS belt
+		    , LISTAGG(NVL(X.flightType, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightType
+		    , LISTAGG(NVL(X.checkInRange, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS checkInRange
+		    , LISTAGG(NVL(X.aircraftType, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS aircraftType
+		    , LISTAGG(NVL(X.sbdAvailable, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS sbdAvailable
+		    , LISTAGG(NVL(X.triangle, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS triangle
+		    , LISTAGG(NVL(X.bus, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS bus
+		    , LISTAGG(NVL(X.arrivalGate, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS arrivalGate
+		    , LISTAGG(NVL(X.baggageT1, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS baggageT1
+		    , LISTAGG(NVL(X.baggageT2, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS baggageT2
+		    , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
+          FROM (
+            <if test="resourceID == 'FS001'">
+            <![CDATA[
+WITH
+/* 2) 기준 운항 집합 */
+BASE_GD AS (
+    SELECT
+        'FS001' AS RESOURCE_ID,
+        CASE
+            WHEN A.DOM_INT_SE_CD = 'I' THEN 'Int'
+            WHEN A.DOM_INT_SE_CD = 'D' AND A.TRDOMFLT_YN = 'Y' THEN 'Int'
+            WHEN A.DOM_INT_SE_CD = 'D' AND (A.TRDOMFLT_YN <> 'Y' OR A.TRDOMFLT_YN IS NULL) THEN 'Dom'
+            ELSE ''
+        END AS DOM_INT_SE_CD,
+        A.ARR_DEP_SE_CD,
+        A.TER_ID AS CF_TER_ID_X,
+        A.ALN_CD,
+        A.GD_SE_DT AS SCHD_DT,
+        A.SCHD_HM,
+        A.FLT_NM,
+        A.CLOSING_FLT_NM,
+        A.FLT_ID,
+        A.FLT_NM || '_'
+            || SUBSTR(A.GD_SE_DT, 1, 4) || '-' || SUBSTR(A.GD_SE_DT, 5, 2) || '-' || SUBSTR(A.GD_SE_DT, 7, 2)
+            || 'T'
+            || SUBSTR(A.SCHD_HM, 1, 2) || ':' || SUBSTR(A.SCHD_HM, 3, 2) || ':00.000'
+            AS FLT_NM_ID,
+        SUBSTR(A.GD_SE_DT, 1, 4) || '-' || SUBSTR(A.GD_SE_DT, 5, 2) || '-' || SUBSTR(A.GD_SE_DT, 7, 2)
+            || 'T'
+            || SUBSTR(A.SCHD_HM, 1, 2) || ':' || SUBSTR(A.SCHD_HM, 3, 2) || ':00.000'
+            AS SCHD_TIME,
+        CASE
+            WHEN TRIM(A.ESTM_HM) IS NOT NULL THEN
+                SUBSTR(A.GD_SE_DT, 1, 4) || '-' || SUBSTR(A.GD_SE_DT, 5, 2) || '-' || SUBSTR(A.GD_SE_DT, 7, 2)
+                || 'T'
+                || SUBSTR(A.ESTM_HM, 1, 2) || ':' || SUBSTR(A.ESTM_HM, 3, 2) || ':00.000'
+            ELSE ''
+        END AS ESTM_TIME,
+        CASE
+            WHEN TRIM(A.ACTL_HM) IS NOT NULL THEN
+                SUBSTR(A.GD_SE_DT, 1, 4) || '-' || SUBSTR(A.GD_SE_DT, 5, 2) || '-' || SUBSTR(A.GD_SE_DT, 7, 2)
+                || 'T'
+                || SUBSTR(A.ACTL_HM, 1, 2) || ':' || SUBSTR(A.ACTL_HM, 3, 2) || ':00.000'
+            ELSE ''
+        END AS ACTL_TIME,
+        A.APT_CD AS ARR_DEP_APT_CD,
+        NULLIF(TRIM(A.STND_NO), '') AS STND_NO_RAW,
+        NULLIF(TRIM(A.GATE_NO), '') AS GATE_NO_RAW,
+        A.AC_SEAT_CNT,
+        A.INPUT_YN,
+        A.TOT_CRG_PAX_CNT,
+        A.TOT_FREE_PAX_CNT,
+        A.RSRV_PAX_CNT,
+        A.TOT_TRPAX_CNT,
+        A.RSRV_TRPAX_CNT,
+        CASE
+            WHEN A.INPUT_YN = 'Y' THEN A.TOT_TRPAX_CNT
+            WHEN A.INPUT_YN = 'N' THEN A.RSRV_TRPAX_CNT
+            ELSE 0
+        END AS TR_PAX_CNT,
+        CASE
+            WHEN TRIM(A.CRS_NO) = '0' THEN NULL
+            ELSE NULLIF(TRIM(A.CRS_NO), '')
+        END AS CRS_NO_RAW,
+        A.AC_DTL_TY_CD AS AC_TYPE,
+        CASE
+            WHEN A.GD_IRR_YN IN ('0', 'N') THEN 'Schedule'
+            WHEN A.GD_IRR_YN IN ('1', 'Y') THEN 'Charter'
+            ELSE ''
+        END AS IRR_FLT_YN,
+        A.TRDOMFLT_YN
+    FROM PMOWN.DROP_AA_TN_AS_GD_DATA A
+    WHERE 1 = 1
+      AND A.CSHR_STAT_CD != 'SL'
+      AND A.DLY_RSN_CD NOT IN ('2', '3')
+      AND A.TER_ID IN ('P', 'P01', 'P02', 'P03')
+      AND A.AC_USE_SE_CD = '0'
+      AND A.GD_FLT_PPS_CD IN ('00', '05')
+      AND A.PAX_CGO_SE_CD = 'Y'
+      AND A.FRY_YN = 'N'
+      AND A.LCRFT_YN = 'N'
+      AND A.GD_SE_DT = TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYYMMDD') 
+),
+/* 3) 항공사 카테고리 */
+ALN_INFO AS (
+    SELECT
+        ALN_CD,
+        MAX(LCC_YN) AS LCC_YN
+    FROM CAOWN.TN_CA_ALN
+    GROUP BY ALN_CD
+),
+/* 4) 게이트 -> 터미널/CRS 그룹 */
+GATE_INFO AS (
+    SELECT
+        GATE_NO,
+        MAX(TER_ID) AS TER_ID,
+        MAX(CRS_GRP_CD) AS CRS_GRP_CD
+    FROM PMOWN.DROP_AA_TN_CA_GATE
+    GROUP BY GATE_NO
+),
+/* 5) 게이트 타입 */
+ACST_INFO AS (
+    SELECT
+        GATE_NO,
+        MIN(ACST_TYPE_CD) AS ACST_TYPE_CD
+    FROM CAOWN.TN_CA_ACST
+    WHERE USE_YN = 'Y'
+    GROUP BY GATE_NO
+),
+/* 6) 셀프체크인 가능 항공사 -> 영어 이름대로 셀프백드랍으로 변경 */
+SBD_INFO AS (
+    SELECT DISTINCT
+        ALN_IATA_CD
+    FROM PMOWN.DROP_AA_SBD_PLCY 
+    WHERE USE_YN = 'Y'
+),
+/* 7) 당일 CIC 배정이 존재하는 항공사 */
+CIC_ALLOC_ALN AS (
+    SELECT DISTINCT
+        A.ALN_CD
+    FROM PMOWN.DROP_AA_TN_RS_CIC_DALY_ALLOC A
+    WHERE A.OPR_DT BETWEEN TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) - 1, 'YYYYMMDD') AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYYMMDD')
+),
+/* 8) FP 원본 - 당일/익일 04시 이전 */
+FP_DAY AS (
+    SELECT
+        B.FLT_NM,
+        B.SCHD_DT,
+        B.SCHD_HM,
+        MIN(B.ACT_FLT_ID) AS ACT_FLT_ID
+    FROM PMOWN.DROP_AA_TN_FP_ACT_ARR_DEP B
+    WHERE 1 = 1
+      AND (
+            B.SCHD_DT = TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYYMMDD')
+            OR (B.SCHD_DT = TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) + 1, 'YYYYMMDD') AND B.SCHD_HM < '0400')
+          )
+      AND B.FLT_SVC_TY_CD NOT IN ('A', 'F', 'H', 'M', 'V', 'Z', 'P', 'X', 'D')
+    GROUP BY
+        B.FLT_NM, B.SCHD_DT, B.SCHD_HM
+),
+/* 9) CIC_RANGE_CTT - ACT_FLT_ID 기준 */
+FP_CIC_BY_ACT AS (
+    SELECT
+        ACT_FLT_ID,
+        MIN(CIC_RANGE_CTT) AS CIC_RANGE_CTT
+    FROM PMOWN.DROP_AA_TN_FP_ACT_ARR_DEP
+    WHERE CIC_RANGE_CTT IS NOT NULL
+    GROUP BY ACT_FLT_ID
+),
+/* 10) CIC_RANGE_CTT - FLT_NM/SCHD_DT/SCHD_HM 기준 fallback */
+FP_CIC_BY_FLT AS (
+    SELECT
+        FLT_NM,
+        SCHD_DT,
+        SCHD_HM,
+        MIN(CIC_RANGE_CTT) AS CIC_RANGE_CTT
+    FROM PMOWN.DROP_AA_TN_FP_ACT_ARR_DEP
+    WHERE CIC_RANGE_CTT IS NOT NULL
+    GROUP BY
+        FLT_NM, SCHD_DT, SCHD_HM
+),
+/* 11) RS 캐로셀 정보 */
+RS_CRS_DAILY AS (
+    SELECT
+        ARR_ACT_FLT_ID,
+        MIN(CASE WHEN CRS_NO = '0' THEN NULL ELSE CRS_NO END) AS CRS_NO
+    FROM PMOWN.DROP_AA_TN_RS_CRS_DALY_OPR
+    GROUP BY ARR_ACT_FLT_ID
+),
+/* 12) 최근 3개월 기준 closing_flt_nm별 대표 gate/stnd/ter */
+PAST_GATE_RANK AS (
+    SELECT
+        A.CLOSING_FLT_NM,
+        A.TER_ID,
+        A.STND_NO,
+        A.GATE_NO,
+        COUNT(*) AS CNT,
+        ROW_NUMBER() OVER (
+            PARTITION BY A.CLOSING_FLT_NM
+            ORDER BY COUNT(*) DESC, DBMS_RANDOM.VALUE
+        ) AS RN
+    FROM PMOWN.DROP_AA_TN_AS_GD_DATA A
+    WHERE 1 = 1
+      AND A.CSHR_STAT_CD != 'SL'
+      AND A.DLY_RSN_CD NOT IN ('2', '3')
+      AND A.TER_ID IN ('P', 'P01', 'P02', 'P03')
+      AND A.AC_USE_SE_CD = '0'
+      AND A.GD_FLT_PPS_CD IN ('00', '05')
+      AND A.PAX_CGO_SE_CD = 'Y'
+      AND A.FRY_YN = 'N'
+      AND A.LCRFT_YN = 'N'
+      AND A.GD_SE_DT BETWEEN TO_CHAR(ADD_MONTHS((SELECT BASE_DT FROM PMOWN.DROP_TMP), - 3), 'YYYYMMDD') AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) - 1, 'YYYYMMDD')
+      AND A.TER_ID IS NOT NULL
+      AND A.TER_ID != 'P'
+      AND A.STND_NO IS NOT NULL
+      AND A.STND_NO != '0000'
+      AND A.GATE_NO IS NOT NULL
+    GROUP BY A.CLOSING_FLT_NM, A.TER_ID, A.STND_NO, A.GATE_NO
+),
+PAST_GATE AS (
+    SELECT
+        CLOSING_FLT_NM,
+        TER_ID,
+        STND_NO,
+        GATE_NO
+    FROM PAST_GATE_RANK
+    WHERE RN = 1
+),
+/* 13) 최근 1개월 도착편 기준 대표 캐로셀 */
+ARR_CRS_HIST_RANK AS (
+    SELECT
+        A.CLOSING_FLT_NM,
+        A.ARR_DEP_SE_CD,
+        A.GATE_NO,
+        A.STND_NO,
+        A.CRS_NO,
+        ROW_NUMBER() OVER (
+            PARTITION BY A.CLOSING_FLT_NM, A.GATE_NO, A.STND_NO
+            ORDER BY DBMS_RANDOM.VALUE
+        ) AS RN
+    FROM PMOWN.DROP_AA_TN_AS_GD_DATA A
+    WHERE 1 = 1
+      AND A.GD_SE_DT BETWEEN TO_CHAR(ADD_MONTHS((SELECT BASE_DT FROM PMOWN.DROP_TMP), - 1), 'YYYYMMDD') AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) - 1, 'YYYYMMDD')
+      AND A.ARR_DEP_SE_CD = 'A'
+      AND A.CSHR_STAT_CD != 'SL'
+      AND A.DLY_RSN_CD NOT IN ('2', '3')
+      AND A.TER_ID IN ('P', 'P01', 'P02', 'P03')
+      AND A.AC_USE_SE_CD = '0'
+      AND A.GD_FLT_PPS_CD IN ('00', '05')
+      AND A.PAX_CGO_SE_CD = 'Y'
+      AND A.FRY_YN = 'N'
+      AND A.LCRFT_YN = 'N'
+      AND A.CRS_NO != '0'
+      AND TRIM(A.GATE_NO) IS NOT NULL
+      AND TRIM(A.CRS_NO) IS NOT NULL
+),
+ARR_CRS_HIST AS (
+    SELECT
+        CLOSING_FLT_NM,
+        ARR_DEP_SE_CD,
+        GATE_NO,
+        STND_NO,
+        CRS_NO
+    FROM ARR_CRS_HIST_RANK
+    WHERE RN = 1
+),
+/* 13-2) 최근 3개월 기준 편명별 / 항공사별 평균 승객 수 및 환승객 수 추정 */
+PAST_PAX_AVG AS (
+    SELECT
+        A.CLOSING_FLT_NM,
+        A.ALN_CD,
+        -- [전체 승객 수 평균]
+        ROUND(AVG(
+            CASE 
+                WHEN A.INPUT_YN = 'Y' THEN A.TOT_CRG_PAX_CNT + A.TOT_FREE_PAX_CNT + A.TOT_TRPAX_CNT
+                WHEN A.INPUT_YN = 'N' AND A.RSRV_PAX_CNT <> 0 THEN A.RSRV_PAX_CNT
+                ELSE NULL 
+            END
+        )) AS AVG_PAX_BY_FLT,
+        ROUND(AVG(
+            CASE 
+                WHEN A.INPUT_YN = 'Y' THEN A.TOT_CRG_PAX_CNT + A.TOT_FREE_PAX_CNT + A.TOT_TRPAX_CNT
+                WHEN A.INPUT_YN = 'N' AND A.RSRV_PAX_CNT <> 0 THEN A.RSRV_PAX_CNT
+                ELSE NULL 
+            END
+        )) AS AVG_PAX_BY_ALN,
+        -- [환승 승객 수 평균]
+        ROUND(AVG(
+            CASE 
+                WHEN A.INPUT_YN = 'Y' AND A.TOT_TRPAX_CNT <> 0 THEN A.TOT_TRPAX_CNT
+                WHEN A.INPUT_YN = 'N' AND A.RSRV_TRPAX_CNT <> 0 THEN A.RSRV_TRPAX_CNT
+                ELSE NULL -- 환승객이 아예 없거나 미입력된 건은 제외하여 정상 환승편의 평균값 보존
+            END
+        )) AS AVG_TR_PAX_BY_FLT,
+        ROUND(AVG(
+            CASE 
+                WHEN A.INPUT_YN = 'Y' AND A.TOT_TRPAX_CNT <> 0 THEN A.TOT_TRPAX_CNT
+                WHEN A.INPUT_YN = 'N' AND A.RSRV_TRPAX_CNT <> 0 THEN A.RSRV_TRPAX_CNT
+                ELSE NULL 
+            END
+        )) AS AVG_TR_PAX_BY_ALN
+    FROM PMOWN.DROP_AA_TN_AS_GD_DATA A
+    WHERE 1 = 1
+      AND A.CSHR_STAT_CD != 'SL'
+      AND A.DLY_RSN_CD NOT IN ('2', '3')
+      AND A.AC_USE_SE_CD = '0'
+      AND A.GD_FLT_PPS_CD IN ('00', '05')
+      AND A.PAX_CGO_SE_CD = 'Y'
+      AND A.FRY_YN = 'N'
+      AND A.LCRFT_YN = 'N'
+      AND A.GD_SE_DT BETWEEN TO_CHAR(ADD_MONTHS((SELECT BASE_DT FROM PMOWN.DROP_TMP), - 3), 'YYYYMMDD') 
+                         AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) - 1, 'YYYYMMDD')
+    GROUP BY A.CLOSING_FLT_NM, A.ALN_CD
+),
+/* 14) CA_CRS fallback - TER_ID(+P02->P01), CRS_GRP_CD별 1건 */
+CA_CRS_PICK AS (
+    SELECT
+        CASE WHEN TER_ID = 'P02' THEN 'P01' ELSE TER_ID END AS TER_ID_ADJ,
+        CRS_GRP_CD,
+        CRS_NO,
+        ROW_NUMBER() OVER (
+            PARTITION BY CASE WHEN TER_ID = 'P02' THEN 'P01' ELSE TER_ID END, CRS_GRP_CD
+            ORDER BY DBMS_RANDOM.VALUE
+        ) AS RN
+    FROM PMOWN.DROP_AA_TN_CA_CRS
+),
+/* ★ [추가] 14-2) 최근 6개월 항공사별 가장 많이 할당된 카운터 범위 (최빈값 구하기) */
+PAST_CIC_RANK AS (
+    SELECT
+        B.ALN_CD,
+        B.CIC_RANGE_CTT,
+        COUNT(*) AS CNT,
+        ROW_NUMBER() OVER (
+            PARTITION BY B.ALN_CD
+            ORDER BY COUNT(*) DESC, MAX(B.SCHD_DT) DESC  -- 많이 쓴 순서, 같으면 최근 날짜 우선
+        ) AS RN
+    FROM PMOWN.DROP_AA_TN_FP_ACT_ARR_DEP B
+    WHERE B.CIC_RANGE_CTT IS NOT NULL
+      AND B.SCHD_DT BETWEEN TO_CHAR(ADD_MONTHS((SELECT BASE_DT FROM PMOWN.DROP_TMP), - 6), 'YYYYMMDD')
+                        AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) - 1, 'YYYYMMDD')
+    GROUP BY B.ALN_CD, B.CIC_RANGE_CTT
+),
+PAST_CIC AS (
+    SELECT
+        ALN_CD,
+        CIC_RANGE_CTT
+    FROM PAST_CIC_RANK
+    WHERE RN = 1
+),
+/* 15) 기준 운항 + 과거 대표값 + FP/RS/CIC 결합 */
+BASE_PRE AS (
+    SELECT
+        B.RESOURCE_ID,
+        B.DOM_INT_SE_CD,
+        B.ARR_DEP_SE_CD,
+        B.ALN_CD,
+        B.FLT_NM,
+        B.CLOSING_FLT_NM,
+        B.FLT_NM_ID,
+        B.SCHD_DT,
+        B.SCHD_HM,
+        B.SCHD_TIME,
+        B.ESTM_TIME,
+        B.ACTL_TIME,
+        B.ARR_DEP_APT_CD,
+        B.CF_TER_ID_X,
+        B.AC_SEAT_CNT,
+        CASE
+            WHEN B.INPUT_YN = 'Y' AND (B.TOT_CRG_PAX_CNT + B.TOT_FREE_PAX_CNT + B.TOT_TRPAX_CNT) BETWEEN 1 AND 1000
+                THEN B.TOT_CRG_PAX_CNT + B.TOT_FREE_PAX_CNT + B.TOT_TRPAX_CNT
+            WHEN B.INPUT_YN = 'N' AND B.RSRV_PAX_CNT <> 0 
+                THEN B.RSRV_PAX_CNT
+            ELSE 
+                COALESCE(
+                    PPA.AVG_PAX_BY_FLT,  
+                    PPA.AVG_PAX_BY_ALN,  
+                    ROUND(NVL(B.AC_SEAT_CNT, 200) * 0.75) 
+                )
+        END AS PAX_CNT,
+        B.TR_PAX_CNT,
+        B.AC_TYPE,
+        B.IRR_FLT_YN,
+        B.TRDOMFLT_YN,
+        B.FLT_ID,
+        CASE
+            WHEN (B.STND_NO_RAW IS NULL OR B.STND_NO_RAW = '0000') AND PG.STND_NO IS NOT NULL THEN PG.STND_NO
+            WHEN (B.STND_NO_RAW IS NULL OR B.STND_NO_RAW = '0000') AND PG.STND_NO IS NULL THEN '112'
+            ELSE B.STND_NO_RAW
+        END AS STND_NO,
+        CASE
+            WHEN B.GATE_NO_RAW IS NULL AND PG.GATE_NO IS NOT NULL THEN PG.GATE_NO
+            WHEN B.GATE_NO_RAW IS NULL AND PG.GATE_NO IS NULL AND PG.STND_NO IS NOT NULL THEN REPLACE(REPLACE(PG.STND_NO, 'L', ''), 'R', '')
+            WHEN B.GATE_NO_RAW IS NULL AND PG.GATE_NO IS NULL AND PG.STND_NO IS NULL THEN '112'
+            ELSE B.GATE_NO_RAW
+        END AS GATE_NO,
+        COALESCE(
+            B.CRS_NO_RAW,
+            RCD.CRS_NO
+        ) AS CRS_NO_BASE,
+        /* ★ [수정] 당일 CIC 데이터가 없을 경우 6개월 통계치(PC.CIC_RANGE_CTT)를 Fallback으로 연결 */
+        CASE WHEN B.ARR_DEP_SE_CD = 'D' AND B.TRDOMFLT_YN = 'N' THEN
+            CASE
+                WHEN CA.ALN_CD IS NULL THEN ''
+                ELSE COALESCE(F1.CIC_RANGE_CTT, F2.CIC_RANGE_CTT, PC.CIC_RANGE_CTT, '')
+            END
+            ELSE ''
+        END AS CIC_RANGE_CTT
+    FROM BASE_GD B
+    LEFT JOIN PAST_GATE PG ON B.FLT_NM = PG.CLOSING_FLT_NM
+    LEFT JOIN PAST_PAX_AVG PPA ON B.CLOSING_FLT_NM = PPA.CLOSING_FLT_NM AND B.ALN_CD = PPA.ALN_CD   /* [추가] 과거 평균 여객수 Join */
+    LEFT JOIN FP_DAY FD
+        ON B.FLT_NM  = FD.FLT_NM
+       AND B.SCHD_DT = FD.SCHD_DT
+       AND B.SCHD_HM = FD.SCHD_HM
+    LEFT JOIN RS_CRS_DAILY RCD
+        ON FD.ACT_FLT_ID = RCD.ARR_ACT_FLT_ID
+    LEFT JOIN CIC_ALLOC_ALN CA
+        ON B.ALN_CD = CA.ALN_CD
+    LEFT JOIN FP_CIC_BY_ACT F1
+        ON B.FLT_ID = F1.ACT_FLT_ID
+    LEFT JOIN FP_CIC_BY_FLT F2
+        ON B.CLOSING_FLT_NM = F2.FLT_NM
+       AND B.SCHD_DT        = F2.SCHD_DT
+       AND B.SCHD_HM        = F2.SCHD_HM
+    /* ★ [추가] 과거 대표 카운터 Join */
+    LEFT JOIN PAST_CIC PC
+        ON B.ALN_CD = PC.ALN_CD
+),
+/* 16) 최종 FFF */
+FFF AS (
+    SELECT
+        BP.DOM_INT_SE_CD AS DomStatus,
+        BP.ARR_DEP_SE_CD AS FlightDirection,
+        COALESCE(GI.TER_ID, BP.CF_TER_ID_X) AS DepArrTerminal,
+        BP.ALN_CD AS AirlineCode,
+        CASE
+            WHEN NVL(AI.LCC_YN, 'N') = 'Y' THEN 'LCC'
+            ELSE 'FSC'
+        END AS OperatorCat,
+        BP.FLT_NM AS FlightNumber,
+        BP.FLT_NM_ID AS FlightNumberID,
+        BP.SCHD_TIME AS ScheduleTime,
+        BP.ESTM_TIME AS EstimatedTime,
+        BP.ACTL_TIME AS ActualTime,
+        BP.ARR_DEP_APT_CD AS AirportCode,
+        LPAD(REGEXP_SUBSTR(BP.STND_NO, '^[0-9]+'), 3, '0')
+            || REGEXP_SUBSTR(BP.STND_NO, '[^0-9]+$') AS StandNumber,
+        LPAD(REGEXP_SUBSTR(BP.GATE_NO, '^[0-9]+'), 3, '0')
+            || REGEXP_SUBSTR(BP.GATE_NO, '[^0-9]+$') AS Gate,
+        NVL(AC.ACST_TYPE_CD, 'E') AS ContactRemote,
+        BP.AC_SEAT_CNT AS Seats,
+        BP.PAX_CNT AS PaxCount,
+        CASE 
+            WHEN BP.TR_PAX_CNT > BP.PAX_CNT THEN BP.PAX_CNT -- 환승객이 전체 승객보다 많으면 전체 승객수로 제한
+            ELSE BP.TR_PAX_CNT 
+        END AS TransferPax,
+        CASE
+            WHEN BP.ARR_DEP_SE_CD = 'A' THEN
+                COALESCE(
+                    BP.CRS_NO_BASE,
+                    AH.CRS_NO,
+                    CCP.CRS_NO,
+                    ''
+                )
+            ELSE ''
+        END AS Belt,
+        BP.AC_TYPE AS AircraftType,
+        BP.CIC_RANGE_CTT AS CheckinRange,
+        CASE
+            WHEN SB.ALN_IATA_CD IS NOT NULL THEN 'Y'
+            ELSE 'N'
+        END AS SBDAvailable,
+        BP.IRR_FLT_YN AS FlightType,
+        BP.TRDOMFLT_YN AS Triangle,
+        BP.FLT_ID
+    FROM BASE_PRE BP
+    LEFT JOIN GATE_INFO GI
+        ON BP.GATE_NO = GI.GATE_NO
+    LEFT JOIN ALN_INFO AI
+        ON BP.ALN_CD = AI.ALN_CD
+    LEFT JOIN ACST_INFO AC
+        ON BP.GATE_NO = AC.GATE_NO
+    LEFT JOIN SBD_INFO SB
+        ON BP.ALN_CD = SB.ALN_IATA_CD
+    LEFT JOIN ARR_CRS_HIST AH
+        ON BP.FLT_NM       = AH.CLOSING_FLT_NM
+       AND BP.GATE_NO      = AH.GATE_NO
+       AND BP.STND_NO      = AH.STND_NO
+       AND BP.ARR_DEP_SE_CD = AH.ARR_DEP_SE_CD
+    LEFT JOIN CA_CRS_PICK CCP
+        ON CCP.RN = 1
+       AND CCP.TER_ID_ADJ = CASE WHEN GI.TER_ID = 'P02' THEN 'P01' ELSE GI.TER_ID END
+       AND CCP.CRS_GRP_CD = GI.CRS_GRP_CD
+)
+SELECT
+    FFF.DomStatus,
+    FFF.FlightDirection,
+    FFF.DepArrTerminal,
+    FFF.AirlineCode,
+    FFF.OperatorCat,
+    FFF.FlightNumber,
+    FFF.FlightNumberID,
+    FFF.ScheduleTime,
+    FFF.EstimatedTime,
+    FFF.ActualTime,
+    FFF.AirportCode,
+    FFF.StandNumber,
+    FFF.Gate,
+    FFF.ContactRemote,
+    FFF.Seats,
+    FFF.PaxCount,
+    FFF.TransferPax,
+    FFF.Belt,
+    FFF.AircraftType,
+    FFF.CheckinRange,
+    FFF.SBDAvailable,
+    FFF.FlightType,
+    FFF.Triangle,
+    B.BUS_NEED_YN AS BUS,
+    B.EXIT_ID AS ArrivalGate,
+    CASE
+        WHEN B.FST_BAG_INPT_DTTM IS NULL OR B.FST_BAG_INPT_DTTM = '' THEN NULL
+        ELSE
+            SUBSTR(B.FST_BAG_INPT_DTTM, 1, 4) || '-'
+            || SUBSTR(B.FST_BAG_INPT_DTTM, 5, 2) || '-'
+            || SUBSTR(B.FST_BAG_INPT_DTTM, 7, 2) || 'T'
+            || SUBSTR(B.FST_BAG_INPT_DTTM, 9, 2) || ':'
+            || SUBSTR(B.FST_BAG_INPT_DTTM, 11, 2) || ':00.000'
+    END AS BaggageT1,
+    CASE
+        WHEN B.LST_BAG_INPT_DTTM IS NULL OR B.LST_BAG_INPT_DTTM = '' THEN NULL
+        ELSE
+            SUBSTR(B.LST_BAG_INPT_DTTM, 1, 4) || '-'
+            || SUBSTR(B.LST_BAG_INPT_DTTM, 5, 2) || '-'
+            || SUBSTR(B.LST_BAG_INPT_DTTM, 7, 2) || 'T'
+            || SUBSTR(B.LST_BAG_INPT_DTTM, 9, 2) || ':'
+            || SUBSTR(B.LST_BAG_INPT_DTTM, 11, 2) || ':00.000'
+    END AS BaggageT2
+FROM FFF
+JOIN PMOWN.DROP_AA_TN_RS_FLT_RSC B
+  ON FFF.FLT_ID = B.ACT_FLT_ID
+ORDER BY
+    FFF.DomStatus,
+    FFF.FlightDirection,
+    FFF.DepArrTerminal,
+    FFF.FlightNumber
+            ]]>
+            </if>
+            <if test="resourceID != 'FS001'">                
+                SELECT 'FS' || A.SCHDL_ATRB_GROUP_ID AS resourceID
+                         , CASE
+                           WHEN A.DOM_INTL_SE_CD = 'I' THEN 'Int'
+                           WHEN A.DOM_INTL_SE_CD = 'D' AND A.TDFLT_YN = 'Y' THEN 'Int'
+                           WHEN A.DOM_INTL_SE_CD = 'D' AND (A.TDFLT_YN != 'Y' OR A.TDFLT_YN IS NULL) THEN 'Dom'
+                           ELSE ''
+                           END AS domStatus               
+                         , A.ARR_DEP_SE_CD AS flightDirection               
+                         , A.TMNL_ID AS depArrTerminal
+                         , A.TMNL_ID AS CF_TER_ID_X
+                         , A.ALN_CD AS airlineCode
+                         , A.ALN_CTGRY AS operatorCat
+                         , A.FLTNM AS flightNumber
+                         , A.DALY_FLTSH_ID AS dalyFltshId
+                         , A.DEP_ARR_YMD AS depArrYmd
+                         , A.DEP_ARR_HM AS depArrHm
+                         , A.FLTNM || '_' ||
+                           TO_CHAR(TO_DATE(A.DEP_ARR_YMD, 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T' ||
+                           TO_CHAR(TO_DATE(A.DEP_ARR_HM || '00', 'HH24:MI:SS'), 'HH24:MI:SS') || '.000' AS flightNumberID
+                         , TO_CHAR(TO_DATE(A.DEP_ARR_YMD, 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T' ||
+                           TO_CHAR(TO_DATE(A.DEP_ARR_HM || '00', 'HH24:MI:SS'), 'HH24:MI:SS') || '.000' AS scheduleTime
+                         , CASE
+                           WHEN A.PREDC_HM IS NOT NULL
+                           THEN TO_CHAR(TO_DATE(A.DEP_ARR_YMD, 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T' ||
+                                    TO_CHAR(TO_DATE(A.PREDC_HM || '00', 'HH24:MI:SS'), 'HH24:MI:SS') || '.000'
+                           ELSE ''
+                           END AS estimatedTime
+                         , CASE
+                           WHEN A.ACTL_HM IS NOT NULL
+                           THEN TO_CHAR(TO_DATE(A.DEP_ARR_YMD, 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T' ||
+                                    TO_CHAR(TO_DATE(A.ACTL_HM || '00', 'HH24:MI:SS'), 'HH24:MI:SS') || '.000'
+                           ELSE ''
+                           END AS actualTime
+                         , A.ARR_DEP_ARPT_CD AS airportCode
+                         , A.ACST_NO AS standNumber
+                         , CASE
+                           WHEN TRIM(A.GATE_NO) IS NOT NULL
+                           THEN A.GATE_NO
+                           WHEN (TRIM(A.GATE_NO) = '' OR TRIM(A.GATE_NO) IS NULL)
+                           THEN REPLACE(REPLACE(A.ACST_NO, 'L', ''), 'R', '')
+                           WHEN (TRIM(A.GATE_NO) = '' OR TRIM(A.GATE_NO) IS NULL) AND A.TMNL_ID = 'P01'
+                           THEN '10'
+                           WHEN (TRIM(A.GATE_NO) = '' OR TRIM(A.GATE_NO) IS NULL) AND A.TMNL_ID = 'P02'
+                           THEN '112'
+                           WHEN (TRIM(A.GATE_NO) = '' OR TRIM(A.GATE_NO) IS NULL) AND A.TMNL_ID = 'P03'
+                           THEN '245'
+                           ELSE ''
+                           END AS gate
+                         , A.GATE_TYPE AS contactRemote
+                         , A.ARCFT_STGCP AS seats
+                         , A.BDPSG_CNT AS paxCount
+                         , A.TRNS_BDPSG_CNT AS transferPax
+                         , A.CRSL_NO AS belt
+                         , A.ARCFT_SUBTYPE_CD AS aircraftType
+                         , A.CKNCT_RANGE_CN AS checkInRange
+                         , A.SLF_CHKN_PSBLTY_YN AS sbdAvailable
+                         , CASE
+                           WHEN IRR_FLT_YN IN ('0', 'N')
+                           THEN 'Schedule'
+                           WHEN IRR_FLT_YN IN ('1', 'Y')
+                           THEN 'Charter'
+                           ELSE ''
+                           END AS flightType         
+                         , A.TDFLT_YN AS triangle
+                         , A.BUS_NEED_YN AS bus
+                         , A.WAYO_ID AS arrivalGate
+                         , CASE
+                           WHEN A.FRST_BAG_INPUT_DT IS NULL OR A.FRST_BAG_INPUT_DT = '' THEN NULL
+                           ELSE TO_CHAR(A.FRST_BAG_INPUT_DT, 'YYYY-MM-DD"T"HH24:MI":00.000"')
+                           END AS baggageT1       -- 최초수하물투입일시(RS의 운항편자원 정보)
+                         , CASE
+                           WHEN A.LAST_BAG_INPUT_DT IS NULL OR A.LAST_BAG_INPUT_DT = '' THEN NULL
+                           ELSE TO_CHAR(A.LAST_BAG_INPUT_DT, 'YYYY-MM-DD"T"HH24:MI":00.000"')
+                           END AS baggageT2       -- 최종수하물투입일시(RS의 운항편자원 정보)                         
+                  FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB A
+                  WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FS', '')
+                  ORDER BY domStatus, flightDirection, depArrTerminal, flightNumber
+            </if>
+            ) X
+    </select>
+
+    <select id="retrieveCounterAllocation" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastCounterAllocationDto">
+        /* CastRestTestMapper.retrieveCounterAllocation(CastReqGetResourceDto dto) */
+    SELECT LISTAGG(resourceID2,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS blockID          -- BlockID
+         , LISTAGG(tmnlId,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS depArrTerminal  -- 터미널아이디
+         , LISTAGG(cknctId,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS resourceID    -- 체크인카운터번호
+         , LISTAGG(alnCd,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS airlineCode      -- 항공사코드
+         , LISTAGG(domIntlSeCd,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS domStatus    -- 국내국제구분코드
+         , LISTAGG(t1,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS t1                                                          -- 체크인오픈예정시분
+         , LISTAGG(t2,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS t2                                                          -- 체크인클로즈예정시분
+         , REPLACE(LISTAGG(trvlClss,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2),' ','') AS travelClass           -- 체크인등급코드
+         , REPLACE(LISTAGG(grpStat,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2),' ','') AS groupStatus        -- 체크인그룹코드
+         , REPLACE(LISTAGG(cicType,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2),' ','') AS checkinType        -- 체크인종류코드
+         , REPLACE(LISTAGG(nonfuncStat,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2),' ','') AS nonFunctionalStatus -- 체크인기능코드
+         , LISTAGG(chknTypeCd,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS checkinAllocType -- 체크인유형코드
+         , LISTAGG(chknTypeDtlInfo,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS checkInAllocDescryption-- 체크인유형상세정보
+         , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
+      FROM (
+        <if test="resourceID == 'CA001'">
+            SELECT 
+                   CASE 
+                   WHEN TER_ID = 'P03'
+                   THEN 'P03CKIN'
+                   ELSE CASE
+                        WHEN DOM_INT_SE_CD = 'I' THEN 'P01CKINInt'
+                        ELSE 'P01CKINDom'
+                        END
+                   END                                       AS resourceID2          -- BlockID
+                  , TER_ID                                  AS tmnlId   -- 터미널아이디
+                  , CIC_ID                                  AS cknctId      -- 체크인카운터번호
+                  , ALN_CD                                  AS alnCd        -- 항공사코드
+                  , CASE
+                    WHEN DOM_INT_SE_CD = 'I' THEN 'Int'
+                    ELSE 'Dom'
+                  END                                       AS domIntlSeCd       -- 국내국제구분코드
+                  , t1                                                          -- 체크인오픈예정시분
+                  , t2                                                          -- 체크인클로즈예정시분
+                  , (SELECT D.COM_CD_NM FROM CAOWN.TC_CA_COM_CD D WHERE D.COM_CD_SE_CD = 'CA263' AND D.COM_CD = trvlClss)       AS trvlClss         -- 체크인등급코드
+                  , (SELECT D.COM_CD_NM FROM CAOWN.TC_CA_COM_CD D WHERE D.COM_CD_SE_CD = 'CA264' AND D.COM_CD = grpStat)        AS grpStat          -- 체크인그룹코드
+                  , (SELECT D.COM_CD_NM FROM CAOWN.TC_CA_COM_CD D WHERE D.COM_CD_SE_CD = 'CA265' AND D.COM_CD = cicType)        AS cicType          -- 체크인종류코드
+                  , (SELECT D.COM_CD_NM FROM CAOWN.TC_CA_COM_CD D WHERE D.COM_CD_SE_CD = 'CA266' AND D.COM_CD = nonfuncStat)    AS nonfuncStat  -- 체크인기능코드
+                  , CHKIN_TY_CD                             AS chknTypeCd   -- 체크인유형코드
+                  , CASE 
+                    WHEN CHKIN_TY_CD = 'C' THEN 
+                        (
+                            SELECT '"' || LISTAGG(ALN_CD, ',') WITHIN GROUP (ORDER BY ALN_CD) || '"'
+                            FROM (
+                                SELECT DISTINCT C.ALN_CD
+                                FROM CAOWN.TN_CA_ALN_PGE C
+                                WHERE C.ALN_CD = ALN_CD 
+                                AND C.PGE_NO = CHKIN_PG_NO 
+                                AND C.TMNL_ID = TER_ID 
+                                AND C.PGE_SE_CD = 'C' 
+                                AND C.UNIT_SYS_ID = UNIT_SYS_ID
+                            )
+                        )
+                    WHEN CHKIN_TY_CD = 'D' THEN MSTR_FLT_NM
+                    ELSE CHKIN_TY_CD
+                    END  AS chknTypeDtlInfo  -- 체크인유형상세정보
+              FROM (
+                 SELECT 
+                        Y.TER_ID
+                        , Y.CIC_ID
+                        , Y.ALN_CD
+                        , Y.DOM_INT_SE_CD
+                        , Y.CHKIN_TY_CD
+                        , Y.UNIT_SYS_ID
+                        , Y.MSTR_FLT_NM
+                        , TO_CHAR(TO_DATE(Y.OPR_DT || Y.STA_HM, 'YYYYMMDDHH24MI'), 'YYYY-MM-DD"T"HH24:MI":00"') AS t1
+                        , TO_CHAR(TO_DATE(
+                            CASE WHEN Y.RON_YN = 'N' THEN Y.OPR_DT
+                                ELSE TO_CHAR(TO_DATE(Y.OPR_DT, 'YYYYMMDD') + 1, 'YYYYMMDD')
+                            END || Y.END_HM, 'YYYYMMDDHH24MI' 
+                        ), 'YYYY-MM-DD"T"HH24:MI":00"') AS t2
+                        , Y.TRVL_CLSS AS trvlClss
+                        , Y.GRP_STAT AS grpStat
+                        , Y.CIC_TYPE AS cicType
+                        , Y.NONFUNC_STAT AS nonfuncStat
+                        , Y.OPR_DT
+                        , Y.STA_HM
+                        , Y.END_HM
+                        <![CDATA[
+                        , CASE WHEN TO_NUMBER(Y.STA_HM) <= TO_NUMBER(Y.END_HM) THEN 'N' ELSE 'Y' END AS RON_YN
+                        ]]>
+                        , Y.CHKIN_PG_NO
+                    FROM (SELECT X.TER_ID
+                                , X.CIC_ID
+                                , X.OPR_DT
+                                , X.DOM_INT_SE_CD
+                                , X.CHKIN_TY_CD
+                                , X.UNIT_SYS_ID
+                                , X.MSTR_FLT_NM
+                                , X.STA_HM
+                                , X.END_HM
+                                , X.ALN_CD
+                                , X.CHKIN_PG_NO
+                                , X.TRVL_CLSS
+                                , X.GRP_STAT
+                                , X.CIC_TYPE
+                                , X.NONFUNC_STAT
+                                , X.RON_YN
+                            FROM (
+                                     SELECT A.TER_ID
+                                        , A.CIC_ID
+                                        , A.OPR_DT
+                                        , A.DOM_INT_SE_CD
+                                        , A.CHKIN_TY_CD
+                                        , CASE
+                                           WHEN A.LST_STA_HM IS NOT NULL AND A.LST_END_HM IS NOT NULL THEN A.LST_STA_HM
+                                           ELSE A.PRED_STA_HM 
+                                          END AS STA_HM
+                                        , CASE 
+                                            WHEN A.LST_STA_HM IS NOT NULL AND A.LST_END_HM IS NOT NULL THEN A.LST_END_HM
+                                            ELSE A.PRED_END_HM 
+                                          END AS END_HM
+                                        , A.ALN_CD
+                                        , A.CHKIN_PG_NO
+                                        , CIC.UNIT_SYS_ID
+                                        , A.MSTR_FLT_NM
+                                        , (SELECT C.PGE_EXPLN       FROM CAOWN.TN_CA_ALN_PGE C WHERE C.ALN_CD = A.ALN_CD AND C.PGE_NO = A.CHKIN_PG_NO AND C.TMNL_ID = A.TER_ID AND C.PGE_SE_CD = 'C' AND C.UNIT_SYS_ID = CIC.UNIT_SYS_ID ) AS TRVL_CLSS
+                                        , (SELECT C.CHKN_GROUP_CD   FROM CAOWN.TN_CA_ALN_PGE C WHERE C.ALN_CD = A.ALN_CD AND C.PGE_NO = A.CHKIN_PG_NO AND C.TMNL_ID = A.TER_ID AND C.PGE_SE_CD = 'C' AND C.UNIT_SYS_ID = CIC.UNIT_SYS_ID ) AS GRP_STAT
+                                        , (SELECT C.CHKN_KND_CD     FROM CAOWN.TN_CA_ALN_PGE C WHERE C.ALN_CD = A.ALN_CD AND C.PGE_NO = A.CHKIN_PG_NO AND C.TMNL_ID = A.TER_ID AND C.PGE_SE_CD = 'C' AND C.UNIT_SYS_ID = CIC.UNIT_SYS_ID ) AS CIC_TYPE
+                                        , (SELECT C.CHKN_FWK_CD     FROM CAOWN.TN_CA_ALN_PGE C WHERE C.ALN_CD = A.ALN_CD AND C.PGE_NO = A.CHKIN_PG_NO AND C.TMNL_ID = A.TER_ID AND C.PGE_SE_CD = 'C' AND C.UNIT_SYS_ID = CIC.UNIT_SYS_ID ) AS NONFUNC_STAT
+                                        , CIC.CKNCT_USE_CRG_APLCN_TYPE_CD
+                                        , CASE 
+                                            WHEN A.LST_STA_HM IS NOT NULL AND A.LST_END_HM IS NOT NULL THEN A.LST_RON_YN 
+                                            ELSE A.PRED_RON_YN 
+                                        END AS RON_YN
+                                    FROM PMOWN.DROP_AA_TN_RS_CIC_DALY_ALLOC A
+                                        JOIN CAOWN.TN_CA_CKNCT CIC ON A.CIC_ID = CIC.CKNCT_ID AND A.TER_ID = CIC.TMNL_ID 
+                                    WHERE 1=1
+                                        AND A.USE_YN = 'Y'
+                                        AND CIC.USE_YN = 'Y'
+                                        AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
+                                        AND A.OPR_DT BETWEEN TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP)-1,'YYYYMMDD') AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP),'YYYYMMDD')
+                                        AND A.CIC_ID NOT LIKE 'X%'
+                                        AND A.CIC_ID NOT LIKE 'Y%'
+                                        AND A.CIC_ID NOT LIKE 'R%'
+                                        AND A.CIC_ID NOT LIKE 'S%'
+                                        AND EXISTS (
+                                            SELECT 1
+                                            FROM CAOWN.TN_CA_ALN_PGE B
+                                            WHERE B.ALN_CD = A.ALN_CD
+                                            AND B.PGE_NO = A.CHKIN_PG_NO 
+                                            AND B.TMNL_ID = A.TER_ID 
+                                            AND B.USE_YN = 'Y'
+                                        )
+                                     ) X
+                            WHERE (X.OPR_DT = TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP)-1,'YYYYMMDD')) 
+                                OR (X.OPR_DT = TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP),'YYYYMMDD'))
+                     ) Y
+                    WHERE Y.STA_HM != Y.END_HM
+            ) Z
+            ORDER BY Z.TER_ID, Z.CIC_ID, Z.T1
+        </if>
+        <if test="resourceID != 'CA001'">
+            SELECT CASE 
+                   WHEN Y.TMNL_ID = 'P03'
+                   THEN 'P03CKIN'
+                   ELSE CASE
+                   WHEN Y.DOM_INTL_SE_CD = 'I'
+                   THEN 'P01CKINInt'
+                   ELSE 'P01CKINDom'
+                   END
+                   END AS resourceID2
+                 , Y.TMNL_ID || '_' || Y.CKNCT_ID AS resourceID
+                 , Y.TMNL_ID AS tmnlId
+                 , Y.CKNCT_ID AS cknctId
+                 , Y.ALN_CD AS alnCd
+                 , CASE
+                   WHEN DOM_INTL_SE_CD = 'I' THEN 'Int'
+                   ELSE 'Dom'
+                   END AS domIntlSeCd      -- 국내국제구분코드
+                 , SUBSTR(TO_CHAR(TO_DATE(Y.STA_DT , 'YYYYMMDDHH24MI'), 'YYYY-MM-DD HH24MI'),0,10)
+                   || 'T' ||
+                   SUBSTR(TO_CHAR(TO_DATE(Y.STA_DT , 'YYYYMMDDHH24MI'), 'YYYYMMDDHH24MI'),9,2)
+                   || ':' ||
+                   SUBSTR(TO_CHAR(TO_DATE(Y.STA_DT , 'YYYYMMDDHH24MI'), 'YYYYMMDDHH24MI'),11,2)
+                   ||':00' t1
+                 , SUBSTR(TO_CHAR(TO_DATE(CASE WHEN Y.RON_YN = 'N' THEN Y.CRTR_YMD ELSE TO_CHAR(TO_DATE(Y.CRTR_YMD, 'YYYYMMDDHH24MI') + 1, 'YYYYMMDD') END ||substr(Y.END_DT,9,2) , 'YYYYMMDDHH24MI'), 'YYYY-MM-DD HH24MI'),0,10)
+                   || 'T' ||
+                   SUBSTR(TO_CHAR(TO_DATE(Y.END_DT , 'YYYYMMDDHH24MI'), 'YYYYMMDDHH24MI'),9,2)
+                   || ':' ||
+                   SUBSTR(TO_CHAR(TO_DATE(Y.END_DT , 'YYYYMMDDHH24MI'), 'YYYYMMDDHH24MI'),11,2)
+                   ||':00' t2
+                 , Y.TRVL_CLSS AS trvlClss
+                 , Y.GRP_STAT AS grpStat
+                 , Y.CIC_TYPE AS cicType
+                 , Y.NONFUNC_STAT AS nonfuncStat
+                 , Y.CHKN_TYPE_CD AS chknTypeCd
+                 , Y.CHKN_TYPE_DTL_INFO AS chknTypeDtlInfo
+                 , Y.CRTR_YMD AS crtrYmd
+                 , Y.STA_DT AS staDt
+                 , Y.END_DT AS endDt
+                 , Y.RON_YN AS ronYn
+              FROM (SELECT A.SCHDL_ATRB_GROUP_ID
+                          , A.TMNL_ID
+                          , A.CKNCT_ID
+                          , A.ALN_CD
+                          , A.DOM_INTL_SE_CD
+                           , A.CRTR_YMD
+                          , A.CHKN_OPEN_PRNMNT_DT AS STA_DT
+                          , A.CHKN_CLOSE_PRNMNT_DT AS END_DT
+                          <![CDATA[
+                          , CASE WHEN TO_NUMBER(A.CHKN_OPEN_PRNMNT_DT) <= TO_NUMBER(A.CHKN_CLOSE_PRNMNT_DT) THEN 'N' ELSE 'Y' END AS RON_YN
+                          ]]>
+                          , NVL(A.CHKN_GRD_CD,' ') AS TRVL_CLSS
+                          , NVL(A.CHKN_GROUP_CD,' ') AS GRP_STAT
+                          , NVL(A.CHKN_KND_CD,' ') AS CIC_TYPE
+                          , NVL(A.CHKN_FWK_CD,' ') AS NONFUNC_STAT
+                          , A.CHKN_TYPE_CD
+                          , '&quot;' || A.CHKN_TYPE_DTL_INFO || '&quot;' AS CHKN_TYPE_DTL_INFO
+                          FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
+                         WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'CA', '')) Y
+            ORDER BY tmnlId, cknctId, crtrYmd, staDt, endDt
+        </if>
+        ) Z
+    </select> 
+
+    <select id="retrieveSelfCheckInCountAndBagDrop" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastSelfCheckInCountAndBagDropDto">
+        /* CastRestTestMapper.retrieveSelfCheckInCountAndBagDrop(CastReqGetResourceDto dto) */
+    SELECT LISTAGG(BlockID,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS BlockID                  -- BlockID
+         , LISTAGG(resourceID,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS resourceID            -- 체크인카운터번호
+         , LISTAGG(DepArrTerminal,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS DepArrTerminal    -- 터미널아이디
+         , LISTAGG(AirlineCode,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS AirlineCode          -- 항공사코드         
+         , LISTAGG(DomStatus,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS DomStatus    -- 국내국제구분코드         
+         , LISTAGG(t1,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS t1                            -- 체크인오픈예정시분
+         , LISTAGG(t2,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS t2                            -- 체크인클로즈예정시분
+         , REPLACE(LISTAGG(TravelClass,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2),' ','') AS TravelClass           -- 체크인등급코드
+         , REPLACE(LISTAGG(GroupStatus,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2),' ','') AS GroupStatus        -- 체크인그룹코드
+         , REPLACE(LISTAGG(CheckinType,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2),' ','') AS CheckinType        -- 체크인종류코드
+         , REPLACE(LISTAGG(NonFunctionalStatus,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2),' ','') AS NonFunctionalStatus -- 체크인기능코드
+         , REPLACE(LISTAGG(CheckinAllocType,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2),' ','') AS CheckinAllocType -- 체크인유형코드
+         , REPLACE(LISTAGG(CheckInAllocDescryption,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2),' ','') AS CheckInAllocDescryption-- 체크인유형상세정보
+         , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
+      FROM (    
+        <if test="resourceID == 'SBD001'">    
+             <![CDATA[
+             SELECT 
+                CASE
+                    WHEN SUBSTR(CHKN_INTR_ID, 4, 1) = '1' THEN 'P01Self'
+                    ELSE 'P03Self'
+                END AS BlockID
+                , CASE
+                    WHEN SUBSTR(CHKN_INTR_ID, 4, 1) = '1' THEN 'P01'
+                    ELSE 'P03'
+                END AS DepArrTerminal
+                , CHKN_INTR_ID AS resourceID
+                , '"' || LISTAGG(ALN_CD, ',') WITHIN GROUP (ORDER BY ALN_CD) || '"' AS AirlineCode
+                , 'Int' AS DomStatus
+                , TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP)-1, 'YYYY-MM-DD')  || 'T12:00:00.000' AS t1
+                , TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYY-MM-DD')    || 'T23:59:59.000' AS t2
+                , '' AS TravelClass          -- 체크인등급코드
+                , '' AS GroupStatus          -- 체크인그룹코드
+                , '' AS CheckinType          -- 체크인종류코드
+                , '' AS NonFunctionalStatus  -- 체크인기능코드
+                , 'C' AS CheckinAllocType -- 체크인유형코드
+                , '"' || LISTAGG(ALN_CD, ',') WITHIN GROUP (ORDER BY ALN_CD) || '"' AS CheckInAllocDescryption -- 체크인유형상세정보
+            FROM PMOWN.DROP_AA_SELF_CHKN_ALN
+            GROUP BY SUBSTR(CHKN_INTR_ID, 4, 1), CHKN_INTR_ID
+            UNION ALL 
+            SELECT 
+                BlockID
+                , DepArrTerminal
+                , resourceID
+                , '"' ||(SELECT LISTAGG(ALN, ',') WITHIN GROUP (ORDER BY ALN) FROM (SELECT DISTINCT REGEXP_SUBSTR(SBD.AirlineCode, '[^,]+', 1,LEVEL) AS ALN FROM DUAL CONNECT BY REGEXP_SUBSTR(SBD.AirlineCode, '[^,]+', 1 , LEVEL) IS NOT NULL)) || '"' AS AirlineCode      -- 항공사코드
+                , DomStatus
+                , t1
+                , t2
+                , '' AS TravelClass          -- 체크인등급코드
+                , '' AS GroupStatus          -- 체크인그룹코드
+                , '' AS CheckinType          -- 체크인종류코드
+                , '' AS NonFunctionalStatus  -- 체크인기능코드
+                , 'C' AS CheckinAllocType -- 체크인유형코드
+                , '"' ||(SELECT LISTAGG(ALN, ',') WITHIN GROUP (ORDER BY ALN) FROM (SELECT DISTINCT REGEXP_SUBSTR(SBD.AirlineCode, '[^,]+', 1,LEVEL) AS ALN FROM DUAL CONNECT BY REGEXP_SUBSTR(SBD.AirlineCode, '[^,]+', 1 , LEVEL) IS NOT NULL)) || '"' AS CheckInAllocDescryption -- 체크인유형상세정보
+            FROM (
+                SELECT 
+                    CASE 
+                        WHEN CIC.TMNL_ID = 'P03' THEN 'P03SBD'
+                        ELSE 'P01SBD'
+                    END                                       AS BlockID          -- BlockID
+                    , CIC.TMNL_ID                                  AS DepArrTerminal   -- 터미널아이디
+                    , CIC.CKNCT_ID                                  AS resourceID       -- 체크인카운터번호
+                    , LISTAGG(PLCY.ALN_IATA_CD, ',') WITHIN GROUP (ORDER BY PLCY.ALN_IATA_CD) AS AirlineCode      -- 항공사코드
+                    , CASE
+                        WHEN CIC.DOM_INTL_SE_CD = 'I' THEN 'Int'
+                        ELSE 'Dom'
+                    END                                       AS DomStatus        -- 국내국제구분코드
+                    , TO_CHAR(TO_DATE(MIN(GD.OPEN_TM), 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD"T"HH24:MI:SS".000"')                            AS t1
+                    , TO_CHAR(TO_DATE(MAX(GD.CLOSE_TM), 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD"T"HH24:MI:SS".000"')                           AS t2
+                FROM CAOWN.TN_CA_CKNCT CIC
+                    LEFT JOIN PMOWN.DROP_AA_SBD_PLCY PLCY
+                    ON CIC.TMNL_ID = PLCY.TMNL_ID AND SUBSTR(CIC.CKNCT_ID, 1, 1) = PLCY.ISLAND
+                    LEFT JOIN (
+                                SELECT
+                                    A.GD_SE_DT
+                                    , A.TER_ID 
+                                    , A.ALN_CD
+                                    , MIN(TO_CHAR(TO_DATE(A.GD_SE_DT || A.SCHD_HM, 'YYYYMMDDHH24MISS') - 5/24, 'YYYYMMDDHH24MISS')) AS OPEN_TM
+                                    , MAX(TO_CHAR(TO_DATE(A.GD_SE_DT || A.SCHD_HM, 'YYYYMMDDHH24MISS') - 1/24, 'YYYYMMDDHH24MISS')) AS CLOSE_TM
+                                FROM PMOWN.DROP_AA_TN_AS_GD_DATA A
+                                WHERE 1=1
+                                AND A.CSHR_STAT_CD != 'SL'
+                                AND A.DLY_RSN_CD NOT IN ('2', '3')
+                                AND A.TER_ID IN ('P', 'P01', 'P02', 'P03')
+                                AND A.AC_USE_SE_CD = '0'
+                                AND A.GD_FLT_PPS_CD IN ('00', '05')
+                                AND A.PAX_CGO_SE_CD = 'Y'
+                                AND A.ARR_DEP_SE_CD = 'D'
+                                AND A.FRY_YN = 'N'
+                                AND A.LCRFT_YN = 'N'
+                                AND A.GD_SE_DT BETWEEN TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) -1, 'YYYYMMDD') AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYYMMDD')
+                                GROUP BY A.GD_SE_DT, A.TER_ID, A.ALN_CD
+                    ) GD
+                     ON PLCY.ALN_IATA_CD = GD.ALN_CD
+                    AND CIC.TMNL_ID = GD.TER_ID
+                WHERE 1=1
+                AND CIC.USE_YN = 'Y'
+                AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD = 'H'
+                AND GD.OPEN_TM IS NOT null
+                GROUP BY CIC.TMNL_ID, CIC.CKNCT_ID, CIC.DOM_INTL_SE_CD
+            ) SBD
+            ORDER BY BlockID, DepArrTerminal, resourceID
+             ]]>
+        </if>
+        <if test="resourceID != 'SBD001'">
+              SELECT CASE 
+                   WHEN TMNL_ID = 'P01'
+                   THEN 'P01SBD'
+                   WHEN TMNL_ID = 'P03'
+                   THEN 'P03SBD'
+                   ELSE 'P03Self'
+                   END AS BlockID
+                 , Y.TMNL_ID AS DepArrTerminal
+                 , Y.CKNCT_ID AS resourceID
+                 , '"' || Y.CHKN_TYPE_DTL_INFO || '"' AS AirlineCode
+                 , CASE
+                   WHEN Y.DOM_INTL_SE_CD = 'I' THEN 'Int'
+                   ELSE 'Dom'
+                   END AS DomStatus      -- 국내국제구분코드
+                 , TO_CHAR(TO_DATE(Y.STA_DT, 'YYYYMMDDHH24MI'), 'YYYY-MM-DD"T"HH24:MI":00"') AS t1
+                 , TO_CHAR(TO_DATE(
+                     CASE WHEN Y.RON_YN = 'N' THEN Y.OPR_DT
+                         ELSE TO_CHAR(TO_DATE(Y.OPR_DT, 'YYYYMMDD') + 1, 'YYYYMMDD')
+                     END || SUBSTR(Y.END_DT,9,2), 'YYYYMMDDHH24MI' 
+                 ), 'YYYY-MM-DD"T"HH24:MI":00"') AS t2
+                 , Y.TRVL_CLSS AS TravelClass
+                 , Y.GRP_STAT AS GroupStatus
+                 , Y.CIC_TYPE AS CheckInType
+                 , Y.NONFUNC_STAT AS NonFunctionalStatus
+                 , Y.CHKN_TYPE_CD AS CheckInAllocType
+                 , '"' || Y.CHKN_TYPE_DTL_INFO || '"' AS CheckInAllocDescryption
+              FROM (SELECT A.TMNL_ID
+                         , A.CKNCT_ID
+                         , A.ALN_CD
+                         , A.DOM_INTL_SE_CD
+                         , A.CRTR_YMD AS OPR_DT
+                         , A.OPER_BGNG_DT AS STA_DT
+                         , A.OPER_END_DT AS END_DT
+                           <![CDATA[
+                         , CASE WHEN TO_NUMBER(A.OPER_BGNG_DT) <= TO_NUMBER(A.OPER_END_DT) THEN 'N' ELSE 'Y' END AS RON_YN
+                           ]]>
+                         , NVL(A.CHKN_GRD_CD,' ') AS TRVL_CLSS
+                         , NVL(A.CHKN_GROUP_CD,' ') AS GRP_STAT
+                         , NVL(A.CHKN_KND_CD,' ') AS CIC_TYPE
+                         , NVL(A.CHKN_FWK_CD,' ') AS NONFUNC_STAT
+                         , NVL(A.CHKN_TYPE_CD,' ') AS CHKN_TYPE_CD
+                         , NVL(A.CHKN_TYPE_DTL_INFO,' ') AS CHKN_TYPE_DTL_INFO
+                      FROM PMOWN.TN_PM_SMLT_SBD_ATRB A
+                     WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'SBD', '')) Y
+            ORDER BY DepArrTerminal, t1, t2
+        </if>
+        ) K
+        ORDER BY t1, t2
+    </select>
+
+   <select id="retrievePropertySetMst" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastPropertySetDto">
+        /* CastRestTestMapper.retrievePropertySetMst(CastReqGetResourceDto dto) */
+    SELECT 'PS'||FIX_ATRB_GROUP_ID AS resourceID
+             , FRST_RGTR_ID AS author
+             , TO_CHAR(A.FRST_REG_DT, 'YYYY-MM-DD"T"HH24:MI":00"') AS created
+             , TO_CHAR(A.LAST_MDFCN_DT, 'YYYY-MM-DD"T"HH24:MI":00"') AS lastModified
+             , LAST_MDFR_ID AS lastSaveBy
+             , LAST_MDFR_IP_ADDR AS lastSaveUsingVersion
+      FROM PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP A
+    WHERE A.FIX_ATRB_GROUP_ID = REPLACE(#{resourceID},'PS','')
+    </select>
+
+   <select id="retrievePropertySetSvc" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastPropertySetDto">
+        /* CastRestTestMapper.retrievePropertySetSvc(CastReqGetResourceDto dto) */
+      SELECT AA.FCLTY_SE_CD cd
+         , BB.USER_DEF_COL_NM pName
+         , BB.USER_DEF_COL_EXPLN pFriendlyName
+         , 'string' unitName
+         , 'Transaction Time Definition' pKind
+         , 'PS'||FIX_ATRB_GROUP_ID resourceID
+         , AA.MIN_VL min
+         , AA.MAX_VL max
+         , AA.DSTB_MAX_VL dist
+         , AA.VL_TYPE vlType
+         , AA.FCLTY_DTL_CD tyCd
+      FROM (SELECT FIX_ATRB_GROUP_ID
+                 , FCLTY_SE_CD
+                 , FCLTY_DTL_CD
+                 , MIN_VL
+                 , MAX_VL
+                 , DSTB_MAX_VL
+                 , VL_TYPE
+                 , SWTC_FNC_ID
+                 , FRST_REG_DT
+                 , LAST_MDFCN_DT
+              FROM PMOWN.TN_PM_SMLT_SRVC_ATRB A
+             WHERE FIX_ATRB_GROUP_ID = REPLACE(#{resourceID},'PS','')) AA
+               INNER JOIN
+               (SELECT SUBSTR(A.PSG_SRVC_PARA_CD,1,2) AS cd
+                      , A.PSG_SRVC_PARA_CD AS subCd
+                      , A.PSG_SRVC_PARA_CD_NM AS subCdNm
+                      , A.PSG_SMLT_APLCN_NM AS USER_DEF_COL_NM
+                      , A.PSG_SMLT_APLCN_EXPLN AS USER_DEF_COL_EXPLN
+                   FROM PMOWN.TN_PM_SMLT_PSG_SRVC_PARA_CD A
+                  WHERE A.USE_YN = 'Y') BB ON AA.FCLTY_SE_CD = BB.subCd
+    </select>
+
+    <select id="retrievePropertySetPax" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastPropertySetDto">
+        /* CastRestTestMapper.retrievePropertySetPax(CastReqGetResourceDto dto) */
+        SELECT AA.PSG_ATRB_CD cd
+                 , BB.PSG_SMLT_APLCN_NM pName
+                 , BB.PSG_FIX_PARA_CND_VL pFriendlyName
+                 , 'string' unitName
+                 , DECODE(BB.PSG_FIX_PARA_CND_TYPE_CD,'01','Simple Shares','02','Reporting Profile','03','Case of (multiple)','04','Shares') pKind
+                 , PSG_FIX_PARA_CND_TYPE_CD tyCd
+                 , 'PS'||FIX_ATRB_GROUP_ID resourceID
+                 , BB.VL_TYPE vlType
+          FROM (SELECT A.FIX_ATRB_GROUP_ID
+                              , A.PSG_ATRB_CD
+                              , A.PSG_DTL_SE_CD
+                              , A.INPT_VL
+                              , A.FRST_REG_DT
+                              , A.LAST_MDFCN_DT
+                       FROM PMOWN.TN_PM_SMLT_PSG_ATRB A
+                     WHERE A.FIX_ATRB_GROUP_ID = REPLACE(#{resourceID},'PS','')
+                                   ) AA
+          INNER JOIN (SELECT PSG_FIX_PARA_CD 
+                                       , PSG_FIX_PARA_GROUP_CD 
+                                       , PSG_FIX_PARA_CND_TYPE_CD
+                                       , PSG_SMLT_APLCN_NM 
+                                       , PSG_FIX_PARA_CND_VL
+                                       , VL_TYPE
+                                FROM PMOWN.TN_PM_SMLT_PSG_FIX_PARA_CD
+                              WHERE USE_YN='Y') BB 
+               ON AA.PSG_ATRB_CD = BB.PSG_FIX_PARA_CD
+        GROUP BY AA.PSG_ATRB_CD,BB.PSG_SMLT_APLCN_NM,BB.PSG_FIX_PARA_CND_VL,BB.PSG_FIX_PARA_CD,PSG_FIX_PARA_GROUP_CD,BB.PSG_FIX_PARA_CD,BB.PSG_FIX_PARA_CND_TYPE_CD,FIX_ATRB_GROUP_ID, BB.VL_TYPE
+         UNION ALL
+        SELECT AA.PSG_ATRB_CD cd
+                 , BB.PSG_SMLT_APLCN_NM pName
+                 , BB.PSG_FIX_PARA_CND_VL pFriendlyName
+                 , 'string' unitName
+                 , DECODE(BB.PSG_FIX_PARA_CND_TYPE_CD,'01','Simple Shares','02','Reporting Profile','03','Case of (multiple)','04','Shares') pKind
+                 , PSG_FIX_PARA_CND_TYPE_CD tyCd
+                 , 'PS'||FIX_ATRB_GROUP_ID resourceID
+                 , BB.VL_TYPE vlType
+          FROM (SELECT A.FIX_ATRB_GROUP_ID
+                              , A.PSG_ATRB_CD
+                              , A.PSG_DTL_SE_CD
+                              , A.INPT_VL
+                              , A.FRST_REG_DT
+                              , A.LAST_MDFCN_DT
+                       FROM PMOWN.TN_PM_SMLT_SHOW_UP_ATRB A
+                     WHERE A.FIX_ATRB_GROUP_ID = REPLACE(#{resourceID},'PS','')
+                                   ) AA
+          INNER JOIN (SELECT PSG_FIX_PARA_CD 
+                                       , PSG_FIX_PARA_GROUP_CD 
+                                       , PSG_FIX_PARA_CND_TYPE_CD
+                                       , PSG_SMLT_APLCN_NM 
+                                       , PSG_FIX_PARA_CND_VL
+                                       , VL_TYPE
+                                FROM PMOWN.TN_PM_SMLT_PSG_FIX_PARA_CD
+                              WHERE USE_YN='Y') BB 
+               ON AA.PSG_ATRB_CD = BB.PSG_FIX_PARA_CD
+        GROUP BY AA.PSG_ATRB_CD,BB.PSG_SMLT_APLCN_NM,BB.PSG_FIX_PARA_CND_VL,BB.PSG_FIX_PARA_CD,PSG_FIX_PARA_GROUP_CD,BB.PSG_FIX_PARA_CD,BB.PSG_FIX_PARA_CND_TYPE_CD,FIX_ATRB_GROUP_ID, BB.VL_TYPE        
+        ORDER BY cd
+    </select>
+
+    <select id="retrievePropertySetId" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastPropertySetDto">
+        /* CastRestTestMapper.retrievePropertySetId(CastReqGetResourceDto dto) */
+        SELECT 'SBDCounterAllocationResourceID' AS pName
+                  , 'SBDCounterAllocation Resource ID' AS pFriendlyName
+                  , 'String' AS vlType
+                  , '' AS unitName
+                  , 'SBD'||A.SBD_ATRB_ID  AS val
+          FROM PMOWN.TN_PM_SMLT_SBD_MSTR A
+        WHERE A.SBD_ATRB_ID = REPLACE(#{resourceID},'PS','')
+        UNION ALL
+        SELECT 'FacilityOpeningTable_SecurityControlResourceID' AS pName
+                  , 'FacilityOpeningTable_SecurityControl Resource ID' AS pFriendlyName
+                  , 'String' AS vlType
+                  , '' AS unitName
+                  , 'FacilityOpeningTable_SecurityControl'||A.SCRTY_CNTRL_ATRB_ID AS val
+          FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_SCRTY_CNTRL_MSTR A
+        WHERE A.SCRTY_CNTRL_ATRB_ID = REPLACE(#{resourceID},'PS','')
+        UNION ALL
+        SELECT 'FacilityOpeningTable_ImmigrationResourceID' AS pName
+                  , 'FacilityOpeningTable_Immigration Resource ID' AS pFriendlyName
+                  , 'String' AS vlType
+                  , '' AS unitName
+                  , 'FacilityOpeningTable_Immigration'||A.IMMIG_ATRB_ID AS val
+          FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_IMMIG_MSTR A
+        WHERE A.IMMIG_ATRB_ID = REPLACE(#{resourceID},'PS','')
+        UNION ALL
+        SELECT 'FacilityOpeningTable_EmigrationResourceID' AS pName
+                  , 'FacilityOpeningTable_Emigration Resource ID' AS pFriendlyName
+                  , 'String' AS vlType
+                  , '' AS unitName
+                  , 'FacilityOpeningTable_Emigration'||A.EMIG_ATRB_ID AS val
+          FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_EMIG_MSTR A
+        WHERE A.EMIG_ATRB_ID = REPLACE(#{resourceID},'PS','')
+        UNION ALL
+        SELECT 'FacilityOpeningTable_DepartureGateResourceID' AS pName
+                  , 'FacilityOpeningTable_DepartureGate Resource ID' AS pFriendlyName
+                  , 'String' AS vlType
+                  , '' AS unitName
+                  , 'FacilityOpeningTable_DepartureGate'||A.DPTGT_ATRB_ID AS val
+          FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_DPTGT_MSTR A
+        WHERE A.DPTGT_ATRB_ID = REPLACE(#{resourceID},'PS','')
+        UNION ALL
+        SELECT 'FacilityOpeningTable_TransferSecurityControlResourceID' AS pName
+                  , 'FacilityOpeningTable_TransferSecurityControl Resource ID' AS pFriendlyName
+                  , 'String' AS vlType
+                  , '' AS unitName
+                  , 'FacilityOpeningTable_TransferSecurityControl'||A.TRNST_SCRTY_CNTRL_ATRB_ID AS val
+          FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_TRNST_SCRTY_CNTRL_MSTR A
+        WHERE A.TRNST_SCRTY_CNTRL_ATRB_ID = REPLACE(#{resourceID},'PS','')
+        UNION ALL
+        SELECT 'CheckinTypeResourceID' AS pName
+                  , 'CheckinType Resource ID' AS pFriendlyName
+                  , 'String' AS vlType
+                  , '' AS unitName
+                  , 'CheckinType'||A.CKNCT_TYPE_ATRB_ID AS val
+          FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_MSTR A
+        WHERE A.CKNCT_TYPE_ATRB_ID = REPLACE(#{resourceID},'PS','')
+        UNION ALL
+        SELECT 'CheckInCounterServiceTimeResourceID' AS pName
+                  , 'CheckInCounterServiceTime Resource ID' AS pFriendlyName
+                  , 'String' AS vlType
+                  , '' AS unitName
+                  , 'CheckInCounterServiceTime'||A.CKNCT_SRVC_ATRB_ID AS val
+          FROM PMOWN.TN_PM_SMLT_CKNCT_SRVC_MSTR A
+        WHERE A.CKNCT_SRVC_ATRB_ID = REPLACE(#{resourceID},'PS','')
+    </select>
+
+    <select id="retrievePropertySetPaxDtl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastProPertySetDtlDto">
+        /* CastRestTestMapper.retrievePropertySetPaxDtl(CastReqGetResourceDto dto) */
+         SELECT A.INPT_VL AS shares
+              , B.PSG_SMLT_APLCN_NM AS role
+              , B.PSG_FIX_PARA_CND_VL AS value1
+              , A.USER_DEF_1_VL AS value2
+              , B.PSG_FIX_PARA_CND_VL AS psgFixParaCndVl
+              , B.VL_TYPE AS vlType
+           FROM PMOWN.TN_PM_SMLT_PSG_ATRB A
+           INNER JOIN PMOWN.TN_PM_SMLT_PSG_FIX_PARA_CD B
+               ON A.PSG_DTL_SE_CD = B.PSG_FIX_PARA_CD
+        WHERE A.FIX_ATRB_GROUP_ID = REPLACE(#{resourceID},'PS','')
+            AND B.USE_YN='Y'
+            AND A.PSG_ATRB_CD = #{cd}
+        UNION ALL
+        SELECT A.INPT_VL AS shares
+              , B.PSG_SMLT_APLCN_NM AS role
+              , B.PSG_FIX_PARA_CND_VL AS value1
+              , A.USER_DEF_1_VL AS value2
+              , B.PSG_FIX_PARA_CND_VL AS psgFixParaCndVl
+              , B.VL_TYPE AS vlType
+           FROM PMOWN.TN_PM_SMLT_SHOW_UP_ATRB A
+           INNER JOIN PMOWN.TN_PM_SMLT_PSG_FIX_PARA_CD B
+               ON A.PSG_DTL_SE_CD = B.PSG_FIX_PARA_CD
+        WHERE A.FIX_ATRB_GROUP_ID = REPLACE(#{resourceID},'PS','')
+            AND B.USE_YN='Y'
+            AND A.PSG_ATRB_CD = #{cd}    
+        ORDER BY role
+    </select>
+
+    <select id="retrieveCASTExModel" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastModelDto">
+        /* CastRestTestMapper.retrieveCASTExModel(CastReqGetResourceDto dto) */
+        SELECT 'CASTModel' ResourceType
+          , A.SMLT_MDL_EXPLN ResourceID
+          , 'SYSTEM' Author
+          , 'Regular CAST Model' Description
+          , TO_CHAR(A.LAST_MDFCN_DT,'YYYY-MM-DD')||'T'||TO_CHAR(A.LAST_MDFCN_DT,'HH24:MI:SS')  LastModified
+          , 'cols_Model'||A.SMLT_MDL_SN tableID
+          , B.STRG_FILE_NM fileNm
+        FROM PMOWN.TN_PM_SMLT_MDL A
+        LEFT OUTER JOIN PMOWN.TN_PM_PSG_MNG_ATFL B
+        ON A.SMLT_MDL_FILE_PATH_NM = B.ATCH_FILE_ID
+        WHERE A.DEL_YN = 'N'
+        AND A.SMLT_MDL_EXPLN = #{resourceID}
+        AND A.SMLT_MDL_TYPE_CD = '2'
+    </select>
+
+    <select id="retrieveCASTModel" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastModelDto">
+        /* CastRestTestMapper.retrieveCASTModel(CastReqGetResourceDto dto) */
+        SELECT 'CASTModel' ResourceType
+          , A.SMLT_MDL_EXPLN ResourceID
+          , 'SYSTEM' Author
+          , 'Regular CAST Model' Description
+          , TO_CHAR(A.LAST_MDFCN_DT,'YYYY-MM-DD')||'T'||TO_CHAR(A.LAST_MDFCN_DT,'HH24:MI:SS')  LastModified
+          , 'cols_Model'||A.SMLT_MDL_SN tableID
+           , B.STRG_FILE_NM fileNm
+        FROM PMOWN.TN_PM_SMLT_MDL A
+        LEFT OUTER JOIN PMOWN.TN_PM_PSG_MNG_ATFL B
+        ON A.SMLT_MDL_FILE_PATH_NM = B.ATCH_FILE_ID
+        WHERE A.DEL_YN = 'N'
+        AND A.SMLT_MDL_EXPLN = #{resourceID}
+        AND A.SMLT_MDL_TYPE_CD = '1'
+    </select>
+
+    <select id="checkCASTModel" parameterType="aoms.pm.cmmn.dto.CastModelDto" resultType="aoms.pm.cmmn.dto.CastModelDto">
+        /* CastRestTestMapper.checkCASTModel(CastModelDto dto) */
+    SELECT B.STRG_FILE_NM AS fileNm
+    FROM PMOWN.TN_PM_SMLT_MDL A
+    LEFT OUTER JOIN PMOWN.TN_PM_PSG_MNG_ATFL B
+    ON A.SMLT_MDL_FILE_PATH_NM = B.ATCH_FILE_ID
+    WHERE A.DEL_YN = 'N'
+    AND A.SMLT_MDL_EXPLN = #{resourceID}
+    </select>
+
+    <select id="retrieveNewCastModelId" parameterType="aoms.pm.cmmn.dto.CastModelDto" resultType="String">
+        /* CastRestTestMapper.retrieveNewCastModelId(CastModelDto dto) */
+    SELECT NVL(MAX(TO_NUMBER(SMLT_MDL_SN)),0)+1 AS smltMdlSn
+      FROM PMOWN.TN_PM_SMLT_MDL
+    </select>
+
+    <insert  id="insertCASTModel" parameterType="aoms.pm.cmmn.dto.SmltMdlDto" >
+        /* CastRestTestMapper.insertCASTModel(SmltMdlDto dto) */
+        INSERT INTO PMOWN.TN_PM_SMLT_MDL
+        (
+            SMLT_MDL_SN
+            , SMLT_MDL_EXPLN
+            , SMLT_MDL_FILE_PATH_NM
+            , DEL_YN
+            , SMLT_MDL_TYPE_CD
+            , FRST_RGTR_ID
+            , FRST_RGTR_IP_ADDR
+            , FRST_REG_DT
+        ) VALUES (
+            #{smltMdlSn}
+            , #{smltMdlExpln}
+            , #{smltMdlFilePathNm}
+            , 'N'
+            , #{smltMdlTypeCd}
+            , 'system'
+            , #{loginIpAddr}
+            , CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update  id="updateCASTModel" parameterType="aoms.pm.cmmn.dto.CastModelDto" >
+        /* CastRestTestMapper.updateCASTModel(CastModelDto dto) */
+       UPDATE PMOWN.TN_PM_SMLT_MDL SET
+              LAST_MDFR_ID = 'SYSTEM'
+           , LAST_MDFR_IP_ADDR = #{loginIpAddr}
+           , LAST_MDFCN_DT = CURRENT_TIMESTAMP
+        WHERE SMLT_MDL_EXPLN = #{resourceID}
+    </update>
+
+    <update  id="deleteCASTModel" parameterType="aoms.pm.cmmn.dto.CastResReqDto" >
+        /* CastRestTestMapper.deleteCASTModel(CastResReqDto dto) */
+       UPDATE PMOWN.TN_PM_SMLT_MDL SET
+             DEL_YN = 'Y'
+           , LAST_MDFR_ID = 'SYSTEM'
+           , LAST_MDFR_IP_ADDR = #{loginIpAddr}
+           , LAST_MDFCN_DT = CURRENT_TIMESTAMP
+       WHERE SMLT_MDL_EXPLN = #{resourceID}
+    </update>
+
+    <select id="retrieveModelInfo" parameterType="aoms.pm.cmmn.dto.CastModelDto" resultType="aoms.pm.cmmn.dto.SmltMdlDto">
+        /* CastRestTestMapper.retrieveModelInfo(CastModelDto dto) */
+    SELECT SMLT_MDL_SN AS smltMdlSn
+        , SMLT_MDL_TYPE_CD AS smltMdlTypeCd
+        , SMLT_EXCN_SE_CD smltExcnSeCd
+      FROM PMOWN.TN_PM_SMLT_MDL
+      WHERE SMLT_MDL_EXPLN = #{modelResourceID}
+    </select>
+
+    <select id="retrieveSimId" parameterType="aoms.pm.cmmn.dto.CastResReqDto" resultType="String">
+        /* CastRestTestMapper.retrieveSimId(CastResReqDto dto) */
+        SELECT PMOWN.SQ1_TN_PM_SMLT_RSLT.NEXTVAL
+          FROM DUAL
+    </select>
+
+    <select id="checkFcltCd" parameterType="aoms.pm.cmmn.dto.SimRsltDto" resultType="String">
+        /* CastRestTestMapper.checkFcltCd(SimRsltDto dto) */
+    SELECT PSG_FCLT_CD AS psgFcltCd
+    FROM PMOWN.TN_PM_SMLT_PSG_FCLT
+    WHERE USE_YN = 'Y'
+    AND SMLT_FCLT_NM = #{paxFcltCd}
+    </select>
+
+    <select id="checkFcltCdList" parameterType="aoms.pm.cmmn.dto.SimRsltDto" resultType="aoms.pm.cmmn.dto.CastRsltFcltCdDto">
+        /* CastRestTestMapper.checkFcltCdList(SimRsltDto dto) */
+    SELECT PSG_FCLT_CD AS psgFcltCd
+         , SMLT_FCLT_NM AS smltFcltNm
+      FROM PMOWN.TN_PM_SMLT_PSG_FCLT
+     WHERE USE_YN = 'Y'
+    </select>
+
+    <insert id="insertSimSet" parameterType="aoms.pm.cmmn.dto.CastResReqDto">
+        /* CastRestTestMapper.insertSimSet(CastResReqDto dto) */
+    INSERT INTO PMOWN.TN_PM_SMLT_STNG
+             (  SMLT_ID
+              , SMLT_MDL_SN
+              , SMLT_NM
+              , SMLT_TYPE
+              , CRTR_DT
+              , EXCN_YMD
+              , TMNL_ID              
+              , SLF_ID
+              , PRNT_ID
+              , FLT_SCHDL_RSRC_ID
+              , BAG_ALCTN_RSRC_ID
+              , CKNCT_ALCTN_RSRC_ID
+              , PRPT_SET_RSRC_ID
+              , MDL_RSRC_ID
+              , EXCN_ID
+              , CKNCT_SRVC_HR_RSRC_ID
+              , CHKN_TYPE_RSRC_ID
+              , FCLTY_OPNG_TBL_DG_RSRC_ID
+              , FCLTY_OPNG_TBL_EMI_RSRC_ID
+              , FCLTY_OPNG_TBL_IMMI_RSRC_ID
+              , FCLTY_OPNG_TBL_SCRTY_CNTRL_RSRC_ID
+              , FCLTY_OPNG_TBL_TR_SCRTY_CNTRL_RSRC_ID
+              , SBD_CNTRL_ALCTN_ID
+              , PLAN_BGNG_DT
+              , PLAN_END_DT
+              , SMLT_BGNG_DT
+              , SMLT_END_DT              
+              , BDPSG_ANCE_YN
+              , FRST_RGTR_ID
+              , FRST_RGTR_IP_ADDR
+              , FRST_REG_DT)
+    VALUES (    #{simId}
+              , #{smltMdlSn}
+              , #{resourceID}
+              , #{smltType}
+              , CURRENT_TIMESTAMP
+              , substr(replace(replace(#{startTime},'T',' '),'-',''),1,8)
+              , 'P01'
+              , #{selfID}
+              , #{parentID}              
+              , #{flightScheduleResourceID}
+              , #{bagAllocationResourceID}
+              , #{checkInAllocationResourceID}
+              , #{propertySetResourceID}
+              , #{modelResourceID}
+              , #{runID}
+              , #{checkinCounterServiceTimeResourceID}
+              , #{checkinTypeResourceID}
+              , #{facilityOpeningTableDepartureGateResourceID}
+              , #{facilityOpeningTableEmigrationResourceID}
+              , #{facilityOpeningTableImmigrationResourceID}
+              , #{facilityOpeningTableSecurityControlResourceID}
+              , #{facilityOpeningTableTransferSecurityControlResourceID}
+              , #{sbdCounterAllocationResourceID}
+              , substr(replace(#{startTime},'T',' '),1,19)              
+              , substr(replace(#{stopTime},'T',' '),1,19)
+              , substr(replace(#{simulationStartTime},'T',' '),1,19)              
+              , substr(replace(#{simulationStopTime},'T',' '),1,19)              
+              , #{paxAnnceYn}
+              , 'CAST'
+              , #{loginIpAddr}
+              , CURRENT_TIMESTAMP)
+    </insert>
+
+    <insert id="insertSimResultDtl" parameterType="java.util.HashMap">
+        /* CastRestTestMapper.insertSimResultDtl(HashMap dto) */
+    INSERT INTO PMOWN.TN_PM_SMLT_RSLT_DTL
+             ( SMLT_ID
+            , SMLT_MDL_SN
+            , SMLT_RSLT_SN
+            , SMLT_EXCN_DT
+            , SMLT_ACTL_DT
+            , PSG_FCLT_CD
+            , REL_EVENT_CD
+            , WTNG_PSG_CNT
+            , TRNST_PSG_CNT
+            , AVG_PRCS_HR
+            , MIN_PRCS_HR
+            , MAX_PRCS_HR
+            , AVG_WTNG_HR
+            , MIN_WTNG_HR
+            , MAX_WTNG_HR
+            , AVG_WTNG_LEN
+            , MIN_WTNG_LEN
+            , MAX_WTNG_LEN
+            , INDV_REQ_AVG_AREA
+            , FRST_RGTR_ID
+            , FRST_RGTR_IP_ADDR
+            , FRST_REG_DT)
+    VALUES
+    <foreach item="SmltRsltDtlDto" collection="list" separator=",">
+        (
+                #{SmltRsltDtlDto.smltId}
+              , #{SmltRsltDtlDto.smltMdlSn}
+              , #{SmltRsltDtlDto.smltRsltSn}
+              , #{SmltRsltDtlDto.smltExcnDt}
+              , #{SmltRsltDtlDto.smltActlDt}
+              , #{SmltRsltDtlDto.psgFcltCd}
+              , #{SmltRsltDtlDto.relEventCd}
+              , #{SmltRsltDtlDto.wtngPsgCnt}
+              , #{SmltRsltDtlDto.trnstPsgCnt}
+              , #{SmltRsltDtlDto.avgPrcsHr}
+              , #{SmltRsltDtlDto.minPrcsHr}
+              , #{SmltRsltDtlDto.maxPrcsHr}
+              , #{SmltRsltDtlDto.avgWtngHr}
+              , #{SmltRsltDtlDto.minWtngHr}
+              , #{SmltRsltDtlDto.maxWtngHr}
+              , #{SmltRsltDtlDto.avgWtngLen}
+              , #{SmltRsltDtlDto.minWtngLen}
+              , #{SmltRsltDtlDto.maxWtngLen}
+              , '1'
+              , 'CAST'
+              , #{SmltRsltDtlDto.loginIpAddr}
+              , CURRENT_TIMESTAMP
+        )
+        </foreach>
+    </insert>
+
+    <insert id="insertSimResultDtlRegExcl" parameterType="aoms.pm.cmmn.dto.SmltRsltDtlDto">
+        /* CastRestTestMapper.insertSimResultDtlRegExcl(SmltRsltDtlDto dto) */
+    INSERT INTO PMOWN.TN_PM_SMLT_RSLT_DTL_REG_EXCL
+             ( SMLT_ID
+            , SMLT_SN
+            , PSG_FCLT_DESC
+            , FRST_RGTR_ID
+            , FRST_RGTR_IP_ADDR
+            , FRST_REG_DT)
+    SELECT
+                #{smltId}
+              , (SELECT NVL(MAX(SMLT_SN),0) + 1 FROM PMOWN.TN_PM_SMLT_RSLT_DTL_REG_EXCL WHERE SMLT_ID = #{smltId})
+              , #{psgFcltDesc}
+              , 'CAST'
+              , #{loginIpAddr}
+              , CURRENT_TIMESTAMP
+        FROM DUAL
+    </insert>
+
+    <select id="retrieveDelSetInfo" resultType="aoms.pm.cmmn.dto.SimSetDto">
+        /* CastRestTestMapper.retrieveDelSetInfo(SimSetDto dto) */
+        SELECT A.SMLT_ID AS smltId
+          FROM PMOWN.TN_PM_SMLT_STNG A
+         WHERE A.SMLT_ID NOT IN
+               (SELECT SMLT_ID
+                  FROM ((SELECT EXCN_YMD AS REGI_DT, MAX(TO_NUMBER(SMLT_ID)) AS SMLT_ID
+                           FROM PMOWN.TN_PM_SMLT_STNG
+                          GROUP BY EXCN_YMD)
+                          UNION
+                        (SELECT EXCN_YMD AS REGI_DT, MIN(TO_NUMBER(SMLT_ID)) AS SMLT_ID
+                           FROM PMOWN.TN_PM_SMLT_STNG
+                          GROUP BY EXCN_YMD)
+                          UNION
+                        (SELECT TO_CHAR(FRST_REG_DT, 'YYYYMMDD') AS REGI_DT, TO_NUMBER(SMLT_ID) AS SMLT_ID
+                           FROM PMOWN.TN_PM_SMLT_STNG
+                          WHERE FRST_REG_DT > CURRENT_TIMESTAMP - 1)
+                          UNION
+                        (SELECT EXCN_YMD AS REGI_DT, TO_NUMBER(SMLT_ID) AS SMLT_ID
+                           FROM PMOWN.TN_PM_SMLT_STNG
+                          WHERE BDPSG_ANCE_YN = 'N')
+                        ))
+      ORDER BY TO_NUMBER(A.SMLT_ID)
+    </select>
+
+    <delete id="deleteSimRsltDtl" parameterType="String">
+        /* CastRestTestMapper.deleteSimRsltDtl() */
+        DELETE FROM PMOWN.TN_PM_SMLT_RSLT_DTL
+         WHERE SMLT_ID = #{smltId}
+    </delete>
+
+    <delete id="deleteSimSetMst" parameterType="String">
+        /* CastRestTestMapper.deleteSimSetMst() */
+        DELETE FROM PMOWN.TN_PM_SMLT_STNG A
+         WHERE A.SMLT_ID = #{smltId}
+    </delete>
+
+    <select id="retrieveSimSetByPk" parameterType="aoms.pm.cmmn.dto.CastResReqDto" resultType="aoms.pm.cmmn.dto.CastResReqDto">
+        /* CastRestTestMapper.retrieveSimSetByPk(CastResReqDto dto) */
+    SELECT COUNT(SIM_ID) rsltCnt
+    FROM PMOWN.TN_PM_SMLT_STNG
+    WHERE SMLT_ID = #{smltId}
+       AND SMLT_MDL_SN = (SELECT SMLT_MDL_SN FROM PMOWN.TN_PM_SMLT_MDL WHERE SMLT_MDL_EXPLN = #{smltMdlExpln})
+    </select>
+
+    <delete id="deleteSimResultDtl" parameterType="aoms.pm.cmmn.dto.CastResReqDto">
+        /* CastRestTestMapper.deleteSimResultDtl(CastResReqDto dto) */
+    DELETE FROM PMOWN.TN_PM_SMLT_RSLT_DTL
+    WHERE SMLT_ID = REPLACE(#{smltId},'_','')
+       AND SMLT_MDL_SN = (SELECT SMLT_MDL_SN FROM PMOWN.TN_PM_SMLT_MDL WHERE SMLT_MDL_EXPLN = #{smltMdlExpln})
+    </delete>
+
+    <update id="updateSimResultDtl" parameterType="aoms.pm.cmmn.dto.CastResReqDto">
+        /* CastRestTestMapper.updateSimResultDtl(CastResReqDto dto) */
+    UPDATE INTO PMOWN.TN_PM_SMLT_RSLT_DTL SET
+              WTNG_PSG_CNT = INT(WTNG_PSG_CNT)+TO_NUMBER(#{wtngPsgCnt})
+            , TRNST_PSG_CNT = INT(TRNST_PSG_CNT)+TO_NUMBER(#{trnstPsgCnt})
+    WHERE SMLT_ID = #{smltId}
+        AND SMLT_MDL_SN = #{smltMdlSn}
+        AND SMLT_RSLT_SN = #{smltRsltSn}
+    </update>
+
+    <insert id="insertDwDelKeyValHst" parameterType = "aoms.pm.cmmn.dto.DwDelKeyValHstDto">
+        /* CastRestTestMapper.insertDwDelKeyValHst(DwDelKeyValHstDto dto) */
+    INSERT INTO PMOWN.TH_PM_DW_DEL_KEY_HSTRY
+         ( DEL_YMD
+         , TBL_NM
+         , DEL_SN
+         , KEY_1_VL
+         , KEY_2_VL
+         , KEY_3_VL
+         , KEY_4_VL
+         , KEY_5_VL
+         , KEY_6_VL
+         , KEY_7_VL
+         , KEY_8_VL
+         , KEY_9_VL
+         , KEY_10_VL
+         , FRST_RGTR_ID
+         , FRST_RGTR_IP_ADDR
+         , FRST_REG_DT
+         )
+    VALUES
+         ( TO_CHAR(CURRENT_TIMESTAMP,'YYYYMMDD')
+         , #{tblNm}
+         , PMOWN.SQ1_TH_PX_DW_DEL_KEY_VAL_HST.NEXTVAL
+         , #{key1Vl}
+         , #{key2Vl}
+         , #{key3Vl}
+         , #{key4Vl}
+         , #{key5Vl}
+         , #{key6Vl}
+         , #{key7Vl}
+         , #{key8Vl}
+         , #{key9Vl}
+         , #{key10Vl}
+         , #{loginUserId}
+         , #{loginIpAddr}
+         , CURRENT_TIMESTAMP
+         )
+    </insert>
+
+    <!-- 첨부파일 리스트 조회 -->
+    <select id="retrieveAtchFileList" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto" resultType="aoms.pm.cmmn.dto.PmAtchFileDto">
+        /* CastRestTestMapper.retrieveAtchFileList(PmAtchFileDto dto) */
+        SELECT ATCH_FILE_ID AS atchFileId                           /* 첨부파일ID */
+             , ATCH_FILE_SN AS atchFileSn                         /* 첨부파일일련번호 */
+             , ATCH_FILE_TASK_SE_CD AS atchFileTaskSeCd               /* 첨부파일업무구분코드 */
+             , ATCH_FILE_TYPE_CD AS atchFileTypeCd                      /* 첨부파일유형코드 */
+             , ATCH_FILE_NM AS atchFileNm                           /* 첨부파일명 */          
+             , STRG_FILE_NM AS strgFileNm                         /* 저장파일명 */          
+             , ATCH_FILE_PATH_NM AS atchFilePathNm                  /* 첨부파일경로명 */            
+             , ATCH_FILE_SZ AS atchFileSz                           /* 첨부파일사이즈 */
+             , ATCH_FILE_EXTN_NM AS atchFileExtnNm                /* 첨부파일확장자명 */
+             , ATCH_FILE_EXPLN AS atchFileExpln                       /* 첨부파일설명 */
+          FROM PMOWN.TN_PM_PSG_MNG_ATFL                 /* 첨부파일 */
+        <where>
+            <if test="atchFileIdSrch == ''.toString()">
+                AND 1 = 2
+            </if>
+            <if test="atchFileIdSrch != null and atchFileIdSrch != ''">                                                                               
+                AND ATCH_FILE_ID = #{atchFileId}          /* 첨부파일ID */
+            </if>
+            <if test="atchFileSnoSrch != null and atchFileSnoSrch != ''">                                                                                 
+                AND ATCH_FILE_SN = #{atchFileSn}            /* 첨부파일일련번호 */
+            </if>
+        </where>
+    </select>
+
+    <!-- 첨부파일 저장 -->
+    <insert id="insertAtchFile" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto">
+        /* CastRestTestMapper.insertAtchFile(PmAtchFileDto dto) */
+        INSERT INTO PMOWN.TN_PM_PSG_MNG_ATFL            /* 첨부파일 */
+            (ATCH_FILE_ID                   /* 첨부파일ID */
+            , ATCH_FILE_SN                 /* 첨부파일일련번호 */
+            , ATCH_FILE_TASK_SE_CD           /* 첨부파일업무구분코드 */
+            , ATCH_FILE_TYPE_CD               /* 첨부파일유형코드 */
+            , ATCH_FILE_NM                  /* 첨부파일명 */
+            , STRG_FILE_NM                 /* 저장파일명 */
+            , ATCH_FILE_PATH_NM             /* 첨부파일경로명 */
+            , ATCH_FILE_SZ                  /* 첨부파일사이즈 */
+            , ATCH_FILE_EXTN_NM            /* 첨부파일확장자명 */
+            , ATCH_FILE_EXPLN                /* 첨부파일설명 */
+            , FRST_RGTR_ID                   /* 최초등록자ID */
+            , FRST_RGTR_IP_ADDR                   /* 최초등록자IP */
+            , FRST_REG_DT)                 /* 최초등록타임스탬프 */
+        VALUES 
+            ( #{atchFileId}                   /* 첨부파일ID */
+            , #{atchFileSn}              /* 첨부파일일련번호 */
+            , #{atchFileTaskSeCd}          /* 첨부파일업무구분코드 */
+            , #{atchFileTypeCd}             /* 첨부파일유형코드 */
+            , #{atchFileNm}                  /* 첨부파일명 */
+            , #{strgFileNm}              /* 저장파일명 */
+            , #{atchFilePathNm}               /* 첨부파일경로명 */
+            , #{atchFileSz}                   /* 첨부파일사이즈 */
+            , 'txt'                                /* 첨부파일확장자명 */           
+            , '----'                                 /* 첨부파일설명 */
+            , #{loginUserId}              /* 최초등록자ID */
+            , #{loginIpAddr}                   /* 최초등록자IP */
+            , CURRENT_TIMESTAMP)            /* 최초등록타임스탬프 */ 
+    </insert>
+    
+    <!-- 첨부파일 수정 -->
+    <update id="updateAtchFile" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto">
+        /* CastRestTestMapper.updateAtchFile(PmAtchFileDto dto) */
+        UPDATE PMOWN.TN_PM_PSG_MNG_ATFL                 /* 첨부파일 */
+           SET ATCH_FILE_TASK_SE_CD = #{atchFileTaskSeCd}           /* 첨부파일업무구분코드 */
+             , ATCH_FILE_TYPE_CD = #{atchFileTypeCd}              /* 첨부파일유형코드 */
+             , ATCH_FILE_NM = #{atchFileNm}                       /* 첨부파일명 */
+             , STRG_FILE_NM = #{strgFileNm}                 /* 첨부파일경로명 */            
+             , ATCH_FILE_PATH_NM = #{atchFilePathNm}          /* 첨부파일경로명 */
+             , ATCH_FILE_SZ = #{atchFileSz}                       /* 첨부파일사이즈 */
+             , ATCH_FILE_EXTN_NM = #{atchFileExtnNm}            /* 첨부파일확장자명 */  
+             , LAST_MDFR_ID = #{loginUserId}                       /* 최종수정자ID */
+             , LAST_MDFR_IP_ADDR = #{loginIpAddr}                           /* 최종수정자IP */
+             , LST_MOD_TSP = CURRENT_TIMESTAMP                  /* 최종수정타임스탬프 */
+         WHERE LAST_MDFCN_DT = #{atchFileId}                   /* 첨부파일ID */
+           AND ATCH_FILE_SN = '1'              /* 첨부파일일련번호 */
+    </update>
+
+    <!-- 첨부파일 삭제 -->
+    <delete id="deleteAtchFile" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto">
+        /* CastRestTestMapper.deleteAtchFile(PmAtchFileDto dto) */
+        DELETE FROM PMOWN.TN_PM_PSG_MNG_ATFL                /* 첨부파일 */
+         WHERE ATCH_FILE_ID = #{atchFileId}                       /* 첨부파일ID */
+           AND ATCH_FILE_SN = #{atchFileSn}                 /* 첨부파일일련번호 */
+    </delete>
+        
+    <!-- 첨부파일 ATCH_FILE_ID PK 채번 -->
+    <select id="retrieveIdMaxPk" resultType="String">
+        /* CastRestTestMapper.retrieveIdMaxPk() */
+        SELECT DECODE(SUBSTR(MAX(ATCH_FILE_ID), 1, 8)
+                    , TO_CHAR(SYSDATE, 'YYYYMMDD'), SUBSTR(MAX(ATCH_FILE_ID), 1, 8) || LPAD(TO_NUMBER(SUBSTR(MAX(ATCH_FILE_ID), 9, 11)) + 1, 3, '0')
+                    , TO_CHAR(SYSDATE, 'YYYYMMDD') || '001') AS atchFileId
+          FROM PMOWN.TN_PM_PSG_MNG_ATFL
+    </select>   
+    
+    <!-- 첨부파일 ATCH_FILE_ID 별 ATCH_FILE_SNO PK 채번 -->
+    <select id="retrieveSnoMaxPk" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto" resultType="String">
+        /* CastRestTestMapper.retrieveSnoMaxPk(PmAtchFileDto dto) */
+        SELECT NVL(MAX(TO_NUMBER(ATCH_FILE_SN)), 0) + 1 AS atchFileSn             /* 첨부파일일련번호 */
+          FROM PMOWN.TN_PM_PSG_MNG_ATFL
+         WHERE ATCH_FILE_ID = #{atchFileId}                       /* 첨부파일ID */
+    </select>
+
+    <select id="retrieveCheckInCounterServiceTime" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastCheckInCounterServiceTimeDto">
+        /* CastRestTestMapper.retrieveCheckInCounterServiceTime(CastReqGetResourceDto dto) */
+         SELECT LISTAGG(CASE WHEN A.ALN_CD = 'Default' THEN '&lt;default&gt;' ELSE A.ALN_CD END,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS airline
+             , LISTAGG(A.AVG_VL,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS serviceTime
+             , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_CKNCT_SRVC_MSTR A WHERE USE_YN = 'Y' AND A.CKNCT_SRVC_ATRB_ID = REGEXP_REPLACE(#{resourceID},'CCST|CheckinCounterServiceTime','')) AS LastModified
+          FROM PMOWN.TN_PM_SMLT_CKNCT_SRVC_ATRB A
+          WHERE A.CKNCT_SRVC_ATRB_ID = REGEXP_REPLACE(#{resourceID},'CCST|CheckinCounterServiceTime','')
+    </select>
+
+    <select id="retrieveCheckinType" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastCheckinTypeDto">
+        /* CastRestTestMapper.retrieveCheckinType(CastReqGetResourceDto dto) */
+        SELECT LISTAGG(CASE WHEN A.ALN_CD = 'Default' THEN '&lt;default&gt;' ELSE A.ALN_CD END,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS airlineCode
+             , LISTAGG(A.CKNCT_RT,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS counterShare
+             , LISTAGG(A.CKNCT_VL,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS counterValue
+             , LISTAGG(A.KOS_RT,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS kioskShare
+             , LISTAGG(A.KOS_VL,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS kioskValue
+             , LISTAGG(A.MOB_RT,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS mobileShare
+             , LISTAGG(A.MOB_VL,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS mobileValue       
+             , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_MSTR A WHERE USE_YN = 'Y' AND A.CKNCT_TYPE_ATRB_ID = REGEXP_REPLACE(#{resourceID},'CT|CheckinType','')) AS LastModified                              
+          FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB A
+         WHERE A.CKNCT_TYPE_ATRB_ID = REGEXP_REPLACE(#{resourceID},'CT|CheckinType','')
+    </select>
+
+    <select id="retrieveFcltyOpngTblDptg" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblDptgDto">
+        /* CastRestTestMapper.retrieveFcltyOpngTblDptg(CastReqGetResourceDto dto) */
+	    SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS terminal
+	         , LISTAGG(A.FCLT_SE_CD || 'G' || A.GATE_NO || CASE
+	                                                       WHEN A.FCLTY_TYPE_ID IS NOT NULL AND A.FCLTY_TYPE_ID = 'W'
+	                                                       THEN '-' || 'West'
+	                                                       WHEN A.FCLTY_TYPE_ID IS NOT NULL AND A.FCLTY_TYPE_ID = 'E'
+	                                                       THEN '-' || 'East'
+	                                                       ELSE ''
+	                                                       END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS location
+	         , REPLACE(LISTAGG(CASE
+	                   WHEN B.OPER_BGNG_1_HR IS NOT NULL
+	                   THEN TO_CHAR(TO_DATE(B.BGNG_YMD, 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T00:00:00.000'
+	                   ELSE '1900-01-01T00:00:00.000'
+	                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID), ' ', '') AS startDate
+	        , REPLACE(LISTAGG(CASE
+	                   WHEN B.OPER_BGNG_1_HR IS NOT NULL
+	                   THEN '1899-12-30T' || TO_CHAR(TO_DATE(B.OPER_BGNG_1_HR || '00', 'HH24:MI:SS'),'HH24:MI:SS') || '.000'
+	                   ELSE '1899-12-30T00:00:00.000'
+	                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID), ' ', '') AS startTime
+	         , REPLACE(LISTAGG(CASE
+	                   WHEN B.OPER_END_1_HR IS NOT NULL
+	                   THEN TO_CHAR(TO_DATE(NVL(B.END_YMD,'21001231'), 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T00:00:00.000'
+	                   ELSE '2100-12-31T00:00:00.000'
+	                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID), ' ', '') AS endDate
+	         , REPLACE(LISTAGG(CASE
+	                   WHEN B.OPER_END_1_HR IS NOT NULL
+	                   THEN '1899-12-30T' || TO_CHAR(TO_DATE(B.OPER_END_1_HR || '00', 'HH24:MI:SS'),'HH24:MI:SS') || '.000'
+	                   ELSE '1899-12-30T23:59:00.000'
+	                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID), ' ', '') AS endTime  
+	         , LISTAGG(A.SD_DR,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS sideDoor
+	         , LISTAGG(A.FCLT_RCG,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS facialRecognition
+	         , LISTAGG(A.FCLTY_CNT,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS currentNumberofLanes
+	         , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_DPTGT_MSTR A WHERE USE_YN = 'Y' AND A.DPTGT_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTDG|FacilityOpeningTable_DepartureGate','')) AS LastModified
+	      FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_DPTGT_ATRB A
+	      INNER JOIN (
+	        SELECT *
+            FROM (
+                SELECT 
+                    C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                    B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
+                    C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD AS BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
+                FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
+                    INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_ELMNT B
+                    ON A.OPER_HR_CRLTN_SN = B.OPER_HR_CRLTN_SN
+                    INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_MNG C
+                    ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
+                WHERE A.OPER_HR_STTS_CD = 'DPL'
+            )
+            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_DepartureGate', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+            AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
+                SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
+                FROM (
+                    SELECT 
+                        C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                        B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
+                        C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') OPER_END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
+                    FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
+                        INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_ELMNT B
+                        ON A.OPER_HR_CRLTN_SN = B.OPER_HR_CRLTN_SN
+                        INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_MNG C
+                        ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
+                    WHERE A.OPER_HR_STTS_CD = 'DPL'
+                )
+               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_DepartureGate', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+                GROUP BY TMNL_ID, FCLT_SE_CD
+            )
+	      ) B
+	        ON A.TMNL_ID = B.TMNL_ID
+	       AND A.FCLT_SE_CD = B.FCLT_SE_CD
+	       AND A.GATE_NO = B.FCLTY_TYPE_ID
+	     WHERE A.DPTGT_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTDG|FacilityOpeningTable_DepartureGate','')
+    </select>
+
+    <select id="retrieveFcltyOpngTblEmig" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblEmigDto">
+        /* CastRestTestMapper.retrieveFcltyOpngTblEmig(CastReqGetResourceDto dto) */
+    SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO) AS terminal
+         , LISTAGG(A.FCLT_SE_CD || 'G' || A.GATE_NO,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO) AS location
+         , LISTAGG(CASE WHEN A.EMIG_TYPE_CD = '1' THEN 'Normal' WHEN A.EMIG_TYPE_CD = '2' THEN 'Automatic' ELSE '' END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO) AS immigrationType
+         , LISTAGG(A.FCLTY_CNT,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO) AS currentNumberofLanes
+         , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_EMIG_MSTR A WHERE USE_YN = 'Y' AND A.EMIG_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTE|FacilityOpeningTable_Emigration','')) AS LastModified
+      FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_EMIG_ATRB A
+     WHERE A.EMIG_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTE|FacilityOpeningTable_Emigration','')
+    </select>
+
+    <select id="retrieveFcltyOpngTblImmig" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblImmigDto">
+        /* CastRestTestMapper.retrieveFcltyOpngTblImmig(CastReqGetResourceDto dto) */
+    SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS terminal
+         , LISTAGG(A.FCLTY_TYPE_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS location
+         , REPLACE(LISTAGG(CASE
+                   WHEN B.OPER_BGNG_1_HR IS NOT NULL
+                   THEN TO_CHAR(TO_DATE(B.BGNG_YMD, 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T00:00:00.000'
+                   ELSE '1900-01-01T00:00:00.000'
+                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS startDate
+         , REPLACE(LISTAGG(CASE
+                   WHEN B.OPER_BGNG_1_HR IS NOT NULL
+                   THEN '1899-12-30T' || TO_CHAR(TO_DATE(B.OPER_BGNG_1_HR || '00', 'HH24:MI:SS'),'HH24:MI:SS') || '.000'
+                   ELSE '1899-12-30T00:00:00.000'
+                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS startTime
+         , REPLACE(LISTAGG(CASE
+                   WHEN B.OPER_END_1_HR IS NOT NULL
+                   THEN TO_CHAR(TO_DATE(NVL(B.END_YMD,'21001231'), 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T00:00:00.000'
+                   ELSE '2100-12-31T00:00:00.000'
+                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS endDate     
+         , REPLACE(LISTAGG(CASE
+                   WHEN B.OPER_END_1_HR IS NOT NULL
+                   THEN '1899-12-30T' || TO_CHAR(TO_DATE(B.OPER_END_1_HR || '00', 'HH24:MI:SS'),'HH24:MI:SS') || '.000'
+                   ELSE '1899-12-30T23:59:00.000'
+                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS endTime       
+         , LISTAGG(CASE WHEN A.PSPRT LIKE '%,%' THEN '&quot;' ELSE '' END  || A.PSPRT || CASE WHEN A.PSPRT LIKE '%,%' THEN '&quot;' ELSE '' END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS passport          
+         , LISTAGG(CASE WHEN A.IMMIG_TYPE_CD = '1' THEN 'Normal' WHEN A.IMMIG_TYPE_CD = '2' THEN 'Automatic' ELSE '' END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS immigrationType
+         , LISTAGG(A.FCLTY_CNT,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS currentNumberofLanes
+         , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_IMMIG_MSTR A WHERE USE_YN = 'Y' AND A.IMMIG_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTI|FacilityOpeningTable_Immigration','')) AS LastModified
+      FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_IMMIG_ATRB A
+      INNER JOIN (
+          SELECT *
+            FROM (
+                SELECT 
+                    C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                    B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
+                    C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD AS BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
+                FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
+                    INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_ELMNT B
+                    ON A.OPER_HR_CRLTN_SN = B.OPER_HR_CRLTN_SN
+                    INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_MNG C
+                    ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
+                WHERE A.OPER_HR_STTS_CD = 'DPL'
+            )
+            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_Immigration', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+            AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
+                SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
+                FROM (
+                    SELECT 
+                        C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                        B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
+                        C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') OPER_END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
+                    FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
+                        INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_ELMNT B
+                        ON A.OPER_HR_CRLTN_SN = B.OPER_HR_CRLTN_SN
+                        INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_MNG C
+                        ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
+                    WHERE A.OPER_HR_STTS_CD = 'DPL'
+                )
+               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_Immigration', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+                GROUP BY TMNL_ID, FCLT_SE_CD
+            )
+      ) B
+        ON A.TMNL_ID = B.TMNL_ID
+       AND A.FCLT_SE_CD = B.FCLT_SE_CD
+       AND A.FCLTY_TYPE_ID = B.FCLTY_TYPE_ID
+     WHERE A.IMMIG_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTI|FacilityOpeningTable_Immigration','')
+    </select>
+
+    <select id="retrieveFcltyOpngTblScrtyCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblScrtyCntrlDto">
+        /* CastRestTestMapper.retrieveFcltyOpngTblScrtyCntrl(CastReqGetResourceDto dto) */
+    SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.GATE_NO) AS terminal
+         , LISTAGG(A.FCLT_SE_CD || 'G' || A.GATE_NO,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.GATE_NO) AS location
+         , LISTAGG(A.FCLTY_CNT,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.GATE_NO) AS currentNumberofLanes
+         , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_SCRTY_CNTRL_MSTR A WHERE USE_YN = 'Y' AND A.SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTSC|FacilityOpeningTable_SecurityControl','')) AS LastModified
+      FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_SCRTY_CNTRL_ATRB A
+     WHERE A.SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTSC|FacilityOpeningTable_SecurityControl','')
+    </select>
+
+    <select id="retrieveFcltyOpngTblTrnstScrtyCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblTrnstScrtyCntrlDto">
+        /* CastRestTestMapper.retrieveFcltyOpngTblTrnstScrtyCntrl(CastReqGetResourceDto dto) */
+    SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS terminal
+         , LISTAGG(CASE WHEN A.FCLTY_TYPE_ID = 'W' THEN 'West' WHEN A.FCLTY_TYPE_ID = 'E' THEN 'East' ELSE '' END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS location
+         , REPLACE(LISTAGG(CASE
+                   WHEN B.OPER_BGNG_1_HR IS NOT NULL
+                   THEN TO_CHAR(TO_DATE(B.BGNG_YMD, 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T00:00:00.000'
+                   ELSE '1900-01-01T00:00:00.000'
+                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS startDate
+         , REPLACE(LISTAGG(CASE
+                   WHEN B.OPER_BGNG_1_HR IS NOT NULL
+                   THEN '1899-12-30T' || TO_CHAR(TO_DATE(B.OPER_BGNG_1_HR || '00', 'HH24:MI:SS'),'HH24:MI:SS') || '.000'
+                   ELSE '1899-12-30T00:00:00.000'
+                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS startTime
+         , REPLACE(LISTAGG(CASE
+                   WHEN B.OPER_END_1_HR IS NOT NULL
+                   THEN TO_CHAR(TO_DATE(NVL(B.END_YMD,'21001231'), 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T00:00:00.000'
+                   ELSE '2100-12-31T00:00:00.000'
+                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS endDate      
+         , REPLACE(LISTAGG(CASE
+                   WHEN B.OPER_END_1_HR IS NOT NULL
+                   THEN '1899-12-30T' || TO_CHAR(TO_DATE(B.OPER_END_1_HR || '00', 'HH24:MI:SS'),'HH24:MI:SS') || '.000'
+                   ELSE '1899-12-30T23:59:00.000'
+                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS endTime   
+         , LISTAGG(A.FCLTY_CNT,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS currentNumberofLanes
+         , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_TRNST_SCRTY_CNTRL_MSTR A WHERE USE_YN = 'Y' AND A.TRNST_SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTTSC|FacilityOpeningTable_TransferSecurityControl','')) AS LastModified
+      FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_TRNST_SCRTY_CNTRL_ATRB A
+      INNER JOIN (
+          SELECT *
+            FROM (
+                SELECT 
+                    C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                    B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
+                    C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD AS BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
+                FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
+                    INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_ELMNT B
+                    ON A.OPER_HR_CRLTN_SN = B.OPER_HR_CRLTN_SN
+                    INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_MNG C
+                    ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
+                WHERE A.OPER_HR_STTS_CD = 'DPL'
+            )
+            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+            AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
+                SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
+                FROM (
+                    SELECT 
+                        C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                        B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
+                        C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') OPER_END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
+                    FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
+                        INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_ELMNT B
+                        ON A.OPER_HR_CRLTN_SN = B.OPER_HR_CRLTN_SN
+                        INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_MNG C
+                        ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
+                    WHERE A.OPER_HR_STTS_CD = 'DPL'
+                )
+               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+                GROUP BY TMNL_ID, FCLT_SE_CD
+            )
+            UNION ALL
+                SELECT OPER_HR_CRLTN_SN , ELMNT_SN , 'P02' AS TMNL_ID, FCLT_SE_CD , SORT_SEQ, PRD_SN , FCLTY_TYPE_ID , BSC_OPER_HR_YN , BGNG_YMD , END_YMD, OPER_BGNG_1_HR , OPER_END_1_HR 
+            FROM (
+                SELECT 
+                    C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                    B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
+                    C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD AS BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
+                FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
+                    INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_ELMNT B
+                    ON A.OPER_HR_CRLTN_SN = B.OPER_HR_CRLTN_SN
+                    INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_MNG C
+                    ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
+                WHERE A.OPER_HR_STTS_CD = 'DPL'
+                AND B.TMNL_ID = 'P01'
+            )
+            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+            AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
+                SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
+                FROM (
+                    SELECT 
+                        C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                        B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
+                        C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') OPER_END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
+                    FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
+                        INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_ELMNT B
+                        ON A.OPER_HR_CRLTN_SN = B.OPER_HR_CRLTN_SN
+                        INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_MNG C
+                        ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
+                    WHERE A.OPER_HR_STTS_CD = 'DPL'
+                    AND B.TMNL_ID = 'P01'
+                )
+               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+                GROUP BY TMNL_ID, FCLT_SE_CD
+            )
+            ) B
+        ON A.TMNL_ID = B.TMNL_ID
+       AND A.FCLT_SE_CD = B.FCLT_SE_CD
+       AND A.FCLTY_TYPE_ID = B.FCLTY_TYPE_ID
+     WHERE A.TRNST_SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTTSC|FacilityOpeningTable_TransferSecurityControl','')
+    </select>
+    <select id="retrieveRptStngHrGroupCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastRptStngHrGroupCntrlDto">
+        /* CastRestTestMapper.retrieveRptProfHrGroupCntrl(CastReqGetResourceDto dto) */
+	    SELECT LISTAGG(A.SCHDL_HR,',') WITHIN GROUP (ORDER BY A.SCHDL_HR, A.GROUP_NM) AS scheduledHour
+	         , LISTAGG(A.GROUP_NM,',') WITHIN GROUP (ORDER BY A.SCHDL_HR, A.GROUP_NM) AS groupName
+	         , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_RPT_STNG_HR_GROUP_MSTR A WHERE USE_YN = 'Y' AND A.RPT_STNG_ATRB_ID = REGEXP_REPLACE(#{resourceID},'RPTG|ReportingProfilesTimeGroups','')) AS LastModified
+	      FROM PMOWN.TN_PM_SMLT_RPT_STNG_HR_GROUP_ATRB A
+	     WHERE A.RPT_STNG_ATRB_ID = REGEXP_REPLACE(#{resourceID},'RPTG|ReportingProfilesTimeGroups','')
+    </select>
+    <select id="retrieveWhatIfCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
+        /* CastRestTestMapper.retrieveWhatIfCntrl(CastReqGetResourceDto dto) */
+    SELECT LISTAGG(WHAT_IF_EXCN_ID,',')     WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS whatIfRunId
+         , LISTAGG(MDL_RSRC_ID,',')         WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS model
+         , LISTAGG(FLT_SCHDL_RSRC_ID,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS fs
+         , LISTAGG(CKNCT_ALCTN_RSRC_ID,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS ca
+         , LISTAGG(SBD_CNTRL_ALCTN_ID,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS sbd
+         , LISTAGG(PRPT_SET_RSRC_ID,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS ps
+         , LISTAGG(FCLTY_OPNG_TBL_DG_RSRC_ID,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS facilityOpeningTableDepartureGate
+         , LISTAGG(FCLTY_OPNG_TBL_EMI_RSRC_ID,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS facilityOpeningTableEmigration
+         , LISTAGG(FCLTY_OPNG_TBL_IMMI_RSRC_ID,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS facilityOpeningTableImmigration
+         , LISTAGG(FCLTY_OPNG_TBL_SCRTY_CNTRL_RSRC_ID,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS facilityOpeningTableSecurityControl
+         , LISTAGG(FCLTY_OPNG_TBL_TR_SCRTY_CNTRL_RSRC_ID,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS facilityOpeningTableTransferSecurityControl
+         , LISTAGG(CKNCT_SRVC_HR_RSRC_ID,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS checkinCounterServiceTime
+         , LISTAGG(CHKN_TYPE_RSRC_ID,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS checkinType
+         , LISTAGG(RPT_STNG_ATRB_ID,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS rptStngId
+         , LISTAGG(SMLT_RSLT_SUFFIX,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS simulationResultSuffix
+         , LISTAGG(WHAT_IF_STTS,',')   WITHIN GROUP (ORDER BY WHAT_IF_EXCN_ID) AS status
+         , LISTAGG(TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'HH24:MI:SS'),',')   WITHIN GROUP (ORDER BY NVL(LAST_MDFCN_DT,FRST_REG_DT)) AS lastChange
+         , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
+      FROM PMOWN.TN_PM_SMLT_WHAT_IF_DEF_TBL
+    </select>
+    <update id="updateWhatIfDefinitionTableStts" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
+        /* CastRestMapper.updateWhatIfDefinitionTable(CastWhatIfCntrlDto dto) */
+	    UPDATE PMOWN.TN_PM_SMLT_WHAT_IF_DEF_TBL 
+	    SET    WHAT_IF_STTS = #{status}
+	         , EXCT_DT = CASE
+                           WHEN #{status} = 'Executing' THEN CURRENT_TIMESTAMP
+                            ELSE EXCT_DT
+                         END
+	         , LAST_MDFR_ID = 'SYSTEM'
+             , LAST_MDFR_IP_ADDR = #{loginIpAddr}
+             , LAST_MDFCN_DT = CURRENT_TIMESTAMP
+	    WHERE WHAT_IF_EXCN_ID = #{whatIfRunId}
+	    AND WHAT_IF_STTS != #{status}
+    </update>
+    <select id="checkWhatIfIdList" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto" resultType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
+        /* CastRestMapper.checkWhatIfIdList(CastWhatIfCntrlDto dto) */
+    SELECT WHAT_IF_EXCN_ID AS whatIfRunId
+         , WHAT_IF_STTS AS status
+      FROM PMOWN.TN_PM_SMLT_WHAT_IF_DEF_TBL
+    </select>
+    <delete  id="deleteWhatIfDefinitionTable" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto" >
+        /* CastRestMapper.deleteWhatIfDefinitionTable(CastWhatIfCntrlDto dto) */
+       DELETE FROM PMOWN.TN_PM_SMLT_WHAT_IF_DEF_TBL
+       WHERE WHAT_IF_EXCN_ID = #{whatIfRunId}
+    </delete>
+</mapper>
