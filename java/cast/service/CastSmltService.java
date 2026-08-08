@@ -11,6 +11,8 @@ import aoms.pm.cast.dto.SmltSmryMapSearchDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.SummaryMapDto;
 import aoms.pm.cast.dto.SummaryRsltDto;
+import aoms.pm.cast.dto.UserSmltExecDto;
+import aoms.pm.cast.dto.UserSmltExecSearchDto;
 import aoms.pm.cast.dto.WaitPsgDto;
 import aoms.pm.cast.enums.CongestionStatus;
 import aoms.pm.cast.enums.CongestionType;
@@ -26,7 +28,8 @@ import aoms.pm.cast.enums.PrcsGrdType;
  * Modification Information
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
- * 2026. 03. 12. / 노세찬 / 최초작성 
+ * 2026. 03. 12. / 노세찬 / 최초작성
+ * 2026. 08. 08. / 노세찬 / executeUserSmlt 추가
  * -----------------------------------------------------------------------------------
  * 
  * </pre> 
@@ -49,4 +52,6 @@ public interface CastSmltService {
 	List<WaitPsgDto> retrieveWaitPsgList(String smltId, String tmnlId, List<String> upPsgFcltCdList);
 
 	SmltKpiDto retrieveSmltKpi(String smltId, String tmnlId, List<String> upPsgFcltCdList);
+
+	UserSmltExecDto executeUserSmlt(UserSmltExecSearchDto searchDto);
 }

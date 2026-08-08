@@ -53,8 +53,13 @@
 
 ### 에러
 
-HTTP 상태 코드로 실패를 알리고, 클라이언트는 `client.ts` 인터셉터에서 `ApiError { status, message, code }` 로 정규화한다.
-(400 / 404 / 500 / 503 · 타임아웃 `ECONNABORTED` · 네트워크 `ERR_NETWORK`)
+두 갈래다.
+
+- **업무 실패**(검증 불통과 · 저장 대상 없음 등)는 예외를 던지지 않고 **payload 안에서** 알린다. `error = true` + `errorMessage` 다. HTTP 는 200 이다.
+- **기술 실패**(장애 · 타임아웃 · 네트워크)는 HTTP 상태 코드로 알리고, 클라이언트는 `client.ts` 인터셉터에서 `ApiError { status, message, code }` 로 정규화한다.
+  (400 / 404 / 500 / 503 · 타임아웃 `ECONNABORTED` · 네트워크 `ERR_NETWORK`)
+
+`save*` 처럼 내려줄 페이로드가 없는 호출은 **`JsonResponse`(= `error` / `errorMessage` 두 필드)만** 응답한다. ([결정 로그 D13](../../../../docs/db/07-save-decisions.md))
 
 ---
 
@@ -65,7 +70,7 @@ HTTP 상태 코드로 실패를 알리고, 클라이언트는 `client.ts` 인터
 | 공통(LNB 사용자) | 전 화면 | `retrieveUserInfoBySession` |
 | 요약보기(대시보드) | `/rui/pm/daily-smlt/dashboard` | `retrieveDailySmltBaseInfo` · `retrieveDailySmltHeader` · `retrieveDailySmltTmnlSmry` · `retrieveDailySmltTmnlRsltByTime` · `retrieveDailySmltFcltCard` |
 | 맵형태보기 | `/rui/pm/daily-smlt/terminalMap` | `retrieveSmltMap` · `retrieveSmltMapChknDetail` · `retrieveSmltMapDepDetail` |
-| 사용자 시뮬레이션 | `/rui/pm/user-smlt/config` | `retrieveUserSmltInfo` · 탭별 `retrieve*` **3개**(`retrieveFltPsgInfo` · `retrieveChknCounterInfo` · `retrieveDepInfo`) / `save*` · `retrieveFcltMap` · `executeUserSmlt` |
+| 사용자 시뮬레이션 | `/rui/pm/user-smlt/config` | `retrieveUserSmltInfo` · 탭별 `retrieve*` **3개**(`retrieveFltPsgInfo` · `retrieveChknCounterInfo` · `retrieveDepInfo`) · 탭별 `save*` **3개**(`saveFltPsgInfo` · `saveChknCounterInfo` · `saveDepInfo`) · `retrieveFcltMap` · `executeUserSmlt` |
 | 시뮬레이션 모니터링 | `/rui/pm/smlt-monitoring` | `retrieveSmltExecSmry` · `retrieveSmltExecList` · `retrieveSmltExecDetail` |
 
 ---
@@ -337,8 +342,11 @@ HTTP 상태 코드로 실패를 알리고, 클라이언트는 `client.ts` 인터
 탭 3개가 같은 `smltId` 를 공유하며, **터미널(T1/T2) 단위로 조회·저장**한다.
 저장은 각 패널의 `현재상태 저장`, 실행은 GNB 의 `시뮬레이션 실행` 버튼과 1:1 이다.
 
-- **조회 API 는 구현 완료**(3단계). `save*` / `executeUserSmlt` 는 4단계다.
+- **조회 API 는 3단계, `save*` / `executeUserSmlt` 는 4단계에서 구현했다.**
 - **탭당 조회는 1회다.** 드로어(자원 배정 · 셀프 서비스 · 검색대 구성)가 쓰는 값은 탭 조회 응답에 함께 실린다.
+- 저장은 **묶음 교체**다. 탭 1개의 요청이 그 터미널 조건 전체를 담고, 서버는 `smltId` + `tmnlId` 범위를 지우고 다시 넣는다. ([결정 로그 D11](../../../../docs/db/07-save-decisions.md))
+- 저장 대상은 `smltId` + `tmnlId` 로 격리된 **신규 테이블**이다. CAST 리소스(`TN_PM_SMLT_*_ATRB`)에 직접 쓰지 않는다 — 다른 시뮬레이션과 공유되는 행이기 때문이다. ([결정 로그 D10](../../../../docs/db/07-save-decisions.md))
+- **저장한 값은 아직 재조회에 반영되지 않는다.** 조회 쿼리가 신규 테이블을 읽도록 바꾸는 것은 다음 단계다. 저장 자체는 완결되어 있다.
 - `tmnlId` 는 `T1` / `T2` 로 주고받는다. 서버 내부의 `P01`(제1여객터미널) / `P02`(탑승동) / `P03`(제2여객터미널) 변환은 **서버가 한 곳에서** 처리한다 — 운항편·여객수는 `T1 = P01 + P02`, 시설(체크인·출국장·검색대)은 `T1 = P01`. ([결정 로그 D1](../../../../docs/db/06-decisions.md))
 - 원천 데이터가 아직 없는 필드는 **필드를 빼지 않고 기본값**(숫자 `0` / 문자 `''` / `N`)으로 내려준다. 어느 필드가 여기 해당하는지는 각 절의 표에 표시했다. ([결정 로그 D7](../../../../docs/db/06-decisions.md))
 
@@ -383,11 +391,15 @@ HTTP 상태 코드로 실패를 알리고, 클라이언트는 `client.ts` 인터
 | 필드 | 타입 | 필수 | 설명 |
 | --- | --- | --- | --- |
 | `smltId` / `tmnlId` | string | Y | 대상 |
-| `adjType` | `RATIO`\|`HOURLY` | Y | 수정 방식 |
-| `adjRate` | number | Y | 전체 비율 % (`adjType=RATIO` 일 때 적용) |
-| `hourList` | `{ bgnTime, endTime, adjRate }[]` | Y | 시간대별 수정값 (`adjType=HOURLY` 일 때 적용) |
+| `adjType` | `RATIO`\|`HOURLY` | Y | 수정 방식. 생략하면 `RATIO` |
+| `adjRate` | number | Y | 전체 비율 % (`adjType=RATIO` 일 때 적용). `-100`~`100` 밖이면 실패 |
+| `hourList` | `{ bgnTime, endTime, adjRate }[]` | Y | 시간대별 수정값 (`adjType=HOURLY` 일 때 적용). 각 `adjRate` 도 `-100`~`100` |
 
-**Response** 없음 (실패 시 HTTP 에러)
+**Response** `JsonResponse` — 성공이면 `error = false`
+
+저장하는 것은 **조정 비율뿐**이다. 곱해진 편별 여객수를 물리 저장하지 않는다(원본 복원이 불가능해진다). 비율은 CAST 리소스 발행 시점에 운항 스케줄에 곱한다. ([결정 로그 D16](../../../../docs/db/07-save-decisions.md))
+
+- 저장 대상: `TN_PM_SMLT_USER_FLT_PSG`(헤더 1행, **병합**) · `TN_PM_SMLT_USER_FLT_PSG_HR`(24행, **전체 교체**)
 
 ### 6.3 체크인 카운터 탭
 
@@ -435,17 +447,31 @@ HTTP 상태 코드로 실패를 알리고, 클라이언트는 `client.ts` 인터
 
 > 대기 꺾은선·KPI 는 **직전 시뮬레이션 결과**(`TN_PM_SMLT_RSLT_DTL`)다. 미수행 상태면 `waitList` 24개가 전부 `0`, `kpi` 도 `0` 이다. ([결정 로그 D4·D5·D6](../../../../docs/db/06-decisions.md))
 
-**저장** `POST /pm/cast/user-smlt/saveChknCounterInfo` — 4단계
+**저장** `POST /pm/cast/user-smlt/saveChknCounterInfo` — `userSmltService.saveChknCounterInfo(request)`
 
-**Request** `UserSmltChknSaveReq` — `smltId`, `tmnlId`, `islandList[{ island, oprTimeList, boothList, kioskCnt, bagDropCnt }]`
-(구 `oprCounterIdList` 는 부스 단위 `boothList` 로 대체됐다. 구 `saveSlfchknInfo` 도 여기로 흡수된다.)
+**Request** `UserSmltChknSaveReq`
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `smltId` / `tmnlId` | string | Y | 대상 |
+| `islandList[].island` | string | Y | 아일랜드 문자. 비어 있는 행은 버려진다 |
+| `islandList[].oprTimeList` | OprTimeDto[] | Y | 아일랜드 운영 시간 구간 (복수 가능) |
+| `islandList[].boothList` | `{ boothNo, alnCd, customYn }[]` | Y | 부스 배정. `alnCd` 생략 시 `''`, `customYn` 생략 시 `N` |
+| `islandList[].kioskCnt` / `bagDropCnt` | number | Y | 셀프 서비스 대수 (구 `saveSlfchknInfo` 흡수) |
+
+**Response** `JsonResponse`
+
+- 구 `oprCounterIdList`(셀 토글 좌표)는 부스 단위 `boothList` 로 대체됐다.
+- `boothCnt` 는 요청에 없다. 서버가 `boothList` 길이로 정한다 — 화면 계산식과 같다.
+- **전체 교체**. 저장 대상: `TN_PM_SMLT_USER_CHKN_ISL` · `..._CHKN_OPER_HR` · `..._CHKN_BOOTH`. `DELETE` 범위는 `smltId` + `tmnlId` 이며 다른 터미널을 건드리지 않는다.
+- `customYn` 이 실제 저장처를 갖게 됐다 (3단계에서는 항상 `N` 이었다).
 
 ### 6.4 셀프체크인/백드롭 탭 — **삭제**
 
 `6.3` 으로 흡수됐다. 아일랜드별 대수는 `6.3` `islandList[].kioskCnt` / `bagDropCnt`, 터미널 합계는 `totKioskCnt` / `totBagDropCnt` 다.
-`retrieveSlfchknInfo` / `saveSlfchknInfo` 는 더 이상 호출하지 않는다 (엔드포인트 상수는 4단계에서 정리).
+`retrieveSlfchknInfo` / `saveSlfchknInfo` 는 **폐기했다.** 엔드포인트 상수(`endpoints.ts`)와 타입(`api.types.ts`)에서도 제거했다. ([결정 로그 D20](../../../../docs/db/07-save-decisions.md))
 
-> 구 `deviceList[].oprYn` / `deviceList[].oprTimeList`(기기별 운영시간)는 **리뉴얼 화면에 대응 요소가 없다.** 저장 테이블(`TN_PM_SMLT_SBD_ATRB`)에는 시각 컬럼이 실재하므로, 계속 저장할지는 4단계 결정 사항이다.
+> 구 `deviceList[].oprYn` / `deviceList[].oprTimeList`(기기별 운영시간)는 리뉴얼 화면에 대응 요소가 없어 **저장하지 않는다.** 기존 `TN_PM_SMLT_SBD_ATRB` 데이터는 지우지 않고 그대로 둔다 — 아일랜드 운영시간을 따를지 기기별로 유지할지는 현업 확인 대상이다.
 
 ### 6.5 출국장 탭
 
@@ -481,15 +507,31 @@ HTTP 상태 코드로 실패를 알리고, 클라이언트는 `client.ts` 인터
 
 > **`planList` 는 현재 구간 1개만 내려온다.** 검색대 대수를 담은 `..._SCRTY_CNTRL_ATRB.FCLTY_CNT` 에 시간축이 없어, 출국장 운영시간 전체를 덮는 구간 하나로 만든다. 다구간 편집·저장은 신규 테이블이 필요하다 — DDL 초안은 [결정 로그 D2](../../../../docs/db/06-decisions.md).
 
-**저장** `POST /pm/cast/user-smlt/saveDepInfo` — 4단계
+**저장** `POST /pm/cast/user-smlt/saveDepInfo` — `userSmltService.saveDepInfo(request)`
 
-**Request** `UserSmltDepSaveReq` — `smltId`, `tmnlId`, `depList[{ depNum, oprYn, oprTimeList, normalCnt, smartPassCnt, scCnt, planList }]`
-(구 `saveScPlanInfo` 를 흡수한다. 저장 대상 테이블이 2개 이상이므로 한 트랜잭션으로 묶는다.)
+**Request** `UserSmltDepSaveReq`
+
+| 필드 | 타입 | 필수 | 설명 |
+| --- | --- | --- | --- |
+| `smltId` / `tmnlId` | string | Y | 대상 |
+| `depList[].depNum` | string | Y | 출국장 번호. 비어 있는 행은 버려진다 |
+| `depList[].oprYn` | YnFlag | Y | 사용 / 미사용. `Y` 가 아니면 전부 `N` 으로 정규화된다 |
+| `depList[].oprTimeList` | OprTimeDto[] | Y | 출국장 운영 시간 구간 (복수 가능) |
+| `depList[].scCnt` / `normalCnt` / `smartPassCnt` | number | Y | 보안 / 일반 / 스마트패스 검색대 대수 |
+| `depList[].planList` | `{ planSn, bgnHour, endHour, scCnt }[]` | Y | 보안검색대 운영계획. **다구간 저장이 가능해졌다** |
+
+**Response** `JsonResponse`
+
+- 구 `saveScPlanInfo` 를 흡수한다. 저장 대상 테이블이 3개라 **한 트랜잭션**으로 묶는다.
+- **전체 교체**. 저장 대상: `TN_PM_SMLT_USER_DEP` · `..._DEP_OPER_HR` · `TN_PM_SMLT_SC_PLAN`. `DELETE` 범위는 `smltId` + `tmnlId`.
+- `planSn` 은 요청값을 쓰지 않는다. 전체 교체이므로 서버가 목록 순서대로 1부터 다시 부여한다 (신규 행 `0` 을 그대로 쓸 수 없기 때문이다).
+- `oprYn` 은 마스터 `TN_PM_SMLT_PSG_FCLT.USE_YN` 이 아니라 **시뮬레이션 단위 값**으로 따로 저장된다. 조회는 아직 마스터 값을 내려준다 (6.5 조회 표 참고).
+- `normalCnt` / `smartPassCnt` / `planList` 다구간이 실제 저장처를 갖게 됐다 (3단계에서는 각각 `0` / 구간 1개였다).
 
 ### 6.6 보안 검색대 탭 — **삭제**
 
 `6.5` 로 흡수됐다. 구간표는 `6.5` `depList[].planList`, 대수는 `depList[].scCnt` 다.
-`retrieveScPlanInfo` / `saveScPlanInfo` 는 더 이상 호출하지 않는다 (엔드포인트 상수는 4단계에서 정리).
+`retrieveScPlanInfo` / `saveScPlanInfo` 는 **폐기했다.** 엔드포인트 상수(`endpoints.ts`)와 타입(`api.types.ts`)에서도 제거했다. ([결정 로그 D20](../../../../docs/db/07-save-decisions.md))
 
 ### 6.7 지도 보기
 
@@ -509,13 +551,36 @@ HTTP 상태 코드로 실패를 알리고, 클라이언트는 `client.ts` 인터
 
 **Request** `smltId`, `tmnlId`
 
-**Response** `UserSmltExecDto` — `smltId`, `execSn`(수행 일련번호), `execStatus`, `bgnDt`
+**Response** `UserSmltExecDto`
+
+| 필드 | 타입 | 설명 |
+| --- | --- | --- |
+| `smltId` | string | 수행 대상 |
+| `execSn` | number | 수행 일련번호 (`smltId` 안에서 1부터) |
+| `execStatus` | SmltExecStatus | 시작 직후이므로 항상 `RUNNING` |
+| `bgnDt` | string | 수행 시작일시 `yyyyMMddHHmmss` |
+
+**동작 순서**
+
+1. `smltId` + `tmnlId` 로 저장된 조건 존재 확인 — 없으면 `error = true`, `errorMessage = "저장된 조건이 없습니다. 조건을 먼저 저장해주세요."`
+2. 수행 이력 행 생성 (`TH_PM_SMLT_EXCN_HSTRY`, 상태 `RUNNING`)
+3. CAST 리소스 발행
+4. 수행 시작 트리거
+5. `execSn` / `execStatus` / `bgnDt` 반환
+
+**동기적으로 완료를 기다리지 않는다.** 진행 상황은 `7.1` / `7.2` 가 폴링한다. 이력 행은 `TH_PM_SMLT_EXCN_HSTRY` 에 남고, 모니터링 화면(`retrieveSmltExecList`)이 읽어야 할 곳도 여기다. ([결정 로그 D17](../../../../docs/db/07-save-decisions.md))
+
+> **3·4 단계는 아직 비어 있다.** CAST 연동에 필요한 `aoms.pm.cmmn.dto.*` 소스가 없어(2단계 G8) 호출 지점과 순서만 확보한 상태다. 따라서 지금은 **이력만 남고 실제 수행은 걸리지 않으며 상태가 `RUNNING` 에서 넘어가지 않는다.** 미확인 지점 목록은 [결정 로그 D19](../../../../docs/db/07-save-decisions.md).
 
 ---
 
 ## 7. 시뮬레이션 모니터링
 
 조회 기간은 화면의 시작/종료 일시를 합쳐 `yyyyMMddHHmm` 으로 넘긴다.
+
+> **원천은 `PMOWN.TH_PM_SMLT_EXCN_HSTRY` 다.** `executeUserSmlt` 가 쓰는 이력 테이블과 같은 곳이다.
+> 매퍼 statement(`CastSmltMapper.retrieveSmltExcnList`)는 4단계에서 만들어 두었으나 **컨트롤러·서비스는 아직 없다** — 이 장의 3개 API 는 미구현이다.
+> `deptNm` / `userNm` 은 사용자 테이블이 확인되지 않아(2단계 G1) 현재 `''` 로 내려간다. 조인 키가 될 등록자 ID 는 함께 실린다.
 
 ### 7.1 수행 현황 조회
 

@@ -82,4 +82,125 @@
         AND A.USE_YN = 'Y'
         ORDER BY ALN_CD
     </select>
+
+    <!--
+        저장 — 전체 교체(delete-then-insert).
+        화면이 터미널 1개분 아일랜드 전체를 보내므로 부분 수정이 아니라 묶음 교체다.
+        삭제 범위는 SMLT_ID + TMNL_ID 로만 한정한다. TMNL_ID 를 빼면 T1 저장이 T2 를 지운다.
+        벌크 INSERT 는 Oracle 문법인 INSERT ALL 을 쓴다 (VALUES 다중행은 ORA-00933, G18).
+    -->
+    <delete id="deleteUserChknIslandList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
+        /* CastChknMapper.deleteUserChknIslandList */
+        DELETE FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL
+        WHERE 1 = 1
+        AND SMLT_ID = #{smltId}
+        AND TMNL_ID = #{fcltTmnlId}
+    </delete>
+
+    <delete id="deleteUserChknOperHrList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
+        /* CastChknMapper.deleteUserChknOperHrList */
+        DELETE FROM PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR
+        WHERE 1 = 1
+        AND SMLT_ID = #{smltId}
+        AND TMNL_ID = #{fcltTmnlId}
+    </delete>
+
+    <delete id="deleteUserChknBoothList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
+        /* CastChknMapper.deleteUserChknBoothList */
+        DELETE FROM PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH
+        WHERE 1 = 1
+        AND SMLT_ID = #{smltId}
+        AND TMNL_ID = #{fcltTmnlId}
+    </delete>
+
+    <insert id="insertUserChknIslandList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
+        /* CastChknMapper.insertUserChknIslandList */
+        INSERT ALL
+        <foreach collection="islandList" item="island">
+        INTO PMOWN.TN_PM_SMLT_USER_CHKN_ISL (
+            SMLT_ID,
+            TMNL_ID,
+            CHKN_ISL_CD,
+            BOOTH_CNT,
+            KOS_CNT,
+            SBD_CNT,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        ) VALUES (
+            #{smltId},
+            #{fcltTmnlId},
+            #{island.island},
+            #{island.boothCnt},
+            #{island.kioskCnt},
+            #{island.bagDropCnt},
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        )
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
+
+    <insert id="insertUserChknOperHrList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
+        /* CastChknMapper.insertUserChknOperHrList */
+        INSERT ALL
+        <foreach collection="islandList" item="island">
+            <foreach collection="island.oprTimeList" item="oprTime" index="oprTimeIdx">
+        INTO PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR (
+            SMLT_ID,
+            TMNL_ID,
+            CHKN_ISL_CD,
+            OPER_HR_SN,
+            OPER_BGNG_HR,
+            OPER_END_HR,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        ) VALUES (
+            #{smltId},
+            #{fcltTmnlId},
+            #{island.island},
+            #{oprTimeIdx} + 1,
+            #{oprTime.bgnHour},
+            #{oprTime.endHour},
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        )
+            </foreach>
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
+
+    <insert id="insertUserChknBoothList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
+        /* CastChknMapper.insertUserChknBoothList */
+        INSERT ALL
+        <foreach collection="islandList" item="island">
+            <foreach collection="island.boothList" item="booth">
+        INTO PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH (
+            SMLT_ID,
+            TMNL_ID,
+            CHKN_ISL_CD,
+            BOOTH_NO,
+            ALN_CD,
+            CSTM_ALCTN_YN,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        ) VALUES (
+            #{smltId},
+            #{fcltTmnlId},
+            #{island.island},
+            #{booth.boothNo},
+            #{booth.alnCd},
+            #{booth.customYn},
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        )
+            </foreach>
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
 </mapper>

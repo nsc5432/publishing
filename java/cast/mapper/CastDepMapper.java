@@ -9,6 +9,7 @@ import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
 import aoms.pm.cast.dto.DepRsltDto;
 import aoms.pm.cast.dto.ScCntRawDto;
+import aoms.pm.cast.dto.UserSmltDepSaveDto;
                                                                                                              
 /**  												                                                           
  * @Classname   : CastDepMapper.java                                                              
@@ -22,7 +23,8 @@ import aoms.pm.cast.dto.ScCntRawDto;
  * 수정일 / 수정자 /수정내용                    													           
  * ----------  ------  ---------------------------------------------------------                             
  * 2026. 03. 12 / 노세찬 / 최초작성
- *------------------------------------------------------------------------------                             
+ * 2026. 08. 08 / 노세찬 / 사용자 시뮬레이션 출국장·보안검색대 저장 statement 추가
+ *------------------------------------------------------------------------------
  *                                                                   		                                    
  * </pre>                                                                    		                            
  */                                                                   		                                
@@ -41,4 +43,17 @@ public interface CastDepMapper {
 	List<ScCntRawDto> retrieveScCntList(
 		@Param("tmnlId") String tmnlId, @Param("scRsrcId") String scRsrcId
 	);
+
+	// 저장 — 전체 교체(delete-then-insert). 삭제 범위는 SMLT_ID + TMNL_ID 로 한정한다
+	void deleteUserDepList(UserSmltDepSaveDto saveDto);
+
+	void deleteUserDepOperHrList(UserSmltDepSaveDto saveDto);
+
+	void deleteUserScPlanList(UserSmltDepSaveDto saveDto);
+
+	void insertUserDepList(UserSmltDepSaveDto saveDto);
+
+	void insertUserDepOperHrList(UserSmltDepSaveDto saveDto);
+
+	void insertUserScPlanList(UserSmltDepSaveDto saveDto);
 }                                                                                                            

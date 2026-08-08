@@ -1,6 +1,8 @@
 package aoms.pm.cast.service;
 
+import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.UserSmltFltPsgDto;
+import aoms.pm.cast.dto.UserSmltFltPsgSaveDto;
 import aoms.pm.cast.dto.UserSmltFltPsgSearchDto;
 
 /**
@@ -14,10 +16,13 @@ import aoms.pm.cast.dto.UserSmltFltPsgSearchDto;
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
  * 2026. 08. 07. / 노세찬 / 최초작성
+ * 2026. 08. 08. / 노세찬 / saveFltPsgInfo 추가
  * -----------------------------------------------------------------------------------
  *
  * </pre>
  */
 public interface CastFltPsgService {
 	UserSmltFltPsgDto retrieveFltPsgInfo(UserSmltFltPsgSearchDto searchDto);
+
+	JsonResponse saveFltPsgInfo(UserSmltFltPsgSaveDto saveDto);
 }

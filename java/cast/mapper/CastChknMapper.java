@@ -7,6 +7,7 @@ import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
 import aoms.pm.cast.dto.ChknRsltDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
+import aoms.pm.cast.dto.UserSmltChknSaveDto;
                                                                                                              
 /**  												                                                           
  * @Classname   : CastChknMapper.java                                                              
@@ -20,7 +21,8 @@ import aoms.pm.cast.dto.CknctCntRawDto;
  * 수정일 / 수정자 /수정내용                    													           
  * ----------  ------  ---------------------------------------------------------                             
  * 2026. 03. 12 / 노세찬 / 최초작성
- *------------------------------------------------------------------------------                             
+ * 2026. 08. 08 / 노세찬 / 사용자 시뮬레이션 체크인 저장 statement 추가
+ *------------------------------------------------------------------------------
  *                                                                   		                                    
  * </pre>                                                                    		                            
  */                                                                   		                                
@@ -36,4 +38,17 @@ public interface CastChknMapper {
 	);
 
 	List<String> retrieveAlnCdList(@Param("tmnlId") String tmnlId);
+
+	// 저장 — 전체 교체(delete-then-insert). 삭제 범위는 SMLT_ID + TMNL_ID 로 한정한다
+	void deleteUserChknIslandList(UserSmltChknSaveDto saveDto);
+
+	void deleteUserChknOperHrList(UserSmltChknSaveDto saveDto);
+
+	void deleteUserChknBoothList(UserSmltChknSaveDto saveDto);
+
+	void insertUserChknIslandList(UserSmltChknSaveDto saveDto);
+
+	void insertUserChknOperHrList(UserSmltChknSaveDto saveDto);
+
+	void insertUserChknBoothList(UserSmltChknSaveDto saveDto);
 }                                                                                                            

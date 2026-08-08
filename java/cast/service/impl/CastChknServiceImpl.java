@@ -8,11 +8,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.dto.ChknBoothDto;
 import aoms.pm.cast.dto.ChknIslandDto;
 import aoms.pm.cast.dto.ChknRsltDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
+import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.OprTimeDto;
 import aoms.pm.cast.dto.PsgPrcsGrd;
 import aoms.pm.cast.dto.SlfDeviceCntRawDto;
@@ -21,6 +24,7 @@ import aoms.pm.cast.dto.SummaryRsltDto;
 import aoms.pm.cast.dto.TimeRange;
 import aoms.pm.cast.dto.UserConfigChknDto;
 import aoms.pm.cast.dto.UserSmltChknDto;
+import aoms.pm.cast.dto.UserSmltChknSaveDto;
 import aoms.pm.cast.dto.UserSmltChknSearchDto;
 import aoms.pm.cast.dto.WaitPsgDto;
 import aoms.pm.cast.enums.CongestionStatus;
@@ -33,6 +37,7 @@ import aoms.pm.cast.service.CastChknService;
 import aoms.pm.cast.service.CastSlfchknService;
 import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.cast.service.CastUserConfigService;
+import aoms.pm.utils.SessionUtils;
 import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
 
@@ -49,22 +54,26 @@ import lombok.RequiredArgsConstructor;
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
  * 2026. 03. 12. / 노세찬 / 최초작성
+ * 2026. 08. 08. / 노세찬 / saveChknCounterInfo 추가
  * -----------------------------------------------------------------------------------
- * 
- * </pre> 
+ *
+ * </pre>
  */
 @Service
-@RequiredArgsConstructor	
+@RequiredArgsConstructor
+@Transactional(rollbackFor = Exception.class)
 public class CastChknServiceImpl implements CastChknService {
 	private static final List<String> UP_PSG_FCLT_CD_LIST = List.of("CC"); // 체크인카운터
 	private static final List<String> BOOTH_USE_CRG_TYPE_CD_LIST = List.of("A", "B"); // 유인 체크인카운터
 	private static final String CUSTOM_YN_N = "N";
+	private static final String EMPTY_ALN_CD = "";
 	private static final int PERCENT = 100;
 
 	private final CastSmltService castSmltService;
 	private final CastSlfchknService castSlfchknService;
 	private final CastUserConfigService castUserConfigService;
 	private final CastChknMapper castChknMapper;
+	private final SessionService sessionService;
 
 	@Override
 	public Map<String, List<ChknRsltDto>> retrieveChknGroupByTime(String smltId, String tmnlId, String island) {
@@ -135,6 +144,94 @@ public class CastChknServiceImpl implements CastChknService {
 		result.setKpi(kpi);
 
 		return result;
+	}
+
+	/*
+	 * 저장 전략 — 전체 교체(delete-then-insert).
+	 * 화면이 터미널 1개분 아일랜드 전체를 보내므로 부분 수정이 아니라 묶음 교체다.
+	 * 삭제 범위는 SMLT_ID + TMNL_ID 이며, TMNL_ID 를 빼면 T1 저장이 T2 를 지운다.
+	 * 감사 컬럼 등록자는 사용자 조작이므로 #{loginUserId} 다 ('CAST' 가 아니다).
+	 */
+	@Override
+	public JsonResponse saveChknCounterInfo(UserSmltChknSaveDto saveDto) {
+		SessionUtils.setUserContext(saveDto, sessionService);
+
+		JsonResponse invalid = validate(saveDto);
+
+		if (invalid != null) {
+			return invalid;
+		}
+
+		saveDto.setFcltTmnlId(saveDto.getTmnlId().getFcltTmnlId());
+		saveDto.setIslandList(normalizeIslandList(saveDto.getIslandList()));
+
+		// 자식부터 지운다
+		castChknMapper.deleteUserChknBoothList(saveDto);
+		castChknMapper.deleteUserChknOperHrList(saveDto);
+		castChknMapper.deleteUserChknIslandList(saveDto);
+
+		if (saveDto.getIslandList().isEmpty()) {
+			return new JsonResponse();
+		}
+
+		castChknMapper.insertUserChknIslandList(saveDto);
+
+		// INSERT ALL 은 INTO 절이 0개면 문법 오류다. 비어 있으면 호출하지 않는다
+		if (saveDto.getIslandList().stream().anyMatch(x -> !x.getOprTimeList().isEmpty())) {
+			castChknMapper.insertUserChknOperHrList(saveDto);
+		}
+
+		if (saveDto.getIslandList().stream().anyMatch(x -> !x.getBoothList().isEmpty())) {
+			castChknMapper.insertUserChknBoothList(saveDto);
+		}
+
+		return new JsonResponse();
+	}
+
+	// 검증은 서비스 안에서 명시적으로 한다. 통과하면 null
+	private JsonResponse validate(UserSmltChknSaveDto saveDto) {
+		if (saveDto.getLoginUserId() == null) {
+			return new JsonResponse().error("로그인을 진행해주세요.");
+		}
+
+		if (saveDto.getSmltId() == null || saveDto.getSmltId().isEmpty() || saveDto.getTmnlId() == null) {
+			return new JsonResponse().error("저장 대상 시뮬레이션이 지정되지 않았습니다.");
+		}
+
+		return null;
+	}
+
+	// null 을 그대로 바인딩하면 Oracle 이 JdbcType 을 못 정한다. 빈 목록·기본값으로 채워 넘긴다
+	private List<ChknIslandDto> normalizeIslandList(List<ChknIslandDto> islandList) {
+		if (islandList == null) {
+			return new ArrayList<>();
+		}
+
+		List<ChknIslandDto> result = islandList.stream()
+				.filter(x -> x.getIsland() != null && !x.getIsland().isEmpty())
+				.collect(toList());
+
+		for (ChknIslandDto island : result) {
+			island.setOprTimeList(island.getOprTimeList() != null ? island.getOprTimeList() : new ArrayList<>());
+			island.setBoothList(normalizeBoothList(island.getBoothList()));
+			// 부스 수는 화면 계산식과 같게 배정 목록 길이를 쓴다 (DELTA 2.1)
+			island.setBoothCnt(island.getBoothList().size());
+		}
+
+		return result;
+	}
+
+	private List<ChknBoothDto> normalizeBoothList(List<ChknBoothDto> boothList) {
+		if (boothList == null) {
+			return new ArrayList<>();
+		}
+
+		for (ChknBoothDto booth : boothList) {
+			booth.setAlnCd(booth.getAlnCd() != null ? booth.getAlnCd() : EMPTY_ALN_CD);
+			booth.setCustomYn(booth.getCustomYn() != null ? booth.getCustomYn() : CUSTOM_YN_N);
+		}
+
+		return boothList;
 	}
 
 	// 기준일자는 요청에 있으면 그대로, 없으면 시뮬레이션 설정의 실행일자를 쓴다

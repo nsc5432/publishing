@@ -8,11 +8,14 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepGateDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
 import aoms.pm.cast.dto.DepRsltDto;
+import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.OprTimeDto;
 import aoms.pm.cast.dto.PsgPrcsGrd;
 import aoms.pm.cast.dto.ScCntRawDto;
@@ -20,6 +23,7 @@ import aoms.pm.cast.dto.ScPlanDto;
 import aoms.pm.cast.dto.SmltKpiDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.UserSmltDepDto;
+import aoms.pm.cast.dto.UserSmltDepSaveDto;
 import aoms.pm.cast.dto.UserSmltDepSearchDto;
 import aoms.pm.cast.dto.WaitPsgDto;
 import aoms.pm.cast.enums.CongestionStatus;
@@ -28,6 +32,7 @@ import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDepMapper;
 import aoms.pm.cast.service.CastDepService;
 import aoms.pm.cast.service.CastSmltService;
+import aoms.pm.utils.SessionUtils;
 import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
 
@@ -44,15 +49,18 @@ import lombok.RequiredArgsConstructor;
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
  * 2026. 03. 12. / 노세찬 / 최초작성
+ * 2026. 08. 08. / 노세찬 / saveDepInfo 추가 (구 saveScPlanInfo 흡수)
  * -----------------------------------------------------------------------------------
- * 
- * </pre> 
+ *
+ * </pre>
  */
 @Service
-@RequiredArgsConstructor	
+@RequiredArgsConstructor
+@Transactional(rollbackFor = Exception.class)
 public class CastDepServiceImpl implements CastDepService {
 	private static final List<String> UP_PSG_FCLT_CD_LIST = List.of("LGT"); // 출국장
 	private static final String OPR_YN_Y = "Y";
+	private static final String OPR_YN_N = "N";
 	private static final String DEFAULT_HM = "0000";
 	private static final String ZERO_MIN = "00";
 	private static final int HOUR_PER_DAY = 24;
@@ -61,6 +69,7 @@ public class CastDepServiceImpl implements CastDepService {
 
 	private final CastSmltService castSmltService;
 	private final CastDepMapper castDepMapper;
+	private final SessionService sessionService;
 
 	@Override
 	public Map<String, List<DepRsltDto>> retrieveDepGroupByTime(String smltId, String tmnlId) {
@@ -115,6 +124,83 @@ public class CastDepServiceImpl implements CastDepService {
 		result.setDepList(depList);
 		result.setWaitList(waitList);
 		result.setKpi(kpi);
+
+		return result;
+	}
+
+	/*
+	 * 저장 전략 — 전체 교체(delete-then-insert).
+	 * 구 saveScPlanInfo 를 흡수해 출국장 · 운영시간 · 보안검색대 운영계획 3개 테이블을
+	 * 한 트랜잭션에서 쓴다. 삭제 범위는 SMLT_ID + TMNL_ID 이며 TMNL_ID 를 빼면 T1 저장이 T2 를 지운다.
+	 * 감사 컬럼 등록자는 사용자 조작이므로 #{loginUserId} 다.
+	 *
+	 * oprYn 은 마스터 TN_PM_SMLT_PSG_FCLT.USE_YN 이 아니라 시뮬레이션 단위 값이므로
+	 * TN_PM_SMLT_USER_DEP.OPER_YN 에 따로 쓴다 (D7 — 시뮬레이션 조건을 마스터에 쓰면 안 된다).
+	 */
+	@Override
+	public JsonResponse saveDepInfo(UserSmltDepSaveDto saveDto) {
+		SessionUtils.setUserContext(saveDto, sessionService);
+
+		JsonResponse invalid = validate(saveDto);
+
+		if (invalid != null) {
+			return invalid;
+		}
+
+		saveDto.setFcltTmnlId(saveDto.getTmnlId().getFcltTmnlId());
+		saveDto.setDepList(normalizeDepList(saveDto.getDepList()));
+
+		// 자식부터 지운다
+		castDepMapper.deleteUserScPlanList(saveDto);
+		castDepMapper.deleteUserDepOperHrList(saveDto);
+		castDepMapper.deleteUserDepList(saveDto);
+
+		if (saveDto.getDepList().isEmpty()) {
+			return new JsonResponse();
+		}
+
+		castDepMapper.insertUserDepList(saveDto);
+
+		// INSERT ALL 은 INTO 절이 0개면 문법 오류다. 비어 있으면 호출하지 않는다
+		if (saveDto.getDepList().stream().anyMatch(x -> !x.getOprTimeList().isEmpty())) {
+			castDepMapper.insertUserDepOperHrList(saveDto);
+		}
+
+		if (saveDto.getDepList().stream().anyMatch(x -> !x.getPlanList().isEmpty())) {
+			castDepMapper.insertUserScPlanList(saveDto);
+		}
+
+		return new JsonResponse();
+	}
+
+	// 검증은 서비스 안에서 명시적으로 한다. 통과하면 null
+	private JsonResponse validate(UserSmltDepSaveDto saveDto) {
+		if (saveDto.getLoginUserId() == null) {
+			return new JsonResponse().error("로그인을 진행해주세요.");
+		}
+
+		if (saveDto.getSmltId() == null || saveDto.getSmltId().isEmpty() || saveDto.getTmnlId() == null) {
+			return new JsonResponse().error("저장 대상 시뮬레이션이 지정되지 않았습니다.");
+		}
+
+		return null;
+	}
+
+	// null 을 그대로 바인딩하면 Oracle 이 JdbcType 을 못 정한다. 빈 목록·기본값으로 채워 넘긴다
+	private List<DepGateDto> normalizeDepList(List<DepGateDto> depList) {
+		if (depList == null) {
+			return new ArrayList<>();
+		}
+
+		List<DepGateDto> result = depList.stream()
+				.filter(x -> x.getDepNum() != null && !x.getDepNum().isEmpty())
+				.collect(toList());
+
+		for (DepGateDto dep : result) {
+			dep.setOprYn(OPR_YN_Y.equals(dep.getOprYn()) ? OPR_YN_Y : OPR_YN_N);
+			dep.setOprTimeList(dep.getOprTimeList() != null ? dep.getOprTimeList() : new ArrayList<>());
+			dep.setPlanList(dep.getPlanList() != null ? dep.getPlanList() : new ArrayList<>());
+		}
 
 		return result;
 	}

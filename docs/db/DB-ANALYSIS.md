@@ -17,6 +17,7 @@
 | 5.4 | [04-screen-table-mapping.md](04-screen-table-mapping.md) | 화면 ↔ 테이블 매핑표 — `API_SPEC-DELTA.md` 전 항목 |
 | 5.5 | [05-gaps.md](05-gaps.md) | 갭 · 모순 목록 — G1~G16, 영향 범위와 결정 주체 |
 | 5.6 | [06-decisions.md](06-decisions.md) | **결정 로그 (3단계 산출물)** — G2·G7·G14 등 조회 API 착수에 필요했던 결정과 근거 |
+| 5.7 | [07-save-decisions.md](07-save-decisions.md) | **저장 결정 로그 (4단계 산출물)** — 저장 대상 테이블·전략, G3/G4 처리, CAST 연동 미확인 지점 |
 
 ## 분석 대상
 

@@ -26,4 +26,78 @@
         GROUP BY SUBSTR(A.PREDC_HM, 1, 2)
         ORDER BY HOUR
     </select>
+
+    <!--
+        저장 — 헤더 1행(SMLT_ID + TMNL_ID)은 병합(update-or-insert), 시간대별 목록은 전체 교체.
+        조정 "비율"만 저장한다. 곱해진 편별 여객수를 TN_PM_SMLT_SCHDL_ATRB 에 물리 저장하면
+        원본 복원이 불가능하므로 채택하지 않았다. 비율 적용은 CAST 리소스 발행 시점이다.
+    -->
+    <update id="updateUserFltPsg" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
+        /* CastFltPsgMapper.updateUserFltPsg */
+        UPDATE PMOWN.TN_PM_SMLT_USER_FLT_PSG
+        SET ADJ_TYPE_CD = #{adjTypeCd},
+            ADJ_RT = #{adjRate},
+            LAST_MDFR_ID = #{loginUserId},
+            LAST_MDFR_IP_ADDR = #{loginIpAddr},
+            LAST_MDFCN_DT = CURRENT_TIMESTAMP
+        WHERE 1 = 1
+        AND SMLT_ID = #{smltId}
+        AND TMNL_ID = #{fcltTmnlId}
+    </update>
+
+    <insert id="insertUserFltPsg" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
+        /* CastFltPsgMapper.insertUserFltPsg */
+        INSERT INTO PMOWN.TN_PM_SMLT_USER_FLT_PSG (
+            SMLT_ID,
+            TMNL_ID,
+            ADJ_TYPE_CD,
+            ADJ_RT,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        ) VALUES (
+            #{smltId},
+            #{fcltTmnlId},
+            #{adjTypeCd},
+            #{adjRate},
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <delete id="deleteUserFltPsgHrList" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
+        /* CastFltPsgMapper.deleteUserFltPsgHrList */
+        DELETE FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_HR
+        WHERE 1 = 1
+        AND SMLT_ID = #{smltId}
+        AND TMNL_ID = #{fcltTmnlId}
+    </delete>
+
+    <insert id="insertUserFltPsgHrList" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
+        /* CastFltPsgMapper.insertUserFltPsgHrList */
+        INSERT ALL
+        <foreach collection="hourList" item="hour">
+        INTO PMOWN.TN_PM_SMLT_USER_FLT_PSG_HR (
+            SMLT_ID,
+            TMNL_ID,
+            BGNG_HM,
+            END_HM,
+            ADJ_RT,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        ) VALUES (
+            #{smltId},
+            #{fcltTmnlId},
+            #{hour.bgnTime},
+            #{hour.endTime},
+            #{hour.adjRate},
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        )
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
 </mapper>

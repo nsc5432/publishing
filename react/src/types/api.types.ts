@@ -8,8 +8,11 @@
 
 /* ================= 공통 ================= */
 
-/** 서버가 모든 단건 응답에 함께 실어 보내는 오류 플래그 */
-interface JsonResponse {
+/**
+ * 서버가 모든 단건 응답에 함께 실어 보내는 오류 플래그.
+ * 저장 API 처럼 내려줄 페이로드가 없는 호출은 이것만 응답한다.
+ */
+export interface JsonResponse {
     error: boolean;
     errorMessage: string;
 }
@@ -403,39 +406,6 @@ export interface UserSmltChknSaveReq {
     >;
 }
 
-/* --------- 셀프체크인/백드롭 탭 (탭 삭제 — 체크인 카운터로 흡수) --------- */
-
-/**
- * @deprecated 리뉴얼에서 탭이 사라졌다. 대수는 UserSmltChknDto.islandList[].kioskCnt / bagDropCnt 를 쓴다.
- * 엔드포인트 정리는 4단계(저장 API)에서 함께 한다.
- */
-
-/** 기기 1종 */
-export interface SlfchknDeviceDto {
-    deviceType: 'KIOSK' | 'SBD'; // 셀프체크인 키오스크 / 셀프백드롭
-    deviceNm: string;
-    deviceCnt: number; // 운영 대수
-    oprYn: YnFlag; // N = 미운영
-    oprTimeList: OprTimeDto[];
-}
-
-/** 셀프체크인/백드롭 탭 — 터미널 1개분 */
-export interface UserSmltSlfchknDto extends JsonResponse {
-    tmnlId: TmnlId;
-    totCnt: number; // 전체 보유 대수
-    islandList: string[];
-    island: string;
-    deviceList: SlfchknDeviceDto[];
-}
-
-/** 셀프체크인/백드롭 저장 요청 */
-export interface UserSmltSlfchknSaveReq {
-    smltId: string;
-    tmnlId: TmnlId;
-    island: string;
-    deviceList: Array<Pick<SlfchknDeviceDto, 'deviceType' | 'deviceCnt' | 'oprYn' | 'oprTimeList'>>;
-}
-
 /* --------- 출국장 탭 (보안 검색대 흡수) --------- */
 
 /**
@@ -481,31 +451,6 @@ export interface UserSmltDepSaveReq {
             'depNum' | 'oprYn' | 'oprTimeList' | 'normalCnt' | 'smartPassCnt' | 'scCnt' | 'planList'
         >
     >;
-}
-
-/* --------- 보안 검색대 탭 (탭 삭제 — 출국장으로 흡수) --------- */
-
-/**
- * @deprecated 리뉴얼에서 탭이 사라졌다. 구간표는 UserSmltDepItemDto.planList 를 쓴다.
- * 엔드포인트 정리는 4단계(저장 API)에서 함께 한다.
- */
-export interface ScGateDto {
-    depNum: string;
-    planList: ScPlanDto[];
-}
-
-/** @deprecated 6.5 출국장 탭으로 흡수 */
-export interface UserSmltScDto extends JsonResponse {
-    tmnlId: TmnlId;
-    depList: ScGateDto[];
-}
-
-/** @deprecated 6.5 출국장 탭으로 흡수 */
-export interface UserSmltScSaveReq {
-    smltId: string;
-    tmnlId: TmnlId;
-    depNum: string;
-    planList: ScPlanDto[];
 }
 
 /* --------- 지도 보기 / 시뮬레이션 실행 --------- */

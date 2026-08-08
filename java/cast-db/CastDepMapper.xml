@@ -109,4 +109,129 @@
         AND A.TMNL_ID = #{tmnlId}
         ORDER BY DEP_NUM
     </select>
+
+    <!--
+        저장 — 전체 교체(delete-then-insert). 구 saveScPlanInfo 를 흡수해 한 트랜잭션에서
+        출국장 · 운영시간 · 보안검색대 운영계획 3개 테이블을 함께 쓴다.
+        삭제 범위는 SMLT_ID + TMNL_ID 로만 한정한다. TMNL_ID 를 빼면 T1 저장이 T2 를 지운다.
+        벌크 INSERT 는 Oracle 문법인 INSERT ALL 을 쓴다 (VALUES 다중행은 ORA-00933, G18).
+    -->
+    <delete id="deleteUserDepList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
+        /* CastDepMapper.deleteUserDepList */
+        DELETE FROM PMOWN.TN_PM_SMLT_USER_DEP
+        WHERE 1 = 1
+        AND SMLT_ID = #{smltId}
+        AND TMNL_ID = #{fcltTmnlId}
+    </delete>
+
+    <delete id="deleteUserDepOperHrList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
+        /* CastDepMapper.deleteUserDepOperHrList */
+        DELETE FROM PMOWN.TN_PM_SMLT_USER_DEP_OPER_HR
+        WHERE 1 = 1
+        AND SMLT_ID = #{smltId}
+        AND TMNL_ID = #{fcltTmnlId}
+    </delete>
+
+    <delete id="deleteUserScPlanList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
+        /* CastDepMapper.deleteUserScPlanList */
+        DELETE FROM PMOWN.TN_PM_SMLT_SC_PLAN
+        WHERE 1 = 1
+        AND SMLT_ID = #{smltId}
+        AND TMNL_ID = #{fcltTmnlId}
+    </delete>
+
+    <insert id="insertUserDepList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
+        /* CastDepMapper.insertUserDepList */
+        INSERT ALL
+        <foreach collection="depList" item="dep">
+        INTO PMOWN.TN_PM_SMLT_USER_DEP (
+            SMLT_ID,
+            TMNL_ID,
+            DEP_NUM,
+            OPER_YN,
+            SCRTY_CNTRL_CNT,
+            NRML_CNT,
+            SMART_PASS_CNT,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        ) VALUES (
+            #{smltId},
+            #{fcltTmnlId},
+            #{dep.depNum},
+            #{dep.oprYn},
+            #{dep.scCnt},
+            #{dep.normalCnt},
+            #{dep.smartPassCnt},
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        )
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
+
+    <insert id="insertUserDepOperHrList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
+        /* CastDepMapper.insertUserDepOperHrList */
+        INSERT ALL
+        <foreach collection="depList" item="dep">
+            <foreach collection="dep.oprTimeList" item="oprTime" index="oprTimeIdx">
+        INTO PMOWN.TN_PM_SMLT_USER_DEP_OPER_HR (
+            SMLT_ID,
+            TMNL_ID,
+            DEP_NUM,
+            OPER_HR_SN,
+            OPER_BGNG_HR,
+            OPER_END_HR,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        ) VALUES (
+            #{smltId},
+            #{fcltTmnlId},
+            #{dep.depNum},
+            #{oprTimeIdx} + 1,
+            #{oprTime.bgnHour},
+            #{oprTime.endHour},
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        )
+            </foreach>
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
+
+    <insert id="insertUserScPlanList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
+        /* CastDepMapper.insertUserScPlanList */
+        INSERT ALL
+        <foreach collection="depList" item="dep">
+            <foreach collection="dep.planList" item="plan" index="planIdx">
+        INTO PMOWN.TN_PM_SMLT_SC_PLAN (
+            SMLT_ID,
+            TMNL_ID,
+            DEP_NUM,
+            PLAN_SN,
+            OPER_BGNG_HR,
+            OPER_END_HR,
+            SCRTY_CNTRL_CNT,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        ) VALUES (
+            #{smltId},
+            #{fcltTmnlId},
+            #{dep.depNum},
+            #{planIdx} + 1,
+            #{plan.bgnHour},
+            #{plan.endHour},
+            #{plan.scCnt},
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        )
+            </foreach>
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
 </mapper>

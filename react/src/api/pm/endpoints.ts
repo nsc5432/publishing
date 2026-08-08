@@ -28,14 +28,12 @@ export const API_ENDPOINTS = {
     USER_SMLT_INFO: prefix + '/user-smlt/retrieveUserSmltInfo',
     USER_SMLT_FLT_PSG: prefix + '/user-smlt/retrieveFltPsgInfo',
     USER_SMLT_FLT_PSG_SAVE: prefix + '/user-smlt/saveFltPsgInfo',
+    // 셀프체크인/백드롭은 체크인 카운터로 흡수됐다 (구 retrieveSlfchknInfo / saveSlfchknInfo)
     USER_SMLT_CHKN: prefix + '/user-smlt/retrieveChknCounterInfo',
     USER_SMLT_CHKN_SAVE: prefix + '/user-smlt/saveChknCounterInfo',
-    USER_SMLT_SLFCHKN: prefix + '/user-smlt/retrieveSlfchknInfo',
-    USER_SMLT_SLFCHKN_SAVE: prefix + '/user-smlt/saveSlfchknInfo',
+    // 보안 검색대는 출국장으로 흡수됐다 (구 retrieveScPlanInfo / saveScPlanInfo)
     USER_SMLT_DEP: prefix + '/user-smlt/retrieveDepInfo',
     USER_SMLT_DEP_SAVE: prefix + '/user-smlt/saveDepInfo',
-    USER_SMLT_SC: prefix + '/user-smlt/retrieveScPlanInfo',
-    USER_SMLT_SC_SAVE: prefix + '/user-smlt/saveScPlanInfo',
     USER_SMLT_FCLT_MAP: prefix + '/user-smlt/retrieveFcltMap',
     USER_SMLT_EXECUTE: prefix + '/user-smlt/executeUserSmlt',
 
