@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 
 import aoms.pm.cast.dto.ChknRawDto;
 import aoms.pm.cast.dto.UserConfigChknDto;
-import aoms.pm.cast.dto.UserConfigFlightDto;
 import aoms.pm.cast.mapper.CastUserConfigMapper;
 import aoms.pm.cast.service.CastUserConfigService;
 
@@ -37,11 +36,6 @@ import lombok.RequiredArgsConstructor;
 public class CastUserConfigServiceImpl implements CastUserConfigService {
 	private final CastUserConfigMapper castUserConfigMapper;
 	private static final List<String> IS_LANDS = List.of("A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N"); 
-
-	@Override
-	public List<UserConfigFlightDto> retrieveFlightList(String ymd, String tmnlId) {
-		return castUserConfigMapper.retrieveFlightList(ymd, tmnlId);
-	}
 
 	@Override
 	public Map<String, List<UserConfigChknDto>> retrieveChknMapGroupByIsland(String ymd, String tmnlId) {

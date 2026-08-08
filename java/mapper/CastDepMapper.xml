@@ -2,51 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="aoms.pm.cast.mapper.CastDepMapper">
-    <select id="retrieveSmltDepList" resultType="aoms.pm.cast.dto.DepRsltDto">
-        /* CastDepMapper.retrieveSmltDepList */
-        SELECT 
-		    TIME,
-		    DEP_NUM,
-		    SUM(WTNG_PSG_CNT) as WTNG_PSG_CNT,
-		    FLOOR(AVG(PRCS_HR)) as PRCS_HR,
-		    FLOOR(AVG(WTNG_HR)) as WTNG_HR
-		FROM (
-		    SELECT 
-		        A.YMD,
-		        A.TIME, 
-		        B.TMNL_ID,
-		        A.WTNG_PSG_CNT,
-		        A.PRCS_HR,
-		        A.WTNG_HR,
-		        B.DEP_NUM 
-		    FROM (
-		        SELECT 
-		            A.SMLT_ID, 
-		            REPLACE(SUBSTR(A.SMLT_ACTL_DT, 0, 10), '/', '') YMD,
-		            REPLACE(SUBSTR(A.SMLT_ACTL_DT, 12, 5), ':', '') TIME,
-		            PSG_FCLT_CD,
-		            A.WTNG_PSG_CNT,
-		            A.AVG_PRCS_HR as PRCS_HR,
-		            A.AVG_WTNG_HR as WTNG_HR
-		        FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
-		        WHERE A.SMLT_ID = #{smltId}
-		        AND A.WTNG_PSG_CNT > 0
-		    ) A
-		        INNER JOIN (
-		            SELECT PSG_FCLT_CD, UP_PSG_FCLT_CD, PSG_FCLT_NM, TMNL_ID, SMLT_FCLT_NM, SUBSTR(PSG_FCLT_CD, 4, 1) AS DEP_NUM
-		            FROM PMOWN.TN_PM_SMLT_PSG_FCLT B
-		            WHERE 1 = 1
-		            AND B.TMNL_ID = #{tmnlId}
-		            AND B.UP_PSG_FCLT_CD IN ('LGT')  
-		            AND B.USE_YN = 'Y'
-		        ) B
-		            ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
-		    WHERE 1 = 1 
-		)
-		GROUP BY TIME, DEP_NUM
-		ORDER BY TIME, DEP_NUM
-    </select>
-
     <select id="retrieveDepFcltList" resultType="aoms.pm.cast.dto.DepFcltRawDto">
         /* CastDepMapper.retrieveDepFcltList */
         SELECT

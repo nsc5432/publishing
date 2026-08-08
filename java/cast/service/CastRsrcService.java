@@ -1,7 +1,5 @@
 package aoms.pm.cast.service;
 
-import java.util.List;
-
 /**
  * @Classname : CastRsrcService.java
  * @Description : CAST 리소스 발행 Service — 연동 호출 지점
@@ -26,7 +24,4 @@ public interface CastRsrcService {
 
 	/** 발행된 리소스로 수행을 시작한다. 완료를 기다리지 않는다. */
 	void triggerUserSmltExcn(String smltId, String tmnlId, int smltExcnSn);
-
-	/** 아직 구현하지 못한 연동 지점 목록. 운영 반영 전 확인 대상이다. */
-	List<String> retrievePendingRsrcList();
 }

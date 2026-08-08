@@ -13,23 +13,17 @@ import org.springframework.transaction.annotation.Transactional;
 import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.dto.ChknBoothDto;
 import aoms.pm.cast.dto.ChknIslandDto;
-import aoms.pm.cast.dto.ChknRsltDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
 import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.OprTimeDto;
-import aoms.pm.cast.dto.PsgPrcsGrd;
 import aoms.pm.cast.dto.SlfDeviceCntRawDto;
 import aoms.pm.cast.dto.SmltKpiDto;
-import aoms.pm.cast.dto.SummaryRsltDto;
 import aoms.pm.cast.dto.TimeRange;
 import aoms.pm.cast.dto.UserConfigChknDto;
 import aoms.pm.cast.dto.UserSmltChknDto;
 import aoms.pm.cast.dto.UserSmltChknSaveDto;
 import aoms.pm.cast.dto.UserSmltChknSearchDto;
 import aoms.pm.cast.dto.WaitPsgDto;
-import aoms.pm.cast.enums.CongestionStatus;
-import aoms.pm.cast.enums.CongestionType;
-import aoms.pm.cast.enums.PrcsGrdType;
 import aoms.pm.cast.enums.SlfType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastChknMapper;
@@ -55,6 +49,7 @@ import lombok.RequiredArgsConstructor;
  * 수정일 / 수정자 / 수정내용
  * 2026. 03. 12. / 노세찬 / 최초작성
  * 2026. 08. 08. / 노세찬 / saveChknCounterInfo 추가
+ * 2026. 08. 08. / 노세찬 / 구 화면 전용 시간대별 조회 3종 삭제
  * -----------------------------------------------------------------------------------
  *
  * </pre>
@@ -74,41 +69,6 @@ public class CastChknServiceImpl implements CastChknService {
 	private final CastUserConfigService castUserConfigService;
 	private final CastChknMapper castChknMapper;
 	private final SessionService sessionService;
-
-	@Override
-	public Map<String, List<ChknRsltDto>> retrieveChknGroupByTime(String smltId, String tmnlId, String island) {
-		String ymd = castSmltService.retrieveSmltStngByKey(smltId).getExcnYmd();
-		
-		List<ChknRsltDto> smltChknList = castChknMapper.retrieveSmltChknList(smltId, ymd, tmnlId, island);
-		Map<CongestionStatus, PsgPrcsGrd> prcsGrdMap = castSmltService.retrievePrcsGrdMap(PrcsGrdType.CHKN);
-		
-		Map<String, List<ChknRsltDto>> groupedByDomain = smltChknList.stream().collect(Collectors.groupingBy(x -> x.getAlnCd() + "|" + x.getCounterNum()));
-		List<ChknRsltDto> aggregate = new ArrayList<>();
-		
-		groupedByDomain.forEach((key, list) -> {
-			String[] parts = key.split("\\|");
-			String alnCd = parts[0];
-			int counterNum = Integer.parseInt(parts[1]);
-			
-			List<ChknRsltDto> timeAggregated = SmltUtils.aggregate(list, 30, ChknRsltDto::new);
-			aggregate.addAll(timeAggregated.stream()
-					.map(x -> x.withAlnCd(alnCd).withCounterNum(counterNum).withCgnStatus(SmltUtils.getCongestionStatus(prcsGrdMap, x.getWtngPsgCnt())))
-					.collect(toList()));
-		});
-		
-		return TimeBucketUtils.groupByBucket(aggregate);
-	}
-
-	@Override
-	public Map<String, List<ChknRsltDto>> retrieveChknGroupByTimeUsingDate(String ymd, String tmnlId, String island) {
-		String smltId = castSmltService.retrieveRecentSmltId(ymd);
-		return retrieveChknGroupByTime(smltId, tmnlId, island);
-	}
-
-	@Override
-	public List<SummaryRsltDto> retrieveChknXovisGroupByTime(String ymd, String tmnlId, String island) {
-		return castSmltService.getXovisDatas(ymd, CongestionType.PEAK_CHKN, tmnlId, island, 60);
-	}
 
 	@Override
 	public UserSmltChknDto retrieveChknCounterInfo(UserSmltChknSearchDto searchDto) {

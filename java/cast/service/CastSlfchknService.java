@@ -1,10 +1,8 @@
 package aoms.pm.cast.service;
 
 import java.util.List;
-import java.util.Map;
 
 import aoms.pm.cast.dto.SlfDeviceCntRawDto;
-import aoms.pm.cast.dto.SlfchknRsltDto;
 
 /**
  * @Classname : CastSlfchknService.java
@@ -16,15 +14,14 @@ import aoms.pm.cast.dto.SlfchknRsltDto;
  * Modification Information
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
- * 2026. 03. 12. / 노세찬 / 최초작성 
+ * 2026. 03. 12. / 노세찬 / 최초작성
+ * 2026. 08. 08. / 노세찬 / 구 셀프체크인 화면 전용 조회 2종 삭제.
+ *                          셀프체크인/백드랍은 체크인 카운터 탭에 흡수됐고(DELTA 1.2),
+ *                          그 화면이 쓰는 기기 대수 조회만 남는다
  * -----------------------------------------------------------------------------------
- * 
- * </pre> 
+ *
+ * </pre>
  */
 public interface CastSlfchknService {
-	Map<String, List<SlfchknRsltDto>> retrieveSlfchknGroupByTime(String smltId, String tmnlId);
-
-	Map<String, List<SlfchknRsltDto>> retrieveSlfchknGroupByTimeUsingDate(String ymd, String tmnlId);
-
 	List<SlfDeviceCntRawDto> retrieveSlfDeviceCntList(String tmnlId);
 }

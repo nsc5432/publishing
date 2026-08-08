@@ -5,7 +5,6 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
-import aoms.pm.cast.dto.ChknRsltDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
 import aoms.pm.cast.dto.UserSmltChknSaveDto;
                                                                                                              
@@ -22,17 +21,13 @@ import aoms.pm.cast.dto.UserSmltChknSaveDto;
  * ----------  ------  ---------------------------------------------------------                             
  * 2026. 03. 12 / 노세찬 / 최초작성
  * 2026. 08. 08 / 노세찬 / 사용자 시뮬레이션 체크인 저장 statement 추가
+ * 2026. 08. 08 / 노세찬 / 구 화면 전용 retrieveSmltChknList 삭제
  *------------------------------------------------------------------------------
  *                                                                   		                                    
  * </pre>                                                                    		                            
  */                                                                   		                                
 @Mapper                                                                                                     	
 public interface CastChknMapper {
-	List<ChknRsltDto> retrieveSmltChknList(
-		@Param("smltId") String smltId, @Param("ymd") String ymd,
-		@Param("tmnlId") String tmnlId, @Param("island") String island
-	);
-
 	List<CknctCntRawDto> retrieveCknctCntList(
 		@Param("tmnlId") String tmnlId, @Param("useCrgTypeCdList") List<String> useCrgTypeCdList
 	);

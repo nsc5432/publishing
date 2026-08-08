@@ -1,9 +1,5 @@
 package aoms.pm.cast.service;
 
-import java.util.List;
-import java.util.Map;
-
-import aoms.pm.cast.dto.DepRsltDto;
 import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.UserSmltDepDto;
 import aoms.pm.cast.dto.UserSmltDepSaveDto;
@@ -21,15 +17,12 @@ import aoms.pm.cast.dto.UserSmltDepSearchDto;
  * 수정일 / 수정자 / 수정내용
  * 2026. 03. 12. / 노세찬 / 최초작성
  * 2026. 08. 08. / 노세찬 / saveDepInfo 추가 (구 saveScPlanInfo 흡수)
+ * 2026. 08. 08. / 노세찬 / 구 화면 전용 시간대별 조회 2종 삭제 (리뉴얼 화면 미사용)
  * -----------------------------------------------------------------------------------
  * 
  * </pre> 
  */
 public interface CastDepService {
-	Map<String, List<DepRsltDto>> retrieveDepGroupByTime(String smltId, String tmnlId);
-
-	Map<String, List<DepRsltDto>> retrieveDepGroupByTimeUsingDate(String ymd, String tmnlId);
-
 	UserSmltDepDto retrieveDepInfo(UserSmltDepSearchDto searchDto);
 
 	JsonResponse saveDepInfo(UserSmltDepSaveDto saveDto);

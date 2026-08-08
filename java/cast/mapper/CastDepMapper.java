@@ -7,7 +7,6 @@ import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
-import aoms.pm.cast.dto.DepRsltDto;
 import aoms.pm.cast.dto.ScCntRawDto;
 import aoms.pm.cast.dto.UserSmltDepSaveDto;
                                                                                                              
@@ -24,16 +23,13 @@ import aoms.pm.cast.dto.UserSmltDepSaveDto;
  * ----------  ------  ---------------------------------------------------------                             
  * 2026. 03. 12 / 노세찬 / 최초작성
  * 2026. 08. 08 / 노세찬 / 사용자 시뮬레이션 출국장·보안검색대 저장 statement 추가
+ * 2026. 08. 08 / 노세찬 / 구 화면 전용 retrieveSmltDepList 삭제
  *------------------------------------------------------------------------------
  *                                                                   		                                    
  * </pre>                                                                    		                            
  */                                                                   		                                
 @Mapper                                                                                                     	
 public interface CastDepMapper {
-	List<DepRsltDto> retrieveSmltDepList(
-		@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
-	);
-
 	List<DepFcltRawDto> retrieveDepFcltList(@Param("tmnlId") String tmnlId);
 
 	List<DepOperHrRawDto> retrieveDepOperHrList(

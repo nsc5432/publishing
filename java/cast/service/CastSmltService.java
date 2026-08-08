@@ -1,22 +1,12 @@
 package aoms.pm.cast.service;
 
 import java.util.List;
-import java.util.Map;
 
-import aoms.pm.cast.dto.PsgPrcsGrd;
 import aoms.pm.cast.dto.SmltKpiDto;
-import aoms.pm.cast.dto.SmltSmryDepSearchDto;
-import aoms.pm.cast.dto.SmltSmryDto;
-import aoms.pm.cast.dto.SmltSmryMapSearchDto;
 import aoms.pm.cast.dto.SmltStngDto;
-import aoms.pm.cast.dto.SummaryMapDto;
-import aoms.pm.cast.dto.SummaryRsltDto;
 import aoms.pm.cast.dto.UserSmltExecDto;
 import aoms.pm.cast.dto.UserSmltExecSearchDto;
 import aoms.pm.cast.dto.WaitPsgDto;
-import aoms.pm.cast.enums.CongestionStatus;
-import aoms.pm.cast.enums.CongestionType;
-import aoms.pm.cast.enums.PrcsGrdType;
 
 /**
  * @Classname : CastSmltService.java
@@ -30,24 +20,15 @@ import aoms.pm.cast.enums.PrcsGrdType;
  * 수정일 / 수정자 / 수정내용
  * 2026. 03. 12. / 노세찬 / 최초작성
  * 2026. 08. 08. / 노세찬 / executeUserSmlt 추가
+ * 2026. 08. 08. / 노세찬 / 구 요약보기·맵형태보기 화면 전용 조회 5종 삭제.
+ *                          리뉴얼 대시보드/맵은 retrieveDailySmlt* · retrieveSmltMap* 로
+ *                          새로 정의됐고(API_SPEC.md 2장) 응답 형태가 다르다
  * -----------------------------------------------------------------------------------
- * 
- * </pre> 
+ *
+ * </pre>
  */
 public interface CastSmltService {
-	String retrieveRecentSmltId(String ymd);
-	
-	SmltSmryDto retrieveDailySmltSmry(String smltId, CongestionType congestionType);
-
-	List<SummaryRsltDto> retrieveDailySmltSmryDepChart(SmltSmryDepSearchDto searchDto);
-
-	Map<String, SummaryMapDto> retrieveSmltSmryMap(SmltSmryMapSearchDto searchDto);
-	
 	SmltStngDto retrieveSmltStngByKey(String smltId);
-	
-	Map<CongestionStatus, PsgPrcsGrd> retrievePrcsGrdMap(PrcsGrdType prcsGrdType);
-	
-	List<SummaryRsltDto> getXovisDatas(String ymd, CongestionType congestionType, String tmnlId, String island, int interval);
 
 	List<WaitPsgDto> retrieveWaitPsgList(String smltId, String tmnlId, List<String> upPsgFcltCdList);
 

@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import aoms.pm.cast.dto.UserConfigChknDto;
-import aoms.pm.cast.dto.UserConfigFlightDto;
 
 /**
  * @Classname : CastUserConfigService.java
@@ -16,13 +15,13 @@ import aoms.pm.cast.dto.UserConfigFlightDto;
  * Modification Information
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
- * 2026. 03. 12. / 노세찬 / 최초작성 
+ * 2026. 03. 12. / 노세찬 / 최초작성
+ * 2026. 08. 08. / 노세찬 / retrieveFlightList 삭제 (운항편은 retrieveFltPsgInfo 로 대체)
  * -----------------------------------------------------------------------------------
- * 
- * </pre> 
+ *
+ * </pre>
  */
 public interface CastUserConfigService {
-	List<UserConfigFlightDto> retrieveFlightList(String ymd, String tmnlId);
-
+	/** 체크인 카운터 탭(retrieveChknCounterInfo)의 부스 배정 입력이다. 자체 엔드포인트는 없다 */
 	Map<String, List<UserConfigChknDto>> retrieveChknMapGroupByIsland(String ymd, String tmnlId);
 }

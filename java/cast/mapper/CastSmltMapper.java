@@ -5,13 +5,10 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
-import aoms.pm.cast.dto.PsgPrcsGrd;
 import aoms.pm.cast.dto.SmltExcnDto;
 import aoms.pm.cast.dto.SmltKpiRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.SmltStngSearchDto;
-import aoms.pm.cast.dto.SummaryFlightDto;
-import aoms.pm.cast.dto.SummaryRsltDto;
 import aoms.pm.cast.dto.WaitPsgDto;
                                                                                                              
 /**  												                                                           
@@ -27,6 +24,7 @@ import aoms.pm.cast.dto.WaitPsgDto;
  * ----------  ------  ---------------------------------------------------------                             
  * 2026. 03. 12 / 노세찬 / 최초작성
  * 2026. 08. 08 / 노세찬 / 사용자 시뮬레이션 수행 이력 statement 추가
+ * 2026. 08. 08 / 노세찬 / 구 요약보기·맵형태보기 전용 statement 4종 삭제
  *------------------------------------------------------------------------------
  *                                                                   		                                    
  * </pre>                                                                    		                            
@@ -34,25 +32,6 @@ import aoms.pm.cast.dto.WaitPsgDto;
 @Mapper                                                                                                     	
 public interface CastSmltMapper {
 	List<SmltStngDto> retrieveSmltStng(SmltStngSearchDto searchDto);
-
-	SummaryFlightDto retrieveSummaryFlight(@Param("ymd") String ymd, @Param("tmnlId") String tmnlId);
-
-	List<SummaryRsltDto> retrieveCastRsltDtl(
-			@Param("smltId") String smltId, 
-			@Param("dt") String dt, 
-			@Param("tmnlId") String tmnlId,
-			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList,
-			@Param("psgFcltCdPrefix") String psgFcltCdPrefix
-	);
-
-	List<SummaryRsltDto> retrieveXovisRsltDtl(
-			@Param("dt") String dt, 
-			@Param("tmnlId") String tmnlId,
-			@Param("island") String island,
-			@Param("fcltTypeCdList") List<String> fcltTypeCdList
-	);
-
-	List<PsgPrcsGrd> retrievePrcsGrd(@Param("psgPrcsGrdCd") String psgPrcsGrdCd);
 
 	List<WaitPsgDto> retrieveWaitPsgList(
 			@Param("smltId") String smltId,

@@ -2,62 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="aoms.pm.cast.mapper.CastSlfchknMapper">
-    <select id="retrieveSmltSlfchknList" resultType="aoms.pm.cast.dto.SlfchknRsltDto">
-        /* CastSlfchknMapper.retrieveSmltSlfchknList */
-        SELECT 
-		    TIME,
-		    TYPE,
-		    ISLAND,
-		    SUM(WTNG_PSG_CNT) as WTNG_PSG_CNT,
-		    AVG(PRCS_HR) as PRCS_HR,
-		    AVG(WTNG_HR) as WTNG_HR
-		FROM (
-		    SELECT 
-		        A.YMD,
-		        A.TIME, 
-		        B.TMNL_ID,
-		        CASE 
-		            WHEN B.UP_PSG_FCLT_CD = 'CK'
-		            THEN 'KIOSK'
-		            ELSE B.UP_PSG_FCLT_CD
-		        END as TYPE,
-		        CASE
-		            WHEN B.UP_PSG_FCLT_CD = 'CK'
-		            THEN SUBSTR(B.SMLT_FCLT_NM, -3, 1)
-		            WHEN B.UP_PSG_FCLT_CD = 'SBD'
-		            THEN SUBSTR(B.PSG_FCLT_CD, -3, 1)
-		        END as ISLAND,
-		        A.WTNG_PSG_CNT,
-		        A.PRCS_HR,
-		        A.WTNG_HR 
-		    FROM (
-		        SELECT 
-		            A.SMLT_ID, 
-		            REPLACE(SUBSTR(A.SMLT_ACTL_DT, 0, 10), '/', '') YMD,
-		            REPLACE(SUBSTR(A.SMLT_ACTL_DT, 12, 5), ':', '') TIME,
-		            PSG_FCLT_CD,
-		            A.WTNG_PSG_CNT,
-		            A.AVG_PRCS_HR as PRCS_HR,
-		            A.AVG_WTNG_HR as WTNG_HR
-		        FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
-		        WHERE A.SMLT_ID = #{smltId}
-		        AND A.WTNG_PSG_CNT > 0
-		    ) A
-		        INNER JOIN (
-		            SELECT PSG_FCLT_CD, UP_PSG_FCLT_CD, PSG_FCLT_NM, TMNL_ID, SMLT_FCLT_NM
-		            FROM PMOWN.TN_PM_SMLT_PSG_FCLT B
-		            WHERE 1 = 1
-		            AND B.TMNL_ID = #{tmnlId}
-		            AND B.UP_PSG_FCLT_CD IN ('CK', 'SBD')  
-		            AND B.USE_YN = 'Y'
-		        ) B
-		            ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
-		    WHERE 1 = 1 
-		)
-		GROUP BY TIME, TYPE, ISLAND
-		ORDER BY TIME, TYPE, ISLAND
-    </select>
-
     <select id="retrieveSlfDeviceCntList" resultType="aoms.pm.cast.dto.SlfDeviceCntRawDto">
         /* CastSlfchknMapper.retrieveSlfDeviceCntList */
         SELECT

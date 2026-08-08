@@ -1,7 +1,5 @@
 package aoms.pm.cast.service.impl;
 
-import java.util.List;
-
 import org.springframework.stereotype.Service;
 
 import aoms.pm.cast.service.CastRsrcService;
@@ -38,17 +36,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class CastRsrcServiceImpl implements CastRsrcService {
-	// 원본 소스 확인 전에는 채울 수 없는 지점. 문서(docs/db/07-save-decisions.md)와 같은 목록이다
-	private static final List<String> PENDING_RSRC_LIST = List.of(
-			"G8 — aoms.pm.cmmn.dto.* 26종의 Java 소스 부재. CastRestMapper 인터페이스를 선언할 수 없다",
-			"G22 — TN_PM_SMLT_*_ATRB 계열 DDL 미확보. 발행 시 INSERT 할 컬럼의 NOT NULL/기본값을 모른다",
-			"G19 — LISTAGG 119회에 ON OVERFLOW TRUNCATE 가 없다. 하루치 운항편이면 ORA-01489 가 유력하다",
-			"insertSimSet 의 TMNL_ID 'P01' 하드코딩 (CastRestMapper.xml:1610). T2 조건이 P01 로 저장된다",
-			"사용자 시뮬레이션의 SMLT_TYPE 코드값 미확인. 이력에는 'USER' 로 쓰고 있다",
-			"CAST 엔진 수행 시작 트리거의 프로토콜(REST 엔드포인트/큐) 미확인",
-			"TH_PM_SMLT_EXCN_LOG 의 SMLT_EXCN_STEP_CD / SMLT_EXCN_STTS_CD 코드값 집합 미확인"
-	);
-
 	/*
 	 * 발행 호출 지점. 원본 소스를 확보하면 아래 순서 그대로 CastRestMapper 를 호출한다.
 	 * 앞 단계의 리소스 ID 가 뒤 단계의 입력이 되므로 순서를 바꾸면 안 된다.
@@ -74,10 +61,5 @@ public class CastRsrcServiceImpl implements CastRsrcService {
 	public void triggerUserSmltExcn(String smltId, String tmnlId, int smltExcnSn) {
 		// 수행 시작 트리거 지점. 동기적으로 완료를 기다리지 않는다 (지시서 5.6).
 		// 트리거 프로토콜(REST 엔드포인트 / 큐)이 확인되지 않아 비워 둔다
-	}
-
-	@Override
-	public List<String> retrievePendingRsrcList() {
-		return PENDING_RSRC_LIST;
 	}
 }

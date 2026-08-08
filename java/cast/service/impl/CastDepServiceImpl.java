@@ -14,10 +14,8 @@ import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepGateDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
-import aoms.pm.cast.dto.DepRsltDto;
 import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.OprTimeDto;
-import aoms.pm.cast.dto.PsgPrcsGrd;
 import aoms.pm.cast.dto.ScCntRawDto;
 import aoms.pm.cast.dto.ScPlanDto;
 import aoms.pm.cast.dto.SmltKpiDto;
@@ -26,14 +24,11 @@ import aoms.pm.cast.dto.UserSmltDepDto;
 import aoms.pm.cast.dto.UserSmltDepSaveDto;
 import aoms.pm.cast.dto.UserSmltDepSearchDto;
 import aoms.pm.cast.dto.WaitPsgDto;
-import aoms.pm.cast.enums.CongestionStatus;
-import aoms.pm.cast.enums.PrcsGrdType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDepMapper;
 import aoms.pm.cast.service.CastDepService;
 import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.utils.SessionUtils;
-import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -50,6 +45,7 @@ import lombok.RequiredArgsConstructor;
  * 수정일 / 수정자 / 수정내용
  * 2026. 03. 12. / 노세찬 / 최초작성
  * 2026. 08. 08. / 노세찬 / saveDepInfo 추가 (구 saveScPlanInfo 흡수)
+ * 2026. 08. 08. / 노세찬 / 구 화면 전용 시간대별 조회 2종 삭제
  * -----------------------------------------------------------------------------------
  *
  * </pre>
@@ -70,30 +66,6 @@ public class CastDepServiceImpl implements CastDepService {
 	private final CastSmltService castSmltService;
 	private final CastDepMapper castDepMapper;
 	private final SessionService sessionService;
-
-	@Override
-	public Map<String, List<DepRsltDto>> retrieveDepGroupByTime(String smltId, String tmnlId) {
-		List<DepRsltDto> smltDepList = castDepMapper.retrieveSmltDepList(smltId, tmnlId);
-		Map<CongestionStatus, PsgPrcsGrd> prcsGrdMap = castSmltService.retrievePrcsGrdMap(PrcsGrdType.DEP);
-		
-		Map<String, List<DepRsltDto>> groupedByDomain = smltDepList.stream().collect(Collectors.groupingBy(x -> x.getDepNum()));
-		List<DepRsltDto> aggregate = new ArrayList<>();
-		
-		groupedByDomain.forEach((depNum, list) -> {
-			List<DepRsltDto> timeAggregated = SmltUtils.aggregate(list, 30, DepRsltDto::new);
-			aggregate.addAll(timeAggregated.stream()
-					.map(x -> x.withDepNum(depNum).withCgnStatus(SmltUtils.getCongestionStatus(prcsGrdMap, x.getWtngPsgCnt())))
-					.collect(toList()));
-		});
-		
-		return TimeBucketUtils.groupByBucket(aggregate);
-	}
-
-	@Override
-	public Map<String, List<DepRsltDto>> retrieveDepGroupByTimeUsingDate(String ymd, String tmnlId) {
-		String smltId = castSmltService.retrieveRecentSmltId(ymd);
-		return retrieveDepGroupByTime(smltId, tmnlId);
-	}
 
 	@Override
 	public UserSmltDepDto retrieveDepInfo(UserSmltDepSearchDto searchDto) {

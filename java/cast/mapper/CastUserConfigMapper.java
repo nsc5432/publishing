@@ -6,7 +6,6 @@ import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
 import aoms.pm.cast.dto.ChknRawDto;
-import aoms.pm.cast.dto.UserConfigFlightDto;                                                            
                                                                                                              
 /**  												                                                           
  * @Classname   : CastUserConfigMapper.java                                                              
@@ -20,13 +19,12 @@ import aoms.pm.cast.dto.UserConfigFlightDto;
  * 수정일 / 수정자 /수정내용                    													           
  * ----------  ------  ---------------------------------------------------------                             
  * 2026. 03. 12 / 노세찬 / 최초작성
- *------------------------------------------------------------------------------                             
- *                                                                   		                                    
- * </pre>                                                                    		                            
- */                                                                   		                                
-@Mapper                                                                                                     	
+ * 2026. 08. 08 / 노세찬 / retrieveFlightList 삭제 (운항편은 CastFltPsgMapper 가 담당)
+ *------------------------------------------------------------------------------
+ *
+ * </pre>
+ */
+@Mapper
 public interface CastUserConfigMapper {
-	List<UserConfigFlightDto> retrieveFlightList(@Param("ymd") String ymd, @Param("tmnlId") String tmnlId);
-
 	List<ChknRawDto> retrieveChknList(@Param("ymd") String ymd, @Param("tmnlId") String tmnlId);
 }                                                                                                            

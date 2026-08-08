@@ -2,18 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="aoms.pm.cast.mapper.CastUserConfigMapper">
-    <select id="retrieveFlightList" resultType="aoms.pm.cast.dto.UserConfigFlightDto">
-        /* CastUserConfigMapper.retrieveFlightList */
-        SELECT 
-		    FLTSH_ID, 
-		    GD_SE_YMD,
-		    PREDC_HM AS etd,
-		    RSVT_BDPSG_CNT AS PSG_CNT
-		FROM GOOWN.TN_GO_GD_DATA
-		WHERE GD_SE_YMD = #{ymd}
-		AND TMNL_ID = #{tmnlId}
-    </select>
-    
     <select id="retrieveChknList" resultType="aoms.pm.cast.dto.ChknRawDto">
         /* CastUserConfigMapper.retrieveChknList */
         SELECT 
