@@ -9,10 +9,7 @@ interface ScRangeTableProps {
 }
 
 /**
- * 보안검색대 운영계획 표 — 구 보안 검색대 탭의 시작/종료/갯수 표를 드로어로 옮긴 것.
- * (design-renewal 05 시안의 planTable() 이식)
- *
- * 이 표가 시간대별로 어떻게 깔리는지는 위쪽 운영시간 타임바의 슬롯 숫자로 함께 보여준다.
+ * 보안검색대 운영계획 표
  */
 export function ScRangeTable({ rows, onDelete, disabled = false }: ScRangeTableProps) {
     return (

@@ -24,22 +24,13 @@ import type { DepGateMarker, IslandMarker, TerminalKind } from './types';
 
 /**
  * PM 예측관리 / 일일 시뮬레이션 결과 조회 — 맵 형태.
- * html/index.html + html/js/main.js 를 컴포넌트로 이식한 컨테이너.
- *
- * - 화면 공용 상태(터미널 선택, 선택 아일랜드, 타임라인)를 소유하고 Props 로 전달.
- * - 도면/마커 좌표는 mock.ts 의 비율 데이터를 그대로 사용한다.
  */
 function TerminalMap() {
-    // terminalMap.css 를 이 화면에서만 적용시킨다 (hooks/usePageScope 참고)
     usePageScope('terminalMap');
 
-    // 조회 조건: 터미널 선택 (T1 / T2)
     const [terminal, setTerminal] = useState<TerminalKind>(HEADER.defaultTerminal);
-    // 상세 팝업이 열린 아일랜드
     const [selectedIsland, setSelectedIsland] = useState<IslandMarker | null>(null);
-    // 미니 팝업이 열린 출국장
     const [selectedDepGate, setSelectedDepGate] = useState<DepGateMarker | null>(null);
-    // 하단 타임라인 (30분 단위 / 재생)
     const timeline = useTimeline();
 
     const mapData = TERMINAL_MAP[terminal];

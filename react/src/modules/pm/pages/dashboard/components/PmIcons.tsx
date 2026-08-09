@@ -1,10 +1,5 @@
 import type { ReactNode } from 'react';
 
-/**
- * index.html 의 인라인 `ICONS` 객체를 그대로 이식한 아이콘 세트.
- * 원본과 동일하게 `<i data-ic="name">` 래퍼로 감싸 dashboard.css 의
- * 사이즈 헬퍼(.i-26, .i-plane-lg, .qtile > i > svg 등)가 그대로 적용되도록 한다.
- */
 export type IconName =
     | 'calendar'
     | 'search'
@@ -169,7 +164,7 @@ const ICONS: Record<IconName, ReactNode> = {
             </g>
         </svg>
     ),
-    /* 출국장 메뉴용 — plane 과 같은 도형을 시안처럼 비스듬히 눕힌 것 */
+    /* 출국장 메뉴용 */
     planeDep: (
         <svg viewBox="0 0 24 24" fill="currentColor" width={23} height={23}>
             <g transform="rotate(45 12 12)">

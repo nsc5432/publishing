@@ -94,13 +94,7 @@ function newGate(gates: DepartureGate[]): DepartureGate {
 let planSeq = 0;
 
 /**
- * 출국장 탭 — design-renewal 04 · 05 시안 이식.
- *
- * 첫 화면은 시간대별 운영 출국장 블럭 차트(1블럭 = 출국장 1개)이고,
- * 구 보안 검색대 탭은 그 아래 보조 블럭 차트(1블럭 = 검색대 4대)로 흡수했다.
- * 세부 편집(사용 여부 · 운영시간 · 검색대 구성 · 운영계획 구간표)은 우측 드로어로 내렸다.
- *
- * 터미널별 편집 상태를 각각 들고 있어 터미널을 오가도 값이 보존된다.
+ * 출국장 탭
  */
 export function DepartureTab({ activeTerminal, onTerminalChange }: DepartureTabProps) {
     const [edit, setEdit] = useState<EditState>(INITIAL_EDIT);

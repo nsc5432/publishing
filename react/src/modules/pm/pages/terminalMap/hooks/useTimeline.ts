@@ -1,17 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { TIMELINE_INTERVAL, TIMELINE_MAX_STEP, TIMELINE_STEP_MIN } from '../mock';
 
-/** 00:00 ~ 24:00 을 30분(48스텝) 단위로 표기 */
 function formatStep(step: number) {
     const minutes = step * TIMELINE_STEP_MIN;
     const pad = (n: number) => String(n).padStart(2, '0');
     return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
 }
 
-/**
- * html/js/main.js 의 타임라인 로직 이식.
- * 30분 단위 이동 / 재생·정지 / 마지막(24:00) 도달 시 자동 정지를 담당한다.
- */
 export function useTimeline(initialStep = 0) {
     const [step, setStep] = useState(initialStep);
     const [playing, setPlaying] = useState(false);

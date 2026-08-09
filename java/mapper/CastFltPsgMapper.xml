@@ -27,11 +27,6 @@
         ORDER BY HOUR
     </select>
 
-    <!--
-        저장 — 헤더 1행(SMLT_ID + TMNL_ID)은 병합(update-or-insert), 시간대별 목록은 전체 교체.
-        조정 "비율"만 저장한다. 곱해진 편별 여객수를 TN_PM_SMLT_SCHDL_ATRB 에 물리 저장하면
-        원본 복원이 불가능하므로 채택하지 않았다. 비율 적용은 CAST 리소스 발행 시점이다.
-    -->
     <update id="updateUserFltPsg" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
         /* CastFltPsgMapper.updateUserFltPsg */
         UPDATE PMOWN.TN_PM_SMLT_USER_FLT_PSG

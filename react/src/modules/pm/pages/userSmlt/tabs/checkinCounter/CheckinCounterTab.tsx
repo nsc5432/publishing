@@ -21,9 +21,7 @@ type EditState = Record<TerminalKind, CheckinIsland[]>;
 /** 드로어 편집값 — 변경을 눌러야 목록(EditState)에 반영된다 */
 interface DrawerState {
     draft: CheckinIsland;
-    /** 기존 아일랜드 수정이면 그 문자, `+ 추가` 로 연 신규면 null */
     target: string | null;
-    /** 항공사 칩을 누르면 배정할 부스 */
     selectedBooth: number | null;
 }
 
@@ -71,13 +69,7 @@ function newIsland(data: TerminalCheckinCounter, islands: CheckinIsland[]): Chec
 }
 
 /**
- * 체크인 카운터 탭 — design-renewal 02 · 03 시안 이식.
- *
- * 첫 화면은 시간대별 운영 아일랜드 블럭 차트(1블럭 = 부스 4석) + 대기인원수 꺾은선이고,
- * 세부 편집(운영시간 · 부스 배정 · 셀프 서비스)은 블럭을 클릭해 여는 우측 드로어로 내렸다.
- * 구 셀프체크인/백드롭 탭은 하단 셀프 서비스 바 + 드로어 스테퍼로 흡수했다.
- *
- * 터미널별 편집 상태를 각각 들고 있어 터미널을 오가도 값이 보존된다.
+ * 체크인 카운터 탭
  */
 export function CheckinCounterTab({ activeTerminal, onTerminalChange }: CheckinCounterTabProps) {
     const [edit, setEdit] = useState<EditState>(INITIAL_EDIT);
@@ -287,9 +279,9 @@ export function CheckinCounterTab({ activeTerminal, onTerminalChange }: CheckinC
                                 setDrawer((prev) =>
                                     prev
                                         ? {
-                                              ...prev,
-                                              selectedBooth: prev.selectedBooth === no ? null : no,
-                                          }
+                                            ...prev,
+                                            selectedBooth: prev.selectedBooth === no ? null : no,
+                                        }
                                         : prev,
                                 )
                             }

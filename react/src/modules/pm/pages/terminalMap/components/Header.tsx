@@ -2,12 +2,9 @@ import { SearchIcon } from '@/components/icons';
 import { TERMINAL_LABEL, type HeaderSummary, type TerminalKind } from '../types';
 
 interface HeaderProps {
-    /** 기준일자 (예: 2024/10/23) */
     baseDate: string;
-    /** 선택된 터미널 */
     terminal: TerminalKind;
     onTerminalChange: (terminal: TerminalKind) => void;
-    /** 우측 운항/여객 요약 */
     summary: HeaderSummary;
     onSearch: () => void;
 }

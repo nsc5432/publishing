@@ -27,13 +27,20 @@
        (대시보드는 본문을 fit-to-screen 으로 축소하므로 축소 좌표계에서
         쓸 때 --scale 로 나눈다. dashboard.css 참고)
        ----------------------------------------------------------------- */
-    --pm-header-h: 70px; /* 헤더 / GNB 높이 */
-    --pm-shell-x: 24px; /* 본문 좌우 바깥 여백 */
-    --pm-shell-top: 16px; /* 헤더 ↔ 본문 */
-    --pm-shell-bottom: 20px; /* 본문 ↔ 화면 하단 */
-    --pm-shell-gap: 16px; /* LNB 레일 ↔ 본문 */
-    --pm-lnb-w: 79px; /* LNB 레일 폭 */
-    --pm-lnb-open-w: 250px; /* LNB 펼침 패널 폭 (본문을 덮는다) */
+    --pm-header-h: 70px;
+    /* 헤더 / GNB 높이 */
+    --pm-shell-x: 24px;
+    /* 본문 좌우 바깥 여백 */
+    --pm-shell-top: 16px;
+    /* 헤더 ↔ 본문 */
+    --pm-shell-bottom: 20px;
+    /* 본문 ↔ 화면 하단 */
+    --pm-shell-gap: 16px;
+    /* LNB 레일 ↔ 본문 */
+    --pm-lnb-w: 79px;
+    /* LNB 레일 폭 */
+    --pm-lnb-open-w: 250px;
+    /* LNB 펼침 패널 폭 (본문을 덮는다) */
 }
 
 /* 세로가 좁은 화면에서는 셸을 한 단계 줄인다. 세 화면이 같은 값을 쓰므로
@@ -106,12 +113,15 @@ td {
     overflow-y: auto;
     overscroll-behavior: contain;
 }
+
 .scroll-area::-webkit-scrollbar {
     width: 6px;
 }
+
 .scroll-area::-webkit-scrollbar-track {
     background: transparent;
 }
+
 .scroll-area::-webkit-scrollbar-thumb {
     border-radius: 3px;
     background: rgba(120, 124, 150, 0.28);
@@ -122,6 +132,7 @@ td {
     0% {
         transform: translateX(-100%);
     }
+
     100% {
         transform: translateX(100%);
     }
@@ -144,6 +155,7 @@ td {
     overflow: hidden;
     user-select: none;
 }
+
 /* 화면이 최소 너비(맵 형태 조회 = 1440px)보다 좁으면 가로로 스크롤한다.
    세로는 각 화면이 한 화면에 맞추므로 잠근다. */
 .pm-shell__body {
@@ -158,17 +170,14 @@ td {
 
 /* ---------------------------------------------------------------------
    4-1. LNB — 좌측 네비게이션 레일 (components/lnb/Lnb.tsx)
-   기준: 맵 형태 조회(terminalMap) 시안의 레일.
-   화면별 CSS 와 무관하게 동일하게 보이도록 버튼 초기화까지 여기서 한다.
    --------------------------------------------------------------------- */
-/* 레일은 자리(폭)만 잡고, 실제 패널(.sidebar-inner)은 그 위에 겹쳐 그린다.
-   펼칠 때 폭이 변해도 본문 레이아웃이 흔들리지 않고 덮이도록 하기 위함이다. */
 .sidebar {
     display: flex;
     position: relative;
     flex: none;
     width: var(--pm-lnb-w);
 }
+
 /* 레일에는 아이콘 최대 9개 + 하단 토글이 세로로 쌓인다. 1080 기준값을 고정 px 로 두면
    768~900 높이에서 아래쪽 메뉴와 토글이 화면 밖으로 밀려나므로, 1080 에서
    원래 값이 나오는 vh 로 잡고 낮은 화면에서만 줄어들게 한다. */
@@ -189,6 +198,7 @@ td {
         width 0.22s ease,
         box-shadow 0.22s ease;
 }
+
 .nav-list {
     display: flex;
     flex-direction: column;
@@ -196,9 +206,11 @@ td {
     align-self: stretch;
     gap: clamp(10px, 2.31vh, 25px);
 }
+
 .nav-item {
     display: flex;
-    position: relative; /* 메뉴명 툴팁(.nav-tip) 기준 */
+    position: relative;
+    /* 메뉴명 툴팁(.nav-tip) 기준 */
     flex: none;
     align-items: center;
     justify-content: center;
@@ -214,14 +226,17 @@ td {
     cursor: pointer;
     transition: background 0.15s;
 }
+
 .nav-item.active {
     background: linear-gradient(150deg, #4441cc, #5b57de);
     color: #fff;
     box-shadow: 0 5px 13px rgba(68, 65, 204, 0.35);
 }
+
 .nav-item.on {
     color: #3b39c9;
 }
+
 /* PmIcons 중에는 svg 에 width/height 를 달지 않은 것(plane 등)이 있고,
    그 크기를 잡아 주는 규칙은 dashboard.css 안에만 있다. 레일은 전 화면 공용이라
    여기서 크기를 고정해 어떤 아이콘을 넣어도 같게 보이도록 한다. */
@@ -230,12 +245,14 @@ td {
     width: 23px;
     height: 23px;
 }
+
 .nav-sep {
     width: 44px;
     height: 1px;
     margin: clamp(8px, 1.48vh, 16px) 0;
     background: #e0e0ea;
 }
+
 .nav-toggle {
     margin-top: auto;
 }
@@ -254,10 +271,12 @@ td {
     box-shadow: 0 12px 34px rgba(63, 84, 145, 0.18);
     backdrop-filter: blur(18px);
 }
+
 .sidebar.is-open .nav-list {
     align-items: stretch;
     padding: 0 14px;
 }
+
 .sidebar.is-open .nav-item {
     align-self: stretch;
     justify-content: flex-start;
@@ -266,12 +285,15 @@ td {
     padding: 0 16px;
     border-radius: 999px;
 }
+
 .sidebar.is-open .nav-sep {
     align-self: center;
 }
+
 .sidebar.is-open .nav-item:not(.active):hover {
     background: rgba(68, 65, 204, 0.07);
 }
+
 .sidebar.is-open .nav-label {
     display: block;
     font-size: 15px;
@@ -279,27 +301,32 @@ td {
     line-height: 1.2;
     white-space: nowrap;
 }
+
 /* 펼치면 메뉴명이 그대로 보이므로 툴팁은 불필요하다 */
 .sidebar.is-open .nav-tip {
     display: none;
 }
+
 .sidebar.is-open .nav-toggle {
     justify-content: flex-start;
     margin: auto 14px 0;
     padding: 0 16px;
 }
+
 .sidebar.is-open .nav-user {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 1px;
 }
+
 .nav-user__dept {
     font-size: 12px;
     font-weight: 500;
     line-height: 1.2;
     color: #9aa0ac;
 }
+
 .nav-user__name {
     font-size: 15px;
     font-weight: 700;
@@ -329,6 +356,7 @@ td {
         opacity 0.15s ease,
         transform 0.15s ease;
 }
+
 /* 말풍선 꼬리 */
 .nav-tip::before {
     content: '';
@@ -339,6 +367,7 @@ td {
     border-right-color: #2f3440;
     transform: translateY(-50%);
 }
+
 .nav-item:hover .nav-tip,
 .nav-item:focus-visible .nav-tip {
     opacity: 1;
@@ -364,9 +393,11 @@ td {
     margin: 0 0 clamp(8px, 1.5vh, 16px);
     font-size: 13px;
 }
+
 .timebar__label {
     color: var(--text-mute, #9aa0ac);
 }
+
 .timebar__value {
     font-weight: 700;
     color: var(--text, #333333);
@@ -381,18 +412,22 @@ td {
     cursor: crosshair;
     user-select: none;
 }
+
 .timebar__slot {
     height: clamp(14px, 2vh, 22px);
     border-radius: 3px;
     background: #e6e6e6;
     transition: background 0.15s;
 }
+
 .timebar__slot:hover {
     background: #d4d4dc;
 }
+
 .timebar__slot.is-on {
     background: var(--pm-primary-light, #a09eff);
 }
+
 .timebar__slot.is-on:hover {
     background: #8c8af0;
 }
@@ -403,6 +438,7 @@ td {
 .timebar__slot.is-preview-add:hover {
     background: var(--pm-primary, #4441cc);
 }
+
 .timebar__slot.is-preview-remove,
 .timebar__slot.is-preview-remove:hover {
     background: #d3d5de;
@@ -420,9 +456,11 @@ td {
 .timebar.is-disabled .timebar__track {
     cursor: not-allowed;
 }
+
 .timebar.is-disabled .timebar__slot {
     background: #cfd0d1;
 }
+
 .timebar.is-disabled .timebar__slot.is-on {
     background: #b6b7bd;
 }
@@ -439,6 +477,7 @@ td {
     position: relative;
     align-items: center;
 }
+
 .pill-sm {
     display: flex;
     align-items: center;
@@ -451,15 +490,18 @@ td {
     font-weight: 600;
     cursor: pointer;
 }
+
 .pill-sm .caret {
     margin: 2px 0 0 1px;
     color: #b0b7c6;
     font-size: 11px;
     transition: transform 0.15s;
 }
+
 .pill-sm.open .caret {
     transform: rotate(180deg);
 }
+
 .pill-sm .unit {
     margin-left: 5px;
     color: #5a6478;
@@ -481,6 +523,7 @@ td {
     overflow-y: auto;
     transform: translateX(-50%);
 }
+
 .pill-menu button {
     display: block;
     width: 100%;
@@ -495,9 +538,11 @@ td {
     text-align: center;
     cursor: pointer;
 }
+
 .pill-menu button:hover {
     background: #eff2fb;
 }
+
 .pill-menu button.sel {
     background: var(--purple, #4441cc);
     color: #fff;
@@ -514,9 +559,11 @@ td {
     z-index: 50;
     background: rgba(0, 0, 0, 0.5);
 }
+
 .alert-dialog__overlay[data-state='open'] {
     animation: alert-dialog-fade-in 0.2s ease-out;
 }
+
 .alert-dialog__overlay[data-state='closed'] {
     animation: alert-dialog-fade-out 0.2s ease-in;
 }
@@ -537,14 +584,17 @@ td {
     box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
     transform: translate(-50%, -50%);
 }
+
 @media (min-width: 640px) {
     .alert-dialog__content {
         max-width: 32rem;
     }
 }
+
 .alert-dialog__content[data-state='open'] {
     animation: alert-dialog-zoom-in 0.2s ease-out;
 }
+
 .alert-dialog__content[data-state='closed'] {
     animation: alert-dialog-zoom-out 0.2s ease-in;
 }
@@ -555,11 +605,13 @@ td {
     gap: 8px;
     text-align: center;
 }
+
 .alert-dialog__title {
     font-size: 18px;
     font-weight: 600;
     line-height: 1.4;
 }
+
 .alert-dialog__desc {
     font-size: 14px;
     color: #64748b;
@@ -576,6 +628,7 @@ td {
     .alert-dialog__header {
         text-align: left;
     }
+
     .alert-dialog__footer {
         flex-direction: row;
         justify-content: flex-end;
@@ -598,9 +651,11 @@ td {
     cursor: pointer;
     transition: background 0.2s, box-shadow 0.2s, color 0.2s, border-color 0.2s;
 }
+
 .alert-dialog__btn:active {
     transform: scale(0.98);
 }
+
 .alert-dialog__btn:focus-visible {
     outline: 2px solid rgba(68, 65, 204, 0.5);
     outline-offset: 2px;
@@ -611,6 +666,7 @@ td {
     color: #ffffff;
     box-shadow: 0 4px 6px -1px rgba(68, 65, 204, 0.25);
 }
+
 .alert-dialog__btn--primary:hover {
     background: #3a37b8;
     box-shadow: 0 10px 15px -3px rgba(68, 65, 204, 0.3);
@@ -622,6 +678,7 @@ td {
     color: #1f2430;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 }
+
 .alert-dialog__btn--outline:hover {
     border-color: #4441cc;
     color: #4441cc;
@@ -632,33 +689,40 @@ td {
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
 }
+
 @keyframes alert-dialog-fade-out {
     from {
         opacity: 1;
     }
+
     to {
         opacity: 0;
     }
 }
+
 @keyframes alert-dialog-zoom-in {
     from {
         opacity: 0;
         transform: translate(-50%, -50%) scale(0.95);
     }
+
     to {
         opacity: 1;
         transform: translate(-50%, -50%) scale(1);
     }
 }
+
 @keyframes alert-dialog-zoom-out {
     from {
         opacity: 1;
         transform: translate(-50%, -50%) scale(1);
     }
+
     to {
         opacity: 0;
         transform: translate(-50%, -50%) scale(0.95);

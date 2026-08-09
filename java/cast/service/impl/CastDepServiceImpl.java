@@ -44,8 +44,6 @@ import lombok.RequiredArgsConstructor;
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
  * 2026. 03. 12. / 노세찬 / 최초작성
- * 2026. 08. 08. / 노세찬 / saveDepInfo 추가 (구 saveScPlanInfo 흡수)
- * 2026. 08. 08. / 노세찬 / 구 화면 전용 시간대별 조회 2종 삭제
  * -----------------------------------------------------------------------------------
  *
  * </pre>
@@ -102,12 +100,6 @@ public class CastDepServiceImpl implements CastDepService {
 
 	/*
 	 * 저장 전략 — 전체 교체(delete-then-insert).
-	 * 구 saveScPlanInfo 를 흡수해 출국장 · 운영시간 · 보안검색대 운영계획 3개 테이블을
-	 * 한 트랜잭션에서 쓴다. 삭제 범위는 SMLT_ID + TMNL_ID 이며 TMNL_ID 를 빼면 T1 저장이 T2 를 지운다.
-	 * 감사 컬럼 등록자는 사용자 조작이므로 #{loginUserId} 다.
-	 *
-	 * oprYn 은 마스터 TN_PM_SMLT_PSG_FCLT.USE_YN 이 아니라 시뮬레이션 단위 값이므로
-	 * TN_PM_SMLT_USER_DEP.OPER_YN 에 따로 쓴다 (D7 — 시뮬레이션 조건을 마스터에 쓰면 안 된다).
 	 */
 	@Override
 	public JsonResponse saveDepInfo(UserSmltDepSaveDto saveDto) {

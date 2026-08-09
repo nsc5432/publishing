@@ -5,25 +5,17 @@ import type { DepGateMarker, IslandMarker, TerminalKind, TerminalMapData } from 
 interface MapStageProps {
     terminal: TerminalKind;
     data: TerminalMapData;
-    /** 팝업이 열려 있는 마커 id (아일랜드 / 출국장 공용) */
     activeMarkerId?: string;
-    /** 아일랜드 클릭 → 상세 팝업 */
     onIslandClick: (island: IslandMarker) => void;
-    /** 출국장 클릭 → 혼잡 현황 미니 팝업 */
     onDepGateClick: (depGate: DepGateMarker) => void;
 }
 
-/** 도면 무대 기준 비율 좌표를 CSS 변수로 변환 */
 function pos(x: number, y: number) {
     return { '--x': `${x}%`, '--y': `${y}%` } as CSSProperties;
 }
 
 /**
  * 터미널 도면 + 구역 마커 레이어.
- *
- * 도면 SVG(assets/svg/terminal1-icon.svg · terminal2-icon.svg)는
- * preserveAspectRatio="none" 이므로 viewBox 좌표가 무대 박스에 비율 그대로
- * 대응한다. 마커도 같은 박스를 공유해 화면 크기가 변해도 어긋나지 않는다.
  */
 export function MapStage({
     terminal,
@@ -51,9 +43,8 @@ export function MapStage({
                     <button
                         type="button"
                         key={depGate.id}
-                        className={`marker marker--dep-gate${
-                            depGate.id === activeMarkerId ? ' is-active' : ''
-                        }`}
+                        className={`marker marker--dep-gate${depGate.id === activeMarkerId ? ' is-active' : ''
+                            }`}
                         style={pos(depGate.x, depGate.y)}
                         aria-label={`출국장 ${depGate.label}`}
                         onClick={() => onDepGateClick(depGate)}
@@ -67,9 +58,8 @@ export function MapStage({
                     <button
                         type="button"
                         key={island.id}
-                        className={`marker marker--island is-${island.level}${
-                            island.id === activeMarkerId ? ' is-active' : ''
-                        }`}
+                        className={`marker marker--island is-${island.level}${island.id === activeMarkerId ? ' is-active' : ''
+                            }`}
                         style={pos(island.x, island.y)}
                         onClick={() => onIslandClick(island)}
                     >

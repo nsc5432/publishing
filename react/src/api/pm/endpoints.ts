@@ -2,11 +2,6 @@ const prefix = '/pm/cast';
 
 /**
  * PM 예측관리 API 엔드포인트.
- *
- * RESTful 이 아니라 "동작 단위" 경로다.
- * - 모든 호출은 POST 이며, 조건은 쿼리스트링이 아니라 body 로 넘긴다.
- * - 경로는 `/{도메인}/{동사+대상}` 형태로 쓴다 (retrieve / save / execute).
- * - 도메인은 화면 단위로 나눈다 (smry=요약보기, map=맵형태보기, user-smlt, mntr).
  */
 export const API_ENDPOINTS = {
     // 공통 - 사용자 정보
@@ -28,10 +23,8 @@ export const API_ENDPOINTS = {
     USER_SMLT_INFO: prefix + '/user-smlt/retrieveUserSmltInfo',
     USER_SMLT_FLT_PSG: prefix + '/user-smlt/retrieveFltPsgInfo',
     USER_SMLT_FLT_PSG_SAVE: prefix + '/user-smlt/saveFltPsgInfo',
-    // 셀프체크인/백드롭은 체크인 카운터로 흡수됐다 (구 retrieveSlfchknInfo / saveSlfchknInfo)
     USER_SMLT_CHKN: prefix + '/user-smlt/retrieveChknCounterInfo',
     USER_SMLT_CHKN_SAVE: prefix + '/user-smlt/saveChknCounterInfo',
-    // 보안 검색대는 출국장으로 흡수됐다 (구 retrieveScPlanInfo / saveScPlanInfo)
     USER_SMLT_DEP: prefix + '/user-smlt/retrieveDepInfo',
     USER_SMLT_DEP_SAVE: prefix + '/user-smlt/saveDepInfo',
     USER_SMLT_FCLT_MAP: prefix + '/user-smlt/retrieveFcltMap',

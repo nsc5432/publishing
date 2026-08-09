@@ -11,10 +11,6 @@ interface CountStepperProps {
 
 /**
  * 라벨 + 증감 스테퍼 한 줄 — 드로어의 셀프 서비스 / 검색대 구성 공용.
- * (design-renewal 시안의 stepperRow() 이식)
- *
- * 운항편/여객수 탭의 .stepper 와 같은 클래스를 쓰되, 드로어 안에서는
- * 라벨과 좌우로 나뉘므로 .drow 로 감싼다.
  */
 export function CountStepper({
     label,

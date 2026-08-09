@@ -5,26 +5,16 @@ import { HOUR_OPTIONS, MINUTE_OPTIONS } from '../mock';
 import { SIMULATION_LABEL, type SimulationType } from '../types';
 
 interface TopbarProps {
-    /** 시뮬레이션 버전 뱃지 텍스트 (btn-primary) */
     simulationType: SimulationType;
-    /** 기준일자 (예: 2026/07/10) */
     baseDate: string;
-    /** 기준 시 초기값 (예: 10) */
     hour: string;
-    /** 기준 분 초기값 (예: 00) */
     minute: string;
-    /** 마지막 계산 시각 */
     lastCalc: string;
-    /** 재계산 예정 시각 */
     nextCalc: string;
 }
 
 /**
  * 대시보드 상단 바 — 화면 제목 / 조회 조건 / 계산 시각.
- *
- * 헤더는 LNB 와 함께 전 화면 공용 크롬이라 다른 화면과 같은 높이로 보여야 한다.
- * 그래서 fit-to-screen 으로 축소되는 .app 밖에 두고 실제 px 로 그린다
- * (높이는 common.css 의 --pm-header-h).
  */
 export function Topbar({
     simulationType,
@@ -38,7 +28,6 @@ export function Topbar({
     const [selMinute, setSelMinute] = useState(minute);
 
     const handleSearch = () => {
-        // 실제 조회 연동 전: 현재 선택된 조회 조건을 확인만 한다.
         console.log('[조회]', { baseDate, hour: selHour, minute: selMinute, simulationType });
     };
 

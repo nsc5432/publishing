@@ -5,7 +5,6 @@ interface StatCardsProps {
     cards: StatCard[];
 }
 
-/** 상단 KPI 카드 — 전체 수행 / 완료 / 진행중 / 평균 수행시간 */
 export function StatCards({ cards }: StatCardsProps) {
     return (
         <div className="kpi">

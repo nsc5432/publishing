@@ -4,39 +4,23 @@ import { WaitLine } from './WaitLine';
 
 interface BlockChartProps {
     items: BlockItem[];
-    /** 차트 제목 (예: 시간대별 운영 아일랜드) */
     title: string;
-    /** 제목 옆 단위 문구 (예: (단위: 아일랜드 수)) */
     unit?: string;
-    /** 환산 안내 칩 (예: 1블럭 = 부스 4석) */
     unitNote?: string;
-    /** Y축 칸 수 */
     levels?: number;
-    /** 한 칸 높이(px) */
     rowH?: number;
-    /** 블럭 1개가 담당하는 규모 — 블럭 수 = ceil(size / unitSize) */
     unitSize?: number;
-    /** 블럭 라벨 글자 크기(px) */
     blockFontSize?: number;
-    /** 라벨 없는 저프로필 변형 (보조 차트) */
     compact?: boolean;
     legend?: BlockLegend[];
     line?: WaitLineData;
-    /** 바로 위 차트와 시간축이 같으면 false 로 X축을 생략한다 */
     showScale?: boolean;
-    /** 하단 안내 문구 — 없으면 푸터를 그리지 않는다 */
     footText?: string;
-    /** 푸터 우측 액션 */
     actions?: ReactNode;
-    /** 헤드 우측 부가 요소 (미운영 칩 등) */
     headExtra?: ReactNode;
-    /** 헤드 우측 액션 — 푸터가 없는 보조 차트에서 쓴다 */
     headActions?: ReactNode;
-    /** 드로어가 열린 블럭 — 나머지는 흐려진다 */
     selectedLabel?: string | null;
-    /** 블럭 클릭 (드로어 열기) */
     onBlockSelect?: (label: string) => void;
-    /** 블럭 호버 툴팁 문구 */
     formatTip?: (item: BlockItem, hour: number) => string;
     disabled?: boolean;
 }
@@ -51,23 +35,17 @@ function toHours(item: BlockItem): number[] {
     return [...hours].sort((a, b) => a - b);
 }
 
-/** 렌더할 블럭 1개 — 시간(열) × 쌓임 높이(행) */
+/** 렌더할 블럭 1개 */
 interface Cell {
     key: string;
     item: BlockItem;
     hour: number;
     row: number;
-    /** 그 시설이 그 시간에 차지한 맨 윗칸 — 툴팁을 여기에만 단다 */
     top: boolean;
 }
 
 /**
  * 시간대별 운영 블럭 차트 — 체크인 카운터(아일랜드) · 출국장 · 보안검색대 공용.
- * (design-renewal/mock.js 의 blockChart() 이식)
- *
- * 블럭은 시간대별로 아래에서부터 쌓인다. 블럭 개수 = ceil(size / unitSize) 라서
- * 규모가 큰 시설은 같은 시간대에 여러 칸을 차지하고, 세로 높이가 곧 그 시간의 운영 규모가 된다.
- * 단위(unitSize)·색·라벨을 전부 props 로 받으므로 탭마다 복제하지 않는다.
  */
 export function BlockChart({
     items,
@@ -130,9 +108,8 @@ export function BlockChart({
 
     return (
         <div
-            className={`bchart${compact ? ' bchart--compact' : ''}${
-                selectedLabel ? ' is-picking' : ''
-            }`}
+            className={`bchart${compact ? ' bchart--compact' : ''}${selectedLabel ? ' is-picking' : ''
+                }`}
         >
             <div className="bchart__head">
                 <p className="bchart__title">{title}</p>
@@ -165,7 +142,6 @@ export function BlockChart({
             </div>
 
             <div className="bchart__body">
-                {/* 좌측 Y축 = 시설 수 */}
                 <div className="bchart__yaxis" style={{ height: levels * rowH }}>
                     {Array.from({ length: levels + 1 }, (_, i) => (
                         <span key={i}>{i}</span>
@@ -195,7 +171,6 @@ export function BlockChart({
                     {line && <WaitLine line={line} />}
                 </div>
 
-                {/* 우측 Y축 = 대기인원수 */}
                 {line && (
                     <div
                         className="bchart__yaxis bchart__yaxis--right"

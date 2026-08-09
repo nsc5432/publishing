@@ -1,17 +1,9 @@
 import { CalendarIcon, PlayIcon, SearchWhiteIcon } from '@/components/icons';
 
 interface SmltGnbProps {
-    /** 화면 타이틀 */
     title: string;
-    /** 기준일자 (예: 2024/10/23) */
     baseDate: string;
-    /** 기준일자 조회 */
     onSearch: () => void;
-    /**
-     * 시뮬레이션 실행.
-     * 터미널을 아직 고르지 않은 도입 화면에서는 실행할 대상이 없어
-     * 넘기지 않으며, 이때 실행 버튼·이력 링크를 그리지 않는다.
-     */
     onRun?: () => void;
 }
 

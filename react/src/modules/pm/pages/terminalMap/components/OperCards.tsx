@@ -5,7 +5,7 @@ interface OperCardsProps {
     cards: OperCard[];
 }
 
-/** 운영시간 도넛 (0시/6시/12시/18시 눈금 + 운영시간 표기) */
+/** 운영시간 도넛 */
 function Donut({ card }: { card: OperCard }) {
     return (
         <div className="donut">
@@ -33,8 +33,6 @@ function Donut({ card }: { card: OperCard }) {
 
 /**
  * 맵 상단 운영시간 카드 — 출국장 1곳당 1칸.
- * 칸 수가 터미널마다 다르므로(T1: 7칸 / T2: 2칸) 열 개수를 CSS 변수로 넘겨
- * 카드가 늘어나지 않고 가운데 정렬되도록 한다.
  */
 export function OperCards({ cards }: OperCardsProps) {
     const cols = { '--oper-cols': cards.length } as CSSProperties;

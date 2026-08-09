@@ -42,11 +42,6 @@ function DateTimeField({
     );
 }
 
-/**
- * 상단 GNB — 화면 제목 / 조회 기간(시작일시 ~ 종료일시).
- * 대시보드 상단 바(.datebox)와 같은 조합을 두 벌로 늘린 형태라
- * 시/분 드롭다운은 화면 공용 PillSelect 를 그대로 쓴다.
- */
 export function MonitoringGnb({ title, range, onChange, onSearch }: MonitoringGnbProps) {
     const set = (patch: Partial<RangeCondition>) => onChange({ ...range, ...patch });
 

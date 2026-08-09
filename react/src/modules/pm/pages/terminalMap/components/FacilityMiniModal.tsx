@@ -9,11 +9,7 @@ interface FacilityMiniModalProps {
 }
 
 /**
- * 시설 혼잡 현황 미니 팝업 (시안: 2_맵_시설_클릭시.png).
- *
- * 아일랜드 상세 팝업(IslandModal)에서 시설 유형 / 매출 테이블을 덜어내고
- * 제목 + 상태 뱃지 + 지표 4개 + 상세보기만 남긴 축약본이다.
- * 껍데기(.modal*) 와 지표(.stat) 스타일은 상세 팝업과 그대로 공유한다.
+ * 시설 혼잡 현황 미니 팝업
  */
 export function FacilityMiniModal({ detail, onClose, onDetailClick }: FacilityMiniModalProps) {
     const closeRef = useModalDismiss(onClose);

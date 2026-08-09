@@ -8,18 +8,11 @@ import {
 interface HistoryTableProps {
     kind: HistoryKind;
     rows: HistoryRow[];
-    /** 결과 보기 (실제 화면 연동 지점) */
     onView?: (row: HistoryRow) => void;
 }
 
 const COLUMNS = ['번호', '부서', '성명', '시작일시', '종료일시', '소요시간', '상태', '결과'];
 
-/**
- * 시뮬레이션 이력 표 — 표준 / 사용자 두 벌이 같은 구조를 쓴다.
- *
- * 화면 안에서 머리글을 고정하고 본문만 스크롤해야 해서
- * 다른 화면(대시보드)과 같이 table 이 아닌 CSS Grid div 로 짠다.
- */
 export function HistoryTable({ kind, rows, onView }: HistoryTableProps) {
     return (
         <section className="hist">

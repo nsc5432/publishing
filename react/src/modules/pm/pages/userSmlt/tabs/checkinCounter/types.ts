@@ -11,7 +11,6 @@ export interface Booth {
 
 /**
  * 아일랜드 1개 = 블럭 차트의 항목 1개.
- * 블럭 수 = ceil(부스 수 / 4) 이므로 부스가 많은 아일랜드는 같은 시간대에 여러 칸을 차지한다.
  */
 export interface CheckinIsland {
     /** 아일랜드 문자 (A~N, I 제외) */

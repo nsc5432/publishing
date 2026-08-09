@@ -8,14 +8,12 @@ interface IslandModalProps {
     onDetailClick?: () => void;
 }
 
-/** 시설 유형 아이콘 (상업시설은 assets/svg 에 대응 아이콘이 없어 마스크 아이콘 사용) */
 function FacilityIcon({ kind }: { kind: FacilityKind }) {
     if (kind === 'counter') return <CounterConIcon className="facility__ico" aria-hidden="true" />;
     if (kind === 'selfcheck') return <SelfCheckinIcon className="facility__ico" aria-hidden="true" />;
     return <i className="ico ico-store" aria-hidden="true" />;
 }
 
-/** 아일랜드 상세 팝업 (시안: 일일-맵형태 조회T1-팝업.png) */
 export function IslandModal({ detail, onClose, onDetailClick }: IslandModalProps) {
     const closeRef = useModalDismiss(onClose);
 

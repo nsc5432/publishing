@@ -1,16 +1,9 @@
 /**
  * PM 예측관리 API 타입 정의.
- *
- * api/pm/services 의 각 함수가 주고받는 요청/응답 DTO 를 화면 단위로 모아둔다.
- * 서버는 RESTful 이 아니라 동작 단위(POST + retrieveXxx / saveXxx / executeXxx)로 호출한다.
- * 필드명은 서버 DTO 를 그대로 쓴다 (ymd, tmnlId, smltId, wtngPsgCnt …).
  */
-
-/* ================= 공통 ================= */
 
 /**
  * 서버가 모든 단건 응답에 함께 실어 보내는 오류 플래그.
- * 저장 API 처럼 내려줄 페이로드가 없는 호출은 이것만 응답한다.
  */
 export interface JsonResponse {
     error: boolean;

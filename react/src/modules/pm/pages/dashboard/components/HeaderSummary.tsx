@@ -5,24 +5,19 @@ import { Icon } from './PmIcons';
 import { DEFAULT_QUICK_TILE, HOUR_AXIS, QUICK_TILES } from '../mock';
 
 interface HeaderSummaryProps {
-    /** 요일 속성 카드 우상단 날짜 (예: 2026-07-10) */
     planDate: string;
-    /** .main 하단 영역 슬롯 (터미널 패널 등) */
     children: ReactNode;
 }
 
 /**
  * 상단 요약 카드 행 + 하단 슬롯으로 이루어진 본문.
- * 상단 바는 공용 크롬이라 이 밖(components/Topbar)에서 그린다.
  */
 export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
     const [activeTile, setActiveTile] = useState(DEFAULT_QUICK_TILE);
 
     return (
-        // LNB 는 .app 밖에 있다 (Dashboard.tsx 참고). 여기서는 레일 자리만 비워둔다.
         <div className="body">
             <main className="main">
-                {/* ============ ROW 1 ============ */}
                 <section className="row row--top">
                     {/* 일일 운항계획 */}
                     <div className="card c-plan">

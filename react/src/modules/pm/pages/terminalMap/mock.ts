@@ -34,7 +34,6 @@ export const SUMMARY: Record<TerminalKind, HeaderSummary> = {
 /* ================= 좌측 네비게이션(Lnb) ================= */
 
 /* 메뉴 구성은 화면 공용(@/components/lnb)이라 여기서는 활성 항목만 지정한다. */
-/** 시안 기준 활성 항목 (하단: 맵 화면이므로 map 강조. 상단은 경로에서 정해진다) */
 export const DEFAULT_NAV_BOTTOM = 'map';
 
 /* ================= 혼잡 알림 ================= */
@@ -93,7 +92,6 @@ export const OPER_CARDS: Record<TerminalKind, OperCard[]> = {
  * 도면 SVG 가 preserveAspectRatio="none" 이므로 마커 비율과 도면 좌표가
  * 1:1 로 대응한다 → 창 크기가 변해도 어긋나지 않는다.
  */
-/** 시안에서 측정한 도면 배치 비율 (T1 기준) */
 const STAGE_ASPECT = '1798.6 / 1118.7';
 
 /** 출국장 : 도면 상단 라인 위 (T1 = 6곳) */
@@ -157,8 +155,6 @@ export const TERMINAL_MAP: Record<TerminalKind, TerminalMapData> = {
 };
 
 /* ================= 상세 팝업 ================= */
-
-/** 혼잡도별 대기 지표 (시안: 혼잡 = 빨간 강조) */
 const LEVEL_STAT: Record<CongestionLevel, { wait: string; waitTime: string }> = {
     normal: { wait: '1', waitTime: '4' },
     busy: { wait: '2', waitTime: '9' },
@@ -179,7 +175,6 @@ function buildStats(level: CongestionLevel): IslandStat[] {
 
 /**
  * 출국장 마커 하나의 미니 팝업 정보를 만든다.
- * 시안(2_맵_시설_클릭시.png) 기준 — 제목 + 상태 뱃지 + 지표 4개만 보여준다.
  */
 export function buildDepGateDetail(depGate: DepGateMarker): FacilityDetail {
     return {
@@ -192,8 +187,6 @@ export function buildDepGateDetail(depGate: DepGateMarker): FacilityDetail {
 
 /**
  * 아일랜드 마커 하나의 상세 정보를 만든다.
- * 시안(일일-맵형태 조회T1-팝업.png)의 M아일랜드를 기준으로,
- * 라벨/혼잡도에 따라 값만 달라지는 목업이다.
  */
 export function buildIslandDetail(terminal: TerminalKind, island: IslandMarker): IslandDetail {
     const seed = island.label.charCodeAt(0) - 65; // A=0

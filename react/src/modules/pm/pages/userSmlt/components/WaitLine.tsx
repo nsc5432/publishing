@@ -5,11 +5,7 @@ interface WaitLineProps {
 }
 
 /**
- * 대기인원수 꺾은선 오버레이 — 블럭 차트 위에 겹쳐 그린다.
- * (design-renewal/mock.js 의 waitLine() 이식)
- *
- * 선은 종횡비가 찌그러진 viewBox(24 × 100) 를 쓰므로 non-scaling-stroke 로 굵기를 고정하고,
- * 점은 SVG 원을 쓰면 타원이 되므로 HTML(<i>) 로 얹는다.
+ * 대기인원수 꺾은선 오버레이
  */
 export function WaitLine({ line }: WaitLineProps) {
     const max = line.max || Math.max(...line.data) || 1;
@@ -17,7 +13,6 @@ export function WaitLine({ line }: WaitLineProps) {
 
     const points = line.data.map((v, hour) => `${(hour + 0.5).toFixed(2)},${y(v).toFixed(2)}`);
 
-    // 점은 2시간 간격 + 피크에만 찍는다. 24개를 다 찍으면 블럭을 덮는다.
     const peak = line.data.indexOf(Math.max(...line.data));
     const dots = line.data
         .map((v, hour) => ({ v, hour }))

@@ -13,15 +13,12 @@ import aoms.pm.cast.dto.UserSmltChknSearchDto;
 import aoms.pm.cast.dto.UserSmltDepDto;
 import aoms.pm.cast.dto.UserSmltDepSaveDto;
 import aoms.pm.cast.dto.UserSmltDepSearchDto;
-import aoms.pm.cast.dto.UserSmltExecDto;
-import aoms.pm.cast.dto.UserSmltExecSearchDto;
 import aoms.pm.cast.dto.UserSmltFltPsgDto;
 import aoms.pm.cast.dto.UserSmltFltPsgSaveDto;
 import aoms.pm.cast.dto.UserSmltFltPsgSearchDto;
 import aoms.pm.cast.service.CastChknService;
 import aoms.pm.cast.service.CastDepService;
 import aoms.pm.cast.service.CastFltPsgService;
-import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.utils.ResponseUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -33,7 +30,6 @@ public class CastUserSmltController {
 	private final CastFltPsgService castFltPsgService;
 	private final CastChknService castChknService;
 	private final CastDepService castDepService;
-	private final CastSmltService castSmltService;
 
 	@PostMapping(value = "/retrieveFltPsgInfo")
 	public ResponseEntity<UserSmltFltPsgDto> retrieveFltPsgInfo(@RequestBody UserSmltFltPsgSearchDto searchDto) {
@@ -50,7 +46,6 @@ public class CastUserSmltController {
 		return ResponseUtils.res(castDepService.retrieveDepInfo(searchDto));
 	}
 
-	// 저장 3종은 내려줄 페이로드가 없다. 실패 사유만 JsonResponse 안에서 표현한다 (지시서 5.4)
 	@PostMapping(value = "/saveFltPsgInfo")
 	public ResponseEntity<JsonResponse> saveFltPsgInfo(@RequestBody UserSmltFltPsgSaveDto saveDto) {
 		return ResponseUtils.res(castFltPsgService.saveFltPsgInfo(saveDto));
@@ -64,10 +59,5 @@ public class CastUserSmltController {
 	@PostMapping(value = "/saveDepInfo")
 	public ResponseEntity<JsonResponse> saveDepInfo(@RequestBody UserSmltDepSaveDto saveDto) {
 		return ResponseUtils.res(castDepService.saveDepInfo(saveDto));
-	}
-
-	@PostMapping(value = "/executeUserSmlt")
-	public ResponseEntity<UserSmltExecDto> executeUserSmlt(@RequestBody UserSmltExecSearchDto searchDto) {
-		return ResponseUtils.res(castSmltService.executeUserSmlt(searchDto));
 	}
 }

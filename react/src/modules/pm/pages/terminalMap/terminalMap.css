@@ -2,9 +2,6 @@
 
 /* =====================================================================
    PM 예측관리 / 일일 시뮬레이션 결과 조회 (맵 형태)
-   전역 리셋·토큰·공용 컴포넌트(LNB)는 src/reset.css, src/common.css 참고.
-   여기에는 이 화면에서만 쓰는 스타일만 둔다.
-   - 원본 퍼블리싱 클래스명을 그대로 유지한다(마크업 대조 용이).
    ===================================================================== */
 
 /* ==========================================================================
@@ -51,16 +48,12 @@ html[data-page='terminalMap'] .wrap {
     height: 100%;
     color: var(--c-text);
     background:
-        radial-gradient(
-            120% 80% at 50% 55%,
+        radial-gradient(120% 80% at 50% 55%,
             rgba(202, 219, 243, 0.55) 0%,
-            rgba(238, 241, 248, 0) 70%
-        ),
+            rgba(238, 241, 248, 0) 70%),
         linear-gradient(180deg, #fafbfe 0%, #eaeef7 100%);
 }
 
-/* 시안 기준: 헤더 아래에서 LNB 레일과 본문이 나란히 놓인다.
-   여백은 화면 공용 셸 규격(common.css --pm-shell-*)을 따른다 */
 html[data-page='terminalMap'] .body {
     display: flex;
     flex: 1;
@@ -69,8 +62,6 @@ html[data-page='terminalMap'] .body {
     padding: var(--pm-shell-top) var(--pm-shell-x) var(--pm-shell-bottom);
 }
 
-/* 원본 퍼블리싱 클래스명(.container)을 유지하되, 화면 가로를 꽉 채우도록
-   폭 제한을 해제한다. */
 html[data-page='terminalMap'] .container {
     display: flex;
     flex: 1;
@@ -85,8 +76,6 @@ html[data-page='terminalMap'] .container {
 /* ==========================================================================
    3. Header
    ========================================================================== */
-/* 검색바를 화면 정중앙에 두어야 한다. flex + margin:auto 로는 좌우 요소의 폭 차이만큼
-   검색바가 밀리므로, 양옆을 같은 폭으로 잡아 주는 3열 그리드를 쓴다. */
 html[data-page='terminalMap'] .header {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -102,6 +91,7 @@ html[data-page='terminalMap'] .header__title {
     color: var(--c-text);
     white-space: nowrap;
 }
+
 html[data-page='terminalMap'] .header__title strong {
     font-weight: 700;
 }
@@ -113,15 +103,18 @@ html[data-page='terminalMap'] .header__summary {
     justify-self: end;
     text-align: right;
 }
+
 html[data-page='terminalMap'] .header__summary-item {
     display: flex;
     gap: 10px;
     justify-content: flex-end;
     font-size: 13px;
 }
+
 html[data-page='terminalMap'] .header__summary-item dt {
     color: var(--c-text-sub);
 }
+
 html[data-page='terminalMap'] .header__summary-item dd {
     font-weight: 500;
     color: var(--c-text);
@@ -144,6 +137,7 @@ html[data-page='terminalMap'] .search-bar__field {
     align-items: center;
     gap: 12px;
 }
+
 html[data-page='terminalMap'] .search-bar__label {
     font-size: 13px;
     font-weight: 500;
@@ -156,6 +150,7 @@ html[data-page='terminalMap'] .input-date {
     align-items: center;
     gap: 6px;
 }
+
 html[data-page='terminalMap'] .input-date__input {
     width: 86px;
     font-size: 13px;
@@ -168,14 +163,17 @@ html[data-page='terminalMap'] .radio-group {
     display: flex;
     gap: 16px;
 }
+
 html[data-page='terminalMap'] .radio {
     display: inline-flex;
     align-items: center;
 }
+
 html[data-page='terminalMap'] .radio input {
     position: absolute;
     opacity: 0;
 }
+
 html[data-page='terminalMap'] .radio label {
     position: relative;
     padding-left: 22px;
@@ -184,6 +182,7 @@ html[data-page='terminalMap'] .radio label {
     cursor: pointer;
     white-space: nowrap;
 }
+
 html[data-page='terminalMap'] .radio label::before {
     content: '';
     position: absolute;
@@ -197,14 +196,17 @@ html[data-page='terminalMap'] .radio label::before {
     background: #fff;
     box-sizing: border-box;
 }
-html[data-page='terminalMap'] .radio input:checked + label {
+
+html[data-page='terminalMap'] .radio input:checked+label {
     color: var(--c-text);
     font-weight: 600;
 }
-html[data-page='terminalMap'] .radio input:checked + label::before {
+
+html[data-page='terminalMap'] .radio input:checked+label::before {
     border-color: var(--c-primary);
 }
-html[data-page='terminalMap'] .radio input:checked + label::after {
+
+html[data-page='terminalMap'] .radio input:checked+label::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -215,7 +217,8 @@ html[data-page='terminalMap'] .radio input:checked + label::after {
     border-radius: 50%;
     background: var(--c-primary);
 }
-html[data-page='terminalMap'] .radio input:focus-visible + label::before {
+
+html[data-page='terminalMap'] .radio input:focus-visible+label::before {
     outline: 2px solid var(--c-primary);
     outline-offset: 2px;
 }
@@ -231,9 +234,11 @@ html[data-page='terminalMap'] .btn-search {
     color: #fff;
     transition: background 0.15s;
 }
+
 html[data-page='terminalMap'] .btn-search:hover {
     background: var(--c-primary-light);
 }
+
 html[data-page='terminalMap'] .btn-search svg {
     width: 17px;
     height: 17px;
@@ -255,16 +260,18 @@ html[data-page='terminalMap'] .notice {
     box-shadow: var(--shadow-card);
 }
 
-/* 단계별 강조색 : 뱃지 문구와 좌측 라인에 공통으로 쓴다 */
 html[data-page='terminalMap'] .notice--easy {
     --c-notice: var(--c-green);
 }
+
 html[data-page='terminalMap'] .notice--normal {
     --c-notice: #2f7ff0;
 }
+
 html[data-page='terminalMap'] .notice--busy {
     --c-notice: #f47b20;
 }
+
 html[data-page='terminalMap'] .notice--severe {
     --c-notice: var(--c-red);
 }
@@ -287,11 +294,13 @@ html[data-page='terminalMap'] .notice__list {
     flex-wrap: wrap;
     gap: 8px 24px;
 }
+
 html[data-page='terminalMap'] .notice__list li {
     font-size: 14px;
     color: #2c313b;
     white-space: nowrap;
 }
+
 html[data-page='terminalMap'] .notice__list em {
     font-style: normal;
 }
@@ -314,13 +323,10 @@ html[data-page='terminalMap'] .map-area {
     padding: 14px 0;
     border: 1px solid rgba(255, 255, 255, 0.8);
     border-radius: 20px;
-    /* 시안처럼 아치 안쪽(하단 중앙)이 가장 밝고 가장자리로 갈수록 푸르게 */
     background:
-        radial-gradient(
-            48% 42% at 50% 86%,
+        radial-gradient(48% 42% at 50% 86%,
             rgba(255, 255, 255, 0.95) 0%,
-            rgba(255, 255, 255, 0) 76%
-        ),
+            rgba(255, 255, 255, 0) 76%),
         rgba(255, 255, 255, 0.5);
     box-shadow: var(--shadow-card);
     overflow: hidden;
@@ -335,26 +341,20 @@ html[data-page='terminalMap'] .map-area__guide {
 }
 
 /* 운영시간 카드 --------------------------------------------------------- */
-/* 칸 수는 터미널별 출국장 개수를 따른다 (--oper-cols: T1 7 / T2 2).
-   칸이 적어도 카드가 늘어나지 않도록 한 변을 --oper-size 로 묶고 가운데 정렬한다. */
 html[data-page='terminalMap'] .oper-cards {
     display: grid;
     position: relative;
-    z-index: 1; /* 도면의 연결동이 카드 뒤로 지나가도록 */
+    z-index: 1;
     flex: none;
     grid-template-columns: repeat(var(--oper-cols, 7), minmax(0, var(--oper-size)));
     justify-content: center;
     gap: 22px;
     padding: 12px 60px 0;
     --oper-size: 200px;
-    /* 도넛 바깥 눈금이 차지하는 폭 (카드 좌우 안여백 = 눈금 오프셋) */
     --donut-mark: 22px;
 }
 
-/* 좌우 여백은 도넛 바깥에 절대배치되는 0시/6시/12시/18시 눈금(--donut-mark) 자리다.
-   이 여백이 없으면 눈금이 카드를 넘어가 옆 카드의 눈금과 맞붙어 읽히지 않는다. */
 html[data-page='terminalMap'] .oper-card {
-    /* 도넛 안쪽 글자를 카드 폭에 맞춰 줄이기 위한 컨테이너 (아래 cqw 참고) */
     container-type: inline-size;
     display: flex;
     align-items: center;
@@ -365,13 +365,16 @@ html[data-page='terminalMap'] .oper-card {
     background: rgba(255, 255, 255, 0.55);
     box-shadow: 0 2px 8px rgba(63, 84, 145, 0.06);
 }
+
 html[data-page='terminalMap'] .oper-card--empty {
     background: none;
     box-shadow: none;
 }
+
 html[data-page='terminalMap'] .oper-card.is-dim {
     background: rgba(148, 155, 168, 0.32);
 }
+
 html[data-page='terminalMap'] .oper-card.is-dim .donut__info {
     color: #4d525c;
 }
@@ -383,19 +386,23 @@ html[data-page='terminalMap'] .donut {
     max-width: 168px;
     aspect-ratio: 1 / 1;
 }
+
 html[data-page='terminalMap'] .donut__chart {
     width: 100%;
     height: 100%;
     transform: rotate(-90deg);
 }
+
 html[data-page='terminalMap'] .donut__track,
 html[data-page='terminalMap'] .donut__value {
     fill: none;
     stroke-width: 7;
 }
+
 html[data-page='terminalMap'] .donut__track {
     stroke: #e5e9f0;
 }
+
 html[data-page='terminalMap'] .donut__value {
     stroke: #2f7ff0;
     stroke-linecap: round;
@@ -410,21 +417,25 @@ html[data-page='terminalMap'] .donut__mark {
     color: #9aa2b1;
     white-space: nowrap;
 }
+
 html[data-page='terminalMap'] .donut__mark--t {
     top: -14px;
     left: 50%;
     transform: translateX(-50%);
 }
+
 html[data-page='terminalMap'] .donut__mark--b {
     bottom: -14px;
     left: 50%;
     transform: translateX(-50%);
 }
+
 html[data-page='terminalMap'] .donut__mark--l {
     top: 50%;
     left: calc(var(--donut-mark) * -1);
     transform: translateY(-50%);
 }
+
 html[data-page='terminalMap'] .donut__mark--r {
     top: 50%;
     right: calc(var(--donut-mark) * -1);
@@ -439,8 +450,7 @@ html[data-page='terminalMap'] .donut__info {
     transform: translate(-50%, -50%);
     text-align: center;
 }
-/* 카드 폭은 해상도에 따라 200px ~ 140px 대까지 줄어든다. 고정 px 로 두면 좁은 화면에서
-   '05:30-23:30' 이 두 줄로 접혀 아래 설명과 겹치므로 카드 폭(cqw)에 연동한다. */
+
 html[data-page='terminalMap'] .donut__time {
     display: block;
     font-size: min(20px, 11cqw);
@@ -448,6 +458,7 @@ html[data-page='terminalMap'] .donut__time {
     color: #1f2430;
     letter-spacing: -0.03em;
 }
+
 html[data-page='terminalMap'] .donut__desc {
     display: block;
     margin-top: 4px;
@@ -458,7 +469,8 @@ html[data-page='terminalMap'] .donut__desc {
 /* 맵 --------------------------------------------------------------- */
 html[data-page='terminalMap'] .map {
     position: relative;
-    z-index: 0; /* 운영시간 카드(z-index:1) 아래로 깔린다 */
+    z-index: 0;
+    /* 운영시간 카드(z-index:1) 아래로 깔린다 */
     flex: 1;
     min-height: 0;
     margin-top: -10px;
@@ -466,36 +478,25 @@ html[data-page='terminalMap'] .map {
     container-type: size;
 }
 
-/* ── 도면 무대(stage) ────────────────────────────────────────────────
-   .map__bg(도면)와 .markers(마커 레이어)는 "완전히 같은 박스"를 공유한다.
-   도면 SVG 는 preserveAspectRatio="none" 이라 viewBox 가 이 박스에 빈틈없이
-   채워지고, viewBox 좌표 (x, y)는 항상 박스의 (x/w, y/h) 지점에 놓인다.
-   마커도 같은 박스 안에서 --x/--y 비율로 찍히므로 창 크기가 어떻게 바뀌어도
-   도면과 마커가 절대 어긋나지 않는다.
-   ※ 두 선택자의 위치·크기 값은 반드시 동일하게 유지할 것. */
+/* ── 도면 무대(stage) ────────────────────────────────────────────────*/
 html[data-page='terminalMap'] .map__bg,
 html[data-page='terminalMap'] .markers {
     position: absolute;
     bottom: 0;
     left: 50%;
-    width: 101.2%; /* 좌우로 살짝 흘러넘치게 (시안과 동일) */
-    aspect-ratio: var(--stage-ar, 1798.6 / 1118.7); /* 시안에서 측정한 도면 배치 비율 */
-    transform: translate(-50%, -2.35%); /* 아치 밑변이 맵 하단보다 살짝 위 */
+    width: 101.2%;
+    aspect-ratio: var(--stage-ar, 1798.6 / 1118.7);
+    transform: translate(-50%, -2.35%);
 }
 
-/* 화면이 낮을 때 무대가 과하게 커져 마커가 운영시간 카드까지 올라가지 않도록
-   가로(맵 너비 기준)와 세로(맵 높이 기준) 중 작은 쪽으로 제한한다.
-   330cqh = 무대 높이를 맵 높이의 약 2.05배로 묶는 값 (시안 비율 1.98배) */
 @supports (width: 1cqh) {
+
     html[data-page='terminalMap'] .map__bg,
     html[data-page='terminalMap'] .markers {
         width: min(101.2cqw, 330cqh);
     }
 }
 
-/* 시안 측정값: 도면이 패널 위에 약 11% 알파로, 가장자리는 부드럽게 번져 있다.
-   assets/svg 의 도면(terminal1-icon / terminal2-icon)은 fill 이 지정돼 있어
-   CSS 로 덮어쓴다(CSS 가 presentation attribute 보다 우선). */
 html[data-page='terminalMap'] .map__bg {
     display: block;
     /* svg 의 width/height 속성 대신 무대 박스(aspect-ratio)를 따르게 한다 */
@@ -504,6 +505,7 @@ html[data-page='terminalMap'] .map__bg {
     filter: blur(5px);
     pointer-events: none;
 }
+
 html[data-page='terminalMap'] .map__bg path {
     fill: #3f80ea;
     stroke: #3f80ea;
@@ -528,10 +530,12 @@ html[data-page='terminalMap'] .marker {
         transform 0.15s,
         box-shadow 0.15s;
 }
+
 html[data-page='terminalMap'] .marker:hover {
     transform: translate(-50%, -50%) scale(1.08);
     box-shadow: 0 4px 12px rgba(30, 40, 70, 0.3);
 }
+
 /* 팝업이 열린 아일랜드 강조 */
 html[data-page='terminalMap'] .marker.is-active {
     transform: translate(-50%, -50%) scale(1.14);
@@ -548,18 +552,22 @@ html[data-page='terminalMap'] .marker--dep-gate {
     background: var(--c-dark);
     font-size: 26px;
 }
+
 html[data-page='terminalMap'] .marker--island {
     width: 36px;
     height: 36px;
     border-radius: 8px;
     font-size: 21px;
 }
+
 html[data-page='terminalMap'] .marker--island.is-normal {
     background: var(--c-green);
 }
+
 html[data-page='terminalMap'] .marker--island.is-busy {
     background: var(--c-orange);
 }
+
 html[data-page='terminalMap'] .marker--island.is-crowded {
     background: var(--c-red);
 }
@@ -589,6 +597,7 @@ html[data-page='terminalMap'] .timeline__ctrl {
     grid-row: span 2;
     gap: 6px;
 }
+
 html[data-page='terminalMap'] .btn-play {
     display: flex;
     align-items: center;
@@ -598,6 +607,7 @@ html[data-page='terminalMap'] .btn-play {
     border-radius: 8px;
     transition: background 0.15s;
 }
+
 html[data-page='terminalMap'] .btn-play:hover {
     background: rgba(74, 68, 201, 0.1);
 }
@@ -607,6 +617,7 @@ html[data-page='terminalMap'] .timeline__slider {
     align-items: center;
     gap: 20px;
 }
+
 html[data-page='terminalMap'] .timeline__now {
     flex: none;
     width: 58px;
@@ -622,6 +633,7 @@ html[data-page='terminalMap'] .timeline__now {
 html[data-page='terminalMap'] .range {
     flex: 1;
 }
+
 html[data-page='terminalMap'] .range__input {
     display: block;
     width: 100%;
@@ -630,17 +642,17 @@ html[data-page='terminalMap'] .range__input {
     appearance: none;
     cursor: pointer;
 }
+
 html[data-page='terminalMap'] .range__input::-webkit-slider-runnable-track {
     height: 6px;
     border-radius: 3px;
-    background: linear-gradient(
-        to right,
-        var(--c-primary) 0%,
-        var(--c-primary) var(--val, 0%),
-        #d6dbe6 var(--val, 0%),
-        #d6dbe6 100%
-    );
+    background: linear-gradient(to right,
+            var(--c-primary) 0%,
+            var(--c-primary) var(--val, 0%),
+            #d6dbe6 var(--val, 0%),
+            #d6dbe6 100%);
 }
+
 html[data-page='terminalMap'] .range__input::-webkit-slider-thumb {
     width: 14px;
     height: 14px;
@@ -652,16 +664,19 @@ html[data-page='terminalMap'] .range__input::-webkit-slider-thumb {
     appearance: none;
     box-shadow: 0 1px 4px rgba(40, 40, 90, 0.35);
 }
+
 html[data-page='terminalMap'] .range__input::-moz-range-track {
     height: 6px;
     border-radius: 3px;
     background: #d6dbe6;
 }
+
 html[data-page='terminalMap'] .range__input::-moz-range-progress {
     height: 6px;
     border-radius: 3px;
     background: var(--c-primary);
 }
+
 html[data-page='terminalMap'] .range__input::-moz-range-thumb {
     width: 14px;
     height: 14px;
@@ -714,6 +729,7 @@ html[data-page='terminalMap'] .modal__panel {
     background: rgba(255, 255, 255, 0.72);
     box-shadow: var(--shadow-modal);
 }
+
 html[data-page='terminalMap'] .modal__panel::before {
     content: '';
     position: absolute;
@@ -724,6 +740,7 @@ html[data-page='terminalMap'] .modal__panel::before {
     border-radius: 14px;
     background: #fff;
 }
+
 html[data-page='terminalMap'] .modal__head,
 html[data-page='terminalMap'] .modal__body,
 html[data-page='terminalMap'] .modal__foot {
@@ -736,14 +753,17 @@ html[data-page='terminalMap'] .modal__head {
     justify-content: space-between;
     padding: 18px 22px 12px;
 }
+
 html[data-page='terminalMap'] .modal__title {
     font-size: 18px;
     font-weight: 700;
     color: var(--c-primary);
 }
+
 html[data-page='terminalMap'] .modal__title span {
     font-weight: 700;
 }
+
 html[data-page='terminalMap'] .modal__close {
     display: flex;
     align-items: center;
@@ -754,6 +774,7 @@ html[data-page='terminalMap'] .modal__close {
     border-radius: 8px;
     transition: background 0.15s;
 }
+
 html[data-page='terminalMap'] .modal__close:hover {
     background: #f1f2f6;
 }
@@ -761,6 +782,7 @@ html[data-page='terminalMap'] .modal__close:hover {
 html[data-page='terminalMap'] .modal__body {
     padding: 6px 22px 0;
 }
+
 html[data-page='terminalMap'] .modal__foot {
     padding: 18px 22px 20px;
 }
@@ -771,6 +793,7 @@ html[data-page='terminalMap'] .facility {
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
 }
+
 html[data-page='terminalMap'] .facility__item {
     display: flex;
     flex-direction: column;
@@ -783,18 +806,21 @@ html[data-page='terminalMap'] .facility__item {
     border-radius: 12px;
     background: #fff;
 }
+
 /* assets/svg 원형 배지 아이콘(49x49) 사이즈 정규화 */
 html[data-page='terminalMap'] .facility__ico {
     display: block;
     width: 44px;
     height: 44px;
 }
+
 html[data-page='terminalMap'] .facility__name {
     margin-top: 6px;
     font-size: 14px;
     font-weight: 700;
     color: var(--c-text);
 }
+
 html[data-page='terminalMap'] .facility__rate {
     font-size: 12px;
     color: var(--c-text-sub);
@@ -807,6 +833,7 @@ html[data-page='terminalMap'] .sec-head {
     justify-content: space-between;
     margin-top: 20px;
 }
+
 html[data-page='terminalMap'] .sec-head__title {
     display: flex;
     align-items: center;
@@ -815,6 +842,7 @@ html[data-page='terminalMap'] .sec-head__title {
     font-weight: 700;
     color: var(--c-text);
 }
+
 html[data-page='terminalMap'] .sec-head__title::before {
     content: '';
     width: 12px;
@@ -822,9 +850,11 @@ html[data-page='terminalMap'] .sec-head__title::before {
     border-radius: 50%;
     background: var(--c-red);
 }
+
 html[data-page='terminalMap'] .sec-head--busy .sec-head__title::before {
     background: var(--c-orange);
 }
+
 html[data-page='terminalMap'] .sec-head--normal .sec-head__title::before {
     background: var(--c-green);
 }
@@ -836,12 +866,15 @@ html[data-page='terminalMap'] .state-badge {
     font-size: 12px;
     font-weight: 700;
 }
+
 html[data-page='terminalMap'] .state-badge--crowded {
     background: var(--c-red);
 }
+
 html[data-page='terminalMap'] .state-badge--busy {
     background: var(--c-orange);
 }
+
 html[data-page='terminalMap'] .state-badge--normal {
     background: var(--c-green);
 }
@@ -854,6 +887,7 @@ html[data-page='terminalMap'] .stat {
     border-radius: 12px;
     background: #f6f7fa;
 }
+
 html[data-page='terminalMap'] .stat__item {
     display: grid;
     position: relative;
@@ -863,7 +897,8 @@ html[data-page='terminalMap'] .stat__item {
     column-gap: 6px;
     padding: 14px 6px;
 }
-html[data-page='terminalMap'] .stat__item + .stat__item::before {
+
+html[data-page='terminalMap'] .stat__item+.stat__item::before {
     content: '';
     position: absolute;
     top: 18px;
@@ -872,10 +907,12 @@ html[data-page='terminalMap'] .stat__item + .stat__item::before {
     width: 1px;
     background: #e2e5ec;
 }
+
 html[data-page='terminalMap'] .stat__item .ico {
     grid-area: 1 / 1;
     justify-self: start;
 }
+
 html[data-page='terminalMap'] .stat__label {
     grid-area: 2 / 1;
     margin-top: 2px;
@@ -883,6 +920,7 @@ html[data-page='terminalMap'] .stat__label {
     color: var(--c-text-sub);
     white-space: nowrap;
 }
+
 html[data-page='terminalMap'] .stat__value {
     grid-area: 1 / 2;
     font-size: 22px;
@@ -890,9 +928,11 @@ html[data-page='terminalMap'] .stat__value {
     color: var(--c-text);
     white-space: nowrap;
 }
+
 html[data-page='terminalMap'] .stat__value.is-point {
     color: var(--c-red);
 }
+
 html[data-page='terminalMap'] .stat__value em {
     font-size: 12px;
     font-style: normal;
@@ -907,6 +947,7 @@ html[data-page='terminalMap'] .tbl-sales {
     overflow: hidden;
     table-layout: fixed;
 }
+
 html[data-page='terminalMap'] .tbl-sales th,
 html[data-page='terminalMap'] .tbl-sales td {
     height: 46px;
@@ -914,12 +955,14 @@ html[data-page='terminalMap'] .tbl-sales td {
     font-size: 14px;
     vertical-align: middle;
 }
+
 html[data-page='terminalMap'] .tbl-sales th {
     background: #e9e7f7;
     color: #3a3f4c;
     font-weight: 500;
     text-align: center;
 }
+
 html[data-page='terminalMap'] .tbl-sales td {
     background: #fff;
     color: var(--c-text);
@@ -927,17 +970,21 @@ html[data-page='terminalMap'] .tbl-sales td {
     text-align: center;
     white-space: nowrap;
 }
+
 html[data-page='terminalMap'] .rate {
     margin-left: 12px;
     font-size: 13px;
     font-weight: 700;
 }
+
 html[data-page='terminalMap'] .rate--up {
     color: var(--c-red);
 }
+
 html[data-page='terminalMap'] .rate--down {
     color: #2f6ff0;
 }
+
 html[data-page='terminalMap'] .rate__base {
     margin-left: 4px;
     font-size: 12px;
@@ -959,45 +1006,50 @@ html[data-page='terminalMap'] .btn-detail {
     font-weight: 700;
     transition: background 0.15s;
 }
+
 html[data-page='terminalMap'] .btn-detail:hover {
     background: var(--c-primary-light);
 }
+
 html[data-page='terminalMap'] .btn-detail svg {
     width: 18px;
     height: 18px;
 }
 
-/* 시설 혼잡 현황 미니 팝업 (components/FacilityMiniModal.tsx) ------------
-   껍데기 / 지표 / 상태 뱃지는 아일랜드 상세 팝업과 같은 클래스를 쓰고,
-   시안에서 달라지는 폭·여백·버튼 모양만 여기서 덮어쓴다. */
+/* 시설 혼잡 현황 미니 팝업 ------------ */
 html[data-page='terminalMap'] .modal--mini .modal__panel {
     width: 480px;
 }
+
 html[data-page='terminalMap'] .modal--mini .modal__head {
     padding: 20px 24px 14px;
 }
+
 html[data-page='terminalMap'] .modal__head-right {
     display: flex;
     align-items: center;
     gap: 14px;
 }
+
 html[data-page='terminalMap'] .modal--mini .modal__body {
     padding: 0 24px;
 }
+
 html[data-page='terminalMap'] .modal--mini .stat {
     margin-top: 0;
     padding: 4px 0;
 }
+
 html[data-page='terminalMap'] .modal--mini .modal__foot {
     padding: 16px 24px 22px;
 }
+
 html[data-page='terminalMap'] .btn-detail--round {
     border-radius: 999px;
 }
 
 /* ==========================================================================
    7. Icons
-   assets/svg 로 대체하지 못한 아이콘(달력/경고/닫기/재생 컨트롤/지표)만 남긴다.
    ========================================================================== */
 html[data-page='terminalMap'] .ico {
     display: inline-block;
@@ -1065,18 +1117,22 @@ html[data-page='terminalMap'] .ico-next {
     height: 20px;
     color: #2c313b;
 }
+
 html[data-page='terminalMap'] .ico-prev {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 4h2.2v16H6zM20 4.6v14.8L9.4 12z' fill='%23000'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 4h2.2v16H6zM20 4.6v14.8L9.4 12z' fill='%23000'/%3E%3C/svg%3E");
 }
+
 html[data-page='terminalMap'] .ico-play {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 4.4v15.2L19.5 12z' fill='%23000'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 4.4v15.2L19.5 12z' fill='%23000'/%3E%3C/svg%3E");
 }
+
 html[data-page='terminalMap'] .ico-pause {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 4h4v16h-4zM13.5 4h4v16h-4z' fill='%23000'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 4h4v16h-4zM13.5 4h4v16h-4z' fill='%23000'/%3E%3C/svg%3E");
 }
+
 html[data-page='terminalMap'] .ico-next {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15.8 4H18v16h-2.2zM4 4.6v14.8L14.6 12z' fill='%23000'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15.8 4H18v16h-2.2zM4 4.6v14.8L14.6 12z' fill='%23000'/%3E%3C/svg%3E");
@@ -1100,18 +1156,22 @@ html[data-page='terminalMap'] .ico-done-time {
     height: 28px;
     color: #2c313b;
 }
+
 html[data-page='terminalMap'] .ico-wait-people {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='%23000'%3E%3Ccircle cx='11' cy='8' r='4'/%3E%3Cpath d='M2.6 24.4c0-4.6 3.8-8.4 8.4-8.4s8.4 3.8 8.4 8.4v1.2H2.6z'/%3E%3Cpath d='M21.4 4.2h8.4v1.9h-8.4zM21.4 14.1h8.4V16h-8.4zM23 6.1h5.2v1.4L25.6 10l2.6 2.5v1.6H23v-1.6l2.6-2.5L23 7.5z'/%3E%3C/g%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='%23000'%3E%3Ccircle cx='11' cy='8' r='4'/%3E%3Cpath d='M2.6 24.4c0-4.6 3.8-8.4 8.4-8.4s8.4 3.8 8.4 8.4v1.2H2.6z'/%3E%3Cpath d='M21.4 4.2h8.4v1.9h-8.4zM21.4 14.1h8.4V16h-8.4zM23 6.1h5.2v1.4L25.6 10l2.6 2.5v1.6H23v-1.6l2.6-2.5L23 7.5z'/%3E%3C/g%3E%3C/svg%3E");
 }
+
 html[data-page='terminalMap'] .ico-wait-time {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12.4' cy='16.6' r='9.4'/%3E%3Cpath d='M12.4 10.6v6l3.8 2.4'/%3E%3C/g%3E%3Cg fill='%23000'%3E%3Cpath d='M21.4 3.4h8.4v1.9h-8.4zM21.4 13.3h8.4v1.9h-8.4zM23 5.3h5.2v1.4l-2.6 2.5 2.6 2.5v1.6H23v-1.6l2.6-2.5L23 6.7z'/%3E%3C/g%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12.4' cy='16.6' r='9.4'/%3E%3Cpath d='M12.4 10.6v6l3.8 2.4'/%3E%3C/g%3E%3Cg fill='%23000'%3E%3Cpath d='M21.4 3.4h8.4v1.9h-8.4zM21.4 13.3h8.4v1.9h-8.4zM23 5.3h5.2v1.4l-2.6 2.5 2.6 2.5v1.6H23v-1.6l2.6-2.5L23 6.7z'/%3E%3C/g%3E%3C/svg%3E");
 }
+
 html[data-page='terminalMap'] .ico-done-people {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='%23000'%3E%3Ccircle cx='11' cy='8' r='4'/%3E%3Cpath d='M2.6 24.4c0-4.6 3.8-8.4 8.4-8.4s8.4 3.8 8.4 8.4v1.2H2.6z'/%3E%3C/g%3E%3Cpath d='M21 8.6l3.1 3.2 5.6-5.8' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='%23000'%3E%3Ccircle cx='11' cy='8' r='4'/%3E%3Cpath d='M2.6 24.4c0-4.6 3.8-8.4 8.4-8.4s8.4 3.8 8.4 8.4v1.2H2.6z'/%3E%3C/g%3E%3Cpath d='M21 8.6l3.1 3.2 5.6-5.8' fill='none' stroke='%23000' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
+
 html[data-page='terminalMap'] .ico-done-time {
     -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12.4' cy='16.6' r='9.4'/%3E%3Cpath d='M12.4 10.6v6l3.8 2.4'/%3E%3Cpath d='M21 7.4l3.1 3.2 5.6-5.8' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/g%3E%3C/svg%3E");
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cg fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round'%3E%3Ccircle cx='12.4' cy='16.6' r='9.4'/%3E%3Cpath d='M12.4 10.6v6l3.8 2.4'/%3E%3Cpath d='M21 7.4l3.1 3.2 5.6-5.8' stroke-width='2.4' stroke-linejoin='round'/%3E%3C/g%3E%3C/svg%3E");
@@ -1121,12 +1181,13 @@ html[data-page='terminalMap'] .ico-done-time {
    8. 해상도 대응
    ========================================================================== */
 @media screen and (max-height: 900px) {
+
     /* 헤더 높이는 공용 토큰(--pm-header-h)이 함께 줄어든다. common.css 참고 */
     html[data-page='terminalMap'] .notice {
         min-height: 72px;
     }
+
     html[data-page='terminalMap'] .oper-cards {
         --oper-size: 160px;
     }
-    /* 도넛 안쪽 글자 크기는 .donut__time / .donut__desc 의 cqw 가 알아서 줄인다 */
 }

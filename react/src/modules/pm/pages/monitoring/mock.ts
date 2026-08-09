@@ -1,13 +1,6 @@
 import type { HistoryKind, HistoryRow, RangeCondition, StatCard } from './types';
 
-/**
- * 시뮬레이션 모니터링 목업 데이터.
- * 실제 API 연동 전, 화면과 조회 조건 동작을 확인하기 위한 정적 데이터.
- * 컴포넌트는 이 파일의 데이터를 소비하고 상호작용만 상태로 관리한다.
- */
-
 /* ================= 헤더 / 조회 조건 ================= */
-
 export const HEADER = {
     title: 'PM 예측관리 / 시뮬레이션 모니터링',
     range: {
@@ -49,8 +42,6 @@ export const STATS: StatCard[] = [
 ];
 
 /* ================= 시뮬레이션 이력 ================= */
-
-/** 시안은 모든 줄이 같은 값이고 3·4번만 진행중이다. 스크롤 확인을 위해 30줄을 만든다. */
 function buildRows(runningNos: number[]): HistoryRow[] {
     return Array.from({ length: 30 }, (_, i) => {
         const no = i + 1;

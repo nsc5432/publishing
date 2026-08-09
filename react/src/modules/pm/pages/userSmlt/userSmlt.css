@@ -2,17 +2,6 @@
 
 /* =====================================================================
    PM 예측관리 / 사용자 시뮬레이션
-   전역 리셋·토큰·공용 컴포넌트(LNB / TimeRangeSelector)는
-   src/reset.css, src/common.css 참고.
-
-   3개 탭이 GNB · 탭바 · T1/T2 2패널 셸을 공유하므로 셸을 먼저 두고,
-   탭 전용 스타일을 탭 노출 순서대로 이어 붙였다.
-
-     0. 화면 기본값        5. 공용 폼 요소
-     1. 배경 데코          6. 탭 — 운항편/여객수
-     2. GNB                7. 블럭 차트 (체크인 카운터 · 출국장 공용)
-     3. 본문 · 탭바        8. 상세 드로어 (체크인 카운터 · 출국장 공용)
-     4. 패널               9. 반응형
    ===================================================================== */
 
 /* =====================================================================
@@ -28,16 +17,12 @@ html[data-page='userSmlt'] {
     --text-mute: #9aa0ac;
     --line: #e4e6ee;
     --panel-radius: 20px;
-
-    /* 블럭 색 — 브랜드 보라 명도 5단 + 보조 틸 1단 (리뉴얼 시안 mock.css) */
     --i1: #4441cc;
     --i2: #5b58d6;
     --i3: #7472e0;
     --i4: #8f8de9;
     --i5: #a09eff;
     --i6: #12b09a;
-
-    /* 대기인원수 꺾은선 — 블럭 보라와 겹쳐도 읽히도록 보색 계열 */
     --line-wait: #f2762e;
 }
 
@@ -47,9 +32,6 @@ html[data-page='userSmlt'] #root {
     overflow: hidden;
 }
 
-/* 원본 퍼블리싱은 body 바로 아래에 GNB/본문이 있었지만 React 는 #root 가 한 겹 끼어든다.
-   #root 가 flex 사슬을 이어주지 않으면 .content → .panels → .panel 의 높이가 전부
-   auto 로 풀려 카드 안 요소들이 겹쳐 보인다. */
 html[data-page='userSmlt'] #root {
     display: flex;
     flex: 1 1 auto;
@@ -143,6 +125,7 @@ html[data-page='userSmlt'] .gnb__link {
     font-weight: 500;
     color: var(--pm-primary);
 }
+
 html[data-page='userSmlt'] .gnb__link:hover {
     text-decoration: underline;
 }
@@ -163,11 +146,13 @@ html[data-page='userSmlt'] .date-picker__label {
     font-size: 13px;
     color: #5a5f6b;
 }
+
 html[data-page='userSmlt'] .date-picker__icon {
     width: 18px;
     height: 18px;
     display: block;
 }
+
 html[data-page='userSmlt'] .date-picker__value {
     font-size: 15px;
     font-weight: 500;
@@ -185,9 +170,11 @@ html[data-page='userSmlt'] .date-picker__search {
     background: var(--pm-primary);
     transition: background 0.15s;
 }
+
 html[data-page='userSmlt'] .date-picker__search:hover {
     background: var(--pm-primary-dark);
 }
+
 html[data-page='userSmlt'] .date-picker__search svg {
     width: 16px;
     height: 16px;
@@ -214,9 +201,11 @@ html[data-page='userSmlt'] .btn--run {
     background: var(--pm-primary);
     box-shadow: 0 4px 12px rgba(68, 65, 204, 0.28);
 }
+
 html[data-page='userSmlt'] .btn--run:hover {
     background: var(--pm-primary-dark);
 }
+
 html[data-page='userSmlt'] .btn--run svg {
     width: 11px;
     height: 13px;
@@ -230,6 +219,7 @@ html[data-page='userSmlt'] .btn--save {
     background: var(--pm-primary);
     box-shadow: 0 6px 16px rgba(68, 65, 204, 0.25);
 }
+
 html[data-page='userSmlt'] .btn--save:hover {
     background: var(--pm-primary-dark);
 }
@@ -282,6 +272,7 @@ html[data-page='userSmlt'] .tabs__item {
         color 0.15s,
         background 0.15s;
 }
+
 html[data-page='userSmlt'] .tabs__item:hover {
     color: var(--pm-primary);
 }
@@ -336,6 +327,7 @@ html[data-page='userSmlt'] .intro__card::before {
 html[data-page='userSmlt'] .intro__card--t1 {
     background: linear-gradient(150deg, #c9ecf1 0%, #e7f6f9 55%, #f6fbfc 100%);
 }
+
 html[data-page='userSmlt'] .intro__card--t1::before {
     background-image: url('../../../../assets/svg/t1-blue.svg');
 }
@@ -343,6 +335,7 @@ html[data-page='userSmlt'] .intro__card--t1::before {
 html[data-page='userSmlt'] .intro__card--t2 {
     background: linear-gradient(150deg, #f1f3f6 0%, #f8fafb 55%, #fdfdfe 100%);
 }
+
 html[data-page='userSmlt'] .intro__card--t2::before {
     background-image: url('../../../../assets/svg/t2-teal-full.svg');
 }
@@ -355,14 +348,17 @@ html[data-page='userSmlt'] .intro__card:focus-visible {
 }
 
 html[data-page='userSmlt'] .intro__label {
-    position: relative; /* 도형(::before) 위로 */
+    position: relative;
+    /* 도형(::before) 위로 */
     font-size: clamp(34px, 3.6vw, 58px);
     font-weight: 700;
     letter-spacing: -0.5px;
 }
+
 html[data-page='userSmlt'] .intro__card--t1 .intro__label {
     color: #5b7fb8;
 }
+
 html[data-page='userSmlt'] .intro__card--t2 .intro__label {
     color: #20b8a0;
 }
@@ -404,11 +400,9 @@ html[data-page='userSmlt'] .panel {
     padding: clamp(16px, 2.6vh, 28px) clamp(18px, 1.7vw, 32px) clamp(16px, 2.4vh, 26px);
     border-radius: var(--panel-radius);
     border: 1px solid rgba(255, 255, 255, 0.75);
-    background: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.62) 0%,
-        rgba(255, 255, 255, 0.42) 100%
-    );
+    background: linear-gradient(180deg,
+            rgba(255, 255, 255, 0.62) 0%,
+            rgba(255, 255, 255, 0.42) 100%);
     backdrop-filter: blur(3px);
     box-shadow: 0 6px 24px rgba(94, 100, 130, 0.07);
 }
@@ -417,14 +411,13 @@ html[data-page='userSmlt'] .panel {
 html[data-page='userSmlt'] .panel--disabled {
     filter: grayscale(1);
     opacity: 0.9;
-    background: linear-gradient(
-        180deg,
-        rgba(206, 208, 210, 0.72) 0%,
-        rgba(198, 200, 202, 0.62) 100%
-    );
+    background: linear-gradient(180deg,
+            rgba(206, 208, 210, 0.72) 0%,
+            rgba(198, 200, 202, 0.62) 100%);
     border-color: rgba(255, 255, 255, 0.45);
     cursor: pointer;
 }
+
 html[data-page='userSmlt'] .panel--disabled * {
     cursor: pointer;
     pointer-events: none;
@@ -448,6 +441,7 @@ html[data-page='userSmlt'] .terminal-badge {
     height: clamp(58px, 7.6vh, 82px);
     border-radius: clamp(14px, 2vh, 22px);
 }
+
 html[data-page='userSmlt'] .terminal-badge svg {
     width: 74%;
     height: 74%;
@@ -479,6 +473,7 @@ html[data-page='userSmlt'] .summary {
     border-radius: 12px;
     background: #eaf3ff;
 }
+
 html[data-page='userSmlt'] .panel--disabled .summary {
     background: #e6e6e6;
 }
@@ -490,6 +485,7 @@ html[data-page='userSmlt'] .summary__group {
     gap: 12px;
     white-space: nowrap;
 }
+
 html[data-page='userSmlt'] .summary__label {
     font-size: 14px;
     color: #5e6470;
@@ -500,6 +496,7 @@ html[data-page='userSmlt'] .summary__value {
     font-weight: 700;
     letter-spacing: -0.2px;
 }
+
 html[data-page='userSmlt'] .summary__value--accent {
     color: var(--pm-primary);
 }
@@ -526,16 +523,19 @@ html[data-page='userSmlt'] .summary__kpi {
     margin: 0;
     white-space: nowrap;
 }
+
 html[data-page='userSmlt'] .summary__kpi span {
     font-size: 11px;
     color: #6a707c;
 }
+
 html[data-page='userSmlt'] .summary__kpi b {
     font-size: clamp(14px, 1.5vh, 16px);
     font-weight: 700;
     letter-spacing: -0.2px;
     color: var(--text);
 }
+
 html[data-page='userSmlt'] .summary__kpi b em {
     margin-left: 2px;
     font-size: 11px;
@@ -556,13 +556,16 @@ html[data-page='userSmlt'] .summary__map {
     background: var(--pm-primary);
     transition: background 0.15s;
 }
+
 html[data-page='userSmlt'] .summary__map:hover {
     background: var(--pm-primary-dark);
 }
+
 html[data-page='userSmlt'] .summary__map svg {
     width: 17px;
     height: 17px;
 }
+
 html[data-page='userSmlt'] .panel--disabled .summary__map {
     background: #c3c3c3;
 }
@@ -606,13 +609,16 @@ html[data-page='userSmlt'] .stepper__btn {
     height: 100%;
     transition: background 0.15s;
 }
+
 html[data-page='userSmlt'] .stepper__btn:hover {
     background: #f1f1f8;
 }
+
 html[data-page='userSmlt'] .stepper__btn:disabled {
     opacity: 0.4;
     cursor: default;
 }
+
 html[data-page='userSmlt'] .stepper__btn svg {
     width: 13px;
     height: 13px;
@@ -645,6 +651,7 @@ html[data-page='userSmlt'] .chart {
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.55);
 }
+
 html[data-page='userSmlt'] .panel--disabled .chart {
     background: rgba(255, 255, 255, 0.32);
 }
@@ -671,6 +678,7 @@ html[data-page='userSmlt'] .chart__total {
     color: var(--text-mute);
     white-space: nowrap;
 }
+
 html[data-page='userSmlt'] .chart__total strong {
     font-size: 13px;
     font-weight: 700;
@@ -689,6 +697,7 @@ html[data-page='userSmlt'] .chart__axis {
     flex: 0 0 auto;
     width: 26px;
 }
+
 html[data-page='userSmlt'] .chart__axis span {
     position: absolute;
     right: 0;
@@ -697,15 +706,19 @@ html[data-page='userSmlt'] .chart__axis span {
     line-height: 1;
     color: var(--text-mute);
 }
+
 html[data-page='userSmlt'] .chart__axis span:nth-child(1) {
     bottom: 100%;
 }
+
 html[data-page='userSmlt'] .chart__axis span:nth-child(2) {
     bottom: 66.666%;
 }
+
 html[data-page='userSmlt'] .chart__axis span:nth-child(3) {
     bottom: 33.333%;
 }
+
 html[data-page='userSmlt'] .chart__axis span:nth-child(4) {
     bottom: 0;
 }
@@ -715,11 +728,9 @@ html[data-page='userSmlt'] .chart__plot {
     flex: 1 1 auto;
     min-width: 0;
     border-top: 1px solid rgba(150, 155, 175, 0.22);
-    background: repeating-linear-gradient(
-        to top,
-        rgba(150, 155, 175, 0.22) 0 1px,
-        transparent 1px 33.3333%
-    );
+    background: repeating-linear-gradient(to top,
+            rgba(150, 155, 175, 0.22) 0 1px,
+            transparent 1px 33.3333%);
 }
 
 html[data-page='userSmlt'] .chart__bars {
@@ -758,6 +769,7 @@ html[data-page='userSmlt'] .editor {
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.55);
 }
+
 html[data-page='userSmlt'] .panel--disabled .editor {
     background: rgba(255, 255, 255, 0.32);
 }
@@ -779,6 +791,7 @@ html[data-page='userSmlt'] .radio {
     cursor: pointer;
     user-select: none;
 }
+
 html[data-page='userSmlt'] .radio input {
     position: absolute;
     width: 1px;
@@ -799,6 +812,7 @@ html[data-page='userSmlt'] .radio__mark {
         border-color 0.15s,
         background 0.15s;
 }
+
 html[data-page='userSmlt'] .radio__mark::after {
     content: '';
     position: absolute;
@@ -808,11 +822,13 @@ html[data-page='userSmlt'] .radio__mark::after {
     transform: scale(0);
     transition: transform 0.15s;
 }
-html[data-page='userSmlt'] .radio input:checked + .radio__mark {
+
+html[data-page='userSmlt'] .radio input:checked+.radio__mark {
     border-color: var(--pm-primary);
     background: var(--pm-primary);
 }
-html[data-page='userSmlt'] .radio input:checked + .radio__mark::after {
+
+html[data-page='userSmlt'] .radio input:checked+.radio__mark::after {
     transform: scale(1);
 }
 
@@ -820,11 +836,12 @@ html[data-page='userSmlt'] .radio__text {
     font-size: clamp(12px, 1.35vh, 14px);
     color: #3d4350;
 }
-html[data-page='userSmlt'] .radio input:checked ~ .radio__text {
+
+html[data-page='userSmlt'] .radio input:checked~.radio__text {
     font-weight: 700;
 }
 
-html[data-page='userSmlt'] .editor > .radio {
+html[data-page='userSmlt'] .editor>.radio {
     flex: 0 0 auto;
     margin-bottom: clamp(5px, 0.8vh, 9px);
 }
@@ -838,6 +855,7 @@ html[data-page='userSmlt'] .table-wrap {
     background: #fff;
     transition: opacity 0.15s;
 }
+
 html[data-page='userSmlt'] .table-wrap.is-dim {
     opacity: 0.45;
 }
@@ -869,9 +887,11 @@ html[data-page='userSmlt'] .data-table td {
     color: #3d4350;
     white-space: nowrap;
 }
+
 html[data-page='userSmlt'] .data-table tr:last-child td {
     border-bottom: 0;
 }
+
 html[data-page='userSmlt'] .data-table td.is-num {
     font-weight: 500;
 }
@@ -893,6 +913,7 @@ html[data-page='userSmlt'] .bchart {
     background: linear-gradient(158deg, #efeef6 0%, #f8f8fc 32%, #fdfdfe 66%, #f3f7fa 100%);
     box-shadow: 0 2px 10px rgba(63, 84, 145, 0.08);
 }
+
 html[data-page='userSmlt'] .panel--disabled .bchart {
     background: rgba(255, 255, 255, 0.32);
     box-shadow: none;
@@ -935,9 +956,11 @@ html[data-page='userSmlt'] .bchart--compact {
     margin-top: clamp(8px, 1.5vh, 14px);
     padding: clamp(10px, 1.5vh, 14px) 20px clamp(8px, 1.3vh, 12px);
 }
+
 html[data-page='userSmlt'] .bchart--compact .bchart__head {
     margin-bottom: 10px;
 }
+
 html[data-page='userSmlt'] .bchart--compact .blk {
     border-radius: 4px;
     box-shadow: none;
@@ -966,6 +989,7 @@ html[data-page='userSmlt'] .legend__chip {
     color: #4c5158;
     white-space: nowrap;
 }
+
 html[data-page='userSmlt'] .legend__chip b {
     font-weight: 700;
     color: var(--text);
@@ -982,6 +1006,7 @@ html[data-page='userSmlt'] .legend__chip--line {
     border-color: rgba(242, 118, 46, 0.4);
     background: rgba(242, 118, 46, 0.08);
 }
+
 html[data-page='userSmlt'] .legend__line {
     position: relative;
     width: 16px;
@@ -989,6 +1014,7 @@ html[data-page='userSmlt'] .legend__line {
     border-radius: 1px;
     background: var(--line-wait);
 }
+
 html[data-page='userSmlt'] .legend__line::after {
     content: '';
     position: absolute;
@@ -1019,6 +1045,7 @@ html[data-page='userSmlt'] .bchart__yaxis {
     font-size: 11px;
     color: var(--text-mute);
 }
+
 html[data-page='userSmlt'] .bchart__yaxis span {
     line-height: 1;
     transform: translateY(50%);
@@ -1040,11 +1067,9 @@ html[data-page='userSmlt'] .bchart__plot {
     grid-template-columns: repeat(24, minmax(0, 1fr));
     column-gap: 3px;
     /* 가로 눈금선 간격은 행 높이(--row-h)와 같아야 축 숫자와 맞는다 */
-    background: repeating-linear-gradient(
-        to top,
-        #e9ebf2 0 1px,
-        transparent 1px var(--row-h, 30px)
-    );
+    background: repeating-linear-gradient(to top,
+            #e9ebf2 0 1px,
+            transparent 1px var(--row-h, 30px));
     border-bottom: 1px solid #ccd0dd;
 }
 
@@ -1053,11 +1078,9 @@ html[data-page='userSmlt'] .bchart__plot::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: repeating-linear-gradient(
-        to right,
-        rgba(210, 214, 226, 0.55) 0 1px,
-        transparent 1px calc(100% / 12)
-    );
+    background: repeating-linear-gradient(to right,
+            rgba(210, 214, 226, 0.55) 0 1px,
+            transparent 1px calc(100% / 12));
     pointer-events: none;
 }
 
@@ -1068,6 +1091,7 @@ html[data-page='userSmlt'] .bchart__line {
     z-index: 3;
     pointer-events: none;
 }
+
 html[data-page='userSmlt'] .bchart__line svg {
     display: block;
     width: 100%;
@@ -1129,6 +1153,7 @@ html[data-page='userSmlt'] .blk {
     letter-spacing: -0.2px;
     box-shadow: 0 1px 3px rgba(46, 50, 94, 0.18);
 }
+
 html[data-page='userSmlt'] .blk:disabled {
     cursor: default;
 }
@@ -1136,18 +1161,23 @@ html[data-page='userSmlt'] .blk:disabled {
 html[data-page='userSmlt'] .blk--i1 {
     background: var(--i1);
 }
+
 html[data-page='userSmlt'] .blk--i2 {
     background: var(--i2);
 }
+
 html[data-page='userSmlt'] .blk--i3 {
     background: var(--i3);
 }
+
 html[data-page='userSmlt'] .blk--i4 {
     background: var(--i4);
 }
+
 html[data-page='userSmlt'] .blk--i5 {
     background: var(--i5);
 }
+
 html[data-page='userSmlt'] .blk--i6 {
     background: var(--i6);
 }
@@ -1156,6 +1186,7 @@ html[data-page='userSmlt'] .blk--i6 {
 html[data-page='userSmlt'] .bchart.is-picking .blk {
     opacity: 0.26;
 }
+
 html[data-page='userSmlt'] .bchart.is-picking .blk.is-sel {
     opacity: 1;
     z-index: 2;
@@ -1191,9 +1222,11 @@ html[data-page='userSmlt'] .blk__tip {
     white-space: nowrap;
     box-shadow: 0 6px 16px rgba(30, 40, 70, 0.22);
 }
+
 html[data-page='userSmlt'] .blk:hover:not(:disabled) .blk__tip {
     display: block;
 }
+
 html[data-page='userSmlt'] .blk__tip::after {
     content: '';
     position: absolute;
@@ -1213,9 +1246,11 @@ html[data-page='userSmlt'] .bchart__scale {
     font-size: 11px;
     color: #6e747f;
 }
+
 html[data-page='userSmlt'] .bchart__scale span {
     transform: translateX(-50%);
 }
+
 html[data-page='userSmlt'] .bchart__scale span:last-child {
     position: absolute;
     right: 0;
@@ -1233,6 +1268,7 @@ html[data-page='userSmlt'] .bchart__foot {
     font-size: 12px;
     color: var(--text-mute);
 }
+
 html[data-page='userSmlt'] .bchart__foot strong {
     color: var(--text-sub);
     font-weight: 500;
@@ -1261,9 +1297,11 @@ html[data-page='userSmlt'] .bchart__act {
         background 0.15s,
         box-shadow 0.15s;
 }
+
 html[data-page='userSmlt'] .bchart__act:not(:disabled):hover {
     background: #f4f4fc;
 }
+
 html[data-page='userSmlt'] .bchart__act:disabled {
     opacity: 0.45;
     cursor: default;
@@ -1276,6 +1314,7 @@ html[data-page='userSmlt'] .bchart__act--add {
     color: #fff;
     box-shadow: 0 3px 10px rgba(68, 65, 204, 0.24);
 }
+
 html[data-page='userSmlt'] .bchart__act--add:not(:disabled):hover {
     background: var(--pm-primary-dark);
 }
@@ -1285,6 +1324,7 @@ html[data-page='userSmlt'] .bchart__act--even {
     background: rgba(18, 176, 154, 0.08);
     color: #0d8d7c;
 }
+
 html[data-page='userSmlt'] .bchart__act--even:not(:disabled):hover {
     background: rgba(18, 176, 154, 0.16);
 }
@@ -1312,6 +1352,7 @@ html[data-page='userSmlt'] .selfbar__title {
     font-weight: 700;
     white-space: nowrap;
 }
+
 html[data-page='userSmlt'] .selfbar__title span {
     padding: 3px 8px;
     border-radius: 6px;
@@ -1326,6 +1367,7 @@ html[data-page='userSmlt'] .selfbar__items {
     gap: 8px;
     white-space: nowrap;
 }
+
 html[data-page='userSmlt'] .selfbar__item {
     display: inline-flex;
     align-items: baseline;
@@ -1338,6 +1380,7 @@ html[data-page='userSmlt'] .selfbar__item {
     color: #5e6470;
     line-height: 32px;
 }
+
 html[data-page='userSmlt'] .selfbar__item b {
     font-size: 14px;
     font-weight: 700;
@@ -1361,6 +1404,7 @@ html[data-page='userSmlt'] .offchips {
     color: var(--text-mute);
     white-space: nowrap;
 }
+
 html[data-page='userSmlt'] .offchip {
     display: inline-flex;
     align-items: center;
@@ -1423,12 +1467,14 @@ html[data-page='userSmlt'] .drawer__titles {
     flex-direction: column;
     gap: 4px;
 }
+
 html[data-page='userSmlt'] .drawer__title {
     margin: 0;
     font-size: 16px;
     font-weight: 700;
     letter-spacing: -0.3px;
 }
+
 html[data-page='userSmlt'] .drawer__sub {
     margin: 0;
     font-size: 12px;
@@ -1446,9 +1492,11 @@ html[data-page='userSmlt'] .drawer__close {
     color: #8b909b;
     transition: background 0.15s;
 }
+
 html[data-page='userSmlt'] .drawer__close:hover {
     background: #f1f1f8;
 }
+
 html[data-page='userSmlt'] .drawer__close svg {
     width: 18px;
     height: 18px;
@@ -1470,6 +1518,7 @@ html[data-page='userSmlt'] .drawer__foot {
     border-top: 1px solid var(--line);
     background: rgba(255, 255, 255, 0.6);
 }
+
 html[data-page='userSmlt'] .drawer__foot .btn {
     flex: 1 1 0;
     height: 44px;
@@ -1482,6 +1531,7 @@ html[data-page='userSmlt'] .btn--ghost {
     color: #5e6470;
     font-weight: 500;
 }
+
 html[data-page='userSmlt'] .btn--ghost:hover {
     background: #f6f6fa;
 }
@@ -1491,6 +1541,7 @@ html[data-page='userSmlt'] .btn--primary {
     color: #fff;
     box-shadow: 0 6px 16px rgba(68, 65, 204, 0.25);
 }
+
 html[data-page='userSmlt'] .btn--primary:hover {
     background: var(--pm-primary-dark);
 }
@@ -1500,6 +1551,7 @@ html[data-page='userSmlt'] .dsec {
     padding: 11px 0;
     border-bottom: 1px solid var(--line);
 }
+
 html[data-page='userSmlt'] .dsec:last-child {
     border-bottom: 0;
 }
@@ -1513,6 +1565,7 @@ html[data-page='userSmlt'] .dsec__title {
     font-weight: 700;
     color: var(--text);
 }
+
 html[data-page='userSmlt'] .dsec__hint {
     display: flex;
     align-items: center;
@@ -1531,11 +1584,13 @@ html[data-page='userSmlt'] .drow {
     gap: 12px;
     padding: 5px 0;
 }
+
 html[data-page='userSmlt'] .drow__label {
     margin: 0;
     font-size: 13px;
     color: #5e6470;
 }
+
 html[data-page='userSmlt'] .drow__label small {
     display: block;
     margin-top: 2px;
@@ -1550,6 +1605,7 @@ html[data-page='userSmlt'] .drow .stepper {
     padding: 0 4px;
     overflow: visible;
 }
+
 html[data-page='userSmlt'] .drow .stepper__btn {
     width: 26px;
     height: 26px;
@@ -1559,6 +1615,7 @@ html[data-page='userSmlt'] .drow .stepper__btn {
     font-weight: 700;
     line-height: 1;
 }
+
 html[data-page='userSmlt'] .drow .stepper__value {
     min-width: 40px;
     font-size: 14px;
@@ -1585,6 +1642,7 @@ html[data-page='userSmlt'] .airchip {
     font-weight: 700;
     transition: background 0.15s;
 }
+
 html[data-page='userSmlt'] .airchip:hover {
     background: #d3d3ee;
 }
@@ -1595,6 +1653,7 @@ html[data-page='userSmlt'] .airchip--ghost {
     color: #8b8ab3;
     font-weight: 500;
 }
+
 html[data-page='userSmlt'] .airchip--ghost:hover {
     background: #f6f6fa;
 }
@@ -1606,6 +1665,7 @@ html[data-page='userSmlt'] .seg {
     border-radius: 999px;
     background: #edeef4;
 }
+
 html[data-page='userSmlt'] .seg__item {
     height: 30px;
     padding: 0 18px;
@@ -1617,6 +1677,7 @@ html[data-page='userSmlt'] .seg__item {
         background 0.15s,
         color 0.15s;
 }
+
 html[data-page='userSmlt'] .seg__item.is-on {
     background: #fff;
     color: var(--pm-primary);
@@ -1628,12 +1689,14 @@ html[data-page='userSmlt'] .seg__item.is-on {
 html[data-page='userSmlt'] .timebar--valued .timebar__track {
     gap: 2px;
 }
+
 html[data-page='userSmlt'] .timebar--valued .timebar__slot {
     display: flex;
     align-items: center;
     justify-content: center;
     height: 24px;
 }
+
 /* 슬롯 폭이 13px 남짓이라 두 자리 수까지만 들어간다 */
 html[data-page='userSmlt'] .timebar--valued .timebar__slot b {
     font-size: 9px;
@@ -1641,6 +1704,7 @@ html[data-page='userSmlt'] .timebar--valued .timebar__slot b {
     letter-spacing: -0.4px;
     color: #fff;
 }
+
 html[data-page='userSmlt'] .timebar--valued .timebar__slot.is-on {
     background: var(--pm-primary);
 }
@@ -1666,9 +1730,11 @@ html[data-page='userSmlt'] .bcell {
     color: var(--pm-primary);
     transition: box-shadow 0.15s;
 }
+
 html[data-page='userSmlt'] .bcell:hover {
     box-shadow: 0 0 0 1px rgba(68, 65, 204, 0.25);
 }
+
 html[data-page='userSmlt'] .bcell.is-sel {
     border-color: var(--pm-primary);
     box-shadow: 0 0 0 1px var(--pm-primary);
@@ -1729,13 +1795,16 @@ html[data-page='userSmlt'] .plan td {
     text-align: center;
     color: #4c5158;
 }
+
 html[data-page='userSmlt'] .plan td b {
     font-weight: 700;
     color: var(--text);
 }
-html[data-page='userSmlt'] .plan tbody tr + tr td {
+
+html[data-page='userSmlt'] .plan tbody tr+tr td {
     border-top: 1px solid #f0f1f6;
 }
+
 html[data-page='userSmlt'] .plan tr.is-empty td {
     height: 54px;
     color: var(--text-mute);
@@ -1744,15 +1813,18 @@ html[data-page='userSmlt'] .plan tr.is-empty td {
 html[data-page='userSmlt'] .plan .col-cnt {
     width: 78px;
 }
+
 html[data-page='userSmlt'] .plan .col-del {
     width: 40px;
 }
+
 html[data-page='userSmlt'] .plan__del {
     color: #b9bdc7;
     font-size: 14px;
     line-height: 1;
     transition: color 0.15s;
 }
+
 html[data-page='userSmlt'] .plan__del:hover {
     color: var(--pm-primary);
 }
@@ -1775,6 +1847,7 @@ html[data-page='userSmlt'] .btn--add {
     background: var(--pm-primary);
     color: #fff;
 }
+
 html[data-page='userSmlt'] .btn--add:hover {
     background: var(--pm-primary-dark);
 }
@@ -1784,6 +1857,7 @@ html[data-page='userSmlt'] .btn--even {
     background: rgba(18, 176, 154, 0.08);
     color: #0d8d7c;
 }
+
 html[data-page='userSmlt'] .btn--even:hover {
     background: rgba(18, 176, 154, 0.16);
 }
@@ -1792,14 +1866,17 @@ html[data-page='userSmlt'] .btn--even:hover {
    9. 반응형 : 가로만 압축, 세로 스크롤은 만들지 않는다
    ===================================================================== */
 @media (max-width: 1500px) {
+
     /* 셸 */
     html[data-page='userSmlt'] .panels {
         gap: 16px;
     }
+
     html[data-page='userSmlt'] .summary {
         gap: 18px;
         padding-left: 18px;
     }
+
     html[data-page='userSmlt'] .tabs__item {
         padding: 0 20px;
     }
@@ -1809,6 +1886,7 @@ html[data-page='userSmlt'] .btn--even:hover {
         padding-left: 12px;
         padding-right: 12px;
     }
+
     html[data-page='userSmlt'] .editor {
         padding-left: 12px;
         padding-right: 12px;
@@ -1819,9 +1897,11 @@ html[data-page='userSmlt'] .btn--even:hover {
         padding-left: 14px;
         padding-right: 14px;
     }
+
     html[data-page='userSmlt'] .bchart__head {
         gap: 8px;
     }
+
     html[data-page='userSmlt'] .selfbar {
         padding-left: 14px;
         padding-right: 14px;
@@ -1829,25 +1909,31 @@ html[data-page='userSmlt'] .btn--even:hover {
 }
 
 @media (max-width: 1200px) {
+
     /* 셸 여백(.body)은 세 화면이 같아야 하므로 여기서 줄이지 않는다 */
     html[data-page='userSmlt'] .panels {
         gap: 12px;
     }
+
     html[data-page='userSmlt'] .panel {
         padding-left: 14px;
         padding-right: 14px;
     }
+
     html[data-page='userSmlt'] .gnb__title {
         font-size: 15px;
     }
+
     html[data-page='userSmlt'] .tabs__item {
         padding: 0 14px;
         font-size: 13px;
     }
+
     html[data-page='userSmlt'] .summary {
         gap: 12px;
         padding-left: 14px;
     }
+
     html[data-page='userSmlt'] .summary__label {
         font-size: 12px;
     }
@@ -1857,6 +1943,7 @@ html[data-page='userSmlt'] .btn--even:hover {
         margin-left: 30px;
         font-size: 9px;
     }
+
     html[data-page='userSmlt'] .stepper__value {
         min-width: 42px;
     }
@@ -1867,10 +1954,12 @@ html[data-page='userSmlt'] .btn--even:hover {
         padding: 0 8px 0 6px;
         font-size: 10px;
     }
+
     html[data-page='userSmlt'] .bchart__act {
         padding: 5px 10px;
         font-size: 11px;
     }
+
     html[data-page='userSmlt'] .selfbar__note {
         display: none;
     }
