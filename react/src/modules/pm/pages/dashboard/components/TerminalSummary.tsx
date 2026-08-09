@@ -225,25 +225,27 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
                     <div className="p-stats">
                         <div className="p-note">* 지난주 同요일 대비</div>
                         <div className="p-stat-main">
-                            <div className="p-stat-lines">
-                                <div className="p-line">
-                                    <Icon name="plane" className="i-blue i-26" />
-                                    <span className="p-delta">{data.stats.flights.delta}</span>
-                                    <span className="p-big">{data.stats.flights.value}</span>
-                                    <span className="p-u">편</span>
-                                </div>
-                                <div className="p-line">
-                                    <Icon name="people" className="i-teal i-26" />
-                                    <span className="p-delta">{data.stats.pax.delta}</span>
-                                    <span className="p-big">{data.stats.pax.value}</span>
-                                    <span className="p-u">명</span>
-                                </div>
+                            <div className="p-stat-icons">
+                                <Icon name="plane" className="i-blue i-26" />
+                                <Icon name="people" className="i-teal i-26" />
                             </div>
                             <div className="board">
                                 <div className="k">탑승률</div>
                                 <div>
                                     <span className="v">{data.stats.boardingRate}</span>
                                     <span className="u">%</span>
+                                </div>
+                            </div>
+                            <div className="p-stat-lines">
+                                <div className="p-line">
+                                    <span className="p-big">{data.stats.flights.value}</span>
+                                    <span className="p-u">편</span>
+                                    <span className="p-delta">{data.stats.flights.delta}</span>
+                                </div>
+                                <div className="p-line">
+                                    <span className="p-big">{data.stats.pax.value}</span>
+                                    <span className="p-u">명</span>
+                                    <span className="p-delta">{data.stats.pax.delta}</span>
                                 </div>
                             </div>
                         </div>
@@ -257,28 +259,19 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
                             </div>
                             <div className="peak-cells">
                                 <div className="cell">
-                                    <div className="k">
-                                        총<br />
-                                        대기인원
-                                    </div>
+                                    <div className="k">대기인원</div>
                                     <div>
                                         <b>{data.peak.totalWait}</b>
                                         <span className="u">명</span>
                                     </div>
                                 </div>
-                                <span className="sep">/</span>
                                 <div className="cell">
-                                    <div className="k">
-                                        최대
-                                        <br />
-                                        대기시간
-                                    </div>
+                                    <div className="k">대기시간</div>
                                     <div>
                                         <b>{data.peak.maxWait}</b>
                                         <span className="u">분</span>
                                     </div>
                                 </div>
-                                <span className="sep">/</span>
                                 <div className="cell">
                                     <div className="k">
                                         시간당
@@ -418,28 +411,24 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
                 </div>
             </div>
 
+            {/* 제목 박스와 기준시각 바를 한 줄로 두고, 뷰 전환 스위치는 바 안에 넣는다 */}
             <div className="p-title-row">
                 <div className="p-title">
                     터미널에 여객수가 <em>가장 많을 때</em>
                 </div>
-                <div className="toggle">
+                <div className="p-bar">
+                    <span className="p-bar-txt">{data.barText}</span>
                     <button
                         type="button"
-                        className={view === 'summary' ? 'on' : undefined}
-                        onClick={() => setView('summary')}
+                        className={`p-switch${view === 'summary' ? ' on' : ''}`}
+                        aria-pressed={view === 'summary'}
+                        onClick={() => setView(view === 'summary' ? 'table' : 'summary')}
                     >
+                        <i aria-hidden="true" />
                         요약
-                    </button>
-                    <button
-                        type="button"
-                        className={view === 'table' ? 'on' : undefined}
-                        onClick={() => setView('table')}
-                    >
-                        출국장
                     </button>
                 </div>
             </div>
-            <div className="p-bar">{data.barText}</div>
 
             {/* summary view */}
             <div className="view" hidden={view !== 'summary'}>
@@ -448,15 +437,12 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
                         {data.summaryStats.map((stat) => (
                             <div className="sum-cell" key={stat.unit}>
                                 <Icon name={stat.icon} className={stat.iconClass} />
-                                <div>
-                                    <div>
-                                        <span className="big">{stat.value}</span>
-                                        <span className="u">{stat.unit}</span>
-                                    </div>
-                                    <div className="sub">
-                                        {stat.deltaLabel}{' '}
-                                        <span className="danger">{stat.delta}</span>
-                                    </div>
+                                <div className="val">
+                                    <span className="big">{stat.value}</span>
+                                    <span className="u">{stat.unit}</span>
+                                </div>
+                                <div className="sub">
+                                    {stat.deltaLabel} <span className="danger">{stat.delta}</span>
                                 </div>
                             </div>
                         ))}

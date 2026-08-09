@@ -123,6 +123,7 @@ html[data-page='dashboard'] .row {
 
 html[data-page='dashboard'] .row--top {
     height: 197px;
+    gap: 16px;
     flex-shrink: 0;
 }
 
@@ -284,23 +285,23 @@ html[data-page='dashboard'] .sidebar {
 
 /* ============ row 1 : cards ============ */
 html[data-page='dashboard'] .c-plan {
-    flex: 450 0 0;
+    flex: 410 0 0;
 }
 
 html[data-page='dashboard'] .c-hourly {
-    flex: 449 0 0;
+    flex: 458 0 0;
 }
 
 html[data-page='dashboard'] .c-dow {
-    flex: 199 0 0;
+    flex: 374 0 0;
 }
 
 html[data-page='dashboard'] .c-wx {
-    flex: 338 0 0;
+    flex: 244 0 0;
 }
 
 html[data-page='dashboard'] .c-quick {
-    flex: 239 0 0;
+    flex: 237 0 0;
 }
 
 html[data-page='dashboard'] .card-head {
@@ -325,27 +326,65 @@ html[data-page='dashboard'] .card-date {
 html[data-page='dashboard'] .plan-body {
     flex: 1;
     display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    gap: 12px;
-    padding-bottom: 10px;
+    align-items: stretch;
+    padding: 6px 0 10px;
 }
 
-html[data-page='dashboard'] .stat-row {
+html[data-page='dashboard'] .plan-icons {
+    width: 58px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+html[data-page='dashboard'] .plan-icons>.ic {
+    flex: 1;
     display: flex;
     align-items: center;
+    justify-content: center;
 }
 
-html[data-page='dashboard'] .stat-row>.ic {
-    width: 58px;
-    display: flex;
-    justify-content: center;
+/* 운항편 / 총 여객 합계 박스 — 두 행을 세로로 아우른다 */
+html[data-page='dashboard'] .plan-total {
+    width: 112px;
     flex-shrink: 0;
+    margin: 0 10px;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(160, 168, 200, 0.35);
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(46, 50, 94, 0.06);
+    display: flex;
+    flex-direction: column;
+}
+
+html[data-page='dashboard'] .plan-total .cell {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+html[data-page='dashboard'] .plan-total .k {
+    font-size: 13px;
+    color: #858ea0;
+    margin-bottom: 1px;
+}
+
+html[data-page='dashboard'] .plan-cols {
+    /* 출발 / 도착 두 행 */
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 html[data-page='dashboard'] .stat-cells {
     flex: 1;
     display: flex;
+    align-items: center;
 }
 
 html[data-page='dashboard'] .stat-cells>div {
@@ -360,26 +399,34 @@ html[data-page='dashboard'] .stat-cells .k {
 }
 
 html[data-page='dashboard'] .stat-cells .v {
+    font-size: 29px;
+    font-weight: 500;
+    letter-spacing: -1.2px;
+    line-height: 1.1;
+}
+
+html[data-page='dashboard'] .plan-total .v {
     font-size: 31px;
     font-weight: 500;
     letter-spacing: -1.2px;
     line-height: 1.1;
 }
 
-html[data-page='dashboard'] .stat-cells .v.blue {
+html[data-page='dashboard'] .plan-total .v.blue {
     color: #1c6ff0;
     font-weight: 600;
 }
 
-html[data-page='dashboard'] .stat-cells .v.teal {
+html[data-page='dashboard'] .plan-total .v.teal {
     color: #00b3ab;
     font-weight: 600;
 }
 
-html[data-page='dashboard'] .stat-cells .u {
-    font-size: 16px;
+html[data-page='dashboard'] .stat-cells .u,
+html[data-page='dashboard'] .plan-total .u {
+    font-size: 15px;
     color: #3c4350;
-    margin-left: 5px;
+    margin-left: 3px;
 }
 
 /* 시간대별 출발여객 */
@@ -454,12 +501,13 @@ html[data-page='dashboard'] .axis-row>.ic {
     flex-shrink: 0;
 }
 
+/* svg 오른쪽의 gap(8) + ylab(44) 만큼 비워 눈금과 차트 폭을 정확히 맞춘다 */
 html[data-page='dashboard'] .axis {
     flex: 1;
     display: flex;
     font-size: 12px;
     color: #a3abba;
-    padding-right: 44px;
+    padding-right: 52px;
 }
 
 html[data-page='dashboard'] .axis span {
@@ -472,15 +520,60 @@ html[data-page='dashboard'] .dow-val {
     flex: 1;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+    gap: 10px;
     padding-bottom: 6px;
 }
 
-html[data-page='dashboard'] .dow-val span {
+html[data-page='dashboard'] .dow-ic {
+    display: flex;
+    align-items: center;
+    color: #8b93a5;
+    flex-shrink: 0;
+}
+
+html[data-page='dashboard'] .dow-ic>svg {
+    width: 18px;
+    height: 18px;
+}
+
+html[data-page='dashboard'] .dow-val .on {
     font-size: 29px;
     font-weight: 700;
     color: #1c4de8;
     letter-spacing: -1.2px;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .dow-val .off {
+    font-size: 19px;
+    font-weight: 600;
+    color: #b3b9c8;
+    letter-spacing: -0.7px;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .dow-tags {
+    display: flex;
+    align-items: baseline;
+    gap: 11px;
+    min-width: 0;
+}
+
+html[data-page='dashboard'] .dow-tags .on {
+    color: #1c4de8;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: -0.5px;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .dow-tags .off {
+    color: #b3b9c8;
+    font-weight: 500;
+    font-size: 14.5px;
+    letter-spacing: -0.4px;
+    white-space: nowrap;
 }
 
 html[data-page='dashboard'] .card-foot {
@@ -500,20 +593,13 @@ html[data-page='dashboard'] .tag-chip {
     padding: 3px 10px;
 }
 
-html[data-page='dashboard'] .dow-hl {
-    color: #1c4de8;
-    font-weight: 700;
-    font-size: 18px;
-    letter-spacing: -0.5px;
-}
-
 /* 기상정보 */
 html[data-page='dashboard'] .wx-row {
     flex: 1;
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 0 2px 6px;
+    padding: 0 2px;
 }
 
 html[data-page='dashboard'] .wx-ic {
@@ -530,6 +616,7 @@ html[data-page='dashboard'] .wx-temp {
     font-size: 39px;
     font-weight: 500;
     letter-spacing: -1.8px;
+    margin-left: auto;
 }
 
 html[data-page='dashboard'] .wx-temp small {
@@ -538,15 +625,19 @@ html[data-page='dashboard'] .wx-temp small {
     letter-spacing: -1px;
 }
 
-html[data-page='dashboard'] .wx-side {
-    margin-left: auto;
-    text-align: right;
+/* 강수량 / 적설 — 기온 아래 한 줄로 나란히 */
+html[data-page='dashboard'] .wx-sub {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 2px 9px;
     font-size: 15px;
     color: #5a6478;
-    line-height: 1.8;
+    white-space: nowrap;
 }
 
-html[data-page='dashboard'] .wx-side b {
+html[data-page='dashboard'] .wx-sub b {
     color: #23272f;
     font-weight: 600;
     margin-left: 6px;
@@ -571,12 +662,29 @@ html[data-page='dashboard'] .quick {
     background: linear-gradient(150deg, #fcfcfd, #f6f6fa);
     border: 1px solid #dbd8f3;
     border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    padding: 9px 9px 9px;
+    box-shadow: var(--sh);
+}
+
+html[data-page='dashboard'] .quick-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #3b39c9;
+    letter-spacing: -0.3px;
+    padding: 2px 0 0 5px;
+    flex-shrink: 0;
+}
+
+html[data-page='dashboard'] .quick-grid {
+    flex: 1;
+    min-height: 0;
     display: grid;
     grid-template-columns: 1fr 1fr;
     grid-template-rows: 1fr 1fr;
     gap: 7px;
-    padding: 9px;
-    box-shadow: var(--sh);
 }
 
 html[data-page='dashboard'] .qtile {
@@ -753,7 +861,20 @@ html[data-page='dashboard'] .p-stat-main {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+}
+
+/* 항공편/여객 아이콘은 탑승률 박스 왼쪽에 세로로 모아 둔다 */
+html[data-page='dashboard'] .p-stat-icons {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 7px;
+    flex-shrink: 0;
+}
+
+html[data-page='dashboard'] .p-stat-icons>i {
+    height: 30px;
 }
 
 html[data-page='dashboard'] .p-stat-lines {
@@ -768,17 +889,21 @@ html[data-page='dashboard'] .p-stat-lines {
 html[data-page='dashboard'] .p-line {
     display: flex;
     align-items: center;
+    height: 30px;
 }
 
 html[data-page='dashboard'] .p-delta {
     color: var(--red);
     font-size: 14px;
     font-weight: 600;
-    flex: 1;
-    text-align: center;
+    width: 56px;
+    text-align: right;
+    flex-shrink: 0;
 }
 
 html[data-page='dashboard'] .p-big {
+    flex: 1;
+    text-align: right;
     font-size: 25px;
     font-weight: 700;
     letter-spacing: -1.2px;
@@ -789,16 +914,23 @@ html[data-page='dashboard'] .p-u {
     color: #3c4350;
     margin-left: 6px;
     width: 20px;
+    flex-shrink: 0;
 }
 
 html[data-page='dashboard'] .board {
     width: 71px;
     flex-shrink: 0;
+    align-self: stretch;
     background: #fff;
     border-radius: 10px;
     padding: 6px 0 7px;
     text-align: center;
     box-shadow: 0 1px 4px rgba(46, 50, 94, 0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
 }
 
 html[data-page='dashboard'] .board .k {
@@ -886,11 +1018,17 @@ html[data-page='dashboard'] .peak-cells .cell {
     text-align: center;
 }
 
+/* 1줄/2줄 라벨이 섞여도 아래 수치는 같은 높이에 오도록 라벨 영역을 2줄로 고정 */
 html[data-page='dashboard'] .peak-cells .k {
     font-size: 12.5px;
     color: #7c8698;
     line-height: 1.3;
     white-space: nowrap;
+    height: 2.6em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
 }
 
 html[data-page='dashboard'] .peak-cells b {
@@ -984,14 +1122,15 @@ html[data-page='dashboard'] .chartbox>svg {
 /* --- panel title row --- */
 html[data-page='dashboard'] .p-title-row {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    height: 26px;
-    margin: 30px 0 19px;
+    align-items: stretch;
+    gap: 16px;
+    height: 40px;
+    margin: 24px 0 0;
     flex-shrink: 0;
 }
 
 html[data-page='dashboard'] .p-title {
+    flex: 0 0 300px;
     font-size: 22px;
     font-weight: 800;
     color: var(--title);
@@ -999,6 +1138,11 @@ html[data-page='dashboard'] .p-title {
     display: flex;
     align-items: center;
     gap: 11px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(150, 158, 190, 0.35);
+    border-radius: 10px;
+    padding: 6px 14px 6px 8px;
+    box-shadow: 0 1px 4px rgba(46, 50, 94, 0.06);
 }
 
 html[data-page='dashboard'] .p-title::before {
@@ -1031,43 +1175,65 @@ html[data-page='dashboard'] .panel-green .p-title em {
     background: linear-gradient(transparent 62%, rgba(26, 122, 46, 0.16) 0);
 }
 
-html[data-page='dashboard'] .toggle {
-    display: flex;
-    background: #e9ecf3;
-    border-radius: 14px;
-    padding: 2px;
-}
-
-html[data-page='dashboard'] .toggle button {
-    border: none;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 700;
-    height: 22px;
-    padding: 0 15px;
-    border-radius: 12px;
-    background: transparent;
-    color: #7c8698;
-    font-family: inherit;
-}
-
-html[data-page='dashboard'] .toggle button.on {
-    background: linear-gradient(100deg, #4441cc, #6868d6);
-    color: #fff;
-}
-
 html[data-page='dashboard'] .p-bar {
-    height: 40px;
+    flex: 1;
+    min-width: 0;
     border-radius: 10px;
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
+    position: relative;
+    padding: 0 14px;
     font-size: 20px;
     font-weight: 700;
     letter-spacing: 0.3px;
-    flex-shrink: 0;
 }
+
+html[data-page='dashboard'] .p-bar-txt {
+    white-space: nowrap;
+}
+
+/* 요약 / 출국장 뷰 전환 스위치 — 기준시각 바 오른쪽에 얹는다 */
+html[data-page='dashboard'] .p-switch {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 24px;
+    padding: 0 12px 0 5px;
+    border: none;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.22);
+    color: #fff;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+html[data-page='dashboard'] .p-switch>i {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.55);
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+html[data-page='dashboard'] .p-switch.on {
+    background: #fff;
+    color: #3b39c9;
+}
+
+html[data-page='dashboard'] .p-switch.on>i {
+    background: #4441cc;
+}
+
 
 html[data-page='dashboard'] .panel-blue .p-bar {
     background: linear-gradient(90deg, #0101ff 0%, #0043e2 34%, #018ec1 74%, #00aab5 100%);
@@ -1087,7 +1253,7 @@ html[data-page='dashboard'] .view {
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    padding-top: 12px;
+    padding-top: 26px;
 }
 
 html[data-page='dashboard'] .view[hidden] {
@@ -1098,27 +1264,33 @@ html[data-page='dashboard'] .view[hidden] {
 html[data-page='dashboard'] .sum-top {
     display: flex;
     gap: 16px;
-    height: 94px;
+    height: 100px;
     flex-shrink: 0;
 }
 
+/* 운항편 / 여객수를 두 줄로 쌓고, 전일 대비는 각 줄 오른쪽에 붙인다 */
 html[data-page='dashboard'] .sum-two {
-    flex: 378 0 0;
+    flex: 0 0 300px;
     background: var(--box-blue);
     border-radius: 14px;
     display: flex;
+    flex-direction: column;
+    padding: 0 16px;
 }
 
 html[data-page='dashboard'] .sum-cell {
     flex: 1;
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 14px;
+    gap: 12px;
+}
+
+html[data-page='dashboard'] .sum-cell .val {
+    white-space: nowrap;
 }
 
 html[data-page='dashboard'] .sum-cell .big {
-    font-size: 29px;
+    font-size: 27px;
     font-weight: 700;
     letter-spacing: -1.4px;
 }
@@ -1130,13 +1302,14 @@ html[data-page='dashboard'] .sum-cell .u {
 }
 
 html[data-page='dashboard'] .sum-cell .sub {
+    margin-left: auto;
     font-size: 13px;
     color: #7c8698;
-    margin-top: 3px;
+    white-space: nowrap;
 }
 
 html[data-page='dashboard'] .sum-cell .sub .danger {
-    margin-left: 14px;
+    margin-left: 12px;
     font-weight: 600;
 }
 

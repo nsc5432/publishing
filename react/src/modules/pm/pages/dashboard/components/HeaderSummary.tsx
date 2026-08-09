@@ -27,44 +27,50 @@ export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
                             <span className="card-date">{planDate}</span>
                         </div>
                         <div className="plan-body">
-                            <div className="stat-row">
+                            <div className="plan-icons">
                                 <span className="ic">
                                     <Icon name="plane" className="i-blue i-plane-lg" />
                                 </span>
+                                <span className="ic">
+                                    <Icon name="people" className="i-teal i-people-lg" />
+                                </span>
+                            </div>
+                            {/* 운항편 / 총 여객 합계는 두 행을 아우르는 한 박스로 강조 */}
+                            <div className="plan-total">
+                                <div className="cell">
+                                    <div className="k">운항편</div>
+                                    <div>
+                                        <span className="v blue">1,354</span>
+                                        <span className="u">편</span>
+                                    </div>
+                                </div>
+                                <div className="cell">
+                                    <div className="k">총 여객</div>
+                                    <div>
+                                        <span className="v teal">1,354</span>
+                                        <span className="u">명</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="plan-cols">
                                 <div className="stat-cells">
                                     <div>
                                         <div className="k">출발</div>
-                                        <div className="v">1,000</div>
+                                        <div className="v">10,000</div>
                                     </div>
                                     <div>
                                         <div className="k">도착</div>
                                         <div className="v">354</div>
                                     </div>
-                                    <div>
-                                        <div className="k">운항편</div>
-                                        <div>
-                                            <span className="v blue">1,354</span>
-                                            <span className="u">편</span>
-                                        </div>
-                                    </div>
                                 </div>
-                            </div>
-                            <div className="stat-row">
-                                <span className="ic">
-                                    <Icon name="people" className="i-teal i-people-lg" />
-                                </span>
                                 <div className="stat-cells">
                                     <div>
                                         <div className="k">출발</div>
-                                        <div className="v">1,000</div>
+                                        <div className="v">10,000</div>
                                     </div>
-                                    <div />
                                     <div>
-                                        <div className="k">총 여객</div>
-                                        <div>
-                                            <span className="v teal">1,354</span>
-                                            <span className="u">명</span>
-                                        </div>
+                                        <div className="k">도착</div>
+                                        <div className="v">354</div>
                                     </div>
                                 </div>
                             </div>
@@ -85,7 +91,7 @@ export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
                                 <span className="ic">
                                     <img className="tico" src={t1Blue} alt="T1" />
                                 </span>
-                                <svg viewBox="0 0 300 50" preserveAspectRatio="none">
+                                <svg viewBox="0 0 256 50" preserveAspectRatio="none">
                                     <g stroke="#e4e8f0" strokeWidth=".9">
                                         <line x1="0" y1="6" x2="256" y2="6" />
                                         <line x1="0" y1="22" x2="256" y2="22" />
@@ -127,7 +133,7 @@ export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
                                 <span className="ic">
                                     <img className="tico" src={t2Teal} alt="T2" />
                                 </span>
-                                <svg viewBox="0 0 300 50" preserveAspectRatio="none">
+                                <svg viewBox="0 0 256 50" preserveAspectRatio="none">
                                     <g stroke="#e4e8f0" strokeWidth=".9">
                                         <line x1="0" y1="6" x2="256" y2="6" />
                                         <line x1="0" y1="22" x2="256" y2="22" />
@@ -173,12 +179,24 @@ export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
                         <div className="card-head">
                             <span className="card-title">요일 속성</span>
                         </div>
+                        {/* 전/현재/다음 요일 속성을 한 줄에 두고 현재 값만 강조 */}
                         <div className="dow-val">
-                            <span>주말 전일(금)</span>
+                            <span className="dow-ic">
+                                <Icon name="calendar" />
+                            </span>
+                            <span className="off">주중</span>
+                            <span className="on">주말 전일(금)</span>
+                            <span className="off">주말(토)</span>
                         </div>
                         <div className="card-foot">
                             <span className="tag-chip">특이점</span>
-                            <span className="dow-hl">공휴일 전일</span>
+                            <span className="dow-tags">
+                                <span className="off">하계 전일</span>
+                                <span className="on">하계</span>
+                                <span className="off">추석 전일</span>
+                                <span className="off">추석</span>
+                                <span className="off">공휴</span>
+                            </span>
                         </div>
                     </div>
 
@@ -194,11 +212,14 @@ export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
                             <div className="wx-temp">
                                 24<small>°C</small>
                             </div>
-                            <div className="wx-side">
+                        </div>
+                        <div className="wx-sub">
+                            <span>
                                 강수량 <b>00</b>mm
-                                <br />
+                            </span>
+                            <span>
                                 적설 <b>00</b>mm
-                            </div>
+                            </span>
                         </div>
                         <div className="card-foot">
                             <span className="tag-chip">저시정</span>
@@ -210,41 +231,44 @@ export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
                         </div>
                     </div>
                     <div className="quick c-quick">
-                        <button
-                            type="button"
-                            className={`qtile${activeTile === 'pax' ? ' active' : ''}`}
-                            onClick={() => setActiveTile('pax')}
-                        >
-                            <QuickPaxIcon aria-hidden="true" />
-                            <span>터미널 여객수</span>
-                        </button>
+                        <div className="quick-title">PRIME TIME</div>
+                        <div className="quick-grid">
+                            <button
+                                type="button"
+                                className={`qtile${activeTile === 'pax' ? ' active' : ''}`}
+                                onClick={() => setActiveTile('pax')}
+                            >
+                                <QuickPaxIcon aria-hidden="true" />
+                                <span>터미널 여객수</span>
+                            </button>
 
-                        <button
-                            type="button"
-                            className={`qtile${activeTile === 'flight' ? ' active' : ''}`}
-                            onClick={() => setActiveTile('flight')}
-                        >
-                            <QuickFlightIcon aria-hidden="true" />
-                            <span>운항편</span>
-                        </button>
+                            <button
+                                type="button"
+                                className={`qtile${activeTile === 'flight' ? ' active' : ''}`}
+                                onClick={() => setActiveTile('flight')}
+                            >
+                                <QuickFlightIcon aria-hidden="true" />
+                                <span>운항편</span>
+                            </button>
 
-                        <button
-                            type="button"
-                            className={`qtile${activeTile === 'checkin' ? ' active' : ''}`}
-                            onClick={() => setActiveTile('checkin')}
-                        >
-                            <QuickCheckinIcon aria-hidden="true" />
-                            <span>체크인카운터</span>
-                        </button>
+                            <button
+                                type="button"
+                                className={`qtile${activeTile === 'checkin' ? ' active' : ''}`}
+                                onClick={() => setActiveTile('checkin')}
+                            >
+                                <QuickCheckinIcon aria-hidden="true" />
+                                <span>체크인카운터</span>
+                            </button>
 
-                        <button
-                            type="button"
-                            className={`qtile${activeTile === 'gate' ? ' active' : ''}`}
-                            onClick={() => setActiveTile('gate')}
-                        >
-                            <QuickGateIcon aria-hidden="true" />
-                            <span>출국장</span>
-                        </button>
+                            <button
+                                type="button"
+                                className={`qtile${activeTile === 'gate' ? ' active' : ''}`}
+                                onClick={() => setActiveTile('gate')}
+                            >
+                                <QuickGateIcon aria-hidden="true" />
+                                <span>출국장</span>
+                            </button>
+                        </div>
                     </div>
                 </section>
 
