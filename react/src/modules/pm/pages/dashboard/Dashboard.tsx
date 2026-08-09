@@ -34,7 +34,6 @@ function Dashboard() {
             <div className="app">
                 <HeaderSummary planDate={HEADER.planDate}>
                     <section className="row row--panels">
-                        {/* 제1터미널 = 왼쪽 / 제2터미널 = 오른쪽 */}
                         <TerminalSummary terminal="T1" />
                         <TerminalSummary terminal="T2" />
                     </section>
