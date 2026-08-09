@@ -46,14 +46,19 @@ export const LNB_TOP: NavItem[] = [
 
 /**
  * 하단 그룹 : 일일 시뮬레이션 안에서의 보기 선택 (활성 시 아이콘 색상으로 강조).
- * 화면이 있는 두 항목만 이동하고 나머지는 아직 표시만 바뀐다.
+ * 화면이 있는 항목만 이동하고 나머지는 아직 표시만 바뀐다.
  */
 export const LNB_BOTTOM: NavItem[] = [
     { id: 'summary', icon: 'grid', label: '요약보기', path: '/rui/pm/daily-smlt/dashboard' },
     { id: 'map', icon: 'map', label: '맵형태보기', path: '/rui/pm/daily-smlt/terminalMap' },
     { id: 'counter', icon: 'pass', label: '체크인카운터' },
     { id: 'selfCheckin', icon: 'luggage', label: '셀프체크인/백드롭' },
-    { id: 'departure', icon: 'planeDep', label: '출국장' },
+    {
+        id: 'departure',
+        icon: 'planeDep',
+        label: '출국장',
+        path: '/rui/pm/daily-smlt/departureHall',
+    },
 ];
 
 /** 레일 맨 아래 토글 버튼에 펼침 상태에서만 함께 노출되는 사용자 */

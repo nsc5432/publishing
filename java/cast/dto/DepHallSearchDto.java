@@ -1,0 +1,19 @@
+package aoms.pm.cast.dto;
+
+import aoms.pm.cast.enums.TerminalKind;
+
+import lombok.Getter;
+import lombok.Setter;
+
+/**
+ * 출국장 화면 2개 API 의 공용 조회 조건.
+ * hhmm 은 하단 타임라인 값이라 30분 단위(0400~2400)로 들어온다. 추이 조회는 하루치를 한 번에
+ * 내려주므로 hhmm 을 쓰지 않는다.
+ */
+@Getter
+@Setter
+public class DepHallSearchDto {
+	private String smltId;
+	private TerminalKind tmnlId; // T1 / T2 — 터미널 코드 변환은 TerminalKind 안에서만 한다
+	private String hhmm; // 타임라인 기준 시각 HHmm
+}

@@ -19,6 +19,10 @@ export const API_ENDPOINTS = {
     MAP_CHKN_DETAIL: prefix + '/map/retrieveSmltMapChknDetail',
     MAP_DEP_DETAIL: prefix + '/map/retrieveSmltMapDepDetail',
 
+    // 일일 시뮬레이션 결과 조회 - 출국장
+    DEP_HALL_INFO: prefix + '/dep-hall/retrieveDepHall',
+    DEP_HALL_TREND: prefix + '/dep-hall/retrieveDepHallTrend',
+
     // 사용자 시뮬레이션 - 조건 설정
     USER_SMLT_INFO: prefix + '/user-smlt/retrieveUserSmltInfo',
     USER_SMLT_FLT_PSG: prefix + '/user-smlt/retrieveFltPsgInfo',

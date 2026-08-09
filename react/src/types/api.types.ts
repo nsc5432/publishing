@@ -276,6 +276,61 @@ export interface MapDepDetailDto extends JsonResponse {
     stat: MapCgnStatDto;
 }
 
+/* ================= 일일 시뮬레이션 - 출국장 ================= */
+
+/**
+ * 출국장 카드 1장 (= 도면 위 출국장 1곳).
+ * 좌표는 마커와 같은 도면 무대 기준 비율(%)이다.
+ */
+export interface DepHallGateDto {
+    depNum: string; // 출국장 번호 (예: 3)
+    depNm: string; // 표시명 (예: 출국장 3)
+    cgnStatus: CongestionStatus; // 카드 상태 뱃지
+    cdntX: number; // 카드 자리 — 가로 비율 (0~100)
+    cdntY: number; // 카드 자리 — 세로 비율 (0~100)
+    boothCnt: number; // 운영 중인 부스 수
+    oprBgnTime: string; // 운영 시작 (HHmm)
+    oprEndTime: string; // 운영 종료 (HHmm)
+    useYn: YnFlag; // N 이면 미운영
+    stat: MapCgnStatDto; // 혼잡 현황 지표 4종
+}
+
+/** 출국장 화면 본문 — 타임라인을 옮길 때마다 hhmm 만 바꿔 재호출한다 */
+export interface DepHallDto extends JsonResponse {
+    smltId: string;
+    tmnlId: TmnlId;
+    hhmm: string; // 타임라인 기준 시각 (HHmm, 30분 단위)
+    notice: MapNoticeDto; // 상단 혼잡 알림 (출국장만)
+    gateList: DepHallGateDto[]; // 출국장 카드 (T1 6 / T2 2)
+    depMarkerList: MapMarkerDto[]; // 출국장 마커
+    chknMarkerList: MapMarkerDto[]; // 아일랜드 마커 A~N
+    gateMarkerList: MapMarkerDto[]; // 출입구 게이트 마커
+}
+
+/** 추이 1구간 (30분) */
+export interface DepHallTrendItemDto {
+    hhmm: string; // 구간 시각 (HHmm)
+    wtngPsgCnt: number; // 대기인원 (명)
+    wtngHr: number; // 대기시간 (초)
+    prcsPsgCnt: number; // 처리인원 (명)
+    prcsHr: number; // 처리시간 (초)
+}
+
+/** 출국장 1곳의 하루 추이 */
+export interface DepHallTrendSeriesDto {
+    depNum: string;
+    depNm: string;
+    itemList: DepHallTrendItemDto[]; // timeList 와 같은 길이·순서
+}
+
+/** 차트 보기 — 출국장별 시간대별 추이 (조회 시각과 무관하게 하루치를 한 번에 받는다) */
+export interface DepHallTrendDto extends JsonResponse {
+    smltId: string;
+    tmnlId: TmnlId;
+    timeList: string[]; // x 축 눈금 (HHmm, 30분 단위)
+    seriesList: DepHallTrendSeriesDto[];
+}
+
 /* ================= 사용자 시뮬레이션 ================= */
 
 /** 조건 설정 진입 정보 */

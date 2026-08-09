@@ -5,11 +5,13 @@ import { DialogProvider } from './components/ui/dialog-provider';
 
 const loadDashboard = () => import('./modules/pm/pages/dashboard/Dashboard');
 const loadTerminalMap = () => import('./modules/pm/pages/terminalMap/TerminalMap');
+const loadDepartureHall = () => import('./modules/pm/pages/departureHall/DepartureHall');
 const loadUserSmltConfig = () => import('./modules/pm/pages/userSmlt/UserSmltConfig');
 const loadMonitoring = () => import('./modules/pm/pages/monitoring/Monitoring');
 
 const DashboardPage = lazy(loadDashboard);
 const TerminalMapPage = lazy(loadTerminalMap);
+const DepartureHallPage = lazy(loadDepartureHall);
 const UserSmltConfigPage = lazy(loadUserSmltConfig);
 const MonitoringPage = lazy(loadMonitoring);
 
@@ -26,6 +28,7 @@ function usePreloadPages() {
         const warm = () => {
             void loadDashboard();
             void loadTerminalMap();
+            void loadDepartureHall();
             void loadUserSmltConfig();
             void loadMonitoring();
         };
@@ -77,6 +80,10 @@ function App() {
                             <Route
                                 path="/rui/pm/daily-smlt/terminalMap"
                                 element={<TerminalMapPage />}
+                            />
+                            <Route
+                                path="/rui/pm/daily-smlt/departureHall"
+                                element={<DepartureHallPage />}
                             />
                             <Route
                                 path="/rui/pm/user-smlt/config"
