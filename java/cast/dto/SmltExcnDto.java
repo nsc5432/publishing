@@ -19,6 +19,9 @@ public class SmltExcnDto extends AomsDefaultDto {
 	private String bgnDt; // 수행 시작일시 yyyyMMddHHmmss
 	private String endDt; // 수행 종료일시 yyyyMMddHHmmss — 진행중이면 ''
 
+	// 이력 결과 보기에서 TN_PM_SMLT_STNG 을 조인해 채우는 컬럼
+	private String excnYmd; // 시뮬레이션 기준일자 yyyyMMdd
+
 	// 모니터링 목록에서만 채워지는 컬럼
 	private int rowNum; // 목록 No
 	private String rgtrId; // 등록자 ID (FRST_RGTR_ID)

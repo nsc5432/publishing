@@ -5,6 +5,7 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
+import aoms.pm.cast.dto.SmltExcnCntRawDto;
 import aoms.pm.cast.dto.SmltExcnDto;
 import aoms.pm.cast.dto.SmltKpiRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
@@ -55,4 +56,14 @@ public interface CastSmltMapper {
 	SmltExcnDto retrieveSmltExcnByKey(@Param("smltId") String smltId, @Param("smltExcnSn") int smltExcnSn);
 
 	List<SmltExcnDto> retrieveSmltExcnList(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);
+
+	// 모니터링 — 상단 KPI 집계 · 이력 1건 결과 보기
+	SmltExcnCntRawDto retrieveSmltExcnSmry(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);
+
+	SmltExcnDto retrieveSmltExcnDetail(@Param("smltId") String smltId);
+
+	// 사용자 시뮬레이션 진입 — 저장 시각 · 직전 수행 상태
+	String retrieveUserSmltSaveDt(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
+
+	SmltExcnDto retrieveLastSmltExcn(@Param("smltId") String smltId);
 }                                                                                                            

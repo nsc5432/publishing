@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.framework.cmmn.service.SessionService;
+import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.dto.ChknBoothDto;
 import aoms.pm.cast.dto.ChknIslandDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
@@ -53,6 +54,7 @@ import lombok.RequiredArgsConstructor;
  * </pre>
  */
 @Service
+@ConditionalOnCastDb
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastChknServiceImpl implements CastChknService {

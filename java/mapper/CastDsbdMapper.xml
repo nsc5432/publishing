@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="aoms.pm.cast.mapper.CastDsbdMapper">
+    <!--
+        시설코드에서 화면 묶음 단위를 잘라내는 식. 자리수 규칙은 실데이터로 확인했다 (G11 해소).
+          CC  T1CCG29  / T1CCDZ01 → 아일랜드는 뒤에서 3번째 자리 (국내선은 T1CC 뒤에 D 가 하나 더 붙는다)
+          CK  T1CKIM01                → 아일랜드는 뒤에서 3번째 자리
+          SBD T1SBDG01                → 아일랜드는 뒤에서 3번째 자리
+          LGT T1L5NY19                → 출국장은 4번째 자리
+          SC  T1SC5_14                → 출국장은 5번째 자리
+    -->
+    <sql id="unitCdExpr">
+        CASE
+            WHEN B.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(B.PSG_FCLT_CD, -3, 1)
+            WHEN B.UP_PSG_FCLT_CD IN ('LGT') THEN SUBSTR(B.PSG_FCLT_CD, 4, 1)
+            WHEN B.UP_PSG_FCLT_CD IN ('SC', 'SR') THEN SUBSTR(B.PSG_FCLT_CD, 5, 1)
+            ELSE ' '
+        END
+    </sql>
+
+    <!-- 유효 운항편 필터 8종 — CastFltPsgMapper 와 같은 조건을 쓴다 -->
+    <sql id="validFltCond">
+        AND A.CSHR_STTS_CD != 'SL'
+        AND A.PSG_CGO_SE_CD = 'Y'
+        AND A.ARCFT_USE_SE_CD IN ('0', '1')
+        AND A.GD_FLT_PRPS_CD IN ('00', '05')
+        AND A.FRY_YN NOT IN ('Y')
+        AND A.DOM_INTL_SE_CD NOT IN ('D')
+        AND A.DLY_RSN_CD NOT IN ('2', '3')
+    </sql>
+
+    <select id="retrieveSmltIdByYmd" resultType="java.lang.String">
+        /* CastDsbdMapper.retrieveSmltIdByYmd */
+        SELECT MAX(A.SMLT_ID) AS SMLT_ID
+        FROM PMOWN.TN_PM_SMLT_STNG A
+        WHERE 1 = 1
+        AND A.EXCN_YMD = #{ymd}
+        AND A.SMLT_TYPE = #{smltType}
+    </select>
+
+    <select id="retrieveLastCalcDt" resultType="java.lang.String">
+        /* CastDsbdMapper.retrieveLastCalcDt */
+        SELECT NVL(TO_CHAR(MAX(A.SMLT_EXCN_DT), 'YYYYMMDDHH24MISS'), '') AS LAST_CALC_DT
+        FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+    </select>
+
+    <select id="retrieveAvlTimeList" resultType="java.lang.String">
+        /* CastDsbdMapper.retrieveAvlTimeList */
+        SELECT DISTINCT TO_CHAR(A.SMLT_ACTL_DT, 'HH24MI') AS AVL_TIME
+        FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        ORDER BY AVL_TIME
+    </select>
+
+    <select id="retrieveFltSmry" resultType="aoms.pm.cast.dto.FltSmryRawDto">
+        /* CastDsbdMapper.retrieveFltSmry */
+        -- 출발/도착을 한 번에 센다. 대시보드 상단 카드는 도착편도 쓰기 때문이다
+        SELECT
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN 1 ELSE 0 END), 0) AS DEP_FLT_CNT,
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN 1 ELSE 0 END), 0) AS ARR_FLT_CNT,
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS DEP_PSG_CNT,
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS ARR_PSG_CNT
+        FROM GOOWN.TN_GO_GD_DATA A
+        WHERE 1 = 1
+        AND A.GD_SE_YMD = #{ymd}
+        <if test="tmnlIdList != null and tmnlIdList.size() > 0">
+        -- T1 은 제1여객터미널(P01) + 탑승동(P02), T2 는 제2여객터미널(P03)
+        AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
+        </if>
+        <include refid="validFltCond" />
+    </select>
+
+    <select id="retrieveHourlyFltPsgList" resultType="aoms.pm.cast.dto.FltPsgRawDto">
+        /* CastDsbdMapper.retrieveHourlyFltPsgList */
+        SELECT
+            SUBSTR(A.PREDC_HM, 1, 2) AS HOUR,
+            COUNT(*) AS FLT_CNT,
+            NVL(SUM(A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT), 0) AS PSG_CNT
+        FROM GOOWN.TN_GO_GD_DATA A
+        WHERE 1 = 1
+        AND A.GD_SE_YMD = #{ymd}
+        AND A.ARR_DEP_SE_CD = 'D'
+        <if test="tmnlIdList != null and tmnlIdList.size() > 0">
+        AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
+        </if>
+        <include refid="validFltCond" />
+        AND A.PREDC_HM IS NOT NULL
+        GROUP BY SUBSTR(A.PREDC_HM, 1, 2)
+        ORDER BY HOUR
+    </select>
+
+    <select id="retrieveRsltByHourList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
+        /* CastDsbdMapper.retrieveRsltByHourList */
+        -- 결과 상세는 10분 간격이다. 화면 축이 1시간이라 시 단위로 접는다.
+        -- 대기인원은 순간값이라 합이 아니라 MAX, 시간 지표는 평균이다
+        SELECT
+            TO_CHAR(A.SMLT_ACTL_DT, 'HH24') || '00' AS TIME,
+            NVL(MAX(A.WTNG_PSG_CNT), 0) AS WTNG_PSG_CNT,
+            NVL(SUM(A.TRNST_PSG_CNT), 0) AS TRNST_PSG_CNT,
+            NVL(ROUND(AVG(A.AVG_WTNG_HR)), 0) AS WTNG_HR,
+            NVL(ROUND(AVG(A.AVG_PRCS_HR)), 0) AS PRCS_HR
+        FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+            INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
+            ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND B.TMNL_ID = #{tmnlId}
+        AND B.USE_YN = 'Y'
+        -- LS 랜드사이드 좌석, CC 체크인카운터, CK 셀프체크인, SBD 셀프백드랍, LGT 출국장, LC 출국심사, SC 보안검색대, SR 보안검색대RED
+        AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
+        GROUP BY TO_CHAR(A.SMLT_ACTL_DT, 'HH24')
+        ORDER BY TIME
+    </select>
+
+    <select id="retrieveRsltByUnitList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
+        /* CastDsbdMapper.retrieveRsltByUnitList */
+        SELECT
+            #{hhmm} AS TIME,
+            B.UP_PSG_FCLT_CD,
+            <include refid="unitCdExpr" /> AS UNIT_CD,
+            NVL(MAX(A.WTNG_PSG_CNT), 0) AS WTNG_PSG_CNT,
+            NVL(SUM(A.TRNST_PSG_CNT), 0) AS TRNST_PSG_CNT,
+            NVL(ROUND(AVG(A.AVG_WTNG_HR)), 0) AS WTNG_HR,
+            NVL(ROUND(AVG(A.AVG_PRCS_HR)), 0) AS PRCS_HR
+        FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+            INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
+            ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND B.TMNL_ID = #{tmnlId}
+        AND B.USE_YN = 'Y'
+        AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
+        AND TO_CHAR(A.SMLT_ACTL_DT, 'HH24') = SUBSTR(#{hhmm}, 1, 2)
+        GROUP BY B.UP_PSG_FCLT_CD, <include refid="unitCdExpr" />
+        ORDER BY B.UP_PSG_FCLT_CD, UNIT_CD
+    </select>
+
+    <select id="retrieveFcltUnitList" resultType="aoms.pm.cast.dto.FcltUnitRawDto">
+        /* CastDsbdMapper.retrieveFcltUnitList */
+        -- 미운영 시설도 카드의 "전체" 에는 들어가야 하므로 USE_YN 으로 거르지 않고 나눠 센다
+        SELECT
+            <include refid="unitCdExpr" /> AS UNIT_CD,
+            COUNT(*) AS TOT_CNT,
+            NVL(SUM(CASE WHEN B.USE_YN = 'Y' THEN 1 ELSE 0 END), 0) AS OPR_CNT
+        FROM PMOWN.TN_PM_SMLT_PSG_FCLT B
+        WHERE 1 = 1
+        AND B.TMNL_ID = #{tmnlId}
+        AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
+        GROUP BY <include refid="unitCdExpr" />
+        ORDER BY UNIT_CD
+    </select>
+</mapper>

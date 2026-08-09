@@ -9,6 +9,7 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
+import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.dto.ChknRawDto;
 import aoms.pm.cast.dto.UserConfigChknDto;
 import aoms.pm.cast.mapper.CastUserConfigMapper;
@@ -32,7 +33,8 @@ import lombok.RequiredArgsConstructor;
  * </pre> 
  */
 @Service
-@RequiredArgsConstructor	
+@ConditionalOnCastDb
+@RequiredArgsConstructor
 public class CastUserConfigServiceImpl implements CastUserConfigService {
 	private final CastUserConfigMapper castUserConfigMapper;
 	private static final List<String> IS_LANDS = List.of("A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N"); 

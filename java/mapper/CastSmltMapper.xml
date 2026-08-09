@@ -156,4 +156,93 @@
         AND TO_CHAR(A.SMLT_EXCN_BGNG_DT, 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
         ORDER BY A.SMLT_EXCN_BGNG_DT DESC
     </select>
+
+    <select id="retrieveSmltExcnSmry" resultType="aoms.pm.cast.dto.SmltExcnCntRawDto">
+        /* CastSmltMapper.retrieveSmltExcnSmry */
+        -- 평균 수행시간은 완료 건만 센다. 진행중 건을 섞으면 종료일시가 없어 평균이 0 쪽으로 끌린다
+        SELECT
+            COUNT(*) AS TOT_CNT,
+            NVL(SUM(CASE WHEN A.SMLT_EXCN_STTS_CD = 'DONE' THEN 1 ELSE 0 END), 0) AS DONE_CNT,
+            NVL(SUM(CASE WHEN A.SMLT_EXCN_STTS_CD = 'RUNNING' THEN 1 ELSE 0 END), 0) AS RUNNING_CNT,
+            NVL(ROUND(AVG(
+                CASE
+                    WHEN A.SMLT_EXCN_END_DT IS NULL THEN NULL
+                    ELSE (CAST(A.SMLT_EXCN_END_DT AS DATE) - CAST(A.SMLT_EXCN_BGNG_DT AS DATE)) * 86400
+                END
+            )), 0) AS AVG_EXEC_SEC
+        FROM PMOWN.TH_PM_SMLT_EXCN_HSTRY A
+        WHERE 1 = 1
+        AND TO_CHAR(A.SMLT_EXCN_BGNG_DT, 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
+    </select>
+
+    <select id="retrieveSmltExcnDetail" resultType="aoms.pm.cast.dto.SmltExcnDto">
+        /* CastSmltMapper.retrieveSmltExcnDetail */
+        -- 한 시뮬레이션이 여러 번 수행됐으면 가장 최근 수행 1건을 보여준다
+        SELECT *
+        FROM (
+            SELECT
+                A.SMLT_ID,
+                A.SMLT_EXCN_SN,
+                A.TMNL_ID,
+                A.SMLT_TYPE,
+                A.SMLT_EXCN_STTS_CD,
+                TO_CHAR(A.SMLT_EXCN_BGNG_DT, 'YYYYMMDDHH24MISS') AS BGN_DT,
+                NVL(TO_CHAR(A.SMLT_EXCN_END_DT, 'YYYYMMDDHH24MISS'), '') AS END_DT,
+                NVL(ROUND((CAST(A.SMLT_EXCN_END_DT AS DATE) - CAST(A.SMLT_EXCN_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
+                A.FRST_RGTR_ID AS RGTR_ID,
+                NVL(B.EXCN_YMD, '') AS EXCN_YMD,
+                -- 사용자 테이블이 확인되지 않아 부서/성명은 아직 조인하지 못한다 (G1)
+                '' AS DEPT_NM,
+                '' AS USER_NM
+            FROM PMOWN.TH_PM_SMLT_EXCN_HSTRY A
+                LEFT OUTER JOIN PMOWN.TN_PM_SMLT_STNG B
+                ON A.SMLT_ID = B.SMLT_ID
+            WHERE 1 = 1
+            AND A.SMLT_ID = #{smltId}
+            ORDER BY A.SMLT_EXCN_SN DESC
+        )
+        WHERE ROWNUM = 1
+    </select>
+
+    <select id="retrieveUserSmltSaveDt" resultType="java.lang.String">
+        /* CastSmltMapper.retrieveUserSmltSaveDt */
+        -- 저장은 3개 탭이 각자 테이블에 넣는다. 화면이 보여주는 것은 "마지막으로 저장한 시각" 하나다
+        SELECT NVL(TO_CHAR(MAX(A.SAVE_DT), 'YYYYMMDDHH24MISS'), '') AS SAVE_DT
+        FROM (
+            SELECT MAX(NVL(LAST_MDFCN_DT, FRST_REG_DT)) AS SAVE_DT
+            FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG
+            WHERE SMLT_ID = #{smltId}
+            AND TMNL_ID = #{tmnlId}
+            UNION ALL
+            SELECT MAX(NVL(LAST_MDFCN_DT, FRST_REG_DT)) AS SAVE_DT
+            FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL
+            WHERE SMLT_ID = #{smltId}
+            AND TMNL_ID = #{tmnlId}
+            UNION ALL
+            SELECT MAX(NVL(LAST_MDFCN_DT, FRST_REG_DT)) AS SAVE_DT
+            FROM PMOWN.TN_PM_SMLT_USER_DEP
+            WHERE SMLT_ID = #{smltId}
+            AND TMNL_ID = #{tmnlId}
+        ) A
+    </select>
+
+    <select id="retrieveLastSmltExcn" resultType="aoms.pm.cast.dto.SmltExcnDto">
+        /* CastSmltMapper.retrieveLastSmltExcn */
+        SELECT *
+        FROM (
+            SELECT
+                A.SMLT_ID,
+                A.SMLT_EXCN_SN,
+                A.TMNL_ID,
+                A.SMLT_TYPE,
+                A.SMLT_EXCN_STTS_CD,
+                TO_CHAR(A.SMLT_EXCN_BGNG_DT, 'YYYYMMDDHH24MISS') AS BGN_DT,
+                NVL(TO_CHAR(A.SMLT_EXCN_END_DT, 'YYYYMMDDHH24MISS'), '') AS END_DT
+            FROM PMOWN.TH_PM_SMLT_EXCN_HSTRY A
+            WHERE 1 = 1
+            AND A.SMLT_ID = #{smltId}
+            ORDER BY A.SMLT_EXCN_SN DESC
+        )
+        WHERE ROWNUM = 1
+    </select>
 </mapper>

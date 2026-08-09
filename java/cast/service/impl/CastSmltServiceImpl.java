@@ -9,18 +9,14 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import aoms.framework.cmmn.service.SessionService;
-import aoms.pm.cast.dto.SmltExcnDto;
+import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.dto.SmltKpiDto;
 import aoms.pm.cast.dto.SmltKpiRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.SmltStngSearchDto;
-import aoms.pm.cast.dto.UserSmltExecSearchDto;
 import aoms.pm.cast.dto.WaitPsgDto;
-import aoms.pm.cast.enums.SmltExecStatus;
 import aoms.pm.cast.mapper.CastSmltMapper;
 import aoms.pm.cast.service.CastSmltService;
-import aoms.pm.utils.SessionUtils;
 import aoms.pm.utils.TimeBucketUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -36,19 +32,22 @@ import lombok.RequiredArgsConstructor;
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
  * 2026. 03. 12. / 노세찬 / 최초작성
+ * 2026. 08. 09. / 노세찬 / 수행 이력 생성 로직을 CastUserSmltServiceImpl 로 이관, DB 모드 조건 부착
  * -----------------------------------------------------------------------------------
  *
  * </pre>
+ *
+ * 조회 계층이 공유하는 헬퍼다. Mock 모드에서는 등록되지 않는다
+ * ({@link aoms.pm.cast.config.CastApiMode} 참고) — Mock 구현체는 이 서비스를 주입받지 않는다.
  */
 @Service("castSmltService")
+@ConditionalOnCastDb
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastSmltServiceImpl implements CastSmltService {
 	private static final int SEC_PER_MIN = 60; // _HR 컬럼(초) → 화면 표시 단위(분)
-	private static final String SMLT_TYPE_USER = "USER"; // 사용자 시뮬레이션. AUTO 는 일일 시뮬레이션
 
 	private final CastSmltMapper castSmltMapper;
-	private final SessionService sessionService;
 
 	@Override
 	public SmltStngDto retrieveSmltStngByKey(String smltId) {
@@ -87,20 +86,6 @@ public class CastSmltServiceImpl implements CastSmltService {
 		result.setAvgWaitMin(raw.getAvgWtngHr() / SEC_PER_MIN);
 		result.setP95WaitMin(raw.getP95WtngHr() / SEC_PER_MIN);
 		result.setMaxQueuePsgCnt(raw.getMaxWtngPsgCnt());
-
-		return result;
-	}
-
-	// 시작 일시는 DB 의 CURRENT_TIMESTAMP 로 찍고 다시 읽어 온다
-	private SmltExcnDto getExcnHstry(UserSmltExecSearchDto searchDto, int smltExcnSn) {
-		SmltExcnDto result = new SmltExcnDto();
-		SessionUtils.setUserContext(result, sessionService);
-
-		result.setSmltId(searchDto.getSmltId());
-		result.setSmltExcnSn(smltExcnSn);
-		result.setTmnlId(searchDto.getFcltTmnlId());
-		result.setSmltType(SMLT_TYPE_USER);
-		result.setSmltExcnSttsCd(SmltExecStatus.RUNNING.getValue());
 
 		return result;
 	}
