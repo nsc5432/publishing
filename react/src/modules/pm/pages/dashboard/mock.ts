@@ -28,21 +28,6 @@ export const HEADER = {
 /** 상단 X축(시간대) 라벨 */
 export const HOUR_AXIS = ['1', '3', '6', '9', '12', '15', '18', '21'];
 
-/** 퀵 액세스 타일 */
-export interface QuickTile {
-    id: string;
-    icon: IconName;
-    label: string;
-}
-export const QUICK_TILES: QuickTile[] = [
-    { id: 'pax', icon: 'pax', label: '터미널 여객수' },
-    { id: 'flight', icon: 'plane', label: '운항편' },
-    { id: 'checkin', icon: 'ticket', label: '체크인카운터' },
-    { id: 'gate', icon: 'gate', label: '출국장' },
-];
-/** 최초 선택된 퀵 타일 */
-export const DEFAULT_QUICK_TILE = 'pax';
-
 /* ================= 좌측 네비게이션(Lnb) ================= */
 
 /** 최초 활성 네비 (하단 그룹: 아이콘 색 강조. 상단은 경로에서 정해진다) */

@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react';
 import t1Blue from '@/assets/svg/t1-blue.svg';
 import t2Teal from '@/assets/svg/t2-teal-full.svg';
+import { QuickCheckinIcon, QuickFlightIcon, QuickGateIcon, QuickPaxIcon } from '@/components/icons';
 import { Icon } from './PmIcons';
-import { DEFAULT_QUICK_TILE, HOUR_AXIS, QUICK_TILES } from '../mock';
+import { HOUR_AXIS } from '../mock';
 
 interface HeaderSummaryProps {
     planDate: string;
@@ -13,7 +14,7 @@ interface HeaderSummaryProps {
  * 상단 요약 카드 행 + 하단 슬롯으로 이루어진 본문.
  */
 export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
-    const [activeTile, setActiveTile] = useState(DEFAULT_QUICK_TILE);
+    const [activeTile, setActiveTile] = useState('pax');
 
     return (
         <div className="body">
@@ -208,20 +209,42 @@ export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
                             </span>
                         </div>
                     </div>
-
-                    {/* QUICK ACCESS */}
                     <div className="quick c-quick">
-                        {QUICK_TILES.map((tile) => (
-                            <button
-                                type="button"
-                                key={tile.id}
-                                className={`qtile${tile.id === activeTile ? ' active' : ''}`}
-                                onClick={() => setActiveTile(tile.id)}
-                            >
-                                <Icon name={tile.icon} />
-                                <span>{tile.label}</span>
-                            </button>
-                        ))}
+                        <button
+                            type="button"
+                            className={`qtile${activeTile === 'pax' ? ' active' : ''}`}
+                            onClick={() => setActiveTile('pax')}
+                        >
+                            <QuickPaxIcon aria-hidden="true" />
+                            <span>터미널 여객수</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            className={`qtile${activeTile === 'flight' ? ' active' : ''}`}
+                            onClick={() => setActiveTile('flight')}
+                        >
+                            <QuickFlightIcon aria-hidden="true" />
+                            <span>운항편</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            className={`qtile${activeTile === 'checkin' ? ' active' : ''}`}
+                            onClick={() => setActiveTile('checkin')}
+                        >
+                            <QuickCheckinIcon aria-hidden="true" />
+                            <span>체크인카운터</span>
+                        </button>
+
+                        <button
+                            type="button"
+                            className={`qtile${activeTile === 'gate' ? ' active' : ''}`}
+                            onClick={() => setActiveTile('gate')}
+                        >
+                            <QuickGateIcon aria-hidden="true" />
+                            <span>출국장</span>
+                        </button>
                     </div>
                 </section>
 

@@ -594,7 +594,8 @@ html[data-page='dashboard'] .qtile {
     padding: 0;
 }
 
-html[data-page='dashboard'] .qtile>i>svg {
+/* 퀵 타일 아이콘은 HeaderSummary 에 인라인으로 들어간 svg 다(래퍼 <i> 없음). */
+html[data-page='dashboard'] .qtile svg {
     width: 30px;
     height: 30px;
 }
