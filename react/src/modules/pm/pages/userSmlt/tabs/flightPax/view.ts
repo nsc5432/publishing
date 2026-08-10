@@ -12,28 +12,13 @@ import type { ChartData, EditMode, HourRow, TerminalFlightPax } from './types';
  * 단위·부호·시각 형식을 여기서 한 번에 정한다.
  */
 
-/**
- * Y축 라벨 (위 → 아래, 4개).
- * 축 칸이 좁아 1,000 이상은 K 로 줄인다 (90,000 → 90K).
- */
-function toAxis(maxCnt: number): string[] {
-    const tick = (value: number) =>
-        value >= 1000 ? `${Math.round(value / 1000)}K` : String(Math.round(value));
-
-    return [maxCnt, (maxCnt * 2) / 3, maxCnt / 3, 0].map(tick);
-}
-
 function toChart(chart: FltPsgChartDto, title: string, unit: string): ChartData {
     return {
         title,
         total: formatCount(chart.totCnt),
         unit,
-        axis: toAxis(chart.maxCnt),
-        bars: chart.itemList.map((item) => ({
-            label: item.time,
-            // 막대 높이는 비율(%)이다. Y축 최댓값이 0 이면 축이 없는 것과 같다.
-            ratio: chart.maxCnt > 0 ? Math.round((item.cnt / chart.maxCnt) * 100) : 0,
-        })),
+        max: chart.maxCnt,
+        bars: chart.itemList.map((item) => ({ label: item.time, value: item.cnt })),
     };
 }
 
@@ -93,7 +78,7 @@ export const EMPTY_FLIGHT_PAX: TerminalFlightPax = {
     pax: '-',
     peak: '-',
     ratio: 0,
-    flightChart: { title: '운항편 수', total: '-', unit: '편', axis: ['0', '0', '0', '0'], bars: [] },
-    paxChart: { title: '여객 수', total: '-', unit: '명', axis: ['0', '0', '0', '0'], bars: [] },
+    flightChart: { title: '운항편 수', total: '-', unit: '편', max: 0, bars: [] },
+    paxChart: { title: '여객 수', total: '-', unit: '명', max: 0, bars: [] },
     rows: [],
 };

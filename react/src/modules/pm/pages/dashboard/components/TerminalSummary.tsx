@@ -4,6 +4,7 @@ import t2White from '@/assets/svg/t2-white.svg';
 import t1Blue from '@/assets/svg/t1-blue.svg';
 import t2Teal from '@/assets/svg/t2-teal-full.svg';
 import { Icon } from './PmIcons';
+import { GaugeDonut } from './GaugeDonut';
 import { TerminalChart } from './TerminalChart';
 import { EMPTY_TERMINAL_VIEW } from '../view';
 import type { DsbdCategory } from '@/types/api.types';
@@ -39,72 +40,6 @@ const DEFAULT_VIEW: Record<TerminalKind, ViewKind> = {
     T1: 'summary',
     T2: 'table',
 };
-
-/* 원본 buildDonut: 반지름 30, 84% 아크의 도넛 게이지. */
-function Donut({
-    value,
-    main,
-    sub,
-    acc,
-}: {
-    value: number;
-    main: string;
-    sub: string;
-    acc: string;
-}) {
-    const r = 30;
-    const C = 2 * Math.PI * r;
-    const len = C * 0.84;
-    return (
-        <div className="donut">
-            <svg viewBox="0 0 74 74">
-                <g transform="rotate(119 37 37)">
-                    <circle
-                        cx="37"
-                        cy="37"
-                        r={r}
-                        fill="none"
-                        stroke="#e7ebf2"
-                        strokeWidth="3.4"
-                        strokeDasharray={`${len.toFixed(1)} ${C.toFixed(1)}`}
-                        strokeLinecap="round"
-                    />
-                    <circle
-                        cx="37"
-                        cy="37"
-                        r={r}
-                        fill="none"
-                        stroke={acc}
-                        strokeWidth="3.4"
-                        strokeDasharray={`${(len * value).toFixed(1)} ${C.toFixed(1)}`}
-                        strokeLinecap="round"
-                    />
-                </g>
-                <text
-                    x="37"
-                    y="37.5"
-                    textAnchor="middle"
-                    fontSize="16"
-                    fontWeight="700"
-                    fill="#23272f"
-                    fontFamily="Pretendard, sans-serif"
-                >
-                    {main}
-                </text>
-                <text
-                    x="37"
-                    y="50"
-                    textAnchor="middle"
-                    fontSize="10"
-                    fill="#8a93a3"
-                    fontFamily="Pretendard, sans-serif"
-                >
-                    {sub}
-                </text>
-            </svg>
-        </div>
-    );
-}
 
 /** '대기\n인원수' 처럼 \n 이 포함된 라벨을 <br/> 로 렌더. */
 function Multiline({ text }: { text: string }) {
@@ -164,7 +99,7 @@ function Gate({ data, gauge }: { data: GateData; gauge: string }) {
             <div className="gauge-row">
                 <div className="gauge">
                     <div className="k">시간당 처리율</div>
-                    <Donut
+                    <GaugeDonut
                         value={v.processRate.value}
                         main={v.processRate.main}
                         sub={v.processRate.sub}
@@ -182,7 +117,7 @@ function Gate({ data, gauge }: { data: GateData; gauge: string }) {
                 </div>
                 <div className="gauge">
                     <div className="k">혼잡해소 예상</div>
-                    <Donut
+                    <GaugeDonut
                         value={v.clearTime.value}
                         main={v.clearTime.main}
                         sub={v.clearTime.sub}

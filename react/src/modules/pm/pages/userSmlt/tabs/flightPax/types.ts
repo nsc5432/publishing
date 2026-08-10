@@ -5,8 +5,8 @@ export type EditMode = 'ratio' | 'hourly';
 export interface ChartBar {
     /** 하단 스케일 라벨 (예: 04) */
     label: string;
-    /** 막대 높이 비율 0~100 (%) — userSmlt.css 의 --h 로 전달 */
-    ratio: number;
+    /** 막대 값 (편 / 명) */
+    value: number;
 }
 
 /** 막대 차트 1개 (운항편 수 / 여객 수) */
@@ -17,8 +17,8 @@ export interface ChartData {
     total: string;
     /** 누적 단위 (예: 편 / 명) */
     unit: string;
-    /** 좌측 Y축 라벨 (위 → 아래, 4개) */
-    axis: string[];
+    /** Y축 최댓값 — 눈금은 이 값을 3등분해서 찍는다 */
+    max: number;
     bars: ChartBar[];
 }
 

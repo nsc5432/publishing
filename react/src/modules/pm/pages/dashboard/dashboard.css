@@ -487,7 +487,7 @@ html[data-page='dashboard'] .hourly-row>.ic .tico {
     height: auto;
 }
 
-html[data-page='dashboard'] .hourly-row>svg {
+html[data-page='dashboard'] .hourly-row>.hourly-row__chart {
     flex: 1;
     height: 48px;
     min-width: 0;
@@ -1128,7 +1128,8 @@ html[data-page='dashboard'] .chart-bg {
     mask: radial-gradient(72% 72% at 50% 52%, #000 55%, transparent 92%);
 }
 
-html[data-page='dashboard'] .chartbox>svg {
+/* 터미널 차트(ECharts) — 뒷배경 로고(.chart-bg) 위에 올린다 */
+html[data-page='dashboard'] .chartbox>.chartbox__chart {
     width: 100%;
     height: 100%;
     display: block;
@@ -1597,7 +1598,7 @@ html[data-page='dashboard'] .gauge .k {
     font-weight: 500;
 }
 
-html[data-page='dashboard'] .gauge .donut>svg {
+html[data-page='dashboard'] .gauge .donut>.donut__chart {
     width: 72px;
     height: 72px;
     display: block;

@@ -1,15 +1,23 @@
+import { useMemo } from 'react';
+import type { EChartsOption } from '@/lib/echarts';
+import { EChart } from '@/components/charts/EChart';
 import type { HourlyPsgDto } from '@/types/api.types';
 import { formatCount } from '../format';
 
-/* 카드 안의 작은 차트라 좌표를 고정 viewBox(256x50) 안에서 계산한다. */
-const WIDTH = 256;
-/** 막대 바닥 (그 아래는 축 라벨 자리) */
-const BASE_Y = 38;
-/** 막대가 가장 높을 때의 y */
-const TOP_Y = 6;
-const PLOT_H = BASE_Y - TOP_Y;
+/* 카드 안의 작은 차트라 여백을 픽셀로 고정한다 (원본 viewBox 256x50 환산). */
+const GRID = { left: 0, right: 0, top: 6, bottom: 11 };
+/** .hourly-row 가 정해 둔 차트 높이 — ECharts 는 컨테이너 높이가 확정돼야 그린다 */
+const CHART_HEIGHT = 48;
 /** 3시간 간격으로 축 라벨을 찍는다 */
 const AXIS_STEP = 3;
+
+/** axis 트리거 툴팁이 시리즈마다 넘겨 주는 값 (ECharts 타입에는 axisValue 가 빠져 있다) */
+interface AxisTooltipItem {
+    seriesName?: string;
+    marker?: string;
+    axisValue?: string;
+    value?: number;
+}
 
 interface HourlyPsgChartProps {
     data: HourlyPsgDto | null;
@@ -26,17 +34,69 @@ interface HourlyPsgChartProps {
  * 두 곳에서 따로 계산하면 그 어긋남이 잘 드러나지 않는다.
  */
 export function HourlyPsgChart({ data, iconSrc, iconAlt, lineColor }: HourlyPsgChartProps) {
-    const items = data?.itemList ?? [];
+    const items = useMemo(() => data?.itemList ?? [], [data]);
     // 0 으로 나누지 않도록 최솟값을 둔다 (전 시간대 0 인 날은 빈 차트로 보인다).
     const max = Math.max(1, data?.maxPsgCnt ?? 1);
-    const slot = items.length > 0 ? WIDTH / items.length : WIDTH;
-    const barWidth = slot * 0.66;
 
-    const y = (value: number) => BASE_Y - (Math.min(value, max) / max) * PLOT_H;
+    const option = useMemo<EChartsOption>(
+        () => ({
+            animation: false,
+            grid: { ...GRID, outerBoundsMode: 'none' },
+            tooltip: {
+                trigger: 'axis',
+                confine: true,
+                textStyle: { fontSize: 12, fontFamily: 'Pretendard, sans-serif' },
+                formatter: (params) => {
+                    const list = (Array.isArray(params) ? params : [params]) as AxisTooltipItem[];
+                    if (list.length === 0) return '';
 
-    const linePoints = items
-        .map((item, i) => `${(i * slot + slot / 2).toFixed(1)},${y(item.fcstPsgCnt).toFixed(1)}`)
-        .join(' ');
+                    const rows = list
+                        .map(
+                            (p) =>
+                                `${p.marker}${p.seriesName} <b>${formatCount(Number(p.value ?? 0))}</b>명`,
+                        )
+                        .join('<br/>');
+
+                    return `${list[0].axisValue}시<br/>${rows}`;
+                },
+            },
+            xAxis: {
+                type: 'category',
+                data: items.map((item) => Number(item.time)),
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { show: false },
+                splitLine: { show: false },
+            },
+            yAxis: {
+                type: 'value',
+                min: 0,
+                max,
+                interval: max / 2,
+                axisLine: { show: false },
+                axisTick: { show: false },
+                axisLabel: { show: false },
+                splitLine: { lineStyle: { color: '#e4e8f0', width: 0.9 } },
+            },
+            series: [
+                {
+                    name: '실적',
+                    type: 'bar',
+                    barWidth: '66%',
+                    itemStyle: { color: '#3f8ee6' },
+                    data: items.map((item) => item.psgCnt),
+                },
+                {
+                    name: '예측',
+                    type: 'line',
+                    symbol: 'none',
+                    lineStyle: { color: lineColor, width: 1.5, cap: 'round', join: 'round' },
+                    data: items.map((item) => item.fcstPsgCnt),
+                },
+            ],
+        }),
+        [items, max, lineColor],
+    );
 
     return (
         <>
@@ -44,37 +104,11 @@ export function HourlyPsgChart({ data, iconSrc, iconAlt, lineColor }: HourlyPsgC
                 <span className="ic">
                     <img className="tico" src={iconSrc} alt={iconAlt} />
                 </span>
-                <svg viewBox={`0 0 ${WIDTH} 50`} preserveAspectRatio="none">
-                    <g stroke="#e4e8f0" strokeWidth=".9">
-                        <line x1="0" y1={TOP_Y} x2={WIDTH} y2={TOP_Y} />
-                        <line x1="0" y1={(TOP_Y + BASE_Y) / 2} x2={WIDTH} y2={(TOP_Y + BASE_Y) / 2} />
-                        <line x1="0" y1={BASE_Y} x2={WIDTH} y2={BASE_Y} />
-                    </g>
-                    <g fill="#3f8ee6">
-                        {items.map((item, i) => {
-                            const top = y(item.psgCnt);
-                            return (
-                                <rect
-                                    key={item.time}
-                                    x={(i * slot + (slot - barWidth) / 2).toFixed(1)}
-                                    y={top.toFixed(1)}
-                                    width={barWidth.toFixed(1)}
-                                    height={(BASE_Y - top).toFixed(1)}
-                                />
-                            );
-                        })}
-                    </g>
-                    {items.length > 0 && (
-                        <polyline
-                            points={linePoints}
-                            fill="none"
-                            stroke={lineColor}
-                            strokeWidth="1.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                        />
-                    )}
-                </svg>
+                <EChart
+                    className="hourly-row__chart"
+                    style={{ height: CHART_HEIGHT }}
+                    option={option}
+                />
                 <div className="ylab">
                     <span>{formatCount(max)}</span>
                     <span>{formatCount(Math.round(max / 2))}</span>
