@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { BlockChart } from '../../components/BlockChart';
 import { CountStepper } from '../../components/CountStepper';
 import { DetailDrawer, DrawerSection } from '../../components/DetailDrawer';
 import { TimeBar } from '../../components/TimeBar';
 import { TerminalPanel } from '../../components/TerminalPanel';
 import { formatHour, formatOperating, toHourList } from '../../format';
+import { useErrorAlert } from '../../hooks/useErrorAlert';
+import { useTerminalData } from '../../hooks/useTerminalData';
+import { runSave } from '../../save';
 import { BLOCK_COLORS, TERMINALS, type BlockItem, type TerminalKind } from '../../types';
 import { ScRangeTable } from './components/ScRangeTable';
-import { DEPARTURE, SC_PER_BLOCK } from './mock';
+import { SC_PER_BLOCK } from './constants';
 import type { DepartureGate } from './types';
+import { EMPTY_DEPARTURE, toDeparture, toSaveReq } from './view';
 
 interface DepartureTabProps {
+    smltIds: Record<TerminalKind, string>;
+    reloadKey: number;
     activeTerminal: TerminalKind;
     onTerminalChange: (terminal: TerminalKind) => void;
 }
@@ -25,10 +32,14 @@ interface DrawerState {
     target: number | null;
 }
 
-const INITIAL_EDIT: EditState = {
-    T1: DEPARTURE.T1.gates,
-    T2: DEPARTURE.T2.gates,
-};
+const EMPTY_EDIT: EditState = { T1: [], T2: [] };
+
+const FETCH_FAIL = '출국장 정보를 불러오지 못했습니다.';
+const SAVE_FAIL = '출국장 저장에 실패했습니다.';
+
+/** 조회 함수는 렌더마다 새로 만들지 않도록 컴포넌트 밖에 둔다 */
+const fetchDep = (smltId: string, tmnlId: TerminalKind) =>
+    userSmltService.getDepInfo(smltId, tmnlId);
 
 /** 운영계획을 시간대별 검색대 대수로 편다 — 타임바 슬롯 숫자 / 피크 계산에 함께 쓴다 */
 function scByHour(gate: DepartureGate): Record<number, number> {
@@ -96,9 +107,29 @@ let planSeq = 0;
 /**
  * 출국장 탭
  */
-export function DepartureTab({ activeTerminal, onTerminalChange }: DepartureTabProps) {
-    const [edit, setEdit] = useState<EditState>(INITIAL_EDIT);
+export function DepartureTab({
+    smltIds,
+    reloadKey,
+    activeTerminal,
+    onTerminalChange,
+}: DepartureTabProps) {
+    const { data: fetched, error } = useTerminalData(
+        smltIds,
+        reloadKey,
+        fetchDep,
+        toDeparture,
+        FETCH_FAIL,
+    );
+    const [edit, setEdit] = useState<EditState>(EMPTY_EDIT);
     const [drawer, setDrawer] = useState<DrawerState | null>(null);
+
+    useErrorAlert(error);
+
+    // 조회 결과가 들어오면 편집 상태를 조회한 값으로 되돌린다.
+    useEffect(() => {
+        setEdit({ T1: fetched.T1?.gates ?? [], T2: fetched.T2?.gates ?? [] });
+        setDrawer(null);
+    }, [fetched]);
 
     /** 편집 중이던 드로어는 터미널이 바뀌면 닫는다 (편집값은 터미널별로 남는다) */
     const handleTerminalChange = (terminal: TerminalKind) => {
@@ -156,14 +187,32 @@ export function DepartureTab({ activeTerminal, onTerminalChange }: DepartureTabP
     };
 
     const handleSave = (terminal: TerminalKind) => {
-        // 실제 저장 연동 전: 현재 편집 상태만 확인한다.
-        console.log('[현재상태 저장]', { terminal, gates: edit[terminal] });
+        const smltId = smltIds[terminal];
+        if (!smltId) return;
+
+        runSave(
+            userSmltService.saveDepInfo(toSaveReq(smltId, terminal, edit[terminal])),
+            SAVE_FAIL,
+        );
+    };
+
+    /** 지도 보기 — 배치 마커를 받아 둔다 (도면 UI 는 아직 붙지 않았다) */
+    const handleMapClick = (terminal: TerminalKind) => {
+        const smltId = smltIds[terminal];
+        if (!smltId) return;
+
+        userSmltService
+            .getFcltMap(smltId, terminal, 'DEP')
+            .then((dto) => console.log('[지도 보기]', dto.markerList))
+            .catch(() => {
+                // 지도는 보조 기능이라 실패해도 편집 흐름을 끊지 않는다 (콘솔에 이미 남는다).
+            });
     };
 
     return (
         <>
             {TERMINALS.map((terminal) => {
-                const panelData = DEPARTURE[terminal];
+                const panelData = fetched[terminal] ?? EMPTY_DEPARTURE;
                 const gates = edit[terminal];
                 const active = terminal === activeTerminal;
                 const operating = gates.filter((gate) => !gate.off);
@@ -176,7 +225,7 @@ export function DepartureTab({ activeTerminal, onTerminalChange }: DepartureTabP
                         active={active}
                         onActivate={() => handleTerminalChange(terminal)}
                         kpis={panelData.kpis}
-                        onMapClick={() => console.log('[지도 보기]', { terminal })}
+                        onMapClick={() => handleMapClick(terminal)}
                         summary={
                             <>
                                 <div className="summary__group">

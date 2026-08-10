@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { formatStep, TIMELINE_INTERVAL, TIMELINE_MAX_STEP } from '../mock';
+import { formatStep, TIMELINE_INTERVAL, TIMELINE_MAX_STEP } from '../timeline';
 
 /**
  * 하단 타임라인 상태 — 30분 단위 이동 / 재생.

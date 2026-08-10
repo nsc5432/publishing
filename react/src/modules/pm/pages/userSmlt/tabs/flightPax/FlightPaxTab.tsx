@@ -1,12 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { userSmltService } from '@/api/pm/services/userSmlt.service';
+import { useErrorAlert } from '../../hooks/useErrorAlert';
+import { useTerminalData } from '../../hooks/useTerminalData';
+import { runSave } from '../../save';
 import { TerminalPanel } from '../../components/TerminalPanel';
 import { TERMINALS, type TerminalKind } from '../../types';
 import { BarChart } from './components/BarChart';
 import { FlightEditor } from './components/FlightEditor';
-import { FLIGHT_PAX } from './mock';
 import type { EditMode } from './types';
+import { EMPTY_FLIGHT_PAX, toFlightPax, toSaveReq } from './view';
 
 interface FlightPaxTabProps {
+    smltIds: Record<TerminalKind, string>;
+    reloadKey: number;
     activeTerminal: TerminalKind;
     onTerminalChange: (terminal: TerminalKind) => void;
 }
@@ -14,31 +20,66 @@ interface FlightPaxTabProps {
 /** 터미널별 편집 상태 (전체 비율 / 수정 방식) */
 type EditState = Record<TerminalKind, { ratio: number; mode: EditMode }>;
 
-const INITIAL_EDIT: EditState = {
-    T1: { ratio: FLIGHT_PAX.T1.ratio, mode: 'ratio' },
-    T2: { ratio: FLIGHT_PAX.T2.ratio, mode: 'ratio' },
+const EMPTY_EDIT: EditState = {
+    T1: { ratio: 0, mode: 'ratio' },
+    T2: { ratio: 0, mode: 'ratio' },
 };
 
+const FETCH_FAIL = '운항편/여객수 정보를 불러오지 못했습니다.';
+const SAVE_FAIL = '운항편/여객수 저장에 실패했습니다.';
+
+/** 조회·매핑 함수는 렌더마다 새로 만들지 않도록 컴포넌트 밖에 둔다 */
+const fetchFltPsg = (smltId: string, tmnlId: TerminalKind) =>
+    userSmltService.getFltPsgInfo(smltId, tmnlId);
+
 /**
- * 운항편/여객수 탭 — html/운항편_여객수/index.html 이식.
+ * 운항편/여객수 탭.
  * 터미널별 편집 상태를 각각 들고 있어 터미널을 오가도 값이 보존된다.
  */
-export function FlightPaxTab({ activeTerminal, onTerminalChange }: FlightPaxTabProps) {
-    const [edit, setEdit] = useState<EditState>(INITIAL_EDIT);
+export function FlightPaxTab({
+    smltIds,
+    reloadKey,
+    activeTerminal,
+    onTerminalChange,
+}: FlightPaxTabProps) {
+    const { data, raw, error } = useTerminalData(
+        smltIds,
+        reloadKey,
+        fetchFltPsg,
+        toFlightPax,
+        FETCH_FAIL,
+    );
+    const [edit, setEdit] = useState<EditState>(EMPTY_EDIT);
+
+    useErrorAlert(error);
+
+    // 조회 결과가 들어오면 편집 상태를 조회한 값으로 되돌린다.
+    useEffect(() => {
+        setEdit({
+            T1: { ratio: raw.T1?.adjRate ?? 0, mode: raw.T1?.adjType === 'HOURLY' ? 'hourly' : 'ratio' },
+            T2: { ratio: raw.T2?.adjRate ?? 0, mode: raw.T2?.adjType === 'HOURLY' ? 'hourly' : 'ratio' },
+        });
+    }, [raw]);
 
     const patch = (terminal: TerminalKind, next: Partial<EditState[TerminalKind]>) => {
         setEdit((prev) => ({ ...prev, [terminal]: { ...prev[terminal], ...next } }));
     };
 
     const handleSave = (terminal: TerminalKind) => {
-        // 실제 저장 연동 전: 현재 편집 상태만 확인한다.
-        console.log('[현재상태 저장]', { terminal, ...edit[terminal] });
+        const dto = raw[terminal];
+        const smltId = smltIds[terminal];
+        if (!dto || !smltId) return;
+
+        runSave(
+            userSmltService.saveFltPsgInfo(toSaveReq(smltId, terminal, dto, edit[terminal])),
+            SAVE_FAIL,
+        );
     };
 
     return (
         <>
             {TERMINALS.map((terminal) => {
-                const data = FLIGHT_PAX[terminal];
+                const panelData = data[terminal] ?? EMPTY_FLIGHT_PAX;
                 const active = terminal === activeTerminal;
 
                 return (
@@ -51,16 +92,16 @@ export function FlightPaxTab({ activeTerminal, onTerminalChange }: FlightPaxTabP
                             <>
                                 <div className="summary__group">
                                     <span className="summary__label">운항편</span>
-                                    <strong className="summary__value">{data.flights}</strong>
+                                    <strong className="summary__value">{panelData.flights}</strong>
                                 </div>
                                 <div className="summary__group">
                                     <span className="summary__label">여객</span>
-                                    <strong className="summary__value">{data.pax}</strong>
+                                    <strong className="summary__value">{panelData.pax}</strong>
                                 </div>
                                 <div className="summary__group">
                                     <span className="summary__label">피크</span>
                                     <strong className="summary__value summary__value--accent">
-                                        {data.peak}
+                                        {panelData.peak}
                                     </strong>
                                 </div>
                             </>
@@ -75,8 +116,8 @@ export function FlightPaxTab({ activeTerminal, onTerminalChange }: FlightPaxTabP
                             </button>
                         }
                     >
-                        <BarChart data={data.flightChart} />
-                        <BarChart data={data.paxChart} />
+                        <BarChart data={panelData.flightChart} />
+                        <BarChart data={panelData.paxChart} />
 
                         <FlightEditor
                             terminal={terminal}
@@ -84,7 +125,7 @@ export function FlightPaxTab({ activeTerminal, onTerminalChange }: FlightPaxTabP
                             onRatioChange={(ratio) => patch(terminal, { ratio })}
                             mode={edit[terminal].mode}
                             onModeChange={(mode) => patch(terminal, { mode })}
-                            rows={data.rows}
+                            rows={panelData.rows}
                             disabled={!active}
                         />
                     </TerminalPanel>

@@ -108,8 +108,8 @@ function Dashboard() {
                     onCategoryChange={setCategory}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary terminal="T1" data={t1} />
-                        <TerminalSummary terminal="T2" data={t2} />
+                        <TerminalSummary terminal="T1" data={t1} category={category} />
+                        <TerminalSummary terminal="T2" data={t2} category={category} />
                     </section>
                 </HeaderSummary>
             </div>

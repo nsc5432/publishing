@@ -17,6 +17,8 @@ export const RUN_STATUS_LABEL: Record<RunStatus, string> = {
 /** 시뮬레이션 이력 한 줄 */
 export interface HistoryRow {
     no: number;
+    /** 결과 보기(상세 조회)에 쓰는 시뮬레이션 ID */
+    smltId: string;
     dept: string;
     name: string;
     startAt: string;

@@ -1,11 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { TIMELINE_INTERVAL, TIMELINE_MAX_STEP, TIMELINE_STEP_MIN } from '../mock';
-
-function formatStep(step: number) {
-    const minutes = step * TIMELINE_STEP_MIN;
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${pad(Math.floor(minutes / 60))}:${pad(minutes % 60)}`;
-}
+import { formatStep, TIMELINE_INTERVAL, TIMELINE_MAX_STEP } from '../timeline';
 
 export function useTimeline(initialStep = 0) {
     const [step, setStep] = useState(initialStep);
@@ -68,6 +62,8 @@ export function useTimeline(initialStep = 0) {
         next,
         /** 현재 시각 라벨 (예: 10:30) */
         label: formatStep(step),
+        /** 조회 조건으로 넘길 시각 (예: 1030) */
+        hhmm: formatStep(step).replace(':', ''),
         /** 트랙 진행률 (예: 50%) */
         progress: `${(step / TIMELINE_MAX_STEP) * 100}%`,
         max: TIMELINE_MAX_STEP,

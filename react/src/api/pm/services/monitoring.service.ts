@@ -1,5 +1,7 @@
 import apiClient from '../client';
 import { API_ENDPOINTS } from '../endpoints';
+import { monitoringMock } from '../mock/monitoring.mock';
+import { USE_MOCK, mockResponse } from '../mock';
 import type { SmltExecDetailDto, SmltExecListDto, SmltExecSmryDto } from '@/types/api.types';
 
 /**
@@ -9,6 +11,8 @@ import type { SmltExecDetailDto, SmltExecListDto, SmltExecSmryDto } from '@/type
 export const monitoringService = {
     // 상단 KPI (전체 수행 / 완료 / 진행중 / 평균 수행시간)
     getExecSmry: async (bgnDt: string, endDt: string): Promise<SmltExecSmryDto> => {
+        if (USE_MOCK) return mockResponse(monitoringMock.getExecSmry(), { loading: true });
+
         const response = await apiClient.post<SmltExecSmryDto>(
             API_ENDPOINTS.MNTR_EXEC_SMRY,
             { bgnDt, endDt },
@@ -20,6 +24,8 @@ export const monitoringService = {
 
     // 시뮬레이션 이력 (표준 / 사용자를 한 번에 조회)
     getExecList: async (bgnDt: string, endDt: string): Promise<SmltExecListDto> => {
+        if (USE_MOCK) return mockResponse(monitoringMock.getExecList(bgnDt), { loading: true });
+
         const response = await apiClient.post<SmltExecListDto>(
             API_ENDPOINTS.MNTR_EXEC_LIST,
             { bgnDt, endDt },
@@ -31,6 +37,8 @@ export const monitoringService = {
 
     // 이력 1건 결과 보기
     getExecDetail: async (smltId: string): Promise<SmltExecDetailDto> => {
+        if (USE_MOCK) return mockResponse(monitoringMock.getExecDetail(smltId));
+
         const response = await apiClient.post<SmltExecDetailDto>(API_ENDPOINTS.MNTR_EXEC_DETAIL, {
             smltId,
         });

@@ -6,13 +6,24 @@ import t2Teal from '@/assets/svg/t2-teal-full.svg';
 import { Icon } from './PmIcons';
 import { TerminalChart } from './TerminalChart';
 import { EMPTY_TERMINAL_VIEW } from '../view';
+import type { DsbdCategory } from '@/types/api.types';
 import type { GateData, TerminalKind, TerminalView } from '../types';
 
 interface TerminalSummaryProps {
     terminal: TerminalKind;
     /** 아직 못 받았으면 null — 골격만 그리고 값은 비운다 */
     data: TerminalView | null;
+    /** 선택한 퀵 타일 — 제목 문구가 이 지표를 따른다 */
+    category: DsbdCategory;
 }
+
+/** 제목 앞부분 — 퀵 타일에서 고른 지표를 그대로 문장에 넣는다 ('… 가장 많을 때') */
+const TITLE_LEAD: Record<DsbdCategory, string> = {
+    PSG: '터미널에 여객수가',
+    FLT: '운항편이',
+    CHKN: '체크인카운터에 대기인원이',
+    DEP: '출국장에 대기인원이',
+};
 
 type ViewKind = 'summary' | 'table';
 
@@ -202,7 +213,7 @@ function Gate({ data, gauge }: { data: GateData; gauge: string }) {
     );
 }
 
-export function TerminalSummary({ terminal, data }: TerminalSummaryProps) {
+export function TerminalSummary({ terminal, data, category }: TerminalSummaryProps) {
     const view = data ?? EMPTY_TERMINAL_VIEW;
     const asset = ASSETS[terminal];
 
@@ -310,11 +321,15 @@ export function TerminalSummary({ terminal, data }: TerminalSummaryProps) {
 
             {/* 제목 박스와 기준시각 바를 한 줄로 두고, 뷰 전환 스위치는 바 안에 넣는다 */}
             <div className="p-title-row">
+                {/* 비스듬한 파란 상자 위에 회색 상자를 한 겹 더 얹는다 */}
                 <div className="p-title">
-                    터미널에 여객수가 <em>가장 많을 때</em>
+                    <span className="p-title-in">
+                        <span className="p-title-txt">{TITLE_LEAD[category]} 가장 많을 때</span>
+                    </span>
                 </div>
                 <div className="p-bar">
                     <span className="p-bar-txt">{view.barText}</span>
+                    {/* 켜짐=포인트 왼쪽 '요약' / 꺼짐=포인트 오른쪽 '상세' 로 손잡이가 옮겨간다 */}
                     <button
                         type="button"
                         className={`p-switch${viewKind === 'summary' ? ' on' : ''}`}
@@ -322,7 +337,7 @@ export function TerminalSummary({ terminal, data }: TerminalSummaryProps) {
                         onClick={() => setViewKind(viewKind === 'summary' ? 'table' : 'summary')}
                     >
                         <i aria-hidden="true" />
-                        요약
+                        <span>{viewKind === 'summary' ? '요약' : '상세'}</span>
                     </button>
                 </div>
             </div>

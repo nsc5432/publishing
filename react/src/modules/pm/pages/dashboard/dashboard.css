@@ -344,11 +344,12 @@ html[data-page='dashboard'] .plan-icons>.ic {
     justify-content: center;
 }
 
-/* 운항편 / 총 여객 합계 박스 — 두 행을 세로로 아우른다 */
+/* 운항편 / 총 여객 합계 박스 — 두 행을 세로로 아우른다.
+   총 여객은 6자리 + 천단위 구분(예: 111,340)까지 들어와 폭을 그 기준으로 잡는다 */
 html[data-page='dashboard'] .plan-total {
-    width: 112px;
+    width: 130px;
     flex-shrink: 0;
-    margin: 0 10px;
+    margin: 0 8px;
     white-space: nowrap;
     background: rgba(255, 255, 255, 0.92);
     border: 1px solid rgba(160, 168, 200, 0.35);
@@ -385,10 +386,12 @@ html[data-page='dashboard'] .stat-cells {
     flex: 1;
     display: flex;
     align-items: center;
+    white-space: nowrap;
 }
 
 html[data-page='dashboard'] .stat-cells>div {
     flex: 1;
+    min-width: 0;
     text-align: center;
 }
 
@@ -405,11 +408,22 @@ html[data-page='dashboard'] .stat-cells .v {
     line-height: 1.1;
 }
 
+/* 여객 행(6자리)은 운항편 행(3~4자리)과 같은 폭에 담기도록 한 단계 줄인다 */
+html[data-page='dashboard'] .stat-psg .v {
+    font-size: 24px;
+    letter-spacing: -1px;
+}
+
 html[data-page='dashboard'] .plan-total .v {
     font-size: 31px;
     font-weight: 500;
     letter-spacing: -1.2px;
     line-height: 1.1;
+}
+
+html[data-page='dashboard'] .plan-total .v.teal {
+    font-size: 27px;
+    letter-spacing: -1px;
 }
 
 html[data-page='dashboard'] .plan-total .v.blue {
@@ -772,13 +786,16 @@ html[data-page='dashboard'] .panel>* {
 html[data-page='dashboard'] .panel-blue {
     --acc: #1c6ff0;
     --acc-soft: #12b0b8;
-    --title: #1d1efe;
+    --title: #0000ff;
+    /* 제목 테두리 — 기준시각 바와 같은 색 흐름 */
+    --title-edge: linear-gradient(90deg, #0101ff 0%, #0043e2 40%, #018ec1 78%, #00aab5 100%);
 }
 
 html[data-page='dashboard'] .panel-green {
     --acc: #10a34a;
     --acc-soft: #10a34a;
-    --title: #0b7c39;
+    --title: #ffff00;
+    --title-edge: linear-gradient(90deg, #d8c400 0%, #8ecf56 55%, #42af8e 82%, #0294bf 100%);
 }
 
 /* --- panel top --- */
@@ -1129,50 +1146,44 @@ html[data-page='dashboard'] .p-title-row {
     flex-shrink: 0;
 }
 
+/* 제목 — 비스듬한 상자 두 겹.
+   바깥은 기준시각 바와 같은 흐름의 파란 그라데이션, 안쪽은 회색, 글자는 검정.
+   지표에 따라 문구 길이가 달라지므로 폭은 내용에 맞추고 줄바꿈만 막는다 */
 html[data-page='dashboard'] .p-title {
-    flex: 0 0 300px;
+    flex: 0 1 auto;
+    max-width: 52%;
+    white-space: nowrap;
     font-size: 22px;
     font-weight: 800;
-    color: var(--title);
+    color: #14161c;
     letter-spacing: -1.1px;
     display: flex;
+    align-items: stretch;
+    padding: 3px;
+    border-radius: 12px;
+    background: var(--title-edge);
+    /* 상자를 비스듬히 눕혀 포인트를 준다. 기운 만큼 좌우가 삐져나오므로 자리를 둔다 */
+    transform: skewX(-10deg);
+    margin: 0 4px;
+}
+
+/* 안쪽 회색 상자 — 바깥 상자의 기울기를 그대로 물려받는다 */
+html[data-page='dashboard'] .p-title-in {
+    flex: 1;
+    min-width: 0;
+    display: flex;
     align-items: center;
-    gap: 11px;
-    background: rgba(255, 255, 255, 0.75);
-    border: 1px solid rgba(150, 158, 190, 0.35);
-    border-radius: 10px;
-    padding: 6px 14px 6px 8px;
-    box-shadow: 0 1px 4px rgba(46, 50, 94, 0.06);
+    padding: 0 14px;
+    border-radius: 9px;
+    background: #eceef5;
 }
 
-html[data-page='dashboard'] .p-title::before {
-    content: '';
-    width: 5px;
-    align-self: stretch;
-    border-radius: 3px;
-    background: var(--acc);
-    box-shadow: 0 1px 4px color-mix(in srgb, var(--acc) 45%, transparent);
-    flex-shrink: 0;
-}
-
-html[data-page='dashboard'] .p-title em {
-    font-style: normal;
-    font-weight: 800;
-    color: var(--acc-soft);
-    background: linear-gradient(transparent 62%,
-            color-mix(in srgb, var(--acc-soft) 22%, transparent) 0);
-    padding: 0 2px;
-    border-radius: 3px;
-}
-
-html[data-page='dashboard'] .panel-green .p-title {
-    -webkit-text-stroke: 0;
-}
-
-html[data-page='dashboard'] .panel-green .p-title em {
-    -webkit-text-stroke: 0;
-    color: #1a7a2e;
-    background: linear-gradient(transparent 62%, rgba(26, 122, 46, 0.16) 0);
+/* 글자만 되돌려 똑바로 세운다 */
+html[data-page='dashboard'] .p-title-txt {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transform: skewX(10deg);
 }
 
 html[data-page='dashboard'] .p-bar {
@@ -1184,31 +1195,35 @@ html[data-page='dashboard'] .p-bar {
     align-items: center;
     justify-content: center;
     position: relative;
-    padding: 0 14px;
+    /* 오른쪽은 스위치 자리를 비워 두어야 가운데 문구와 겹치지 않는다 */
+    padding: 0 92px 0 14px;
     font-size: 20px;
     font-weight: 700;
     letter-spacing: 0.3px;
 }
 
 html[data-page='dashboard'] .p-bar-txt {
+    min-width: 0;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
-/* 요약 / 출국장 뷰 전환 스위치 — 기준시각 바 오른쪽에 얹는다 */
+/* 요약 / 상세 뷰 전환 스위치 — 기준시각 바 오른쪽에 얹는다.
+   켜짐이면 손잡이가 왼쪽('요약'), 꺼짐이면 오른쪽('상세')으로 미끄러진다 */
 html[data-page='dashboard'] .p-switch {
     position: absolute;
     right: 12px;
     top: 50%;
     transform: translateY(-50%);
-    display: flex;
-    align-items: center;
-    gap: 7px;
+    width: 74px;
     height: 24px;
-    padding: 0 12px 0 5px;
+    padding: 0;
     border: none;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.22);
-    color: #fff;
+    /* 요약/상세 어느 쪽도 비활성으로 보이면 안 되므로 두 상태의 겉모습을 같게 둔다 */
+    background: #fff;
+    color: #3b39c9;
     font-family: inherit;
     font-size: 13px;
     font-weight: 700;
@@ -1216,22 +1231,39 @@ html[data-page='dashboard'] .p-switch {
     cursor: pointer;
 }
 
+/* 손잡이 — 켜짐 왼쪽 / 꺼짐 오른쪽 */
 html[data-page='dashboard'] .p-switch>i {
+    position: absolute;
+    top: 4px;
+    left: calc(100% - 20px);
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.55);
-    flex-shrink: 0;
-    transition: background 0.15s;
-}
-
-html[data-page='dashboard'] .p-switch.on {
-    background: #fff;
-    color: #3b39c9;
+    background: #4441cc;
+    transition: left 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 html[data-page='dashboard'] .p-switch.on>i {
-    background: #4441cc;
+    left: 4px;
+}
+
+/* 글자는 손잡이 반대쪽 남은 칸의 가운데 */
+html[data-page='dashboard'] .p-switch>span {
+    position: absolute;
+    top: 0;
+    left: 6px;
+    right: 22px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: left 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+        right 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html[data-page='dashboard'] .p-switch.on>span {
+    left: 22px;
+    right: 6px;
 }
 
 

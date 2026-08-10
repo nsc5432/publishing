@@ -1,6 +1,6 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
 import type { TerminalKind } from '../../../types';
-import { MAX_RATIO, MIN_RATIO, RATIO_STEP } from '../mock';
+import { MAX_RATIO, MIN_RATIO, RATIO_STEP } from '../constants';
 import type { EditMode, HourRow } from '../types';
 
 interface FlightEditorProps {

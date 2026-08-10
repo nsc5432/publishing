@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import { PlayerNextIcon, PlayerPauseIcon, PlayerPlayIcon, PlayerPrevIcon } from '@/components/icons';
-import { formatStep } from '../mock';
+import { formatStep } from '../timeline';
 import type { useTimeline } from '../hooks/useTimeline';
 
 interface TimelineProps {

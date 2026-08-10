@@ -96,8 +96,9 @@ export function HeaderSummary({
                                     </div>
                                 </div>
                             </div>
+                            {/* 여객 행은 6자리(천단위 구분 포함)까지 들어오므로 운항편 행과 글자 크기를 나눈다 */}
                             <div className="plan-cols">
-                                <div className="stat-cells">
+                                <div className="stat-cells stat-flt">
                                     <div>
                                         <div className="k">출발</div>
                                         <div className="v">{count(plan?.depFltCnt)}</div>
@@ -107,7 +108,7 @@ export function HeaderSummary({
                                         <div className="v">{count(plan?.arrFltCnt)}</div>
                                     </div>
                                 </div>
-                                <div className="stat-cells">
+                                <div className="stat-cells stat-psg">
                                     <div>
                                         <div className="k">출발</div>
                                         <div className="v">{count(plan?.depPsgCnt)}</div>

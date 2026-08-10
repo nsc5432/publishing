@@ -1,7 +1,10 @@
 import './terminalMap.css';
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Lnb } from '@/components/lnb';
 import { usePageScope } from '@/hooks/usePageScope';
+import { dialog } from '@/lib/dialog';
+import { formatYmd, todayYmd } from '@/modules/pm/pages/dashboard/format';
+import { useBaseInfo } from '@/modules/pm/pages/dashboard/hooks/useBaseInfo';
 import { CongestionNotice } from './components/CongestionNotice';
 import { FacilityMiniModal } from './components/FacilityMiniModal';
 import { Header } from './components/Header';
@@ -9,39 +12,72 @@ import { IslandModal } from './components/IslandModal';
 import { MapStage } from './components/MapStage';
 import { OperCards } from './components/OperCards';
 import { Timeline } from './components/Timeline';
-import { useTimeline } from './hooks/useTimeline';
 import {
-    buildDepGateDetail,
-    buildIslandDetail,
-    DEFAULT_NAV_BOTTOM,
-    HEADER,
-    NOTICES,
-    OPER_CARDS,
-    SUMMARY,
-    TERMINAL_MAP,
-} from './mock';
+    EMPTY_MAP_DATA,
+    EMPTY_NOTICE,
+    EMPTY_SUMMARY,
+    useDepDetail,
+    useIslandDetail,
+    useSmltMap,
+    type MapQuery,
+} from './hooks/useTerminalMapData';
+import { useTimeline } from './hooks/useTimeline';
 import type { DepGateMarker, IslandMarker, TerminalKind } from './types';
+
+/* 메뉴 구성은 화면 공용(@/components/lnb)이라 여기서는 활성 항목만 지정한다. */
+const DEFAULT_NAV_BOTTOM = 'map';
 
 /**
  * PM 예측관리 / 일일 시뮬레이션 결과 조회 — 맵 형태.
+ *
+ * 화면에 들어오면 기준 정보(getBaseInfo)로 시뮬레이션 ID 를 받고,
+ * 터미널·타임라인 시각을 조회 조건으로 도면(getSmltMap)을 부른다.
+ * 마커를 누르면 그 시각의 상세를 따로 조회한다.
  */
 function TerminalMap() {
     usePageScope('terminalMap');
 
-    const [terminal, setTerminal] = useState<TerminalKind>(HEADER.defaultTerminal);
+    // 기준일자 — 최초 진입은 오늘. (달력 UI 가 붙으면 여기서 바꾼다)
+    const [ymd] = useState(todayYmd);
+    const { data: baseInfo, error: baseError } = useBaseInfo(ymd);
+
+    const [terminal, setTerminal] = useState<TerminalKind>('T1');
     const [selectedIsland, setSelectedIsland] = useState<IslandMarker | null>(null);
     const [selectedDepGate, setSelectedDepGate] = useState<DepGateMarker | null>(null);
     const timeline = useTimeline();
 
-    const mapData = TERMINAL_MAP[terminal];
-    const islandDetail = useMemo(
-        () => (selectedIsland ? buildIslandDetail(terminal, selectedIsland) : null),
-        [terminal, selectedIsland],
+    // 조회 조건 — 터미널·타임라인 시각이 바뀌면 그대로 다시 조회한다.
+    const [query, setQuery] = useState<MapQuery | null>(null);
+
+    useEffect(() => {
+        if (!baseInfo) return;
+
+        setQuery({ smltId: baseInfo.smltId, tmnlId: terminal, hhmm: timeline.hhmm });
+    }, [baseInfo, terminal, timeline.hhmm]);
+
+    const { data: mapView, error: mapError } = useSmltMap(query);
+    const { data: islandDetail, error: islandError } = useIslandDetail(
+        query,
+        selectedIsland?.label ?? null,
     );
-    const depGateDetail = useMemo(
-        () => (selectedDepGate ? buildDepGateDetail(selectedDepGate) : null),
-        [selectedDepGate],
+    const { data: depGateDetail, error: depError } = useDepDetail(
+        query,
+        selectedDepGate?.label ?? null,
     );
+
+    // 조회가 여러 갈래라 먼저 걸린 사유 하나만 알린다 (같은 실패로 알럿이 겹치지 않게).
+    const error = baseError || mapError || islandError || depError;
+
+    useEffect(() => {
+        if (!error) return;
+
+        dialog.alert({ title: '조회 실패', description: error }).catch(() => {
+            // 다이얼로그를 못 띄우는 상황까지 화면이 끌려갈 이유는 없다 (콘솔에 이미 남는다).
+        });
+    }, [error]);
+
+    const mapData = mapView?.map ?? EMPTY_MAP_DATA;
+    const notice = mapView?.notice ?? EMPTY_NOTICE;
 
     // 팝업은 한 번에 하나만 열린다
     const handleIslandClick = (island: IslandMarker) => {
@@ -62,17 +98,18 @@ function TerminalMap() {
     };
 
     const handleSearch = () => {
-        // 실제 조회 연동 전: 현재 조회 조건만 확인한다.
-        console.log('[조회]', { baseDate: HEADER.baseDate, terminal, time: timeline.label });
+        if (!baseInfo) return;
+
+        setQuery({ smltId: baseInfo.smltId, tmnlId: terminal, hhmm: timeline.hhmm });
     };
 
     return (
         <div className="wrap">
             <Header
-                baseDate={HEADER.baseDate}
+                baseDate={formatYmd(baseInfo?.ymd ?? '')}
                 terminal={terminal}
                 onTerminalChange={handleTerminalChange}
-                summary={SUMMARY[terminal]}
+                summary={mapView?.summary ?? EMPTY_SUMMARY}
                 onSearch={handleSearch}
             />
 
@@ -80,15 +117,12 @@ function TerminalMap() {
                 <Lnb defaultBottom={DEFAULT_NAV_BOTTOM} />
 
                 <main className="container">
-                    <CongestionNotice
-                        level={NOTICES[terminal].level}
-                        items={NOTICES[terminal].items}
-                    />
+                    <CongestionNotice level={notice.level} items={notice.items} />
 
                     <section className="map-area">
                         <p className="map-area__guide">해당구역을 클릭하세요</p>
 
-                        <OperCards cards={OPER_CARDS[terminal]} />
+                        <OperCards cards={mapView?.operCards ?? []} />
 
                         <MapStage
                             terminal={terminal}

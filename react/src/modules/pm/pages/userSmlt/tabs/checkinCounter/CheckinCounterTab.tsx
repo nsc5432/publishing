@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { BlockChart } from '../../components/BlockChart';
 import { CountStepper } from '../../components/CountStepper';
 import { DetailDrawer, DrawerSection } from '../../components/DetailDrawer';
 import { TimeBar } from '../../components/TimeBar';
 import { TerminalPanel } from '../../components/TerminalPanel';
 import { formatHour, formatOperating, toHourList } from '../../format';
+import { useErrorAlert } from '../../hooks/useErrorAlert';
+import { useTerminalData } from '../../hooks/useTerminalData';
+import { runSave } from '../../save';
 import { BLOCK_COLORS, TERMINALS, type BlockItem, type TerminalKind } from '../../types';
 import { BoothGrid } from './components/BoothGrid';
-import { BOOTH_PER_BLOCK, CHECKIN_COUNTER } from './mock';
+import { BOOTH_PER_BLOCK } from './constants';
 import type { CheckinIsland, TerminalCheckinCounter } from './types';
+import { EMPTY_CHECKIN_COUNTER, toCheckinCounter, toSaveReq } from './view';
 
 interface CheckinCounterTabProps {
+    smltIds: Record<TerminalKind, string>;
+    reloadKey: number;
     activeTerminal: TerminalKind;
     onTerminalChange: (terminal: TerminalKind) => void;
 }
@@ -25,10 +32,14 @@ interface DrawerState {
     selectedBooth: number | null;
 }
 
-const INITIAL_EDIT: EditState = {
-    T1: CHECKIN_COUNTER.T1.islands,
-    T2: CHECKIN_COUNTER.T2.islands,
-};
+const EMPTY_EDIT: EditState = { T1: [], T2: [] };
+
+const FETCH_FAIL = '체크인 카운터 정보를 불러오지 못했습니다.';
+const SAVE_FAIL = '체크인 카운터 저장에 실패했습니다.';
+
+/** 조회 함수는 렌더마다 새로 만들지 않도록 컴포넌트 밖에 둔다 */
+const fetchChkn = (smltId: string, tmnlId: TerminalKind) =>
+    userSmltService.getChknCounterInfo(smltId, tmnlId);
 
 /** 블럭 차트 항목 — 세로 높이가 그 시간대에 열린 부스 규모가 된다 */
 function toBlockItems(islands: CheckinIsland[]): BlockItem[] {
@@ -71,11 +82,31 @@ function newIsland(data: TerminalCheckinCounter, islands: CheckinIsland[]): Chec
 /**
  * 체크인 카운터 탭
  */
-export function CheckinCounterTab({ activeTerminal, onTerminalChange }: CheckinCounterTabProps) {
-    const [edit, setEdit] = useState<EditState>(INITIAL_EDIT);
+export function CheckinCounterTab({
+    smltIds,
+    reloadKey,
+    activeTerminal,
+    onTerminalChange,
+}: CheckinCounterTabProps) {
+    const { data: fetched, error } = useTerminalData(
+        smltIds,
+        reloadKey,
+        fetchChkn,
+        toCheckinCounter,
+        FETCH_FAIL,
+    );
+    const [edit, setEdit] = useState<EditState>(EMPTY_EDIT);
     const [drawer, setDrawer] = useState<DrawerState | null>(null);
 
-    const data = CHECKIN_COUNTER[activeTerminal];
+    useErrorAlert(error);
+
+    // 조회 결과가 들어오면 편집 상태를 조회한 값으로 되돌린다.
+    useEffect(() => {
+        setEdit({ T1: fetched.T1?.islands ?? [], T2: fetched.T2?.islands ?? [] });
+        setDrawer(null);
+    }, [fetched]);
+
+    const data = fetched[activeTerminal] ?? EMPTY_CHECKIN_COUNTER;
     const islands = edit[activeTerminal];
 
     /** 편집 중이던 드로어는 터미널이 바뀌면 닫는다 (편집값은 터미널별로 남는다) */
@@ -131,14 +162,32 @@ export function CheckinCounterTab({ activeTerminal, onTerminalChange }: CheckinC
     };
 
     const handleSave = (terminal: TerminalKind) => {
-        // 실제 저장 연동 전: 현재 편집 상태만 확인한다.
-        console.log('[현재상태 저장]', { terminal, islands: edit[terminal] });
+        const smltId = smltIds[terminal];
+        if (!smltId) return;
+
+        runSave(
+            userSmltService.saveChknCounterInfo(toSaveReq(smltId, terminal, edit[terminal])),
+            SAVE_FAIL,
+        );
+    };
+
+    /** 지도 보기 — 배치 마커를 받아 둔다 (도면 UI 는 아직 붙지 않았다) */
+    const handleMapClick = (terminal: TerminalKind) => {
+        const smltId = smltIds[terminal];
+        if (!smltId) return;
+
+        userSmltService
+            .getFcltMap(smltId, terminal, 'CHKN')
+            .then((dto) => console.log('[지도 보기]', dto.markerList))
+            .catch(() => {
+                // 지도는 보조 기능이라 실패해도 편집 흐름을 끊지 않는다 (콘솔에 이미 남는다).
+            });
     };
 
     return (
         <>
             {TERMINALS.map((terminal) => {
-                const panelData = CHECKIN_COUNTER[terminal];
+                const panelData = fetched[terminal] ?? EMPTY_CHECKIN_COUNTER;
                 const panelIslands = edit[terminal];
                 const active = terminal === activeTerminal;
                 const kiosk = panelIslands.reduce((sum, it) => sum + it.kiosk, 0);
@@ -151,7 +200,7 @@ export function CheckinCounterTab({ activeTerminal, onTerminalChange }: CheckinC
                         active={active}
                         onActivate={() => handleTerminalChange(terminal)}
                         kpis={panelData.kpis}
-                        onMapClick={() => console.log('[지도 보기]', { terminal })}
+                        onMapClick={() => handleMapClick(terminal)}
                         summary={
                             <>
                                 <div className="summary__group">
