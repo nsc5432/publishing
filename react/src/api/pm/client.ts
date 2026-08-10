@@ -1,15 +1,13 @@
 import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import type { ApiResponse, ApiError } from '@/types/api.types';
+import { ENV } from '@/config/env';
 import { loadingBar } from '@/lib/loading-bar';
-
-// 환경 변수
-const API_TIMEOUT = Number(import.meta.env.VITE_API_TIMEOUT) || 60000;
 
 // Axios 인스턴스 생성
 export const apiClient: AxiosInstance = axios.create({
     baseURL: '/',
-    timeout: API_TIMEOUT,
+    timeout: ENV.API_TIMEOUT,
     headers: {
         'Content-Type': 'application/json',
     },

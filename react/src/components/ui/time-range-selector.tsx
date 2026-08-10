@@ -1,4 +1,4 @@
-import { useState, useEffect, type CSSProperties, type ReactNode } from 'react';
+import { useState, useCallback, useEffect, type CSSProperties, type ReactNode } from 'react';
 
 export interface TimeRange {
     start: number;
@@ -26,6 +26,60 @@ function buildScale(totalSlots: number): string[] {
     });
 }
 
+// 범위 계산은 인자에만 의존하므로 컴포넌트 밖에 둔다.
+// (안에 두면 렌더마다 새로 만들어져 아래 useCallback 의 의존성이 매번 바뀐다)
+
+/** 범위 병합 및 정규화 */
+function mergeRanges(newRange: TimeRange, existingRanges: TimeRange[]): TimeRange[] {
+    // 새 범위와 겹치지 않는 기존 범위만 유지
+    const nonOverlapping = existingRanges.filter((range) => {
+        return range.end <= newRange.start || range.start >= newRange.end;
+    });
+
+    // 새 범위 추가
+    const allRanges = [...nonOverlapping, newRange];
+
+    // 인접하거나 겹치는 범위 병합
+    const sorted = allRanges.sort((a, b) => a.start - b.start);
+    const merged: TimeRange[] = [];
+
+    for (const range of sorted) {
+        const last = merged[merged.length - 1];
+
+        // 넘겨받은 객체를 그대로 담으면 아래 병합에서 호출자의 상태를 고쳐버린다. 복제해서 담는다.
+        if (!last || range.start > last.end) {
+            merged.push({ ...range });
+            continue;
+        }
+
+        last.end = Math.max(last.end, range.end);
+    }
+
+    return merged;
+}
+
+/** 선택 영역에서 범위 제거 */
+function removeRange(toRemove: TimeRange, existingRanges: TimeRange[]): TimeRange[] {
+    const result: TimeRange[] = [];
+
+    for (const range of existingRanges) {
+        if (range.end <= toRemove.start || range.start >= toRemove.end) {
+            result.push(range);
+            continue;
+        }
+
+        if (range.start < toRemove.start) {
+            result.push({ start: range.start, end: toRemove.start });
+        }
+
+        if (range.end > toRemove.end) {
+            result.push({ start: toRemove.end, end: range.end });
+        }
+    }
+
+    return result;
+}
+
 export function TimeRangeSelector({
     ranges,
     onChange,
@@ -45,59 +99,6 @@ export function TimeRangeSelector({
         return ranges.some((range) => index >= range.start && index < range.end);
     };
 
-    // 범위 병합 및 정규화
-    const mergeRanges = (newRange: TimeRange, existingRanges: TimeRange[]): TimeRange[] => {
-        // 새 범위와 겹치지 않는 기존 범위만 유지
-        const nonOverlapping = existingRanges.filter((range) => {
-            return range.end <= newRange.start || range.start >= newRange.end;
-        });
-
-        // 새 범위 추가
-        const allRanges = [...nonOverlapping, newRange];
-
-        // 인접하거나 겹치는 범위 병합
-        const sorted = allRanges.sort((a, b) => a.start - b.start);
-        const merged: TimeRange[] = [];
-
-        for (const range of sorted) {
-            if (merged.length === 0) {
-                merged.push(range);
-            } else {
-                const last = merged[merged.length - 1];
-                if (range.start <= last.end) {
-                    // 병합
-                    last.end = Math.max(last.end, range.end);
-                } else {
-                    merged.push(range);
-                }
-            }
-        }
-
-        return merged;
-    };
-
-    // 선택 영역에서 범위 제거
-    const removeRange = (toRemove: TimeRange, existingRanges: TimeRange[]): TimeRange[] => {
-        const result: TimeRange[] = [];
-
-        for (const range of existingRanges) {
-            if (range.end <= toRemove.start || range.start >= toRemove.end) {
-                result.push(range);
-                continue;
-            }
-
-            if (range.start < toRemove.start) {
-                result.push({ start: range.start, end: toRemove.start });
-            }
-
-            if (range.end > toRemove.end) {
-                result.push({ start: toRemove.end, end: range.end });
-            }
-        }
-
-        return result;
-    };
-
     // 슬롯에서 드래그 시작
     const handleSlotMouseDown = (index: number) => {
         if (disabled) return;
@@ -115,7 +116,7 @@ export function TimeRangeSelector({
     };
 
     // 드래그 종료 — 범위 병합/제거 후 반영
-    const handleMouseUp = () => {
+    const handleMouseUp = useCallback(() => {
         if (!isDragging || dragStart === null || dragEnd === null || disabled) return;
 
         const start = Math.min(dragStart, dragEnd);
@@ -132,19 +133,15 @@ export function TimeRangeSelector({
         setIsDragging(false);
         setDragStart(null);
         setDragEnd(null);
-    };
+    }, [isDragging, dragStart, dragEnd, disabled, dragMode, ranges, onChange]);
 
     // 전역 마우스 업 이벤트 처리 (드래그 중 마우스가 컴포넌트 밖으로 나갈 경우)
     useEffect(() => {
-        const handleGlobalMouseUp = () => {
-            if (isDragging) {
-                handleMouseUp();
-            }
-        };
+        if (!isDragging) return;
 
-        window.addEventListener('mouseup', handleGlobalMouseUp);
-        return () => window.removeEventListener('mouseup', handleGlobalMouseUp);
-    }, [isDragging, dragStart, dragEnd]);
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => window.removeEventListener('mouseup', handleMouseUp);
+    }, [isDragging, handleMouseUp]);
 
     // 드래그 중인 범위 계산
     const getDraggedRange = (): TimeRange | null => {

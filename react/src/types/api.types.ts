@@ -534,7 +534,7 @@ export interface SmltExecSmryDto extends JsonResponse {
 }
 
 /** 시뮬레이션 이력 1행 */
-export interface SmltExecDto {
+export interface SmltCastExecDto {
     rowNum: number; // No
     smltId: string;
     smltType: SmltType;
@@ -548,8 +548,8 @@ export interface SmltExecDto {
 
 /** 표준 / 사용자 이력을 한 번에 내려준다 (화면이 좌우로 나란히 보여준다) */
 export interface SmltExecListDto extends JsonResponse {
-    stdList: SmltExecDto[]; // 표준 시뮬레이션
-    userList: SmltExecDto[]; // 사용자 시뮬레이션
+    stdList: SmltCastExecDto[]; // 표준 시뮬레이션
+    userList: SmltCastExecDto[]; // 사용자 시뮬레이션
 }
 
 /** 이력 1건의 결과 보기 */

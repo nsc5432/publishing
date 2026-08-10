@@ -1,43 +1,33 @@
-import { Fragment, useId, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import t1White from '@/assets/svg/t1-white.svg';
 import t2White from '@/assets/svg/t2-white.svg';
 import t1Blue from '@/assets/svg/t1-blue.svg';
 import t2Teal from '@/assets/svg/t2-teal-full.svg';
 import { Icon } from './PmIcons';
-import { DEFAULT_TERMINAL_VIEW, TERMINALS, type GateData } from '../mock';
-import type { TerminalKind } from '../types';
+import { TerminalChart } from './TerminalChart';
+import { EMPTY_TERMINAL_VIEW } from '../view';
+import type { GateData, TerminalKind, TerminalView } from '../types';
 
 interface TerminalSummaryProps {
     terminal: TerminalKind;
+    /** 아직 못 받았으면 null — 골격만 그리고 값은 비운다 */
+    data: TerminalView | null;
 }
 
 type ViewKind = 'summary' | 'table';
 
-/** 터미널별 큰 아이콘 / 워터마크 (에셋은 컴포넌트에서 매핑) */
-const ASSETS: Record<TerminalKind, { big: string; watermark: string }> = {
-    T1: { big: t1White, watermark: t1Blue },
-    T2: { big: t2White, watermark: t2Teal },
+/** 터미널별 큰 아이콘 / 워터마크 / 패널 색 (서버 값이 아니라 화면 규칙) */
+const ASSETS: Record<TerminalKind, { big: string; watermark: string; cls: string; gauge: string }> =
+    {
+        T1: { big: t1White, watermark: t1Blue, cls: 'panel-blue', gauge: '#2f7ff0' },
+        T2: { big: t2White, watermark: t2Teal, cls: 'panel-green', gauge: '#2f7ff0' },
+    };
+
+/** 터미널별 최초 뷰 (T1=요약, T2=출국장 테이블) */
+const DEFAULT_VIEW: Record<TerminalKind, ViewKind> = {
+    T1: 'summary',
+    T2: 'table',
 };
-
-/* 원본 buildDots: polyline points 각 좌표에 점(circle)을 찍는다. */
-const LN_R_POINTS =
-    '44,151 60,151 76,151 92,151 108,146 124,138 140,124 156,110 172,90 188,66 204,52 220,26 236,50 252,66 268,80 284,52 300,68 316,88 332,104 348,120 364,138 380,148 396,150 412,151';
-const LN_B_POINTS =
-    '44,153 60,153 76,153 92,153 108,148 124,140 140,127 156,113 172,94 188,71 204,58 220,32 236,56 252,71 268,85 284,58 300,73 316,93 332,108 348,124 364,141 380,150 396,152 412,153';
-
-function Dots({ points, fill }: { points: string; fill: string }) {
-    return (
-        <g fill={fill}>
-            {points
-                .trim()
-                .split(/\s+/)
-                .map((p, i) => {
-                    const [cx, cy] = p.split(',');
-                    return <circle key={i} cx={cx} cy={cy} r="2.7" />;
-                })}
-        </g>
-    );
-}
 
 /* 원본 buildDonut: 반지름 30, 84% 아크의 도넛 게이지. */
 function Donut({
@@ -124,11 +114,16 @@ function Gate({ data, gauge }: { data: GateData; gauge: string }) {
     const [idx, setIdx] = useState(0);
     // 하단 칩(카운터/게이트) 선택 상태 — 버튼으로 동작하도록 (요구사항 2)
     const [selectedChip, setSelectedChip] = useState<number | null>(null);
-    const v = data.variants[idx];
+
+    // 조회를 다시 하면 카드 수가 달라질 수 있어 현재 위치를 범위 안으로 눌러 둔다.
+    const v = data.variants[Math.min(idx, data.variants.length - 1)];
+
     const cycle = (d: number) => {
         setIdx((i) => (i + d + data.variants.length) % data.variants.length);
         setSelectedChip(null);
     };
+
+    if (!v) return null;
 
     return (
         <div className="gate">
@@ -142,7 +137,7 @@ function Gate({ data, gauge }: { data: GateData; gauge: string }) {
                 </div>
             </div>
             <div className="gate-mid">
-                <div className="isl">{v.isl ?? ' '}</div>
+                <div className="isl">{v.isl ?? ' '}</div>
                 <div className="num">
                     {v.num}
                     {v.numSmall && <small>{v.numSmall}</small>}
@@ -188,7 +183,7 @@ function Gate({ data, gauge }: { data: GateData; gauge: string }) {
                 {v.chips.map((c, i) => (
                     <button
                         type="button"
-                        key={i}
+                        key={c.label}
                         className={`chip ${c.kind}${i === selectedChip ? ' sel' : ''}`}
                         aria-pressed={i === selectedChip}
                         onClick={() => setSelectedChip((s) => (s === i ? null : i))}
@@ -207,16 +202,20 @@ function Gate({ data, gauge }: { data: GateData; gauge: string }) {
     );
 }
 
-export function TerminalSummary({ terminal }: TerminalSummaryProps) {
-    const data = TERMINALS[terminal];
+export function TerminalSummary({ terminal, data }: TerminalSummaryProps) {
+    const view = data ?? EMPTY_TERMINAL_VIEW;
     const asset = ASSETS[terminal];
-    const gid = useId();
 
-    const [view, setView] = useState<ViewKind>(DEFAULT_TERMINAL_VIEW[terminal]);
-    const [selectedRow, setSelectedRow] = useState(data.defaultSelectedRow);
+    const [viewKind, setViewKind] = useState<ViewKind>(DEFAULT_VIEW[terminal]);
+    const [selectedRow, setSelectedRow] = useState(view.defaultSelectedRow);
+
+    // 조회 시각이 바뀌면 그 시각의 행으로 선택을 옮긴다.
+    useEffect(() => {
+        setSelectedRow(view.defaultSelectedRow);
+    }, [view.defaultSelectedRow]);
 
     return (
-        <section className={`panel ${data.cls}`}>
+        <section className={`panel ${asset.cls}`}>
             <div className="p-top">
                 <div className="p-iconbox">
                     <img className="tbig" alt="terminal" src={asset.big} />
@@ -232,20 +231,20 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
                             <div className="board">
                                 <div className="k">탑승률</div>
                                 <div>
-                                    <span className="v">{data.stats.boardingRate}</span>
+                                    <span className="v">{view.stats.boardingRate}</span>
                                     <span className="u">%</span>
                                 </div>
                             </div>
                             <div className="p-stat-lines">
                                 <div className="p-line">
-                                    <span className="p-big">{data.stats.flights.value}</span>
+                                    <span className="p-big">{view.stats.flights.value}</span>
                                     <span className="p-u">편</span>
-                                    <span className="p-delta">{data.stats.flights.delta}</span>
+                                    <span className="p-delta">{view.stats.flights.delta}</span>
                                 </div>
                                 <div className="p-line">
-                                    <span className="p-big">{data.stats.pax.value}</span>
+                                    <span className="p-big">{view.stats.pax.value}</span>
                                     <span className="p-u">명</span>
-                                    <span className="p-delta">{data.stats.pax.delta}</span>
+                                    <span className="p-delta">{view.stats.pax.delta}</span>
                                 </div>
                             </div>
                         </div>
@@ -254,21 +253,21 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
                         <div className="peak-title">피크시간</div>
                         <div className="peak-body">
                             <div className="peak-badge">
-                                <div className="k">{data.peak.ampm}</div>
-                                <div className="v">{data.peak.time}</div>
+                                <div className="k">{view.peak.ampm}</div>
+                                <div className="v">{view.peak.time}</div>
                             </div>
                             <div className="peak-cells">
                                 <div className="cell">
                                     <div className="k">대기인원</div>
                                     <div>
-                                        <b>{data.peak.totalWait}</b>
+                                        <b>{view.peak.totalWait}</b>
                                         <span className="u">명</span>
                                     </div>
                                 </div>
                                 <div className="cell">
                                     <div className="k">대기시간</div>
                                     <div>
-                                        <b>{data.peak.maxWait}</b>
+                                        <b>{view.peak.maxWait}</b>
                                         <span className="u">분</span>
                                     </div>
                                 </div>
@@ -279,7 +278,7 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
                                         처리인원
                                     </div>
                                     <div>
-                                        <b>{data.peak.hourlyProcess}</b>
+                                        <b>{view.peak.hourlyProcess}</b>
                                         <span className="u">명</span>
                                     </div>
                                 </div>
@@ -302,112 +301,10 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
                             실적
                         </span>
                     </div>
-                    <svg viewBox="0 0 430 190" preserveAspectRatio="none">
-                        <defs>
-                            <linearGradient id={gid} x1="0" y1="0" x2="1" y2="0">
-                                <stop offset="0" stopColor="#ff8f8f" />
-                                <stop offset=".45" stopColor="#ff1a1a" />
-                                <stop offset="1" stopColor="#ffa3a3" />
-                            </linearGradient>
-                        </defs>
-                        <g stroke="#eceff5" strokeWidth="1">
-                            <line x1="36" y1="26" x2="424" y2="26" />
-                            <line x1="36" y1="51" x2="424" y2="51" />
-                            <line x1="36" y1="76" x2="424" y2="76" />
-                            <line x1="36" y1="101" x2="424" y2="101" />
-                            <line x1="36" y1="126" x2="424" y2="126" />
-                            <line x1="36" y1="151" x2="424" y2="151" />
-                        </g>
-                        <g
-                            fontSize="11"
-                            fill="#9aa3b2"
-                            textAnchor="end"
-                            fontFamily="Pretendard, sans-serif"
-                        >
-                            <text x="28" y="30">
-                                30
-                            </text>
-                            <text x="28" y="55">
-                                25
-                            </text>
-                            <text x="28" y="80">
-                                20
-                            </text>
-                            <text x="28" y="105">
-                                15
-                            </text>
-                            <text x="28" y="130">
-                                10
-                            </text>
-                            <text x="28" y="155">
-                                5
-                            </text>
-                            <text x="28" y="180">
-                                0
-                            </text>
-                        </g>
-                        <rect
-                            className="peakbar"
-                            x="211"
-                            y="26"
-                            width="19"
-                            height="125"
-                            fill={`url(#${gid})`}
-                        />
-                        <polyline
-                            className="ln-r"
-                            points={LN_R_POINTS}
-                            fill="none"
-                            stroke="#f43f3f"
-                            strokeWidth="1.8"
-                            strokeLinejoin="round"
-                        />
-                        <polyline
-                            className="ln-b"
-                            points={LN_B_POINTS}
-                            fill="none"
-                            stroke="#3b82f6"
-                            strokeWidth="1.5"
-                            strokeDasharray="4 3"
-                            strokeLinejoin="round"
-                        />
-                        <Dots points={LN_B_POINTS} fill="#3b82f6" />
-                        <Dots points={LN_R_POINTS} fill="#f43f3f" />
-                        <g
-                            fontSize="11"
-                            fill="#9aa3b2"
-                            textAnchor="middle"
-                            fontFamily="Pretendard, sans-serif"
-                        >
-                            <text x="44" y="172">
-                                0H
-                            </text>
-                            <text x="92" y="172">
-                                3H
-                            </text>
-                            <text x="140" y="172">
-                                6H
-                            </text>
-                            <text x="188" y="172">
-                                9H
-                            </text>
-                            <text x="236" y="172">
-                                12H
-                            </text>
-                            <text x="284" y="172">
-                                15H
-                            </text>
-                            <text x="332" y="172">
-                                18H
-                            </text>
-                            <text x="380" y="172">
-                                21H
-                            </text>
-                            <text x="418" y="172">
-                                23H
-                            </text>
-                        </g>
-                    </svg>
+                    <TerminalChart
+                        rsltList={view.chart.rsltList}
+                        peakIndex={view.chart.peakIndex}
+                    />
                 </div>
             </div>
 
@@ -417,12 +314,12 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
                     터미널에 여객수가 <em>가장 많을 때</em>
                 </div>
                 <div className="p-bar">
-                    <span className="p-bar-txt">{data.barText}</span>
+                    <span className="p-bar-txt">{view.barText}</span>
                     <button
                         type="button"
-                        className={`p-switch${view === 'summary' ? ' on' : ''}`}
-                        aria-pressed={view === 'summary'}
-                        onClick={() => setView(view === 'summary' ? 'table' : 'summary')}
+                        className={`p-switch${viewKind === 'summary' ? ' on' : ''}`}
+                        aria-pressed={viewKind === 'summary'}
+                        onClick={() => setViewKind(viewKind === 'summary' ? 'table' : 'summary')}
                     >
                         <i aria-hidden="true" />
                         요약
@@ -431,10 +328,10 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
             </div>
 
             {/* summary view */}
-            <div className="view" hidden={view !== 'summary'}>
+            <div className="view" hidden={viewKind !== 'summary'}>
                 <div className="sum-top">
                     <div className="sum-two">
-                        {data.summaryStats.map((stat) => (
+                        {view.summaryStats.map((stat) => (
                             <div className="sum-cell" key={stat.unit}>
                                 <Icon name={stat.icon} className={stat.iconClass} />
                                 <div className="val">
@@ -454,7 +351,7 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
                             정보
                         </div>
                         <div className="cells">
-                            {data.summaryInfo.map((cell, i) => (
+                            {view.summaryInfo.map((cell, i) => (
                                 <Fragment key={cell.k}>
                                     {i > 0 && <span className="sep">/</span>}
                                     <div className="cell">
@@ -473,14 +370,14 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
                 </div>
 
                 <div className="gates">
-                    {data.gates.map((gate) => (
-                        <Gate key={gate.title} data={gate} gauge={data.gauge} />
+                    {view.gates.map((gate) => (
+                        <Gate key={gate.title} data={gate} gauge={asset.gauge} />
                     ))}
                 </div>
             </div>
 
             {/* table view */}
-            <div className="view" hidden={view !== 'table'}>
+            <div className="view" hidden={viewKind !== 'table'}>
                 <div className="table">
                     <div className="thead">
                         <div>시간대</div>
@@ -489,7 +386,7 @@ export function TerminalSummary({ terminal }: TerminalSummaryProps) {
                         <div>처리시간</div>
                         <div>비율(%)</div>
                     </div>
-                    {data.tableRows.map((row, i) => (
+                    {view.tableRows.map((row, i) => (
                         <div
                             key={row.time}
                             className={`trow${i === selectedRow ? ' sel' : ''}`}

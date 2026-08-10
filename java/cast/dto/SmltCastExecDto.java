@@ -12,7 +12,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
-public class SmltExecDto {
+public class SmltCastExecDto {
 	private int rowNum; // No
 	private String smltId; // 결과 보기에 쓰는 시뮬레이션 ID
 	private SmltType smltType; // 표준(일일) / 사용자

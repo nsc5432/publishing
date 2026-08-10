@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { loadingBar } from '@/lib/loading-bar';
 import { AirplaneIcon } from '@/components/icons';
 import LoadingImage from '@/assets/gif/loadingimage.gif';
@@ -13,14 +13,21 @@ export function LoadingBar() {
         loadingBar.getServerSnapshot,
     );
 
-    if (!visible) {
-        document.body.style.overflow = 'unset';
-        return null;
-    }
+    // 로딩 중에는 뒤 화면 스크롤을 잠근다.
+    // 렌더 도중 document 를 만지면 React 가 렌더를 버리거나 다시 그릴 때 잠금이 남을 수 있어
+    // (StrictMode 의 이중 렌더 포함) 화면에 반영된 뒤 되돌릴 수 있는 effect 에서 처리한다.
+    useEffect(() => {
+        if (!visible) return;
 
+        const previous = document.body.style.overflow;
+        document.body.style.overflow = 'hidden';
 
-    document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = previous;
+        };
+    }, [visible]);
 
+    if (!visible) return null;
 
     const isCompleting = progress >= 100;
     const transitionCss = isCompleting

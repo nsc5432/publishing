@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '@/modules/pm/pages/dashboard/components/PmIcons';
+import { useUserInfo } from '@/hooks/useUserInfo';
 import { LNB_BOTTOM, LNB_HOME_PATH, LNB_TOP, LNB_USER, type NavItem } from './navItems';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -29,6 +30,7 @@ interface LnbProps {
     topItems?: NavItem[];
     bottomItems?: NavItem[];
     onSelect?: (id: string) => void;
+    /** 세션 사용자 정보를 받기 전까지 쓸 표기 (넘기지 않으면 기본값) */
     user?: { dept: string; name: string };
 }
 
@@ -53,6 +55,10 @@ export function Lnb({
     const [open, setOpen] = useState(false);
     const navigate = useNavigate();
     const navRef = useRef<HTMLElement>(null);
+
+    // 세션에서 받은 부서/성명. 못 받으면 넘겨받은 기본 표기를 그대로 쓴다.
+    const userInfo = useUserInfo();
+    const displayUser = userInfo ? { dept: userInfo.deptNm, name: userInfo.userNm } : user;
 
     useEffect(() => {
         if (!open) return;
@@ -119,8 +125,8 @@ export function Lnb({
                 >
                     <Icon name="logout" />
                     <span className="nav-user" aria-hidden="true">
-                        <span className="nav-user__dept">{user.dept}</span>
-                        <strong className="nav-user__name">{user.name}</strong>
+                        <span className="nav-user__dept">{displayUser.dept}</span>
+                        <strong className="nav-user__name">{displayUser.name}</strong>
                     </span>
                     <span className="nav-tip" aria-hidden="true">
                         {open ? '메뉴 닫기' : '메뉴 열기'}

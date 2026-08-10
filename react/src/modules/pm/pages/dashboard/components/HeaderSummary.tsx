@@ -1,20 +1,64 @@
-import { useState, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import t1Blue from '@/assets/svg/t1-blue.svg';
 import t2Teal from '@/assets/svg/t2-teal-full.svg';
 import { QuickCheckinIcon, QuickFlightIcon, QuickGateIcon, QuickPaxIcon } from '@/components/icons';
+import type { DowAttrDto, DsbdCategory, DsbdHeaderDto, TmnlId } from '@/types/api.types';
+import { formatCount, formatHhmm } from '../format';
+import { HourlyPsgChart } from './HourlyPsgChart';
 import { Icon } from './PmIcons';
-import { HOUR_AXIS } from '../mock';
+
+/** 값을 아직 못 받았을 때 표기 */
+const EMPTY = '-';
+
+/** 요일 속성 — 주중 → 주말 전일 → 주말 순으로 두고 현재 값만 강조한다 */
+const DOW_STEPS: { type: DowAttrDto['dowType']; label: string }[] = [
+    { type: 'WEEKDAY', label: '주중' },
+    { type: 'PRE_WEEKEND', label: '주말 전일' },
+    { type: 'WEEKEND', label: '주말' },
+];
+
+/** 특이점 — 서버가 내려준 문구와 같은 것만 강조한다 */
+const SPECIAL_NOTES = ['하계 전일', '하계', '추석 전일', '추석', '공휴'];
+
+/** 퀵 타일 = 조회 대상 지표 */
+const QUICK_TILES: { category: DsbdCategory; label: string; Icon: typeof QuickPaxIcon }[] = [
+    { category: 'PSG', label: '터미널 여객수', Icon: QuickPaxIcon },
+    { category: 'FLT', label: '운항편', Icon: QuickFlightIcon },
+    { category: 'CHKN', label: '체크인카운터', Icon: QuickCheckinIcon },
+    { category: 'DEP', label: '출국장', Icon: QuickGateIcon },
+];
 
 interface HeaderSummaryProps {
     planDate: string;
+    header: DsbdHeaderDto | null;
+    /** 퀵 타일 선택 — 터미널 패널의 시간대별 결과가 이 값을 따른다 */
+    category: DsbdCategory;
+    onCategoryChange: (category: DsbdCategory) => void;
     children: ReactNode;
 }
 
 /**
  * 상단 요약 카드 행 + 하단 슬롯으로 이루어진 본문.
  */
-export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
-    const [activeTile, setActiveTile] = useState('pax');
+export function HeaderSummary({
+    planDate,
+    header,
+    category,
+    onCategoryChange,
+    children,
+}: HeaderSummaryProps) {
+    const plan = header?.fltPlan;
+    const weather = header?.weather;
+    const dowAttr = header?.dowAttr;
+
+    const hourlyOf = (tmnlId: TmnlId) =>
+        header?.hourlyPsgList.find((item) => item.tmnlId === tmnlId) ?? null;
+    const t1Hourly = hourlyOf('T1');
+    const t2Hourly = hourlyOf('T2');
+
+    // 도착 여객은 따로 내려오지 않는다. 총계에서 출발분을 뺀 값으로 본다.
+    const arrPsgCnt = plan ? Math.max(0, plan.totPsgCnt - plan.depPsgCnt) : 0;
+    const count = (value: number | undefined) => (value === undefined ? EMPTY : formatCount(value));
 
     return (
         <div className="body">
@@ -40,14 +84,14 @@ export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
                                 <div className="cell">
                                     <div className="k">운항편</div>
                                     <div>
-                                        <span className="v blue">1,354</span>
+                                        <span className="v blue">{count(plan?.totFltCnt)}</span>
                                         <span className="u">편</span>
                                     </div>
                                 </div>
                                 <div className="cell">
                                     <div className="k">총 여객</div>
                                     <div>
-                                        <span className="v teal">1,354</span>
+                                        <span className="v teal">{count(plan?.totPsgCnt)}</span>
                                         <span className="u">명</span>
                                     </div>
                                 </div>
@@ -56,21 +100,21 @@ export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
                                 <div className="stat-cells">
                                     <div>
                                         <div className="k">출발</div>
-                                        <div className="v">10,000</div>
+                                        <div className="v">{count(plan?.depFltCnt)}</div>
                                     </div>
                                     <div>
                                         <div className="k">도착</div>
-                                        <div className="v">354</div>
+                                        <div className="v">{count(plan?.arrFltCnt)}</div>
                                     </div>
                                 </div>
                                 <div className="stat-cells">
                                     <div>
                                         <div className="k">출발</div>
-                                        <div className="v">10,000</div>
+                                        <div className="v">{count(plan?.depPsgCnt)}</div>
                                     </div>
                                     <div>
                                         <div className="k">도착</div>
-                                        <div className="v">354</div>
+                                        <div className="v">{plan ? formatCount(arrPsgCnt) : EMPTY}</div>
                                     </div>
                                 </div>
                             </div>
@@ -82,95 +126,23 @@ export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
                         <div className="card-head">
                             <span className="card-title">시간대별 출발여객</span>
                             <span className="tval">
-                                <span className="t1c">T1</span> 219 <span className="t2c">T2</span>{' '}
-                                260
+                                <span className="t1c">T1</span> {count(t1Hourly?.totPsgCnt)}{' '}
+                                <span className="t2c">T2</span> {count(t2Hourly?.totPsgCnt)}
                             </span>
                         </div>
                         <div className="hourly-body">
-                            <div className="hourly-row">
-                                <span className="ic">
-                                    <img className="tico" src={t1Blue} alt="T1" />
-                                </span>
-                                <svg viewBox="0 0 256 50" preserveAspectRatio="none">
-                                    <g stroke="#e4e8f0" strokeWidth=".9">
-                                        <line x1="0" y1="6" x2="256" y2="6" />
-                                        <line x1="0" y1="22" x2="256" y2="22" />
-                                        <line x1="0" y1="38" x2="256" y2="38" />
-                                    </g>
-                                    <g fill="#3f8ee6">
-                                        <rect x="82" y="31" width="14" height="7" />
-                                        <rect x="97" y="25" width="14" height="13" />
-                                        <rect x="112" y="18" width="14" height="20" />
-                                        <rect x="127" y="12" width="14" height="26" />
-                                        <rect x="142" y="8" width="14" height="30" />
-                                        <rect x="157" y="11" width="14" height="27" />
-                                        <rect x="172" y="18" width="14" height="20" />
-                                        <rect x="187" y="27" width="14" height="11" />
-                                    </g>
-                                    <path
-                                        d="M0 32 C22 32 40 31 58 30 C76 29 92 28 108 25 C124 22 136 18 148 17 C160 16 168 20 178 24 C188 28 194 30 200 24 C206 17 210 6 218 5 C226 4 230 14 236 20 C242 26 248 28 256 28"
-                                        fill="none"
-                                        stroke="#6fd6c4"
-                                        strokeWidth="1.5"
-                                        strokeLinecap="round"
-                                    />
-                                </svg>
-                                <div className="ylab">
-                                    <span>4,000</span>
-                                    <span>2,000</span>
-                                    <span>0</span>
-                                </div>
-                            </div>
-                            <div className="axis-row">
-                                <span className="ic" />
-                                <div className="axis">
-                                    {HOUR_AXIS.map((h) => (
-                                        <span key={h}>{h}</span>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="hourly-row">
-                                <span className="ic">
-                                    <img className="tico" src={t2Teal} alt="T2" />
-                                </span>
-                                <svg viewBox="0 0 256 50" preserveAspectRatio="none">
-                                    <g stroke="#e4e8f0" strokeWidth=".9">
-                                        <line x1="0" y1="6" x2="256" y2="6" />
-                                        <line x1="0" y1="22" x2="256" y2="22" />
-                                        <line x1="0" y1="38" x2="256" y2="38" />
-                                    </g>
-                                    <g fill="#3f8ee6">
-                                        <rect x="16" y="33" width="14" height="5" />
-                                        <rect x="31" y="35" width="14" height="3" />
-                                        <rect x="97" y="26" width="14" height="12" />
-                                        <rect x="112" y="21" width="14" height="17" />
-                                        <rect x="127" y="16" width="14" height="22" />
-                                        <rect x="142" y="8" width="14" height="30" />
-                                        <rect x="157" y="17" width="14" height="21" />
-                                        <rect x="172" y="17" width="14" height="21" />
-                                    </g>
-                                    <path
-                                        d="M0 20 C12 20 20 27 32 30 C46 33 58 33 72 31 C86 29 96 24 110 23 C126 22 138 27 150 28 C162 29 170 24 180 18 C190 12 198 8 208 9 C220 10 228 18 236 26 C242 32 248 34 256 35"
-                                        fill="none"
-                                        stroke="#7cb6f5"
-                                        strokeWidth="1.5"
-                                        strokeLinecap="round"
-                                    />
-                                </svg>
-                                <div className="ylab">
-                                    <span>6,000</span>
-                                    <span>3,000</span>
-                                    <span>0</span>
-                                </div>
-                            </div>
-                            <div className="axis-row">
-                                <span className="ic" />
-                                <div className="axis">
-                                    {HOUR_AXIS.map((h) => (
-                                        <span key={h}>{h}</span>
-                                    ))}
-                                </div>
-                            </div>
+                            <HourlyPsgChart
+                                data={t1Hourly}
+                                iconSrc={t1Blue}
+                                iconAlt="T1"
+                                lineColor="#6fd6c4"
+                            />
+                            <HourlyPsgChart
+                                data={t2Hourly}
+                                iconSrc={t2Teal}
+                                iconAlt="T2"
+                                lineColor="#7cb6f5"
+                            />
                         </div>
                     </div>
 
@@ -184,18 +156,27 @@ export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
                             <span className="dow-ic">
                                 <Icon name="calendar" />
                             </span>
-                            <span className="off">주중</span>
-                            <span className="on">주말 전일(금)</span>
-                            <span className="off">주말(토)</span>
+                            {DOW_STEPS.map((step) => {
+                                const on = dowAttr?.dowType === step.type;
+                                return (
+                                    <span key={step.type} className={on ? 'on' : 'off'}>
+                                        {/* 현재 값은 서버 문구를 쓴다 (요일까지 붙어 내려온다) */}
+                                        {on ? dowAttr.dowNm : step.label}
+                                    </span>
+                                );
+                            })}
                         </div>
                         <div className="card-foot">
                             <span className="tag-chip">특이점</span>
                             <span className="dow-tags">
-                                <span className="off">하계 전일</span>
-                                <span className="on">하계</span>
-                                <span className="off">추석 전일</span>
-                                <span className="off">추석</span>
-                                <span className="off">공휴</span>
+                                {SPECIAL_NOTES.map((note) => (
+                                    <span
+                                        key={note}
+                                        className={dowAttr?.spclNote === note ? 'on' : 'off'}
+                                    >
+                                        {note}
+                                    </span>
+                                ))}
                             </span>
                         </div>
                     </div>
@@ -206,68 +187,47 @@ export function HeaderSummary({ planDate, children }: HeaderSummaryProps) {
                             <span className="card-title">기상정보</span>
                         </div>
                         <div className="wx-row">
+                            {/* 아이콘 세트에 날씨 글리프가 하나뿐이라 wthrCd 별 구분은 아직 없다 */}
                             <span className="wx-ic">
                                 <Icon name="weather" />
                             </span>
                             <div className="wx-temp">
-                                24<small>°C</small>
+                                {weather ? weather.tmpr : EMPTY}
+                                <small>°C</small>
                             </div>
                         </div>
                         <div className="wx-sub">
                             <span>
-                                강수량 <b>00</b>mm
+                                강수량 <b>{weather ? weather.rainAmt : EMPTY}</b>mm
                             </span>
                             <span>
-                                적설 <b>00</b>mm
+                                적설 <b>{weather ? weather.snowAmt : EMPTY}</b>mm
                             </span>
                         </div>
                         <div className="card-foot">
                             <span className="tag-chip">저시정</span>
                             <span className="wx-foot-r">
-                                1단계 <b>15:00</b>
+                                1단계 <b>{formatHhmm(weather?.lowVisStep1Time ?? '')}</b>
                                 <br />
-                                2단계 <b>16:00</b>
+                                2단계 <b>{formatHhmm(weather?.lowVisStep2Time ?? '')}</b>
                             </span>
                         </div>
                     </div>
                     <div className="quick c-quick">
                         <div className="quick-title">PRIME TIME</div>
                         <div className="quick-grid">
-                            <button
-                                type="button"
-                                className={`qtile${activeTile === 'pax' ? ' active' : ''}`}
-                                onClick={() => setActiveTile('pax')}
-                            >
-                                <QuickPaxIcon aria-hidden="true" />
-                                <span>터미널 여객수</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                className={`qtile${activeTile === 'flight' ? ' active' : ''}`}
-                                onClick={() => setActiveTile('flight')}
-                            >
-                                <QuickFlightIcon aria-hidden="true" />
-                                <span>운항편</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                className={`qtile${activeTile === 'checkin' ? ' active' : ''}`}
-                                onClick={() => setActiveTile('checkin')}
-                            >
-                                <QuickCheckinIcon aria-hidden="true" />
-                                <span>체크인카운터</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                className={`qtile${activeTile === 'gate' ? ' active' : ''}`}
-                                onClick={() => setActiveTile('gate')}
-                            >
-                                <QuickGateIcon aria-hidden="true" />
-                                <span>출국장</span>
-                            </button>
+                            {QUICK_TILES.map((tile) => (
+                                <button
+                                    key={tile.category}
+                                    type="button"
+                                    className={`qtile${category === tile.category ? ' active' : ''}`}
+                                    aria-pressed={category === tile.category}
+                                    onClick={() => onCategoryChange(tile.category)}
+                                >
+                                    <tile.Icon aria-hidden="true" />
+                                    <span>{tile.label}</span>
+                                </button>
+                            ))}
                         </div>
                     </div>
                 </section>

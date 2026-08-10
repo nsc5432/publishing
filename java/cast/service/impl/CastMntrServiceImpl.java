@@ -11,7 +11,7 @@ import aoms.pm.cast.dto.MntrSearchDto;
 import aoms.pm.cast.dto.SmltExcnCntRawDto;
 import aoms.pm.cast.dto.SmltExcnDto;
 import aoms.pm.cast.dto.SmltExecDetailDto;
-import aoms.pm.cast.dto.SmltExecDto;
+import aoms.pm.cast.dto.SmltCastExecDto;
 import aoms.pm.cast.dto.SmltExecListDto;
 import aoms.pm.cast.dto.SmltExecSmryDto;
 import aoms.pm.cast.enums.SmltExecStatus;
@@ -73,14 +73,14 @@ public class CastMntrServiceImpl implements CastMntrService {
 	@Override
 	public SmltExecListDto retrieveSmltExecList(MntrSearchDto searchDto) {
 		SmltExecListDto result = new SmltExecListDto();
-		List<SmltExecDto> stdList = new ArrayList<>();
-		List<SmltExecDto> userList = new ArrayList<>();
+		List<SmltCastExecDto> stdList = new ArrayList<>();
+		List<SmltCastExecDto> userList = new ArrayList<>();
 
 		// 표준/사용자를 좌우로 나란히 보여주므로 한 번 읽어 화면 기준으로 나눈다.
 		// 목록 No 는 각 표에서 1부터 다시 매긴다 — 매퍼의 ROW_NUM 은 전체 기준이라 쓸 수 없다
 		for (SmltExcnDto excn : castSmltMapper.retrieveSmltExcnList(searchDto.getBgnDt(), searchDto.getEndDt())) {
 			SmltType smltType = SmltType.ofDbCode(excn.getSmltType());
-			List<SmltExecDto> target = smltType == SmltType.USER ? userList : stdList;
+			List<SmltCastExecDto> target = smltType == SmltType.USER ? userList : stdList;
 
 			target.add(toExecDto(excn, smltType, target.size() + 1));
 		}
@@ -115,8 +115,8 @@ public class CastMntrServiceImpl implements CastMntrService {
 		return result;
 	}
 
-	private SmltExecDto toExecDto(SmltExcnDto excn, SmltType smltType, int rowNum) {
-		SmltExecDto result = new SmltExecDto();
+	private SmltCastExecDto toExecDto(SmltExcnDto excn, SmltType smltType, int rowNum) {
+		SmltCastExecDto result = new SmltCastExecDto();
 
 		result.setRowNum(rowNum);
 		result.setSmltId(excn.getSmltId());

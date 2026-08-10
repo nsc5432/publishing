@@ -11,6 +11,6 @@ import lombok.Setter;
 public class SmltExecListDto extends JsonResponse {
 	private static final long serialVersionUID = 1L;
 
-	private List<SmltExecDto> stdList; // 표준(일일) 시뮬레이션
-	private List<SmltExecDto> userList; // 사용자 시뮬레이션
+	private List<SmltCastExecDto> stdList; // 표준(일일) 시뮬레이션
+	private List<SmltCastExecDto> userList; // 사용자 시뮬레이션
 }
