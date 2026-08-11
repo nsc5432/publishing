@@ -30,6 +30,52 @@
     </select>
 
     <!--
+        사용자 저장분 재조회 — 저장한 적이 있으면 그 값이 화면 초기값이다.
+        기준 데이터(배정정보 TI_GO_CKNCT_DALY_ALOT)는 저장 이력이 없을 때만 쓴다.
+        아일랜드 목록이 곧 "운영 중인 아일랜드"다 — 화면에서 지운 아일랜드는 여기 없다.
+    -->
+    <select id="retrieveUserChknIslandList" resultType="aoms.pm.cast.dto.ChknIslandDto">
+        /* CastChknMapper.retrieveUserChknIslandList */
+        SELECT
+            A.CHKN_ISL_CD AS ISLAND,
+            NVL(A.BOOTH_CNT, 0) AS BOOTH_CNT,
+            NVL(A.KOS_CNT, 0) AS KIOSK_CNT,
+            NVL(A.SBD_CNT, 0) AS BAG_DROP_CNT
+        FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL A
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND A.TMNL_ID = #{tmnlId}
+        ORDER BY A.CHKN_ISL_CD
+    </select>
+
+    <select id="retrieveUserChknOperHrList" resultType="aoms.pm.cast.dto.UserChknOperHrRawDto">
+        /* CastChknMapper.retrieveUserChknOperHrList */
+        SELECT
+            A.CHKN_ISL_CD AS ISLAND,
+            NVL(A.OPER_BGNG_HR, 0) AS BGN_HOUR,
+            NVL(A.OPER_END_HR, 0) AS END_HOUR
+        FROM PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR A
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND A.TMNL_ID = #{tmnlId}
+        ORDER BY A.CHKN_ISL_CD, A.OPER_HR_SN
+    </select>
+
+    <select id="retrieveUserChknBoothList" resultType="aoms.pm.cast.dto.UserChknBoothRawDto">
+        /* CastChknMapper.retrieveUserChknBoothList */
+        SELECT
+            A.CHKN_ISL_CD AS ISLAND,
+            A.BOOTH_NO,
+            A.ALN_CD,
+            A.CSTM_ALCTN_YN AS CUSTOM_YN
+        FROM PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH A
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND A.TMNL_ID = #{tmnlId}
+        ORDER BY A.CHKN_ISL_CD, A.BOOTH_NO
+    </select>
+
+    <!--
         저장 — 전체 교체(delete-then-insert).
         화면이 터미널 1개분 아일랜드 전체를 보내므로 부분 수정이 아니라 묶음 교체다.
         삭제 범위는 SMLT_ID + TMNL_ID 로만 한정한다. TMNL_ID 를 빼면 T1 저장이 T2 를 지운다.

@@ -3,6 +3,7 @@ package aoms.pm.cast.service.impl;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -20,6 +21,8 @@ import aoms.pm.cast.dto.OprTimeDto;
 import aoms.pm.cast.dto.SlfDeviceCntRawDto;
 import aoms.pm.cast.dto.SmltKpiDto;
 import aoms.pm.cast.dto.TimeRange;
+import aoms.pm.cast.dto.UserChknBoothRawDto;
+import aoms.pm.cast.dto.UserChknOperHrRawDto;
 import aoms.pm.cast.dto.UserConfigChknDto;
 import aoms.pm.cast.dto.UserSmltChknDto;
 import aoms.pm.cast.dto.UserSmltChknSaveDto;
@@ -49,6 +52,7 @@ import lombok.RequiredArgsConstructor;
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
  * 2026. 03. 12. / 노세찬 / 최초작성
+ * 2026. 08. 11. / 노세찬 / 부스 목록을 아일랜드 36석 골격으로 내려주고, 사용자 저장분을 재조회에 반영
  * -----------------------------------------------------------------------------------
  *
  * </pre>
@@ -63,6 +67,10 @@ public class CastChknServiceImpl implements CastChknService {
 	private static final String CUSTOM_YN_N = "N";
 	private static final String EMPTY_ALN_CD = "";
 	private static final int PERCENT = 100;
+	/** 아일랜드 한 면(L 또는 R)의 부스 수 — 화면 도크의 좌/우 스트립 한 줄 길이다 */
+	private static final int SIDE_BOOTHS = 18;
+	/** 아일랜드 1개의 부스 골격 크기 (좌 18 + 우 18) */
+	private static final int ISLAND_BOOTHS = SIDE_BOOTHS * 2;
 
 	private final CastSmltService castSmltService;
 	private final CastSlfchknService castSlfchknService;
@@ -77,12 +85,9 @@ public class CastChknServiceImpl implements CastChknService {
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 
 		List<CknctCntRawDto> cknctCntList = castChknMapper.retrieveCknctCntList(fcltTmnlId, BOOTH_USE_CRG_TYPE_CD_LIST);
-		Map<String, List<UserConfigChknDto>> boothMap = castUserConfigService.retrieveChknMapGroupByIsland(getExcnYmd(searchDto), fcltTmnlId);
-		Map<String, List<SlfDeviceCntRawDto>> slfMap = castSlfchknService.retrieveSlfDeviceCntList(fcltTmnlId)
-				.stream().collect(Collectors.groupingBy(SlfDeviceCntRawDto::getIsland));
 
 		List<String> islandCdList = cknctCntList.stream().map(CknctCntRawDto::getIsland).collect(toList());
-		List<ChknIslandDto> islandList = getIslandDatas(islandCdList, boothMap, slfMap);
+		List<ChknIslandDto> islandList = getIslandList(searchDto, fcltTmnlId, islandCdList);
 		List<Integer> oprBoothCntList = getOprBoothCntList(islandList);
 		List<WaitPsgDto> waitList = castSmltService.retrieveWaitPsgList(searchDto.getSmltId(), fcltTmnlId, UP_PSG_FCLT_CD_LIST);
 
@@ -181,23 +186,81 @@ public class CastChknServiceImpl implements CastChknService {
 		return result;
 	}
 
+	/*
+	 * 화면은 아일랜드 36석 골격을 통째로 보낸다. 골격은 표현이지 데이터가 아니므로
+	 * 배정이 있는 자리만 저장한다 — 미배정 자리까지 넣으면 터미널 1개 저장이 468행이 되어
+	 * INSERT ALL 한 문장이 지나치게 길어진다. 조회할 때 다시 36석으로 펴진다 (toBoothList).
+	 */
 	private List<ChknBoothDto> normalizeBoothList(List<ChknBoothDto> boothList) {
 		if (boothList == null) {
 			return new ArrayList<>();
 		}
 
-		for (ChknBoothDto booth : boothList) {
-			booth.setAlnCd(booth.getAlnCd() != null ? booth.getAlnCd() : EMPTY_ALN_CD);
+		List<ChknBoothDto> result = boothList.stream()
+				.filter(x -> x.getAlnCd() != null && !x.getAlnCd().isEmpty())
+				.collect(toList());
+
+		for (ChknBoothDto booth : result) {
 			booth.setCustomYn(booth.getCustomYn() != null ? booth.getCustomYn() : CUSTOM_YN_N);
 		}
 
-		return boothList;
+		return result;
 	}
 
 	// 기준일자는 요청에 있으면 그대로, 없으면 시뮬레이션 설정의 실행일자를 쓴다
 	private String getExcnYmd(UserSmltChknSearchDto searchDto) {
 		String ymd = searchDto.getYmd();
 		return ymd != null && !ymd.isEmpty() ? ymd : castSmltService.retrieveSmltStngByKey(searchDto.getSmltId()).getExcnYmd();
+	}
+
+	/*
+	 * 화면 초기값의 출처는 둘이다.
+	 *   1. 사용자가 저장한 적이 있으면 그 값 (TN_PM_SMLT_USER_CHKN_*)
+	 *   2. 없으면 그날의 배정정보 (TI_GO_CKNCT_DALY_ALOT)
+	 * 저장분이 있으면 배정정보는 읽지 않는다 — 사용자가 지운 아일랜드가 되살아나면 안 된다.
+	 */
+	private List<ChknIslandDto> getIslandList(UserSmltChknSearchDto searchDto, String fcltTmnlId, List<String> islandCdList) {
+		List<ChknIslandDto> savedList = getSavedIslandList(searchDto.getSmltId(), fcltTmnlId);
+
+		if (!savedList.isEmpty()) {
+			return savedList;
+		}
+
+		Map<String, List<UserConfigChknDto>> boothMap = castUserConfigService.retrieveChknMapGroupByIsland(getExcnYmd(searchDto), fcltTmnlId);
+		Map<String, List<SlfDeviceCntRawDto>> slfMap = castSlfchknService.retrieveSlfDeviceCntList(fcltTmnlId)
+				.stream().collect(Collectors.groupingBy(SlfDeviceCntRawDto::getIsland));
+
+		return getIslandDatas(islandCdList, boothMap, slfMap);
+	}
+
+	// 저장분 재조회 — 부모 1건에 자식 2종을 아일랜드 문자로 붙인다
+	private List<ChknIslandDto> getSavedIslandList(String smltId, String fcltTmnlId) {
+		List<ChknIslandDto> result = castChknMapper.retrieveUserChknIslandList(smltId, fcltTmnlId);
+
+		if (result.isEmpty()) {
+			return result;
+		}
+
+		Map<String, List<UserChknOperHrRawDto>> operHrMap = castChknMapper.retrieveUserChknOperHrList(smltId, fcltTmnlId)
+				.stream().collect(Collectors.groupingBy(UserChknOperHrRawDto::getIsland));
+		Map<String, List<UserChknBoothRawDto>> boothMap = castChknMapper.retrieveUserChknBoothList(smltId, fcltTmnlId)
+				.stream().collect(Collectors.groupingBy(UserChknBoothRawDto::getIsland));
+
+		for (ChknIslandDto island : result) {
+			List<UserChknBoothRawDto> booths = boothMap.getOrDefault(island.getIsland(), new ArrayList<>());
+			Map<Integer, String> alnCdMap = new LinkedHashMap<>();
+
+			for (UserChknBoothRawDto booth : booths) {
+				alnCdMap.put(booth.getBoothNo(), nvl(booth.getAlnCd()));
+			}
+
+			island.setOprTimeList(operHrMap.getOrDefault(island.getIsland(), new ArrayList<>()).stream()
+					.map(x -> new OprTimeDto().withBgnHour(x.getBgnHour()).withEndHour(x.getEndHour()))
+					.collect(toList()));
+			island.setBoothList(toBoothList(alnCdMap));
+		}
+
+		return result;
 	}
 
 	// 배정이 있는 아일랜드만 차트에 올린다. 배정이 없는 아일랜드는 islandCdList 로만 내려간다
@@ -217,14 +280,16 @@ public class CastChknServiceImpl implements CastChknService {
 
 			List<TimeRange> boothRanges = booths.stream().flatMap(x -> x.getTimeRanges().stream()).collect(toList());
 			List<SlfDeviceCntRawDto> slfDevices = slfMap.getOrDefault(island, new ArrayList<>());
+			Map<Integer, String> alnCdMap = toAlnCdMap(booths);
 
 			ChknIslandDto item = new ChknIslandDto();
 			item.setIsland(island);
-			item.setBoothCnt(booths.size());
+			// BOOTH_CNT 는 골격 크기가 아니라 "배정된 부스 수"다 — 피크 카운터·가동률이 이 값을 쓴다
+			item.setBoothCnt(alnCdMap.size());
 			item.setKioskCnt(getDeviceCnt(slfDevices, SlfType.KIOSK));
 			item.setBagDropCnt(getDeviceCnt(slfDevices, SlfType.SBD));
 			item.setOprTimeList(toOprTimeList(SmltUtils.mergeTimeRanges(boothRanges)));
-			item.setBoothList(toBoothList(booths));
+			item.setBoothList(toBoothList(alnCdMap));
 
 			result.add(item);
 		}
@@ -232,14 +297,39 @@ public class CastChknServiceImpl implements CastChknService {
 		return result;
 	}
 
-	private List<ChknBoothDto> toBoothList(List<UserConfigChknDto> booths) {
-		return booths.stream()
+	private Map<Integer, String> toAlnCdMap(List<UserConfigChknDto> booths) {
+		Map<Integer, String> result = new LinkedHashMap<>();
+
+		booths.stream()
 				.sorted((a, b) -> a.getCounterNum() - b.getCounterNum())
-				.map(x -> new ChknBoothDto()
-						.withBoothNo(x.getCounterNum())
-						.withAlnCd(x.getAlnCd() != null ? x.getAlnCd() : "")
-						.withCustomYn(CUSTOM_YN_N))
-				.collect(toList());
+				.forEach(x -> result.put(x.getCounterNum(), nvl(x.getAlnCd())));
+
+		return result;
+	}
+
+	/*
+	 * 부스 목록은 배정된 자리만이 아니라 아일랜드 36석 골격 전체다.
+	 * 화면 도크가 좌 18 / 우 18 스트립을 boothList 그대로 그리므로, 미배정 자리가 빠지면
+	 * 그 좌석을 편집할 방법이 없고 한쪽 번호대만 배정된 아일랜드가 반쪽 블럭으로 잘못 그려진다.
+	 * 면(L/R) 구분 필드는 원천에 없다 — 화면이 부스 번호로 파생한다 (1~18 좌 / 19~36 우).
+	 */
+	private List<ChknBoothDto> toBoothList(Map<Integer, String> alnCdMap) {
+		List<ChknBoothDto> result = new ArrayList<>();
+		// 36 을 넘는 번호를 쓰는 아일랜드가 있으면 골격을 늘린다 — 배정을 잘라 버리지 않기 위함
+		int maxBoothNo = alnCdMap.keySet().stream().mapToInt(Integer::intValue).max().orElse(0);
+
+		for (int boothNo = 1; boothNo <= Math.max(ISLAND_BOOTHS, maxBoothNo); boothNo++) {
+			result.add(new ChknBoothDto()
+					.withBoothNo(boothNo)
+					.withAlnCd(alnCdMap.getOrDefault(boothNo, EMPTY_ALN_CD))
+					.withCustomYn(CUSTOM_YN_N));
+		}
+
+		return result;
+	}
+
+	private String nvl(String value) {
+		return value != null ? value : EMPTY_ALN_CD;
 	}
 
 	private List<OprTimeDto> toOprTimeList(List<TimeRange> timeRanges) {

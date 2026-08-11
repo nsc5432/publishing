@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { userSmltService } from '@/api/pm/services/userSmlt.service';
-import { BlockChart } from '../../components/BlockChart';
+import { BlockChart, GUTTER } from '../../components/BlockChart';
 import { CountStepper } from '../../components/CountStepper';
 import { DetailDrawer, DrawerSection } from '../../components/DetailDrawer';
 import { TimeBar } from '../../components/TimeBar';
@@ -10,10 +10,9 @@ import { useErrorAlert } from '../../hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
 import { BLOCK_COLORS, TERMINALS, type BlockItem, type TerminalKind } from '../../types';
-import { ScRangeTable } from './components/ScRangeTable';
-import { SC_PER_BLOCK } from './constants';
+import { ScGrid } from './components/ScGrid';
 import type { DepartureGate } from './types';
-import { EMPTY_DEPARTURE, toDeparture, toSaveReq } from './view';
+import { EMPTY_DEPARTURE, toDeparture, toHourArray, toPlans, toSaveReq } from './view';
 
 interface DepartureTabProps {
     smltIds: Record<TerminalKind, string>;
@@ -25,6 +24,9 @@ interface DepartureTabProps {
 /** 터미널별 편집 상태 — 출국장 목록 전체가 편집 대상이다 */
 type EditState = Record<TerminalKind, DepartureGate[]>;
 
+/** 출국장 번호 → 24칸 검색대 대수. 조회 결과가 들어올 때 toHourArray() 로 채운다 */
+type ScState = Record<TerminalKind, Record<number, number[]>>;
+
 /** 드로어 편집값 — 변경을 눌러야 목록(EditState)에 반영된다 */
 interface DrawerState {
     draft: DepartureGate;
@@ -33,56 +35,50 @@ interface DrawerState {
 }
 
 const EMPTY_EDIT: EditState = { T1: [], T2: [] };
+const EMPTY_SC: ScState = { T1: {}, T2: {} };
 
 const FETCH_FAIL = '출국장 정보를 불러오지 못했습니다.';
 const SAVE_FAIL = '출국장 저장에 실패했습니다.';
+
+/** 층 높이 — 아래 격자와 합쳐도 패널 세로 예산(420px) 안에 들어가는 값 */
+const CHART_ROW_H = 18;
 
 /** 조회 함수는 렌더마다 새로 만들지 않도록 컴포넌트 밖에 둔다 */
 const fetchDep = (smltId: string, tmnlId: TerminalKind) =>
     userSmltService.getDepInfo(smltId, tmnlId);
 
-/** 운영계획을 시간대별 검색대 대수로 편다 — 타임바 슬롯 숫자 / 피크 계산에 함께 쓴다 */
-function scByHour(gate: DepartureGate): Record<number, number> {
-    const byHour: Record<number, number> = {};
-    gate.plans.forEach((plan) => {
-        for (let h = plan.startHour; h < plan.endHour; h += 1) byHour[h] = plan.count;
-    });
-
-    return byHour;
+/** 조회 결과 → 격자 값 (출국장 번호 → 24칸) */
+function toScState(gates: DepartureGate[]): Record<number, number[]> {
+    return Object.fromEntries(gates.map((gate) => [gate.no, toHourArray(gate)]));
 }
 
 /** 요약: 피크 검색대 = 시간대별 운영 검색대 합의 최댓값 */
-function peakSc(gates: DepartureGate[]): number {
+function peakSc(gates: DepartureGate[], sc: Record<number, number[]>): number {
     const byHour: number[] = Array(24).fill(0);
     gates
         .filter((gate) => !gate.off)
         .forEach((gate) => {
-            const sc = scByHour(gate);
+            const hours = sc[gate.no] ?? [];
             toHourList(gate.ranges).forEach((hour) => {
-                byHour[hour] += sc[hour] ?? 0;
+                byHour[hour] += hours[hour] ?? 0;
             });
         });
 
     return Math.max(0, ...byHour);
 }
 
-/** 주 차트 — 블럭 1개 = 출국장 1개 */
+/**
+ * 주 차트 — 블럭 1개 = 출국장 1개.
+ *
+ * 미운영 출국장도 넘긴다. stackMode="fixed" 가 항목 순서로 층을 고정하므로
+ * 구간을 비워 두면 블럭만 사라지고 그 출국장의 자리(층)는 아래 격자와 같은 줄에 남는다.
+ */
 function toGateItems(gates: DepartureGate[]): BlockItem[] {
     return gates.map((gate) => ({
         label: String(gate.no),
         color: gate.color,
-        ranges: gate.ranges,
+        ranges: gate.off ? [] : gate.ranges,
         size: 1,
-    }));
-}
-
-/** 보조 차트 — 블럭 1개 = 검색대 4대 */
-function toScItems(gates: DepartureGate[]): BlockItem[] {
-    return gates.map((gate) => ({
-        label: String(gate.no),
-        color: gate.color,
-        ranges: gate.ranges,
-        size: gate.scCnt,
     }));
 }
 
@@ -102,8 +98,6 @@ function newGate(gates: DepartureGate[]): DepartureGate {
     };
 }
 
-let planSeq = 0;
-
 /**
  * 출국장 탭
  */
@@ -121,27 +115,38 @@ export function DepartureTab({
         FETCH_FAIL,
     );
     const [edit, setEdit] = useState<EditState>(EMPTY_EDIT);
+    const [sc, setSc] = useState<ScState>(EMPTY_SC);
     const [drawer, setDrawer] = useState<DrawerState | null>(null);
+    /** 위 차트 블럭 · 아래 격자 줄이 함께 쓰는 선택 상태 */
+    const [selected, setSelected] = useState<number | null>(null);
 
     useErrorAlert(error);
 
     // 조회 결과가 들어오면 편집 상태를 조회한 값으로 되돌린다.
     useEffect(() => {
-        setEdit({ T1: fetched.T1?.gates ?? [], T2: fetched.T2?.gates ?? [] });
+        const t1 = fetched.T1?.gates ?? [];
+        const t2 = fetched.T2?.gates ?? [];
+
+        setEdit({ T1: t1, T2: t2 });
+        setSc({ T1: toScState(t1), T2: toScState(t2) });
         setDrawer(null);
+        setSelected(null);
     }, [fetched]);
 
     /** 편집 중이던 드로어는 터미널이 바뀌면 닫는다 (편집값은 터미널별로 남는다) */
     const handleTerminalChange = (terminal: TerminalKind) => {
         setDrawer(null);
+        setSelected(null);
         onTerminalChange(terminal);
     };
 
-    const openGate = (label: string) => {
-        const gate = edit[activeTerminal].find((it) => String(it.no) === label);
+    /** 격자 줄 라벨 클릭 — 출국장 속성 편집을 연다 (위 차트 블럭 클릭은 줄 강조만 한다) */
+    const openGate = (no: number) => {
+        const gate = edit[activeTerminal].find((it) => it.no === no);
         if (!gate) return;
 
-        setDrawer({ draft: gate, target: gate.no });
+        setSelected(no);
+        setDrawer({ draft: gate, target: no });
     };
 
     const openNew = () => {
@@ -150,25 +155,6 @@ export function DepartureTab({
 
     const patchDraft = (next: Partial<DepartureGate>) => {
         setDrawer((prev) => (prev ? { ...prev, draft: { ...prev.draft, ...next } } : prev));
-    };
-
-    /** 구간 추가 — 마지막 구간 다음 2시간을 현재 검색대 대수로 잡아 준다 */
-    const addPlan = () => {
-        if (!drawer) return;
-
-        const { draft } = drawer;
-        const opened = toHourList(draft.ranges);
-        const lastEnd = draft.plans.reduce((max, plan) => Math.max(max, plan.endHour), 0);
-        const startHour = Math.max(lastEnd, opened[0] ?? 0);
-        const endHour = Math.min(startHour + 2, opened[opened.length - 1] ?? 24);
-        if (endHour <= startHour) return;
-
-        patchDraft({
-            plans: [
-                ...draft.plans,
-                { id: `new-${(planSeq += 1)}`, startHour, endHour, count: draft.scCnt },
-            ],
-        });
     };
 
     /** 드로어 `변경` — 신규면 목록에 더하고, 기존이면 그 자리를 갈아 끼운다 */
@@ -183,6 +169,14 @@ export function DepartureTab({
                     ? [...prev[activeTerminal], draft]
                     : prev[activeTerminal].map((it) => (it.no === target ? draft : it)),
         }));
+        // 신규 출국장은 격자에 빈 줄(24칸 0)로 자리를 잡아 준다
+        setSc((prev) => ({
+            ...prev,
+            [activeTerminal]: {
+                ...prev[activeTerminal],
+                [draft.no]: prev[activeTerminal][draft.no] ?? Array<number>(24).fill(0),
+            },
+        }));
         setDrawer(null);
     };
 
@@ -190,10 +184,18 @@ export function DepartureTab({
         const smltId = smltIds[terminal];
         if (!smltId) return;
 
-        runSave(
-            userSmltService.saveDepInfo(toSaveReq(smltId, terminal, edit[terminal])),
-            SAVE_FAIL,
-        );
+        // 격자 24칸을 구간으로 되묶어 넘긴다 — 시작 시각이 같은 기존 행은 id(planSn)를 물려받는다.
+        // 운영시간을 뒤에 줄였다면 그 밖에 남은 값은 구간으로 나가지 않게 0 으로 덮는다.
+        const gates = edit[terminal].map((gate) => {
+            const open = new Set(gate.off ? [] : toHourList(gate.ranges));
+            const byHour = Array.from({ length: 24 }, (_, hour) =>
+                open.has(hour) ? (sc[terminal][gate.no]?.[hour] ?? 0) : 0,
+            );
+
+            return { ...gate, plans: toPlans(byHour, gate.plans) };
+        });
+
+        runSave(userSmltService.saveDepInfo(toSaveReq(smltId, terminal, gates)), SAVE_FAIL);
     };
 
     /** 지도 보기 — 배치 마커를 받아 둔다 (도면 UI 는 아직 붙지 않았다) */
@@ -214,9 +216,9 @@ export function DepartureTab({
             {TERMINALS.map((terminal) => {
                 const panelData = fetched[terminal] ?? EMPTY_DEPARTURE;
                 const gates = edit[terminal];
+                const byGate = sc[terminal];
                 const active = terminal === activeTerminal;
                 const operating = gates.filter((gate) => !gate.off);
-                const offGates = gates.filter((gate) => gate.off);
 
                 return (
                     <TerminalPanel
@@ -241,7 +243,7 @@ export function DepartureTab({
                                 <div className="summary__group">
                                     <span className="summary__label">피크 검색대</span>
                                     <strong className="summary__value summary__value--accent">
-                                        {peakSc(gates)}
+                                        {peakSc(gates, byGate)}
                                     </strong>
                                 </div>
                             </>
@@ -257,19 +259,17 @@ export function DepartureTab({
                         }
                     >
                         <BlockChart
-                            items={toGateItems(operating)}
+                            items={toGateItems(gates)}
                             title="시간대별 운영 출국장"
-                            unit="(단위: 출국장 수)"
-                            levels={6}
-                            rowH={22}
+                            unit="1블럭 = 출국장 1개"
+                            // 출국장 수만큼 층을 둔다 (조회 전에는 0층이 되지 않게 받쳐 둔다)
+                            levels={Math.max(gates.length, 1)}
+                            rowH={CHART_ROW_H}
+                            gridLeft={GUTTER}
+                            stackMode="fixed"
                             blockFontSize={13}
-                            legend={operating.map((gate) => ({
-                                label: `${gate.no}출국장`,
-                                color: gate.color,
-                                note: `검색대 ${gate.scCnt}`,
-                            }))}
                             line={panelData.wait}
-                            footText="블럭을 클릭하면 출국장별 운영시간·검색대를 관리합니다. 초기값은 배정정보로 채워집니다."
+                            footText="블럭을 클릭하면 아래 격자에서 그 출국장 줄이 켜집니다. 줄 라벨을 클릭하면 출국장 속성을 편집합니다."
                             actions={
                                 <>
                                     <button
@@ -292,55 +292,30 @@ export function DepartureTab({
                                     </button>
                                 </>
                             }
-                            selectedLabel={
-                                active && drawer?.target !== null && drawer?.target !== undefined
-                                    ? String(drawer.target)
-                                    : null
-                            }
-                            onBlockSelect={openGate}
-                            formatTip={(item, hour) =>
-                                `${item.label}번 출국장 · 보안검색대 ${
-                                    gates.find((gate) => String(gate.no) === item.label)?.scCnt ?? 0
-                                }대 · ${formatHour(hour)} ~ ${formatHour(hour + 1)}`
-                            }
+                            selected={active && selected !== null ? [String(selected)] : []}
+                            onBlockSelect={(label) => setSelected(Number(label))}
+                            formatTip={(item, hour) => {
+                                const gate = gates.find((it) => String(it.no) === item.label);
+                                const range = gate?.ranges.find(
+                                    (it) => hour >= it.start && hour < it.end,
+                                );
+                                const count = byGate[Number(item.label)]?.[hour] ?? 0;
+                                const when = range
+                                    ? `${range.start}~${range.end}시`
+                                    : `${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
+
+                                return `${item.label}번 출국장 · ${when} · 검색대 ${count}대`;
+                            }}
                             disabled={!active}
                         />
 
-                        {/* 구 보안 검색대 탭 — 시간축은 위 차트와 같으므로 X축을 생략한다 */}
-                        <BlockChart
-                            items={toScItems(operating)}
-                            title="시간대별 보안검색대"
-                            unit="(단위: 검색대 수)"
-                            unitNote={`1블럭 = 검색대 ${SC_PER_BLOCK}대 · 초기값`}
-                            levels={8}
-                            rowH={14}
-                            unitSize={SC_PER_BLOCK}
-                            compact
-                            showScale={false}
-                            headExtra={
-                                <div className="offchips">
-                                    미운영
-                                    {offGates.length === 0 ? (
-                                        <span className="offchip">없음</span>
-                                    ) : (
-                                        offGates.map((gate) => (
-                                            <span key={gate.no} className="offchip">
-                                                {gate.no}번 출국장
-                                            </span>
-                                        ))
-                                    )}
-                                </div>
-                            }
-                            headActions={
-                                <button
-                                    type="button"
-                                    className="bchart__act bchart__act--even"
-                                    disabled={!active}
-                                    onClick={() => console.log('[균등 배치]', { terminal })}
-                                >
-                                    균등 배치
-                                </button>
-                            }
+                        <ScGrid
+                            gates={gates}
+                            value={byGate}
+                            onChange={(next) => setSc((prev) => ({ ...prev, [terminal]: next }))}
+                            selected={active ? selected : null}
+                            onSelect={setSelected}
+                            onLabelClick={openGate}
                             disabled={!active}
                         />
                     </TerminalPanel>
@@ -384,12 +359,11 @@ export function DepartureTab({
                         </div>
                     </DrawerSection>
 
-                    <DrawerSection title="운영시간" hint="슬롯 안 숫자 = 시간대별 검색대 대수">
+                    <DrawerSection title="운영시간" hint="1시간 단위">
                         <TimeBar
                             label="선택 범위"
                             ranges={drawer.draft.ranges}
                             onChange={(ranges) => patchDraft({ ranges })}
-                            values={scByHour(drawer.draft)}
                             disabled={drawer.draft.off}
                         />
                     </DrawerSection>
@@ -410,35 +384,6 @@ export function DepartureTab({
                             sub="피크 시간대 기준"
                             value={drawer.draft.scCnt}
                             onChange={(scCnt) => patchDraft({ scCnt })}
-                        />
-                    </DrawerSection>
-
-                    <DrawerSection
-                        title="보안검색대 운영계획"
-                        hint={
-                            <>
-                                <button
-                                    type="button"
-                                    className="btn--even"
-                                    onClick={() =>
-                                        console.log('[균등 배치]', { gate: drawer.draft.no })
-                                    }
-                                >
-                                    균등 배치
-                                </button>
-                                <button type="button" className="btn--add" onClick={addPlan}>
-                                    + 구간 추가
-                                </button>
-                            </>
-                        }
-                    >
-                        <ScRangeTable
-                            rows={drawer.draft.plans}
-                            onDelete={(id) =>
-                                patchDraft({
-                                    plans: drawer.draft.plans.filter((plan) => plan.id !== id),
-                                })
-                            }
                         />
                     </DrawerSection>
                 </DetailDrawer>

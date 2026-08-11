@@ -6,8 +6,11 @@ import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
 import aoms.pm.cast.dto.DepFcltRawDto;
+import aoms.pm.cast.dto.DepGateDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
 import aoms.pm.cast.dto.ScCntRawDto;
+import aoms.pm.cast.dto.UserDepOperHrRawDto;
+import aoms.pm.cast.dto.UserScPlanRawDto;
 import aoms.pm.cast.dto.UserSmltDepSaveDto;
                                                                                                              
 /**  												                                                           
@@ -24,6 +27,7 @@ import aoms.pm.cast.dto.UserSmltDepSaveDto;
  * 2026. 03. 12 / 노세찬 / 최초작성
  * 2026. 08. 08 / 노세찬 / 사용자 시뮬레이션 출국장·보안검색대 저장 statement 추가
  * 2026. 08. 08 / 노세찬 / 구 화면 전용 retrieveSmltDepList 삭제
+ * 2026. 08. 11 / 노세찬 / 사용자 저장분 재조회 statement 추가 (검색대 격자의 시간대별 대수 출처)
  *------------------------------------------------------------------------------
  *                                                                   		                                    
  * </pre>                                                                    		                            
@@ -38,6 +42,19 @@ public interface CastDepMapper {
 
 	List<ScCntRawDto> retrieveScCntList(
 		@Param("tmnlId") String tmnlId, @Param("scRsrcId") String scRsrcId
+	);
+
+	// 사용자 저장분 재조회 — 시간대별 검색대 대수는 기준 데이터에 시간축이 없어 여기서만 나온다
+	List<DepGateDto> retrieveUserDepList(
+		@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
+	);
+
+	List<UserDepOperHrRawDto> retrieveUserDepOperHrList(
+		@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
+	);
+
+	List<UserScPlanRawDto> retrieveUserScPlanList(
+		@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
 	);
 
 	// 저장 — 전체 교체(delete-then-insert). 삭제 범위는 SMLT_ID + TMNL_ID 로 한정한다

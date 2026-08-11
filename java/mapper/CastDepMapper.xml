@@ -66,6 +66,54 @@
     </select>
 
     <!--
+        사용자 저장분 재조회 — 저장한 적이 있으면 그 값이 화면 초기값이다.
+        검색대 격자(ScGrid)가 요구하는 "시간대별 대수"는 기준 데이터
+        (TN_PM_SMLT_FCLTY_OPNG_TBL_SCRTY_CNTRL_ATRB) 에 시간축이 없어 이 테이블에서만 나온다.
+    -->
+    <select id="retrieveUserDepList" resultType="aoms.pm.cast.dto.DepGateDto">
+        /* CastDepMapper.retrieveUserDepList */
+        SELECT
+            A.DEP_NUM,
+            A.OPER_YN AS OPR_YN,
+            NVL(A.SCRTY_CNTRL_CNT, 0) AS SC_CNT,
+            NVL(A.NRML_CNT, 0) AS NORMAL_CNT,
+            NVL(A.SMART_PASS_CNT, 0) AS SMART_PASS_CNT
+        FROM PMOWN.TN_PM_SMLT_USER_DEP A
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND A.TMNL_ID = #{tmnlId}
+        ORDER BY A.DEP_NUM
+    </select>
+
+    <select id="retrieveUserDepOperHrList" resultType="aoms.pm.cast.dto.UserDepOperHrRawDto">
+        /* CastDepMapper.retrieveUserDepOperHrList */
+        SELECT
+            A.DEP_NUM,
+            NVL(A.OPER_BGNG_HR, 0) AS BGN_HOUR,
+            NVL(A.OPER_END_HR, 0) AS END_HOUR
+        FROM PMOWN.TN_PM_SMLT_USER_DEP_OPER_HR A
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND A.TMNL_ID = #{tmnlId}
+        ORDER BY A.DEP_NUM, A.OPER_HR_SN
+    </select>
+
+    <select id="retrieveUserScPlanList" resultType="aoms.pm.cast.dto.UserScPlanRawDto">
+        /* CastDepMapper.retrieveUserScPlanList */
+        SELECT
+            A.DEP_NUM,
+            A.PLAN_SN,
+            NVL(A.OPER_BGNG_HR, 0) AS BGN_HOUR,
+            NVL(A.OPER_END_HR, 0) AS END_HOUR,
+            NVL(A.SCRTY_CNTRL_CNT, 0) AS SC_CNT
+        FROM PMOWN.TN_PM_SMLT_SC_PLAN A
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND A.TMNL_ID = #{tmnlId}
+        ORDER BY A.DEP_NUM, A.OPER_BGNG_HR
+    </select>
+
+    <!--
         저장 — 전체 교체(delete-then-insert). 구 saveScPlanInfo 를 흡수해 한 트랜잭션에서
         출국장 · 운영시간 · 보안검색대 운영계획 3개 테이블을 함께 쓴다.
         삭제 범위는 SMLT_ID + TMNL_ID 로만 한정한다. TMNL_ID 를 빼면 T1 저장이 T2 를 지운다.

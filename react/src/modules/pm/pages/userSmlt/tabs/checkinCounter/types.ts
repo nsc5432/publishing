@@ -1,10 +1,15 @@
 import type { TimeRange } from '@/components/ui/time-range-selector';
 import type { BlockColor, PanelKpi, WaitLineData } from '../../types';
 
-/** 부스 1석 — 드로어 자원 배정 그리드의 셀 1개 */
+/** 아일랜드의 좌/우 면 */
+export type BoothSide = 'L' | 'R';
+
+/** 부스 1석 — 도크 자원 배정 스트립의 셀 1개 */
 export interface Booth {
     /** 부스 번호 (아일랜드 안에서 1부터) */
     no: number;
+    /** 소속 면 — 도크의 좌우 스트립을 가르는 기준 */
+    side: BoothSide;
     /** 배정 항공사 코드 — 미배정이면 '' */
     airline: string;
 }

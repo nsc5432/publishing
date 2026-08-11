@@ -44,6 +44,11 @@ export interface BlockItem {
     ranges: TimeRange[];
     /** 시설의 실제 규모(부스 석 수 / 검색대 대수). 블럭 수 = ceil(size / unitSize) */
     size: number;
+    /**
+     * 운영 중인 면. 'L' 또는 'R' 한쪽만 있으면 블럭을 위/아래로 갈라 그린다.
+     * 없거나 둘 다 있으면 통 블럭 — 출국장은 넘기지 않는다.
+     */
+    sides?: readonly ('L' | 'R')[];
 }
 
 /** 블럭 차트 범례 1개 */

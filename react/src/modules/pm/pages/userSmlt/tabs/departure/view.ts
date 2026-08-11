@@ -24,7 +24,10 @@ function toPlanSn(id: string): number {
     return Number.isFinite(sn) ? sn : 0;
 }
 
-function toPlans(depNum: string, planList: UserSmltDepDto['depList'][number]['planList']): ScRange[] {
+function toScRanges(
+    depNum: string,
+    planList: UserSmltDepDto['depList'][number]['planList'],
+): ScRange[] {
     return planList.map((plan) => ({
         id: toPlanId(depNum, plan.planSn),
         startHour: plan.bgnHour,
@@ -42,7 +45,7 @@ function toGates(dto: UserSmltDepDto): DepartureGate[] {
         scCnt: dep.scCnt,
         normalCnt: dep.normalCnt,
         smartPassCnt: dep.smartPassCnt,
-        plans: toPlans(dep.depNum, dep.planList),
+        plans: toScRanges(dep.depNum, dep.planList),
     }));
 }
 
@@ -52,6 +55,44 @@ export function toDeparture(dto: UserSmltDepDto): TerminalDeparture {
         wait: toWaitLine(dto.waitList, dto.waitMaxCnt),
         kpis: toKpis(dto.kpi),
     };
+}
+
+/** 운영계획을 24칸 배열로 편다 — 격자 셀 / 합계 / 피크가 모두 이 배열을 읽는다 */
+export function toHourArray(gate: DepartureGate): number[] {
+    const byHour = Array<number>(24).fill(0);
+    gate.plans.forEach((plan) => {
+        for (let h = plan.startHour; h < plan.endHour; h += 1) byHour[h] = plan.count;
+    });
+
+    return byHour;
+}
+
+/** 격자에서 새로 생긴 구간의 임시 키 일련번호 (저장 때 planSn = 0 으로 나간다) */
+let seq = 0;
+
+/** 격자 24칸 → ScRange[] · 같은 값이 이어지는 동안 한 구간으로 묶는다 */
+export function toPlans(byHour: number[], prev: ScRange[]): ScRange[] {
+    const out: ScRange[] = [];
+    let h = 0;
+
+    while (h < 24) {
+        const count = byHour[h] ?? 0;
+        // 0 은 구간을 만들지 않는다 — 운영시간(ranges)은 위 차트가 따로 관리한다
+        if (count === 0) {
+            h += 1;
+            continue;
+        }
+
+        let end = h + 1;
+        while (end < 24 && byHour[end] === count) end += 1;
+
+        // 시작 시각이 같은 기존 행이 있으면 그 id 를 물려받아 planSn 을 지킨다
+        const kept = prev.find((plan) => plan.startHour === h);
+        out.push({ id: kept?.id ?? `new-${(seq += 1)}`, startHour: h, endHour: end, count });
+        h = end;
+    }
+
+    return out;
 }
 
 /** 저장 요청 — 구 saveScPlanInfo 를 흡수해 출국장 1개분에 운영계획까지 함께 보낸다 */

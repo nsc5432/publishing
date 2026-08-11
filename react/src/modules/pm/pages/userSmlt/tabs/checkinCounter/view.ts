@@ -1,7 +1,8 @@
 import type { TmnlId, UserSmltChknDto, UserSmltChknSaveReq } from '@/types/api.types';
 import { BLOCK_COLORS } from '../../types';
 import { EMPTY_WAIT_LINE, toKpis, toWaitLine } from '../../view';
-import type { CheckinIsland, TerminalCheckinCounter } from './types';
+import { SIDE_BOOTHS } from './constants';
+import type { BoothSide, CheckinIsland, TerminalCheckinCounter } from './types';
 
 /**
  * 체크인 카운터 DTO → 화면 뷰 모델.
@@ -9,12 +10,26 @@ import type { CheckinIsland, TerminalCheckinCounter } from './types';
  * 블럭 색은 서버가 모르는 화면 표기라 내려온 순서대로 돌려 쓴다.
  */
 
+/**
+ * 부스 번호 → 소속 면.
+ *
+ * `ChknBoothDto` 에 면 구분 필드가 없어 번호로 파생한다 — 1~18 좌(L) / 19~36 우(R) 가정이다.
+ * 실제 부스 번호 체계가 다르면(예: 홀짝 교차) 이 함수 한 곳만 고치면 된다.
+ */
+export function toSide(boothNo: number): BoothSide {
+    return boothNo <= SIDE_BOOTHS ? 'L' : 'R';
+}
+
 function toIslands(dto: UserSmltChknDto): CheckinIsland[] {
     return dto.islandList.map((island, i) => ({
         label: island.island,
         color: BLOCK_COLORS[i % BLOCK_COLORS.length],
         ranges: island.oprTimeList.map((time) => ({ start: time.bgnHour, end: time.endHour })),
-        booths: island.boothList.map((booth) => ({ no: booth.boothNo, airline: booth.alnCd })),
+        booths: island.boothList.map((booth) => ({
+            no: booth.boothNo,
+            side: toSide(booth.boothNo),
+            airline: booth.alnCd,
+        })),
         kiosk: island.kioskCnt,
         bagdrop: island.bagDropCnt,
     }));

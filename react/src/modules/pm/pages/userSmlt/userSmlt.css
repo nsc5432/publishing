@@ -390,7 +390,14 @@ html[data-page='userSmlt'] .panels {
     min-height: 0;
 }
 
+/* 블럭 차트(ECharts px 상수)와 아래 격자(DOM)가 공유하는 시간 좌표.
+   BlockChart.tsx 의 GUTTER(44) / Y_RIGHT(40) 와 값이 같아야 08시 블럭 아래에 08시 칸이 온다.
+   TerminalPanel 은 children 을 .panel 바로 아래에 둔다 — 별도 body 래퍼가 없다 */
 html[data-page='userSmlt'] .panel {
+    --gut: 44px;
+    --rgt: 40px;
+    --col: calc((100% - var(--gut) - var(--rgt)) / 24);
+
     flex: 1 1 0;
     display: flex;
     flex-direction: column;
@@ -1045,103 +1052,237 @@ html[data-page='userSmlt'] .bchart__act--add:not(:disabled):hover {
     background: var(--pm-primary-dark);
 }
 
-html[data-page='userSmlt'] .bchart__act--even {
-    border-color: rgba(18, 176, 154, 0.35);
-    background: rgba(18, 176, 154, 0.08);
-    color: #0d8d7c;
-}
+/* =====================================================================
+   7-1. 검색대 격자 (출국장 — tabs/departure/components/ScGrid.tsx)
 
-html[data-page='userSmlt'] .bchart__act--even:not(:disabled):hover {
-    background: rgba(18, 176, 154, 0.16);
-}
+   위 블럭 차트와 같은 시간 좌표(--gut / --col / --rgt)를 쓰는 DOM 격자다.
+   08시 블럭 바로 아래에 08시 칸이 서려면 칸 피치가 차트 플롯과 같아야 하므로
+   줄에 gap 을 두지 않고 셀 안쪽 여백(margin: 0 1px)으로 간격을 만든다.
 
-/* 셀프 서비스 스트립 (구 셀프체크인/백드롭 탭) ----------------------------- */
-html[data-page='userSmlt'] .selfbar {
+   줄은 출국장 전체로 고정 — 그 시간에 닫힌 출국장은 빗금 칸으로 자리를 지킨다.
+   ===================================================================== */
+html[data-page='userSmlt'] .scgrid {
     flex: 0 0 auto;
+    /* 위 차트(.bchart)의 안쪽 여백 20px + 테두리 1px 과 같은 자리에 칸을 세운다 */
+    padding: 0 21px;
+    margin-top: clamp(6px, 1.2vh, 12px);
+    user-select: none;
+}
+
+html[data-page='userSmlt'] .scgrid__head {
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-top: clamp(10px, 1.7vh, 16px);
-    padding: clamp(10px, 1.5vh, 14px) 20px;
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.7);
-    background: linear-gradient(140deg, #f4f3f9 0%, #edecf5 42%, #e6e6f2 100%);
-    box-shadow: 0 2px 10px rgba(63, 84, 145, 0.06);
+    padding-top: 9px;
+    margin-bottom: 6px;
+    border-top: 1px dashed var(--line);
 }
 
-html[data-page='userSmlt'] .selfbar__title {
+html[data-page='userSmlt'] .scgrid__title {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: 8px;
     margin: 0;
     font-size: 13px;
     font-weight: 700;
+    letter-spacing: -0.2px;
     white-space: nowrap;
 }
 
-html[data-page='userSmlt'] .selfbar__title span {
-    padding: 3px 8px;
-    border-radius: 6px;
-    background: var(--pm-primary-soft);
-    color: var(--pm-primary);
-    font-size: 10px;
-    font-weight: 700;
+html[data-page='userSmlt'] .scgrid__hint {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-mute);
 }
 
-html[data-page='userSmlt'] .selfbar__items {
+/* 팝오버가 이 안에서 줄 위치를 잡는다 */
+html[data-page='userSmlt'] .scgrid__body {
+    position: relative;
+}
+
+/* 한 줄 = 라벨(--gut) + 24칸 + 행 피크(--rgt) */
+html[data-page='userSmlt'] .scgrid__ln {
     display: flex;
-    gap: 8px;
-    white-space: nowrap;
+    align-items: center;
+    margin-bottom: 1px;
 }
 
-html[data-page='userSmlt'] .selfbar__item {
-    display: inline-flex;
-    align-items: baseline;
-    gap: 8px;
-    height: 32px;
-    padding: 0 14px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.9);
-    font-size: 12px;
-    color: #5e6470;
-    line-height: 32px;
+/* 위 차트에서 고른 출국장 — 아래 같은 줄이 켜진다 */
+html[data-page='userSmlt'] .scgrid__ln.is-sel {
+    border-radius: 6px;
+    background: rgba(68, 65, 204, 0.08);
 }
 
-html[data-page='userSmlt'] .selfbar__item b {
-    font-size: 14px;
-    font-weight: 700;
+html[data-page='userSmlt'] .scgrid__ln.is-sel .scgrid__lbl,
+html[data-page='userSmlt'] .scgrid__ln.is-sel .scgrid__pk {
     color: var(--pm-primary);
 }
 
-html[data-page='userSmlt'] .selfbar__note {
-    margin: 0 0 0 auto;
+html[data-page='userSmlt'] .scgrid__lbl {
+    flex: 0 0 var(--gut);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    width: var(--gut);
+    height: 20px;
+    padding-right: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-align: left;
+}
+
+html[data-page='userSmlt'] button.scgrid__lbl:not(:disabled):hover {
+    color: var(--pm-primary);
+}
+
+/* 출국장 정체성 — 위 차트 블럭과 같은 색이다 (칸 농도는 값이 맡는다) */
+html[data-page='userSmlt'] .scgrid__bar {
+    flex: 0 0 auto;
+    width: 4px;
+    height: 13px;
+    border-radius: 2px;
+    background: #cdd1dc;
+}
+
+html[data-page='userSmlt'] .scgrid__lbl.is-off {
+    color: var(--text-mute);
+    font-weight: 500;
+}
+
+html[data-page='userSmlt'] .scgrid__lbl--sum {
+    color: var(--text-mute);
+    font-weight: 500;
+}
+
+html[data-page='userSmlt'] .scgrid__row {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: repeat(24, minmax(0, 1fr));
+    min-width: 0;
+}
+
+html[data-page='userSmlt'] .sccell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 20px;
+    /* 칸 피치를 차트와 맞추려고 간격을 셀 안쪽에서 만든다 */
+    margin: 0 1px;
+    border-radius: 4px;
+    background: #f2f3f7;
+    color: #4c5158;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+html[data-page='userSmlt'] button.sccell:not(:disabled):hover {
+    box-shadow: inset 0 0 0 1px rgba(68, 65, 204, 0.45);
+}
+
+/* 진한 농도 — 바탕이 어두워 글자를 뒤집는다 */
+html[data-page='userSmlt'] .sccell.is-hi {
+    color: #fff;
+}
+
+/* 문이 열렸는데 검색대가 없다 — 눈에 걸리게 둔다 */
+html[data-page='userSmlt'] .sccell.is-zero {
+    background: #fdeceb;
+    color: #d2453a;
+}
+
+/* 미운영 — 값을 넣을 수 없다 */
+html[data-page='userSmlt'] .sccell.is-off {
+    background: repeating-linear-gradient(45deg,
+            #eceef4 0 3px,
+            #f7f8fb 3px 6px);
+}
+
+html[data-page='userSmlt'] .sccell.is-pick {
+    box-shadow: inset 0 0 0 2px var(--pm-primary);
+}
+
+/* 행 피크 — 세로로 훑으면 출국장별 보유 규모가 한 열로 읽힌다 */
+html[data-page='userSmlt'] .scgrid__pk {
+    flex: 0 0 var(--rgt);
+    width: var(--rgt);
+    padding-left: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-sub);
+}
+
+/* 시간별 합계 — 농도까지 입혀 그 줄 자체가 24칸짜리 막대그래프로 읽힌다 */
+html[data-page='userSmlt'] .scgrid__sum {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--line);
+}
+
+html[data-page='userSmlt'] .scgrid__sum .sccell.is-pk {
+    box-shadow: inset 0 0 0 2px var(--line-wait);
+}
+
+html[data-page='userSmlt'] .scgrid__pk--sum {
+    color: var(--pm-primary);
+}
+
+/* 선택한 칸 팝오버 — 선택 영역 바로 아래에 붙는다 */
+html[data-page='userSmlt'] .scgrid__pop {
+    position: absolute;
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--pm-primary-soft);
+    background: #fff;
+    box-shadow: 0 8px 20px rgba(46, 50, 94, 0.18);
+    white-space: nowrap;
+}
+
+html[data-page='userSmlt'] .scgrid__pop.is-over {
+    border-color: #e79b95;
+}
+
+html[data-page='userSmlt'] .scgrid__poplbl {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
     font-size: 11px;
     color: var(--text-mute);
-    white-space: nowrap;
 }
 
-/* 미운영 칩 (출국장 보조 차트 헤드) --------------------------------------- */
-html[data-page='userSmlt'] .offchips {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: auto;
-    font-size: 12px;
-    color: var(--text-mute);
-    white-space: nowrap;
+html[data-page='userSmlt'] .scgrid__poplbl b {
+    font-weight: 700;
+    color: var(--text);
 }
 
-html[data-page='userSmlt'] .offchip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 26px;
+html[data-page='userSmlt'] .scgrid__apply {
+    height: 24px;
     padding: 0 12px;
     border-radius: 999px;
-    background: #eceef3;
-    color: #7b818c;
+    background: var(--pm-primary);
+    color: #fff;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 700;
+}
+
+html[data-page='userSmlt'] .scgrid__apply:hover {
+    background: var(--pm-primary-dark);
+}
+
+html[data-page='userSmlt'] .scgrid__apply:disabled {
+    background: #c8cad6;
+    cursor: default;
+}
+
+html[data-page='userSmlt'] .scgrid__warn {
+    font-size: 11px;
+    font-weight: 700;
+    color: #d2453a;
 }
 
 /* =====================================================================
@@ -1369,8 +1510,14 @@ html[data-page='userSmlt'] .airchip {
     transition: background 0.15s;
 }
 
-html[data-page='userSmlt'] .airchip:hover {
+html[data-page='userSmlt'] .airchip:not(:disabled):hover {
     background: #d3d3ee;
+}
+
+/* 배정할 부스를 아직 고르지 않았다 */
+html[data-page='userSmlt'] .airchip:disabled {
+    opacity: 0.45;
+    cursor: default;
 }
 
 html[data-page='userSmlt'] .airchip--ghost {
@@ -1489,103 +1636,223 @@ html[data-page='userSmlt'] .bcell--empty {
     font-weight: 500;
 }
 
-/* 보안검색대 운영계획 표 (tabs/departure/components/ScRangeTable.tsx) ------- */
-html[data-page='userSmlt'] .plan {
-    overflow: hidden;
-    border-radius: 10px;
-    border: 1px solid var(--line);
-    background: #fff;
-}
-
-html[data-page='userSmlt'] .plan table {
-    width: 100%;
-    border-collapse: collapse;
-    table-layout: fixed;
-}
-
-html[data-page='userSmlt'] .plan th,
-html[data-page='userSmlt'] .plan td {
-    height: 27px;
-    vertical-align: middle;
-    font-size: 12px;
-}
-
-html[data-page='userSmlt'] .plan thead th {
-    border-bottom: 1px solid var(--line);
-    background: #f5f6fa;
-    color: var(--text-mute);
-    font-weight: 500;
-}
-
-html[data-page='userSmlt'] .plan td {
-    text-align: center;
-    color: #4c5158;
-}
-
-html[data-page='userSmlt'] .plan td b {
-    font-weight: 700;
-    color: var(--text);
-}
-
-html[data-page='userSmlt'] .plan tbody tr+tr td {
-    border-top: 1px solid #f0f1f6;
-}
-
-html[data-page='userSmlt'] .plan tr.is-empty td {
-    height: 54px;
-    color: var(--text-mute);
-}
-
-html[data-page='userSmlt'] .plan .col-cnt {
-    width: 78px;
-}
-
-html[data-page='userSmlt'] .plan .col-del {
-    width: 40px;
-}
-
-html[data-page='userSmlt'] .plan__del {
-    color: #b9bdc7;
-    font-size: 14px;
-    line-height: 1;
-    transition: color 0.15s;
-}
-
-html[data-page='userSmlt'] .plan__del:hover {
-    color: var(--pm-primary);
-}
-
-/* 드로어 섹션 헤더 버튼 — 구간 추가 / 균등 배치 ---------------------------- */
-html[data-page='userSmlt'] .btn--add,
+/* 균등 배치 (검색대 격자 머리 — 구 차트 헤드 / 드로어 두 곳을 여기로 합쳤다) --- */
 html[data-page='userSmlt'] .btn--even {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    height: 28px;
+    height: 24px;
+    margin-left: auto;
     padding: 0 12px;
     border-radius: 999px;
-    font-size: 12px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-html[data-page='userSmlt'] .btn--add {
-    background: var(--pm-primary);
-    color: #fff;
-}
-
-html[data-page='userSmlt'] .btn--add:hover {
-    background: var(--pm-primary-dark);
-}
-
-html[data-page='userSmlt'] .btn--even {
     border: 1px solid rgba(18, 176, 154, 0.35);
     background: rgba(18, 176, 154, 0.08);
     color: #0d8d7c;
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: background 0.15s;
 }
 
-html[data-page='userSmlt'] .btn--even:hover {
+html[data-page='userSmlt'] .btn--even:not(:disabled):hover {
     background: rgba(18, 176, 154, 0.16);
+}
+
+html[data-page='userSmlt'] .btn--even:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+/* =====================================================================
+   8-1. 편집 도크 (체크인 카운터 — tabs/checkinCounter/components/EditDock.tsx)
+
+   드로어와 같은 오버레이인데 방향만 아래다. 아일랜드 1개는 좌우 18석씩 36석이라
+   380px 드로어에 들어가지 않아 .panels 폭 전체로 가로로 편다.
+   ===================================================================== */
+html[data-page='userSmlt'] .dock {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-height: 100%;
+    overflow: auto;
+    padding: 14px 22px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-bottom: 0;
+    border-top: 2px solid var(--pm-primary);
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(180deg, #f4f3f9 0%, #fbfbfd 40%, #ffffff 100%);
+    box-shadow: 0 -18px 44px rgba(35, 45, 90, 0.16);
+}
+
+html[data-page='userSmlt'] .dock__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+html[data-page='userSmlt'] .dock__hint {
+    margin: 0 0 0 auto;
+    font-size: 11px;
+    color: var(--text-mute);
+    white-space: nowrap;
+}
+
+html[data-page='userSmlt'] .dock__empty {
+    margin: 0;
+    padding: 10px 0 4px;
+    font-size: 12px;
+    color: var(--text-mute);
+}
+
+/* 아일랜드 칩 줄 — 하루 종일 닫혀 차트에 없는 아일랜드를 여기서 붙잡는다 */
+html[data-page='userSmlt'] .isles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+html[data-page='userSmlt'] .isle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 28px;
+    border-radius: 8px;
+    /* 기본은 미운영 — 점선 회색 */
+    border: 1px dashed #c5c9d6;
+    background: #f2f3f8;
+    color: #8b909c;
+    font-size: 12px;
+    font-weight: 700;
+    transition: box-shadow 0.15s;
+}
+
+html[data-page='userSmlt'] .isle.is-on {
+    border: 1px solid transparent;
+    color: #fff;
+}
+
+html[data-page='userSmlt'] .isle.is-sel {
+    box-shadow: 0 0 0 2px var(--pm-primary);
+}
+
+/* 3열 — 부스 배정 / 운영시간 / 셀프 서비스 */
+html[data-page='userSmlt'] .dock__cols {
+    display: grid;
+    grid-template-columns: 56fr 23fr 21fr;
+    gap: 18px;
+}
+
+html[data-page='userSmlt'] .dock__col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    padding-right: 18px;
+    border-right: 1px solid var(--line);
+}
+
+html[data-page='userSmlt'] .dock__col:last-child {
+    padding-right: 0;
+    border-right: 0;
+}
+
+html[data-page='userSmlt'] .dock__foot {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+html[data-page='userSmlt'] .dock__foot .btn {
+    min-width: 110px;
+    height: 38px;
+}
+
+/* 좌우 스트립 2줄 + 가운데 스파인 */
+html[data-page='userSmlt'] .booths {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+html[data-page='userSmlt'] .booths__row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+html[data-page='userSmlt'] .booths__side {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 5px;
+    background: var(--pm-primary-soft);
+    color: var(--pm-primary);
+    font-size: 10px;
+    font-weight: 700;
+}
+
+/* 아일랜드 몸통 — 좌우 면을 가르는 선 */
+html[data-page='userSmlt'] .booths__spine {
+    height: 3px;
+    margin-left: 26px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #d7dae6 0%, #eef0f6 100%);
+}
+
+/* 18칸 스트립 변형 — 드로어의 3열 그리드(.boothgrid)와 같은 셀을 가로로 편다 */
+html[data-page='userSmlt'] .boothgrid--strip {
+    display: flex;
+    flex: 1 1 auto;
+    gap: 4px;
+    min-width: 0;
+}
+
+html[data-page='userSmlt'] .boothgrid--strip .bcell {
+    flex: 1 1 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    min-width: 0;
+    height: 38px;
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 1.2;
+    overflow: hidden;
+}
+
+html[data-page='userSmlt'] .boothgrid--strip .bcell__no {
+    width: auto;
+    min-width: 16px;
+    height: 13px;
+    padding: 0 3px;
+    font-size: 9px;
+}
+
+@media (max-width: 900px) {
+    html[data-page='userSmlt'] .dock__cols {
+        grid-template-columns: 1fr;
+    }
+
+    html[data-page='userSmlt'] .dock__col {
+        padding-right: 0;
+        padding-bottom: 12px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    html[data-page='userSmlt'] .dock__col:last-child {
+        padding-bottom: 0;
+        border-bottom: 0;
+    }
 }
 
 /* =====================================================================
@@ -1628,9 +1895,15 @@ html[data-page='userSmlt'] .btn--even:hover {
         gap: 8px;
     }
 
-    html[data-page='userSmlt'] .selfbar {
-        padding-left: 14px;
-        padding-right: 14px;
+    /* 격자는 차트 안쪽 여백(14px) + 테두리 1px 을 따라가야 칸이 블럭 아래에 선다 */
+    html[data-page='userSmlt'] .scgrid {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    html[data-page='userSmlt'] .dock {
+        padding-left: 16px;
+        padding-right: 16px;
     }
 }
 
@@ -1686,7 +1959,7 @@ html[data-page='userSmlt'] .btn--even:hover {
         font-size: 11px;
     }
 
-    html[data-page='userSmlt'] .selfbar__note {
+    html[data-page='userSmlt'] .dock__hint {
         display: none;
     }
 }
