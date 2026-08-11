@@ -1,4 +1,4 @@
-import type { IconName } from '@/modules/pm/pages/dashboard/components/PmIcons';
+import type { IconName } from '@/components/icons/InlineIcon';
 
 export type HistoryKind = 'standard' | 'user';
 
@@ -16,7 +16,7 @@ export const RUN_STATUS_LABEL: Record<RunStatus, string> = {
 
 /** 시뮬레이션 이력 한 줄 */
 export interface HistoryRow {
-    no: number;
+    rowNo: number;
     /** 결과 보기(상세 조회)에 쓰는 시뮬레이션 ID */
     smltId: string;
     dept: string;

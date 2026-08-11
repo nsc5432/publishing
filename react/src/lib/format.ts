@@ -1,25 +1,27 @@
-import type { SmltType } from '@/types/api.types';
-import type { SimulationType } from './types';
-
 /**
- * 서버 DTO 값을 화면 표기로 옮기는 변환 모음.
+ * 서버 DTO 값을 화면 표기로 옮기는 변환 모음 (화면 공용).
  */
 
 /** 값이 비었거나 형식이 어긋날 때 표기 */
 const EMPTY = '-';
 
+/** 두 자리 0 채움 (시각 · 분 · 초 표기 공용) */
+export function pad2(value: number | string): string {
+    return String(value).padStart(2, '0');
+}
+
 /** yyyyMMdd → yyyy/MM/dd (구분자 지정 가능) */
-export function formatYmd(ymd: string, sep = '/'): string {
+export function formatYmd(ymd: string, separator = '/'): string {
     if (!ymd || ymd.length !== 8) return EMPTY;
 
-    return [ymd.slice(0, 4), ymd.slice(4, 6), ymd.slice(6, 8)].join(sep);
+    return [ymd.slice(0, 4), ymd.slice(4, 6), ymd.slice(6, 8)].join(separator);
 }
 
 /** yyyyMMddHHmmss → yyyy-MM-dd HH:mm:ss */
-export function formatDateTime(dt: string): string {
-    if (!dt || dt.length !== 14) return EMPTY;
+export function formatDateTime(dateTime: string): string {
+    if (!dateTime || dateTime.length !== 14) return EMPTY;
 
-    return `${formatYmd(dt.slice(0, 8), '-')} ${dt.slice(8, 10)}:${dt.slice(10, 12)}:${dt.slice(12, 14)}`;
+    return `${formatYmd(dateTime.slice(0, 8), '-')} ${dateTime.slice(8, 10)}:${dateTime.slice(10, 12)}:${dateTime.slice(12, 14)}`;
 }
 
 /** HHmm → HH:mm */
@@ -31,10 +33,10 @@ export function formatHhmm(hhmm: string): string {
 
 /** 분 → HH:mm (대기시간 / 처리시간 표기) */
 export function formatMinutes(minutes: number): string {
-    const hh = String(Math.floor(minutes / 60)).padStart(2, '0');
-    const mm = String(Math.round(minutes % 60)).padStart(2, '0');
+    const hours = pad2(Math.floor(minutes / 60));
+    const mins = pad2(Math.round(minutes % 60));
 
-    return `${hh}:${mm}`;
+    return `${hours}:${mins}`;
 }
 
 /** 증감 표기 — 부호를 항상 붙이고 천단위를 끊는다 */
@@ -63,15 +65,10 @@ export function dowLabel(ymd: string): string {
 /** 오늘 (yyyyMMdd) — 최초 진입 조회 기준일자 */
 export function todayYmd(): string {
     const now = new Date();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
+    const month = pad2(now.getMonth() + 1);
+    const day = pad2(now.getDate());
 
-    return `${now.getFullYear()}${mm}${dd}`;
-}
-
-/** 서버 시뮬레이션 구분 → 화면 뱃지 구분 */
-export function toSimulationType(smltType: SmltType): SimulationType {
-    return smltType === 'USER' ? 'user' : 'daily';
+    return `${now.getFullYear()}${month}${day}`;
 }
 
 /* ================= 선택 가능 시각 (avlTimes, HHmm) ================= */
@@ -102,11 +99,13 @@ export function defaultTime(avlTimes: string[]): string {
 export function resolveTime(avlTimes: string[], hour: string, minute: string): string {
     if (avlTimes.includes(hour + minute)) return hour + minute;
 
-    const minutes = toMinuteOptions(avlTimes, hour);
-    if (minutes.length === 0) return defaultTime(avlTimes);
+    const minuteOptions = toMinuteOptions(avlTimes, hour);
+    if (minuteOptions.length === 0) return defaultTime(avlTimes);
 
     // 고른 분에 가장 가까운(넘지 않는) 값으로, 그마저 없으면 그 시의 첫 분으로 내린다.
-    const nearest = minutes.filter((m) => m <= minute).at(-1) ?? minutes[0];
+    const nearest =
+        minuteOptions.filter((candidateMinute) => candidateMinute <= minute).at(-1) ??
+        minuteOptions[0];
 
     return hour + nearest;
 }

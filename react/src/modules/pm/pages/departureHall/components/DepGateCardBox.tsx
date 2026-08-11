@@ -1,4 +1,5 @@
-import type { ComponentType, CSSProperties, SVGProps } from 'react';
+import type { ComponentType, SVGProps } from 'react';
+import { toStagePosition } from '@/lib/chart';
 import { DonePeopleIcon, DoneTimeIcon, WaitPeopleIcon, WaitTimeIcon } from '@/components/icons';
 import { CONGESTION_LABEL, type DepGateCard, type StatIcon } from '../types';
 
@@ -22,16 +23,14 @@ interface DepGateCardBoxProps {
  * 도면 위에 떠 있을 때는 마커와 같은 무대 좌표(--x / --y)로 자리를 잡는다.
  */
 export function DepGateCardBox({ card, floating = true, active = false }: DepGateCardBoxProps) {
-    const style = floating
-        ? ({ '--x': `${card.x}%`, '--y': `${card.y}%` } as CSSProperties)
-        : undefined;
+    const floatStyle = floating ? toStagePosition(card.x, card.y) : undefined;
 
     return (
         <article
-            className={`dep-card${floating ? ' dep-card--float' : ''}${card.off ? ' is-off' : ''}${
+            className={`dep-card${floating ? ' dep-card--float' : ''}${card.isClosed ? ' is-off' : ''}${
                 active ? ' is-active' : ''
             }`}
-            style={style}
+            style={floatStyle}
         >
             <div className="dep-card__head">
                 <h3 className="dep-card__title">{card.title}</h3>
@@ -42,14 +41,18 @@ export function DepGateCardBox({ card, floating = true, active = false }: DepGat
 
             <ul className="dep-stat">
                 {card.stats.map((stat) => {
-                    const Icon = STAT_ICON[stat.ico];
+                    const IconComponent = STAT_ICON[stat.icon];
 
                     return (
-                        <li className="dep-stat__item" key={stat.ico}>
-                            <Icon className="dep-stat__ico" aria-hidden="true" focusable="false" />
+                        <li className="dep-stat__item" key={stat.icon}>
+                            <IconComponent
+                                className="dep-stat__ico"
+                                aria-hidden="true"
+                                focusable="false"
+                            />
                             <span className="dep-stat__label">{stat.label}</span>
                             <strong
-                                className={`dep-stat__value${stat.point ? ' is-point' : ''}`}
+                                className={`dep-stat__value${stat.isHighlighted ? ' is-point' : ''}`}
                             >
                                 {stat.value}
                                 <em>{stat.unit}</em>

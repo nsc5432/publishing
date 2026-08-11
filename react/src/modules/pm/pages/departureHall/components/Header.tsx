@@ -38,16 +38,18 @@ export function Header({ baseDate, terminal, onTerminalChange, onSearch }: Heade
                 <div className="search-bar__field">
                     <span className="search-bar__label">터미널선택</span>
                     <div className="radio-group">
-                        {TERMINALS.map((kind) => (
-                            <span className="radio" key={kind}>
+                        {TERMINALS.map((terminalKind) => (
+                            <span className="radio" key={terminalKind}>
                                 <input
                                     type="radio"
-                                    id={`term-${kind}`}
+                                    id={`term-${terminalKind}`}
                                     name="terminal"
-                                    checked={terminal === kind}
-                                    onChange={() => onTerminalChange(kind)}
+                                    checked={terminal === terminalKind}
+                                    onChange={() => onTerminalChange(terminalKind)}
                                 />
-                                <label htmlFor={`term-${kind}`}>{TERMINAL_LABEL[kind]}</label>
+                                <label htmlFor={`term-${terminalKind}`}>
+                                    {TERMINAL_LABEL[terminalKind]}
+                                </label>
                             </span>
                         ))}
                     </div>

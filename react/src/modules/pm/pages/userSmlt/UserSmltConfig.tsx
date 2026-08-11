@@ -1,11 +1,12 @@
 import './userSmlt.css';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { unwrap } from '@/api/pm/result';
 import { Lnb } from '@/components/lnb';
+import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
 import { dialog } from '@/lib/dialog';
-import { formatYmd, todayYmd } from '@/modules/pm/pages/dashboard/format';
+import { formatYmd, todayYmd } from '@/lib/format';
 import type { ApiError } from '@/types/api.types';
 import { BgDeco } from './components/BgDeco';
 import { SmltGnb } from './components/SmltGnb';
@@ -31,18 +32,6 @@ interface TabContentProps {
     onTerminalChange: (terminal: TerminalKind) => void;
 }
 
-/** 활성 탭의 T1/T2 패널(+ 상세 드로어)을 그린다 — 탭 3개가 같은 props 를 받는다. */
-function TabContent({ tab, ...props }: TabContentProps) {
-    switch (tab) {
-        case 'flightPax':
-            return <FlightPaxTab {...props} />;
-        case 'checkinCounter':
-            return <CheckinCounterTab {...props} />;
-        case 'departure':
-            return <DepartureTab {...props} />;
-    }
-}
-
 /**
  * 사용자 시뮬레이션 — 조건 설정 화면.
  *
@@ -61,13 +50,7 @@ function UserSmltConfig() {
     const [activeTerminal, setActiveTerminal] = useState<TerminalKind>('T1');
     const [terminalPicked, setTerminalPicked] = useState(false);
 
-    useEffect(() => {
-        if (!error) return;
-
-        dialog.alert({ title: '조회 실패', description: error }).catch(() => {
-            // 다이얼로그를 못 띄우는 상황까지 화면이 끌려갈 이유는 없다 (콘솔에 이미 남는다).
-        });
-    }, [error]);
+    useErrorAlert(error);
 
     const handleSearch = () => setReloadKey((key) => key + 1);
 
@@ -78,11 +61,11 @@ function UserSmltConfig() {
         userSmltService
             .execute(smltId, activeTerminal)
             .then((dto) => unwrap(dto, EXEC_FAIL))
-            .then((dto) => {
+            .then((execResult) => {
                 dialog
                     .alert({
                         title: '시뮬레이션 실행',
-                        description: `${activeTerminal} 수행을 시작했습니다. (수행번호 ${dto.execSn})`,
+                        description: `${activeTerminal} 수행을 시작했습니다. (수행번호 ${execResult.execSn})`,
                     })
                     .catch(() => {});
             })
@@ -135,6 +118,18 @@ function UserSmltConfig() {
             </div>
         </>
     );
+}
+
+/** 활성 탭의 T1/T2 패널(+ 상세 드로어)을 그린다 — 탭 3개가 같은 props 를 받는다. */
+function TabContent({ tab, ...props }: TabContentProps) {
+    switch (tab) {
+        case 'flightPax':
+            return <FlightPaxTab {...props} />;
+        case 'checkinCounter':
+            return <CheckinCounterTab {...props} />;
+        case 'departure':
+            return <DepartureTab {...props} />;
+    }
 }
 
 export default UserSmltConfig;

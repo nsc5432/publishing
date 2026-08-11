@@ -1,9 +1,7 @@
 import { useState, useCallback, useEffect, type CSSProperties, type ReactNode } from 'react';
+import { formatHour, formatRanges, isHourInRanges, type TimeRange } from '@/lib/time-range';
 
-export interface TimeRange {
-    start: number;
-    end: number;
-}
+export type { TimeRange };
 
 interface TimeRangeSelectorProps {
     ranges: TimeRange[];
@@ -20,10 +18,9 @@ interface TimeRangeSelectorProps {
 
 /** 하단 스케일 라벨 (00:00 ~ 24:00 을 6등분한 7개) */
 function buildScale(totalSlots: number): string[] {
-    return Array.from({ length: 7 }, (_, i) => {
-        const slot = Math.round((totalSlots / 6) * i);
-        return `${String(slot).padStart(2, '0')}:00`;
-    });
+    return Array.from({ length: 7 }, (_, tickIndex) =>
+        formatHour(Math.round((totalSlots / 6) * tickIndex)),
+    );
 }
 
 // 범위 계산은 인자에만 의존하므로 컴포넌트 밖에 둔다.
@@ -95,9 +92,7 @@ export function TimeRangeSelector({
     const [dragMode, setDragMode] = useState<'select' | 'deselect'>('select');
 
     // 특정 슬롯이 선택되어 있는지 확인
-    const isSlotSelected = (index: number): boolean => {
-        return ranges.some((range) => index >= range.start && index < range.end);
-    };
+    const isSlotSelected = (index: number): boolean => isHourInRanges(index, ranges);
 
     // 슬롯에서 드래그 시작
     const handleSlotMouseDown = (index: number) => {
@@ -160,17 +155,7 @@ export function TimeRangeSelector({
         return index >= draggedRange.start && index < draggedRange.end;
     };
 
-    const formatRangesText = (): string => {
-        if (ranges.length === 0) return '선택 없음';
-
-        return [...ranges]
-            .sort((a, b) => a.start - b.start)
-            .map(
-                (r) =>
-                    `${String(r.start).padStart(2, '0')}:00 ~ ${String(r.end).padStart(2, '0')}:00`,
-            )
-            .join(', ');
-    };
+    const formatRangesText = (): string => formatRanges(ranges, '선택 없음');
 
     const slotClass = (index: number): string => {
         if (isSlotInDragRange(index)) {
@@ -182,7 +167,9 @@ export function TimeRangeSelector({
     };
 
     return (
-        <div className={`timebar${disabled ? ' is-disabled' : ''}${className ? ` ${className}` : ''}`}>
+        <div
+            className={`timebar${disabled ? ' is-disabled' : ''}${className ? ` ${className}` : ''}`}
+        >
             <p className="timebar__head">
                 <span className="timebar__label">{label}</span>
                 <strong className="timebar__value">{formatRangesText()}</strong>

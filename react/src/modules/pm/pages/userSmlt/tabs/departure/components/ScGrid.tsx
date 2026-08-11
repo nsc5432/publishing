@@ -46,11 +46,11 @@ const RAMP = ['#e8e7f8', '#cbcaef', '#aaa8e5', '#8481db', '#5b58d6', '#403dbb'];
 /** 이 단계부터는 바탕이 진해 글자를 흰색으로 뒤집는다 */
 const RAMP_INVERT = 3;
 
-/** 값 → 램프 단계 (max 는 그 격자에서 가장 큰 값) */
-function toLevel(count: number, max: number): number {
+/** 값 → 램프 단계 (rampMax 는 그 격자에서 가장 큰 값) */
+function toRampStep(count: number, rampMax: number): number {
     if (count <= 0) return 0;
 
-    return Math.min(RAMP.length - 1, Math.max(0, Math.ceil((count / max) * RAMP.length) - 1));
+    return Math.min(RAMP.length - 1, Math.max(0, Math.ceil((count / rampMax) * RAMP.length) - 1));
 }
 
 /**
@@ -70,20 +70,22 @@ export function ScGrid({
     disabled = false,
 }: ScGridProps) {
     /** 드래그 시작 칸 · 현재 칸 — 둘 다 있으면 그 사각형이 선택 중이다 */
-    const [anchor, setAnchor] = useState<Cursor | null>(null);
-    const [head, setHead] = useState<Cursor | null>(null);
+    const [dragAnchor, setDragAnchor] = useState<Cursor | null>(null);
+    const [dragCursor, setDragCursor] = useState<Cursor | null>(null);
     /** 드래그가 끝나 확정된 선택 — 팝오버가 이 위에 붙는다 */
-    const [pick, setPick] = useState<CellRect | null>(null);
+    const [selection, setSelection] = useState<CellRect | null>(null);
     /** 팝오버 스테퍼 값 (`적용` 을 눌러야 격자에 반영된다) */
-    const [draft, setDraft] = useState(0);
+    const [draftCount, setDraftCount] = useState(0);
 
     /** 줄마다 24칸 — null 은 미운영(빗금)이라 값을 넣을 수 없다 */
     const rows = useMemo(
         () =>
             gates.map((gate) => {
-                const open = new Set(gate.off ? [] : toHourList(gate.ranges));
-                const byHour = value[gate.no] ?? EMPTY_HOURS;
-                const counts = HOURS.map((hour) => (open.has(hour) ? (byHour[hour] ?? 0) : null));
+                const openHours = new Set(gate.off ? [] : toHourList(gate.ranges));
+                const countsByHour = value[gate.no] ?? EMPTY_HOURS;
+                const counts = HOURS.map((hour) =>
+                    openHours.has(hour) ? (countsByHour[hour] ?? 0) : null,
+                );
 
                 return { gate, counts, peak: Math.max(0, ...counts.map((count) => count ?? 0)) };
             }),
@@ -95,122 +97,133 @@ export function ScGrid({
         [rows],
     );
     /** 램프 기준값 — 칸 농도는 그 격자 안에서 가장 큰 값에 맞춘다 (0 나눗셈을 막아 1로 받친다) */
-    const cellMax = Math.max(1, ...rows.map((row) => row.peak));
+    const rampMax = Math.max(1, ...rows.map((row) => row.peak));
     const sumPeak = Math.max(0, ...sums);
 
     /** 드래그 중인 사각형 (행/시각 인덱스) */
-    const live = useMemo(
+    const dragRect = useMemo(
         () =>
-            anchor && head
+            dragAnchor && dragCursor
                 ? {
-                      row0: Math.min(anchor.row, head.row),
-                      row1: Math.max(anchor.row, head.row),
-                      hour0: Math.min(anchor.hour, head.hour),
-                      hour1: Math.max(anchor.hour, head.hour),
+                      firstRow: Math.min(dragAnchor.row, dragCursor.row),
+                      lastRow: Math.max(dragAnchor.row, dragCursor.row),
+                      firstHour: Math.min(dragAnchor.hour, dragCursor.hour),
+                      lastHour: Math.max(dragAnchor.hour, dragCursor.hour),
                   }
                 : null,
-        [anchor, head],
+        [dragAnchor, dragCursor],
     );
 
     /** 드래그를 놓는다 — 사각형 안에서 운영 중인 줄만 선택으로 남긴다 */
-    const commit = useCallback(() => {
-        setAnchor(null);
-        setHead(null);
-        if (!live) return;
+    const finishDrag = useCallback(() => {
+        setDragAnchor(null);
+        setDragCursor(null);
+        if (!dragRect) return;
 
-        const inside = rows
-            .slice(live.row0, live.row1 + 1)
+        const selectedRows = rows
+            .slice(dragRect.firstRow, dragRect.lastRow + 1)
             .filter((row) =>
-                row.counts.slice(live.hour0, live.hour1 + 1).some((count) => count !== null),
+                row.counts
+                    .slice(dragRect.firstHour, dragRect.lastHour + 1)
+                    .some((count) => count !== null),
             );
 
-        if (inside.length === 0) {
-            setPick(null);
+        if (selectedRows.length === 0) {
+            setSelection(null);
             onSelect(null);
 
             return;
         }
 
-        setPick({
-            gateNos: inside.map((row) => row.gate.no),
-            startHour: live.hour0,
-            endHour: live.hour1 + 1,
+        setSelection({
+            gateNos: selectedRows.map((row) => row.gate.no),
+            startHour: dragRect.firstHour,
+            endHour: dragRect.lastHour + 1,
         });
         // 스테퍼는 선택 안에서 처음 만나는 값으로 연다
-        setDraft(
-            inside[0]?.counts.slice(live.hour0, live.hour1 + 1).find((count) => count !== null) ??
-                0,
+        setDraftCount(
+            selectedRows[0]?.counts
+                .slice(dragRect.firstHour, dragRect.lastHour + 1)
+                .find((count) => count !== null) ?? 0,
         );
         // 한 줄만 잡았으면 그 출국장을 위 차트에도 켠다
-        onSelect(inside.length === 1 ? (inside[0]?.gate.no ?? null) : null);
-    }, [live, rows, onSelect]);
+        onSelect(selectedRows.length === 1 ? (selectedRows[0]?.gate.no ?? null) : null);
+    }, [dragRect, rows, onSelect]);
 
     // 격자 밖에서 손을 떼도 드래그가 끝나야 한다
     useEffect(() => {
-        if (!anchor) return undefined;
+        if (!dragAnchor) return undefined;
 
-        window.addEventListener('pointerup', commit);
+        window.addEventListener('pointerup', finishDrag);
 
-        return () => window.removeEventListener('pointerup', commit);
-    }, [anchor, commit]);
+        return () => window.removeEventListener('pointerup', finishDrag);
+    }, [dragAnchor, finishDrag]);
 
     // Esc 로 선택 해제
     useEffect(() => {
-        if (!pick) return undefined;
+        if (!selection) return undefined;
 
         const handleKey = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') setPick(null);
+            if (event.key === 'Escape') setSelection(null);
         };
         window.addEventListener('keydown', handleKey);
 
         return () => window.removeEventListener('keydown', handleKey);
-    }, [pick]);
+    }, [selection]);
 
     // 조회/터미널이 바뀌어 줄이 갈리면 남은 선택은 버린다
     useEffect(() => {
-        setPick(null);
+        setSelection(null);
     }, [gates]);
 
     const isPicked = (row: number, hour: number): boolean => {
-        if (live) {
-            return row >= live.row0 && row <= live.row1 && hour >= live.hour0 && hour <= live.hour1;
+        if (dragRect) {
+            return (
+                row >= dragRect.firstRow &&
+                row <= dragRect.lastRow &&
+                hour >= dragRect.firstHour &&
+                hour <= dragRect.lastHour
+            );
         }
-        if (!pick) return false;
+        if (!selection) return false;
 
-        const no = rows[row]?.gate.no;
+        const gateNo = rows[row]?.gate.no;
 
         return (
-            no != null && pick.gateNos.includes(no) && hour >= pick.startHour && hour < pick.endHour
+            gateNo != null &&
+            selection.gateNos.includes(gateNo) &&
+            hour >= selection.startHour &&
+            hour < selection.endHour
         );
     };
 
     const startDrag = (row: number, hour: number) => {
         if (disabled) return;
 
-        setPick(null);
-        setAnchor({ row, hour });
-        setHead({ row, hour });
+        setSelection(null);
+        setDragAnchor({ row, hour });
+        setDragCursor({ row, hour });
     };
 
     /** 선택한 칸을 전부 같은 대수로 맞춘다 */
     const apply = () => {
-        if (!pick) return;
+        if (!selection) return;
 
-        const next = { ...value };
-        pick.gateNos.forEach((no) => {
-            const row = rows.find((it) => it.gate.no === no);
+        const nextCountsByGate = { ...value };
+        selection.gateNos.forEach((gateNo) => {
+            const row = rows.find((candidate) => candidate.gate.no === gateNo);
             if (!row) return;
 
-            const byHour = [...(value[no] ?? EMPTY_HOURS)];
-            for (let hour = pick.startHour; hour < pick.endHour; hour += 1) {
+            const countsByHour = [...(value[gateNo] ?? EMPTY_HOURS)];
+            for (let hour = selection.startHour; hour < selection.endHour; hour += 1) {
                 // 미운영 칸은 건드리지 않는다
-                if (row.counts[hour] !== null) byHour[hour] = draft;
+                if (row.counts[hour] !== null) countsByHour[hour] = draftCount;
             }
-            next[no] = byHour;
+            nextCountsByGate[gateNo] = countsByHour;
         });
 
-        onChange(next);
-        setPick(null);
+        onChange(nextCountsByGate);
+        setSelection(null);
     };
 
     /**
@@ -220,37 +233,42 @@ export function ScGrid({
     const spreadEven = () => {
         if (disabled) return;
 
-        const from = pick?.startHour ?? 0;
-        const to = pick?.endHour ?? 24;
-        const next = { ...value };
+        const fromHour = selection?.startHour ?? 0;
+        const toHour = selection?.endHour ?? 24;
+        const nextCountsByGate = { ...value };
 
         rows.forEach((row) => {
-            if (pick && !pick.gateNos.includes(row.gate.no)) return;
+            if (selection && !selection.gateNos.includes(row.gate.no)) return;
 
-            const byHour = [...(value[row.gate.no] ?? EMPTY_HOURS)];
-            for (let hour = from; hour < to; hour += 1) {
-                if (row.counts[hour] !== null) byHour[hour] = row.gate.scCnt;
+            const countsByHour = [...(value[row.gate.no] ?? EMPTY_HOURS)];
+            for (let hour = fromHour; hour < toHour; hour += 1) {
+                if (row.counts[hour] !== null) countsByHour[hour] = row.gate.scCnt;
             }
-            next[row.gate.no] = byHour;
+            nextCountsByGate[row.gate.no] = countsByHour;
         });
 
-        onChange(next);
-        setPick(null);
+        onChange(nextCountsByGate);
+        setSelection(null);
     };
 
     /** 선택한 사각형이 걸친 줄 번호 — 팝오버가 이 위·아래에 붙는다 */
-    const pickRows = pick
-        ? pick.gateNos.map((no) => gates.findIndex((gate) => gate.no === no))
+    const selectedRowIndexes = selection
+        ? selection.gateNos.map((gateNo) => gates.findIndex((gate) => gate.no === gateNo))
         : [];
     /** 아래 두 줄이면 격자 밖으로 밀려나므로 선택 위로 띄운다 */
-    const flip = pickRows.length > 0 && Math.max(...pickRows) >= rows.length - 2;
+    const openUpward =
+        selectedRowIndexes.length > 0 && Math.max(...selectedRowIndexes) >= rows.length - 2;
     /** 오른쪽 끝 시간대는 왼쪽으로 넘치므로 오른쪽 끝에 맞춰 붙인다 */
-    const anchorRight = (pick?.startHour ?? 0) >= 13;
+    const alignRight = (selection?.startHour ?? 0) >= 13;
     /** 보유 합계 — 여러 줄을 잡았으면 가장 적게 가진 출국장이 상한이다 (0 은 미입력이라 상한으로 보지 않는다) */
-    const cap = pick
-        ? Math.min(...pick.gateNos.map((no) => gates.find((gate) => gate.no === no)?.scCnt ?? 0))
+    const capacityLimit = selection
+        ? Math.min(
+              ...selection.gateNos.map(
+                  (gateNo) => gates.find((gate) => gate.no === gateNo)?.scCnt ?? 0,
+              ),
+          )
         : 0;
-    const over = cap > 0 && draft > cap;
+    const isOverCapacity = capacityLimit > 0 && draftCount > capacityLimit;
 
     return (
         <div className="scgrid">
@@ -304,11 +322,13 @@ export function ScGrid({
                                         key={hour}
                                         type="button"
                                         className={`sccell${count === 0 ? ' is-zero' : ''}${
-                                            toLevel(count, cellMax) >= RAMP_INVERT ? ' is-hi' : ''
+                                            toRampStep(count, rampMax) >= RAMP_INVERT
+                                                ? ' is-hi'
+                                                : ''
                                         }${isPicked(index, hour) ? ' is-pick' : ''}`}
                                         style={
                                             count > 0
-                                                ? { background: RAMP[toLevel(count, cellMax)] }
+                                                ? { background: RAMP[toRampStep(count, rampMax)] }
                                                 : undefined
                                         }
                                         disabled={disabled}
@@ -318,7 +338,7 @@ export function ScGrid({
                                             startDrag(index, hour);
                                         }}
                                         onPointerEnter={() => {
-                                            if (anchor) setHead({ row: index, hour });
+                                            if (dragAnchor) setDragCursor({ row: index, hour });
                                         }}
                                     >
                                         {count}
@@ -340,13 +360,16 @@ export function ScGrid({
                             <span
                                 key={hour}
                                 className={`sccell${sum > 0 && sum === sumPeak ? ' is-pk' : ''}${
-                                    toLevel(sum, Math.max(1, sumPeak)) >= RAMP_INVERT
+                                    toRampStep(sum, Math.max(1, sumPeak)) >= RAMP_INVERT
                                         ? ' is-hi'
                                         : ''
                                 }`}
                                 style={
                                     sum > 0
-                                        ? { background: RAMP[toLevel(sum, Math.max(1, sumPeak))] }
+                                        ? {
+                                              background:
+                                                  RAMP[toRampStep(sum, Math.max(1, sumPeak))],
+                                          }
                                         : undefined
                                 }
                             >
@@ -358,45 +381,49 @@ export function ScGrid({
                     <span className="scgrid__pk scgrid__pk--sum">{sumPeak}</span>
                 </div>
 
-                {pick && !disabled && (
+                {selection && !disabled && (
                     <div
-                        className={`scgrid__pop${over ? ' is-over' : ''}`}
+                        className={`scgrid__pop${isOverCapacity ? ' is-over' : ''}`}
                         style={{
-                            top: flip
-                                ? Math.min(...pickRows) * ROW_H - 6
-                                : (Math.max(...pickRows) + 1) * ROW_H + 6,
-                            transform: flip ? 'translateY(-100%)' : undefined,
-                            ...(anchorRight
+                            top: openUpward
+                                ? Math.min(...selectedRowIndexes) * ROW_H - 6
+                                : (Math.max(...selectedRowIndexes) + 1) * ROW_H + 6,
+                            transform: openUpward ? 'translateY(-100%)' : undefined,
+                            ...(alignRight
                                 ? {
-                                      right: `calc(var(--rgt) + var(--col) * ${24 - pick.endHour})`,
+                                      right: `calc(var(--rgt) + var(--col) * ${24 - selection.endHour})`,
                                   }
-                                : { left: `calc(var(--gut) + var(--col) * ${pick.startHour})` }),
+                                : {
+                                      left: `calc(var(--gut) + var(--col) * ${selection.startHour})`,
+                                  }),
                         }}
                     >
                         <span className="scgrid__poplbl">
-                            {pick.gateNos.length === 1
-                                ? `${pick.gateNos[0]}번 출국장`
-                                : `출국장 ${pick.gateNos.length}개`}
-                            <b>{`${formatHour(pick.startHour)} ~ ${formatHour(pick.endHour)}`}</b>
+                            {selection.gateNos.length === 1
+                                ? `${selection.gateNos[0]}번 출국장`
+                                : `출국장 ${selection.gateNos.length}개`}
+                            <b>{`${formatHour(selection.startHour)} ~ ${formatHour(selection.endHour)}`}</b>
                         </span>
 
                         <CountStepper
                             label="검색대"
                             variant="inline"
-                            value={draft}
-                            onChange={setDraft}
+                            value={draftCount}
+                            onChange={setDraftCount}
                         />
 
                         <button
                             type="button"
                             className="scgrid__apply"
-                            disabled={over}
+                            disabled={isOverCapacity}
                             onClick={apply}
                         >
                             적용
                         </button>
 
-                        {over && <span className="scgrid__warn">{`보유 ${cap}대 초과`}</span>}
+                        {isOverCapacity && (
+                            <span className="scgrid__warn">{`보유 ${capacityLimit}대 초과`}</span>
+                        )}
                     </div>
                 )}
             </div>

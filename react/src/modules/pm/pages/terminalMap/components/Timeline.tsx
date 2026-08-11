@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import type { useTimeline } from '../hooks/useTimeline';
+import type { useTimeline } from '@/modules/pm/hooks/useTimeline';
 
 interface TimelineProps {
     timeline: ReturnType<typeof useTimeline>;
@@ -44,7 +44,7 @@ export function Timeline({ timeline }: TimelineProps) {
                         step={1}
                         value={step}
                         style={{ '--val': progress } as CSSProperties}
-                        onChange={(e) => setStep(Number(e.target.value))}
+                        onChange={(event) => setStep(Number(event.target.value))}
                         aria-label="시간 선택"
                     />
                 </div>

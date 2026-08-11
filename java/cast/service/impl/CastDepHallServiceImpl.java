@@ -197,13 +197,13 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 
 		Map<String, String> useYnMap = castDepMapper.retrieveDepFcltList(fcltTmnlId).stream()
-				.collect(Collectors.toMap(DepFcltRawDto::getDepNum, DepFcltRawDto::getUseYn, (a, b) -> a));
+				.collect(Collectors.toMap(DepFcltRawDto::getDepNum, DepFcltRawDto::getUseYn, (first, ignored) -> first));
 		Map<String, List<DepOperHrRawDto>> operHrMap = castDepMapper
 				.retrieveDepOperHrList(fcltTmnlId, smltStng.getFcltyOpngTblDgRsrcId(), smltStng.getExcnYmd())
 				.stream().collect(Collectors.groupingBy(DepOperHrRawDto::getDepNum));
 		Map<String, Integer> scCntMap = castDepMapper
 				.retrieveScCntList(fcltTmnlId, smltStng.getFcltyOpngTblScrtyCntrlRsrcId()).stream()
-				.collect(Collectors.toMap(ScCntRawDto::getDepNum, ScCntRawDto::getScCnt, (a, b) -> a));
+				.collect(Collectors.toMap(ScCntRawDto::getDepNum, ScCntRawDto::getScCnt, (first, ignored) -> first));
 
 		List<DepHallGateDto> result = new ArrayList<>();
 
@@ -270,7 +270,7 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 		int maxWtngPsgCnt = 0;
 
 		for (DepHallGateDto gate : gateList.stream()
-				.sorted(Comparator.comparingInt((DepHallGateDto x) -> x.getStat().getWtngPsgCnt()).reversed())
+				.sorted(Comparator.comparingInt((DepHallGateDto target) -> target.getStat().getWtngPsgCnt()).reversed())
 				.collect(Collectors.toList())) {
 			CongestionStatus cgnStatus = gate.getCgnStatus();
 
@@ -300,7 +300,7 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 
 	private List<MapMarkerDto> getDepMarkerList(TerminalKind tmnlId, List<DepHallGateDto> gateList) {
 		Map<String, CongestionStatus> statusMap = gateList.stream()
-				.collect(Collectors.toMap(DepHallGateDto::getDepNum, DepHallGateDto::getCgnStatus, (a, b) -> a));
+				.collect(Collectors.toMap(DepHallGateDto::getDepNum, DepHallGateDto::getCgnStatus, (first, ignored) -> first));
 
 		List<MapMarkerDto> result = new ArrayList<>();
 
@@ -378,7 +378,7 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 		return String.format("%02d%02d", minutes / MINUTE_PER_HOUR, minutes % MINUTE_PER_HOUR);
 	}
 
-	private String defaultHm(String hm) {
-		return hm != null && hm.length() >= 4 ? hm : DEFAULT_HM;
+	private String defaultHm(String hhmm) {
+		return hhmm != null && hhmm.length() >= 4 ? hhmm : DEFAULT_HM;
 	}
 }

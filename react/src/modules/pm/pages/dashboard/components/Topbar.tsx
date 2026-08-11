@@ -1,5 +1,5 @@
 import { PillSelect } from '@/components/ui/pill-select';
-import { Icon } from './PmIcons';
+import { Icon } from '@/components/icons/InlineIcon';
 import { SIMULATION_LABEL, type SimulationType } from '../types';
 
 interface TopbarProps {

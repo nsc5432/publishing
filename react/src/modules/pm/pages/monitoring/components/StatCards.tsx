@@ -1,4 +1,4 @@
-import { Icon } from '@/modules/pm/pages/dashboard/components/PmIcons';
+import { Icon } from '@/components/icons/InlineIcon';
 import type { StatCard } from '../types';
 
 interface StatCardsProps {
@@ -17,10 +17,10 @@ export function StatCards({ cards }: StatCardsProps) {
                     <div className="kpi__body">
                         <span className="kpi__label">{card.label}</span>
                         <p className={`kpi__value kpi__value--${card.tone ?? 'blue'}`}>
-                            {card.values.map((v) => (
-                                <span key={v.unit}>
-                                    <strong>{v.value}</strong>
-                                    <em>{v.unit}</em>
+                            {card.values.map((metric) => (
+                                <span key={metric.unit}>
+                                    <strong>{metric.value}</strong>
+                                    <em>{metric.unit}</em>
                                 </span>
                             ))}
                         </p>

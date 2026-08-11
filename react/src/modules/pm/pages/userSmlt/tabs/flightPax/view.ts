@@ -4,7 +4,7 @@ import type {
     UserSmltFltPsgDto,
     UserSmltFltPsgSaveReq,
 } from '@/types/api.types';
-import { formatCount, formatHhmm } from '@/modules/pm/pages/dashboard/format';
+import { formatCount, formatHhmm } from '@/lib/format';
 import type { ChartData, EditMode, HourRow, TerminalFlightPax } from './types';
 
 /**
@@ -12,22 +12,22 @@ import type { ChartData, EditMode, HourRow, TerminalFlightPax } from './types';
  * 단위·부호·시각 형식을 여기서 한 번에 정한다.
  */
 
-function toChart(chart: FltPsgChartDto, title: string, unit: string): ChartData {
+function toChart(chartDto: FltPsgChartDto, title: string, unit: string): ChartData {
     return {
         title,
-        total: formatCount(chart.totCnt),
+        total: formatCount(chartDto.totCnt),
         unit,
-        max: chart.maxCnt,
-        bars: chart.itemList.map((item) => ({ label: item.time, value: item.cnt })),
+        max: chartDto.maxCnt,
+        bars: chartDto.itemList.map((item) => ({ label: item.time, value: item.cnt })),
     };
 }
 
 function toRows(dto: UserSmltFltPsgDto): HourRow[] {
-    return dto.hourList.map((hour) => ({
-        start: formatHhmm(hour.bgnTime),
-        end: formatHhmm(hour.endTime),
-        adjust: `${hour.adjRate}%`,
-        pax: `${formatCount(hour.psgCnt)}명`,
+    return dto.hourList.map((hourRow) => ({
+        start: formatHhmm(hourRow.bgnTime),
+        end: formatHhmm(hourRow.endTime),
+        adjust: `${hourRow.adjRate}%`,
+        pax: `${formatCount(hourRow.psgCnt)}명`,
     }));
 }
 
@@ -64,10 +64,10 @@ export function toSaveReq(
         tmnlId,
         adjType: ADJ_TYPE[edit.mode],
         adjRate: edit.ratio,
-        hourList: dto.hourList.map((hour) => ({
-            bgnTime: hour.bgnTime,
-            endTime: hour.endTime,
-            adjRate: hour.adjRate,
+        hourList: dto.hourList.map((hourRow) => ({
+            bgnTime: hourRow.bgnTime,
+            endTime: hourRow.endTime,
+            adjRate: hourRow.adjRate,
         })),
     };
 }

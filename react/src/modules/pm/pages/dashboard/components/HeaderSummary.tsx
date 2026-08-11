@@ -3,9 +3,18 @@ import t1Blue from '@/assets/svg/t1-blue.svg';
 import t2Teal from '@/assets/svg/t2-teal-full.svg';
 import { QuickCheckinIcon, QuickFlightIcon, QuickGateIcon, QuickPaxIcon } from '@/components/icons';
 import type { DowAttrDto, DsbdCategory, DsbdHeaderDto, TmnlId } from '@/types/api.types';
-import { formatCount, formatHhmm } from '../format';
+import { formatCount, formatHhmm } from '@/lib/format';
 import { HourlyPsgChart } from './HourlyPsgChart';
-import { Icon } from './PmIcons';
+import { Icon } from '@/components/icons/InlineIcon';
+
+interface HeaderSummaryProps {
+    planDate: string;
+    header: DsbdHeaderDto | null;
+    /** 퀵 타일 선택 — 터미널 패널의 시간대별 결과가 이 값을 따른다 */
+    category: DsbdCategory;
+    onCategoryChange: (category: DsbdCategory) => void;
+    children: ReactNode;
+}
 
 /** 값을 아직 못 받았을 때 표기 */
 const EMPTY = '-';
@@ -28,15 +37,6 @@ const QUICK_TILES: { category: DsbdCategory; label: string; Icon: typeof QuickPa
     { category: 'DEP', label: '출국장', Icon: QuickGateIcon },
 ];
 
-interface HeaderSummaryProps {
-    planDate: string;
-    header: DsbdHeaderDto | null;
-    /** 퀵 타일 선택 — 터미널 패널의 시간대별 결과가 이 값을 따른다 */
-    category: DsbdCategory;
-    onCategoryChange: (category: DsbdCategory) => void;
-    children: ReactNode;
-}
-
 /**
  * 상단 요약 카드 행 + 하단 슬롯으로 이루어진 본문.
  */
@@ -51,14 +51,15 @@ export function HeaderSummary({
     const weather = header?.weather;
     const dowAttr = header?.dowAttr;
 
-    const hourlyOf = (tmnlId: TmnlId) =>
+    const findHourlyByTerminal = (tmnlId: TmnlId) =>
         header?.hourlyPsgList.find((item) => item.tmnlId === tmnlId) ?? null;
-    const t1Hourly = hourlyOf('T1');
-    const t2Hourly = hourlyOf('T2');
+    const t1Hourly = findHourlyByTerminal('T1');
+    const t2Hourly = findHourlyByTerminal('T2');
 
     // 도착 여객은 따로 내려오지 않는다. 총계에서 출발분을 뺀 값으로 본다.
     const arrPsgCnt = plan ? Math.max(0, plan.totPsgCnt - plan.depPsgCnt) : 0;
-    const count = (value: number | undefined) => (value === undefined ? EMPTY : formatCount(value));
+    const countText = (value: number | undefined) =>
+        value === undefined ? EMPTY : formatCount(value);
 
     return (
         <div className="body">
@@ -84,14 +85,14 @@ export function HeaderSummary({
                                 <div className="cell">
                                     <div className="k">운항편</div>
                                     <div>
-                                        <span className="v blue">{count(plan?.totFltCnt)}</span>
+                                        <span className="v blue">{countText(plan?.totFltCnt)}</span>
                                         <span className="u">편</span>
                                     </div>
                                 </div>
                                 <div className="cell">
                                     <div className="k">총 여객</div>
                                     <div>
-                                        <span className="v teal">{count(plan?.totPsgCnt)}</span>
+                                        <span className="v teal">{countText(plan?.totPsgCnt)}</span>
                                         <span className="u">명</span>
                                     </div>
                                 </div>
@@ -101,21 +102,23 @@ export function HeaderSummary({
                                 <div className="stat-cells stat-flt">
                                     <div>
                                         <div className="k">출발</div>
-                                        <div className="v">{count(plan?.depFltCnt)}</div>
+                                        <div className="v">{countText(plan?.depFltCnt)}</div>
                                     </div>
                                     <div>
                                         <div className="k">도착</div>
-                                        <div className="v">{count(plan?.arrFltCnt)}</div>
+                                        <div className="v">{countText(plan?.arrFltCnt)}</div>
                                     </div>
                                 </div>
                                 <div className="stat-cells stat-psg">
                                     <div>
                                         <div className="k">출발</div>
-                                        <div className="v">{count(plan?.depPsgCnt)}</div>
+                                        <div className="v">{countText(plan?.depPsgCnt)}</div>
                                     </div>
                                     <div>
                                         <div className="k">도착</div>
-                                        <div className="v">{plan ? formatCount(arrPsgCnt) : EMPTY}</div>
+                                        <div className="v">
+                                            {plan ? formatCount(arrPsgCnt) : EMPTY}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -127,8 +130,8 @@ export function HeaderSummary({
                         <div className="card-head">
                             <span className="card-title">시간대별 출발여객</span>
                             <span className="tval">
-                                <span className="t1c">T1</span> {count(t1Hourly?.totPsgCnt)}{' '}
-                                <span className="t2c">T2</span> {count(t2Hourly?.totPsgCnt)}
+                                <span className="t1c">T1</span> {countText(t1Hourly?.totPsgCnt)}{' '}
+                                <span className="t2c">T2</span> {countText(t2Hourly?.totPsgCnt)}
                             </span>
                         </div>
                         <div className="hourly-body">
@@ -158,11 +161,11 @@ export function HeaderSummary({
                                 <Icon name="calendar" />
                             </span>
                             {DOW_STEPS.map((step) => {
-                                const on = dowAttr?.dowType === step.type;
+                                const isCurrentDow = dowAttr?.dowType === step.type;
                                 return (
-                                    <span key={step.type} className={on ? 'on' : 'off'}>
+                                    <span key={step.type} className={isCurrentDow ? 'on' : 'off'}>
                                         {/* 현재 값은 서버 문구를 쓴다 (요일까지 붙어 내려온다) */}
-                                        {on ? dowAttr.dowNm : step.label}
+                                        {isCurrentDow ? dowAttr.dowNm : step.label}
                                     </span>
                                 );
                             })}

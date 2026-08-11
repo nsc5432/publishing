@@ -1,4 +1,4 @@
-import type { IconName } from '@/modules/pm/pages/dashboard/components/PmIcons';
+import type { IconName } from '@/components/icons/InlineIcon';
 
 /**
  * 화면 공용 좌측 네비게이션(LNB) 메뉴 정의.

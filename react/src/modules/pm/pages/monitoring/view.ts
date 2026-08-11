@@ -1,5 +1,5 @@
 import type { SmltCastExecDto, SmltExecSmryDto, SmltExecStatus } from '@/types/api.types';
-import { formatCount } from '@/modules/pm/pages/dashboard/format';
+import { formatCount, pad2 } from '@/lib/format';
 import type { HistoryRow, RunStatus, StatCard } from './types';
 
 /**
@@ -11,63 +11,63 @@ import type { HistoryRow, RunStatus, StatCard } from './types';
 const EMPTY = '-';
 
 /** 수행 상태 (서버 코드 → 화면 표기) */
-const RUN_STATUS: Record<SmltExecStatus, RunStatus> = {
+const EXEC_STATUS_TO_RUN_STATUS: Record<SmltExecStatus, RunStatus> = {
     DONE: 'done',
     RUNNING: 'running',
 };
 
 /** yyyyMMddHHmmss → yyyy.MM.dd HH:mm (진행중이라 종료일시가 없으면 '-') */
-function formatExecDt(dt: string): string {
-    if (!dt || dt.length < 12) return EMPTY;
+function formatExecDt(execDt: string): string {
+    if (!execDt || execDt.length < 12) return EMPTY;
 
-    return `${dt.slice(0, 4)}.${dt.slice(4, 6)}.${dt.slice(6, 8)} ${dt.slice(8, 10)}:${dt.slice(10, 12)}`;
+    return `${execDt.slice(0, 4)}.${execDt.slice(4, 6)}.${execDt.slice(6, 8)} ${execDt.slice(8, 10)}:${execDt.slice(10, 12)}`;
 }
 
 /** 상단 KPI 카드 4종 */
-export function toStatCards(smry: SmltExecSmryDto): StatCard[] {
+export function toStatCards(execSmry: SmltExecSmryDto): StatCard[] {
     return [
         {
             id: 'total',
             icon: 'layers',
             label: '전체 수행',
-            values: [{ value: formatCount(smry.totCnt), unit: '건' }],
+            values: [{ value: formatCount(execSmry.totCnt), unit: '건' }],
         },
         {
             id: 'done',
             icon: 'checkCircle',
             label: '완료',
-            values: [{ value: formatCount(smry.doneCnt), unit: '건' }],
+            values: [{ value: formatCount(execSmry.doneCnt), unit: '건' }],
             tone: 'teal',
         },
         {
             id: 'running',
             icon: 'spinner',
             label: '진행중',
-            values: [{ value: formatCount(smry.runningCnt), unit: '건' }],
+            values: [{ value: formatCount(execSmry.runningCnt), unit: '건' }],
         },
         {
             id: 'avg',
             icon: 'clock',
             label: '평균 수행시간',
             values: [
-                { value: String(smry.avgExecMin), unit: '분' },
-                { value: String(smry.avgExecSec).padStart(2, '0'), unit: '초' },
+                { value: String(execSmry.avgExecMin), unit: '분' },
+                { value: pad2(execSmry.avgExecSec), unit: '초' },
             ],
         },
     ];
 }
 
 /** 시뮬레이션 이력 (표준 / 사용자 공용) */
-export function toHistoryRows(list: SmltCastExecDto[]): HistoryRow[] {
-    return list.map((exec) => ({
-        no: exec.rowNum,
+export function toHistoryRows(execList: SmltCastExecDto[]): HistoryRow[] {
+    return execList.map((exec) => ({
+        rowNo: exec.rowNum,
         smltId: exec.smltId,
         dept: exec.deptNm,
         name: exec.userNm,
         startAt: formatExecDt(exec.bgnDt),
         endAt: formatExecDt(exec.endDt),
         duration: exec.execMin,
-        status: RUN_STATUS[exec.execStatus],
+        status: EXEC_STATUS_TO_RUN_STATUS[exec.execStatus],
     }));
 }
 

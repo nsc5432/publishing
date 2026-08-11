@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Terminal1Icon, Terminal2Plan } from '@/components/icons';
+import { toStagePosition } from '@/lib/chart';
 import type { DepGateMarker, IslandMarker, TerminalKind, TerminalMapData } from '../types';
 
 interface MapStageProps {
@@ -8,10 +9,6 @@ interface MapStageProps {
     activeMarkerId?: string;
     onIslandClick: (island: IslandMarker) => void;
     onDepGateClick: (depGate: DepGateMarker) => void;
-}
-
-function pos(x: number, y: number) {
-    return { '--x': `${x}%`, '--y': `${y}%` } as CSSProperties;
 }
 
 /**
@@ -25,10 +22,10 @@ export function MapStage({
     onDepGateClick,
 }: MapStageProps) {
     const Plan = terminal === 'T1' ? Terminal1Icon : Terminal2Plan;
-    const stage = { '--stage-ar': data.stageAspect } as CSSProperties;
+    const stageStyle = { '--stage-ar': data.stageAspect } as CSSProperties;
 
     return (
-        <div className="map" style={stage}>
+        <div className="map" style={stageStyle}>
             <Plan
                 className="map__bg"
                 preserveAspectRatio="none"
@@ -43,9 +40,10 @@ export function MapStage({
                     <button
                         type="button"
                         key={depGate.id}
-                        className={`marker marker--dep-gate${depGate.id === activeMarkerId ? ' is-active' : ''
-                            }`}
-                        style={pos(depGate.x, depGate.y)}
+                        className={`marker marker--dep-gate${
+                            depGate.id === activeMarkerId ? ' is-active' : ''
+                        }`}
+                        style={toStagePosition(depGate.x, depGate.y)}
                         aria-label={`출국장 ${depGate.label}`}
                         onClick={() => onDepGateClick(depGate)}
                     >
@@ -58,9 +56,10 @@ export function MapStage({
                     <button
                         type="button"
                         key={island.id}
-                        className={`marker marker--island is-${island.level}${island.id === activeMarkerId ? ' is-active' : ''
-                            }`}
-                        style={pos(island.x, island.y)}
+                        className={`marker marker--island is-${island.level}${
+                            island.id === activeMarkerId ? ' is-active' : ''
+                        }`}
+                        style={toStagePosition(island.x, island.y)}
                         onClick={() => onIslandClick(island)}
                     >
                         {island.label}
@@ -73,7 +72,7 @@ export function MapStage({
                         type="button"
                         key={gate.id}
                         className="marker marker--gate"
-                        style={pos(gate.x, gate.y)}
+                        style={toStagePosition(gate.x, gate.y)}
                         aria-label={`출입구 게이트 ${gate.label}`}
                     >
                         {gate.label}

@@ -2,22 +2,15 @@ import { useMemo } from 'react';
 import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import type { HourlyPsgDto } from '@/types/api.types';
-import { formatCount } from '../format';
+import { formatCount } from '@/lib/format';
+import { toTooltipItems, TOOLTIP_TEXT_STYLE } from '@/lib/chart';
 
 /* 카드 안의 작은 차트라 여백을 픽셀로 고정한다 (원본 viewBox 256x50 환산). */
 const GRID = { left: 0, right: 0, top: 6, bottom: 11 };
 /** .hourly-row 가 정해 둔 차트 높이 — ECharts 는 컨테이너 높이가 확정돼야 그린다 */
 const CHART_HEIGHT = 48;
 /** 3시간 간격으로 축 라벨을 찍는다 */
-const AXIS_STEP = 3;
-
-/** axis 트리거 툴팁이 시리즈마다 넘겨 주는 값 (ECharts 타입에는 axisValue 가 빠져 있다) */
-interface AxisTooltipItem {
-    seriesName?: string;
-    marker?: string;
-    axisValue?: string;
-    value?: number;
-}
+const X_LABEL_INTERVAL = 3;
 
 interface HourlyPsgChartProps {
     data: HourlyPsgDto | null;
@@ -36,7 +29,7 @@ interface HourlyPsgChartProps {
 export function HourlyPsgChart({ data, iconSrc, iconAlt, lineColor }: HourlyPsgChartProps) {
     const items = useMemo(() => data?.itemList ?? [], [data]);
     // 0 으로 나누지 않도록 최솟값을 둔다 (전 시간대 0 인 날은 빈 차트로 보인다).
-    const max = Math.max(1, data?.maxPsgCnt ?? 1);
+    const axisMax = Math.max(1, data?.maxPsgCnt ?? 1);
 
     const option = useMemo<EChartsOption>(
         () => ({
@@ -45,19 +38,19 @@ export function HourlyPsgChart({ data, iconSrc, iconAlt, lineColor }: HourlyPsgC
             tooltip: {
                 trigger: 'axis',
                 confine: true,
-                textStyle: { fontSize: 12, fontFamily: 'Pretendard, sans-serif' },
+                textStyle: TOOLTIP_TEXT_STYLE,
                 formatter: (params) => {
-                    const list = (Array.isArray(params) ? params : [params]) as AxisTooltipItem[];
-                    if (list.length === 0) return '';
+                    const tooltipItems = toTooltipItems(params);
+                    if (tooltipItems.length === 0) return '';
 
-                    const rows = list
+                    const lines = tooltipItems
                         .map(
-                            (p) =>
-                                `${p.marker}${p.seriesName} <b>${formatCount(Number(p.value ?? 0))}</b>명`,
+                            (item) =>
+                                `${item.marker}${item.seriesName} <b>${formatCount(Number(item.value ?? 0))}</b>명`,
                         )
                         .join('<br/>');
 
-                    return `${list[0].axisValue}시<br/>${rows}`;
+                    return `${tooltipItems[0].axisValue}시<br/>${lines}`;
                 },
             },
             xAxis: {
@@ -71,8 +64,8 @@ export function HourlyPsgChart({ data, iconSrc, iconAlt, lineColor }: HourlyPsgC
             yAxis: {
                 type: 'value',
                 min: 0,
-                max,
-                interval: max / 2,
+                max: axisMax,
+                interval: axisMax / 2,
                 axisLine: { show: false },
                 axisTick: { show: false },
                 axisLabel: { show: false },
@@ -95,7 +88,7 @@ export function HourlyPsgChart({ data, iconSrc, iconAlt, lineColor }: HourlyPsgC
                 },
             ],
         }),
-        [items, max, lineColor],
+        [items, axisMax, lineColor],
     );
 
     return (
@@ -110,8 +103,8 @@ export function HourlyPsgChart({ data, iconSrc, iconAlt, lineColor }: HourlyPsgC
                     option={option}
                 />
                 <div className="ylab">
-                    <span>{formatCount(max)}</span>
-                    <span>{formatCount(Math.round(max / 2))}</span>
+                    <span>{formatCount(axisMax)}</span>
+                    <span>{formatCount(Math.round(axisMax / 2))}</span>
                     <span>0</span>
                 </div>
             </div>
@@ -119,7 +112,7 @@ export function HourlyPsgChart({ data, iconSrc, iconAlt, lineColor }: HourlyPsgC
                 <span className="ic" />
                 <div className="axis">
                     {items
-                        .filter((_, i) => i % AXIS_STEP === 0)
+                        .filter((_, index) => index % X_LABEL_INTERVAL === 0)
                         .map((item) => (
                             <span key={item.time}>{Number(item.time)}</span>
                         ))}

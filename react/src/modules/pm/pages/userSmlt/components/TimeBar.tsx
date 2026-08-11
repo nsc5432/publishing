@@ -1,4 +1,5 @@
 import { TimeRangeSelector, type TimeRange } from '@/components/ui/time-range-selector';
+import { isHourInRanges } from '@/lib/time-range';
 
 interface TimeBarProps {
     label: string;
@@ -6,10 +7,6 @@ interface TimeBarProps {
     onChange: (ranges: TimeRange[]) => void;
     values?: Record<number, number>;
     disabled?: boolean;
-}
-
-function isOn(hour: number, ranges: TimeRange[]): boolean {
-    return ranges.some((range) => hour >= range.start && hour < range.end);
 }
 
 /**
@@ -26,7 +23,9 @@ export function TimeBar({ label, ranges, onChange, values, disabled = false }: T
             renderSlot={
                 values
                     ? (hour) =>
-                        isOn(hour, ranges) && values[hour] != null ? <b>{values[hour]}</b> : null
+                          isHourInRanges(hour, ranges) && values[hour] != null ? (
+                              <b>{values[hour]}</b>
+                          ) : null
                     : undefined
             }
         />

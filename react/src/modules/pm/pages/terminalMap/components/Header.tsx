@@ -1,5 +1,5 @@
 import { SearchIcon } from '@/components/icons';
-import { TERMINAL_LABEL, type HeaderSummary, type TerminalKind } from '../types';
+import { TERMINAL_LABEL, TERMINALS, type HeaderSummary, type TerminalKind } from '../types';
 
 interface HeaderProps {
     baseDate: string;
@@ -8,8 +8,6 @@ interface HeaderProps {
     summary: HeaderSummary;
     onSearch: () => void;
 }
-
-const TERMINALS: TerminalKind[] = ['T1', 'T2'];
 
 /** 상단 헤더 — 타이틀 / 조회 조건(기준일자·터미널) / 운항·여객 요약 */
 export function Header({ baseDate, terminal, onTerminalChange, summary, onSearch }: HeaderProps) {
@@ -39,16 +37,18 @@ export function Header({ baseDate, terminal, onTerminalChange, summary, onSearch
                 <div className="search-bar__field">
                     <span className="search-bar__label">터미널선택</span>
                     <div className="radio-group">
-                        {TERMINALS.map((kind) => (
-                            <span className="radio" key={kind}>
+                        {TERMINALS.map((terminalKind) => (
+                            <span className="radio" key={terminalKind}>
                                 <input
                                     type="radio"
-                                    id={`term-${kind}`}
+                                    id={`term-${terminalKind}`}
                                     name="terminal"
-                                    checked={terminal === kind}
-                                    onChange={() => onTerminalChange(kind)}
+                                    checked={terminal === terminalKind}
+                                    onChange={() => onTerminalChange(terminalKind)}
                                 />
-                                <label htmlFor={`term-${kind}`}>{TERMINAL_LABEL[kind]}</label>
+                                <label htmlFor={`term-${terminalKind}`}>
+                                    {TERMINAL_LABEL[terminalKind]}
+                                </label>
                             </span>
                         ))}
                     </div>

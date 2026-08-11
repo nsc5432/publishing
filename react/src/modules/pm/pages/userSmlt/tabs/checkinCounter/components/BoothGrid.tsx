@@ -16,11 +16,11 @@ interface BoothGridProps {
  * 드로어에서는 3열 그리드로, 도크에서는 면(L/R)마다 18칸짜리 가로 스트립으로 쓴다.
  */
 export function BoothGrid({ booths, selected, onSelect, side, disabled = false }: BoothGridProps) {
-    const list = side ? booths.filter((booth) => booth.side === side) : booths;
+    const visibleBooths = side ? booths.filter((booth) => booth.side === side) : booths;
 
     return (
         <div className={`boothgrid${side ? ' boothgrid--strip' : ''}`}>
-            {list.map((booth) => (
+            {visibleBooths.map((booth) => (
                 <button
                     key={booth.no}
                     type="button"

@@ -31,11 +31,11 @@ export function useUserInfo(): UserInfo | null {
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
 
     useEffect(() => {
-        let alive = true;
+        let isCurrent = true;
 
         loadUserInfo()
-            .then((dto) => {
-                if (alive) setUserInfo(dto);
+            .then((userInfoDto) => {
+                if (isCurrent) setUserInfo(userInfoDto);
             })
             .catch((err: unknown) => {
                 // 사용자 정보는 화면을 막을 만한 정보가 아니라 조용히 기본 표기로 둔다.
@@ -43,7 +43,7 @@ export function useUserInfo(): UserInfo | null {
             });
 
         return () => {
-            alive = false;
+            isCurrent = false;
         };
     }, []);
 

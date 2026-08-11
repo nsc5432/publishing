@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react';
+import { toStagePosition } from '@/lib/chart';
 import type { DepGateMarker, TerminalDepMap } from '../types';
 import { DepGateCardBox } from './DepGateCardBox';
 
@@ -7,10 +7,6 @@ interface DepMapViewProps {
     /** 마우스를 올린 출국장 (마커 ↔ 카드 연결 표시) */
     activeId?: string;
     onDepGateHover: (depGate: DepGateMarker | null) => void;
-}
-
-function pos(x: number, y: number) {
-    return { '--x': `${x}%`, '--y': `${y}%` } as CSSProperties;
 }
 
 /**
@@ -33,7 +29,7 @@ export function DepMapView({ data, activeId, onDepGateHover }: DepMapViewProps) 
                     type="button"
                     key={depGate.id}
                     className={`marker marker--dep-gate${depGate.id === activeId ? ' is-active' : ''}`}
-                    style={pos(depGate.x, depGate.y)}
+                    style={toStagePosition(depGate.x, depGate.y)}
                     aria-label={`출국장 ${depGate.label}`}
                     onMouseEnter={() => onDepGateHover(depGate)}
                     onMouseLeave={() => onDepGateHover(null)}
@@ -49,7 +45,7 @@ export function DepMapView({ data, activeId, onDepGateHover }: DepMapViewProps) 
                 <span
                     key={island.id}
                     className={`marker marker--island is-${island.level}`}
-                    style={pos(island.x, island.y)}
+                    style={toStagePosition(island.x, island.y)}
                 >
                     {island.label}
                 </span>
@@ -57,7 +53,11 @@ export function DepMapView({ data, activeId, onDepGateHover }: DepMapViewProps) 
 
             {/* 출입구 게이트 */}
             {data.gates.map((gate) => (
-                <span key={gate.id} className="marker marker--gate" style={pos(gate.x, gate.y)}>
+                <span
+                    key={gate.id}
+                    className="marker marker--gate"
+                    style={toStagePosition(gate.x, gate.y)}
+                >
                     {gate.label}
                 </span>
             ))}

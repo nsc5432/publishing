@@ -3,12 +3,14 @@ import t1White from '@/assets/svg/t1-white.svg';
 import t2White from '@/assets/svg/t2-white.svg';
 import t1Blue from '@/assets/svg/t1-blue.svg';
 import t2Teal from '@/assets/svg/t2-teal-full.svg';
-import { Icon } from './PmIcons';
+import { Icon } from '@/components/icons/InlineIcon';
 import { GaugeDonut } from './GaugeDonut';
 import { TerminalChart } from './TerminalChart';
 import { EMPTY_TERMINAL_VIEW } from '../view';
 import type { DsbdCategory } from '@/types/api.types';
 import type { GateData, TerminalKind, TerminalView } from '../types';
+
+type ViewKind = 'summary' | 'table';
 
 interface TerminalSummaryProps {
     terminal: TerminalKind;
@@ -16,6 +18,15 @@ interface TerminalSummaryProps {
     data: TerminalView | null;
     /** 선택한 퀵 타일 — 제목 문구가 이 지표를 따른다 */
     category: DsbdCategory;
+}
+
+/** 터미널별 큰 아이콘 / 워터마크 / 패널 색 / 게이지 색 (서버 값이 아니라 화면 규칙) */
+interface TerminalTheme {
+    big: string;
+    watermark: string;
+    /** dashboard.css 의 .panel-blue / .panel-green */
+    panelClass: string;
+    gauge: string;
 }
 
 /** 제목 앞부분 — 퀵 타일에서 고른 지표를 그대로 문장에 넣는다 ('… 가장 많을 때') */
@@ -26,14 +37,10 @@ const TITLE_LEAD: Record<DsbdCategory, string> = {
     DEP: '출국장에 대기인원이',
 };
 
-type ViewKind = 'summary' | 'table';
-
-/** 터미널별 큰 아이콘 / 워터마크 / 패널 색 (서버 값이 아니라 화면 규칙) */
-const ASSETS: Record<TerminalKind, { big: string; watermark: string; cls: string; gauge: string }> =
-    {
-        T1: { big: t1White, watermark: t1Blue, cls: 'panel-blue', gauge: '#2f7ff0' },
-        T2: { big: t2White, watermark: t2Teal, cls: 'panel-green', gauge: '#2f7ff0' },
-    };
+const TERMINAL_THEMES: Record<TerminalKind, TerminalTheme> = {
+    T1: { big: t1White, watermark: t1Blue, panelClass: 'panel-blue', gauge: '#2f7ff0' },
+    T2: { big: t2White, watermark: t2Teal, panelClass: 'panel-green', gauge: '#2f7ff0' },
+};
 
 /** 터미널별 최초 뷰 (T1=요약, T2=출국장 테이블) */
 const DEFAULT_VIEW: Record<TerminalKind, ViewKind> = {
@@ -41,116 +48,9 @@ const DEFAULT_VIEW: Record<TerminalKind, ViewKind> = {
     T2: 'table',
 };
 
-/** '대기\n인원수' 처럼 \n 이 포함된 라벨을 <br/> 로 렌더. */
-function Multiline({ text }: { text: string }) {
-    return (
-        <>
-            {text.split('\n').map((line, i) => (
-                <span key={i}>
-                    {i > 0 && <br />}
-                    {line}
-                </span>
-            ))}
-        </>
-    );
-}
-
-/** 체크인카운터 / 출국장 게이트 카드. 좌우 화살표로 아일랜드/게이트를 순환한다. */
-function Gate({ data, gauge }: { data: GateData; gauge: string }) {
-    const [idx, setIdx] = useState(0);
-    // 하단 칩(카운터/게이트) 선택 상태 — 버튼으로 동작하도록 (요구사항 2)
-    const [selectedChip, setSelectedChip] = useState<number | null>(null);
-
-    // 조회를 다시 하면 카드 수가 달라질 수 있어 현재 위치를 범위 안으로 눌러 둔다.
-    const v = data.variants[Math.min(idx, data.variants.length - 1)];
-
-    const cycle = (d: number) => {
-        setIdx((i) => (i + d + data.variants.length) % data.variants.length);
-        setSelectedChip(null);
-    };
-
-    if (!v) return null;
-
-    return (
-        <div className="gate">
-            <div className="gate-head">
-                <b>{data.title}</b>
-                <div className="warn">
-                    <span>{data.warn}</span>
-                    <button type="button" className="plus" aria-label={`${data.title} 상세`}>
-                        <Icon name="plus" />
-                    </button>
-                </div>
-            </div>
-            <div className="gate-mid">
-                <div className="isl">{v.isl ?? ' '}</div>
-                <div className="num">
-                    {v.num}
-                    {v.numSmall && <small>{v.numSmall}</small>}
-                </div>
-                <div className="meta">
-                    {v.meta.map((m) => (
-                        <span key={m.k}>
-                            {m.k} <b className={m.acc ? 'acc' : undefined}>{m.v}</b>
-                        </span>
-                    ))}
-                </div>
-            </div>
-            <div className="gauge-row">
-                <div className="gauge">
-                    <div className="k">시간당 처리율</div>
-                    <GaugeDonut
-                        value={v.processRate.value}
-                        main={v.processRate.main}
-                        sub={v.processRate.sub}
-                        acc={gauge}
-                    />
-                </div>
-                <div className="rec">
-                    <div className="tag">{v.rec.tag}</div>
-                    <div className="name">{v.rec.name}</div>
-                    <div className="cnt">
-                        {v.rec.cnt}
-                        <small>개</small>
-                    </div>
-                    <div className={`cap${v.rec.capAccent ? ' u' : ''}`}>{v.rec.cap}</div>
-                </div>
-                <div className="gauge">
-                    <div className="k">혼잡해소 예상</div>
-                    <GaugeDonut
-                        value={v.clearTime.value}
-                        main={v.clearTime.main}
-                        sub={v.clearTime.sub}
-                        acc={gauge}
-                    />
-                </div>
-            </div>
-            <div className="chips">
-                {v.chips.map((c, i) => (
-                    <button
-                        type="button"
-                        key={c.label}
-                        className={`chip ${c.kind}${i === selectedChip ? ' sel' : ''}`}
-                        aria-pressed={i === selectedChip}
-                        onClick={() => setSelectedChip((s) => (s === i ? null : i))}
-                    >
-                        {c.label}
-                    </button>
-                ))}
-            </div>
-            <button type="button" className="gate-arrow prev" onClick={() => cycle(-1)}>
-                <Icon name="chevL" />
-            </button>
-            <button type="button" className="gate-arrow next" onClick={() => cycle(1)}>
-                <Icon name="chevR" />
-            </button>
-        </div>
-    );
-}
-
 export function TerminalSummary({ terminal, data, category }: TerminalSummaryProps) {
     const view = data ?? EMPTY_TERMINAL_VIEW;
-    const asset = ASSETS[terminal];
+    const theme = TERMINAL_THEMES[terminal];
 
     const [viewKind, setViewKind] = useState<ViewKind>(DEFAULT_VIEW[terminal]);
     const [selectedRow, setSelectedRow] = useState(view.defaultSelectedRow);
@@ -161,10 +61,10 @@ export function TerminalSummary({ terminal, data, category }: TerminalSummaryPro
     }, [view.defaultSelectedRow]);
 
     return (
-        <section className={`panel ${asset.cls}`}>
+        <section className={`panel ${theme.panelClass}`}>
             <div className="p-top">
                 <div className="p-iconbox">
-                    <img className="tbig" alt="terminal" src={asset.big} />
+                    <img className="tbig" alt="terminal" src={theme.big} />
                 </div>
                 <div className="p-mid">
                     <div className="p-stats">
@@ -235,7 +135,7 @@ export function TerminalSummary({ terminal, data, category }: TerminalSummaryPro
                 <div className="chartbox">
                     <div
                         className="chart-bg"
-                        style={{ backgroundImage: `url("${asset.watermark}")` }}
+                        style={{ backgroundImage: `url("${theme.watermark}")` }}
                     />
                     <div className="legend">
                         <span>
@@ -301,16 +201,16 @@ export function TerminalSummary({ terminal, data, category }: TerminalSummaryPro
                             정보
                         </div>
                         <div className="cells">
-                            {view.summaryInfo.map((cell, i) => (
-                                <Fragment key={cell.k}>
-                                    {i > 0 && <span className="sep">/</span>}
+                            {view.summaryInfo.map((cell, cellIndex) => (
+                                <Fragment key={cell.label}>
+                                    {cellIndex > 0 && <span className="sep">/</span>}
                                     <div className="cell">
                                         <div className="k">
-                                            <Multiline text={cell.k} />
+                                            <Multiline text={cell.label} />
                                         </div>
                                         <div className="val">
-                                            <b>{cell.v}</b>
-                                            <span className="u">{cell.u}</span>
+                                            <b>{cell.value}</b>
+                                            <span className="u">{cell.unit}</span>
                                         </div>
                                     </div>
                                 </Fragment>
@@ -321,7 +221,7 @@ export function TerminalSummary({ terminal, data, category }: TerminalSummaryPro
 
                 <div className="gates">
                     {view.gates.map((gate) => (
-                        <Gate key={gate.title} data={gate} gauge={asset.gauge} />
+                        <Gate key={gate.title} data={gate} gauge={theme.gauge} />
                     ))}
                 </div>
             </div>
@@ -336,11 +236,11 @@ export function TerminalSummary({ terminal, data, category }: TerminalSummaryPro
                         <div>처리시간</div>
                         <div>비율(%)</div>
                     </div>
-                    {view.tableRows.map((row, i) => (
+                    {view.tableRows.map((row, rowIndex) => (
                         <div
                             key={row.time}
-                            className={`trow${i === selectedRow ? ' sel' : ''}`}
-                            onClick={() => setSelectedRow(i)}
+                            className={`trow${rowIndex === selectedRow ? ' sel' : ''}`}
+                            onClick={() => setSelectedRow(rowIndex)}
                         >
                             <div>{row.time}</div>
                             <div>{row.pax}</div>
@@ -352,5 +252,121 @@ export function TerminalSummary({ terminal, data, category }: TerminalSummaryPro
                 </div>
             </div>
         </section>
+    );
+}
+
+/** '대기\n인원수' 처럼 \n 이 포함된 라벨을 <br/> 로 렌더. */
+function Multiline({ text }: { text: string }) {
+    return (
+        <>
+            {text.split('\n').map((line, lineIndex) => (
+                <span key={lineIndex}>
+                    {lineIndex > 0 && <br />}
+                    {line}
+                </span>
+            ))}
+        </>
+    );
+}
+
+/** 체크인카운터 / 출국장 게이트 카드. 좌우 화살표로 아일랜드/게이트를 순환한다. */
+function Gate({ data, gauge }: { data: GateData; gauge: string }) {
+    const [variantIndex, setVariantIndex] = useState(0);
+    // 하단 칩(카운터/게이트) 선택 상태 — 버튼으로 동작하도록 (요구사항 2)
+    const [selectedChip, setSelectedChip] = useState<number | null>(null);
+
+    // 조회를 다시 하면 카드 수가 달라질 수 있어 현재 위치를 범위 안으로 눌러 둔다.
+    const variant = data.variants[Math.min(variantIndex, data.variants.length - 1)];
+
+    const cycleVariant = (direction: number) => {
+        setVariantIndex(
+            (prevIndex) => (prevIndex + direction + data.variants.length) % data.variants.length,
+        );
+        setSelectedChip(null);
+    };
+
+    if (!variant) return null;
+
+    return (
+        <div className="gate">
+            <div className="gate-head">
+                <b>{data.title}</b>
+                <div className="warn">
+                    <span>{data.warn}</span>
+                    <button type="button" className="plus" aria-label={`${data.title} 상세`}>
+                        <Icon name="plus" />
+                    </button>
+                </div>
+            </div>
+            <div className="gate-mid">
+                <div className="isl">{variant.island ?? ' '}</div>
+                <div className="num">
+                    {variant.num}
+                    {variant.numSmall && <small>{variant.numSmall}</small>}
+                </div>
+                <div className="meta">
+                    {variant.meta.map((metaCell) => (
+                        <span key={metaCell.label}>
+                            {metaCell.label}{' '}
+                            <b className={metaCell.accent ? 'acc' : undefined}>{metaCell.value}</b>
+                        </span>
+                    ))}
+                </div>
+            </div>
+            <div className="gauge-row">
+                <div className="gauge">
+                    <div className="k">시간당 처리율</div>
+                    <GaugeDonut
+                        value={variant.processRate.value}
+                        centerText={variant.processRate.centerText}
+                        captionText={variant.processRate.captionText}
+                        accentColor={gauge}
+                    />
+                </div>
+                <div className="rec">
+                    <div className="tag">{variant.recommend.tag}</div>
+                    <div className="name">{variant.recommend.name}</div>
+                    <div className="cnt">
+                        {variant.recommend.count}
+                        <small>개</small>
+                    </div>
+                    <div className={`cap${variant.recommend.countNoteAccent ? ' u' : ''}`}>
+                        {variant.recommend.countNote}
+                    </div>
+                </div>
+                <div className="gauge">
+                    <div className="k">혼잡해소 예상</div>
+                    <GaugeDonut
+                        value={variant.clearTime.value}
+                        centerText={variant.clearTime.centerText}
+                        captionText={variant.clearTime.captionText}
+                        accentColor={gauge}
+                    />
+                </div>
+            </div>
+            <div className="chips">
+                {variant.chips.map((chip, chipIndex) => (
+                    <button
+                        type="button"
+                        key={chip.label}
+                        className={`chip ${chip.kind}${chipIndex === selectedChip ? ' sel' : ''}`}
+                        aria-pressed={chipIndex === selectedChip}
+                        onClick={() =>
+                            setSelectedChip((prevSelected) =>
+                                prevSelected === chipIndex ? null : chipIndex,
+                            )
+                        }
+                    >
+                        {chip.label}
+                    </button>
+                ))}
+            </div>
+            <button type="button" className="gate-arrow prev" onClick={() => cycleVariant(-1)}>
+                <Icon name="chevL" />
+            </button>
+            <button type="button" className="gate-arrow next" onClick={() => cycleVariant(1)}>
+                <Icon name="chevR" />
+            </button>
+        </div>
     );
 }

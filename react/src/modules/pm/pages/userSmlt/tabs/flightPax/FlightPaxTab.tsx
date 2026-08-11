@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { userSmltService } from '@/api/pm/services/userSmlt.service';
-import { useErrorAlert } from '../../hooks/useErrorAlert';
+import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
 import { TerminalPanel } from '../../components/TerminalPanel';
@@ -56,12 +56,18 @@ export function FlightPaxTab({
     // 조회 결과가 들어오면 편집 상태를 조회한 값으로 되돌린다.
     useEffect(() => {
         setEdit({
-            T1: { ratio: raw.T1?.adjRate ?? 0, mode: raw.T1?.adjType === 'HOURLY' ? 'hourly' : 'ratio' },
-            T2: { ratio: raw.T2?.adjRate ?? 0, mode: raw.T2?.adjType === 'HOURLY' ? 'hourly' : 'ratio' },
+            T1: {
+                ratio: raw.T1?.adjRate ?? 0,
+                mode: raw.T1?.adjType === 'HOURLY' ? 'hourly' : 'ratio',
+            },
+            T2: {
+                ratio: raw.T2?.adjRate ?? 0,
+                mode: raw.T2?.adjType === 'HOURLY' ? 'hourly' : 'ratio',
+            },
         });
     }, [raw]);
 
-    const patch = (terminal: TerminalKind, next: Partial<EditState[TerminalKind]>) => {
+    const patchEdit = (terminal: TerminalKind, next: Partial<EditState[TerminalKind]>) => {
         setEdit((prev) => ({ ...prev, [terminal]: { ...prev[terminal], ...next } }));
     };
 
@@ -122,9 +128,9 @@ export function FlightPaxTab({
                         <FlightEditor
                             terminal={terminal}
                             ratio={edit[terminal].ratio}
-                            onRatioChange={(ratio) => patch(terminal, { ratio })}
+                            onRatioChange={(ratio) => patchEdit(terminal, { ratio })}
                             mode={edit[terminal].mode}
-                            onModeChange={(mode) => patch(terminal, { mode })}
+                            onModeChange={(mode) => patchEdit(terminal, { mode })}
                             rows={panelData.rows}
                             disabled={!active}
                         />

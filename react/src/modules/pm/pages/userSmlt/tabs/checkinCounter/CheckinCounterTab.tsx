@@ -3,7 +3,7 @@ import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { BlockChart } from '../../components/BlockChart';
 import { TerminalPanel } from '../../components/TerminalPanel';
 import { formatHour, toHourList } from '../../format';
-import { useErrorAlert } from '../../hooks/useErrorAlert';
+import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
 import { BLOCK_COLORS, TERMINALS, type BlockItem, type TerminalKind } from '../../types';
@@ -61,21 +61,21 @@ function toBlockItems(islands: CheckinIsland[]): BlockItem[] {
 
 /** 요약: 피크 카운터 = 시간대별 열린 부스 수의 최댓값 */
 function peakBooths(islands: CheckinIsland[]): number {
-    const byHour: number[] = Array(24).fill(0);
+    const boothsByHour: number[] = Array(24).fill(0);
     islands.forEach((island) => {
         toHourList(island.ranges).forEach((hour) => {
-            byHour[hour] += island.booths.length;
+            boothsByHour[hour] += island.booths.length;
         });
     });
 
-    return Math.max(0, ...byHour);
+    return Math.max(0, ...boothsByHour);
 }
 
 /** 미운영 칩을 눌렀을 때 — 그 아일랜드 문자로 빈 값을 만든다 */
-function newIsland(data: TerminalCheckinCounter, label: string): CheckinIsland {
+function newIsland(terminalData: TerminalCheckinCounter, label: string): CheckinIsland {
     return {
         label,
-        color: BLOCK_COLORS[data.islandCodes.indexOf(label) % BLOCK_COLORS.length],
+        color: BLOCK_COLORS[terminalData.islandCodes.indexOf(label) % BLOCK_COLORS.length],
         ranges: [],
         // 부스 수는 배정정보에서 오지만 신규는 기준이 없으므로 36석 골격을 미배정으로 연다
         booths: Array.from({ length: ISLAND_BOOTHS }, (_, i) => ({
@@ -116,7 +116,7 @@ export function CheckinCounterTab({
     }, [fetched]);
 
     const data = fetched[activeTerminal] ?? EMPTY_CHECKIN_COUNTER;
-    const islands = edit[activeTerminal];
+    const activeIslands = edit[activeTerminal];
     /** 차트·칩 줄이 함께 쓰는 선택 상태 (다중 선택은 아직 열지 않았다) */
     const selected = dock?.draft ? [dock.draft.label] : [];
 
@@ -142,7 +142,7 @@ export function CheckinCounterTab({
         setDock((prev) => {
             if (prev?.draft?.label === label) return prev; // 이미 편집 중이면 값을 지킨다
 
-            const island = islands.find((it) => it.label === label);
+            const island = activeIslands.find((island) => island.label === label);
 
             return {
                 draft: island ?? newIsland(data, label),
@@ -296,7 +296,7 @@ export function CheckinCounterTab({
             {dock && (
                 <EditDock
                     codes={data.islandCodes}
-                    islands={islands}
+                    islands={activeIslands}
                     selected={selected}
                     onSelect={(label) => openIsland(label)}
                     draft={dock.draft}

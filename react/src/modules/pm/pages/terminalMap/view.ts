@@ -10,7 +10,7 @@ import type {
     MapSmryDto,
     SmltMapDto,
 } from '@/types/api.types';
-import { formatCount, formatHhmm } from '@/modules/pm/pages/dashboard/format';
+import { formatCount, formatHhmm } from '@/lib/format';
 import type {
     CongestionLevel,
     DepGateMarker,
@@ -41,7 +41,7 @@ import type {
 const STAGE_ASPECT = '1798.6 / 1118.7';
 
 /** 혼잡도 4단계 → 마커·뱃지 3단계 (여유와 보통은 같은 색을 쓴다) */
-const CGN_LEVEL: Record<CongestionStatus, CongestionLevel> = {
+const CONGESTION_TO_LEVEL: Record<CongestionStatus, CongestionLevel> = {
     FREE: 'normal',
     NORMAL: 'normal',
     BUSY: 'busy',
@@ -49,7 +49,7 @@ const CGN_LEVEL: Record<CongestionStatus, CongestionLevel> = {
 };
 
 /** 혼잡 알림 단계는 4단계를 그대로 쓴다 */
-const NOTICE_LEVEL_MAP: Record<CongestionStatus, NoticeLevel> = {
+const CONGESTION_TO_NOTICE_LEVEL: Record<CongestionStatus, NoticeLevel> = {
     FREE: 'easy',
     NORMAL: 'normal',
     BUSY: 'busy',
@@ -57,7 +57,7 @@ const NOTICE_LEVEL_MAP: Record<CongestionStatus, NoticeLevel> = {
 };
 
 /** 시설 구분 → 팝업 아이콘 (상업시설 외 나머지는 카운터 계열로 읽는다) */
-const FCLT_KIND: Partial<Record<FcltType, FacilityKind>> = {
+const FCLT_TYPE_TO_KIND: Partial<Record<FcltType, FacilityKind>> = {
     CHKN: 'counter',
     SLFCHKN: 'selfcheck',
     CMRC: 'store',
@@ -69,7 +69,7 @@ export function toSummary(summary: MapSmryDto): HeaderSummary {
 
 export function toNotice(notice: MapNoticeDto): NoticeData {
     return {
-        level: NOTICE_LEVEL_MAP[notice.cgnStatus],
+        level: CONGESTION_TO_NOTICE_LEVEL[notice.cgnStatus],
         items: notice.itemList.map((item) => ({
             id: item.fcltCd,
             facility: item.fcltNm,
@@ -98,24 +98,19 @@ export function toOperCards(cardList: MapOperCardDto[]): OperCard[] {
 
     const middle = Math.floor(cards.length / 2);
 
-    return [...cards.slice(0, middle), { id: 'o-gap', rate: 0, time: '', desc: '', empty: true }, ...cards.slice(middle)];
+    return [
+        ...cards.slice(0, middle),
+        { id: 'o-gap', rate: 0, time: '', desc: '', empty: true },
+        ...cards.slice(middle),
+    ];
 }
 
-function toDepGateMarker(marker: MapMarkerDto): DepGateMarker {
+/** 혼잡도를 함께 그리는 마커 (아일랜드 · 출국장이 같은 모양이다) */
+function toCongestionMarker(marker: MapMarkerDto): IslandMarker & DepGateMarker {
     return {
         id: marker.markerId,
         label: marker.label,
-        level: CGN_LEVEL[marker.cgnStatus ?? 'NORMAL'],
-        x: marker.cdntX,
-        y: marker.cdntY,
-    };
-}
-
-function toIslandMarker(marker: MapMarkerDto): IslandMarker {
-    return {
-        id: marker.markerId,
-        label: marker.label,
-        level: CGN_LEVEL[marker.cgnStatus ?? 'NORMAL'],
+        level: CONGESTION_TO_LEVEL[marker.cgnStatus ?? 'NORMAL'],
         x: marker.cdntX,
         y: marker.cdntY,
     };
@@ -128,8 +123,8 @@ function toGateMarker(marker: MapMarkerDto): GateMarker {
 export function toTerminalMapData(dto: SmltMapDto): TerminalMapData {
     return {
         stageAspect: STAGE_ASPECT,
-        depGates: dto.depMarkerList.map(toDepGateMarker),
-        islands: dto.chknMarkerList.map(toIslandMarker),
+        depGates: dto.depMarkerList.map(toCongestionMarker),
+        islands: dto.chknMarkerList.map(toCongestionMarker),
         gates: dto.gateMarkerList.map(toGateMarker),
     };
 }
@@ -139,8 +134,20 @@ export function toTerminalMapData(dto: SmltMapDto): TerminalMapData {
 /** 혼잡 현황 지표 4종 — 아일랜드 상세 / 출국장 미니 팝업이 함께 쓴다 */
 function toStats(stat: MapCgnStatDto): IslandStat[] {
     return [
-        { ico: 'wait-people', label: '대기인원', value: String(stat.wtngPsgCnt), unit: '명', point: true },
-        { ico: 'wait-time', label: '대기시간', value: String(stat.wtngHr), unit: '초', point: true },
+        {
+            ico: 'wait-people',
+            label: '대기인원',
+            value: String(stat.wtngPsgCnt),
+            unit: '명',
+            point: true,
+        },
+        {
+            ico: 'wait-time',
+            label: '대기시간',
+            value: String(stat.wtngHr),
+            unit: '초',
+            point: true,
+        },
         { ico: 'done-people', label: '처리인원', value: String(stat.prcsPsgCnt), unit: '명' },
         { ico: 'done-time', label: '처리시간', value: String(stat.prcsHr), unit: '초' },
     ];
@@ -151,9 +158,9 @@ export function toIslandDetail(dto: MapChknDetailDto): IslandDetail {
         id: dto.island,
         title: `${dto.island}아일랜드`,
         code: dto.fcltCd,
-        level: CGN_LEVEL[dto.cgnStatus],
+        level: CONGESTION_TO_LEVEL[dto.cgnStatus],
         facilities: dto.fcltList.map((fclt) => ({
-            kind: FCLT_KIND[fclt.fcltType] ?? 'counter',
+            kind: FCLT_TYPE_TO_KIND[fclt.fcltType] ?? 'counter',
             name: fclt.fcltNm,
             // 상업시설은 처리율이 없다 (null 로 내려온다)
             rate: fclt.prcsRate === null ? undefined : `처리율 ${fclt.prcsRate}%`,
@@ -175,7 +182,7 @@ export function toFacilityDetail(dto: MapDepDetailDto): FacilityDetail {
     return {
         id: `dg${dto.depNum}`,
         title: dto.depNm,
-        level: CGN_LEVEL[dto.cgnStatus],
+        level: CONGESTION_TO_LEVEL[dto.cgnStatus],
         stats: toStats(dto.stat),
     };
 }

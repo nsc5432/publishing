@@ -26,7 +26,7 @@ export function CountStepper({
     disabled = false,
     variant = 'row',
 }: CountStepperProps) {
-    const step = (delta: number) => onChange(Math.min(max, Math.max(min, value + delta)));
+    const adjust = (delta: number) => onChange(Math.min(max, Math.max(min, value + delta)));
 
     const stepper = (
         <div className="stepper" aria-label={variant === 'inline' ? label : undefined}>
@@ -34,7 +34,7 @@ export function CountStepper({
                 type="button"
                 className="stepper__btn"
                 disabled={disabled || value <= min}
-                onClick={() => step(-1)}
+                onClick={() => adjust(-1)}
             >
                 −<span className="blind">{`${label} 감소`}</span>
             </button>
@@ -43,7 +43,7 @@ export function CountStepper({
                 type="button"
                 className="stepper__btn"
                 disabled={disabled || value >= max}
-                onClick={() => step(1)}
+                onClick={() => adjust(1)}
             >
                 +<span className="blind">{`${label} 증가`}</span>
             </button>

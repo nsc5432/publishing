@@ -1,5 +1,5 @@
 import { PillSelect } from '@/components/ui/pill-select';
-import { Icon } from '@/modules/pm/pages/dashboard/components/PmIcons';
+import { Icon } from '@/components/icons/InlineIcon';
 import { HOUR_OPTIONS, MINUTE_OPTIONS } from '../options';
 import type { RangeCondition } from '../types';
 
@@ -10,6 +10,15 @@ interface MonitoringGnbProps {
     onSearch: () => void;
 }
 
+interface DateTimeFieldProps {
+    label: string;
+    date: string;
+    hour: string;
+    minute: string;
+    onHourChange: (hour: string) => void;
+    onMinuteChange: (minute: string) => void;
+}
+
 /** 시작일시 / 종료일시 한 벌 (날짜 + 시 + 분) */
 function DateTimeField({
     label,
@@ -18,14 +27,7 @@ function DateTimeField({
     minute,
     onHourChange,
     onMinuteChange,
-}: {
-    label: string;
-    date: string;
-    hour: string;
-    minute: string;
-    onHourChange: (v: string) => void;
-    onMinuteChange: (v: string) => void;
-}) {
+}: DateTimeFieldProps) {
     return (
         <>
             <span className="lbl">{label}</span>
@@ -43,7 +45,7 @@ function DateTimeField({
 }
 
 export function MonitoringGnb({ title, range, onChange, onSearch }: MonitoringGnbProps) {
-    const set = (patch: Partial<RangeCondition>) => onChange({ ...range, ...patch });
+    const patchRange = (patch: Partial<RangeCondition>) => onChange({ ...range, ...patch });
 
     return (
         <header className="gnb">
@@ -56,8 +58,8 @@ export function MonitoringGnb({ title, range, onChange, onSearch }: MonitoringGn
                         date={range.startDate}
                         hour={range.startHour}
                         minute={range.startMinute}
-                        onHourChange={(startHour) => set({ startHour })}
-                        onMinuteChange={(startMinute) => set({ startMinute })}
+                        onHourChange={(startHour) => patchRange({ startHour })}
+                        onMinuteChange={(startMinute) => patchRange({ startMinute })}
                     />
 
                     <span className="datebox__tilde" aria-hidden="true">
@@ -69,8 +71,8 @@ export function MonitoringGnb({ title, range, onChange, onSearch }: MonitoringGn
                         date={range.endDate}
                         hour={range.endHour}
                         minute={range.endMinute}
-                        onHourChange={(endHour) => set({ endHour })}
-                        onMinuteChange={(endMinute) => set({ endMinute })}
+                        onHourChange={(endHour) => patchRange({ endHour })}
+                        onMinuteChange={(endMinute) => patchRange({ endMinute })}
                     />
 
                     <button type="button" className="search-btn" onClick={onSearch}>

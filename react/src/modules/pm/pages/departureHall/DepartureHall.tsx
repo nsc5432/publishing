@@ -1,12 +1,12 @@
 import './departureHall.css';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 // 도면 배경은 맵형태보기와 같은 파일이다 (T1: terminal1-icon / T2: terminal2-plan)
 import { Terminal1Icon, Terminal2Plan } from '@/components/icons';
 import { Lnb } from '@/components/lnb';
+import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
-import { dialog } from '@/lib/dialog';
-import { formatYmd, todayYmd } from '@/modules/pm/pages/dashboard/format';
-import { useBaseInfo } from '@/modules/pm/pages/dashboard/hooks/useBaseInfo';
+import { formatYmd, todayYmd } from '@/lib/format';
+import { useBaseInfo } from '@/hooks/useBaseInfo';
 import { CongestionNotice } from './components/CongestionNotice';
 import { DepChartView } from './components/DepChartView';
 import { DepMapView } from './components/DepMapView';
@@ -14,15 +14,10 @@ import { DepTableView } from './components/DepTableView';
 import { Header } from './components/Header';
 import { Timeline } from './components/Timeline';
 import { ViewSwitch } from './components/ViewSwitch';
-import {
-    EMPTY_DEP_MAP,
-    EMPTY_NOTICE,
-    EMPTY_TREND,
-    useDepHall,
-    useDepHallTrend,
-    type DepHallQuery,
-} from './hooks/useDepHallData';
-import { useTimeline } from './hooks/useTimeline';
+import { useDepHall, useDepHallTrend, type DepHallQuery } from './hooks/useDepHallData';
+import { EMPTY_DEP_MAP, EMPTY_NOTICE, EMPTY_TREND } from './view';
+import { useTimeline } from '@/modules/pm/hooks/useTimeline';
+import { TIMELINE_RANGE } from './timeline';
 import type { DepGateMarker, TerminalKind, ViewMode } from './types';
 
 /* 메뉴 구성은 화면 공용(@/components/lnb)이라 여기서는 활성 항목만 지정한다. */
@@ -45,16 +40,18 @@ function DepartureHall() {
     const [terminal, setTerminal] = useState<TerminalKind>('T1');
     const [view, setView] = useState<ViewMode>('map');
     const [activeDepGate, setActiveDepGate] = useState<DepGateMarker | null>(null);
-    const timeline = useTimeline();
+    const timeline = useTimeline(TIMELINE_RANGE);
 
     // 조회 조건 — 터미널·타임라인 시각이 바뀌면 그대로 다시 조회한다.
     const [query, setQuery] = useState<DepHallQuery | null>(null);
 
-    useEffect(() => {
+    const applyQuery = useCallback(() => {
         if (!baseInfo) return;
 
         setQuery({ smltId: baseInfo.smltId, tmnlId: terminal, hhmm: timeline.hhmm });
     }, [baseInfo, terminal, timeline.hhmm]);
+
+    useEffect(applyQuery, [applyQuery]);
 
     const { data: depHall, error: depHallError } = useDepHall(query);
     const { data: trend, error: trendError } = useDepHallTrend(baseInfo?.smltId ?? '', terminal);
@@ -62,28 +59,19 @@ function DepartureHall() {
     // 조회가 여러 갈래라 먼저 걸린 사유 하나만 알린다 (같은 실패로 알럿이 겹치지 않게).
     const error = baseError || depHallError || trendError;
 
-    useEffect(() => {
-        if (!error) return;
-
-        dialog.alert({ title: '조회 실패', description: error }).catch(() => {
-            // 다이얼로그를 못 띄우는 상황까지 화면이 끌려갈 이유는 없다 (콘솔에 이미 남는다).
-        });
-    }, [error]);
+    useErrorAlert(error);
 
     const mapData = depHall?.map ?? EMPTY_DEP_MAP;
     const notice = depHall?.notice ?? EMPTY_NOTICE;
-    const MapPlan = terminal === 'T1' ? Terminal1Icon : Terminal2Plan;
+    const FloorPlan = terminal === 'T1' ? Terminal1Icon : Terminal2Plan;
 
-    const handleTerminalChange = (kind: TerminalKind) => {
-        setTerminal(kind);
+    const handleTerminalChange = (nextTerminal: TerminalKind) => {
+        setTerminal(nextTerminal);
         setActiveDepGate(null);
     };
 
-    const handleSearch = () => {
-        if (!baseInfo) return;
-
-        setQuery({ smltId: baseInfo.smltId, tmnlId: terminal, hhmm: timeline.hhmm });
-    };
+    // 조건이 그대로여도 다시 눌러 최신 결과를 받아올 수 있도록 조회를 한 번 더 건다.
+    const handleSearch = applyQuery;
 
     return (
         <div className="wrap">
@@ -103,7 +91,7 @@ function DepartureHall() {
                     <section className={`dep-view dep-view--${view}`}>
                         {/* 도면 배경은 맵 보기에서만 드러난다 */}
                         {view === 'map' && (
-                            <MapPlan
+                            <FloorPlan
                                 className="dep-view__bg"
                                 preserveAspectRatio="none"
                                 aria-hidden="true"

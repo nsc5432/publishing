@@ -3,6 +3,8 @@ import type { ECElementEvent } from 'echarts/core';
 import type { TimeRange } from '@/components/ui/time-range-selector';
 import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
+import { pad2 } from '@/lib/format';
+import { toHourList } from '../format';
 import type { BlockColor, BlockItem, BlockLegend, WaitLineData } from '../types';
 
 interface BlockChartProps {
@@ -40,49 +42,6 @@ interface BlockChartProps {
     disabled?: boolean;
 }
 
-/** 블럭 색 — userSmlt.css 의 --i1 ~ --i6 과 같은 값 */
-const BLOCK_FILL: Record<BlockColor, string> = {
-    i1: '#4441cc',
-    i2: '#5b58d6',
-    i3: '#7472e0',
-    i4: '#8f8de9',
-    i5: '#a09eff',
-    i6: '#12b09a',
-};
-/** 대기인원수 꺾은선 색 (--line-wait) */
-const WAIT_COLOR = '#f2762e';
-/** 좌측 눈금 자리(22px) + 눈금과 플롯 사이(8px) */
-export const Y_LEFT = 30;
-/** 아래 격자(출국장 .scgrid)와 좌표를 맞출 때 쓰는 좌측 자리 — CSS 의 --gut 과 같은 값 */
-export const GUTTER = 44;
-/** 우측 대기인원수 눈금 자리(32px) + 간격(8px) — 꺾은선이 있을 때만 쓴다 */
-export const Y_RIGHT = 40;
-/** 플롯 위 여백 — 최댓값 말풍선과 맨 위 눈금 글자 자리. userSmlt.css 에서 음수 마진으로 되돌린다 */
-const PAD_TOP = 18;
-/** 플롯 아래 여백 — 0 눈금 글자의 아래 절반 */
-const PAD_BOTTOM = 7;
-/** 블럭 사이 가로 간격 (원본 grid column-gap) */
-const BLOCK_GAP = 3;
-/** 우측 축 눈금 칸 수 (라벨 5개) */
-const WAIT_TICKS = 4;
-/** 최댓값 말풍선 크기 — 말풍선 아래가 점 위 14px 에 오도록 띄운다 */
-const PEAK_TIP = { width: 58, height: 18, gap: 14 };
-/** 미운영 면(반쪽 블럭)의 불투명도 */
-const SIDE_OFF_OPACITY = 0.26;
-
-const AXIS_FONT = { fontSize: 11, fontFamily: 'Pretendard, sans-serif' };
-const BLOCK_SERIES = '블럭';
-
-/** 운영 구간을 시간 목록으로 편다 (0~23) */
-function toHours(item: BlockItem): number[] {
-    const hours = new Set<number>();
-    item.ranges.forEach((range) => {
-        for (let h = range.start; h < range.end; h += 1) hours.add(h);
-    });
-
-    return [...hours].sort((a, b) => a - b);
-}
-
 /** 렌더할 블럭 1개 — 자리는 [시각, 아래에서 센 층] */
 interface Cell {
     label: string;
@@ -94,6 +53,48 @@ interface Cell {
     /** 호버 툴팁 문구 */
     tip: string;
 }
+
+/* ---------- 아래 격자(출국장 .scgrid)와 좌표를 맞출 때 호출부가 쓰는 값 ---------- */
+
+/** 좌측 눈금 자리(22px) + 눈금과 플롯 사이(8px) */
+export const Y_LEFT = 30;
+/** 아래 격자(출국장 .scgrid)와 좌표를 맞출 때 쓰는 좌측 자리 — CSS 의 --gut 과 같은 값 */
+export const GUTTER = 44;
+/** 우측 대기인원수 눈금 자리(32px) + 간격(8px) — 꺾은선이 있을 때만 쓴다 */
+export const Y_RIGHT = 40;
+
+/* ---------- 렌더 전용 ---------- */
+
+/** 블럭 색 — userSmlt.css 의 --i1 ~ --i6 과 같은 값 */
+const BLOCK_FILL: Record<BlockColor, string> = {
+    i1: '#4441cc',
+    i2: '#5b58d6',
+    i3: '#7472e0',
+    i4: '#8f8de9',
+    i5: '#a09eff',
+    i6: '#12b09a',
+};
+/** 대기인원수 꺾은선 색 (--line-wait) */
+const WAIT_COLOR = '#f2762e';
+/** 플롯 위 여백 — 최댓값 말풍선과 맨 위 눈금 글자 자리. userSmlt.css 에서 음수 마진으로 되돌린다 */
+const PAD_TOP = 18;
+/** 플롯 아래 여백 — 0 눈금 글자의 아래 절반 */
+const PAD_BOTTOM = 7;
+/** 블럭 사이 가로 간격 (원본 grid column-gap) */
+const BLOCK_GAP = 3;
+/** 우측 축 눈금 칸 수 (라벨 5개) */
+const WAIT_TICKS = 4;
+/** 하단 시각 눈금 개수 — 00,02,…,24 (2시간 간격) */
+const SCALE_TICK_COUNT = 13;
+/** 하단 시각 눈금 간격(시간) */
+const SCALE_TICK_STEP_HOUR = 2;
+/** 최댓값 말풍선 크기 — 말풍선 아래가 점 위 14px 에 오도록 띄운다 */
+const PEAK_TIP = { width: 58, height: 18, gap: 14 };
+/** 미운영 면(반쪽 블럭)의 불투명도 */
+const SIDE_OFF_OPACITY = 0.26;
+
+const AXIS_FONT = { fontSize: 11, fontFamily: 'Pretendard, sans-serif' };
+const BLOCK_SERIES = '블럭';
 
 /**
  * 시간대별 운영 블럭 차트 — 체크인 카운터(아일랜드) · 출국장 · 보안검색대 공용.
@@ -127,23 +128,23 @@ export function BlockChart({
 }: BlockChartProps) {
     const cells = useMemo<Cell[]>(() => {
         // 시간별로 이미 쌓인 칸 수 — 다음 시설은 그 위에 올라간다
-        const stack: number[] = [];
-        const list: Cell[] = [];
+        const levelsByHour: number[] = [];
+        const cellList: Cell[] = [];
 
         items.forEach((item, index) => {
             // fixed 는 항목 1개 = 층 1개다. 닫힌 시간의 자리는 비워 둔다.
-            const count =
+            const blockCount =
                 stackMode === 'fixed' ? 1 : Math.max(1, Math.ceil((item.size || 1) / unitSize));
 
-            toHours(item).forEach((hour) => {
-                const base = stackMode === 'fixed' ? index : (stack[hour] ?? 0);
+            toHourList(item.ranges).forEach((hour) => {
+                const baseLevel = stackMode === 'fixed' ? index : (levelsByHour[hour] ?? 0);
                 const tip = formatTip?.(item, hour) ?? '';
 
-                for (let k = 0; k < count; k += 1) {
-                    const level = base + k;
+                for (let blockIndex = 0; blockIndex < blockCount; blockIndex += 1) {
+                    const level = baseLevel + blockIndex;
                     if (level >= levels) continue; // 축을 넘치면 그리지 않는다
 
-                    list.push({
+                    cellList.push({
                         label: item.label,
                         color: item.color,
                         hour,
@@ -153,29 +154,32 @@ export function BlockChart({
                     });
                 }
 
-                stack[hour] = base + count;
+                levelsByHour[hour] = baseLevel + blockCount;
             });
         });
 
-        return list;
+        return cellList;
     }, [items, unitSize, levels, stackMode, formatTip]);
 
     const height = levels * rowH + PAD_TOP + PAD_BOTTOM;
 
     // 호출부가 배열을 매 렌더 새로 만들어도 차트 옵션까지 다시 만들지 않도록 문자열로 굳힌다
-    const selectedKey = (selected ?? []).join('|');
-    const picked = useMemo(() => new Set(selectedKey ? selectedKey.split('|') : []), [selectedKey]);
+    const selectedLabelKey = (selected ?? []).join('|');
+    const selectedLabels = useMemo(
+        () => new Set(selectedLabelKey ? selectedLabelKey.split('|') : []),
+        [selectedLabelKey],
+    );
 
     const option = useMemo<EChartsOption>(() => {
         // 조회 전에는 꺾은선 값이 비어 있다. 축 최댓값이 0/-Infinity 가 되지 않게 받쳐 둔다.
         const waitData = line?.data ?? [];
-        const dataMax = waitData.length > 0 ? Math.max(...waitData) : 0;
-        const axisMax = (line?.max || dataMax) ?? 0;
+        const waitPeak = waitData.length > 0 ? Math.max(...waitData) : 0;
+        const waitAxisMax = (line?.max || waitPeak) ?? 0;
         const blockH = rowH - (compact ? 4 : 6);
         const radius = compact ? 4 : 6;
         // 편집 표면이 열렸을 때 — 선택 블럭만 남기고 흐리게
-        const picking = picked.size > 0;
-        const peakIndex = waitData.length > 0 ? waitData.indexOf(dataMax) : -1;
+        const hasSelection = selectedLabels.size > 0;
+        const peakIndex = waitData.length > 0 ? waitData.indexOf(waitPeak) : -1;
 
         return {
             animation: false,
@@ -239,8 +243,8 @@ export function BlockChart({
                 {
                     type: 'value',
                     min: 0,
-                    max: axisMax || WAIT_TICKS,
-                    interval: (axisMax || WAIT_TICKS) / WAIT_TICKS,
+                    max: waitAxisMax || WAIT_TICKS,
+                    interval: (waitAxisMax || WAIT_TICKS) / WAIT_TICKS,
                     show: Boolean(line),
                     axisLine: { show: false },
                     axisTick: { show: false },
@@ -266,11 +270,11 @@ export function BlockChart({
                         const cell = cells[params.dataIndex];
                         if (!cell) return { type: 'group', children: [] };
 
-                        const isSel = picked.has(cell.label);
+                        const isSelected = selectedLabels.has(cell.label);
                         const [left] = api.coord([cell.hour, 0]);
                         const [right] = api.coord([cell.hour + 1, 0]);
                         const [, top] = api.coord([0, cell.level + 1]);
-                        const opacity = picking && !isSel ? 0.26 : 1;
+                        const opacity = hasSelection && !isSelected ? 0.26 : 1;
 
                         const x = left + BLOCK_GAP / 2;
                         const y = top + (rowH - blockH) / 2;
@@ -287,7 +291,9 @@ export function BlockChart({
                                       shadowOffsetY: 1,
                                       shadowColor: 'rgba(46, 50, 94, 0.18)',
                                   }),
-                            ...(isSel ? { stroke: 'rgba(68, 65, 204, 0.55)', lineWidth: 2 } : {}),
+                            ...(isSelected
+                                ? { stroke: 'rgba(68, 65, 204, 0.55)', lineWidth: 2 }
+                                : {}),
                         };
                         const emphasis = {
                             style: {
@@ -313,8 +319,8 @@ export function BlockChart({
                               };
 
                         // 한쪽 면만 운영하는 시설 — 통 블럭 대신 위/아래로 가른다
-                        const only = cell.sides?.length === 1 ? cell.sides[0] : null;
-                        if (!only) {
+                        const soleOperatingSide = cell.sides?.length === 1 ? cell.sides[0] : null;
+                        if (!soleOperatingSide) {
                             return {
                                 type: 'rect',
                                 shape: { x, y, width, height: blockH, r: radius },
@@ -325,12 +331,12 @@ export function BlockChart({
                             };
                         }
 
-                        const half = blockH / 2;
+                        const halfHeight = blockH / 2;
                         // 반쪽은 높이가 절반이라 모서리도 그만큼만 굴린다
-                        const r = Math.min(radius, half);
+                        const cornerRadius = Math.min(radius, halfHeight);
                         // 운영 면이 진한 절반 — L 이면 위, R 이면 아래
-                        const onY = only === 'L' ? y : y + half;
-                        const offY = only === 'L' ? y + half : y;
+                        const operatingY = soleOperatingSide === 'L' ? y : y + halfHeight;
+                        const closedY = soleOperatingSide === 'L' ? y + halfHeight : y;
 
                         return {
                             type: 'group',
@@ -340,10 +346,13 @@ export function BlockChart({
                                     // 테두리가 블럭 밖으로 삐져나오지 않게 0.5px 안으로 들인다
                                     shape: {
                                         x: x + 0.5,
-                                        y: offY + 0.5,
+                                        y: closedY + 0.5,
                                         width: width - 1,
-                                        height: half - 1,
-                                        r: only === 'L' ? [0, 0, r, r] : [r, r, 0, 0],
+                                        height: halfHeight - 1,
+                                        r:
+                                            soleOperatingSide === 'L'
+                                                ? [0, 0, cornerRadius, cornerRadius]
+                                                : [cornerRadius, cornerRadius, 0, 0],
                                     },
                                     // 미운영 면 — 안쪽 1px 테두리로 자리만 남긴다
                                     style: {
@@ -357,10 +366,13 @@ export function BlockChart({
                                     type: 'rect',
                                     shape: {
                                         x,
-                                        y: onY,
+                                        y: operatingY,
                                         width,
-                                        height: half,
-                                        r: only === 'L' ? [r, r, 0, 0] : [0, 0, r, r],
+                                        height: halfHeight,
+                                        r:
+                                            soleOperatingSide === 'L'
+                                                ? [cornerRadius, cornerRadius, 0, 0]
+                                                : [0, 0, cornerRadius, cornerRadius],
                                     },
                                     style,
                                     emphasis,
@@ -431,7 +443,7 @@ export function BlockChart({
                                       shadowColor: 'rgba(242, 118, 46, 0.35)',
                                   },
                                   label: {
-                                      formatter: `최대 ${dataMax}${line.unit ?? '명'}`,
+                                      formatter: `최대 ${waitPeak}${line.unit ?? '명'}`,
                                       color: '#fff',
                                       fontSize: 10,
                                       fontWeight: 'bold' as const,
@@ -440,14 +452,14 @@ export function BlockChart({
                                   data:
                                       peakIndex < 0
                                           ? []
-                                          : [{ name: 'peak', coord: [peakIndex + 0.5, dataMax] }],
+                                          : [{ name: 'peak', coord: [peakIndex + 0.5, waitPeak] }],
                               },
                           },
                       ]
                     : []),
             ],
         };
-    }, [cells, levels, rowH, compact, blockFontSize, picked, gridLeft, line, disabled]);
+    }, [cells, levels, rowH, compact, blockFontSize, selectedLabels, gridLeft, line, disabled]);
 
     const handleClick = useCallback(
         (params: ECElementEvent) => {
@@ -458,8 +470,10 @@ export function BlockChart({
             if (!cell) return;
 
             // Ctrl(Win) / Cmd(Mac) 누른 채 클릭 = 선택 누적
-            const mouse = params.event?.event as MouseEvent | undefined;
-            onBlockSelect(cell.label, { additive: Boolean(mouse?.ctrlKey || mouse?.metaKey) });
+            const mouseEvent = params.event?.event as MouseEvent | undefined;
+            onBlockSelect(cell.label, {
+                additive: Boolean(mouseEvent?.ctrlKey || mouseEvent?.metaKey),
+            });
         },
         [cells, disabled, onBlockSelect],
     );
@@ -467,7 +481,7 @@ export function BlockChart({
     return (
         <div
             className={`bchart${compact ? ' bchart--compact' : ''}${
-                picked.size > 0 ? ' is-picking' : ''
+                selectedLabels.size > 0 ? ' is-picking' : ''
             }`}
         >
             <div className="bchart__head">
@@ -514,8 +528,8 @@ export function BlockChart({
                     // 눈금줄은 플롯과 같은 좌우 여백을 써야 시각이 블럭 위에 선다
                     style={{ marginLeft: gridLeft, ...(line ? { marginRight: Y_RIGHT } : {}) }}
                 >
-                    {Array.from({ length: 13 }, (_, i) => (
-                        <span key={i}>{String(i * 2).padStart(2, '0')}</span>
+                    {Array.from({ length: SCALE_TICK_COUNT }, (_, tickIndex) => (
+                        <span key={tickIndex}>{pad2(tickIndex * SCALE_TICK_STEP_HOUR)}</span>
                     ))}
                 </div>
             )}

@@ -6,7 +6,7 @@ import type {
     MapMarkerDto,
     MapNoticeDto,
 } from '@/types/api.types';
-import { formatHhmm } from '@/modules/pm/pages/dashboard/format';
+import { formatHhmm } from '@/lib/format';
 import type {
     CongestionLevel,
     DepGateCard,
@@ -29,7 +29,7 @@ import type {
  */
 
 /** 혼잡도 4단계 → 마커·뱃지 3단계 (여유와 보통은 같은 색을 쓴다) */
-const CGN_LEVEL: Record<CongestionStatus, CongestionLevel> = {
+const CONGESTION_TO_LEVEL: Record<CongestionStatus, CongestionLevel> = {
     FREE: 'normal',
     NORMAL: 'normal',
     BUSY: 'busy',
@@ -37,38 +37,44 @@ const CGN_LEVEL: Record<CongestionStatus, CongestionLevel> = {
 };
 
 /** 혼잡 알림 단계는 4단계를 그대로 쓴다 */
-const NOTICE_LEVEL_MAP: Record<CongestionStatus, NoticeLevel> = {
+const CONGESTION_TO_NOTICE_LEVEL: Record<CongestionStatus, NoticeLevel> = {
     FREE: 'easy',
     NORMAL: 'normal',
     BUSY: 'busy',
     VERY_BUSY: 'severe',
 };
 
+/** 출국장별 꺾은선 색 (내려온 순서대로 돌려 쓴다) */
+const TREND_COLORS = ['#4441cc', '#e12b2b', '#1f9d3a', '#e8a318', '#2f7ff0', '#8b5cf6'];
+
 /** 혼잡 현황 지표 4종 — 카드 · 표 보기가 같은 순서로 읽는다 */
-function toStats(stat: MapCgnStatDto): DepStat[] {
+function toDepStats(cgnStat: MapCgnStatDto): DepStat[] {
     return [
-        { ico: 'wait-people', label: '대기인원', value: String(stat.wtngPsgCnt), unit: '명', point: true },
-        { ico: 'wait-time', label: '대기시간', value: String(stat.wtngHr), unit: '초', point: true },
-        { ico: 'done-people', label: '처리인원', value: String(stat.prcsPsgCnt), unit: '명' },
-        { ico: 'done-time', label: '처리시간', value: String(stat.prcsHr), unit: '초' },
+        {
+            icon: 'wait-people',
+            label: '대기인원',
+            value: String(cgnStat.wtngPsgCnt),
+            unit: '명',
+            isHighlighted: true,
+        },
+        {
+            icon: 'wait-time',
+            label: '대기시간',
+            value: String(cgnStat.wtngHr),
+            unit: '초',
+            isHighlighted: true,
+        },
+        { icon: 'done-people', label: '처리인원', value: String(cgnStat.prcsPsgCnt), unit: '명' },
+        { icon: 'done-time', label: '처리시간', value: String(cgnStat.prcsHr), unit: '초' },
     ];
 }
 
-function toIslandMarker(marker: MapMarkerDto): IslandMarker {
+/** 혼잡도를 함께 그리는 마커 (아일랜드 · 출국장이 같은 모양이다) */
+function toCongestionMarker(marker: MapMarkerDto): IslandMarker & DepGateMarker {
     return {
         id: marker.markerId,
         label: marker.label,
-        level: CGN_LEVEL[marker.cgnStatus ?? 'NORMAL'],
-        x: marker.cdntX,
-        y: marker.cdntY,
-    };
-}
-
-function toDepGateMarker(marker: MapMarkerDto): DepGateMarker {
-    return {
-        id: marker.markerId,
-        label: marker.label,
-        level: CGN_LEVEL[marker.cgnStatus ?? 'NORMAL'],
+        level: CONGESTION_TO_LEVEL[marker.cgnStatus ?? 'NORMAL'],
         x: marker.cdntX,
         y: marker.cdntY,
     };
@@ -79,33 +85,33 @@ function toGateMarker(marker: MapMarkerDto): GateMarker {
 }
 
 /** 도면 위 출국장 카드 — 마커와 같은 무대 기준 비율 좌표를 갖는다 */
-function toCards(dto: DepHallDto): DepGateCard[] {
-    return dto.gateList.map((gate) => ({
+function toCards(depHall: DepHallDto): DepGateCard[] {
+    return depHall.gateList.map((gate) => ({
         id: `dg${gate.depNum}`,
         depNum: gate.depNum,
         title: gate.depNm,
-        level: CGN_LEVEL[gate.cgnStatus],
-        stats: toStats(gate.stat),
+        level: CONGESTION_TO_LEVEL[gate.cgnStatus],
+        stats: toDepStats(gate.stat),
         boothCnt: gate.boothCnt,
         operTime: `${formatHhmm(gate.oprBgnTime)}-${formatHhmm(gate.oprEndTime)}`,
         x: gate.cdntX,
         y: gate.cdntY,
-        off: gate.useYn === 'N',
+        isClosed: gate.useYn === 'N',
     }));
 }
 
-export function toTerminalDepMap(dto: DepHallDto): TerminalDepMap {
+export function toTerminalDepMap(depHall: DepHallDto): TerminalDepMap {
     return {
-        cards: toCards(dto),
-        depGates: dto.depMarkerList.map(toDepGateMarker),
-        islands: dto.chknMarkerList.map(toIslandMarker),
-        gates: dto.gateMarkerList.map(toGateMarker),
+        cards: toCards(depHall),
+        depGates: depHall.depMarkerList.map(toCongestionMarker),
+        islands: depHall.chknMarkerList.map(toCongestionMarker),
+        gates: depHall.gateMarkerList.map(toGateMarker),
     };
 }
 
 export function toNotice(notice: MapNoticeDto): NoticeData {
     return {
-        level: NOTICE_LEVEL_MAP[notice.cgnStatus],
+        level: CONGESTION_TO_NOTICE_LEVEL[notice.cgnStatus],
         items: notice.itemList.map((item) => ({
             id: item.fcltCd,
             facility: item.fcltNm,
@@ -116,16 +122,13 @@ export function toNotice(notice: MapNoticeDto): NoticeData {
 
 /* ================= 차트 보기 ================= */
 
-/** 출국장별 꺾은선 색 (내려온 순서대로 돌려 쓴다) */
-const TREND_COLORS = ['#4441cc', '#e12b2b', '#1f9d3a', '#e8a318', '#2f7ff0', '#8b5cf6'];
-
-export function toTrend(dto: DepHallTrendDto): DepTrend {
+export function toTrend(trend: DepHallTrendDto): DepTrend {
     return {
-        timeLabels: dto.timeList.map(formatHhmm),
-        series: dto.seriesList.map((series, i) => ({
+        timeLabels: trend.timeList.map(formatHhmm),
+        series: trend.seriesList.map((series, seriesIndex) => ({
             depNum: series.depNum,
             title: series.depNm,
-            color: TREND_COLORS[i % TREND_COLORS.length],
+            color: TREND_COLORS[seriesIndex % TREND_COLORS.length],
             values: series.itemList.map((item) => item.wtngPsgCnt),
         })),
     };

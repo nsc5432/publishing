@@ -150,17 +150,17 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(searchDto.getSmltId());
 		LocalDate baseDate = parseYmd(smltStng.getExcnYmd());
 
-		FltSmryRawDto base = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList);
-		FltSmryRawDto bef = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList);
-		FltSmryRawDto lastWeek = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(DAYS_A_WEEK)), fltTmnlIdList);
+		FltSmryRawDto baseFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList);
+		FltSmryRawDto befFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList);
+		FltSmryRawDto lastWeekFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(DAYS_A_WEEK)), fltTmnlIdList);
 
 		result.setTmnlId(tmnlId.getValue());
-		result.setFltCnt(base.getDepFltCnt());
-		result.setPsgCnt(base.getDepPsgCnt());
-		result.setFltDiffCnt(base.getDepFltCnt() - lastWeek.getDepFltCnt());
-		result.setPsgDiffCnt(base.getDepPsgCnt() - lastWeek.getDepPsgCnt());
-		result.setBefFltDiffCnt(base.getDepFltCnt() - bef.getDepFltCnt());
-		result.setBefPsgDiffCnt(base.getDepPsgCnt() - bef.getDepPsgCnt());
+		result.setFltCnt(baseFltSmry.getDepFltCnt());
+		result.setPsgCnt(baseFltSmry.getDepPsgCnt());
+		result.setFltDiffCnt(baseFltSmry.getDepFltCnt() - lastWeekFltSmry.getDepFltCnt());
+		result.setPsgDiffCnt(baseFltSmry.getDepPsgCnt() - lastWeekFltSmry.getDepPsgCnt());
+		result.setBefFltDiffCnt(baseFltSmry.getDepFltCnt() - befFltSmry.getDepFltCnt());
+		result.setBefPsgDiffCnt(baseFltSmry.getDepPsgCnt() - befFltSmry.getDepPsgCnt());
 		// 탑승률의 원천 컬럼이 확인되지 않았다 (D7)
 		result.setBrdgRate(0);
 		result.setPeak(getPeak(searchDto.getSmltId(), tmnlId));
@@ -177,12 +177,12 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		Map<String, SmltRsltRawDto> rsltMap = castDsbdMapper
 				.retrieveRsltByHourList(searchDto.getSmltId(), tmnlId.getFcltTmnlId(), category.getUpPsgFcltCdList())
-				.stream().collect(Collectors.toMap(SmltRsltRawDto::getTime, Function.identity(), (a, b) -> a));
+				.stream().collect(Collectors.toMap(SmltRsltRawDto::getTime, Function.identity(), (first, ignored) -> first));
 
 		// 여객수 축은 결과 상세가 아니라 운항 원본에서 온다. 운항편 타일이면 편수를 그 자리에 쓴다
 		Map<String, FltPsgRawDto> fltPsgMap = castDsbdMapper
 				.retrieveHourlyFltPsgList(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList())
-				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (a, b) -> a));
+				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
 		List<DsbdRsltDto> result = new ArrayList<>();
 
@@ -205,7 +205,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		Map<String, SmltRsltRawDto> rsltMap = mergeByUnit(castDsbdMapper.retrieveRsltByUnitList(
 				searchDto.getSmltId(), fcltTmnlId, searchDto.getHhmm(), upPsgFcltCdList));
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, upPsgFcltCdList)
-				.stream().collect(Collectors.toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (a, b) -> a));
+				.stream().collect(Collectors.toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
 
 		List<FcltUnitDto> unitList = getUnitList(unitMap, rsltMap);
 		List<DsbdFcltCardDto> result = new ArrayList<>();
@@ -239,7 +239,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	private HourlyPsgDto getHourlyPsg(String ymd, TerminalKind tmnlId) {
 		Map<String, FltPsgRawDto> hourMap = castDsbdMapper.retrieveHourlyFltPsgList(ymd, tmnlId.getFltTmnlIdList())
-				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (a, b) -> a));
+				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
 		List<HourlyPsgItemDto> itemList = new ArrayList<>();
 		int totPsgCnt = 0;

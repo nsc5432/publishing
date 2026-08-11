@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
+import { AXIS_LABEL as SHARED_AXIS_LABEL, TOOLTIP_TEXT_STYLE } from '@/lib/chart';
 import type { DepTrend } from '../types';
 
 interface DepChartViewProps {
@@ -18,18 +19,18 @@ const X_LABEL_STEP = 4;
 /** 좌측 눈금 자리(42px) + 눈금과 그래프 사이(10px) — departureHall.css 와 맞춘다 */
 const GRID = { left: 52, right: 0, top: 0, bottom: 26 };
 /** 현재 시각 표시선 색 */
-const NOW_LINE = 'rgba(68, 65, 204, 0.45)';
-const PRIMARY = '#4441cc';
+const NOW_LINE_COLOR = 'rgba(68, 65, 204, 0.45)';
+const PRIMARY_COLOR = '#4441cc';
 
-const AXIS_LABEL = { color: '#8b93a3', fontSize: 12, fontFamily: 'Pretendard, sans-serif' };
+const AXIS_LABEL = { ...SHARED_AXIS_LABEL, color: '#8b93a3', fontSize: 12 };
 
 /** 눈금이 딱 떨어지도록 최댓값을 올림한다 (예: 317 → 400) */
-function toAxisMax(max: number) {
-    if (max <= 0) return Y_TICKS;
+function toAxisMax(rawMax: number) {
+    if (rawMax <= 0) return Y_TICKS;
 
-    const unit = 10 ** Math.floor(Math.log10(max));
+    const magnitude = 10 ** Math.floor(Math.log10(rawMax));
 
-    return Math.ceil(max / unit) * unit;
+    return Math.ceil(rawMax / magnitude) * magnitude;
 }
 
 /**
@@ -38,7 +39,7 @@ function toAxisMax(max: number) {
  */
 export function DepChartView({ trend, step, time }: DepChartViewProps) {
     const option = useMemo<EChartsOption>(() => {
-        const axisMax = toAxisMax(Math.max(...trend.series.flatMap((s) => s.values), 0));
+        const axisMax = toAxisMax(Math.max(...trend.series.flatMap((series) => series.values), 0));
 
         return {
             animation: false,
@@ -46,7 +47,7 @@ export function DepChartView({ trend, step, time }: DepChartViewProps) {
             tooltip: {
                 trigger: 'axis',
                 confine: true,
-                textStyle: { fontSize: 12, fontFamily: 'Pretendard, sans-serif' },
+                textStyle: TOOLTIP_TEXT_STYLE,
             },
             xAxis: {
                 type: 'category',
@@ -107,7 +108,11 @@ export function DepChartView({ trend, step, time }: DepChartViewProps) {
                               symbol: 'none',
                               animation: false,
                               label: { show: false },
-                              lineStyle: { color: NOW_LINE, width: 1, type: 'solid' as const },
+                              lineStyle: {
+                                  color: NOW_LINE_COLOR,
+                                  width: 1,
+                                  type: 'solid' as const,
+                              },
                               data: [{ xAxis: step }],
                           },
                           markPoint: {
@@ -117,7 +122,7 @@ export function DepChartView({ trend, step, time }: DepChartViewProps) {
                               symbolSize: [Math.max(44, time.length * 8), 20],
                               // 머리표는 격자 안쪽에 둔다 (위로 빼면 차트 제목과 겹친다)
                               symbolOffset: [0, 16],
-                              itemStyle: { color: PRIMARY },
+                              itemStyle: { color: PRIMARY_COLOR },
                               label: {
                                   formatter: time,
                                   color: '#fff',

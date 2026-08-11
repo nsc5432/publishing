@@ -12,13 +12,13 @@ export function useModalDismiss(onClose: () => void) {
         const lastFocused = document.activeElement as HTMLElement | null;
         closeRef.current?.focus();
 
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onCloseRef.current();
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onCloseRef.current();
         };
-        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('keydown', handleKeyDown);
 
         return () => {
-            document.removeEventListener('keydown', onKeyDown);
+            document.removeEventListener('keydown', handleKeyDown);
             lastFocused?.focus();
         };
     }, []);

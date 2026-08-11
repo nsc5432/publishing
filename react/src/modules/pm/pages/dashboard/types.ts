@@ -1,5 +1,5 @@
 import type { DsbdRsltDto } from '@/types/api.types';
-import type { IconName } from './components/PmIcons';
+import type { IconName } from '@/components/icons/InlineIcon';
 
 /** 일일 시뮬레이션 / 사용자 시뮬레이션 두 가지 버전 */
 export type SimulationType = 'daily' | 'user';
@@ -21,8 +21,10 @@ export type TerminalKind = 'T1' | 'T2';
 export interface GaugeData {
     /** 도넛 게이지 채움 비율 (0~1) */
     value: number;
-    main: string;
-    sub: string;
+    /** 도넛 가운데 큰 글씨 */
+    centerText: string;
+    /** 그 아래 작은 글씨 (단위 / 부연) */
+    captionText: string;
 }
 
 export interface GateChip {
@@ -31,21 +33,33 @@ export interface GateChip {
     kind: string;
 }
 
+/** 게이트 카드 가운데 줄의 '라벨 값' 한 쌍 */
 export interface GateMeta {
-    k: string;
-    v: string;
-    acc?: boolean;
+    label: string;
+    value: string;
+    /** 값을 강조색으로 (dashboard.css 의 .acc) */
+    accent?: boolean;
+}
+
+/** 게이트 카드의 추천 조치 블록 */
+export interface GateRecommend {
+    tag: string;
+    name: string;
+    count: string;
+    /** 개수 뒤에 붙는 문구 (예: 소요 / 배정 필요) */
+    countNote: string;
+    countNoteAccent?: boolean;
 }
 
 /** 게이트 캐러셀의 한 페이지(아일랜드/출국장 1개 상태) */
 export interface GateVariant {
-    isl?: string;
+    island?: string;
     num: string;
     numSmall?: string;
     meta: GateMeta[];
     processRate: GaugeData;
     clearTime: GaugeData;
-    rec: { tag: string; name: string; cnt: string; cap: string; capAccent?: boolean };
+    recommend: GateRecommend;
     chips: GateChip[];
 }
 
@@ -65,9 +79,10 @@ export interface SummaryStat {
 }
 
 export interface SummaryInfoCell {
-    k: string;
-    v: string;
-    u: string;
+    /** '\n' 이 들어갈 수 있다 (Multiline 이 <br/> 로 편다) */
+    label: string;
+    value: string;
+    unit: string;
 }
 
 export interface TableRow {

@@ -29,29 +29,29 @@ export function useSmltInfo(ymd: string, reloadKey = 0): SmltInfoState {
 
     useEffect(() => {
         // 기준일자를 바꿔 다시 부르는 동안 이전 응답이 뒤늦게 덮어쓰지 않도록 막는다.
-        let alive = true;
+        let isCurrent = true;
 
         Promise.all(
             TERMINALS.map((tmnlId) =>
                 userSmltService.getInfo(ymd, tmnlId).then((dto) => unwrap(dto, FAIL_MESSAGE)),
             ),
         )
-            .then((list) => {
-                if (!alive) return;
+            .then((infoList) => {
+                if (!isCurrent) return;
 
                 const smltIds = { T1: '', T2: '' } as Record<TerminalKind, string>;
-                TERMINALS.forEach((tmnlId, i) => {
-                    smltIds[tmnlId] = list[i].smltId;
+                TERMINALS.forEach((tmnlId, index) => {
+                    smltIds[tmnlId] = infoList[index].smltId;
                 });
 
-                setState({ smltIds, ymd: list[0].ymd, saveDt: list[0].saveDt, error: '' });
+                setState({ smltIds, ymd: infoList[0].ymd, saveDt: infoList[0].saveDt, error: '' });
             })
             .catch((err: ApiError) => {
-                if (alive) setState({ ...EMPTY, error: err?.message || FAIL_MESSAGE });
+                if (isCurrent) setState({ ...EMPTY, error: err?.message || FAIL_MESSAGE });
             });
 
         return () => {
-            alive = false;
+            isCurrent = false;
         };
     }, [ymd, reloadKey]);
 

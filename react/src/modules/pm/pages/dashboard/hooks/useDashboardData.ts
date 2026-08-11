@@ -1,14 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { dashboardService } from '@/api/pm/services/dashboard.service';
 import { unwrap } from '@/api/pm/result';
-import type {
-    ApiError,
-    DsbdCategory,
-    DsbdFcltCardDto,
-    DsbdHeaderDto,
-    DsbdRsltDto,
-    TmnlSmryDto,
-} from '@/types/api.types';
+import { useFetched, type Fetched } from '@/hooks/useFetched';
+import type { DsbdCategory, DsbdFcltCardDto, DsbdHeaderDto, TmnlSmryDto } from '@/types/api.types';
 import type { TerminalKind, TerminalView } from '../types';
 import { toTerminalView } from '../view';
 
@@ -24,51 +18,6 @@ export interface DashboardQuery {
     hhmm: string;
 }
 
-/** 실패해도 화면 골격은 남기고 사유만 올려보낸다 */
-interface Fetched<T> {
-    data: T | null;
-    error: string;
-}
-
-const EMPTY = { data: null, error: '' };
-
-const message = (err: ApiError, fallback: string) => err?.message || fallback;
-
-/* ================= 상단 카드 ================= */
-
-const HEADER_FAIL = '상단 요약 정보를 불러오지 못했습니다.';
-
-export function useDashboardHeader(query: DashboardQuery | null): Fetched<DsbdHeaderDto> {
-    const [state, setState] = useState<Fetched<DsbdHeaderDto>>(EMPTY);
-
-    useEffect(() => {
-        if (!query) return;
-
-        let alive = true;
-
-        dashboardService
-            .getHeader(query.ymd, query.hhmm)
-            .then((dto) => unwrap(dto, HEADER_FAIL))
-            .then((dto) => {
-                if (alive) setState({ data: dto, error: '' });
-            })
-            .catch((err: ApiError) => {
-                if (alive) setState({ data: null, error: message(err, HEADER_FAIL) });
-            });
-
-        return () => {
-            alive = false;
-        };
-    }, [query]);
-
-    return state;
-}
-
-/* ================= 터미널 패널 ================= */
-
-const PANEL_FAIL = '터미널 요약 정보를 불러오지 못했습니다.';
-const RSLT_FAIL = '시간대별 결과를 불러오지 못했습니다.';
-
 /** 조회 시각에 매인 부분 (요약 · 게이트 카드) */
 interface PanelBase {
     /**
@@ -82,6 +31,34 @@ interface PanelBase {
     depCards: DsbdFcltCardDto[];
 }
 
+/** 터미널 패널의 조회 조건 — 조건과 터미널이 함께 바뀌어야 다시 부른다 */
+interface PanelQuery {
+    query: DashboardQuery;
+    tmnlId: TerminalKind;
+}
+
+/** 시간대별 결과는 퀵 타일(category)까지 조건에 들어간다 */
+interface RsltQuery extends PanelQuery {
+    category: DsbdCategory;
+}
+
+const HEADER_FAIL = '상단 요약 정보를 불러오지 못했습니다.';
+const PANEL_FAIL = '터미널 요약 정보를 불러오지 못했습니다.';
+const RSLT_FAIL = '시간대별 결과를 불러오지 못했습니다.';
+
+/* ================= 상단 카드 ================= */
+
+export function useDashboardHeader(query: DashboardQuery | null): Fetched<DsbdHeaderDto> {
+    return useFetched(
+        query,
+        ({ ymd, hhmm }) =>
+            dashboardService.getHeader(ymd, hhmm).then((dto) => unwrap(dto, HEADER_FAIL)),
+        HEADER_FAIL,
+    );
+}
+
+/* ================= 터미널 패널 ================= */
+
 /**
  * 터미널 패널 1개분.
  *
@@ -93,65 +70,57 @@ export function useTerminalPanel(
     tmnlId: TerminalKind,
     category: DsbdCategory,
 ): Fetched<TerminalView> {
-    const [base, setBase] = useState<Fetched<PanelBase>>(EMPTY);
-    const [rslt, setRslt] = useState<Fetched<DsbdRsltDto[]>>(EMPTY);
+    const panelQuery = useMemo<PanelQuery | null>(
+        () => (query ? { query, tmnlId } : null),
+        [query, tmnlId],
+    );
+    const rsltQuery = useMemo<RsltQuery | null>(
+        () => (query ? { query, tmnlId, category } : null),
+        [query, tmnlId, category],
+    );
 
-    useEffect(() => {
-        if (!query) return;
+    const panelBase = useFetched(
+        panelQuery,
+        ({ query: dashboardQuery, tmnlId: terminal }) => {
+            const { smltId, hhmm } = dashboardQuery;
 
-        let alive = true;
-        const { smltId, hhmm } = query;
+            return Promise.all([
+                dashboardService
+                    .getTmnlSmry(smltId, terminal, hhmm)
+                    .then((dto) => unwrap(dto, PANEL_FAIL)),
+                dashboardService.getFcltCardList(smltId, terminal, hhmm, 'CHKN'),
+                dashboardService.getFcltCardList(smltId, terminal, hhmm, 'DEP'),
+            ]).then(([smry, chknCards, depCards]): PanelBase => ({
+                query: dashboardQuery,
+                smry,
+                chknCards,
+                depCards,
+            }));
+        },
+        PANEL_FAIL,
+    );
 
-        Promise.all([
-            dashboardService.getTmnlSmry(smltId, tmnlId, hhmm).then((dto) => unwrap(dto, PANEL_FAIL)),
-            dashboardService.getFcltCardList(smltId, tmnlId, hhmm, 'CHKN'),
-            dashboardService.getFcltCardList(smltId, tmnlId, hhmm, 'DEP'),
-        ])
-            .then(([smry, chknCards, depCards]) => {
-                if (alive) setBase({ data: { query, smry, chknCards, depCards }, error: '' });
-            })
-            .catch((err: ApiError) => {
-                if (alive) setBase({ data: null, error: message(err, PANEL_FAIL) });
-            });
-
-        return () => {
-            alive = false;
-        };
-    }, [query, tmnlId]);
-
-    useEffect(() => {
-        if (!query) return;
-
-        let alive = true;
-
-        dashboardService
-            .getTmnlRsltByTime(query.smltId, tmnlId, category)
-            .then((list) => {
-                if (alive) setRslt({ data: list, error: '' });
-            })
-            .catch((err: ApiError) => {
-                if (alive) setRslt({ data: null, error: message(err, RSLT_FAIL) });
-            });
-
-        return () => {
-            alive = false;
-        };
-    }, [query, tmnlId, category]);
+    const hourlyResults = useFetched(
+        rsltQuery,
+        ({ query: dashboardQuery, tmnlId: terminal, category: quickTile }) =>
+            dashboardService.getTmnlRsltByTime(dashboardQuery.smltId, terminal, quickTile),
+        RSLT_FAIL,
+    );
 
     return useMemo(() => {
-        const error = base.error || rslt.error;
-        if (!base.data || !rslt.data) return { data: null, error };
+        const error = panelBase.error || hourlyResults.error;
+        if (!panelBase.data || !hourlyResults.data) return { data: null, error };
 
         return {
             data: toTerminalView({
-                ymd: base.data.query.ymd,
-                hhmm: base.data.query.hhmm,
-                smry: base.data.smry,
-                rsltList: rslt.data,
-                chknCards: base.data.chknCards,
-                depCards: base.data.depCards,
+                ymd: panelBase.data.query.ymd,
+                hhmm: panelBase.data.query.hhmm,
+                smry: panelBase.data.smry,
+                rsltList: hourlyResults.data,
+                chknCards: panelBase.data.chknCards,
+                depCards: panelBase.data.depCards,
             }),
             error,
         };
-    }, [base, rslt]);
+    }, [panelBase, hourlyResults]);
 }

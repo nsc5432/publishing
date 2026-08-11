@@ -1,8 +1,9 @@
 import './monitoring.css';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { monitoringService } from '@/api/pm/services/monitoring.service';
 import { unwrap } from '@/api/pm/result';
 import { Lnb } from '@/components/lnb';
+import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
 import { dialog } from '@/lib/dialog';
 import type { ApiError } from '@/types/api.types';
@@ -13,6 +14,8 @@ import { useMonitoring, type MonitoringQuery } from './hooks/useMonitoringData';
 import { defaultRange, TITLE, toDateTime } from './options';
 import type { HistoryRow, RangeCondition } from './types';
 
+const DETAIL_FAIL = '시뮬레이션 결과를 불러오지 못했습니다.';
+
 /** 조회 조건 → 서버가 받는 기간 (yyyyMMddHHmm) */
 function toQuery(range: RangeCondition): MonitoringQuery {
     return {
@@ -20,8 +23,6 @@ function toQuery(range: RangeCondition): MonitoringQuery {
         endDt: toDateTime(range.endDate, range.endHour, range.endMinute),
     };
 }
-
-const DETAIL_FAIL = '시뮬레이션 결과를 불러오지 못했습니다.';
 
 /**
  * PM 예측관리 / 시뮬레이션 모니터링.
@@ -38,13 +39,7 @@ function Monitoring() {
 
     const { data, error } = useMonitoring(query);
 
-    useEffect(() => {
-        if (!error) return;
-
-        dialog.alert({ title: '조회 실패', description: error }).catch(() => {
-            // 다이얼로그를 못 띄우는 상황까지 화면이 끌려갈 이유는 없다 (콘솔에 이미 남는다).
-        });
-    }, [error]);
+    useErrorAlert(error);
 
     const handleSearch = () => setQuery(toQuery(range));
 
@@ -52,9 +47,9 @@ function Monitoring() {
         monitoringService
             .getExecDetail(row.smltId)
             .then((dto) => unwrap(dto, DETAIL_FAIL))
-            .then((dto) => {
+            .then((execDetail) => {
                 // 결과 화면 이동은 아직 정해지지 않았다. 받은 값만 남긴다.
-                console.log('[결과 보기]', dto);
+                console.log('[결과 보기]', execDetail);
             })
             .catch((err: ApiError) => {
                 dialog

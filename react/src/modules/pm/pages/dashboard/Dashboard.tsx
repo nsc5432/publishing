@@ -1,8 +1,8 @@
 import './dashboard.css';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Lnb } from '@/components/lnb';
+import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
-import { dialog } from '@/lib/dialog';
 import type { DsbdCategory } from '@/types/api.types';
 import { HeaderSummary } from './components/HeaderSummary';
 import { TerminalSummary } from './components/TerminalSummary';
@@ -14,10 +14,10 @@ import {
     resolveTime,
     toHourOptions,
     toMinuteOptions,
-    toSimulationType,
     todayYmd,
-} from './format';
-import { useBaseInfo } from './hooks/useBaseInfo';
+} from '@/lib/format';
+import { useBaseInfo } from '@/hooks/useBaseInfo';
+import { toSimulationType } from './view';
 import {
     useDashboardHeader,
     useTerminalPanel,
@@ -57,19 +57,13 @@ function Dashboard() {
     }, [baseInfo]);
 
     const { data: header, error: headerError } = useDashboardHeader(query);
-    const { data: t1, error: t1Error } = useTerminalPanel(query, 'T1', category);
-    const { data: t2, error: t2Error } = useTerminalPanel(query, 'T2', category);
+    const { data: terminal1View, error: t1Error } = useTerminalPanel(query, 'T1', category);
+    const { data: terminal2View, error: t2Error } = useTerminalPanel(query, 'T2', category);
 
     // 조회가 여러 갈래라 먼저 걸린 사유 하나만 알린다 (같은 실패로 알럿이 겹치지 않게).
     const error = baseError || headerError || t1Error || t2Error;
 
-    useEffect(() => {
-        if (!error) return;
-
-        dialog.alert({ title: '조회 실패', description: error }).catch(() => {
-            // 다이얼로그를 못 띄우는 상황까지 화면이 끌려갈 이유는 없다 (콘솔에 이미 남는다).
-        });
-    }, [error]);
+    useErrorAlert(error);
 
     useFitToScreen();
 
@@ -94,8 +88,10 @@ function Dashboard() {
                 minuteOptions={toMinuteOptions(avlTimes, hour)}
                 lastCalc={formatDateTime(baseInfo?.lastCalcDt ?? '')}
                 nextCalc={formatDateTime(baseInfo?.nextCalcDt ?? '')}
-                onHourChange={(next) => setDraftTime(resolveTime(avlTimes, next, minute))}
-                onMinuteChange={(next) => setDraftTime(resolveTime(avlTimes, hour, next))}
+                onHourChange={(nextHour) => setDraftTime(resolveTime(avlTimes, nextHour, minute))}
+                onMinuteChange={(nextMinute) =>
+                    setDraftTime(resolveTime(avlTimes, hour, nextMinute))
+                }
                 onSearch={handleSearch}
             />
             <Lnb defaultBottom={DEFAULT_NAV_BOTTOM} />
@@ -108,8 +104,8 @@ function Dashboard() {
                     onCategoryChange={setCategory}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary terminal="T1" data={t1} category={category} />
-                        <TerminalSummary terminal="T2" data={t2} category={category} />
+                        <TerminalSummary terminal="T1" data={terminal1View} category={category} />
+                        <TerminalSummary terminal="T2" data={terminal2View} category={category} />
                     </section>
                 </HeaderSummary>
             </div>

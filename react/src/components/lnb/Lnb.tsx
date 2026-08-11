@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Icon, type IconName } from '@/modules/pm/pages/dashboard/components/PmIcons';
+import { Icon, type IconName } from '@/components/icons/InlineIcon';
 import { useUserInfo } from '@/hooks/useUserInfo';
 import { LNB_BOTTOM, LNB_HOME_PATH, LNB_TOP, LNB_USER, type NavItem } from './navItems';
 import { useLocation, useNavigate } from 'react-router-dom';

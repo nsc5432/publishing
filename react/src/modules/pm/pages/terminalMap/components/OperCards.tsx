@@ -18,18 +18,39 @@ const TOP_ANGLE = -270;
 const TRACK_COLOR = '#e5e9f0';
 const VALUE_COLOR = '#2f7ff0';
 
+/**
+ * 맵 상단 운영시간 카드 — 출국장 1곳당 1칸.
+ */
+export function OperCards({ cards }: OperCardsProps) {
+    const gridStyle = { '--oper-cols': cards.length } as CSSProperties;
+
+    return (
+        <div className="oper-cards" style={gridStyle}>
+            {cards.map((card) =>
+                card.empty ? (
+                    <div key={card.id} className="oper-card oper-card--empty" aria-hidden="true" />
+                ) : (
+                    <div key={card.id} className={`oper-card${card.dim ? ' is-dim' : ''}`}>
+                        <Donut card={card} />
+                    </div>
+                ),
+            )}
+        </div>
+    );
+}
+
 /** 컨테이너 한 변(px) — 링 굵기를 원본 비율대로 키우려면 실제 크기가 필요하다 */
 function useBoxSize<T extends HTMLElement>() {
     const ref = useRef<T>(null);
     const [size, setSize] = useState(0);
 
     useLayoutEffect(() => {
-        const el = ref.current;
-        if (!el) return;
+        const element = ref.current;
+        if (!element) return;
 
         const observer = new ResizeObserver(([entry]) => setSize(entry.contentRect.width));
-        observer.observe(el);
-        setSize(el.getBoundingClientRect().width);
+        observer.observe(element);
+        setSize(element.getBoundingClientRect().width);
 
         return () => observer.disconnect();
     }, []);
@@ -43,8 +64,8 @@ function Donut({ card }: { card: OperCard }) {
     const rate = Math.min(Math.max(card.rate, 0), 100);
 
     const option = useMemo<EChartsOption>(() => {
-        const width = (size * RING_W) / VIEWBOX;
-        const base = {
+        const ringWidth = (size * RING_W) / VIEWBOX;
+        const baseGauge = {
             type: 'gauge' as const,
             silent: true,
             center: ['50%', '50%'] as [string, string],
@@ -63,20 +84,25 @@ function Donut({ card }: { card: OperCard }) {
             animation: false,
             series: [
                 {
-                    ...base,
+                    ...baseGauge,
                     // 바탕 링 — 하루 24시간 (12시 방향에서 한 바퀴)
                     startAngle: 90,
                     endAngle: TOP_ANGLE,
-                    axisLine: { lineStyle: { width, color: [[1, TRACK_COLOR]] } },
+                    axisLine: { lineStyle: { width: ringWidth, color: [[1, TRACK_COLOR]] } },
                     data: [{ value: 0 }],
                 },
                 {
-                    ...base,
+                    ...baseGauge,
                     // 운영 구간 — 0시(12시 방향)에서 끝나도록 뒤에서부터 채운다
                     startAngle: rate * 3.6 + TOP_ANGLE,
                     endAngle: TOP_ANGLE,
-                    axisLine: { lineStyle: { width, color: [[1, 'transparent']] } },
-                    progress: { show: true, roundCap: true, width, itemStyle: { color: VALUE_COLOR } },
+                    axisLine: { lineStyle: { width: ringWidth, color: [[1, 'transparent']] } },
+                    progress: {
+                        show: true,
+                        roundCap: true,
+                        width: ringWidth,
+                        itemStyle: { color: VALUE_COLOR },
+                    },
                     data: [{ value: 1 }],
                 },
             ],
@@ -94,27 +120,6 @@ function Donut({ card }: { card: OperCard }) {
                 <strong className="donut__time">{card.time}</strong>
                 <span className="donut__desc">{card.desc}</span>
             </div>
-        </div>
-    );
-}
-
-/**
- * 맵 상단 운영시간 카드 — 출국장 1곳당 1칸.
- */
-export function OperCards({ cards }: OperCardsProps) {
-    const cols = { '--oper-cols': cards.length } as CSSProperties;
-
-    return (
-        <div className="oper-cards" style={cols}>
-            {cards.map((card) =>
-                card.empty ? (
-                    <div key={card.id} className="oper-card oper-card--empty" aria-hidden="true" />
-                ) : (
-                    <div key={card.id} className={`oper-card${card.dim ? ' is-dim' : ''}`}>
-                        <Donut card={card} />
-                    </div>
-                ),
-            )}
         </div>
     );
 }

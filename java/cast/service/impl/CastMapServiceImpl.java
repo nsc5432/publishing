@@ -232,7 +232,7 @@ public class CastMapServiceImpl implements CastMapService {
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 
 		Map<String, String> useYnMap = castDepMapper.retrieveDepFcltList(fcltTmnlId).stream()
-				.collect(Collectors.toMap(DepFcltRawDto::getDepNum, DepFcltRawDto::getUseYn, (a, b) -> a));
+				.collect(Collectors.toMap(DepFcltRawDto::getDepNum, DepFcltRawDto::getUseYn, (first, ignored) -> first));
 		Map<String, List<DepOperHrRawDto>> operHrMap = castDepMapper
 				.retrieveDepOperHrList(fcltTmnlId, smltStng.getFcltyOpngTblDgRsrcId(), smltStng.getExcnYmd())
 				.stream().collect(Collectors.groupingBy(DepOperHrRawDto::getDepNum));
@@ -333,8 +333,8 @@ public class CastMapServiceImpl implements CastMapService {
 
 	/* ================= 시각 ================= */
 
-	private int toBgnHour(String hm) {
-		return Integer.parseInt(defaultHm(hm).substring(0, 2));
+	private int toBgnHour(String hhmm) {
+		return Integer.parseInt(defaultHm(hhmm).substring(0, 2));
 	}
 
 	// 종료 시각은 분이 남으면 다음 시로 올린다. 자정 넘김(RON)은 당일 24시로 자른다
@@ -349,7 +349,7 @@ public class CastMapServiceImpl implements CastMapService {
 		return hour <= toBgnHour(bgnHm) ? HOUR_PER_DAY : hour;
 	}
 
-	private String defaultHm(String hm) {
-		return hm != null && hm.length() >= 4 ? hm : DEFAULT_HM;
+	private String defaultHm(String hhmm) {
+		return hhmm != null && hhmm.length() >= 4 ? hhmm : DEFAULT_HM;
 	}
 }

@@ -6,7 +6,7 @@ import { DetailDrawer, DrawerSection } from '../../components/DetailDrawer';
 import { TimeBar } from '../../components/TimeBar';
 import { TerminalPanel } from '../../components/TerminalPanel';
 import { formatHour, formatOperating, toHourList } from '../../format';
-import { useErrorAlert } from '../../hooks/useErrorAlert';
+import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
 import { BLOCK_COLORS, TERMINALS, type BlockItem, type TerminalKind } from '../../types';
@@ -53,18 +53,18 @@ function toScState(gates: DepartureGate[]): Record<number, number[]> {
 }
 
 /** 요약: 피크 검색대 = 시간대별 운영 검색대 합의 최댓값 */
-function peakSc(gates: DepartureGate[], sc: Record<number, number[]>): number {
-    const byHour: number[] = Array(24).fill(0);
+function peakSc(gates: DepartureGate[], scCountsByGate: Record<number, number[]>): number {
+    const scByHour: number[] = Array(24).fill(0);
     gates
         .filter((gate) => !gate.off)
         .forEach((gate) => {
-            const hours = sc[gate.no] ?? [];
+            const countsByHour = scCountsByGate[gate.no] ?? [];
             toHourList(gate.ranges).forEach((hour) => {
-                byHour[hour] += hours[hour] ?? 0;
+                scByHour[hour] += countsByHour[hour] ?? 0;
             });
         });
 
-    return Math.max(0, ...byHour);
+    return Math.max(0, ...scByHour);
 }
 
 /**
@@ -124,11 +124,11 @@ export function DepartureTab({
 
     // 조회 결과가 들어오면 편집 상태를 조회한 값으로 되돌린다.
     useEffect(() => {
-        const t1 = fetched.T1?.gates ?? [];
-        const t2 = fetched.T2?.gates ?? [];
+        const t1Gates = fetched.T1?.gates ?? [];
+        const t2Gates = fetched.T2?.gates ?? [];
 
-        setEdit({ T1: t1, T2: t2 });
-        setSc({ T1: toScState(t1), T2: toScState(t2) });
+        setEdit({ T1: t1Gates, T2: t2Gates });
+        setSc({ T1: toScState(t1Gates), T2: toScState(t2Gates) });
         setDrawer(null);
         setSelected(null);
     }, [fetched]);
@@ -142,7 +142,7 @@ export function DepartureTab({
 
     /** 격자 줄 라벨 클릭 — 출국장 속성 편집을 연다 (위 차트 블럭 클릭은 줄 강조만 한다) */
     const openGate = (no: number) => {
-        const gate = edit[activeTerminal].find((it) => it.no === no);
+        const gate = edit[activeTerminal].find((candidate) => candidate.no === no);
         if (!gate) return;
 
         setSelected(no);
@@ -167,7 +167,7 @@ export function DepartureTab({
             [activeTerminal]:
                 target === null
                     ? [...prev[activeTerminal], draft]
-                    : prev[activeTerminal].map((it) => (it.no === target ? draft : it)),
+                    : prev[activeTerminal].map((gate) => (gate.no === target ? draft : gate)),
         }));
         // 신규 출국장은 격자에 빈 줄(24칸 0)로 자리를 잡아 준다
         setSc((prev) => ({
@@ -187,12 +187,12 @@ export function DepartureTab({
         // 격자 24칸을 구간으로 되묶어 넘긴다 — 시작 시각이 같은 기존 행은 id(planSn)를 물려받는다.
         // 운영시간을 뒤에 줄였다면 그 밖에 남은 값은 구간으로 나가지 않게 0 으로 덮는다.
         const gates = edit[terminal].map((gate) => {
-            const open = new Set(gate.off ? [] : toHourList(gate.ranges));
-            const byHour = Array.from({ length: 24 }, (_, hour) =>
-                open.has(hour) ? (sc[terminal][gate.no]?.[hour] ?? 0) : 0,
+            const openHours = new Set(gate.off ? [] : toHourList(gate.ranges));
+            const scByHour = Array.from({ length: 24 }, (_, hour) =>
+                openHours.has(hour) ? (sc[terminal][gate.no]?.[hour] ?? 0) : 0,
             );
 
-            return { ...gate, plans: toPlans(byHour, gate.plans) };
+            return { ...gate, plans: toPlans(scByHour, gate.plans) };
         });
 
         runSave(userSmltService.saveDepInfo(toSaveReq(smltId, terminal, gates)), SAVE_FAIL);
@@ -216,9 +216,9 @@ export function DepartureTab({
             {TERMINALS.map((terminal) => {
                 const panelData = fetched[terminal] ?? EMPTY_DEPARTURE;
                 const gates = edit[terminal];
-                const byGate = sc[terminal];
+                const scCountsByGate = sc[terminal];
                 const active = terminal === activeTerminal;
-                const operating = gates.filter((gate) => !gate.off);
+                const operatingGates = gates.filter((gate) => !gate.off);
 
                 return (
                     <TerminalPanel
@@ -237,13 +237,13 @@ export function DepartureTab({
                                 <div className="summary__group">
                                     <span className="summary__label">운영</span>
                                     <strong className="summary__value summary__value--accent">
-                                        {operating.length}
+                                        {operatingGates.length}
                                     </strong>
                                 </div>
                                 <div className="summary__group">
                                     <span className="summary__label">피크 검색대</span>
                                     <strong className="summary__value summary__value--accent">
-                                        {peakSc(gates, byGate)}
+                                        {peakSc(gates, scCountsByGate)}
                                     </strong>
                                 </div>
                             </>
@@ -299,7 +299,7 @@ export function DepartureTab({
                                 const range = gate?.ranges.find(
                                     (it) => hour >= it.start && hour < it.end,
                                 );
-                                const count = byGate[Number(item.label)]?.[hour] ?? 0;
+                                const count = scCountsByGate[Number(item.label)]?.[hour] ?? 0;
                                 const when = range
                                     ? `${range.start}~${range.end}시`
                                     : `${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
@@ -311,7 +311,7 @@ export function DepartureTab({
 
                         <ScGrid
                             gates={gates}
-                            value={byGate}
+                            value={scCountsByGate}
                             onChange={(next) => setSc((prev) => ({ ...prev, [terminal]: next }))}
                             selected={active ? selected : null}
                             onSelect={setSelected}

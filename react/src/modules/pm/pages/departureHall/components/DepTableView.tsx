@@ -15,7 +15,7 @@ const STAT_COLS = ['대기인원', '대기시간', '처리인원', '처리시간
  */
 export function DepTableView({ cards, time }: DepTableViewProps) {
     // 도면은 배치 순(왼쪽부터)이지만 표는 출국장 번호 순으로 읽는다
-    const rows = [...cards].sort((a, b) => Number(a.depNum) - Number(b.depNum));
+    const rows = [...cards].sort((left, right) => Number(left.depNum) - Number(right.depNum));
 
     return (
         <div className="dep-table">
@@ -58,8 +58,10 @@ export function DepTableView({ cards, time }: DepTableViewProps) {
                                     </span>
                                 </td>
                                 {card.stats.map((stat) => (
-                                    <td key={stat.ico}>
-                                        <span className={stat.point ? 'is-point' : undefined}>
+                                    <td key={stat.icon}>
+                                        <span
+                                            className={stat.isHighlighted ? 'is-point' : undefined}
+                                        >
                                             {stat.value}
                                         </span>
                                         <em>{stat.unit}</em>

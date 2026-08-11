@@ -1,9 +1,4 @@
-import {
-    HISTORY_LABEL,
-    RUN_STATUS_LABEL,
-    type HistoryKind,
-    type HistoryRow,
-} from '../types';
+import { HISTORY_LABEL, RUN_STATUS_LABEL, type HistoryKind, type HistoryRow } from '../types';
 
 interface HistoryTableProps {
     kind: HistoryKind;
@@ -30,11 +25,11 @@ export function HistoryTable({ kind, rows, onView }: HistoryTableProps) {
 
                 <div className="tbl__body scroll-area">
                     {rows.map((row) => {
-                        const running = row.status === 'running';
+                        const isRunning = row.status === 'running';
 
                         return (
-                            <div className="tbl__row" key={row.no}>
-                                <div>{row.no}</div>
+                            <div className="tbl__row" key={row.rowNo}>
+                                <div>{row.rowNo}</div>
                                 <div>{row.dept}</div>
                                 <div>{row.name}</div>
                                 <div>{row.startAt}</div>
@@ -48,7 +43,7 @@ export function HistoryTable({ kind, rows, onView }: HistoryTableProps) {
                                     <button
                                         type="button"
                                         className="btn-view"
-                                        disabled={running}
+                                        disabled={isRunning}
                                         onClick={() => onView?.(row)}
                                     >
                                         보기

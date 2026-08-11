@@ -237,7 +237,7 @@ td {
     color: #3b39c9;
 }
 
-/* PmIcons 중에는 svg 에 width/height 를 달지 않은 것(plane 등)이 있고,
+/* InlineIcon 중에는 svg 에 width/height 를 달지 않은 것(plane 등)이 있고,
    그 크기를 잡아 주는 규칙은 dashboard.css 안에만 있다. 레일은 전 화면 공용이라
    여기서 크기를 고정해 어떤 아이콘을 넣어도 같게 보이도록 한다. */
 .nav-item svg {
@@ -581,7 +581,9 @@ td {
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     background: #ffffff;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    box-shadow:
+        0 10px 15px -3px rgba(0, 0, 0, 0.1),
+        0 4px 6px -4px rgba(0, 0, 0, 0.1);
     transform: translate(-50%, -50%);
 }
 
@@ -649,7 +651,11 @@ td {
     font-weight: 500;
     white-space: nowrap;
     cursor: pointer;
-    transition: background 0.2s, box-shadow 0.2s, color 0.2s, border-color 0.2s;
+    transition:
+        background 0.2s,
+        box-shadow 0.2s,
+        color 0.2s,
+        border-color 0.2s;
 }
 
 .alert-dialog__btn:active {

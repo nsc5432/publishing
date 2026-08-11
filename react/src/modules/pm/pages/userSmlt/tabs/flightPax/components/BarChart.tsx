@@ -24,7 +24,7 @@ const Y_WIDTH = 34;
 const X_HEIGHT = 18;
 
 /** 축 칸이 좁아 1,000 이상은 K 로 줄인다 (90,000 → 90K). */
-function tick(value: number) {
+function formatAxisTick(value: number) {
     return value >= 1000 ? `${Math.round(value / 1000)}K` : String(Math.round(value));
 }
 
@@ -34,7 +34,7 @@ function tick(value: number) {
  */
 export function BarChart({ data }: BarChartProps) {
     // 그라디언트 id 는 문서에서 유일해야 한다. 차트가 터미널 x 지표만큼 있다.
-    const gid = `bar-${useId().replace(/:/g, '')}`;
+    const gradientId = `bar-${useId().replace(/:/g, '')}`;
     const max = data.max > 0 ? data.max : 1;
     const ticks = [0, max / 3, (max * 2) / 3, max];
 
@@ -68,7 +68,7 @@ export function BarChart({ data }: BarChartProps) {
                             width={Y_WIDTH}
                             domain={[0, max]}
                             ticks={ticks}
-                            tickFormatter={tick}
+                            tickFormatter={formatAxisTick}
                             tickLine={false}
                             axisLine={false}
                             tick={AXIS_TICK}
@@ -89,14 +89,14 @@ export function BarChart({ data }: BarChartProps) {
                             ]}
                         />
                         <defs>
-                            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+                            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor="#a09eff" />
                                 <stop offset="100%" stopColor="#4441cc" />
                             </linearGradient>
                         </defs>
                         <Bar
                             dataKey="value"
-                            fill={`url(#${gid})`}
+                            fill={`url(#${gradientId})`}
                             barSize={9}
                             radius={[2, 2, 0, 0]}
                             isAnimationActive={false}

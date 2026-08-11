@@ -59,7 +59,7 @@ public class CastSmltServiceImpl implements CastSmltService {
 	@Override
 	public List<WaitPsgDto> retrieveWaitPsgList(String smltId, String tmnlId, List<String> upPsgFcltCdList) {
 		Map<Integer, WaitPsgDto> retrieved = castSmltMapper.retrieveWaitPsgList(smltId, tmnlId, upPsgFcltCdList)
-				.stream().collect(Collectors.toMap(WaitPsgDto::getHour, Function.identity(), (a, b) -> a));
+				.stream().collect(Collectors.toMap(WaitPsgDto::getHour, Function.identity(), (first, ignored) -> first));
 
 		List<WaitPsgDto> result = new ArrayList<>();
 

@@ -72,7 +72,7 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 		// T1 은 제1여객터미널(P01) + 탑승동(P02) 합산
 		List<FltPsgRawDto> rawList = castFltPsgMapper.retrieveFltPsgHourList(getExcnYmd(searchDto), tmnlId.getFltTmnlIdList());
 		Map<String, FltPsgRawDto> rawMap = rawList.stream()
-				.collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (a, b) -> a));
+				.collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
 		List<FltPsgHourDto> hourList = getHourDatas(rawMap);
 
@@ -180,13 +180,13 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 		List<FltPsgChartItemDto> itemList = new ArrayList<>();
 
 		for (String chartHour : CHART_HOUR_LIST) {
-			int cnt = 0;
+			int bucketCnt = 0;
 
 			for (int i = 0; i < CHART_HOUR_STEP; i++) {
-				cnt += getCnt(rawMap, String.format("%02d", Integer.parseInt(chartHour) + i), valueGetter);
+				bucketCnt += getCnt(rawMap, String.format("%02d", Integer.parseInt(chartHour) + i), valueGetter);
 			}
 
-			itemList.add(new FltPsgChartItemDto().withTime(chartHour).withCnt(cnt));
+			itemList.add(new FltPsgChartItemDto().withTime(chartHour).withCnt(bucketCnt));
 		}
 
 		result.setTotCnt(itemList.stream().mapToInt(FltPsgChartItemDto::getCnt).sum());

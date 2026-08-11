@@ -1,10 +1,10 @@
 import './terminalMap.css';
 import { useEffect, useState } from 'react';
 import { Lnb } from '@/components/lnb';
+import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
-import { dialog } from '@/lib/dialog';
-import { formatYmd, todayYmd } from '@/modules/pm/pages/dashboard/format';
-import { useBaseInfo } from '@/modules/pm/pages/dashboard/hooks/useBaseInfo';
+import { formatYmd, todayYmd } from '@/lib/format';
+import { useBaseInfo } from '@/hooks/useBaseInfo';
 import { CongestionNotice } from './components/CongestionNotice';
 import { FacilityMiniModal } from './components/FacilityMiniModal';
 import { Header } from './components/Header';
@@ -13,15 +13,14 @@ import { MapStage } from './components/MapStage';
 import { OperCards } from './components/OperCards';
 import { Timeline } from './components/Timeline';
 import {
-    EMPTY_MAP_DATA,
-    EMPTY_NOTICE,
-    EMPTY_SUMMARY,
     useDepDetail,
     useIslandDetail,
     useSmltMap,
     type MapQuery,
 } from './hooks/useTerminalMapData';
-import { useTimeline } from './hooks/useTimeline';
+import { EMPTY_MAP_DATA, EMPTY_NOTICE, EMPTY_SUMMARY } from './view';
+import { useTimeline } from '@/modules/pm/hooks/useTimeline';
+import { TIMELINE_RANGE } from './timeline';
 import type { DepGateMarker, IslandMarker, TerminalKind } from './types';
 
 /* 메뉴 구성은 화면 공용(@/components/lnb)이라 여기서는 활성 항목만 지정한다. */
@@ -44,7 +43,7 @@ function TerminalMap() {
     const [terminal, setTerminal] = useState<TerminalKind>('T1');
     const [selectedIsland, setSelectedIsland] = useState<IslandMarker | null>(null);
     const [selectedDepGate, setSelectedDepGate] = useState<DepGateMarker | null>(null);
-    const timeline = useTimeline();
+    const timeline = useTimeline(TIMELINE_RANGE);
 
     // 조회 조건 — 터미널·타임라인 시각이 바뀌면 그대로 다시 조회한다.
     const [query, setQuery] = useState<MapQuery | null>(null);
@@ -68,13 +67,7 @@ function TerminalMap() {
     // 조회가 여러 갈래라 먼저 걸린 사유 하나만 알린다 (같은 실패로 알럿이 겹치지 않게).
     const error = baseError || mapError || islandError || depError;
 
-    useEffect(() => {
-        if (!error) return;
-
-        dialog.alert({ title: '조회 실패', description: error }).catch(() => {
-            // 다이얼로그를 못 띄우는 상황까지 화면이 끌려갈 이유는 없다 (콘솔에 이미 남는다).
-        });
-    }, [error]);
+    useErrorAlert(error);
 
     const mapData = mapView?.map ?? EMPTY_MAP_DATA;
     const notice = mapView?.notice ?? EMPTY_NOTICE;
@@ -90,8 +83,8 @@ function TerminalMap() {
         setSelectedDepGate(depGate);
     };
 
-    const handleTerminalChange = (kind: TerminalKind) => {
-        setTerminal(kind);
+    const handleTerminalChange = (nextTerminal: TerminalKind) => {
+        setTerminal(nextTerminal);
         // 터미널이 바뀌면 열려 있던 팝업은 닫는다
         setSelectedIsland(null);
         setSelectedDepGate(null);
