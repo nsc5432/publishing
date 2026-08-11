@@ -101,7 +101,7 @@ public class CastMapServiceImpl implements CastMapService {
 		result.setNotice(getNotice(chknMap, depMap));
 		result.setOperCardList(getOperCardList(tmnlId, smltStng));
 		result.setDepMarkerList(getDepMarkerList(tmnlId, depMap));
-		result.setChknMarkerList(getChknMarkerList(chknMap));
+		result.setChknMarkerList(getChknMarkerList(tmnlId, chknMap));
 		result.setGateMarkerList(MapLayout.gateMarkerList());
 
 		return result;
@@ -283,12 +283,12 @@ public class CastMapServiceImpl implements CastMapService {
 		return result;
 	}
 
-	private List<MapMarkerDto> getChknMarkerList(Map<String, SmltRsltRawDto> chknMap) {
+	private List<MapMarkerDto> getChknMarkerList(TerminalKind tmnlId, Map<String, SmltRsltRawDto> chknMap) {
 		List<MapMarkerDto> result = new ArrayList<>();
 
-		for (String island : MapLayout.islandCdList()) {
+		for (String island : MapLayout.islandCdList(tmnlId)) {
 			SmltRsltRawDto rslt = chknMap.get(island);
-			result.add(MapLayout.chknMarker(island)
+			result.add(MapLayout.chknMarker(tmnlId, island)
 					.withCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0)));
 		}
 

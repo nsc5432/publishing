@@ -38,4 +38,8 @@ export const API_ENDPOINTS = {
     MNTR_EXEC_SMRY: prefix + '/mntr/retrieveSmltExecSmry',
     MNTR_EXEC_LIST: prefix + '/mntr/retrieveSmltExecList',
     MNTR_EXEC_DETAIL: prefix + '/mntr/retrieveSmltExecDetail',
+
+    // 시설물 매핑
+    FCLT_MAP_LIST: prefix + '/fclt/retrieveFcltMapList',
+    FCLT_MAP_SAVE: prefix + '/fclt/saveFcltMapList',
 };

@@ -196,13 +196,13 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 			return result;
 		}
 
-		for (String islandCd : MapLayout.islandCdList()) {
+		for (String islandCd : MapLayout.islandCdList(tmnlId)) {
 			// 아일랜드를 지정해 열었으면 그 아일랜드만 표시한다
 			if (island != null && !island.isEmpty() && !island.equals(islandCd)) {
 				continue;
 			}
 
-			result.add(MapLayout.chknMarker(islandCd));
+			result.add(MapLayout.chknMarker(tmnlId, islandCd));
 		}
 
 		return result;

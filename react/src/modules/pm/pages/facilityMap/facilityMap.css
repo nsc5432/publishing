@@ -1,0 +1,1071 @@
+@charset "utf-8";
+
+/* =====================================================================
+   PM 예측관리 / 시설물 매핑
+
+   읽기전용 확인 화면. 왼쪽 도면(구역 마커)과 오른쪽 대조 표가 같은 목록을
+   두 방식으로 보여 준다. 도면 마커는 아일랜드·출국장 단위라 시설 여러 건을
+   대표하며, 미매핑이 걸린 구역만 뱃지로 튀어나온다.
+
+   높이는 .wrap → .body → .container → .panels 로 이어지는 flex 사슬이
+   끝까지 흘러야 한다. 한 번이라도 끊기면 하단 상세 바가 화면 밖으로 밀린다.
+   ===================================================================== */
+
+/* ==========================================================================
+   0. 화면 기본값
+   ========================================================================== */
+html[data-page='facilityMap'] body {
+    overflow-x: auto;
+    overflow-y: hidden;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #1f2430;
+    letter-spacing: -0.02em;
+    background: #eef1f8;
+}
+
+/* ==========================================================================
+   1. 화면 전용 토큰
+   ========================================================================== */
+html[data-page='facilityMap'] {
+    --c-primary: #4441cc;
+    --c-blue: #1e50d2;
+    --c-red: #e12b2b;
+    --c-green: #1f9d3a;
+    --c-orange: #e8a318;
+    --c-purple: #7b5bd6;
+
+    --c-text: #1f2430;
+    --c-text-sub: #6b7280;
+    --c-line: #e3e7f0;
+
+    --shadow-card: 0 2px 10px rgba(63, 84, 145, 0.08);
+    --card-radius: 16px;
+}
+
+/* ==========================================================================
+   2. Layout
+   ========================================================================== */
+html[data-page='facilityMap'] .wrap {
+    display: flex;
+    flex-direction: column;
+    min-width: 1440px;
+    height: 100%;
+    color: var(--c-text);
+    background:
+        radial-gradient(
+            120% 80% at 50% 55%,
+            rgba(202, 219, 243, 0.55) 0%,
+            rgba(238, 241, 248, 0) 70%
+        ),
+        linear-gradient(180deg, #fafbfe 0%, #eaeef7 100%);
+}
+
+html[data-page='facilityMap'] .body {
+    display: flex;
+    flex: 1;
+    gap: var(--pm-shell-gap);
+    min-height: 0;
+    padding: var(--pm-shell-top) var(--pm-shell-x) var(--pm-shell-bottom);
+}
+
+html[data-page='facilityMap'] .container {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    min-height: 0;
+}
+
+/**
+ * 표는 고정폭, 왼쪽(도면 + 상세)이 남은 폭을 먹는다.
+ *
+ * 표를 늘려 봐야 읽기만 나빠진다 — 눈이 코드와 CAST명 사이를 가로질러야 해서
+ * 한 행을 훑는 거리가 길어진다. 그래서 표는 다섯 열이 편히 들어가는 폭으로 묶고,
+ * 넓어진 화면은 도면이 가져간다.
+ *
+ * container-type: size — 도면이 남은 높이(cqh)를 기준으로 커지고 작아진다.
+ */
+html[data-page='facilityMap'] .panels {
+    display: grid;
+    flex: 1;
+    grid-template-columns: minmax(0, 1fr) 860px;
+    gap: 12px;
+    min-height: 0;
+    container-type: size;
+}
+
+/* 왼쪽 열 : 도면은 비율만큼, 상세가 남은 높이를 먹는다 */
+html[data-page='facilityMap'] .side {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* 오른쪽 열 : 표가 남은 높이를 먹고 편집 바가 바닥에 붙는다 */
+html[data-page='facilityMap'] .listcol {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* ==========================================================================
+   3. Header
+   ========================================================================== */
+html[data-page='facilityMap'] .header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    flex: none;
+    height: var(--pm-header-h);
+    padding: 0 var(--pm-shell-x);
+}
+
+html[data-page='facilityMap'] .header__title {
+    font-size: 19px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+html[data-page='facilityMap'] .header__note {
+    justify-self: end;
+    font-size: 12px;
+    color: var(--c-text-sub);
+    white-space: nowrap;
+}
+
+/* 검색바 --------------------------------------------------------------- */
+html[data-page='facilityMap'] .search-bar {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding: 8px 8px 8px 24px;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 30px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: var(--shadow-card);
+}
+
+html[data-page='facilityMap'] .search-bar__field {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+html[data-page='facilityMap'] .search-bar__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: #454b57;
+    white-space: nowrap;
+}
+
+html[data-page='facilityMap'] .radio-group {
+    display: flex;
+    gap: 16px;
+}
+
+html[data-page='facilityMap'] .radio {
+    display: inline-flex;
+    align-items: center;
+}
+
+html[data-page='facilityMap'] .radio input {
+    position: absolute;
+    opacity: 0;
+}
+
+html[data-page='facilityMap'] .radio label {
+    position: relative;
+    padding-left: 22px;
+    font-size: 13px;
+    color: #454b57;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+html[data-page='facilityMap'] .radio label::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 15px;
+    height: 15px;
+    margin-top: -7.5px;
+    border: 1.5px solid #b9bfcc;
+    border-radius: 50%;
+    background: #fff;
+    box-sizing: border-box;
+}
+
+html[data-page='facilityMap'] .radio input:checked + label {
+    color: var(--c-text);
+    font-weight: 600;
+}
+
+html[data-page='facilityMap'] .radio input:checked + label::before {
+    border-color: var(--c-primary);
+}
+
+html[data-page='facilityMap'] .radio input:checked + label::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 4px;
+    width: 7px;
+    height: 7px;
+    margin-top: -3.5px;
+    border-radius: 50%;
+    background: var(--c-primary);
+}
+
+html[data-page='facilityMap'] .btn-search {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: none;
+    border-radius: 50%;
+    background: var(--c-primary);
+    color: #fff;
+    cursor: pointer;
+}
+
+html[data-page='facilityMap'] .btn-search svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* ==========================================================================
+   4. 상단 요약 타일 (= 상태 필터)
+   ========================================================================== */
+html[data-page='facilityMap'] .sum {
+    display: grid;
+    flex: none;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+html[data-page='facilityMap'] .sum__tile {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 14px 20px;
+    border: 1px solid transparent;
+    border-radius: var(--card-radius);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: var(--shadow-card);
+    font-family: inherit;
+    color: var(--c-text);
+    text-align: left;
+    cursor: pointer;
+    transition:
+        border-color 0.15s,
+        background 0.15s;
+}
+
+html[data-page='facilityMap'] .sum__tile:hover {
+    background: #fff;
+}
+
+html[data-page='facilityMap'] .sum__label {
+    flex: 1;
+    font-size: 13px;
+    color: var(--c-text-sub);
+}
+
+html[data-page='facilityMap'] .sum__count {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+html[data-page='facilityMap'] .sum__unit {
+    font-size: 12px;
+    color: var(--c-text-sub);
+}
+
+html[data-page='facilityMap'] .sum__tile--mapped .sum__count {
+    color: var(--c-green);
+}
+
+html[data-page='facilityMap'] .sum__tile--unmapped .sum__count {
+    color: var(--c-red);
+}
+
+html[data-page='facilityMap'] .sum__tile--unused .sum__count {
+    color: var(--c-text-sub);
+}
+
+html[data-page='facilityMap'] .sum__tile.is-active {
+    border-color: var(--c-primary);
+    background: #fff;
+}
+
+/* ==========================================================================
+   5. 도면
+   ========================================================================== */
+html[data-page='facilityMap'] .stage,
+html[data-page='facilityMap'] .list {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding: 16px 18px;
+    border-radius: var(--card-radius);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: var(--shadow-card);
+}
+
+/* 상세 카드가 고정 높이라, 남는 세로 공간은 도면 카드가 받는다 */
+html[data-page='facilityMap'] .stage {
+    flex: 1;
+    min-height: 0;
+}
+
+/* 높이를 잡아 둔다 — '구역 선택 해제' 버튼이 나타났다 사라질 때
+   머리글 높이가 바뀌면 그 아래 도면이 위아래로 흔들린다 (버튼 30px > 제목 21px) */
+html[data-page='facilityMap'] .stage__head {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 30px;
+}
+
+html[data-page='facilityMap'] .stage__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--c-primary);
+}
+
+html[data-page='facilityMap'] .stage__clear {
+    padding: 5px 12px;
+    border: 1px solid var(--c-line);
+    border-radius: 999px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--c-text-sub);
+    cursor: pointer;
+}
+
+html[data-page='facilityMap'] .stage__clear:hover {
+    border-color: var(--c-primary);
+    color: var(--c-primary);
+}
+
+/**
+ * 무대 : 배경 도면과 마커 레이어가 같은 박스를 꽉 채워야 마커가 제자리에 온다.
+ * 카드 폭에 맞춰 비율대로 높이가 정해지므로(.stage 는 align-self:start)
+ * 도면이 세로로 긴 빈 카드 안에 떠 있는 모양이 되지 않는다.
+ */
+html[data-page='facilityMap'] .map {
+    position: relative;
+    flex: none;
+    /**
+     * 폭이 남아도 도면 카드 밖으로 넘치지 않게 높이로도 묶는다.
+     * 빼는 값(390px) = 상세 카드(272) + 카드 사이 간격(12) + 도면 카드 자체가
+     * 쓰는 높이(제목·범례·안팎 여백 106). cqh 는 .panels 높이다.
+     */
+    width: min(100%, max(120px, calc((100cqh - 390px) * 1.608)));
+    /* 카드가 도면보다 크면 가운데에 둔다 */
+    margin: auto;
+    aspect-ratio: var(--stage-ar, 1798.6 / 1118.7);
+    /* 마커가 도면 폭을 따라 커지고 작아지도록 (cqw) */
+    container-type: inline-size;
+}
+
+html[data-page='facilityMap'] .map__bg,
+html[data-page='facilityMap'] .markers {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/**
+ * 도면을 옅게 깔지 않고 그대로 보여 준다.
+ *
+ * 맵형태보기가 쓰는 도면(terminal1-icon.svg)은 blur(7.5)와 발광 필터가 박혀 있어
+ * 채움색이 #5785C5 인데도 실제로는 거의 흰색으로 그려진다 — 불투명도를 1 로 올려도,
+ * brightness 로 눌러도 진해지지 않았다. 그래서 이 화면은 필터가 없는 판을 쓴다.
+ *
+ * 그 원본은 fill-opacity 가 0.25~0.5 로 들어 있어 여기서 1 로 덮는다
+ * (CSS 는 SVG 표현 속성을 이긴다). 파일 자체는 디자이너 원본 그대로 둔다.
+ */
+html[data-page='facilityMap'] .map__bg {
+    display: block;
+    pointer-events: none;
+}
+
+html[data-page='facilityMap'] .map__bg path {
+    fill-opacity: 1;
+}
+
+/* 마커 -----------------------------------------------------------------
+   크기를 px 로 고정하면 도면이 좁아졌을 때 아일랜드 13개가 서로 겹친다.
+   가장 가까운 두 아일랜드(N-M)는 가로 3.7% · 세로 3.5% 떨어져 있어 대각 간격이
+   도면 폭의 약 4.3% 다. 마커를 그보다 한 뼘 작은 3.8cqw 로 두면 어느 폭에서도
+   서로 붙지 않는다 (4.3 을 그대로 쓰면 딱 맞닿아 조금만 좁아져도 겹친다). */
+html[data-page='facilityMap'] .marker {
+    display: inline-flex;
+    position: absolute;
+    top: var(--y);
+    left: var(--x);
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+    background: var(--c-blue);
+    color: #fff;
+    font-family: inherit;
+    font-size: clamp(8px, 1.7cqw, 12px);
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 6px rgba(31, 36, 48, 0.22);
+    transition:
+        transform 0.12s,
+        box-shadow 0.12s;
+}
+
+html[data-page='facilityMap'] .marker--island {
+    width: clamp(14px, 3.8cqw, 26px);
+    height: clamp(14px, 3.8cqw, 26px);
+    border-radius: 7px;
+}
+
+html[data-page='facilityMap'] .marker--depGate {
+    width: clamp(13px, 3.3cqw, 23px);
+    height: clamp(19px, 5cqw, 34px);
+    border-radius: 8px;
+    background: var(--c-purple);
+}
+
+html[data-page='facilityMap'] .marker:hover {
+    transform: translate(-50%, -50%) scale(1.12);
+}
+
+html[data-page='facilityMap'] .marker.is-active {
+    border-color: var(--c-primary);
+    box-shadow: 0 0 0 4px rgba(68, 65, 204, 0.24);
+}
+
+/* 미매핑이 걸린 구역 — 도면만 봐도 문제 자리가 보여야 한다 */
+html[data-page='facilityMap'] .marker.has-issue {
+    background: var(--c-red);
+}
+
+html[data-page='facilityMap'] .marker__badge {
+    display: flex;
+    position: absolute;
+    top: clamp(-7px, -1.1cqw, -5px);
+    right: clamp(-7px, -1.1cqw, -5px);
+    align-items: center;
+    justify-content: center;
+    min-width: clamp(12px, 2.6cqw, 16px);
+    height: clamp(12px, 2.6cqw, 16px);
+    padding: 0 3px;
+    border: 1.5px solid #fff;
+    border-radius: 999px;
+    background: #b3160f;
+    font-size: clamp(8px, 1.6cqw, 10px);
+}
+
+/* 범례 ----------------------------------------------------------------- */
+html[data-page='facilityMap'] .legend {
+    display: flex;
+    flex: none;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    font-size: 12px;
+    color: var(--c-text-sub);
+}
+
+html[data-page='facilityMap'] .legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+html[data-page='facilityMap'] .legend__item::before {
+    content: '';
+    width: 12px;
+    height: 12px;
+    border-radius: 4px;
+    background: var(--c-blue);
+}
+
+html[data-page='facilityMap'] .legend__item--dep-gate::before {
+    width: 9px;
+    height: 14px;
+    background: var(--c-purple);
+}
+
+html[data-page='facilityMap'] .legend__item--issue::before {
+    border-radius: 999px;
+    background: var(--c-red);
+}
+
+/* ==========================================================================
+   6. 대조 표
+   ========================================================================== */
+html[data-page='facilityMap'] .list__head {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 10px;
+}
+
+html[data-page='facilityMap'] .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+html[data-page='facilityMap'] .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--c-line);
+    border-radius: 999px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    color: #454b57;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+html[data-page='facilityMap'] .chip:hover:not(:disabled) {
+    border-color: #b9c2dd;
+}
+
+html[data-page='facilityMap'] .chip:disabled {
+    background: transparent;
+    color: #b0b6c4;
+    cursor: default;
+}
+
+html[data-page='facilityMap'] .chip.is-active {
+    border-color: var(--c-primary);
+    background: var(--c-primary);
+    color: #fff;
+    font-weight: 600;
+}
+
+html[data-page='facilityMap'] .chip__count {
+    font-style: normal;
+    font-size: 11px;
+    opacity: 0.7;
+}
+
+html[data-page='facilityMap'] .list__tools {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+}
+
+html[data-page='facilityMap'] .list__search {
+    width: 120px;
+    height: 30px;
+    padding: 0 12px;
+    border: 1px solid var(--c-line);
+    border-radius: 999px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--c-text);
+}
+
+html[data-page='facilityMap'] .list__search:focus {
+    outline: none;
+    border-color: var(--c-primary);
+}
+
+html[data-page='facilityMap'] .btn-excel {
+    height: 30px;
+    padding: 0 14px;
+    border: 1px solid #a8bdf0;
+    border-radius: 999px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    color: #2b313d;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+html[data-page='facilityMap'] .btn-excel:hover {
+    border-color: var(--c-blue);
+    background: #eff3fd;
+}
+
+html[data-page='facilityMap'] .list__note {
+    flex: none;
+    margin-bottom: 8px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(68, 65, 204, 0.08);
+    font-size: 12px;
+    color: var(--c-primary);
+}
+
+/* 표 : 머리글 고정 + 본문만 스크롤해야 해서 table 대신 grid div 로 짠다.
+   열 폭은 가장 긴 값("셀프체크인/백드롭", "CAST 시뮬레이션명" 머리글)에 맞춰 고정하고
+   여객시설명만 남는 폭을 흡수한다. */
+html[data-page='facilityMap'] .tbl {
+    --tbl-cols: 168px 126px minmax(200px, 1fr) 188px 90px;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    border: 1px solid var(--c-line);
+    border-radius: 10px;
+    background: #fff;
+    overflow: hidden;
+}
+
+/* 셀을 flex 로 만들면 말줄임(text-overflow)이 먹지 않는다.
+   세로 정렬은 line-height 로 맞추고 셀은 블록으로 둔다 (칸 높이 = 40px). */
+html[data-page='facilityMap'] .tbl__head,
+html[data-page='facilityMap'] .tbl__row {
+    display: grid;
+    grid-template-columns: var(--tbl-cols);
+    align-items: stretch;
+}
+
+html[data-page='facilityMap'] .tbl__head > div,
+html[data-page='facilityMap'] .tbl__row > div {
+    padding: 0 10px;
+    line-height: 40px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 격자 — 세로 구분선이 없으면 어느 값이 어느 열인지 눈이 매번 다시 찾는다 */
+html[data-page='facilityMap'] .tbl__head > div:not(:last-child) {
+    border-right: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+html[data-page='facilityMap'] .tbl__row > div:not(:last-child) {
+    border-right: 1px solid #eef0f6;
+}
+
+html[data-page='facilityMap'] .tbl__head {
+    flex: none;
+    height: 40px;
+    border-bottom: 1px solid #d7d3ea;
+    background: #e7e5f5;
+    color: #3a3f4c;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+html[data-page='facilityMap'] .tbl__body {
+    flex: 1;
+    min-height: 0;
+}
+
+html[data-page='facilityMap'] .tbl__row {
+    width: 100%;
+    height: 40px;
+    border: none;
+    border-bottom: 1px solid #eef0f6;
+    background: none;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--c-text);
+    text-align: left;
+    cursor: pointer;
+}
+
+html[data-page='facilityMap'] .tbl__row:hover {
+    background: #f4f6fd;
+}
+
+html[data-page='facilityMap'] .tbl__row.is-selected {
+    background: rgba(68, 65, 204, 0.09);
+}
+
+html[data-page='facilityMap'] .tbl__group {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 7px;
+}
+
+html[data-page='facilityMap'] .tbl__group span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+html[data-page='facilityMap'] .tbl__code {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    letter-spacing: 0;
+}
+
+html[data-page='facilityMap'] .tbl__row .tbl__name {
+    text-align: left;
+}
+
+/* CAST 시뮬레이션명 — 이 화면에서 유일하게 고칠 수 있는 칸 ------------------
+   평소엔 글자처럼 보이고 손을 얹으면 입력칸으로 드러난다. 늘 테두리를 두르면
+   표 전체가 입력 양식처럼 보여 훑어보기가 나빠진다. */
+html[data-page='facilityMap'] .tbl__row > div.tbl__cast {
+    position: relative;
+    padding: 0 6px;
+    overflow: visible;
+}
+
+html[data-page='facilityMap'] .cast-input {
+    width: 100%;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 26px;
+    color: var(--c-text);
+    text-align: center;
+    vertical-align: middle;
+    cursor: text;
+    transition:
+        border-color 0.12s,
+        background 0.12s;
+}
+
+html[data-page='facilityMap'] .cast-input::placeholder {
+    font-family: Pretendard, sans-serif;
+    font-weight: 400;
+    color: var(--c-red);
+    opacity: 1;
+}
+
+html[data-page='facilityMap'] .cast-input:hover {
+    border-color: #cdd4e6;
+    background: #fff;
+}
+
+html[data-page='facilityMap'] .cast-input:focus {
+    outline: none;
+    border-color: var(--c-primary);
+    background: #fff;
+    box-shadow: 0 0 0 3px rgba(68, 65, 204, 0.12);
+}
+
+/* 저장 전 변경 */
+html[data-page='facilityMap'] .tbl__cast.is-dirty .cast-input {
+    border-color: #f0c26b;
+    background: #fffaf0;
+}
+
+/* 1:1 이 깨진 값 — 저장 자체가 막힌다 */
+html[data-page='facilityMap'] .tbl__cast.is-duplicate .cast-input {
+    border-color: var(--c-red);
+    background: #fff5f5;
+    color: var(--c-red);
+}
+
+html[data-page='facilityMap'] .cast-flag {
+    position: absolute;
+    top: 6px;
+    right: 2px;
+    color: #e8a318;
+    font-size: 8px;
+    line-height: 1;
+    pointer-events: none;
+}
+
+html[data-page='facilityMap'] .tbl__empty {
+    padding: 40px 0;
+    color: var(--c-text-sub);
+    font-size: 13px;
+    text-align: center;
+}
+
+/* 시설유형 점 ---------------------------------------------------------- */
+html[data-page='facilityMap'] .dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #b9bfcc;
+}
+
+html[data-page='facilityMap'] .dot--chkn {
+    background: var(--c-orange);
+}
+
+html[data-page='facilityMap'] .dot--slfchkn {
+    background: #9aa0ac;
+}
+
+html[data-page='facilityMap'] .dot--sc {
+    background: var(--c-red);
+}
+
+html[data-page='facilityMap'] .dot--dep {
+    background: var(--c-green);
+}
+
+html[data-page='facilityMap'] .dot--cmrc {
+    background: var(--c-purple);
+}
+
+/* 상태 뱃지 ------------------------------------------------------------ */
+html[data-page='facilityMap'] .state {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 58px;
+    height: 22px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+html[data-page='facilityMap'] .state--mapped {
+    background: rgba(31, 157, 58, 0.12);
+    color: var(--c-green);
+}
+
+html[data-page='facilityMap'] .state--unmapped {
+    background: rgba(225, 43, 43, 0.12);
+    color: var(--c-red);
+}
+
+html[data-page='facilityMap'] .state--unused {
+    background: rgba(107, 114, 128, 0.14);
+    color: var(--c-text-sub);
+}
+
+/* ==========================================================================
+   6-1. 편집 바 (표 아래)
+   ========================================================================== */
+html[data-page='facilityMap'] .editbar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 18px;
+    border-radius: var(--card-radius);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: var(--shadow-card);
+}
+
+html[data-page='facilityMap'] .editbar__status {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--c-text-sub);
+    font-size: 12px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+html[data-page='facilityMap'] .editbar__status.is-dirty {
+    color: #b57b12;
+    font-weight: 600;
+}
+
+html[data-page='facilityMap'] .editbar__btns {
+    display: flex;
+    flex: none;
+    gap: 8px;
+}
+
+html[data-page='facilityMap'] .btn-revert,
+html[data-page='facilityMap'] .btn-save {
+    height: 32px;
+    padding: 0 20px;
+    border-radius: 999px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+html[data-page='facilityMap'] .btn-revert {
+    border: 1px solid var(--c-line);
+    background: #fff;
+    color: #454b57;
+}
+
+html[data-page='facilityMap'] .btn-revert:hover:not(:disabled) {
+    border-color: #b9c2dd;
+}
+
+html[data-page='facilityMap'] .btn-save {
+    border: none;
+    background: var(--c-primary);
+    color: #fff;
+}
+
+html[data-page='facilityMap'] .btn-save:hover:not(:disabled) {
+    background: #3a37b5;
+}
+
+html[data-page='facilityMap'] .btn-revert:disabled,
+html[data-page='facilityMap'] .btn-save:disabled {
+    border-color: transparent;
+    background: #d8dae3;
+    color: #fff;
+    cursor: default;
+}
+
+/* ==========================================================================
+   7. 매핑 상세 (도면 아래)
+   ========================================================================== */
+/* 높이를 고정한다 — 고른 시설이 있든 없든 카드 크기가 흔들리지 않아야
+   도면이 그때그때 커졌다 작아졌다 하지 않는다. 내용이 넘치면 안쪽만 스크롤한다. */
+html[data-page='facilityMap'] .detail {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    height: 272px;
+    padding: 16px 18px;
+    border-radius: var(--card-radius);
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: var(--shadow-card);
+}
+
+html[data-page='facilityMap'] .detail__title {
+    flex: none;
+    margin-bottom: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--c-primary);
+}
+
+html[data-page='facilityMap'] .detail__empty {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    color: var(--c-text-sub);
+    font-size: 13px;
+    text-align: center;
+}
+
+html[data-page='facilityMap'] .detail__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    overflow: auto;
+}
+
+/* 여객시설 → CAST 를 위아래로 세운다 (표에서는 좌우로 훑는 같은 짝) */
+html[data-page='facilityMap'] .detail__side {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--c-line);
+    border-radius: 10px;
+    background: #fff;
+}
+
+html[data-page='facilityMap'] .detail__tag {
+    flex: none;
+    width: 88px;
+    color: var(--c-text-sub);
+    font-size: 11px;
+}
+
+html[data-page='facilityMap'] .detail__name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+html[data-page='facilityMap'] .detail__code {
+    flex: none;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: #eef0f8;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+html[data-page='facilityMap'] .detail__arrow {
+    flex: none;
+    color: var(--c-primary);
+    font-size: 16px;
+    text-align: center;
+}
+
+html[data-page='facilityMap'] .detail__cast {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--c-blue);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+html[data-page='facilityMap'] .detail__cast.is-empty {
+    font-family: inherit;
+    color: var(--c-red);
+}
+
+html[data-page='facilityMap'] .detail__meta {
+    display: grid;
+    flex: none;
+    grid-template-columns: 66px minmax(0, 1fr);
+    align-items: baseline;
+    gap: 4px 10px;
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+html[data-page='facilityMap'] .detail__meta dt {
+    color: var(--c-text-sub);
+}
+
+html[data-page='facilityMap'] .detail__meta dd {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ==========================================================================
+   8. 반응형 (최소 지원 폭 1440px)
+   도면 열은 좁히지 않는다 — 여기서 더 줄이면 아일랜드 마커가 서로 겹친다.
+   대신 표 쪽 도구(검색창)를 줄여 칩이 두 줄로 접히지 않게 한다.
+   ========================================================================== */
+@media screen and (max-width: 1599px) {
+    html[data-page='facilityMap'] .chips {
+        gap: 5px;
+    }
+}

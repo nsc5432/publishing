@@ -51,6 +51,9 @@ export { default as Terminal1Icon } from '@/assets/svg/terminal1-icon.svg?react'
 export { default as Terminal2BigIcon } from '@/assets/svg/terminal2-big-icon.svg?react';
 export { default as Terminal2Icon } from '@/assets/svg/terminal2-icon.svg?react';
 export { default as Terminal2Plan } from '@/assets/svg/terminal2-plan.svg?react';
+/* 흐림 필터가 없는 도면 — 배경으로 깔지 않고 도면 자체를 보여 줄 때 쓴다 (시설물 매핑) */
+export { default as Terminal1SolidPlan } from '@/assets/svg/terminal1-plan-solid.svg?react';
+export { default as Terminal2SolidPlan } from '@/assets/svg/terminal2-plan-solid.svg?react';
 export { default as T1WhiteIcon } from '@/assets/svg/t1-white.svg?react';
 export { default as T2WhiteIcon } from '@/assets/svg/t2-white.svg?react';
 

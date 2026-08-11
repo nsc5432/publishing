@@ -84,22 +84,45 @@ const T2_DEPS: DepSeed[] = [
     ['1', 61.68, 63.5, 21, 120],
 ];
 
-/** 아일랜드 A~N : [문자, x, y, 피크 자리, 피크 대기인원] — 두 터미널 공통 배치 */
-const ISLANDS: DepSeed[] = [
-    ['N', 19.21, 90.68, 18, 300],
-    ['M', 22.93, 87.19, 18, 120],
-    ['L', 27.16, 82.46, 19, 120],
-    ['K', 31.94, 78.79, 19, 120],
-    ['J', 36.55, 76.02, 20, 120],
-    ['H', 41.94, 74.23, 20, 300],
-    ['G', 53.18, 73.34, 20, 120],
-    ['F', 58.12, 74.23, 21, 120],
-    ['E', 63.07, 76.02, 21, 120],
-    ['D', 67.91, 78.52, 21, 190],
-    ['C', 72.8, 82.19, 22, 300],
-    ['B', 77.14, 86.3, 22, 300],
-    ['A', 80.75, 90.68, 22, 120],
-];
+/**
+ * 아일랜드 A~N : [문자, x, y, 피크 자리, 피크 대기인원].
+ *
+ * 터미널마다 도면의 콘코스 위치가 달라 좌표를 따로 갖는다 — T1 은 아치(가운데 y≒73%),
+ * T2 는 그보다 낮고 완만한 띠(가운데 y≒78%)다. 한 벌로 쓰면 T2 마커가 건물 위로 떠오른다.
+ * 서버(MapLayout.java)의 값과 같아야 마커가 도면 위 같은 자리에 얹힌다.
+ */
+const ISLAND_SEEDS: Record<TmnlId, DepSeed[]> = {
+    T1: [
+        ['N', 19.21, 90.68, 18, 300],
+        ['M', 22.93, 87.19, 18, 120],
+        ['L', 27.16, 82.46, 19, 120],
+        ['K', 31.94, 78.79, 19, 120],
+        ['J', 36.55, 76.02, 20, 120],
+        ['H', 41.94, 74.23, 20, 300],
+        ['G', 53.18, 73.34, 20, 120],
+        ['F', 58.12, 74.23, 21, 120],
+        ['E', 63.07, 76.02, 21, 120],
+        ['D', 67.91, 78.52, 21, 190],
+        ['C', 72.8, 82.19, 22, 300],
+        ['B', 77.14, 86.3, 22, 300],
+        ['A', 80.75, 90.68, 22, 120],
+    ],
+    T2: [
+        ['N', 19.0, 89.8, 18, 300],
+        ['M', 24.2, 85.5, 18, 120],
+        ['L', 29.3, 82.4, 19, 120],
+        ['K', 34.5, 80.1, 19, 120],
+        ['J', 39.7, 78.9, 20, 120],
+        ['H', 44.8, 78.2, 20, 300],
+        ['G', 50.0, 78.0, 20, 120],
+        ['F', 55.2, 78.2, 21, 120],
+        ['E', 60.3, 78.9, 21, 120],
+        ['D', 65.5, 80.2, 21, 190],
+        ['C', 70.7, 82.3, 22, 300],
+        ['B', 75.8, 85.4, 22, 300],
+        ['A', 81.0, 89.5, 22, 120],
+    ],
+};
 
 /** 출입구 게이트 1~14 : 탑승동 아치 안쪽 라인 (두 터미널 공통 배치) */
 const GATES: Array<[string, number, number]> = [
@@ -189,8 +212,8 @@ function islandSeed(island: string): number {
     return Math.max(0, island.charCodeAt(0) - 65);
 }
 
-function findIsland(island: string): DepSeed | undefined {
-    return ISLANDS.find(([label]) => label === island);
+function findIsland(tmnlId: TmnlId, island: string): DepSeed | undefined {
+    return ISLAND_SEEDS[tmnlId].find(([label]) => label === island);
 }
 
 function findDep(tmnlId: TmnlId, depNum: string): DepSeed | undefined {
@@ -212,7 +235,7 @@ export const mapMock = {
             notice: NOTICES[tmnlId],
             operCardList: toOperCards(DEP_SEEDS[tmnlId]),
             depMarkerList: toMarkers(DEP_SEEDS[tmnlId], 'dg', step),
-            chknMarkerList: toMarkers(ISLANDS, '', step),
+            chknMarkerList: toMarkers(ISLAND_SEEDS[tmnlId], '', step),
             gateMarkerList: GATES.map(([label, cdntX, cdntY]) => ({
                 markerId: `g${label}`,
                 label,
@@ -223,13 +246,9 @@ export const mapMock = {
     },
 
     /** 아일랜드 마커 클릭 — 상세 팝업 */
-    getChknDetail: (
-        tmnlId: TmnlId,
-        island: string,
-        hhmm: string,
-    ): MapChknDetailDto => {
+    getChknDetail: (tmnlId: TmnlId, island: string, hhmm: string): MapChknDetailDto => {
         const seed = islandSeed(island);
-        const marker = findIsland(island);
+        const marker = findIsland(tmnlId, island);
         const wtngPsgCnt = marker ? wtngAt(marker[3], marker[4], toStep(hhmm)) : 0;
 
         return {

@@ -565,3 +565,40 @@ export interface SmltExecDetailDto extends JsonResponse {
     execMin: number;
     execStatus: SmltExecStatus;
 }
+
+/* ================= 시설물 매핑 ================= */
+
+/**
+ * 시설물 매핑 1건 — TN_PM_SMLT_PSG_FCLT 한 행.
+ *
+ * 공항 여객시설(psgFcltCd/psgFcltNm)과 CAST 시뮬레이션 시설(smltFcltNm)의 대응이
+ * 이 화면이 확인하려는 대상이다. smltFcltNm 이 비어 있으면 미매핑이다.
+ */
+export interface FcltMapItemDto {
+    psgFcltCd: string; // 여객시설코드 (PK)
+    upPsgFcltCd: string; // 상위여객시설코드 (시설그룹)
+    upPsgFcltNm: string; // 상위여객시설명 (그룹 표시명)
+    psgFcltNm: string; // 여객시설명
+    psgFcltExpln: string; // 여객시설설명
+    smltFcltNm: string; // 시뮬레이션시설명 (CAST) — '' 이면 미매핑
+    tmnlId: TmnlId;
+    fcltType: FcltType; // 도면 마커 색 / 범례 구분
+    island: string; // 아일랜드(A~N) · 출국장번호 — 도면 마커 연결용, 없으면 ''
+    sortSeq: number;
+    useYn: YnFlag;
+    lastMdfrId: string; // 최종수정자
+    lastMdfcnDt: string; // 최종수정일시 (yyyyMMddHHmmss)
+}
+
+/** 시설물 매핑 목록 (터미널 단위 전량) */
+export interface FcltMapListDto extends JsonResponse {
+    tmnlId: TmnlId;
+    itemList: FcltMapItemDto[];
+    markerList: MapMarkerDto[]; // 도면 마커 (아일랜드 / 출국장 단위)
+}
+
+/** 시설물 매핑 저장 항목 — 바뀐 시설만 보낸다 (저장 응답은 공통 JsonResponse) */
+export interface FcltMapSaveItemDto {
+    psgFcltCd: string; // 여객시설코드 (PK)
+    smltFcltNm: string; // 새 시뮬레이션시설명 ('' = 매핑 해제)
+}

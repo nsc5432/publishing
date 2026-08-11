@@ -26,7 +26,7 @@ export const LNB_TOP: NavItem[] = [
         label: '시뮬레이션 모니터링',
         path: '/rui/pm/smlt-monitoring',
     },
-    { id: 'facilityMap', icon: 'pin', label: '시설물 매핑' },
+    { id: 'facilityMap', icon: 'pin', label: '시설물 매핑', path: '/rui/pm/fclt-map' },
 ];
 export const LNB_BOTTOM: NavItem[] = [
     { id: 'summary', icon: 'grid', label: '요약보기', path: '/rui/pm/daily-smlt/dashboard' },

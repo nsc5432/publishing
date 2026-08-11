@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="aoms.pm.cast.mapper.CastFcltMapper">
+    <!--
+        시설코드에서 도면 구역(아일랜드 · 출국장 번호)을 잘라내는 식.
+        CastDsbdMapper.unitCdExpr 과 같은 자리수 규칙이다 — 한쪽만 고치면 도면과 목록이 어긋난다.
+          CC  T1CCG29 / T1CCDZ01 → 아일랜드는 뒤에서 3번째 자리
+          CK  T1CKIM01           → 아일랜드는 뒤에서 3번째 자리
+          SBD T1SBDG01           → 아일랜드는 뒤에서 3번째 자리
+          LGT T1L5NY19           → 출국장은 4번째 자리
+          SC  T1SC5_14           → 출국장은 5번째 자리
+    -->
+    <sql id="unitCdExpr">
+        CASE
+            WHEN A.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(A.PSG_FCLT_CD, -3, 1)
+            WHEN A.UP_PSG_FCLT_CD IN ('LGT') THEN SUBSTR(A.PSG_FCLT_CD, 4, 1)
+            WHEN A.UP_PSG_FCLT_CD IN ('SC', 'SR') THEN SUBSTR(A.PSG_FCLT_CD, 5, 1)
+            ELSE ' '
+        END
+    </sql>
+
+    <select id="retrieveFcltMapList" resultType="aoms.pm.cast.dto.FcltMapItemDto">
+        /* CastFcltMapper.retrieveFcltMapList */
+        SELECT
+            A.PSG_FCLT_CD AS PSG_FCLT_CD,
+            NVL(A.UP_PSG_FCLT_CD, ' ') AS UP_PSG_FCLT_CD,
+            /* 상위 행이 없는 코드가 있어 이름은 비워 둔다 — 서비스가 시설구분 이름으로 채운다 */
+            NVL(P.PSG_FCLT_NM, ' ') AS UP_PSG_FCLT_NM,
+            NVL(A.PSG_FCLT_NM, ' ') AS PSG_FCLT_NM,
+            NVL(A.PSG_FCLT_EXPLN, ' ') AS PSG_FCLT_EXPLN,
+            /* 미매핑은 빈 문자열로 내린다 — 화면이 null 과 '' 를 나눠 다루지 않게 한다 */
+            NVL(A.SMLT_FCLT_NM, ' ') AS SMLT_FCLT_NM,
+            <include refid="unitCdExpr" /> AS ISLAND,
+            NVL(A.SORT_SEQ, 0) AS SORT_SEQ,
+            NVL(A.USE_YN, 'Y') AS USE_YN,
+            NVL(A.LAST_MDFR_ID, ' ') AS LAST_MDFR_ID,
+            NVL(TO_CHAR(A.LAST_MDFCN_DT, 'YYYYMMDDHH24MISS'), ' ') AS LAST_MDFCN_DT
+        FROM PMOWN.TN_PM_SMLT_PSG_FCLT A
+        LEFT JOIN PMOWN.TN_PM_SMLT_PSG_FCLT P
+            ON A.UP_PSG_FCLT_CD = P.PSG_FCLT_CD
+        WHERE 1 = 1
+        AND A.TMNL_ID = #{fcltTmnlId}
+        /* 상위코드가 곧 자기 자신인 그룹 행은 매핑 대상이 아니다 */
+        AND A.PSG_FCLT_CD != NVL(A.UP_PSG_FCLT_CD, ' ')
+        ORDER BY A.UP_PSG_FCLT_CD, NVL(A.SORT_SEQ, 0), A.PSG_FCLT_CD
+    </select>
+
+    <select id="retrieveDuplicateSmltFcltNmList" resultType="java.lang.String">
+        /* CastFcltMapper.retrieveDuplicateSmltFcltNmList */
+        SELECT A.SMLT_FCLT_NM
+        FROM PMOWN.TN_PM_SMLT_PSG_FCLT A
+        WHERE 1 = 1
+        AND A.SMLT_FCLT_NM IS NOT NULL
+        AND (
+            <foreach collection="itemList" item="item" separator=" OR ">
+                (A.SMLT_FCLT_NM = #{item.smltFcltNm} AND A.PSG_FCLT_CD != #{item.psgFcltCd})
+            </foreach>
+        )
+    </select>
+
+    <update id="updateSmltFcltNm">
+        /* CastFcltMapper.updateSmltFcltNm */
+        UPDATE PMOWN.TN_PM_SMLT_PSG_FCLT
+        SET SMLT_FCLT_NM = #{smltFcltNm},
+            LAST_MDFR_ID = #{loginUserId},
+            LAST_MDFR_IP_ADDR = #{loginIpAddr},
+            LAST_MDFCN_DT = CURRENT_TIMESTAMP
+        WHERE 1 = 1
+        AND PSG_FCLT_CD = #{psgFcltCd}
+        /* 화면이 보고 있던 터미널의 시설만 고친다 (엉뚱한 터미널 코드가 섞여 오면 0건) */
+        AND TMNL_ID = #{fcltTmnlId}
+    </update>
+</mapper>
