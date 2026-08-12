@@ -24,18 +24,10 @@ interface BlockChartProps {
     actions?: ReactNode;
     headExtra?: ReactNode;
     headActions?: ReactNode;
-    /** 선택된 블럭 라벨. 하나라도 있으면 나머지가 흐려진다 */
     selected?: string[];
-    /** meta.additive = Ctrl/Cmd 를 누른 채 클릭했는가 */
     onBlockSelect?: (label: string, meta: { additive: boolean }) => void;
-    /** 'packed' 열린 것부터 아래에서 쌓음(기본) · 'fixed' items 순서로 층 고정 */
-    stackMode?: 'packed' | 'fixed';
-    /** 좌측 축 자리(px). 아래 격자와 좌표를 맞출 때 GUTTER 를 넘긴다 */
-    gridLeft?: number;
-    /**
-     * 가로 드래그로 좁힌 시간 범위 — 자리만 열어 둔 값이다.
-     * 브러시 조작은 아직 붙지 않았다 (STEP-1 스텝 4).
-     */
+    stackMode?: 'packed' | 'fixed'; /** packed: 열린 것부터 아래에서 쌓음(기본), fixed: items 순서로 층 고정 */
+    gridLeft?: number; /** 좌측 축 자리(px) */
     selectedRange?: TimeRange | null;
     onRangeSelect?: (label: string, range: TimeRange) => void;
     formatTip?: (item: BlockItem, hour: number) => string;
@@ -95,10 +87,6 @@ const SIDE_OFF_OPACITY = 0.26;
 
 const AXIS_FONT = { fontSize: 11, fontFamily: 'Pretendard, sans-serif' };
 const BLOCK_SERIES = '블럭';
-/**
- * 블럭 data 의 value 세 번째 칸 — 축(encode) 에는 쓰지 않고 라벨만 실어 나른다.
- * 클릭 핸들러가 클로저의 cells 를 읽으면 차트가 초기화되던 시점(조회 전) 값에 묶인다.
- */
 const VALUE_LABEL = 2;
 
 /**
@@ -292,10 +280,10 @@ export function BlockChart({
                             ...(compact
                                 ? {}
                                 : {
-                                      shadowBlur: 3,
-                                      shadowOffsetY: 1,
-                                      shadowColor: 'rgba(46, 50, 94, 0.18)',
-                                  }),
+                                    shadowBlur: 3,
+                                    shadowOffsetY: 1,
+                                    shadowColor: 'rgba(46, 50, 94, 0.18)',
+                                }),
                             ...(isSelected
                                 ? { stroke: 'rgba(68, 65, 204, 0.55)', lineWidth: 2 }
                                 : {}),
@@ -312,16 +300,16 @@ export function BlockChart({
                         const label = compact
                             ? undefined
                             : {
-                                  type: 'text' as const,
-                                  style: {
-                                      text: cell.label,
-                                      fill: '#fff',
-                                      opacity,
-                                      fontSize: blockFontSize,
-                                      fontWeight: 'bold' as const,
-                                      fontFamily: 'Pretendard, sans-serif',
-                                  },
-                              };
+                                type: 'text' as const,
+                                style: {
+                                    text: cell.label,
+                                    fill: '#fff',
+                                    opacity,
+                                    fontSize: blockFontSize,
+                                    fontWeight: 'bold' as const,
+                                    fontFamily: 'Pretendard, sans-serif',
+                                },
+                            };
 
                         // 한쪽 면만 운영하는 시설 — 통 블럭 대신 위/아래로 가른다
                         const soleOperatingSide = cell.sides?.length === 1 ? cell.sides[0] : null;
@@ -384,18 +372,18 @@ export function BlockChart({
                                 },
                                 ...(label
                                     ? [
-                                          {
-                                              ...label,
-                                              // 글자는 반쪽이 아니라 블럭 한가운데에 둔다
-                                              style: {
-                                                  ...label.style,
-                                                  x: x + width / 2,
-                                                  y: y + blockH / 2,
-                                                  align: 'center' as const,
-                                                  verticalAlign: 'middle' as const,
-                                              },
-                                          },
-                                      ]
+                                        {
+                                            ...label,
+                                            // 글자는 반쪽이 아니라 블럭 한가운데에 둔다
+                                            style: {
+                                                ...label.style,
+                                                x: x + width / 2,
+                                                y: y + blockH / 2,
+                                                align: 'center' as const,
+                                                verticalAlign: 'middle' as const,
+                                            },
+                                        },
+                                    ]
                                     : []),
                             ],
                         };
@@ -409,58 +397,58 @@ export function BlockChart({
                 },
                 ...(line
                     ? [
-                          {
-                              name: line.label ?? '대기인원수',
-                              type: 'line' as const,
-                              yAxisIndex: 1,
-                              z: 5,
-                              silent: true,
-                              symbol: 'circle',
-                              // 점은 2시간마다 + 최댓값에만 찍는다
-                              symbolSize: (_: unknown, params: { dataIndex: number }) =>
-                                  params.dataIndex % 2 === 0 || params.dataIndex === peakIndex
-                                      ? 7
-                                      : 0,
-                              itemStyle: {
-                                  color: '#fff',
-                                  borderColor: WAIT_COLOR,
-                                  borderWidth: 2,
-                              },
-                              lineStyle: {
-                                  color: WAIT_COLOR,
-                                  width: 2,
-                                  cap: 'round' as const,
-                                  join: 'round' as const,
-                              },
-                              // 블럭 칸의 가운데(시각 + 0.5)를 지나게 한다
-                              data: waitData.map((value, hour) => [hour + 0.5, value]),
-                              // 최댓값 말풍선 — 값이 아직 없으면 띄우지 않는다
-                              markPoint: {
-                                  silent: true,
-                                  animation: false,
-                                  symbol: 'roundRect',
-                                  symbolSize: [PEAK_TIP.width, PEAK_TIP.height],
-                                  symbolOffset: [0, -(PEAK_TIP.gap + PEAK_TIP.height / 2)],
-                                  itemStyle: {
-                                      color: WAIT_COLOR,
-                                      shadowBlur: 8,
-                                      shadowOffsetY: 3,
-                                      shadowColor: 'rgba(242, 118, 46, 0.35)',
-                                  },
-                                  label: {
-                                      formatter: `최대 ${waitPeak}${line.unit ?? '명'}`,
-                                      color: '#fff',
-                                      fontSize: 10,
-                                      fontWeight: 'bold' as const,
-                                      fontFamily: 'Pretendard, sans-serif',
-                                  },
-                                  data:
-                                      peakIndex < 0
-                                          ? []
-                                          : [{ name: 'peak', coord: [peakIndex + 0.5, waitPeak] }],
-                              },
-                          },
-                      ]
+                        {
+                            name: line.label ?? '대기인원수',
+                            type: 'line' as const,
+                            yAxisIndex: 1,
+                            z: 5,
+                            silent: true,
+                            symbol: 'circle',
+                            // 점은 2시간마다 + 최댓값에만 찍는다
+                            symbolSize: (_: unknown, params: { dataIndex: number }) =>
+                                params.dataIndex % 2 === 0 || params.dataIndex === peakIndex
+                                    ? 7
+                                    : 0,
+                            itemStyle: {
+                                color: '#fff',
+                                borderColor: WAIT_COLOR,
+                                borderWidth: 2,
+                            },
+                            lineStyle: {
+                                color: WAIT_COLOR,
+                                width: 2,
+                                cap: 'round' as const,
+                                join: 'round' as const,
+                            },
+                            // 블럭 칸의 가운데(시각 + 0.5)를 지나게 한다
+                            data: waitData.map((value, hour) => [hour + 0.5, value]),
+                            // 최댓값 말풍선 — 값이 아직 없으면 띄우지 않는다
+                            markPoint: {
+                                silent: true,
+                                animation: false,
+                                symbol: 'roundRect',
+                                symbolSize: [PEAK_TIP.width, PEAK_TIP.height],
+                                symbolOffset: [0, -(PEAK_TIP.gap + PEAK_TIP.height / 2)],
+                                itemStyle: {
+                                    color: WAIT_COLOR,
+                                    shadowBlur: 8,
+                                    shadowOffsetY: 3,
+                                    shadowColor: 'rgba(242, 118, 46, 0.35)',
+                                },
+                                label: {
+                                    formatter: `최대 ${waitPeak}${line.unit ?? '명'}`,
+                                    color: '#fff',
+                                    fontSize: 10,
+                                    fontWeight: 'bold' as const,
+                                    fontFamily: 'Pretendard, sans-serif',
+                                },
+                                data:
+                                    peakIndex < 0
+                                        ? []
+                                        : [{ name: 'peak', coord: [peakIndex + 0.5, waitPeak] }],
+                            },
+                        },
+                    ]
                     : []),
             ],
         };
@@ -471,9 +459,9 @@ export function BlockChart({
             if (disabled || !onBlockSelect) return;
             if (params.seriesName !== BLOCK_SERIES) return;
 
-            // 라벨은 클릭한 데이터가 들고 온다 (클로저의 cells 를 읽지 않는다)
             const label = Array.isArray(params.value) ? params.value[VALUE_LABEL] : undefined;
             if (typeof label !== 'string' || !label) return;
+
 
             // Ctrl(Win) / Cmd(Mac) 누른 채 클릭 = 선택 누적
             const mouseEvent = params.event?.event as MouseEvent | undefined;
@@ -486,9 +474,8 @@ export function BlockChart({
 
     return (
         <div
-            className={`bchart${compact ? ' bchart--compact' : ''}${
-                selectedLabels.size > 0 ? ' is-picking' : ''
-            }`}
+            className={`bchart${compact ? ' bchart--compact' : ''}${selectedLabels.size > 0 ? ' is-picking' : ''
+                }`}
         >
             <div className="bchart__head">
                 <p className="bchart__title">{title}</p>

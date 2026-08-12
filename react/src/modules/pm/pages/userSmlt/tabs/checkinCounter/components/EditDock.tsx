@@ -7,34 +7,25 @@ import { assignedBoothCount } from '../view';
 import { BoothGrid } from './BoothGrid';
 
 interface EditDockProps {
-    /** 편집 대상 터미널 — 도크는 늘 활성 터미널을 본다 */
     terminal: TerminalKind;
-    /** 칩 줄에 깔 전체 아일랜드 문자 (TerminalCheckinCounter.islandCodes) */
     codes: string[];
-    /** 편집 상태의 아일랜드 목록 — 여기 없는 code 는 미운영(점선 회색) */
     islands: CheckinIsland[];
-    /** 선택된 아일랜드 문자 — BlockChart 의 selected 와 같은 배열을 쓴다 */
     selected: string[];
-    /** 칩 클릭 · 미운영 칩이면 신규로 연다. additive = Ctrl/Cmd */
     onSelect: (label: string, additive: boolean) => void;
 
-    /** 단일 선택일 때의 편집 대상. 다중 선택이면 null (칩 줄만 활성) */
     draft: CheckinIsland | null;
     onPatch: (next: Partial<CheckinIsland>) => void;
 
-    /** 부스에 배정할 수 있는 항공사 코드 (TerminalCheckinCounter.airlines) */
     airlines: string[];
-    /** 선택된 부스 번호 — 항공사 칩을 누르면 이 부스에 배정된다 */
     selectedBooth: number | null;
     onSelectBooth: (no: number | null) => void;
 
     onConfirm: () => void;
-    /** 고르던 아일랜드를 놓는다 — 도크는 닫히지 않고 칩 줄만 남는다 */
     onCancel: () => void;
 }
 
 /**
- * 체크인 카운터 편집 도크 — 우측 드로어를 대신해 차트 아래에 늘 떠 있다.
+ * 체크인 카운터 편집 도크 — 우측 드로어를 대신해 차트 아래에서 올라온다.
  *
  * 아일랜드 1개는 좌우 18석씩 36석이라 380px 드로어에 들어가지 않는다.
  * 가로로 펴고, 하루 종일 닫혀 화면(차트)에 없는 아일랜드는 맨 윗줄 칩이 붙잡는다.
@@ -68,7 +59,6 @@ export function EditDock({
         <section className="dock" aria-label="아일랜드 편집">
             <div className="dock__head">
                 <span className="dock__tmnl">{terminal}</span>
-
                 <div className="isles">
                     {codes.map((code) => {
                         // 편집 목록에 없는 문자 = 하루 종일 미운영 (점선 회색 칩)
@@ -78,9 +68,8 @@ export function EditDock({
                             <button
                                 key={code}
                                 type="button"
-                                className={`isle${island ? ' is-on' : ''}${
-                                    selected.includes(code) ? ' is-sel' : ''
-                                }`}
+                                className={`isle${island ? ' is-on' : ''}${selected.includes(code) ? ' is-sel' : ''
+                                    }`}
                                 style={
                                     island ? { background: `var(--${island.color})` } : undefined
                                 }
@@ -108,7 +97,7 @@ export function EditDock({
                             <p className="dsec__title">
                                 부스 배정
                                 <span className="dsec__hint">
-                                    아일랜드 {draft.label} · L/R 각 {SIDE_BOOTHS}석 고정 · 배정{' '}
+                                    아일랜드 {draft.label} L/R 각 {SIDE_BOOTHS}석 고정 · 배정 {' '}
                                     {assignedBoothCount(draft)}석 · 셀을 고르고 항공사를 누릅니다
                                 </span>
                             </p>
@@ -153,7 +142,6 @@ export function EditDock({
                                         {airline}
                                     </button>
                                 ))}
-                                {/* 36석이 늘 열려 있어 잘못 누른 자리를 되돌릴 길이 있어야 한다 */}
                                 <button
                                     type="button"
                                     className="airchip airchip--ghost"

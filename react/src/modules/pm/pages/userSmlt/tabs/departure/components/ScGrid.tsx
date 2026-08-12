@@ -105,11 +105,11 @@ export function ScGrid({
         () =>
             dragAnchor && dragCursor
                 ? {
-                      firstRow: Math.min(dragAnchor.row, dragCursor.row),
-                      lastRow: Math.max(dragAnchor.row, dragCursor.row),
-                      firstHour: Math.min(dragAnchor.hour, dragCursor.hour),
-                      lastHour: Math.max(dragAnchor.hour, dragCursor.hour),
-                  }
+                    firstRow: Math.min(dragAnchor.row, dragCursor.row),
+                    lastRow: Math.max(dragAnchor.row, dragCursor.row),
+                    firstHour: Math.min(dragAnchor.hour, dragCursor.hour),
+                    lastHour: Math.max(dragAnchor.hour, dragCursor.hour),
+                }
                 : null,
         [dragAnchor, dragCursor],
     );
@@ -226,31 +226,6 @@ export function ScGrid({
         setSelection(null);
     };
 
-    /**
-     * 균등 배치 — 보유 검색대를 운영시간 전체에 같은 대수로 편다.
-     * 선택이 있으면 선택 범위에만, 없으면 전체에.
-     */
-    const spreadEven = () => {
-        if (disabled) return;
-
-        const fromHour = selection?.startHour ?? 0;
-        const toHour = selection?.endHour ?? 24;
-        const nextCountsByGate = { ...value };
-
-        rows.forEach((row) => {
-            if (selection && !selection.gateNos.includes(row.gate.no)) return;
-
-            const countsByHour = [...(value[row.gate.no] ?? EMPTY_HOURS)];
-            for (let hour = fromHour; hour < toHour; hour += 1) {
-                if (row.counts[hour] !== null) countsByHour[hour] = row.gate.scCnt;
-            }
-            nextCountsByGate[row.gate.no] = countsByHour;
-        });
-
-        onChange(nextCountsByGate);
-        setSelection(null);
-    };
-
     /** 선택한 사각형이 걸친 줄 번호 — 팝오버가 이 위·아래에 붙는다 */
     const selectedRowIndexes = selection
         ? selection.gateNos.map((gateNo) => gates.findIndex((gate) => gate.no === gateNo))
@@ -263,10 +238,10 @@ export function ScGrid({
     /** 보유 합계 — 여러 줄을 잡았으면 가장 적게 가진 출국장이 상한이다 (0 은 미입력이라 상한으로 보지 않는다) */
     const capacityLimit = selection
         ? Math.min(
-              ...selection.gateNos.map(
-                  (gateNo) => gates.find((gate) => gate.no === gateNo)?.scCnt ?? 0,
-              ),
-          )
+            ...selection.gateNos.map(
+                (gateNo) => gates.find((gate) => gate.no === gateNo)?.scCnt ?? 0,
+            ),
+        )
         : 0;
     const isOverCapacity = capacityLimit > 0 && draftCount > capacityLimit;
 
@@ -279,15 +254,6 @@ export function ScGrid({
                         칸을 끌어 여러 출국장 · 여러 시간을 한 번에 맞춥니다
                     </span>
                 </p>
-
-                <button
-                    type="button"
-                    className="btn--even"
-                    disabled={disabled}
-                    onClick={spreadEven}
-                >
-                    균등 배치
-                </button>
             </div>
 
             <div className="scgrid__body">
@@ -321,11 +287,10 @@ export function ScGrid({
                                     <button
                                         key={hour}
                                         type="button"
-                                        className={`sccell${count === 0 ? ' is-zero' : ''}${
-                                            toRampStep(count, rampMax) >= RAMP_INVERT
+                                        className={`sccell${count === 0 ? ' is-zero' : ''}${toRampStep(count, rampMax) >= RAMP_INVERT
                                                 ? ' is-hi'
                                                 : ''
-                                        }${isPicked(index, hour) ? ' is-pick' : ''}`}
+                                            }${isPicked(index, hour) ? ' is-pick' : ''}`}
                                         style={
                                             count > 0
                                                 ? { background: RAMP[toRampStep(count, rampMax)] }
@@ -359,17 +324,16 @@ export function ScGrid({
                         {sums.map((sum, hour) => (
                             <span
                                 key={hour}
-                                className={`sccell${sum > 0 && sum === sumPeak ? ' is-pk' : ''}${
-                                    toRampStep(sum, Math.max(1, sumPeak)) >= RAMP_INVERT
+                                className={`sccell${sum > 0 && sum === sumPeak ? ' is-pk' : ''}${toRampStep(sum, Math.max(1, sumPeak)) >= RAMP_INVERT
                                         ? ' is-hi'
                                         : ''
-                                }`}
+                                    }`}
                                 style={
                                     sum > 0
                                         ? {
-                                              background:
-                                                  RAMP[toRampStep(sum, Math.max(1, sumPeak))],
-                                          }
+                                            background:
+                                                RAMP[toRampStep(sum, Math.max(1, sumPeak))],
+                                        }
                                         : undefined
                                 }
                             >
@@ -391,11 +355,11 @@ export function ScGrid({
                             transform: openUpward ? 'translateY(-100%)' : undefined,
                             ...(alignRight
                                 ? {
-                                      right: `calc(var(--rgt) + var(--col) * ${24 - selection.endHour})`,
-                                  }
+                                    right: `calc(var(--rgt) + var(--col) * ${24 - selection.endHour})`,
+                                }
                                 : {
-                                      left: `calc(var(--gut) + var(--col) * ${selection.startHour})`,
-                                  }),
+                                    left: `calc(var(--gut) + var(--col) * ${selection.startHour})`,
+                                }),
                         }}
                     >
                         <span className="scgrid__poplbl">
