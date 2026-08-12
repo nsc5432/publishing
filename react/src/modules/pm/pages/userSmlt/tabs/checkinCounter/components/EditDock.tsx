@@ -1,9 +1,14 @@
+import type { TerminalKind } from '../../../types';
 import { CountStepper } from '../../../components/CountStepper';
 import { TimeBar } from '../../../components/TimeBar';
+import { SIDE_BOOTHS } from '../constants';
 import type { CheckinIsland } from '../types';
+import { assignedBoothCount } from '../view';
 import { BoothGrid } from './BoothGrid';
 
 interface EditDockProps {
+    /** 편집 대상 터미널 — 도크는 늘 활성 터미널을 본다 */
+    terminal: TerminalKind;
     /** 칩 줄에 깔 전체 아일랜드 문자 (TerminalCheckinCounter.islandCodes) */
     codes: string[];
     /** 편집 상태의 아일랜드 목록 — 여기 없는 code 는 미운영(점선 회색) */
@@ -24,16 +29,18 @@ interface EditDockProps {
     onSelectBooth: (no: number | null) => void;
 
     onConfirm: () => void;
-    onClose: () => void;
+    /** 고르던 아일랜드를 놓는다 — 도크는 닫히지 않고 칩 줄만 남는다 */
+    onCancel: () => void;
 }
 
 /**
- * 체크인 카운터 편집 도크 — 우측 드로어를 대신해 차트 아래에서 올라온다.
+ * 체크인 카운터 편집 도크 — 우측 드로어를 대신해 차트 아래에 늘 떠 있다.
  *
  * 아일랜드 1개는 좌우 18석씩 36석이라 380px 드로어에 들어가지 않는다.
  * 가로로 펴고, 하루 종일 닫혀 화면(차트)에 없는 아일랜드는 맨 윗줄 칩이 붙잡는다.
  */
 export function EditDock({
+    terminal,
     codes,
     islands,
     selected,
@@ -44,7 +51,7 @@ export function EditDock({
     selectedBooth,
     onSelectBooth,
     onConfirm,
-    onClose,
+    onCancel,
 }: EditDockProps) {
     /** 선택한 부스에 항공사를 배정한다 — 부스를 먼저 골라야 한다 */
     const assign = (airline: string) => {
@@ -58,8 +65,10 @@ export function EditDock({
     };
 
     return (
-        <section className="dock" role="dialog" aria-label="아일랜드 편집">
+        <section className="dock" aria-label="아일랜드 편집">
             <div className="dock__head">
+                <span className="dock__tmnl">{terminal}</span>
+
                 <div className="isles">
                     {codes.map((code) => {
                         // 편집 목록에 없는 문자 = 하루 종일 미운영 (점선 회색 칩)
@@ -85,13 +94,6 @@ export function EditDock({
                 </div>
 
                 <p className="dock__hint">회색 칩을 누르면 그 아일랜드를 새로 엽니다</p>
-
-                <button type="button" className="drawer__close" onClick={onClose}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-                        <path d="M6 6l12 12M18 6 6 18" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                    <span className="blind">닫기</span>
-                </button>
             </div>
 
             {draft === null ? (
@@ -106,8 +108,8 @@ export function EditDock({
                             <p className="dsec__title">
                                 부스 배정
                                 <span className="dsec__hint">
-                                    아일랜드 {draft.label} · 부스 {draft.booths.length}석 · 셀을
-                                    고르고 항공사를 누릅니다
+                                    아일랜드 {draft.label} · L/R 각 {SIDE_BOOTHS}석 고정 · 배정{' '}
+                                    {assignedBoothCount(draft)}석 · 셀을 고르고 항공사를 누릅니다
                                 </span>
                             </p>
 
@@ -151,6 +153,15 @@ export function EditDock({
                                         {airline}
                                     </button>
                                 ))}
+                                {/* 36석이 늘 열려 있어 잘못 누른 자리를 되돌릴 길이 있어야 한다 */}
+                                <button
+                                    type="button"
+                                    className="airchip airchip--ghost"
+                                    disabled={selectedBooth === null}
+                                    onClick={() => assign('')}
+                                >
+                                    미배정
+                                </button>
                                 <button
                                     type="button"
                                     className="airchip airchip--ghost"
@@ -190,7 +201,7 @@ export function EditDock({
                     </div>
 
                     <div className="dock__foot">
-                        <button type="button" className="btn btn--ghost" onClick={onClose}>
+                        <button type="button" className="btn btn--ghost" onClick={onCancel}>
                             취소
                         </button>
                         <button type="button" className="btn btn--primary" onClick={onConfirm}>

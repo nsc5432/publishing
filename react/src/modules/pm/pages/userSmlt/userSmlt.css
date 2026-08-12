@@ -1689,10 +1689,32 @@ html[data-page='userSmlt'] .dock {
     box-shadow: 0 -18px 44px rgba(35, 45, 90, 0.16);
 }
 
+/* 도크는 열고 닫는 것이 아니라 늘 떠 있다 — 접혔을 때(칩 줄 + 안내문)의 높이만큼
+   패널 바닥을 비워, 저장 버튼이 도크 뒤로 숨지 않게 한다.
+   아일랜드를 고르면 도크가 커지며 그 위를 덮는다(편집 중에는 드로어와 같다). */
+html[data-page='userSmlt'] .panels:has(> .dock) .panel {
+    padding-bottom: calc(clamp(16px, 2.4vh, 26px) + 104px);
+}
+
 html[data-page='userSmlt'] .dock__head {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+
+/* 도크가 어느 터미널을 편집 중인지 — 패널 badge 와 같은 자리표시 */
+html[data-page='userSmlt'] .dock__tmnl {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    background: var(--pm-primary);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 html[data-page='userSmlt'] .dock__hint {

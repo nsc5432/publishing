@@ -10,7 +10,13 @@ import { BLOCK_COLORS, TERMINALS, type BlockItem, type TerminalKind } from '../.
 import { EditDock } from './components/EditDock';
 import { ISLAND_BOOTHS, SIDE_BOOTHS } from './constants';
 import type { CheckinIsland, TerminalCheckinCounter } from './types';
-import { EMPTY_CHECKIN_COUNTER, toCheckinCounter, toSaveReq, toSide } from './view';
+import {
+    EMPTY_CHECKIN_COUNTER,
+    assignedBoothCount,
+    toBooths,
+    toCheckinCounter,
+    toSaveReq,
+} from './view';
 
 interface CheckinCounterTabProps {
     smltIds: Record<TerminalKind, string>;
@@ -22,7 +28,10 @@ interface CheckinCounterTabProps {
 /** 터미널별 편집 상태 — 아일랜드 목록 전체가 편집 대상이다 */
 type EditState = Record<TerminalKind, CheckinIsland[]>;
 
-/** 도크 편집값 — 변경을 눌러야 목록(EditState)에 반영된다 */
+/**
+ * 도크 편집값 — 변경을 눌러야 목록(EditState)에 반영된다.
+ * 도크 자체는 늘 떠 있고(활성 터미널 기준), 이 값의 draft 만 비었다 채워진다.
+ */
 interface DockState {
     /** 편집 대상. null 이면 칩 줄만 띄운 상태(아직 아일랜드를 고르지 않았다) */
     draft: CheckinIsland | null;
@@ -32,6 +41,8 @@ interface DockState {
 }
 
 const EMPTY_EDIT: EditState = { T1: [], T2: [] };
+/** 아일랜드를 아직 고르지 않은 도크 — 칩 줄만 보인다 */
+const EMPTY_DOCK: DockState = { draft: null, target: null, selectedBooth: null };
 
 const FETCH_FAIL = '체크인 카운터 정보를 불러오지 못했습니다.';
 const SAVE_FAIL = '체크인 카운터 저장에 실패했습니다.';
@@ -51,10 +62,10 @@ function toBlockItems(islands: CheckinIsland[]): BlockItem[] {
         label: island.label,
         color: island.color,
         ranges: island.ranges,
-        size: island.booths.length,
-        // 부스가 있는 면만 — 한쪽만 있으면 BlockChart 가 블럭을 위/아래로 가른다
+        size: assignedBoothCount(island),
+        // 배정이 있는 면만 — 한쪽만 있으면 BlockChart 가 블럭을 위/아래로 가른다
         sides: (['L', 'R'] as const).filter((side) =>
-            island.booths.some((booth) => booth.side === side),
+            island.booths.some((booth) => booth.side === side && booth.airline),
         ),
     }));
 }
@@ -63,8 +74,10 @@ function toBlockItems(islands: CheckinIsland[]): BlockItem[] {
 function peakBooths(islands: CheckinIsland[]): number {
     const boothsByHour: number[] = Array(24).fill(0);
     islands.forEach((island) => {
+        const booths = assignedBoothCount(island);
+
         toHourList(island.ranges).forEach((hour) => {
-            boothsByHour[hour] += island.booths.length;
+            boothsByHour[hour] += booths;
         });
     });
 
@@ -77,12 +90,8 @@ function newIsland(terminalData: TerminalCheckinCounter, label: string): Checkin
         label,
         color: BLOCK_COLORS[terminalData.islandCodes.indexOf(label) % BLOCK_COLORS.length],
         ranges: [],
-        // 부스 수는 배정정보에서 오지만 신규는 기준이 없으므로 36석 골격을 미배정으로 연다
-        booths: Array.from({ length: ISLAND_BOOTHS }, (_, i) => ({
-            no: i + 1,
-            side: toSide(i + 1),
-            airline: '',
-        })),
+        // 조회한 아일랜드와 같은 36석 골격을 미배정으로 연다
+        booths: toBooths([]),
         kiosk: 0,
         bagdrop: 0,
     };
@@ -105,32 +114,24 @@ export function CheckinCounterTab({
         FETCH_FAIL,
     );
     const [edit, setEdit] = useState<EditState>(EMPTY_EDIT);
-    const [dock, setDock] = useState<DockState | null>(null);
+    const [dock, setDock] = useState<DockState>(EMPTY_DOCK);
 
     useErrorAlert(error);
 
     // 조회 결과가 들어오면 편집 상태를 조회한 값으로 되돌린다.
     useEffect(() => {
         setEdit({ T1: fetched.T1?.islands ?? [], T2: fetched.T2?.islands ?? [] });
-        setDock(null);
+        setDock(EMPTY_DOCK);
     }, [fetched]);
 
     const data = fetched[activeTerminal] ?? EMPTY_CHECKIN_COUNTER;
     const activeIslands = edit[activeTerminal];
     /** 차트·칩 줄이 함께 쓰는 선택 상태 (다중 선택은 아직 열지 않았다) */
-    const selected = dock?.draft ? [dock.draft.label] : [];
+    const selected = dock.draft ? [dock.draft.label] : [];
 
-    /**
-     * 칩 줄만 띄운 채로 도크를 연다.
-     * 하루 종일 닫힌 아일랜드는 차트에 블럭이 없어 클릭할 대상이 없으므로 입구가 하나 필요하다.
-     */
-    const openDock = () => {
-        setDock((prev) => prev ?? { draft: null, target: null, selectedBooth: null });
-    };
-
-    /** 편집 중이던 도크는 터미널이 바뀌면 닫는다 (편집값은 터미널별로 남는다) */
+    /** 도크는 활성 터미널을 편집한다 — 터미널이 바뀌면 고르던 아일랜드를 놓는다 */
     const handleTerminalChange = (terminal: TerminalKind) => {
-        setDock(null);
+        setDock(EMPTY_DOCK);
         onTerminalChange(terminal);
     };
 
@@ -140,7 +141,7 @@ export function CheckinCounterTab({
      */
     const openIsland = (label: string) => {
         setDock((prev) => {
-            if (prev?.draft?.label === label) return prev; // 이미 편집 중이면 값을 지킨다
+            if (prev.draft?.label === label) return prev; // 이미 편집 중이면 값을 지킨다
 
             const island = activeIslands.find((island) => island.label === label);
 
@@ -153,12 +154,12 @@ export function CheckinCounterTab({
     };
 
     const patchDraft = (next: Partial<CheckinIsland>) => {
-        setDock((prev) => (prev?.draft ? { ...prev, draft: { ...prev.draft, ...next } } : prev));
+        setDock((prev) => (prev.draft ? { ...prev, draft: { ...prev.draft, ...next } } : prev));
     };
 
     /** 도크 `변경` — 신규면 목록에 더하고, 기존이면 그 자리를 갈아 끼운다 */
     const handleConfirm = () => {
-        if (!dock?.draft) return;
+        if (!dock.draft) return;
 
         const { draft, target } = dock;
         setEdit((prev) => ({
@@ -168,7 +169,7 @@ export function CheckinCounterTab({
                     ? [...prev[activeTerminal], draft]
                     : prev[activeTerminal].map((it) => (it.label === target ? draft : it)),
         }));
-        setDock(null);
+        setDock(EMPTY_DOCK);
     };
 
     const handleSave = (terminal: TerminalKind) => {
@@ -251,31 +252,21 @@ export function CheckinCounterTab({
                             legend={panelIslands.map((island) => ({
                                 label: island.label,
                                 color: island.color,
-                                note: `${island.booths.length}석`,
+                                note: `${assignedBoothCount(island)}석`,
                             }))}
                             line={panelData.wait}
-                            footText="블럭을 클릭하면 아래 도크에서 아일랜드별 배정을 조정합니다. 초기값은 배정정보로 채워집니다."
+                            footText="블럭이나 아래 도크의 칩을 누르면 아일랜드별 배정을 조정합니다. 초기값은 배정정보로 채워집니다."
                             actions={
-                                <>
-                                    <button
-                                        type="button"
-                                        className="bchart__act bchart__act--add"
-                                        disabled={!active}
-                                        onClick={openDock}
-                                    >
-                                        아일랜드 편집
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="bchart__act"
-                                        disabled={!active}
-                                        onClick={() =>
-                                            console.log('[세부 운영시간 직접 설정]', { terminal })
-                                        }
-                                    >
-                                        세부 운영시간 직접 설정 →
-                                    </button>
-                                </>
+                                <button
+                                    type="button"
+                                    className="bchart__act"
+                                    disabled={!active}
+                                    onClick={() =>
+                                        console.log('[세부 운영시간 직접 설정]', { terminal })
+                                    }
+                                >
+                                    세부 운영시간 직접 설정 →
+                                </button>
                             }
                             selected={active ? selected : []}
                             onBlockSelect={(label) => openIsland(label)}
@@ -293,23 +284,21 @@ export function CheckinCounterTab({
                 );
             })}
 
-            {dock && (
-                <EditDock
-                    codes={data.islandCodes}
-                    islands={activeIslands}
-                    selected={selected}
-                    onSelect={(label) => openIsland(label)}
-                    draft={dock.draft}
-                    onPatch={patchDraft}
-                    airlines={data.airlines}
-                    selectedBooth={dock.selectedBooth}
-                    onSelectBooth={(no) =>
-                        setDock((prev) => (prev ? { ...prev, selectedBooth: no } : prev))
-                    }
-                    onConfirm={handleConfirm}
-                    onClose={() => setDock(null)}
-                />
-            )}
+            {/* 도크는 활성 터미널 기준으로 늘 떠 있다 — 여닫는 버튼이 없다 */}
+            <EditDock
+                terminal={activeTerminal}
+                codes={data.islandCodes}
+                islands={activeIslands}
+                selected={selected}
+                onSelect={(label) => openIsland(label)}
+                draft={dock.draft}
+                onPatch={patchDraft}
+                airlines={data.airlines}
+                selectedBooth={dock.selectedBooth}
+                onSelectBooth={(no) => setDock((prev) => ({ ...prev, selectedBooth: no }))}
+                onConfirm={handleConfirm}
+                onCancel={() => setDock(EMPTY_DOCK)}
+            />
         </>
     );
 }
