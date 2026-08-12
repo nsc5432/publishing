@@ -1755,19 +1755,23 @@ html[data-page='userSmlt'] .dock__head {
     gap: 10px;
 }
 
-/* 도크가 어느 터미널을 편집 중인지 — 패널 badge 와 같은 자리표시 */
+/* 도크가 어느 터미널을 편집 중인지 — 패널 badge 와 같은 자리표시.
+   아일랜드 칩(--i1~--i6)이 primary 계열 보라라, 여기는 뉴트럴 그래파이트로 빼서
+   "누르는 칩"이 아니라 "지금 편집 중인 터미널 라벨"로 읽히게 한다. */
 html[data-page='userSmlt'] .dock__tmnl {
     flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     height: 28px;
-    padding: 0 10px;
-    border-radius: 8px;
-    background: var(--pm-primary);
-    color: #fff;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: linear-gradient(140deg, #2f3752 0%, #1c2237 100%);
+    color: #eef0f8;
     font-size: 12px;
     font-weight: 700;
+    letter-spacing: 0.04em;
+    box-shadow: 0 3px 10px rgba(28, 34, 55, 0.22);
 }
 
 html[data-page='userSmlt'] .dock__hint {
