@@ -407,9 +407,11 @@ html[data-page='userSmlt'] .panel {
     padding: clamp(16px, 2.6vh, 28px) clamp(18px, 1.7vw, 32px) clamp(16px, 2.4vh, 26px);
     border-radius: var(--panel-radius);
     border: 1px solid rgba(255, 255, 255, 0.75);
-    background: linear-gradient(180deg,
-            rgba(255, 255, 255, 0.62) 0%,
-            rgba(255, 255, 255, 0.42) 100%);
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.62) 0%,
+        rgba(255, 255, 255, 0.42) 100%
+    );
     backdrop-filter: blur(3px);
     box-shadow: 0 6px 24px rgba(94, 100, 130, 0.07);
 }
@@ -418,9 +420,11 @@ html[data-page='userSmlt'] .panel {
 html[data-page='userSmlt'] .panel--disabled {
     filter: grayscale(1);
     opacity: 0.9;
-    background: linear-gradient(180deg,
-            rgba(206, 208, 210, 0.72) 0%,
-            rgba(198, 200, 202, 0.62) 100%);
+    background: linear-gradient(
+        180deg,
+        rgba(206, 208, 210, 0.72) 0%,
+        rgba(198, 200, 202, 0.62) 100%
+    );
     border-color: rgba(255, 255, 255, 0.45);
     cursor: pointer;
 }
@@ -763,12 +767,12 @@ html[data-page='userSmlt'] .radio__mark::after {
     transition: transform 0.15s;
 }
 
-html[data-page='userSmlt'] .radio input:checked+.radio__mark {
+html[data-page='userSmlt'] .radio input:checked + .radio__mark {
     border-color: var(--pm-primary);
     background: var(--pm-primary);
 }
 
-html[data-page='userSmlt'] .radio input:checked+.radio__mark::after {
+html[data-page='userSmlt'] .radio input:checked + .radio__mark::after {
     transform: scale(1);
 }
 
@@ -777,11 +781,11 @@ html[data-page='userSmlt'] .radio__text {
     color: #3d4350;
 }
 
-html[data-page='userSmlt'] .radio input:checked~.radio__text {
+html[data-page='userSmlt'] .radio input:checked ~ .radio__text {
     font-weight: 700;
 }
 
-html[data-page='userSmlt'] .editor>.radio {
+html[data-page='userSmlt'] .editor > .radio {
     flex: 0 0 auto;
     margin-bottom: clamp(5px, 0.8vh, 9px);
 }
@@ -1040,18 +1044,6 @@ html[data-page='userSmlt'] .bchart__act:disabled {
     cursor: default;
 }
 
-/* '추가' 는 블럭 클릭과 같은 동작이라 주동작으로 채워서 보여준다 */
-html[data-page='userSmlt'] .bchart__act--add {
-    border-color: transparent;
-    background: var(--pm-primary);
-    color: #fff;
-    box-shadow: 0 3px 10px rgba(68, 65, 204, 0.24);
-}
-
-html[data-page='userSmlt'] .bchart__act--add:not(:disabled):hover {
-    background: var(--pm-primary-dark);
-}
-
 /* =====================================================================
    7-1. 검색대 격자 (출국장 — tabs/departure/components/ScGrid.tsx)
 
@@ -1194,9 +1186,7 @@ html[data-page='userSmlt'] .sccell.is-zero {
 
 /* 미운영 — 값을 넣을 수 없다 */
 html[data-page='userSmlt'] .sccell.is-off {
-    background: repeating-linear-gradient(45deg,
-            #eceef4 0 3px,
-            #f7f8fb 3px 6px);
+    background: repeating-linear-gradient(45deg, #eceef4 0 3px, #f7f8fb 3px 6px);
 }
 
 html[data-page='userSmlt'] .sccell.is-pick {
@@ -1529,6 +1519,69 @@ html[data-page='userSmlt'] .airchip--ghost {
 
 html[data-page='userSmlt'] .airchip--ghost:hover {
     background: #f6f6fa;
+}
+
+/* 출국장 고르기 ----------------------------------------------------------
+   드로어를 닫지 않고 편집 대상을 바꾼다. 번호는 터미널이 정한다
+   (T1 1~6번 · T2 1~2번 — tabs/departure/DepartureTab.tsx 의 GATE_NOS).
+   ------------------------------------------------------------------------ */
+html[data-page='userSmlt'] .gatepick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+html[data-page='userSmlt'] .gatepick__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: #5e6470;
+    font-size: 13px;
+    font-weight: 500;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s;
+}
+
+html[data-page='userSmlt'] .gatepick__item:not(:disabled):hover {
+    background: #f4f4fc;
+}
+
+html[data-page='userSmlt'] .gatepick__item.is-on {
+    border-color: transparent;
+    background: var(--pm-primary);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 3px 10px rgba(68, 65, 204, 0.24);
+}
+
+/* 미운영 출국장도 고를 수 있다 — 지금 상태만 흐리게 보여 준다 */
+html[data-page='userSmlt'] .gatepick__item.is-off {
+    color: var(--text-mute);
+}
+
+html[data-page='userSmlt'] .gatepick__item.is-off.is-on {
+    color: #fff;
+}
+
+/* 조회 결과에 없는 번호 */
+html[data-page='userSmlt'] .gatepick__item:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+/* 위 차트 · 격자와 같은 블럭 색으로 어느 출국장인지 잇는다 */
+html[data-page='userSmlt'] .gatepick__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #d3d5dd;
 }
 
 /* 사용 / 미사용 세그먼트 --------------------------------------------------- */
@@ -1881,7 +1934,6 @@ html[data-page='userSmlt'] .boothgrid--strip .bcell__no {
    9. 반응형 : 가로만 압축, 세로 스크롤은 만들지 않는다
    ===================================================================== */
 @media (max-width: 1500px) {
-
     /* 셸 */
     html[data-page='userSmlt'] .panels {
         gap: 16px;
@@ -1930,7 +1982,6 @@ html[data-page='userSmlt'] .boothgrid--strip .bcell__no {
 }
 
 @media (max-width: 1200px) {
-
     /* 셸 여백(.body)은 세 화면이 같아야 하므로 여기서 줄이지 않는다 */
     html[data-page='userSmlt'] .panels {
         gap: 12px;

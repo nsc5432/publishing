@@ -9,7 +9,7 @@ import { formatHour, formatOperating, toHourList } from '../../format';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
-import { BLOCK_COLORS, TERMINALS, type BlockItem, type TerminalKind } from '../../types';
+import { TERMINALS, type BlockItem, type TerminalKind } from '../../types';
 import { ScGrid } from './components/ScGrid';
 import type { DepartureGate } from './types';
 import { EMPTY_DEPARTURE, toDeparture, toHourArray, toPlans, toSaveReq } from './view';
@@ -27,15 +27,25 @@ type EditState = Record<TerminalKind, DepartureGate[]>;
 /** 출국장 번호 → 24칸 검색대 대수. 조회 결과가 들어올 때 toHourArray() 로 채운다 */
 type ScState = Record<TerminalKind, Record<number, number[]>>;
 
-/** 드로어 편집값 — 변경을 눌러야 목록(EditState)에 반영된다 */
+/**
+ * 드로어 편집값 — 드로어 안에서 출국장을 갈아 가며 고칠 수 있어
+ * 손댄 출국장을 번호별로 담아 두고, `변경` 을 눌러야 목록(EditState)에 한꺼번에 반영된다.
+ */
 interface DrawerState {
-    draft: DepartureGate;
-    /** 기존 출국장 수정이면 그 번호, `+ 추가` 로 연 신규면 null */
-    target: number | null;
+    /** 지금 보고 있는 출국장 번호 */
+    no: number;
+    /** 출국장 번호 → 편집값. 드로어에서 연 출국장만 들어 있다 */
+    drafts: Record<number, DepartureGate>;
 }
 
 const EMPTY_EDIT: EditState = { T1: [], T2: [] };
 const EMPTY_SC: ScState = { T1: {}, T2: {} };
+
+/** 드로어에서 고를 수 있는 출국장 — T1 은 1~6번, T2 는 1~2번 */
+const GATE_NOS: Record<TerminalKind, number[]> = {
+    T1: [1, 2, 3, 4, 5, 6],
+    T2: [1, 2],
+};
 
 const FETCH_FAIL = '출국장 정보를 불러오지 못했습니다.';
 const SAVE_FAIL = '출국장 저장에 실패했습니다.';
@@ -82,20 +92,13 @@ function toGateItems(gates: DepartureGate[]): BlockItem[] {
     }));
 }
 
-/** `+ 추가` — 다음 번호로 빈 출국장을 만든다 */
-function newGate(gates: DepartureGate[]): DepartureGate {
-    const no = Math.max(0, ...gates.map((gate) => gate.no)) + 1;
-
-    return {
-        no,
-        color: BLOCK_COLORS[gates.length % BLOCK_COLORS.length],
-        ranges: [],
-        off: false,
-        scCnt: 0,
-        normalCnt: 0,
-        smartPassCnt: 0,
-        plans: [],
-    };
+/** 드로어의 출국장 칩이 보여 줄 값 — 드로어에서 손댄 게 있으면 그쪽이 최신이다 */
+function pickGate(
+    gates: DepartureGate[],
+    drafts: Record<number, DepartureGate>,
+    no: number,
+): DepartureGate | undefined {
+    return drafts[no] ?? gates.find((gate) => gate.no === no);
 }
 
 /**
@@ -122,6 +125,10 @@ export function DepartureTab({
 
     useErrorAlert(error);
 
+    /** 드로어에서 고를 수 있는 출국장 번호 · 지금 보여 주는 편집값 */
+    const gateNos = GATE_NOS[activeTerminal];
+    const draft = drawer ? drawer.drafts[drawer.no] : null;
+
     // 조회 결과가 들어오면 편집 상태를 조회한 값으로 되돌린다.
     useEffect(() => {
         const t1Gates = fetched.T1?.gates ?? [];
@@ -140,42 +147,49 @@ export function DepartureTab({
         onTerminalChange(terminal);
     };
 
-    /** 격자 줄 라벨 클릭 — 출국장 속성 편집을 연다 (위 차트 블럭 클릭은 줄 강조만 한다) */
+    /**
+     * 출국장 상세를 연다 — 격자 줄 라벨 클릭 · 드로어의 출국장 선택이 함께 쓴다.
+     * 이미 손댄 출국장이면 그 편집값을 그대로 이어서 본다.
+     */
     const openGate = (no: number) => {
         const gate = edit[activeTerminal].find((candidate) => candidate.no === no);
         if (!gate) return;
 
         setSelected(no);
-        setDrawer({ draft: gate, target: no });
+        setDrawer((prev) => ({
+            no,
+            drafts: { ...prev?.drafts, [no]: prev?.drafts[no] ?? gate },
+        }));
     };
 
-    const openNew = () => {
-        setDrawer({ draft: newGate(edit[activeTerminal]), target: null });
+    /** `세부 운영시간 직접 설정` — 골라 둔 출국장이 없으면 첫 번째 출국장으로 연다 */
+    const openDetail = () => {
+        const gates = edit[activeTerminal];
+        if (gates.length === 0) return;
+
+        const picked = gates.find((gate) => gate.no === selected) ?? gates[0];
+        openGate(picked.no);
     };
 
     const patchDraft = (next: Partial<DepartureGate>) => {
-        setDrawer((prev) => (prev ? { ...prev, draft: { ...prev.draft, ...next } } : prev));
+        setDrawer((prev) => {
+            if (!prev) return prev;
+
+            return {
+                ...prev,
+                drafts: { ...prev.drafts, [prev.no]: { ...prev.drafts[prev.no], ...next } },
+            };
+        });
     };
 
-    /** 드로어 `변경` — 신규면 목록에 더하고, 기존이면 그 자리를 갈아 끼운다 */
+    /** 드로어 `변경` — 드로어에서 손댄 출국장을 목록에 한꺼번에 반영한다 */
     const handleConfirm = () => {
         if (!drawer) return;
 
-        const { draft, target } = drawer;
+        const { drafts } = drawer;
         setEdit((prev) => ({
             ...prev,
-            [activeTerminal]:
-                target === null
-                    ? [...prev[activeTerminal], draft]
-                    : prev[activeTerminal].map((gate) => (gate.no === target ? draft : gate)),
-        }));
-        // 신규 출국장은 격자에 빈 줄(24칸 0)로 자리를 잡아 준다
-        setSc((prev) => ({
-            ...prev,
-            [activeTerminal]: {
-                ...prev[activeTerminal],
-                [draft.no]: prev[activeTerminal][draft.no] ?? Array<number>(24).fill(0),
-            },
+            [activeTerminal]: prev[activeTerminal].map((gate) => drafts[gate.no] ?? gate),
         }));
         setDrawer(null);
     };
@@ -271,26 +285,14 @@ export function DepartureTab({
                             line={panelData.wait}
                             footText="블럭을 클릭하면 아래 격자에서 그 출국장 줄이 켜집니다. 줄 라벨을 클릭하면 출국장 속성을 편집합니다."
                             actions={
-                                <>
-                                    <button
-                                        type="button"
-                                        className="bchart__act bchart__act--add"
-                                        disabled={!active}
-                                        onClick={openNew}
-                                    >
-                                        + 추가
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className="bchart__act"
-                                        disabled={!active}
-                                        onClick={() =>
-                                            console.log('[세부 운영시간 직접 설정]', { terminal })
-                                        }
-                                    >
-                                        세부 운영시간 직접 설정 →
-                                    </button>
-                                </>
+                                <button
+                                    type="button"
+                                    className="bchart__act"
+                                    disabled={!active}
+                                    onClick={openDetail}
+                                >
+                                    세부 운영시간 직접 설정 →
+                                </button>
                             }
                             selected={active && selected !== null ? [String(selected)] : []}
                             onBlockSelect={(label) => setSelected(Number(label))}
@@ -322,35 +324,67 @@ export function DepartureTab({
                 );
             })}
 
-            {drawer && (
+            {drawer && draft && (
                 <DetailDrawer
-                    badge={String(drawer.draft.no)}
-                    badgeColor={drawer.draft.color}
-                    title={
-                        drawer.target === null
-                            ? `${drawer.draft.no}번 출국장 추가`
-                            : `${drawer.draft.no}번 출국장`
-                    }
-                    subtitle={formatOperating(activeTerminal, drawer.draft.ranges)}
+                    badge={String(draft.no)}
+                    badgeColor={draft.color}
+                    title={`${draft.no}번 출국장`}
+                    subtitle={formatOperating(activeTerminal, draft.ranges)}
                     onClose={() => setDrawer(null)}
                     onConfirm={handleConfirm}
                 >
+                    <DrawerSection
+                        title="출국장 선택"
+                        hint={`${activeTerminal} · ${gateNos.length}개`}
+                    >
+                        <div className="gatepick">
+                            {gateNos.map((no) => {
+                                const gate = pickGate(edit[activeTerminal], drawer.drafts, no);
+                                const on = no === drawer.no;
+
+                                return (
+                                    <button
+                                        key={no}
+                                        type="button"
+                                        className={`gatepick__item${on ? ' is-on' : ''}${
+                                            gate?.off ? ' is-off' : ''
+                                        }`}
+                                        aria-pressed={on}
+                                        // 조회 결과에 없는 번호는 고를 수 없다
+                                        disabled={!gate}
+                                        onClick={() => openGate(no)}
+                                    >
+                                        <i
+                                            className="gatepick__dot"
+                                            style={
+                                                gate && !gate.off
+                                                    ? { background: `var(--${gate.color})` }
+                                                    : undefined
+                                            }
+                                        />
+                                        {no}번
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </DrawerSection>
+
                     <DrawerSection>
                         <div className="drow">
                             <p className="drow__label">출국장 운영 여부</p>
                             <div className="seg">
                                 <button
                                     type="button"
-                                    className={`seg__item${drawer.draft.off ? '' : ' is-on'}`}
-                                    aria-pressed={!drawer.draft.off}
+                                    className={`seg__item${draft.off ? '' : ' is-on'}`}
+                                    aria-pressed={!draft.off}
                                     onClick={() => patchDraft({ off: false })}
                                 >
                                     사용
                                 </button>
                                 <button
                                     type="button"
-                                    className={`seg__item${drawer.draft.off ? ' is-on' : ''}`}
-                                    aria-pressed={drawer.draft.off}
+                                    className={`seg__item${draft.off ? ' is-on' : ''}`}
+                                    aria-pressed={draft.off}
                                     onClick={() => patchDraft({ off: true })}
                                 >
                                     미사용
@@ -362,27 +396,27 @@ export function DepartureTab({
                     <DrawerSection title="운영시간" hint="1시간 단위">
                         <TimeBar
                             label="선택 범위"
-                            ranges={drawer.draft.ranges}
+                            ranges={draft.ranges}
                             onChange={(ranges) => patchDraft({ ranges })}
-                            disabled={drawer.draft.off}
+                            disabled={draft.off}
                         />
                     </DrawerSection>
 
-                    <DrawerSection title="검색대 구성" hint={`${drawer.draft.no}번 출국장 소속`}>
+                    <DrawerSection title="검색대 구성" hint={`${draft.no}번 출국장 소속`}>
                         <CountStepper
                             label="일반"
-                            value={drawer.draft.normalCnt}
+                            value={draft.normalCnt}
                             onChange={(normalCnt) => patchDraft({ normalCnt })}
                         />
                         <CountStepper
                             label="스마트패스"
-                            value={drawer.draft.smartPassCnt}
+                            value={draft.smartPassCnt}
                             onChange={(smartPassCnt) => patchDraft({ smartPassCnt })}
                         />
                         <CountStepper
                             label="보안검색대"
                             sub="피크 시간대 기준"
-                            value={drawer.draft.scCnt}
+                            value={draft.scCnt}
                             onChange={(scCnt) => patchDraft({ scCnt })}
                         />
                     </DrawerSection>
