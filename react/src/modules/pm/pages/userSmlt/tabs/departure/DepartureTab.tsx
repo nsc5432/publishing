@@ -9,7 +9,7 @@ import { formatHour, formatOperating, toHourList } from '../../format';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
-import { TERMINALS, type BlockItem, type TerminalKind } from '../../types';
+import { BLOCK_COLORS, TERMINALS, type BlockItem, type TerminalKind } from '../../types';
 import { ScGrid } from './components/ScGrid';
 import type { DepartureGate } from './types';
 import { EMPTY_DEPARTURE, toDeparture, toHourArray, toPlans, toSaveReq } from './view';
@@ -21,31 +21,24 @@ interface DepartureTabProps {
     onTerminalChange: (terminal: TerminalKind) => void;
 }
 
-/** 터미널별 편집 상태 — 출국장 목록 전체가 편집 대상이다 */
+/** 터미널별 편집 상태 */
 type EditState = Record<TerminalKind, DepartureGate[]>;
 
-/** 출국장 번호 → 24칸 검색대 대수. 조회 결과가 들어올 때 toHourArray() 로 채운다 */
+/** 출국장 번호 */
 type ScState = Record<TerminalKind, Record<number, number[]>>;
 
-/**
- * 드로어 편집값 — 드로어 안에서 출국장을 갈아 가며 고칠 수 있어
- * 손댄 출국장을 번호별로 담아 두고, `변경` 을 눌러야 목록(EditState)에 한꺼번에 반영된다.
- */
+/** 드로어 편집값 */
 interface DrawerState {
-    /** 지금 보고 있는 출국장 번호 */
     no: number;
-    /** 출국장 번호 → 편집값. 드로어에서 연 출국장만 들어 있다 */
     drafts: Record<number, DepartureGate>;
 }
 
 const EMPTY_EDIT: EditState = { T1: [], T2: [] };
 const EMPTY_SC: ScState = { T1: {}, T2: {} };
-
-/** 드로어에서 고를 수 있는 출국장 — T1 은 1~6번, T2 는 1~2번 */
 const GATE_NOS: Record<TerminalKind, number[]> = {
     T1: [1, 2, 3, 4, 5, 6],
-    T2: [1, 2],
-};
+    T2: [1, 2]
+}
 
 const FETCH_FAIL = '출국장 정보를 불러오지 못했습니다.';
 const SAVE_FAIL = '출국장 저장에 실패했습니다.';
@@ -92,13 +85,9 @@ function toGateItems(gates: DepartureGate[]): BlockItem[] {
     }));
 }
 
-/** 드로어의 출국장 칩이 보여 줄 값 — 드로어에서 손댄 게 있으면 그쪽이 최신이다 */
-function pickGate(
-    gates: DepartureGate[],
-    drafts: Record<number, DepartureGate>,
-    no: number,
-): DepartureGate | undefined {
-    return drafts[no] ?? gates.find((gate) => gate.no === no);
+/** 드로어의 출국장 칩이 보여 줄 값 */
+function pickGate(gates: DepartureGate[], drafts: Record<number, DepartureGate>, no: number): DepartureGate | undefined {
+    return drafts[no] ?? gates.find(gate => gate.no === no);
 }
 
 /**
@@ -125,7 +114,6 @@ export function DepartureTab({
 
     useErrorAlert(error);
 
-    /** 드로어에서 고를 수 있는 출국장 번호 · 지금 보여 주는 편집값 */
     const gateNos = GATE_NOS[activeTerminal];
     const draft = drawer ? drawer.drafts[drawer.no] : null;
 
@@ -147,50 +135,44 @@ export function DepartureTab({
         onTerminalChange(terminal);
     };
 
-    /**
-     * 출국장 상세를 연다 — 격자 줄 라벨 클릭 · 드로어의 출국장 선택이 함께 쓴다.
-     * 이미 손댄 출국장이면 그 편집값을 그대로 이어서 본다.
-     */
+    /** 격자 줄 라벨 클릭 */
     const openGate = (no: number) => {
         const gate = edit[activeTerminal].find((candidate) => candidate.no === no);
         if (!gate) return;
 
         setSelected(no);
-        setDrawer((prev) => ({
-            no,
-            drafts: { ...prev?.drafts, [no]: prev?.drafts[no] ?? gate },
-        }));
+        setDrawer(prev => ({ no, drafts: { ...prev?.drafts, [no]: prev?.drafts[no] ?? gate } }));
     };
 
-    /** `세부 운영시간 직접 설정` — 골라 둔 출국장이 없으면 첫 번째 출국장으로 연다 */
+    /** 세부 운영시간 직접 설정 */
     const openDetail = () => {
         const gates = edit[activeTerminal];
         if (gates.length === 0) return;
 
-        const picked = gates.find((gate) => gate.no === selected) ?? gates[0];
+        const picked = gates.find(gate => gate.no === selected) ?? gates[0];
         openGate(picked.no);
-    };
+    }
 
     const patchDraft = (next: Partial<DepartureGate>) => {
-        setDrawer((prev) => {
+        setDrawer(prev => {
             if (!prev) return prev;
 
             return {
                 ...prev,
-                drafts: { ...prev.drafts, [prev.no]: { ...prev.drafts[prev.no], ...next } },
-            };
+                drafts: { ...prev.drafts, [prev.no]: { ...prev.drafts[prev.no], ...next } }
+            }
         });
     };
 
-    /** 드로어 `변경` — 드로어에서 손댄 출국장을 목록에 한꺼번에 반영한다 */
+    /** 드로어 변경  */
     const handleConfirm = () => {
         if (!drawer) return;
 
         const { drafts } = drawer;
-        setEdit((prev) => ({
+        setEdit(prev => ({
             ...prev,
-            [activeTerminal]: prev[activeTerminal].map((gate) => drafts[gate.no] ?? gate),
-        }));
+            [activeTerminal]: prev[activeTerminal].map(gate => drafts[gate.no] ?? gate)
+        }))
         setDrawer(null);
     };
 
@@ -276,8 +258,7 @@ export function DepartureTab({
                             items={toGateItems(gates)}
                             title="시간대별 운영 출국장"
                             unit="1블럭 = 출국장 1개"
-                            // 출국장 수만큼 층을 둔다 (조회 전에는 0층이 되지 않게 받쳐 둔다)
-                            levels={Math.max(gates.length, 1)}
+                            levels={8}
                             rowH={CHART_ROW_H}
                             gridLeft={GUTTER}
                             stackMode="fixed"
@@ -335,10 +316,10 @@ export function DepartureTab({
                 >
                     <DrawerSection
                         title="출국장 선택"
-                        hint={`${activeTerminal} · ${gateNos.length}개`}
+                        hint={`${activeTerminal} ${gateNos.length}개`}
                     >
-                        <div className="gatepick">
-                            {gateNos.map((no) => {
+                        <div className='gatepick'>
+                            {gateNos.map(no => {
                                 const gate = pickGate(edit[activeTerminal], drawer.drafts, no);
                                 const on = no === drawer.no;
 
@@ -346,26 +327,20 @@ export function DepartureTab({
                                     <button
                                         key={no}
                                         type="button"
-                                        className={`gatepick__item${on ? ' is-on' : ''}${
-                                            gate?.off ? ' is-off' : ''
-                                        }`}
+                                        className={`gatepick__item${on ? ' is-on' : ''}${gate?.off ? ' is-off' : ''}`}
                                         aria-pressed={on}
-                                        // 조회 결과에 없는 번호는 고를 수 없다
                                         disabled={!gate}
                                         onClick={() => openGate(no)}
                                     >
                                         <i
                                             className="gatepick__dot"
-                                            style={
-                                                gate && !gate.off
-                                                    ? { background: `var(--${gate.color})` }
-                                                    : undefined
-                                            }
+                                            style={gate && !gate.off ? { background: `var(--${gate.color})` } : undefined}
                                         />
                                         {no}번
                                     </button>
                                 );
                             })}
+
                         </div>
                     </DrawerSection>
 
