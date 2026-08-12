@@ -95,6 +95,11 @@ const SIDE_OFF_OPACITY = 0.26;
 
 const AXIS_FONT = { fontSize: 11, fontFamily: 'Pretendard, sans-serif' };
 const BLOCK_SERIES = '블럭';
+/**
+ * 블럭 data 의 value 세 번째 칸 — 축(encode) 에는 쓰지 않고 라벨만 실어 나른다.
+ * 클릭 핸들러가 클로저의 cells 를 읽으면 차트가 초기화되던 시점(조회 전) 값에 묶인다.
+ */
+const VALUE_LABEL = 2;
 
 /**
  * 시간대별 운영 블럭 차트 — 체크인 카운터(아일랜드) · 출국장 · 보안검색대 공용.
@@ -399,7 +404,7 @@ export function BlockChart({
                     data: cells.map((cell) => ({
                         // 툴팁 문구는 name 으로 넘긴다 (빈 문자열이면 툴팁이 뜨지 않는다)
                         name: cell.tip,
-                        value: [cell.hour, cell.level],
+                        value: [cell.hour, cell.level, cell.label],
                     })),
                 },
                 ...(line
@@ -466,16 +471,17 @@ export function BlockChart({
             if (disabled || !onBlockSelect) return;
             if (params.seriesName !== BLOCK_SERIES) return;
 
-            const cell = cells[params.dataIndex];
-            if (!cell) return;
+            // 라벨은 클릭한 데이터가 들고 온다 (클로저의 cells 를 읽지 않는다)
+            const label = Array.isArray(params.value) ? params.value[VALUE_LABEL] : undefined;
+            if (typeof label !== 'string' || !label) return;
 
             // Ctrl(Win) / Cmd(Mac) 누른 채 클릭 = 선택 누적
             const mouseEvent = params.event?.event as MouseEvent | undefined;
-            onBlockSelect(cell.label, {
+            onBlockSelect(label, {
                 additive: Boolean(mouseEvent?.ctrlKey || mouseEvent?.metaKey),
             });
         },
-        [cells, disabled, onBlockSelect],
+        [disabled, onBlockSelect],
     );
 
     return (
