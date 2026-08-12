@@ -4,6 +4,7 @@ import type {
     GateMarker,
     IslandMarker,
     MarkerPoint,
+    NoticeData,
     NoticeLevel,
     NoticeLevelPreset,
 } from '@/modules/pm/types/map.types';
@@ -98,4 +99,22 @@ export interface DepTrend {
     /** x 축 눈금 (예: 04:00 …) — 타임라인과 같은 30분 단위 */
     timeLabels: string[];
     series: DepTrendSeries[];
+}
+
+/* ================= 하루치 ================= */
+
+/** 타임라인 한 칸(30분)이 가리키는 화면 값 — 맵·표 보기가 함께 읽는다 */
+export interface DepSlot {
+    notice: NoticeData;
+    map: TerminalDepMap;
+}
+
+/**
+ * 하루치 출국장 — 한 번 받아 두고 타임라인은 자리만 옮긴다.
+ * 차트 보기의 추이도 같은 슬롯에서 뽑아낸다 (따로 조회하지 않는다).
+ */
+export interface DepDay {
+    /** 시각(HHmm) → 그 시각 화면 값 */
+    slots: Record<string, DepSlot>;
+    trend: DepTrend;
 }

@@ -147,7 +147,7 @@ public final class DepHallLayout {
 		return new ArrayList<>(depPointMap(tmnlId).keySet());
 	}
 
-	/** 출국장 마커 1개. 혼잡도는 호출부가 채운다 */
+	/** 출국장 마커 1개. 자리·표시 문구만 준다 (혼잡도는 슬롯이 갖는다) */
 	public static MapMarkerDto depMarker(TerminalKind tmnlId, String depNum) {
 		return marker(DEP_MARKER_PREFIX + depNum, depNum, depPointMap(tmnlId).get(depNum));
 	}
@@ -157,7 +157,7 @@ public final class DepHallLayout {
 		return (tmnlId == TerminalKind.T1 ? T1_CARD_POINT_MAP : T2_CARD_POINT_MAP).get(depNum);
 	}
 
-	/** 아일랜드 마커 전체. 혼잡도는 호출부가 채운다 */
+	/** 아일랜드 마커 전체. 자리·표시 문구만 준다 (혼잡도는 슬롯이 갖는다) */
 	public static List<MapMarkerDto> islandMarkerList(TerminalKind tmnlId) {
 		return markerList(tmnlId == TerminalKind.T1 ? T1_ISLAND_POINT_MAP : T2_ISLAND_POINT_MAP, "");
 	}

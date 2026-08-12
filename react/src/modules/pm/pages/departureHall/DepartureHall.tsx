@@ -14,8 +14,8 @@ import { DepTableView } from './components/DepTableView';
 import { Header } from './components/Header';
 import { Timeline } from './components/Timeline';
 import { ViewSwitch } from './components/ViewSwitch';
-import { useDepHall, useDepHallTrend, type DepHallQuery } from './hooks/useDepHallData';
-import { EMPTY_DEP_MAP, EMPTY_NOTICE, EMPTY_TREND } from './view';
+import { useDepHall, type DepHallQuery } from './hooks/useDepHallData';
+import { EMPTY_DEP_SLOT, EMPTY_TREND } from './view';
 import { useTimeline } from '@/modules/pm/hooks/useTimeline';
 import { TIMELINE_RANGE } from './timeline';
 import type { DepGateMarker, TerminalKind, ViewMode } from './types';
@@ -27,8 +27,8 @@ const DEFAULT_NAV_BOTTOM = 'departure';
  * PM 예측관리 / 일일 시뮬레이션 결과 조회 — 출국장.
  *
  * 화면에 들어오면 기준 정보(getBaseInfo)로 시뮬레이션 ID 를 받고,
- * 터미널·타임라인 시각을 조회 조건으로 본문(getDepHall)을 부른다.
- * 맵 · 표 · 차트 세 보기가 같은 조회 조건을 공유하므로 전환은 표시 방식만 바꾼다.
+ * 터미널을 조회 조건으로 본문 하루치(getDepHall)를 한 번에 받는다.
+ * 맵 · 표 · 차트 세 보기와 타임라인이 같은 한 건을 나눠 쓰므로 전환은 표시 방식만 바꾼다.
  */
 function DepartureHall() {
     usePageScope('departureHall');
@@ -42,27 +42,26 @@ function DepartureHall() {
     const [activeDepGate, setActiveDepGate] = useState<DepGateMarker | null>(null);
     const timeline = useTimeline(TIMELINE_RANGE);
 
-    // 조회 조건 — 터미널·타임라인 시각이 바뀌면 그대로 다시 조회한다.
+    // 조회 조건 — 터미널이 바뀌면 그 터미널의 하루치를 다시 받는다.
     const [query, setQuery] = useState<DepHallQuery | null>(null);
 
     const applyQuery = useCallback(() => {
         if (!baseInfo) return;
 
-        setQuery({ smltId: baseInfo.smltId, tmnlId: terminal, hhmm: timeline.hhmm });
-    }, [baseInfo, terminal, timeline.hhmm]);
+        setQuery({ smltId: baseInfo.smltId, tmnlId: terminal });
+    }, [baseInfo, terminal]);
 
     useEffect(applyQuery, [applyQuery]);
 
-    const { data: depHall, error: depHallError } = useDepHall(query);
-    const { data: trend, error: trendError } = useDepHallTrend(baseInfo?.smltId ?? '', terminal);
+    const { data: depDay, error: depHallError } = useDepHall(query);
 
-    // 조회가 여러 갈래라 먼저 걸린 사유 하나만 알린다 (같은 실패로 알럿이 겹치지 않게).
-    const error = baseError || depHallError || trendError;
+    // 조회가 두 갈래라 먼저 걸린 사유 하나만 알린다 (같은 실패로 알럿이 겹치지 않게).
+    const error = baseError || depHallError;
 
     useErrorAlert(error);
 
-    const mapData = depHall?.map ?? EMPTY_DEP_MAP;
-    const notice = depHall?.notice ?? EMPTY_NOTICE;
+    // 타임라인이 가리키는 시각의 값 — 받아 둔 하루치에서 자리만 옮긴다.
+    const slot = depDay?.slots[timeline.hhmm] ?? EMPTY_DEP_SLOT;
     const FloorPlan = terminal === 'T1' ? Terminal1Icon : Terminal2Plan;
 
     const handleTerminalChange = (nextTerminal: TerminalKind) => {
@@ -86,7 +85,7 @@ function DepartureHall() {
                 <Lnb defaultBottom={DEFAULT_NAV_BOTTOM} />
 
                 <main className="container">
-                    <CongestionNotice level={notice.level} items={notice.items} />
+                    <CongestionNotice level={slot.notice.level} items={slot.notice.items} />
 
                     <section className={`dep-view dep-view--${view}`}>
                         {/* 도면 배경은 맵 보기에서만 드러난다 */}
@@ -104,19 +103,19 @@ function DepartureHall() {
                         <div className="dep-view__body">
                             {view === 'map' && (
                                 <DepMapView
-                                    data={mapData}
+                                    data={slot.map}
                                     activeId={activeDepGate?.id}
                                     onDepGateHover={setActiveDepGate}
                                 />
                             )}
 
                             {view === 'table' && (
-                                <DepTableView cards={mapData.cards} time={timeline.label} />
+                                <DepTableView cards={slot.map.cards} time={timeline.label} />
                             )}
 
                             {view === 'chart' && (
                                 <DepChartView
-                                    trend={trend ?? EMPTY_TREND}
+                                    trend={depDay?.trend ?? EMPTY_TREND}
                                     step={timeline.step}
                                     time={timeline.label}
                                 />

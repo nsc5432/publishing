@@ -211,26 +211,15 @@ export interface MapOperCardDto {
     useYn: YnFlag; // N 이면 미운영(흐림) 표기
 }
 
-/** 도면 마커 1개 — 좌표는 도면 무대 기준 비율(%) */
+/**
+ * 도면 마커 1개 — 좌표는 도면 무대 기준 비율(%).
+ * 자리·표시 문구는 하루 내내 그대로다. 시각에 따라 움직이는 혼잡도는 슬롯이 갖는다.
+ */
 export interface MapMarkerDto {
     markerId: string; // 예: dg3 / M / g14
     label: string; // 표시 문구
     cdntX: number; // 가로 비율 (0~100)
     cdntY: number; // 세로 비율 (0~100)
-    cgnStatus?: CongestionStatus; // 출입구 게이트는 혼잡도 없음
-}
-
-/** 맵형태보기 본문 */
-export interface SmltMapDto extends JsonResponse {
-    smltId: string;
-    tmnlId: TmnlId;
-    hhmm: string; // 타임라인 기준 시각 (HHmm, 30분 단위)
-    summary: MapSmryDto;
-    notice: MapNoticeDto;
-    operCardList: MapOperCardDto[];
-    depMarkerList: MapMarkerDto[]; // 출국장 (T1 6 / T2 2)
-    chknMarkerList: MapMarkerDto[]; // 아일랜드 A~N
-    gateMarkerList: MapMarkerDto[]; // 출입구 게이트 1~14
 }
 
 /** 혼잡 현황 지표 4종 — 아일랜드 상세 / 출국장 미니 팝업 공용 */
@@ -241,11 +230,27 @@ export interface MapCgnStatDto {
     prcsHr: number; // 처리시간 (초)
 }
 
-/** 아일랜드 상세 팝업의 시설 목록 항목 */
-export interface MapFcltItemDto {
-    fcltType: FcltType;
-    fcltNm: string;
-    prcsRate: number | null; // 처리율 (%) — 상업시설은 null
+/**
+ * 묶음 단위(아일랜드 · 출국장) 1곳의 한 시각 상태.
+ * 마커 색과 상세 팝업이 이 한 건을 나눠 쓴다.
+ */
+export interface MapUnitRsltDto {
+    unitCd: string; // 아일랜드 문자(A~N) 또는 출국장 번호(1~6)
+    cgnStatus: CongestionStatus;
+    stat: MapCgnStatDto;
+}
+
+/** 아일랜드는 상세 팝업에 처리율이 더 붙는다 */
+export interface MapChknRsltDto extends MapUnitRsltDto {
+    prcsRate: number; // 처리율 (%)
+}
+
+/** 맵형태보기 30분 슬롯 1칸 */
+export interface SmltMapSlotDto {
+    hhmm: string; // 슬롯 시각 (HHmm, 30분 단위)
+    notice: MapNoticeDto; // 상단 혼잡 알림
+    chknRsltList: MapChknRsltDto[]; // 아일랜드 A~N
+    depRsltList: MapUnitRsltDto[]; // 출국장 (T1 6 / T2 2)
 }
 
 /** 아일랜드 상세 팝업의 매출 */
@@ -258,77 +263,78 @@ export interface MapSalesDto {
     cmprYear: string; // 비교 기준 (예: 2023)
 }
 
-/** 아일랜드 상세 팝업 */
-export interface MapChknDetailDto extends JsonResponse {
+/** 아일랜드 상세 팝업의 시설 목록 항목 — 시각과 무관한 구성이다 */
+export interface MapFcltItemDto {
+    fcltType: FcltType;
+    fcltNm: string;
+    prcsRateYn: YnFlag; // N 이면 처리율을 쓰지 않는다 (상업시설)
+}
+
+/** 아일랜드 상세 팝업에서 하루 내내 같은 부분 (시설 구성 · 매출) */
+export interface MapChknInfoDto {
     island: string; // 아일랜드 (예: M)
     fcltCd: string; // 시설 코드 (예: T1-3RD-M01-01)
-    cgnStatus: CongestionStatus;
     fcltList: MapFcltItemDto[];
-    stat: MapCgnStatDto;
     sales: MapSalesDto;
 }
 
-/** 출국장 미니 팝업 */
-export interface MapDepDetailDto extends JsonResponse {
-    depNum: string;
-    depNm: string; // 예: 출국장 3
-    cgnStatus: CongestionStatus;
-    stat: MapCgnStatDto;
+/**
+ * 맵형태보기 본문 — 하루치를 한 번에 내려준다.
+ *
+ * 타임라인을 옮기면 화면은 slotList 에서 자리만 바꿔 읽는다 (재조회하지 않는다).
+ * 마커 자리 · 운영시간 카드 · 헤더 요약처럼 시각과 무관한 값은 슬롯 밖에 한 벌만 둔다.
+ */
+export interface SmltMapDto extends JsonResponse {
+    smltId: string;
+    tmnlId: TmnlId;
+    summary: MapSmryDto;
+    operCardList: MapOperCardDto[];
+    depMarkerList: MapMarkerDto[]; // 출국장 (T1 6 / T2 2)
+    chknMarkerList: MapMarkerDto[]; // 아일랜드 A~N
+    gateMarkerList: MapMarkerDto[]; // 출입구 게이트 1~14
+    chknInfoList: MapChknInfoDto[]; // 아일랜드 상세 팝업 고정 정보
+    slotList: SmltMapSlotDto[]; // 00:00~24:00 (30분, 49칸)
 }
 
 /* ================= 일일 시뮬레이션 - 출국장 ================= */
 
 /**
- * 출국장 카드 1장 (= 도면 위 출국장 1곳).
- * 좌표는 마커와 같은 도면 무대 기준 비율(%)이다.
+ * 출국장 카드 1장 (= 도면 위 출국장 1곳) — 하루 내내 그대로인 부분.
+ * 좌표는 마커와 같은 도면 무대 기준 비율(%)이다. 혼잡도·지표는 슬롯이 갖는다.
  */
 export interface DepHallGateDto {
     depNum: string; // 출국장 번호 (예: 3)
     depNm: string; // 표시명 (예: 출국장 3)
-    cgnStatus: CongestionStatus; // 카드 상태 뱃지
     cdntX: number; // 카드 자리 — 가로 비율 (0~100)
     cdntY: number; // 카드 자리 — 세로 비율 (0~100)
     boothCnt: number; // 운영 중인 부스 수
     oprBgnTime: string; // 운영 시작 (HHmm)
     oprEndTime: string; // 운영 종료 (HHmm)
     useYn: YnFlag; // N 이면 미운영
-    stat: MapCgnStatDto; // 혼잡 현황 지표 4종
 }
 
-/** 출국장 화면 본문 — 타임라인을 옮길 때마다 hhmm 만 바꿔 재호출한다 */
+/** 출국장 화면 30분 슬롯 1칸 */
+export interface DepHallSlotDto {
+    hhmm: string; // 슬롯 시각 (HHmm, 30분 단위)
+    notice: MapNoticeDto; // 상단 혼잡 알림 (출국장만)
+    depRsltList: MapUnitRsltDto[]; // 출국장 카드 · 마커 (gateList 와 같은 단위)
+    chknRsltList: MapUnitRsltDto[]; // 아일랜드 마커 색만 맞춘다
+}
+
+/**
+ * 출국장 화면 본문 — 하루치를 한 번에 내려준다.
+ *
+ * 맵·표 보기는 slotList 에서 한 칸을 읽고, 차트 보기는 슬롯 전체를 훑어 추이를 그린다.
+ * 세 보기가 같은 한 건을 나눠 쓰므로 타임라인·보기 전환은 재조회를 부르지 않는다.
+ */
 export interface DepHallDto extends JsonResponse {
     smltId: string;
     tmnlId: TmnlId;
-    hhmm: string; // 타임라인 기준 시각 (HHmm, 30분 단위)
-    notice: MapNoticeDto; // 상단 혼잡 알림 (출국장만)
     gateList: DepHallGateDto[]; // 출국장 카드 (T1 6 / T2 2)
     depMarkerList: MapMarkerDto[]; // 출국장 마커
     chknMarkerList: MapMarkerDto[]; // 아일랜드 마커 A~N
     gateMarkerList: MapMarkerDto[]; // 출입구 게이트 마커
-}
-
-/** 추이 1구간 (30분) */
-export interface DepHallTrendItemDto {
-    hhmm: string; // 구간 시각 (HHmm)
-    wtngPsgCnt: number; // 대기인원 (명)
-    wtngHr: number; // 대기시간 (초)
-    prcsPsgCnt: number; // 처리인원 (명)
-    prcsHr: number; // 처리시간 (초)
-}
-
-/** 출국장 1곳의 하루 추이 */
-export interface DepHallTrendSeriesDto {
-    depNum: string;
-    depNm: string;
-    itemList: DepHallTrendItemDto[]; // timeList 와 같은 길이·순서
-}
-
-/** 차트 보기 — 출국장별 시간대별 추이 (조회 시각과 무관하게 하루치를 한 번에 받는다) */
-export interface DepHallTrendDto extends JsonResponse {
-    smltId: string;
-    tmnlId: TmnlId;
-    timeList: string[]; // x 축 눈금 (HHmm, 30분 단위)
-    seriesList: DepHallTrendSeriesDto[];
+    slotList: DepHallSlotDto[]; // 04:00~24:00 (30분, 41칸)
 }
 
 /* ================= 사용자 시뮬레이션 ================= */

@@ -2,11 +2,11 @@ import type {
     CongestionStatus,
     DepHallDto,
     DepHallGateDto,
-    DepHallTrendDto,
-    DepHallTrendSeriesDto,
+    DepHallSlotDto,
     MapCgnStatDto,
     MapMarkerDto,
     MapNoticeDto,
+    MapUnitRsltDto,
     TmnlId,
 } from '@/types/api.types';
 
@@ -15,6 +15,8 @@ import type {
  *
  * 서버 DTO 와 같은 모양으로 둔다. 화면은 목업이든 실통신이든 같은 DTO 를 받으므로
  * 연동 시 화면 코드를 고칠 일이 없다.
+ *
+ * 하루치를 한 번에 내려준다 — 맵·표·차트 세 보기가 이 한 건을 나눠 쓴다.
  *
  * ⚠ 도면 좌표는 서버(DepHallLayout.java)가 같은 값을 내려준다. 한쪽만 고치면 어긋난다.
  */
@@ -39,13 +41,6 @@ function toHhmm(minutes: number): string {
 const TIME_LIST: string[] = Array.from({ length: MAX_STEP + 1 }, (_, step) =>
     toHhmm(BGN_MIN + step * STEP_MIN),
 );
-
-/** 조회 시각(HHmm) → 추이 배열의 자리. 구간 밖은 양 끝으로 붙인다. */
-function toStep(hhmm: string): number {
-    const minutes = Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(2, 4));
-
-    return Math.min(MAX_STEP, Math.max(0, Math.round((minutes - BGN_MIN) / STEP_MIN)));
-}
 
 /* ================= 출국장 ================= */
 
@@ -86,10 +81,10 @@ const GATE_SEEDS: Record<TmnlId, GateSeed[]> = { T1: T1_GATES, T2: T2_GATES };
  * 시간대별 대기인원.
  * 04:00 부터 완만하게 오르다 피크를 찍고 내려가는 곡선을 만든다.
  */
-function wtngAt(seed: GateSeed, step: number): number {
-    const gap = Math.abs(step - seed.peakStep);
+function wtngAt(peakStep: number, peakWtng: number, step: number): number {
+    const gap = Math.abs(step - peakStep);
 
-    return Math.max(0, Math.round(seed.peakWtng * Math.exp(-((gap / 9) ** 2)) - gap * 0.4));
+    return Math.max(0, Math.round(peakWtng * Math.exp(-((gap / 9) ** 2)) - gap * 0.4));
 }
 
 /** 혼잡 현황 지표 4종 — 대기인원 하나에서 나머지를 끌어낸다 (값끼리 어긋나지 않도록) */
@@ -111,58 +106,55 @@ function toStatus(wtngPsgCnt: number): CongestionStatus {
     return 'FREE';
 }
 
-function toGate(seed: GateSeed, step: number): DepHallGateDto {
-    const wtngPsgCnt = wtngAt(seed, step);
-
+/** 출국장 카드 — 자리·운영시간처럼 하루 내내 그대로인 부분만 담는다 */
+function toGate(seed: GateSeed): DepHallGateDto {
     return {
         depNum: seed.depNum,
         depNm: `출국장 ${seed.depNum}`,
-        cgnStatus: toStatus(wtngPsgCnt),
         cdntX: seed.card[0],
         cdntY: seed.card[1],
         boothCnt: seed.boothCnt,
         oprBgnTime: '0530',
         oprEndTime: '2330',
         useYn: 'Y',
-        stat: toStat(wtngPsgCnt),
     };
 }
 
 /* ================= 마커 ================= */
 
-/** [라벨, x, y, 혼잡도] */
-type IslandSeed = [string, number, number, CongestionStatus];
+/** 아일랜드 : [라벨, x, y, 피크 자리, 피크 대기인원] */
+type IslandSeed = [string, number, number, number, number];
 
 const T1_ISLANDS: IslandSeed[] = [
-    ['N', 19.21, 90.68, 'VERY_BUSY'],
-    ['M', 22.93, 87.19, 'NORMAL'],
-    ['L', 27.16, 82.46, 'NORMAL'],
-    ['K', 31.94, 78.79, 'NORMAL'],
-    ['J', 36.55, 76.02, 'NORMAL'],
-    ['H', 41.94, 74.23, 'VERY_BUSY'],
-    ['G', 53.18, 73.34, 'NORMAL'],
-    ['F', 58.12, 74.23, 'NORMAL'],
-    ['E', 63.07, 76.02, 'NORMAL'],
-    ['D', 67.91, 78.52, 'BUSY'],
-    ['C', 72.8, 82.19, 'VERY_BUSY'],
-    ['B', 77.14, 86.3, 'VERY_BUSY'],
-    ['A', 80.75, 90.68, 'NORMAL'],
+    ['N', 19.21, 90.68, 10, 300],
+    ['M', 22.93, 87.19, 11, 120],
+    ['L', 27.16, 82.46, 12, 120],
+    ['K', 31.94, 78.79, 13, 120],
+    ['J', 36.55, 76.02, 14, 120],
+    ['H', 41.94, 74.23, 10, 300],
+    ['G', 53.18, 73.34, 11, 120],
+    ['F', 58.12, 74.23, 12, 120],
+    ['E', 63.07, 76.02, 13, 120],
+    ['D', 67.91, 78.52, 14, 190],
+    ['C', 72.8, 82.19, 10, 300],
+    ['B', 77.14, 86.3, 11, 300],
+    ['A', 80.75, 90.68, 12, 120],
 ];
 
 const T2_ISLANDS: IslandSeed[] = [
-    ['N', 17.81, 89.63, 'VERY_BUSY'],
-    ['M', 22.26, 86.83, 'NORMAL'],
-    ['L', 27.55, 84.94, 'NORMAL'],
-    ['K', 32.78, 83.05, 'NORMAL'],
-    ['J', 38.01, 81.7, 'NORMAL'],
-    ['H', 43.18, 80.34, 'VERY_BUSY'],
-    ['G', 48.41, 79.8, 'NORMAL'],
-    ['F', 56.15, 79.8, 'NORMAL'],
-    ['E', 61.49, 80.34, 'NORMAL'],
-    ['D', 66.83, 81.24, 'BUSY'],
-    ['C', 72.18, 82.96, 'VERY_BUSY'],
-    ['B', 77.57, 84.76, 'VERY_BUSY'],
-    ['A', 82.08, 86.83, 'NORMAL'],
+    ['N', 17.81, 89.63, 10, 300],
+    ['M', 22.26, 86.83, 11, 120],
+    ['L', 27.55, 84.94, 12, 120],
+    ['K', 32.78, 83.05, 13, 120],
+    ['J', 38.01, 81.7, 14, 120],
+    ['H', 43.18, 80.34, 10, 300],
+    ['G', 48.41, 79.8, 11, 120],
+    ['F', 56.15, 79.8, 12, 120],
+    ['E', 61.49, 80.34, 13, 120],
+    ['D', 66.83, 81.24, 14, 190],
+    ['C', 72.18, 82.96, 10, 300],
+    ['B', 77.57, 84.76, 11, 300],
+    ['A', 82.08, 86.83, 12, 120],
 ];
 
 /** 출입구 게이트 : [번호, x, y] */
@@ -208,13 +200,13 @@ const GATE_MARKER_SEEDS: Record<TmnlId, GateMarkerSeed[]> = {
     T2: T2_GATE_MARKERS,
 };
 
+/** 마커는 자리와 라벨만 갖는다 (혼잡도는 슬롯이 채운다) */
 function toIslandMarkers(tmnlId: TmnlId): MapMarkerDto[] {
-    return ISLAND_SEEDS[tmnlId].map(([label, cdntX, cdntY, cgnStatus]) => ({
+    return ISLAND_SEEDS[tmnlId].map(([label, cdntX, cdntY]) => ({
         markerId: label,
         label,
         cdntX,
         cdntY,
-        cgnStatus,
     }));
 }
 
@@ -227,75 +219,65 @@ function toGateMarkers(tmnlId: TmnlId): MapMarkerDto[] {
     }));
 }
 
-function toDepMarkers(gates: DepHallGateDto[], seeds: GateSeed[]): MapMarkerDto[] {
-    return seeds.map((seed) => {
-        const gate = gates.find((it) => it.depNum === seed.depNum);
-
-        return {
-            markerId: `dg${seed.depNum}`,
-            label: seed.depNum,
-            cdntX: seed.marker[0],
-            cdntY: seed.marker[1],
-            cgnStatus: gate?.cgnStatus,
-        };
-    });
+function toDepMarkers(seeds: GateSeed[]): MapMarkerDto[] {
+    return seeds.map((seed) => ({
+        markerId: `dg${seed.depNum}`,
+        label: seed.depNum,
+        cdntX: seed.marker[0],
+        cdntY: seed.marker[1],
+    }));
 }
 
-/* ================= 혼잡 알림 ================= */
+/* ================= 슬롯 ================= */
+
+function toUnitRslt(unitCd: string, wtngPsgCnt: number): MapUnitRsltDto {
+    return { unitCd, cgnStatus: toStatus(wtngPsgCnt), stat: toStat(wtngPsgCnt) };
+}
 
 /** 알림은 매우혼잡한 출국장만 모은다 (카드와 같은 근거) */
-function toNotice(gates: DepHallGateDto[]): MapNoticeDto {
-    const busy = gates.filter((gate) => gate.cgnStatus === 'VERY_BUSY');
+function toNotice(depRsltList: MapUnitRsltDto[], seeds: GateSeed[]): MapNoticeDto {
+    const boothCntMap = new Map(seeds.map((seed) => [seed.depNum, seed.boothCnt]));
+    const busy = depRsltList.filter((rslt) => rslt.cgnStatus === 'VERY_BUSY');
 
     return {
         cgnStatus: busy.length > 0 ? 'BUSY' : 'NORMAL',
         itemList: [...busy]
-            .sort((a, b) => Number(a.depNum) - Number(b.depNum))
-            .map((gate) => ({
-                fcltNm: gate.depNm,
-                fcltCd: `DG${gate.depNum.padStart(2, '0')}`,
-                boothCnt: gate.boothCnt,
+            .sort((a, b) => Number(a.unitCd) - Number(b.unitCd))
+            .map((rslt) => ({
+                fcltNm: `출국장 ${rslt.unitCd}`,
+                fcltCd: `DG${rslt.unitCd.padStart(2, '0')}`,
+                boothCnt: boothCntMap.get(rslt.unitCd) ?? 0,
             })),
     };
 }
 
-/* ================= 추이 ================= */
+function toSlot(tmnlId: TmnlId, hhmm: string, step: number): DepHallSlotDto {
+    const seeds = GATE_SEEDS[tmnlId];
+    const depRsltList = seeds.map((seed) =>
+        toUnitRslt(seed.depNum, wtngAt(seed.peakStep, seed.peakWtng, step)),
+    );
 
-function toTrendSeries(seed: GateSeed): DepHallTrendSeriesDto {
     return {
-        depNum: seed.depNum,
-        depNm: `출국장 ${seed.depNum}`,
-        itemList: TIME_LIST.map((hhmm, step) => ({ hhmm, ...toStat(wtngAt(seed, step)) })),
+        hhmm,
+        notice: toNotice(depRsltList, seeds),
+        depRsltList,
+        chknRsltList: ISLAND_SEEDS[tmnlId].map(([label, , , peakStep, peakWtng]) =>
+            toUnitRslt(label, wtngAt(peakStep, peakWtng, step)),
+        ),
     };
 }
 
 export const depHallMock = {
-    /** 화면 본문 — 타임라인 시각에 따라 혼잡도·지표가 함께 움직인다 */
-    getDepHall: (tmnlId: TmnlId, hhmm: string): DepHallDto => {
-        const seeds = GATE_SEEDS[tmnlId];
-        const gateList = seeds.map((seed) => toGate(seed, toStep(hhmm)));
-
-        return {
-            error: false,
-            errorMessage: '',
-            smltId: SMLT_ID,
-            tmnlId,
-            hhmm,
-            notice: toNotice(gateList),
-            gateList,
-            depMarkerList: toDepMarkers(gateList, seeds),
-            chknMarkerList: toIslandMarkers(tmnlId),
-            gateMarkerList: toGateMarkers(tmnlId),
-        };
-    },
-
-    /** 차트 보기 — 조회 시각과 무관하게 하루치를 한 번에 내려준다 */
-    getDepHallTrend: (tmnlId: TmnlId): DepHallTrendDto => ({
+    /** 화면 하루치 — 타임라인은 slotList 에서 자리만 바꿔 읽는다 */
+    getDepHall: (tmnlId: TmnlId): DepHallDto => ({
         error: false,
         errorMessage: '',
         smltId: SMLT_ID,
         tmnlId,
-        timeList: TIME_LIST,
-        seriesList: GATE_SEEDS[tmnlId].map(toTrendSeries),
+        gateList: GATE_SEEDS[tmnlId].map(toGate),
+        depMarkerList: toDepMarkers(GATE_SEEDS[tmnlId]),
+        chknMarkerList: toIslandMarkers(tmnlId),
+        gateMarkerList: toGateMarkers(tmnlId),
+        slotList: TIME_LIST.map((hhmm, step) => toSlot(tmnlId, hhmm, step)),
     }),
 };

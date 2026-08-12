@@ -1,4 +1,9 @@
-import type { CongestionLevel, NoticeLevel, NoticeLevelPreset } from '@/modules/pm/types/map.types';
+import type {
+    CongestionLevel,
+    NoticeData,
+    NoticeLevel,
+    NoticeLevelPreset,
+} from '@/modules/pm/types/map.types';
 import type { DepGateMarker, GateMarker, IslandMarker } from '@/modules/pm/types/map.types';
 
 export type {
@@ -112,4 +117,30 @@ export interface FacilityDetail {
     title: string;
     level: CongestionLevel;
     stats: IslandStat[];
+}
+
+/* ================= 하루치 ================= */
+
+/**
+ * 타임라인 한 칸(30분)이 가리키는 화면 값.
+ * 팝업까지 여기 들어 있어 마커를 눌러도 다시 조회하지 않는다.
+ */
+export interface MapSlot {
+    notice: NoticeData;
+    map: TerminalMapData;
+    /** 아일랜드 문자(A~N) → 상세 팝업 */
+    islandDetails: Record<string, IslandDetail>;
+    /** 출국장 번호(1~6) → 미니 팝업 */
+    depGateDetails: Record<string, FacilityDetail>;
+}
+
+/**
+ * 하루치 도면 — 한 번 받아 두고 타임라인은 자리만 옮긴다.
+ * 헤더 요약 · 운영시간 카드는 시각과 무관해 슬롯 밖에 한 벌만 둔다.
+ */
+export interface MapDay {
+    summary: HeaderSummary;
+    operCards: OperCard[];
+    /** 시각(HHmm) → 그 시각 화면 값 */
+    slots: Record<string, MapSlot>;
 }

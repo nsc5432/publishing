@@ -2,15 +2,16 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="aoms.pm.cast.mapper.CastMapMapper">
-    <select id="retrieveMapRsltList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
-        /* CastMapMapper.retrieveMapRsltList */
+    <select id="retrieveMapRsltDayList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
+        /* CastMapMapper.retrieveMapRsltDayList */
         <!--
-            타임라인 1칸(30분)에 해당하는 결과를 시설 묶음 단위로 접는다.
-            결과 상세는 10분 간격이므로 한 칸에 3행이 들어온다.
+            하루 전체를 타임라인 1칸(30분) 단위로 접는다. 결과 상세는 10분 간격이므로
+            한 칸에 3행이 들어온다. 화면이 하루치를 한 번에 받아 두므로 시각으로 거르지 않는다.
             묶음 단위 자리수 규칙은 CastDsbdMapper.unitCdExpr 과 같다 (G11 해소).
         -->
         SELECT
-            #{hhmm} AS TIME,
+            TO_CHAR(A.SMLT_ACTL_DT, 'HH24')
+                || LPAD(FLOOR(TO_NUMBER(TO_CHAR(A.SMLT_ACTL_DT, 'MI')) / 30) * 30, 2, '0') AS TIME,
             B.UP_PSG_FCLT_CD,
             CASE
                 WHEN B.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(B.PSG_FCLT_CD, -3, 1)
@@ -30,16 +31,16 @@
         AND B.TMNL_ID = #{tmnlId}
         AND B.USE_YN = 'Y'
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
-        AND TO_CHAR(A.SMLT_ACTL_DT, 'HH24') = SUBSTR(#{hhmm}, 1, 2)
-        -- 30분 버킷: 앞 30분(00~29) 과 뒤 30분(30~59) 을 나눈다
-        AND FLOOR(TO_NUMBER(TO_CHAR(A.SMLT_ACTL_DT, 'MI')) / 30) = FLOOR(TO_NUMBER(SUBSTR(#{hhmm}, 3, 2)) / 30)
-        GROUP BY B.UP_PSG_FCLT_CD,
+        GROUP BY
+            TO_CHAR(A.SMLT_ACTL_DT, 'HH24')
+                || LPAD(FLOOR(TO_NUMBER(TO_CHAR(A.SMLT_ACTL_DT, 'MI')) / 30) * 30, 2, '0'),
+            B.UP_PSG_FCLT_CD,
             CASE
                 WHEN B.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(B.PSG_FCLT_CD, -3, 1)
                 WHEN B.UP_PSG_FCLT_CD IN ('LGT') THEN SUBSTR(B.PSG_FCLT_CD, 4, 1)
                 WHEN B.UP_PSG_FCLT_CD IN ('SC', 'SR') THEN SUBSTR(B.PSG_FCLT_CD, 5, 1)
                 ELSE ' '
             END
-        ORDER BY B.UP_PSG_FCLT_CD, UNIT_CD
+        ORDER BY TIME, B.UP_PSG_FCLT_CD, UNIT_CD
     </select>
 </mapper>

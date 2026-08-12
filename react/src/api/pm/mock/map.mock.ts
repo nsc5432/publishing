@@ -1,12 +1,15 @@
 import type {
     CongestionStatus,
     MapCgnStatDto,
-    MapChknDetailDto,
-    MapDepDetailDto,
+    MapChknInfoDto,
+    MapChknRsltDto,
     MapMarkerDto,
     MapNoticeDto,
+    MapNoticeItemDto,
     MapOperCardDto,
+    MapUnitRsltDto,
     SmltMapDto,
+    SmltMapSlotDto,
     TmnlId,
 } from '@/types/api.types';
 
@@ -15,6 +18,8 @@ import type {
  *
  * 서버 DTO 와 같은 모양으로 둔다. 도면 좌표(비율 %)까지 서버가 내려주는 값이라
  * 화면은 마커를 그리기만 하고 자리를 알지 못한다.
+ *
+ * 하루치를 한 번에 내려준다 — 타임라인을 옮겨도 다시 부르지 않는다.
  */
 
 const SMLT_ID = 'SMLT-20260710-0001';
@@ -25,11 +30,17 @@ const SMLT_ID = 'SMLT-20260710-0001';
 const STEP_MIN = 30;
 const MAX_STEP = 48;
 
-function toStep(hhmm: string): number {
-    const minutes = Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(2, 4));
+function toHhmm(minutes: number): string {
+    const hh = String(Math.floor(minutes / 60)).padStart(2, '0');
+    const mm = String(minutes % 60).padStart(2, '0');
 
-    return Math.min(MAX_STEP, Math.max(0, Math.round(minutes / STEP_MIN)));
+    return hh + mm;
 }
+
+/** 슬롯 시각 49개 (00:00 ~ 24:00) */
+const TIME_LIST: string[] = Array.from({ length: MAX_STEP + 1 }, (_, step) =>
+    toHhmm(step * STEP_MIN),
+);
 
 /**
  * 시간대별 대기인원 — 오전 피크(08~10시)를 찍고 내려가는 곡선.
@@ -144,14 +155,79 @@ const GATES: Array<[string, number, number]> = [
 
 const DEP_SEEDS: Record<TmnlId, DepSeed[]> = { T1: T1_DEPS, T2: T2_DEPS };
 
-function toMarkers(seeds: DepSeed[], prefix: string, step: number): MapMarkerDto[] {
-    return seeds.map(([label, cdntX, cdntY, peakStep, peakWtng]) => ({
+/** 마커는 자리와 라벨만 갖는다 (혼잡도는 슬롯이 채운다) */
+function toMarkers(seeds: DepSeed[], prefix: string): MapMarkerDto[] {
+    return seeds.map(([label, cdntX, cdntY]) => ({
         markerId: prefix + label,
         label,
         cdntX,
         cdntY,
-        cgnStatus: toStatus(wtngAt(peakStep, peakWtng, step)),
     }));
+}
+
+/* ================= 슬롯 ================= */
+
+/** 대기인원에서 처리율을 끌어낸다 (혼잡할수록 낮아진다) */
+function toPrcsRate(wtngPsgCnt: number): number {
+    const prcs = 20 + Math.round(wtngPsgCnt / 10);
+
+    return Math.round((prcs * 100) / (prcs + wtngPsgCnt));
+}
+
+function toUnitRslt(seed: DepSeed, step: number): MapUnitRsltDto {
+    const wtngPsgCnt = wtngAt(seed[3], seed[4], step);
+
+    return { unitCd: seed[0], cgnStatus: toStatus(wtngPsgCnt), stat: toStat(wtngPsgCnt) };
+}
+
+function toChknRslt(seed: DepSeed, step: number): MapChknRsltDto {
+    const rslt = toUnitRslt(seed, step);
+
+    return { ...rslt, prcsRate: toPrcsRate(rslt.stat.wtngPsgCnt) };
+}
+
+/** 알림 후보 : [그 시각 상태, 시설명] */
+type NoticeSeed = [MapUnitRsltDto, string];
+
+/** 알림 목록이 도면을 덮지 않는 상한 (서버와 같은 값) */
+const NOTICE_ITEM_LIMIT = 6;
+/** 대기인원 50명당 부스 1개 증설로 환산한다 (서버와 같은 규칙) */
+const BOOTH_PER_STEP = 50;
+
+function toNoticeItem([rslt, fcltNm]: NoticeSeed): MapNoticeItemDto {
+    return {
+        fcltNm,
+        fcltCd: rslt.unitCd,
+        boothCnt: Math.max(1, Math.floor(rslt.stat.wtngPsgCnt / BOOTH_PER_STEP)),
+    };
+}
+
+/** 알림은 혼잡(BUSY) 이상인 곳만, 혼잡한 순으로 모은다 */
+function toNotice(chknList: MapChknRsltDto[], depList: MapUnitRsltDto[]): MapNoticeDto {
+    const seeds: NoticeSeed[] = [
+        ...chknList.map((rslt): NoticeSeed => [rslt, '체크인카운터']),
+        ...depList.map((rslt): NoticeSeed => [rslt, '출국장']),
+    ];
+    const busy = seeds
+        .filter(([rslt]) => rslt.cgnStatus === 'BUSY' || rslt.cgnStatus === 'VERY_BUSY')
+        .sort(([a], [b]) => b.stat.wtngPsgCnt - a.stat.wtngPsgCnt);
+
+    return {
+        cgnStatus: toStatus(busy[0]?.[0].stat.wtngPsgCnt ?? 0),
+        itemList: busy.slice(0, NOTICE_ITEM_LIMIT).map(toNoticeItem),
+    };
+}
+
+function toSlot(tmnlId: TmnlId, hhmm: string, step: number): SmltMapSlotDto {
+    const chknRsltList = ISLAND_SEEDS[tmnlId].map((seed) => toChknRslt(seed, step));
+    const depRsltList = DEP_SEEDS[tmnlId].map((seed) => toUnitRslt(seed, step));
+
+    return {
+        hhmm,
+        notice: toNotice(chknRsltList, depRsltList),
+        chknRsltList,
+        depRsltList,
+    };
 }
 
 /* ================= 운영시간 카드 ================= */
@@ -173,31 +249,6 @@ function toOperCards(seeds: DepSeed[]): MapOperCardDto[] {
     }));
 }
 
-/* ================= 혼잡 알림 ================= */
-
-const NOTICES: Record<TmnlId, MapNoticeDto> = {
-    T1: {
-        cgnStatus: 'VERY_BUSY',
-        itemList: [
-            { fcltNm: '체크인카운터', fcltCd: 'M11', boothCnt: 3 },
-            { fcltNm: '체크인카운터', fcltCd: 'K09', boothCnt: 4 },
-            { fcltNm: '출국장', fcltCd: 'DG02', boothCnt: 2 },
-            { fcltNm: '보안검색대', fcltCd: 'SG14', boothCnt: 2 },
-            { fcltNm: '체크인카운터', fcltCd: 'L10', boothCnt: 2 },
-            { fcltNm: '체크인카운터', fcltCd: 'C10', boothCnt: 2 },
-        ],
-    },
-    T2: {
-        cgnStatus: 'BUSY',
-        itemList: [
-            { fcltNm: '체크인카운터', fcltCd: 'D07', boothCnt: 3 },
-            { fcltNm: '체크인카운터', fcltCd: 'F02', boothCnt: 2 },
-            { fcltNm: '출국장', fcltCd: 'DG01', boothCnt: 2 },
-            { fcltNm: '보안검색대', fcltCd: 'SG05', boothCnt: 3 },
-        ],
-    },
-};
-
 /* ================= 헤더 요약 ================= */
 
 const SUMMARY: Record<TmnlId, { fltCnt: number; psgCnt: number }> = {
@@ -205,87 +256,54 @@ const SUMMARY: Record<TmnlId, { fltCnt: number; psgCnt: number }> = {
     T2: { fltCnt: 987654, psgCnt: 987654 },
 };
 
-/* ================= 상세 팝업 ================= */
+/* ================= 아일랜드 상세 팝업 고정 정보 ================= */
 
 /** 아일랜드 문자 → 값의 씨앗 (A=0) */
 function islandSeed(island: string): number {
     return Math.max(0, island.charCodeAt(0) - 65);
 }
 
-function findIsland(tmnlId: TmnlId, island: string): DepSeed | undefined {
-    return ISLAND_SEEDS[tmnlId].find(([label]) => label === island);
-}
+function toChknInfo(tmnlId: TmnlId, island: string): MapChknInfoDto {
+    const seed = islandSeed(island);
 
-function findDep(tmnlId: TmnlId, depNum: string): DepSeed | undefined {
-    return DEP_SEEDS[tmnlId].find(([label]) => label === depNum);
+    return {
+        island,
+        fcltCd: `${tmnlId}-3RD-${island}01-01`,
+        fcltList: [
+            { fcltType: 'CHKN', fcltNm: '체크인카운터', prcsRateYn: 'Y' },
+            { fcltType: 'SLFCHKN', fcltNm: '셀프체크인', prcsRateYn: 'Y' },
+            // 상업시설은 처리율 개념이 없다
+            { fcltType: 'CMRC', fcltNm: '상업시설', prcsRateYn: 'N' },
+        ],
+        sales: {
+            totAmt: 33063915 + seed * 121500,
+            storeCnt: 9 - (seed % 4),
+            amtPerPsg: 1742 + seed * 37,
+            psgDiffCnt: 8,
+            diffRate: 15,
+            cmprYear: '2023',
+        },
+    };
 }
 
 export const mapMock = {
-    /** 도면 본문 — 타임라인 시각 기준 */
-    getSmltMap: (tmnlId: TmnlId, hhmm: string): SmltMapDto => {
-        const step = toStep(hhmm);
-
-        return {
-            error: false,
-            errorMessage: '',
-            smltId: SMLT_ID,
-            tmnlId,
-            hhmm,
-            summary: SUMMARY[tmnlId],
-            notice: NOTICES[tmnlId],
-            operCardList: toOperCards(DEP_SEEDS[tmnlId]),
-            depMarkerList: toMarkers(DEP_SEEDS[tmnlId], 'dg', step),
-            chknMarkerList: toMarkers(ISLAND_SEEDS[tmnlId], '', step),
-            gateMarkerList: GATES.map(([label, cdntX, cdntY]) => ({
-                markerId: `g${label}`,
-                label,
-                cdntX,
-                cdntY,
-            })),
-        };
-    },
-
-    /** 아일랜드 마커 클릭 — 상세 팝업 */
-    getChknDetail: (tmnlId: TmnlId, island: string, hhmm: string): MapChknDetailDto => {
-        const seed = islandSeed(island);
-        const marker = findIsland(tmnlId, island);
-        const wtngPsgCnt = marker ? wtngAt(marker[3], marker[4], toStep(hhmm)) : 0;
-
-        return {
-            error: false,
-            errorMessage: '',
-            island,
-            fcltCd: `${tmnlId}-3RD-${island}01-01`,
-            cgnStatus: toStatus(wtngPsgCnt),
-            fcltList: [
-                { fcltType: 'CHKN', fcltNm: '체크인카운터', prcsRate: 90 - (seed % 3) * 5 },
-                { fcltType: 'SLFCHKN', fcltNm: '셀프체크인', prcsRate: 100 },
-                { fcltType: 'CMRC', fcltNm: '상업시설', prcsRate: null },
-            ],
-            stat: toStat(wtngPsgCnt),
-            sales: {
-                totAmt: 33063915 + seed * 121500,
-                storeCnt: 9 - (seed % 4),
-                amtPerPsg: 1742 + seed * 37,
-                psgDiffCnt: 8,
-                diffRate: 15,
-                cmprYear: '2023',
-            },
-        };
-    },
-
-    /** 출국장 마커 클릭 — 미니 팝업 */
-    getDepDetail: (tmnlId: TmnlId, depNum: string, hhmm: string): MapDepDetailDto => {
-        const marker = findDep(tmnlId, depNum);
-        const wtngPsgCnt = marker ? wtngAt(marker[3], marker[4], toStep(hhmm)) : 0;
-
-        return {
-            error: false,
-            errorMessage: '',
-            depNum,
-            depNm: `출국장 ${depNum}`,
-            cgnStatus: toStatus(wtngPsgCnt),
-            stat: toStat(wtngPsgCnt),
-        };
-    },
+    /** 도면 하루치 — 타임라인은 slotList 에서 자리만 바꿔 읽는다 */
+    getSmltMap: (tmnlId: TmnlId): SmltMapDto => ({
+        error: false,
+        errorMessage: '',
+        smltId: SMLT_ID,
+        tmnlId,
+        summary: SUMMARY[tmnlId],
+        operCardList: toOperCards(DEP_SEEDS[tmnlId]),
+        depMarkerList: toMarkers(DEP_SEEDS[tmnlId], 'dg'),
+        chknMarkerList: toMarkers(ISLAND_SEEDS[tmnlId], ''),
+        gateMarkerList: GATES.map(([label, cdntX, cdntY]) => ({
+            markerId: `g${label}`,
+            label,
+            cdntX,
+            cdntY,
+        })),
+        chknInfoList: ISLAND_SEEDS[tmnlId].map(([island]) => toChknInfo(tmnlId, island)),
+        slotList: TIME_LIST.map((hhmm, step) => toSlot(tmnlId, hhmm, step)),
+    }),
 };

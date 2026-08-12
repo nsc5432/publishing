@@ -14,14 +14,11 @@ export const API_ENDPOINTS = {
     DSBD_TMNL_RSLT: prefix + '/smry/retrieveDailySmltTmnlRsltByTime',
     DSBD_FCLT_CARD: prefix + '/smry/retrieveDailySmltFcltCard',
 
-    // 일일 시뮬레이션 결과 조회 - 맵형태보기
+    // 일일 시뮬레이션 결과 조회 - 맵형태보기 (하루치를 한 번에 받는다)
     MAP_INFO: prefix + '/map/retrieveSmltMap',
-    MAP_CHKN_DETAIL: prefix + '/map/retrieveSmltMapChknDetail',
-    MAP_DEP_DETAIL: prefix + '/map/retrieveSmltMapDepDetail',
 
-    // 일일 시뮬레이션 결과 조회 - 출국장
+    // 일일 시뮬레이션 결과 조회 - 출국장 (하루치를 한 번에 받는다)
     DEP_HALL_INFO: prefix + '/dep-hall/retrieveDepHall',
-    DEP_HALL_TREND: prefix + '/dep-hall/retrieveDepHallTrend',
 
     // 사용자 시뮬레이션 - 조건 설정
     USER_SMLT_INFO: prefix + '/user-smlt/retrieveUserSmltInfo',

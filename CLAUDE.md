@@ -195,10 +195,7 @@ npm run build:prd  # 운영 빌드
 | 〃 | `DSBD_TMNL_RSLT` | `/smry/retrieveDailySmltTmnlRsltByTime` |
 | 〃 | `DSBD_FCLT_CARD` | `/smry/retrieveDailySmltFcltCard` |
 | 맵형태보기 | `MAP_INFO` | `/map/retrieveSmltMap` |
-| 〃 | `MAP_CHKN_DETAIL` | `/map/retrieveSmltMapChknDetail` |
-| 〃 | `MAP_DEP_DETAIL` | `/map/retrieveSmltMapDepDetail` |
 | 출국장 | `DEP_HALL_INFO` | `/dep-hall/retrieveDepHall` |
-| 〃 | `DEP_HALL_TREND` | `/dep-hall/retrieveDepHallTrend` |
 | 사용자 시뮬레이션 | `USER_SMLT_INFO` | `/user-smlt/retrieveUserSmltInfo` |
 | 〃 | `USER_SMLT_FLT_PSG` / `_SAVE` | `/user-smlt/retrieveFltPsgInfo` · `saveFltPsgInfo` |
 | 〃 | `USER_SMLT_CHKN` / `_SAVE` | `/user-smlt/retrieveChknCounterInfo` · `saveChknCounterInfo` |
@@ -211,6 +208,10 @@ npm run build:prd  # 운영 빌드
 
 **서버는 처리 실패도 HTTP 200 으로 내려보내고 본문의 `error` 플래그로 알린다.**
 그래서 모든 조회는 `unwrap(dto, fallback)` 을 거쳐 통신 실패와 같은 catch 경로로 흘려보낸다.
+
+**맵형태보기 · 출국장은 하루치를 한 번에 받는다.** 두 응답 모두 30분 슬롯 배열(`slotList`)을
+갖고, 화면은 타임라인 시각(`hhmm`)으로 슬롯을 찾아 읽는다. 그래서 조회 조건은 `smltId` + `tmnlId`
+뿐이고 **눈금 이동·재생·마커 팝업은 서버를 부르지 않는다**.
 
 ---
 

@@ -12,13 +12,8 @@ import { IslandModal } from './components/IslandModal';
 import { MapStage } from './components/MapStage';
 import { OperCards } from './components/OperCards';
 import { Timeline } from './components/Timeline';
-import {
-    useDepDetail,
-    useIslandDetail,
-    useSmltMap,
-    type MapQuery,
-} from './hooks/useTerminalMapData';
-import { EMPTY_MAP_DATA, EMPTY_NOTICE, EMPTY_SUMMARY } from './view';
+import { useSmltMap, type MapQuery } from './hooks/useTerminalMapData';
+import { EMPTY_MAP_SLOT, EMPTY_SUMMARY } from './view';
 import { useTimeline } from '@/modules/pm/hooks/useTimeline';
 import { TIMELINE_RANGE } from './timeline';
 import type { DepGateMarker, IslandMarker, TerminalKind } from './types';
@@ -30,8 +25,8 @@ const DEFAULT_NAV_BOTTOM = 'map';
  * PM 예측관리 / 일일 시뮬레이션 결과 조회 — 맵 형태.
  *
  * 화면에 들어오면 기준 정보(getBaseInfo)로 시뮬레이션 ID 를 받고,
- * 터미널·타임라인 시각을 조회 조건으로 도면(getSmltMap)을 부른다.
- * 마커를 누르면 그 시각의 상세를 따로 조회한다.
+ * 터미널을 조회 조건으로 도면 하루치(getSmltMap)를 한 번에 받는다.
+ * 타임라인·마커 팝업은 받아 둔 슬롯에서 읽으므로 다시 조회하지 않는다.
  */
 function TerminalMap() {
     usePageScope('terminalMap');
@@ -45,32 +40,26 @@ function TerminalMap() {
     const [selectedDepGate, setSelectedDepGate] = useState<DepGateMarker | null>(null);
     const timeline = useTimeline(TIMELINE_RANGE);
 
-    // 조회 조건 — 터미널·타임라인 시각이 바뀌면 그대로 다시 조회한다.
+    // 조회 조건 — 터미널이 바뀌면 그 터미널의 하루치를 다시 받는다.
     const [query, setQuery] = useState<MapQuery | null>(null);
 
     useEffect(() => {
         if (!baseInfo) return;
 
-        setQuery({ smltId: baseInfo.smltId, tmnlId: terminal, hhmm: timeline.hhmm });
-    }, [baseInfo, terminal, timeline.hhmm]);
+        setQuery({ smltId: baseInfo.smltId, tmnlId: terminal });
+    }, [baseInfo, terminal]);
 
-    const { data: mapView, error: mapError } = useSmltMap(query);
-    const { data: islandDetail, error: islandError } = useIslandDetail(
-        query,
-        selectedIsland?.label ?? null,
-    );
-    const { data: depGateDetail, error: depError } = useDepDetail(
-        query,
-        selectedDepGate?.label ?? null,
-    );
+    const { data: mapDay, error: mapError } = useSmltMap(query);
 
-    // 조회가 여러 갈래라 먼저 걸린 사유 하나만 알린다 (같은 실패로 알럿이 겹치지 않게).
-    const error = baseError || mapError || islandError || depError;
+    // 조회가 두 갈래라 먼저 걸린 사유 하나만 알린다 (같은 실패로 알럿이 겹치지 않게).
+    const error = baseError || mapError;
 
     useErrorAlert(error);
 
-    const mapData = mapView?.map ?? EMPTY_MAP_DATA;
-    const notice = mapView?.notice ?? EMPTY_NOTICE;
+    // 타임라인이 가리키는 시각의 값 — 받아 둔 하루치에서 자리만 옮긴다.
+    const slot = mapDay?.slots[timeline.hhmm] ?? EMPTY_MAP_SLOT;
+    const islandDetail = selectedIsland ? slot.islandDetails[selectedIsland.label] : null;
+    const depGateDetail = selectedDepGate ? slot.depGateDetails[selectedDepGate.label] : null;
 
     // 팝업은 한 번에 하나만 열린다
     const handleIslandClick = (island: IslandMarker) => {
@@ -90,10 +79,11 @@ function TerminalMap() {
         setSelectedDepGate(null);
     };
 
+    // 조건이 그대로여도 다시 눌러 최신 결과를 받아올 수 있도록 조회를 한 번 더 건다.
     const handleSearch = () => {
         if (!baseInfo) return;
 
-        setQuery({ smltId: baseInfo.smltId, tmnlId: terminal, hhmm: timeline.hhmm });
+        setQuery({ smltId: baseInfo.smltId, tmnlId: terminal });
     };
 
     return (
@@ -102,7 +92,7 @@ function TerminalMap() {
                 baseDate={formatYmd(baseInfo?.ymd ?? '')}
                 terminal={terminal}
                 onTerminalChange={handleTerminalChange}
-                summary={mapView?.summary ?? EMPTY_SUMMARY}
+                summary={mapDay?.summary ?? EMPTY_SUMMARY}
                 onSearch={handleSearch}
             />
 
@@ -110,16 +100,16 @@ function TerminalMap() {
                 <Lnb defaultBottom={DEFAULT_NAV_BOTTOM} />
 
                 <main className="container">
-                    <CongestionNotice level={notice.level} items={notice.items} />
+                    <CongestionNotice level={slot.notice.level} items={slot.notice.items} />
 
                     <section className="map-area">
                         <p className="map-area__guide">해당구역을 클릭하세요</p>
 
-                        <OperCards cards={mapView?.operCards ?? []} />
+                        <OperCards cards={mapDay?.operCards ?? []} />
 
                         <MapStage
                             terminal={terminal}
-                            data={mapData}
+                            data={slot.map}
                             activeMarkerId={selectedIsland?.id ?? selectedDepGate?.id}
                             onIslandClick={handleIslandClick}
                             onDepGateClick={handleDepGateClick}
