@@ -9,7 +9,7 @@ import { formatHour, formatOperating, toHourList } from '../../format';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
-import { BLOCK_COLORS, TERMINALS, type BlockItem, type TerminalKind } from '../../types';
+import { TERMINALS, type BlockItem, type TerminalKind } from '../../types';
 import { ScGrid } from './components/ScGrid';
 import type { DepartureGate } from './types';
 import { EMPTY_DEPARTURE, toDeparture, toHourArray, toPlans, toSaveReq } from './view';
@@ -37,8 +37,8 @@ const EMPTY_EDIT: EditState = { T1: [], T2: [] };
 const EMPTY_SC: ScState = { T1: {}, T2: {} };
 const GATE_NOS: Record<TerminalKind, number[]> = {
     T1: [1, 2, 3, 4, 5, 6],
-    T2: [1, 2]
-}
+    T2: [1, 2],
+};
 
 const FETCH_FAIL = '출국장 정보를 불러오지 못했습니다.';
 const SAVE_FAIL = '출국장 저장에 실패했습니다.';
@@ -86,8 +86,12 @@ function toGateItems(gates: DepartureGate[]): BlockItem[] {
 }
 
 /** 드로어의 출국장 칩이 보여 줄 값 */
-function pickGate(gates: DepartureGate[], drafts: Record<number, DepartureGate>, no: number): DepartureGate | undefined {
-    return drafts[no] ?? gates.find(gate => gate.no === no);
+function pickGate(
+    gates: DepartureGate[],
+    drafts: Record<number, DepartureGate>,
+    no: number,
+): DepartureGate | undefined {
+    return drafts[no] ?? gates.find((gate) => gate.no === no);
 }
 
 /**
@@ -141,7 +145,7 @@ export function DepartureTab({
         if (!gate) return;
 
         setSelected(no);
-        setDrawer(prev => ({ no, drafts: { ...prev?.drafts, [no]: prev?.drafts[no] ?? gate } }));
+        setDrawer((prev) => ({ no, drafts: { ...prev?.drafts, [no]: prev?.drafts[no] ?? gate } }));
     };
 
     /** 세부 운영시간 직접 설정 */
@@ -149,18 +153,18 @@ export function DepartureTab({
         const gates = edit[activeTerminal];
         if (gates.length === 0) return;
 
-        const picked = gates.find(gate => gate.no === selected) ?? gates[0];
+        const picked = gates.find((gate) => gate.no === selected) ?? gates[0];
         openGate(picked.no);
-    }
+    };
 
     const patchDraft = (next: Partial<DepartureGate>) => {
-        setDrawer(prev => {
+        setDrawer((prev) => {
             if (!prev) return prev;
 
             return {
                 ...prev,
-                drafts: { ...prev.drafts, [prev.no]: { ...prev.drafts[prev.no], ...next } }
-            }
+                drafts: { ...prev.drafts, [prev.no]: { ...prev.drafts[prev.no], ...next } },
+            };
         });
     };
 
@@ -169,10 +173,10 @@ export function DepartureTab({
         if (!drawer) return;
 
         const { drafts } = drawer;
-        setEdit(prev => ({
+        setEdit((prev) => ({
             ...prev,
-            [activeTerminal]: prev[activeTerminal].map(gate => drafts[gate.no] ?? gate)
-        }))
+            [activeTerminal]: prev[activeTerminal].map((gate) => drafts[gate.no] ?? gate),
+        }));
         setDrawer(null);
     };
 
@@ -318,8 +322,8 @@ export function DepartureTab({
                         title="출국장 선택"
                         hint={`${activeTerminal} ${gateNos.length}개`}
                     >
-                        <div className='gatepick'>
-                            {gateNos.map(no => {
+                        <div className="gatepick">
+                            {gateNos.map((no) => {
                                 const gate = pickGate(edit[activeTerminal], drawer.drafts, no);
                                 const on = no === drawer.no;
 
@@ -334,13 +338,16 @@ export function DepartureTab({
                                     >
                                         <i
                                             className="gatepick__dot"
-                                            style={gate && !gate.off ? { background: `var(--${gate.color})` } : undefined}
+                                            style={
+                                                gate && !gate.off
+                                                    ? { background: `var(--${gate.color})` }
+                                                    : undefined
+                                            }
                                         />
                                         {no}번
                                     </button>
                                 );
                             })}
-
                         </div>
                     </DrawerSection>
 

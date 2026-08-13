@@ -107,10 +107,13 @@ html[data-page='userSmlt'] .gnb__title {
     white-space: nowrap;
 }
 
+/* 단계 스테퍼 자리 — 터미널을 고르기 전에는 비어 있는 여백으로만 남는다 */
 html[data-page='userSmlt'] .gnb__center {
     flex: 1;
     display: flex;
+    align-items: center;
     justify-content: center;
+    min-width: 0;
 }
 
 html[data-page='userSmlt'] .gnb__right {
@@ -248,40 +251,95 @@ html[data-page='userSmlt'] .content {
     min-height: 0;
 }
 
+/* 단계 스테퍼 — GNB 가운데(.gnb__center)에 얹는다.
+   본문에서 한 줄을 쓰지 않으므로 그만큼 패널 높이가 늘어난다.
+   ⚠ 수량 증감 컨트롤(.stepper, components/CountStepper.tsx)과는 다른 것 */
 html[data-page='userSmlt'] .tabs {
     flex: 0 0 auto;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
     width: fit-content;
-    margin: 0 auto clamp(12px, 2vh, 22px);
-    padding: 5px;
+    padding: 4px;
     border-radius: 999px;
     background: rgba(230, 228, 236, 0.72);
     backdrop-filter: blur(6px);
 }
 
+/* 단계 사이 셰브론 — 순서가 있다는 표시 */
+html[data-page='userSmlt'] .tabs__sep {
+    flex: 0 0 auto;
+    width: 5px;
+    height: 5px;
+    margin: 0 3px;
+    border-top: 1.5px solid #b0b4c2;
+    border-right: 1.5px solid #b0b4c2;
+    transform: rotate(45deg);
+}
+
 html[data-page='userSmlt'] .tabs__item {
-    height: clamp(36px, 4.1vh, 44px);
-    padding: 0 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: clamp(30px, 3.4vh, 36px);
+    padding: 0 18px 0 8px;
     border-radius: 999px;
-    font-size: clamp(13px, 1.4vh, 15px);
+    font-size: clamp(12px, 1.3vh, 14px);
     font-weight: 500;
     color: #4c5158;
+    white-space: nowrap;
     transition:
         color 0.15s,
         background 0.15s;
+}
+
+/* 단계 번호 / 완료 체크 */
+html[data-page='userSmlt'] .tabs__no {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.75);
+    font-size: 12px;
+    font-weight: 700;
+    color: #8b90a0;
+    transition:
+        color 0.15s,
+        background 0.15s;
+}
+
+html[data-page='userSmlt'] .tabs__no svg {
+    width: 12px;
+    height: 12px;
 }
 
 html[data-page='userSmlt'] .tabs__item:hover {
     color: var(--pm-primary);
 }
 
+/* 지나온 단계 — 알약 배경 없이 체크만 채운다 */
+html[data-page='userSmlt'] .tabs__item.is-done {
+    color: var(--pm-primary);
+    font-weight: 600;
+}
+
+html[data-page='userSmlt'] .tabs__item.is-done .tabs__no {
+    background: var(--pm-primary-light);
+}
+
+/* 현재 단계 */
 html[data-page='userSmlt'] .tabs__item.is-active {
     background: #fff;
     color: var(--pm-primary);
     font-weight: 700;
     box-shadow: 0 2px 8px rgba(80, 78, 140, 0.12);
+}
+
+html[data-page='userSmlt'] .tabs__item.is-active .tabs__no {
+    background: var(--pm-primary);
+    color: #fff;
 }
 
 /* ---------------------------------------------------------------------
@@ -901,18 +959,138 @@ html[data-page='userSmlt'] .bchart--compact .bchart__head {
     margin-bottom: 10px;
 }
 
-/* 범례 ------------------------------------------------------------------- */
+/* 범례 -------------------------------------------------------------------
+   칩이 머리글 폭을 넘으면 줄바꿈해서 아래로 흐르는 대신 한 줄로 두고 좌우로 끌어 본다.
+   끌 수 있다는 신호는 셋 — 잡는 커서 · 잘린 쪽 페이드 · 오른쪽 끝 화살표. */
+html[data-page='userSmlt'] .legend-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    margin-left: auto;
+}
+
 html[data-page='userSmlt'] .legend {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    justify-content: flex-end;
+    flex-wrap: nowrap;
     gap: 6px;
-    margin-left: auto;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+}
+
+html[data-page='userSmlt'] .legend::-webkit-scrollbar {
+    display: none;
+}
+
+/* 넘칠 때만 — 화살표 자리를 비우고, 잘린 쪽을 흐리게 깎는다.
+   카드 배경이 그라데이션이라 덮개를 얹는 대신 마스크로 지운다. */
+html[data-page='userSmlt'] .legend-wrap.is-scrollable .legend {
+    --fade-l: 0px;
+    --fade-r: 26px;
+    padding-right: 20px;
+    cursor: grab;
+    -webkit-mask-image: linear-gradient(
+        90deg,
+        transparent 0,
+        #000 var(--fade-l),
+        #000 calc(100% - var(--fade-r)),
+        transparent 100%
+    );
+    mask-image: linear-gradient(
+        90deg,
+        transparent 0,
+        #000 var(--fade-l),
+        #000 calc(100% - var(--fade-r)),
+        transparent 100%
+    );
+}
+
+/* 한 번이라도 밀었으면 왼쪽에도 잘린 게 있다 / 끝에 닿으면 오른쪽 페이드를 끈다 */
+html[data-page='userSmlt'] .legend-wrap.is-scrollable.is-scrolled .legend {
+    --fade-l: 20px;
+}
+
+html[data-page='userSmlt'] .legend-wrap.is-scrollable.is-end .legend {
+    --fade-r: 0px;
+}
+
+html[data-page='userSmlt'] .legend-wrap.is-scrollable .legend.is-dragging {
+    cursor: grabbing;
+    user-select: none;
+}
+
+/* 오른쪽 끝 화살표 — 아직 밀어 보지 않았으면 살짝 흔들어 알린다 */
+html[data-page='userSmlt'] .legend__grip {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 18px;
+    height: 18px;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background: rgba(68, 65, 204, 0.08);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+html[data-page='userSmlt'] .legend__grip::before,
+html[data-page='userSmlt'] .legend__grip::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    border-top: 1.5px solid #6f6ea6;
+    border-right: 1.5px solid #6f6ea6;
+}
+
+html[data-page='userSmlt'] .legend__grip::before {
+    left: 3px;
+    transform: translateY(-50%) rotate(-135deg);
+}
+
+html[data-page='userSmlt'] .legend__grip::after {
+    right: 3px;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+html[data-page='userSmlt'] .legend-wrap.is-scrollable .legend__grip {
+    opacity: 1;
+}
+
+html[data-page='userSmlt'] .legend-wrap.is-scrollable:not(.is-scrolled) .legend__grip {
+    animation: legend-nudge 1.8s ease-in-out infinite;
+}
+
+/* 오른쪽 끝까지 밀었으면 더 볼 게 없다 — 화살표를 흐리게 */
+html[data-page='userSmlt'] .legend-wrap.is-scrollable.is-end .legend__grip {
+    opacity: 0.35;
+}
+
+@keyframes legend-nudge {
+    0%,
+    70%,
+    100% {
+        transform: translate(0, -50%);
+    }
+    85% {
+        transform: translate(3px, -50%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-page='userSmlt'] .legend-wrap.is-scrollable:not(.is-scrolled) .legend__grip {
+        animation: none;
+    }
 }
 
 html[data-page='userSmlt'] .legend__chip {
     display: inline-flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: 6px;
     height: 24px;
@@ -1931,8 +2109,13 @@ html[data-page='userSmlt'] .boothgrid--strip .bcell__no {
         padding-left: 18px;
     }
 
+    /* GNB 한 줄에 타이틀 + 스테퍼 + 기준일자 + 실행이 함께 서므로 가로만 조인다 */
+    html[data-page='userSmlt'] .gnb {
+        gap: 12px;
+    }
+
     html[data-page='userSmlt'] .tabs__item {
-        padding: 0 20px;
+        padding: 0 12px 0 6px;
     }
 
     /* 운항편/여객수 */
@@ -1980,13 +2163,47 @@ html[data-page='userSmlt'] .boothgrid--strip .bcell__no {
         padding-right: 14px;
     }
 
+    html[data-page='userSmlt'] .gnb {
+        gap: 10px;
+    }
+
     html[data-page='userSmlt'] .gnb__title {
         font-size: 15px;
     }
 
+    html[data-page='userSmlt'] .gnb__right {
+        gap: 12px;
+    }
+
+    html[data-page='userSmlt'] .tabs {
+        gap: 2px;
+        padding: 3px;
+    }
+
+    html[data-page='userSmlt'] .tabs__sep {
+        margin: 0 1px;
+    }
+
     html[data-page='userSmlt'] .tabs__item {
-        padding: 0 14px;
-        font-size: 13px;
+        gap: 6px;
+        padding: 0 10px 0 5px;
+        font-size: 12px;
+    }
+
+    html[data-page='userSmlt'] .tabs__no {
+        width: 20px;
+        height: 20px;
+        font-size: 11px;
+    }
+
+    /* 기준일자 — 아이콘과 값만 남기고 라벨은 접는다 */
+    html[data-page='userSmlt'] .date-picker {
+        gap: 8px;
+        padding-left: 14px;
+    }
+
+    html[data-page='userSmlt'] .date-picker__label {
+        display: none;
     }
 
     html[data-page='userSmlt'] .summary {
@@ -2008,7 +2225,7 @@ html[data-page='userSmlt'] .boothgrid--strip .bcell__no {
         min-width: 42px;
     }
 
-    /* 블럭 차트 — 범례가 여러 줄로 접히지 않게 한 단계 줄인다 */
+    /* 블럭 차트 — 좁은 화면에서 범례를 끌어야 하는 경우를 줄이려고 한 단계 작게 */
     html[data-page='userSmlt'] .legend__chip {
         height: 22px;
         padding: 0 8px 0 6px;

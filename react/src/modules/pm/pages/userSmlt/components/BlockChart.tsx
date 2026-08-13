@@ -1,4 +1,11 @@
-import { useCallback, useMemo, type ReactNode } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+    type PointerEvent as ReactPointerEvent,
+    type ReactNode,
+} from 'react';
 import type { ECElementEvent } from 'echarts/core';
 import type { TimeRange } from '@/components/ui/time-range-selector';
 import type { EChartsOption } from '@/lib/echarts';
@@ -88,6 +95,82 @@ const SIDE_OFF_OPACITY = 0.26;
 const AXIS_FONT = { fontSize: 11, fontFamily: 'Pretendard, sans-serif' };
 const BLOCK_SERIES = '블럭';
 const VALUE_LABEL = 2;
+
+/** 범례 가로 스크롤 상태 — 넘쳤는지, 양 끝에 닿았는지 (좌우 페이드를 켜고 끄는 값) */
+interface LegendScroll {
+    scrollable: boolean;
+    atStart: boolean;
+    atEnd: boolean;
+}
+
+const LEGEND_FIT: LegendScroll = { scrollable: false, atStart: true, atEnd: true };
+
+/**
+ * 범례가 폭을 넘을 때 — 줄바꿈 대신 한 줄로 두고 마우스로 끌어서 본다.
+ * 끌 수 있다는 신호(커서 · 페이드 · 화살표)는 CSS 가 상태 클래스를 보고 붙인다.
+ *
+ * 요소는 호출부가 state 로 들고 있다가 넘겨준다(ref 대신 state 여야 붙는 즉시 관찰이 걸린다).
+ */
+function useLegendDrag(el: HTMLDivElement | null) {
+    const [scroll, setScroll] = useState<LegendScroll>(LEGEND_FIT);
+    const [dragging, setDragging] = useState(false);
+
+    const sync = useCallback(() => {
+        if (!el) return;
+
+        const max = el.scrollWidth - el.clientWidth;
+        setScroll((prev) => {
+            const next: LegendScroll = {
+                scrollable: max > 1,
+                atStart: el.scrollLeft <= 1,
+                atEnd: el.scrollLeft >= max - 1,
+            };
+            return prev.scrollable === next.scrollable &&
+                prev.atStart === next.atStart &&
+                prev.atEnd === next.atEnd
+                ? prev
+                : next;
+        });
+    }, [el]);
+
+    // 칸 폭이 줄면 안 넘치던 범례도 넘친다
+    useEffect(() => {
+        if (!el) return;
+
+        const observer = new ResizeObserver(sync);
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, [el, sync]);
+
+    const onPointerDown = useCallback(
+        (e: ReactPointerEvent<HTMLDivElement>) => {
+            if (!el || e.button !== 0 || el.scrollWidth - el.clientWidth <= 1) return;
+
+            const startX = e.clientX;
+            const startLeft = el.scrollLeft;
+            el.setPointerCapture(e.pointerId);
+            setDragging(true);
+
+            const handleMove = (ev: PointerEvent) => {
+                el.scrollLeft = startLeft - (ev.clientX - startX);
+            };
+            const handleUp = () => {
+                el.removeEventListener('pointermove', handleMove);
+                el.removeEventListener('pointerup', handleUp);
+                el.removeEventListener('pointercancel', handleUp);
+                setDragging(false);
+            };
+
+            // 포인터를 잡아 뒀으므로 칩 밖으로 나가도 이벤트는 계속 여기로 온다
+            el.addEventListener('pointermove', handleMove);
+            el.addEventListener('pointerup', handleUp);
+            el.addEventListener('pointercancel', handleUp);
+        },
+        [el],
+    );
+
+    return { ...scroll, dragging, sync, onPointerDown };
+}
 
 /**
  * 시간대별 운영 블럭 차트 — 체크인 카운터(아일랜드) · 출국장 · 보안검색대 공용.
@@ -454,6 +537,15 @@ export function BlockChart({
         };
     }, [cells, levels, rowH, compact, blockFontSize, selectedLabels, gridLeft, line, disabled]);
 
+    const [legendEl, setLegendEl] = useState<HTMLDivElement | null>(null);
+    const legendDrag = useLegendDrag(legendEl);
+    const { sync: syncLegend } = legendDrag;
+
+    // 칩이 늘거나 줄어도 넘침 여부가 바뀐다
+    useEffect(() => {
+        syncLegend();
+    }, [syncLegend, legend, line]);
+
     const handleClick = useCallback(
         (params: ECElementEvent) => {
             if (disabled || !onBlockSelect) return;
@@ -483,23 +575,34 @@ export function BlockChart({
                 {unitNote && <span className="bchart__unitnote">{unitNote}</span>}
 
                 {(legend || line) && (
-                    <div className="legend">
-                        {legend?.map((chip) => (
-                            <span key={chip.label} className="legend__chip">
-                                <i
-                                    className="legend__dot"
-                                    style={{ background: `var(--${chip.color})` }}
-                                />
-                                <b>{chip.label}</b>
-                                {chip.note ? ` ${chip.note}` : ''}
-                            </span>
-                        ))}
-                        {line && (
-                            <span className="legend__chip legend__chip--line">
-                                <i className="legend__line" />
-                                <b>{line.label ?? '대기인원수'}</b> {line.unit ?? '명'}
-                            </span>
-                        )}
+                    <div
+                        className={`legend-wrap${legendDrag.scrollable ? ' is-scrollable' : ''}${legendDrag.atStart ? '' : ' is-scrolled'
+                            }${legendDrag.atEnd ? ' is-end' : ''}`}
+                    >
+                        <div
+                            ref={setLegendEl}
+                            className={`legend${legendDrag.dragging ? ' is-dragging' : ''}`}
+                            onScroll={legendDrag.sync}
+                            onPointerDown={legendDrag.onPointerDown}
+                        >
+                            {legend?.map((chip) => (
+                                <span key={chip.label} className="legend__chip">
+                                    <i
+                                        className="legend__dot"
+                                        style={{ background: `var(--${chip.color})` }}
+                                    />
+                                    <b>{chip.label}</b>
+                                    {chip.note ? ` ${chip.note}` : ''}
+                                </span>
+                            ))}
+                            {line && (
+                                <span className="legend__chip legend__chip--line">
+                                    <i className="legend__line" />
+                                    <b>{line.label ?? '대기인원수'}</b> {line.unit ?? '명'}
+                                </span>
+                            )}
+                        </div>
+                        <span className="legend__grip" aria-hidden="true" />
                     </div>
                 )}
 

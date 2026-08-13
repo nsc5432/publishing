@@ -1,19 +1,24 @@
+import type { ReactNode } from 'react';
 import { CalendarIcon, PlayIcon, SearchWhiteIcon } from '@/components/icons';
 
 interface SmltGnbProps {
     title: string;
     baseDate: string;
+    /** 가운데 단계 스테퍼 (터미널을 고르기 전에는 넘기지 않는다) */
+    steps?: ReactNode;
     onSearch: () => void;
     onRun?: () => void;
 }
 
-/** 상단 GNB — 타이틀 / 기준일자 / 시뮬레이션 실행·이력 */
-export function SmltGnb({ title, baseDate, onSearch, onRun }: SmltGnbProps) {
+/** 상단 GNB — 타이틀 / 단계 스테퍼 / 기준일자 · 시뮬레이션 실행·이력 */
+export function SmltGnb({ title, baseDate, steps, onSearch, onRun }: SmltGnbProps) {
     return (
         <header className="gnb">
             <h1 className="gnb__title">{title}</h1>
 
-            <div className="gnb__center">
+            <div className="gnb__center">{steps}</div>
+
+            <div className="gnb__right">
                 <div className="date-picker">
                     <span className="date-picker__label">기준일자</span>
                     <CalendarIcon className="date-picker__icon" aria-hidden="true" />
@@ -23,19 +28,19 @@ export function SmltGnb({ title, baseDate, onSearch, onRun }: SmltGnbProps) {
                         <span className="blind">검색</span>
                     </button>
                 </div>
-            </div>
 
-            {onRun && (
-                <div className="gnb__right">
-                    <button type="button" className="btn btn--run" onClick={onRun}>
-                        <PlayIcon aria-hidden="true" />
-                        <span>시뮬레이션 실행</span>
-                    </button>
-                    <a href="#" className="gnb__link">
-                        시뮬레이션 이력
-                    </a>
-                </div>
-            )}
+                {onRun && (
+                    <>
+                        <button type="button" className="btn btn--run" onClick={onRun}>
+                            <PlayIcon aria-hidden="true" />
+                            <span>시뮬레이션 실행</span>
+                        </button>
+                        <a href="#" className="gnb__link">
+                            시뮬레이션 이력
+                        </a>
+                    </>
+                )}
+            </div>
         </header>
     );
 }

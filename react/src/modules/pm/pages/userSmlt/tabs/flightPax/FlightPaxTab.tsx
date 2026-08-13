@@ -32,10 +32,7 @@ const SAVE_FAIL = '운항편/여객수 저장에 실패했습니다.';
 const fetchFltPsg = (smltId: string, tmnlId: TerminalKind) =>
     userSmltService.getFltPsgInfo(smltId, tmnlId);
 
-/**
- * 운항편/여객수 탭.
- * 터미널별 편집 상태를 각각 들고 있어 터미널을 오가도 값이 보존된다.
- */
+/** 운항편/여객수 탭 */
 export function FlightPaxTab({
     smltIds,
     reloadKey,

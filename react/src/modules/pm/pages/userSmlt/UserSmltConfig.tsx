@@ -83,29 +83,29 @@ function UserSmltConfig() {
             <SmltGnb
                 title={TITLE}
                 baseDate={formatYmd(baseYmd || ymd)}
+                steps={
+                    terminalPicked ? (
+                        <SmltTabs activeTab={activeTab} onTabChange={setActiveTab} />
+                    ) : undefined
+                }
                 onSearch={handleSearch}
                 onRun={terminalPicked ? handleRun : undefined}
             />
 
             <div className="body">
-                {/* 이 화면에는 하단 보기 선택(요약/맵…)에 해당하는 항목이 없다 */}
                 <Lnb />
 
                 <main className="content">
                     {terminalPicked ? (
-                        <>
-                            <SmltTabs activeTab={activeTab} onTabChange={setActiveTab} />
-
-                            <div className="panels">
-                                <TabContent
-                                    tab={activeTab}
-                                    smltIds={smltIds}
-                                    reloadKey={reloadKey}
-                                    activeTerminal={activeTerminal}
-                                    onTerminalChange={setActiveTerminal}
-                                />
-                            </div>
-                        </>
+                        <div className="panels">
+                            <TabContent
+                                tab={activeTab}
+                                smltIds={smltIds}
+                                reloadKey={reloadKey}
+                                activeTerminal={activeTerminal}
+                                onTerminalChange={setActiveTerminal}
+                            />
+                        </div>
                     ) : (
                         <TerminalIntro
                             onSelect={(terminal) => {
