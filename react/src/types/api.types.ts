@@ -337,6 +337,68 @@ export interface DepHallDto extends JsonResponse {
     slotList: DepHallSlotDto[]; // 04:00~24:00 (30분, 41칸)
 }
 
+/* ================= 일일 시뮬레이션 - 체크인카운터 ================= */
+
+/**
+ * 아일랜드 1곳 — 하루 내내 그대로인 부분(자원 구성 · 운영시간).
+ *
+ * 셀프체크인/백드롭은 따로 내려주지 않는다. 한 아일랜드가 가진 자원의 종류일 뿐이라
+ * 유인 카운터와 같은 자리에 담는다 (화면도 한 메뉴로 합쳐져 있다).
+ */
+export interface ChknCounterIslandDto {
+    island: string; // 아일랜드 문자 (A~N, I 제외)
+    fcltNm: string; // 표시명 (예: 아일랜드 A)
+    totCnt: number; // 보유 카운터 수 (개)
+    counterCnt: number; // 유인 체크인카운터 운영 대수 (개)
+    kioskCnt: number; // 셀프체크인 키오스크 대수 (대)
+    bagDropCnt: number; // 셀프백드롭 대수 (대)
+    alnCdList: string[]; // 배정 항공사 코드
+    oprTimeList: OprTimeDto[]; // 운영 시간 구간
+    useYn: YnFlag; // N 이면 미운영 (그날 배정이 없다)
+}
+
+/**
+ * 시간대별 자원 운영 1시간분 — 자원 활용 차트의 막대 1개.
+ * 대기인원을 같은 행에 실어 보내므로 차트가 축 두 개를 한 벌의 값으로 그린다.
+ */
+export interface ChknCounterRsrcDto {
+    hour: number; // 0~23
+    counterCnt: number; // 그 시간에 열린 유인 카운터 (개)
+    kioskCnt: number; // 그 시간에 열린 키오스크 (대)
+    bagDropCnt: number; // 그 시간에 열린 셀프백드롭 (대)
+    wtngPsgCnt: number; // 대기인원 (명) — 꺾은선
+    prcsPsgCnt: number; // 처리인원 (명)
+    utilRate: number; // 자원 활용률 (%) = 운영 카운터 / 전체 카운터
+}
+
+/** 체크인카운터 화면 30분 슬롯 1칸 */
+export interface ChknCounterSlotDto {
+    hhmm: string; // 슬롯 시각 (HHmm, 30분 단위)
+    notice: MapNoticeDto; // 상단 혼잡 알림 (아일랜드만)
+    chknRsltList: MapChknRsltDto[]; // 아일랜드별 그 시각 상태 (islandList 와 같은 단위)
+}
+
+/**
+ * 체크인카운터 화면 본문 — 하루치를 한 번에 내려준다.
+ *
+ * 차트 보기는 rsrcList(24시간)를 훑고, 표 보기는 타임라인이 가리키는 슬롯 한 칸을 읽는다.
+ * 출국장 화면과 같은 규칙이라 타임라인 · 보기 전환은 재조회를 부르지 않는다.
+ */
+export interface ChknCounterDto extends JsonResponse {
+    smltId: string;
+    tmnlId: TmnlId;
+    totCnt: number; // 전체 카운터 (개)
+    oprIslandCnt: number; // 운영 아일랜드 (개)
+    peakCounterCnt: number; // 피크 카운터 (시간대별 운영 카운터의 최댓값)
+    totKioskCnt: number; // 키오스크 합계 (대)
+    totBagDropCnt: number; // 셀프백드롭 합계 (대)
+    waitMaxCnt: number; // 꺾은선 우측 축 최댓값 (명)
+    islandList: ChknCounterIslandDto[]; // 아일랜드 (A~N)
+    rsrcList: ChknCounterRsrcDto[]; // 시간대별 자원 (24개)
+    slotList: ChknCounterSlotDto[]; // 00:00~24:00 (30분, 49칸)
+    kpi: SmltKpiDto;
+}
+
 /* ================= 사용자 시뮬레이션 ================= */
 
 /** 조건 설정 진입 정보 */

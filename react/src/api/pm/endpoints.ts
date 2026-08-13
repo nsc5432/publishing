@@ -20,6 +20,9 @@ export const API_ENDPOINTS = {
     // 일일 시뮬레이션 결과 조회 - 출국장 (하루치를 한 번에 받는다)
     DEP_HALL_INFO: prefix + '/dep-hall/retrieveDepHall',
 
+    // 일일 시뮬레이션 결과 조회 - 체크인카운터 (셀프체크인/백드롭 포함, 하루치를 한 번에 받는다)
+    CHKN_COUNTER_INFO: prefix + '/chkn-counter/retrieveChknCounter',
+
     // 사용자 시뮬레이션 - 조건 설정
     USER_SMLT_INFO: prefix + '/user-smlt/retrieveUserSmltInfo',
     USER_SMLT_FLT_PSG: prefix + '/user-smlt/retrieveFltPsgInfo',

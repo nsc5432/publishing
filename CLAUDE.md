@@ -15,6 +15,7 @@
 |---|---|---|
 | 요약보기(대시보드) | `/rui/pm`, `/rui/pm/daily-smlt/dashboard` | `modules/pm/pages/dashboard` |
 | 맵형태보기 | `/rui/pm/daily-smlt/terminalMap` | `modules/pm/pages/terminalMap` |
+| 체크인카운터 | `/rui/pm/daily-smlt/checkinCounter` | `modules/pm/pages/checkinCounter` |
 | 출국장 | `/rui/pm/daily-smlt/departureHall` | `modules/pm/pages/departureHall` |
 | 사용자 시뮬레이션 조건설정 | `/rui/pm/user-smlt/config` | `modules/pm/pages/userSmlt` |
 | 시뮬레이션 모니터링 | `/rui/pm/smlt-monitoring` | `modules/pm/pages/monitoring` |
@@ -195,6 +196,7 @@ npm run build:prd  # 운영 빌드
 | 〃 | `DSBD_TMNL_RSLT` | `/smry/retrieveDailySmltTmnlRsltByTime` |
 | 〃 | `DSBD_FCLT_CARD` | `/smry/retrieveDailySmltFcltCard` |
 | 맵형태보기 | `MAP_INFO` | `/map/retrieveSmltMap` |
+| 체크인카운터 | `CHKN_COUNTER_INFO` | `/chkn-counter/retrieveChknCounter` |
 | 출국장 | `DEP_HALL_INFO` | `/dep-hall/retrieveDepHall` |
 | 사용자 시뮬레이션 | `USER_SMLT_INFO` | `/user-smlt/retrieveUserSmltInfo` |
 | 〃 | `USER_SMLT_FLT_PSG` / `_SAVE` | `/user-smlt/retrieveFltPsgInfo` · `saveFltPsgInfo` |
@@ -209,9 +211,14 @@ npm run build:prd  # 운영 빌드
 **서버는 처리 실패도 HTTP 200 으로 내려보내고 본문의 `error` 플래그로 알린다.**
 그래서 모든 조회는 `unwrap(dto, fallback)` 을 거쳐 통신 실패와 같은 catch 경로로 흘려보낸다.
 
-**맵형태보기 · 출국장은 하루치를 한 번에 받는다.** 두 응답 모두 30분 슬롯 배열(`slotList`)을
-갖고, 화면은 타임라인 시각(`hhmm`)으로 슬롯을 찾아 읽는다. 그래서 조회 조건은 `smltId` + `tmnlId`
-뿐이고 **눈금 이동·재생·마커 팝업은 서버를 부르지 않는다**.
+**맵형태보기 · 출국장 · 체크인카운터는 하루치를 한 번에 받는다.** 세 응답 모두 30분 슬롯
+배열(`slotList`)을 갖고, 화면은 타임라인 시각(`hhmm`)으로 슬롯을 찾아 읽는다. 그래서 조회 조건은
+`smltId` + `tmnlId` 뿐이고 **눈금 이동·재생·마커 팝업은 서버를 부르지 않는다**.
+
+체크인카운터는 슬롯과 별개로 시간대별 자원 배열(`rsrcList`, 24칸)을 함께 내려준다 —
+차트 보기가 하루 흐름(자원 운영량 + 대기인원)을 그리고, 표 보기가 슬롯 한 칸을 읽는다.
+구 메뉴의 `셀프체크인/백드롭` 은 별도 화면·API 가 아니라 이 응답의 아일랜드 자원(`kioskCnt`,
+`bagDropCnt`)으로 흡수됐다 (사용자 시뮬레이션 탭이 합쳐진 것과 같은 이유다).
 
 ---
 

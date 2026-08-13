@@ -22,8 +22,14 @@ export interface NavItem {
 export const LNB_DAILY_SMLT: NavItem[] = [
     { id: 'summary', icon: 'grid', label: '요약보기', path: '/rui/pm/daily-smlt/dashboard' },
     { id: 'map', icon: 'map', label: '맵형태보기', path: '/rui/pm/daily-smlt/terminalMap' },
-    { id: 'counter', icon: 'pass', label: '체크인카운터' },
-    { id: 'selfCheckin', icon: 'luggage', label: '셀프체크인/백드롭' },
+    /* 체크인카운터 · 셀프체크인/백드롭은 한 메뉴다 — 서로 다른 시설이 아니라
+       같은 아일랜드가 가진 자원의 종류라 결과도 한 화면에서 함께 본다. */
+    {
+        id: 'counter',
+        icon: 'pass',
+        label: '체크인카운터',
+        path: '/rui/pm/daily-smlt/checkinCounter',
+    },
     {
         id: 'departure',
         icon: 'planeDep',
