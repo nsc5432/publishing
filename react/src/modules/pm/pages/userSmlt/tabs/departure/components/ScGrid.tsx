@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CountStepper } from '../../../components/CountStepper';
 import { formatHour, toHourList } from '../../../format';
 import type { DepartureGate } from '../types';
@@ -76,6 +76,8 @@ export function ScGrid({
     const [selection, setSelection] = useState<CellRect | null>(null);
     /** 팝오버 스테퍼 값 (`적용` 을 눌러야 격자에 반영된다) */
     const [draftCount, setDraftCount] = useState(0);
+    /** 팝오버 바깥을 눌렀는지 가리는 기준 */
+    const popRef = useRef<HTMLDivElement>(null);
 
     /** 줄마다 24칸 — null 은 미운영(빗금)이라 값을 넣을 수 없다 */
     const rows = useMemo(
@@ -105,11 +107,11 @@ export function ScGrid({
         () =>
             dragAnchor && dragCursor
                 ? {
-                    firstRow: Math.min(dragAnchor.row, dragCursor.row),
-                    lastRow: Math.max(dragAnchor.row, dragCursor.row),
-                    firstHour: Math.min(dragAnchor.hour, dragCursor.hour),
-                    lastHour: Math.max(dragAnchor.hour, dragCursor.hour),
-                }
+                      firstRow: Math.min(dragAnchor.row, dragCursor.row),
+                      lastRow: Math.max(dragAnchor.row, dragCursor.row),
+                      firstHour: Math.min(dragAnchor.hour, dragCursor.hour),
+                      lastHour: Math.max(dragAnchor.hour, dragCursor.hour),
+                  }
                 : null,
         [dragAnchor, dragCursor],
     );
@@ -169,6 +171,22 @@ export function ScGrid({
         window.addEventListener('keydown', handleKey);
 
         return () => window.removeEventListener('keydown', handleKey);
+    }, [selection]);
+
+    // 팝오버 밖을 왼쪽 버튼으로 누르면 닫는다
+    // (격자 칸을 다시 잡은 경우라면 startDrag 가 곧바로 새 선택을 연다)
+    useEffect(() => {
+        if (!selection) return undefined;
+
+        const handleOutside = (event: PointerEvent) => {
+            if (event.button !== 0) return;
+            if (popRef.current?.contains(event.target as Node)) return;
+
+            setSelection(null);
+        };
+        window.addEventListener('pointerdown', handleOutside);
+
+        return () => window.removeEventListener('pointerdown', handleOutside);
     }, [selection]);
 
     // 조회/터미널이 바뀌어 줄이 갈리면 남은 선택은 버린다
@@ -238,10 +256,10 @@ export function ScGrid({
     /** 보유 합계 — 여러 줄을 잡았으면 가장 적게 가진 출국장이 상한이다 (0 은 미입력이라 상한으로 보지 않는다) */
     const capacityLimit = selection
         ? Math.min(
-            ...selection.gateNos.map(
-                (gateNo) => gates.find((gate) => gate.no === gateNo)?.scCnt ?? 0,
-            ),
-        )
+              ...selection.gateNos.map(
+                  (gateNo) => gates.find((gate) => gate.no === gateNo)?.scCnt ?? 0,
+              ),
+          )
         : 0;
     const isOverCapacity = capacityLimit > 0 && draftCount > capacityLimit;
 
@@ -287,10 +305,11 @@ export function ScGrid({
                                     <button
                                         key={hour}
                                         type="button"
-                                        className={`sccell${count === 0 ? ' is-zero' : ''}${toRampStep(count, rampMax) >= RAMP_INVERT
+                                        className={`sccell${count === 0 ? ' is-zero' : ''}${
+                                            toRampStep(count, rampMax) >= RAMP_INVERT
                                                 ? ' is-hi'
                                                 : ''
-                                            }${isPicked(index, hour) ? ' is-pick' : ''}`}
+                                        }${isPicked(index, hour) ? ' is-pick' : ''}`}
                                         style={
                                             count > 0
                                                 ? { background: RAMP[toRampStep(count, rampMax)] }
@@ -324,16 +343,17 @@ export function ScGrid({
                         {sums.map((sum, hour) => (
                             <span
                                 key={hour}
-                                className={`sccell${sum > 0 && sum === sumPeak ? ' is-pk' : ''}${toRampStep(sum, Math.max(1, sumPeak)) >= RAMP_INVERT
+                                className={`sccell${sum > 0 && sum === sumPeak ? ' is-pk' : ''}${
+                                    toRampStep(sum, Math.max(1, sumPeak)) >= RAMP_INVERT
                                         ? ' is-hi'
                                         : ''
-                                    }`}
+                                }`}
                                 style={
                                     sum > 0
                                         ? {
-                                            background:
-                                                RAMP[toRampStep(sum, Math.max(1, sumPeak))],
-                                        }
+                                              background:
+                                                  RAMP[toRampStep(sum, Math.max(1, sumPeak))],
+                                          }
                                         : undefined
                                 }
                             >
@@ -347,6 +367,7 @@ export function ScGrid({
 
                 {selection && !disabled && (
                     <div
+                        ref={popRef}
                         className={`scgrid__pop${isOverCapacity ? ' is-over' : ''}`}
                         style={{
                             top: openUpward
@@ -355,11 +376,11 @@ export function ScGrid({
                             transform: openUpward ? 'translateY(-100%)' : undefined,
                             ...(alignRight
                                 ? {
-                                    right: `calc(var(--rgt) + var(--col) * ${24 - selection.endHour})`,
-                                }
+                                      right: `calc(var(--rgt) + var(--col) * ${24 - selection.endHour})`,
+                                  }
                                 : {
-                                    left: `calc(var(--gut) + var(--col) * ${selection.startHour})`,
-                                }),
+                                      left: `calc(var(--gut) + var(--col) * ${selection.startHour})`,
+                                  }),
                         }}
                     >
                         <span className="scgrid__poplbl">

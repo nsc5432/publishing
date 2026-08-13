@@ -482,21 +482,30 @@ td {
     color: var(--text, #333333);
 }
 
-/* 슬롯 트랙 */
+/* 슬롯 트랙 — 칸 사이 간격은 아래 집는 영역이 되받아 쓰므로 변수로 둔다 */
 .timebar__track {
+    --slot-gap: 7px;
+
     display: grid;
     grid-template-columns: repeat(var(--slots, 24), minmax(0, 1fr));
-    gap: 7px;
+    gap: var(--slot-gap);
     margin-bottom: 8px;
     cursor: crosshair;
     user-select: none;
 }
 
 .timebar__slot {
+    position: relative;
     height: clamp(14px, 2vh, 22px);
     border-radius: 3px;
     background: #e6e6e6;
     transition: background 0.15s;
+}
+
+.timebar__slot::after {
+    content: '';
+    position: absolute;
+    inset: -8px calc(var(--slot-gap) / -2);
 }
 
 .timebar__slot:hover {

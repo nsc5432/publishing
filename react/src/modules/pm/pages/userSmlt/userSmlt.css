@@ -1989,7 +1989,7 @@ html[data-page='userSmlt'] .seg__item.is-on {
 
 /* 값이 찍히는 운영시간 바 — 시간대별 보안검색대 대수 (components/TimeBar.tsx) */
 html[data-page='userSmlt'] .timebar--valued .timebar__track {
-    gap: 2px;
+    --slot-gap: 2px;
 }
 
 html[data-page='userSmlt'] .timebar--valued .timebar__slot {
