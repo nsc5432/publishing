@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Icon, type IconName } from '@/components/icons/InlineIcon';
 import { useUserInfo } from '@/hooks/useUserInfo';
-import { LNB_BOTTOM, LNB_HOME_PATH, LNB_TOP, LNB_USER, type NavItem } from './navItems';
+import { LNB_HOME_PATH, LNB_TOP, LNB_USER, type NavItem } from './navItems';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 interface NavButtonProps {
@@ -25,17 +25,47 @@ function NavButton({ icon, label, className, onClick }: NavButtonProps) {
     );
 }
 
+interface NavFlyoutProps {
+    items: NavItem[];
+    activeId?: string;
+    onSelect: (item: NavItem) => void;
+}
+
+/**
+ * 하위 메뉴 플라이아웃 — 상위 아이콘 오른쪽으로 아이콘 + 메뉴명을 한 줄로 늘어놓는다.
+ *
+ * 여닫는 상태를 두지 않고 CSS hover(:hover / :focus-within)로만 보인다.
+ * 레일과 목록 사이 여백은 .nav-flyout 의 padding 이라 마우스가 지나가도 hover 가 끊기지 않는다.
+ */
+function NavFlyout({ items, activeId, onSelect }: NavFlyoutProps) {
+    return (
+        <div className="nav-flyout">
+            <div className="nav-flyout__list">
+                {items.map((item) => (
+                    <button
+                        key={item.id}
+                        type="button"
+                        className={`nav-flyout__item${item.id === activeId ? ' on' : ''}`}
+                        onClick={() => onSelect(item)}
+                    >
+                        <Icon name={item.icon} />
+                        <span>{item.label}</span>
+                    </button>
+                ))}
+            </div>
+        </div>
+    );
+}
+
 interface LnbProps {
-    defaultBottom?: string;
     topItems?: NavItem[];
-    bottomItems?: NavItem[];
     onSelect?: (id: string) => void;
     /** 세션 사용자 정보를 받기 전까지 쓸 표기 (넘기지 않으면 기본값) */
     user?: { dept: string; name: string };
 }
 
-function useActiveTop(items: NavItem[]) {
-    const { pathname } = useLocation();
+/** 현재 경로에 해당하는 메뉴 id (홈은 첫 메뉴를 고른 것으로 본다) */
+function toActiveId(items: NavItem[], pathname: string): string | undefined {
     if (pathname === LNB_HOME_PATH) return items[0]?.id;
     return items.find((item) => {
         const prefix = item.match ?? item.path;
@@ -43,15 +73,9 @@ function useActiveTop(items: NavItem[]) {
     })?.id;
 }
 
-export function Lnb({
-    defaultBottom = LNB_BOTTOM[0].id,
-    topItems = LNB_TOP,
-    bottomItems = LNB_BOTTOM,
-    onSelect,
-    user = LNB_USER,
-}: LnbProps) {
-    const activeTop = useActiveTop(topItems);
-    const [activeBottom, setActiveBottom] = useState(defaultBottom);
+export function Lnb({ topItems = LNB_TOP, onSelect, user = LNB_USER }: LnbProps) {
+    const { pathname } = useLocation();
+    const activeTop = toActiveId(topItems, pathname);
     const [open, setOpen] = useState(false);
     const navigate = useNavigate();
     const navRef = useRef<HTMLElement>(null);
@@ -87,33 +111,29 @@ export function Lnb({
         <nav ref={navRef} className={`sidebar${open ? ' is-open' : ''}`}>
             <div className="sidebar-inner">
                 <div className="nav-list">
-                    {topItems.map((item) => (
-                        <NavButton
-                            key={item.id}
-                            icon={item.icon}
-                            label={item.label}
-                            className={`nav-item${item.id === activeTop ? ' active' : ''}`}
-                            onClick={() => handleNavigate(item)}
-                        />
-                    ))}
+                    {topItems.map((item) => {
+                        const button = (
+                            <NavButton
+                                icon={item.icon}
+                                label={item.label}
+                                className={`nav-item${item.id === activeTop ? ' active' : ''}`}
+                                onClick={() => handleNavigate(item)}
+                            />
+                        );
 
-                    {bottomItems.length > 0 && (
-                        <>
-                            <span className="nav-sep" />
-                            {bottomItems.map((item) => (
-                                <NavButton
-                                    key={item.id}
-                                    icon={item.icon}
-                                    label={item.label}
-                                    className={`nav-item${item.id === activeBottom ? ' on' : ''}`}
-                                    onClick={() => {
-                                        setActiveBottom(item.id);
-                                        handleNavigate(item);
-                                    }}
+                        if (!item.children) return <Fragment key={item.id}>{button}</Fragment>;
+
+                        return (
+                            <div key={item.id} className="nav-group">
+                                {button}
+                                <NavFlyout
+                                    items={item.children}
+                                    activeId={toActiveId(item.children, pathname)}
+                                    onSelect={handleNavigate}
                                 />
-                            ))}
-                        </>
-                    )}
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <button

@@ -89,7 +89,7 @@ function UserSmltConfig() {
 
             <div className="body">
                 {/* 이 화면에는 하단 보기 선택(요약/맵…)에 해당하는 항목이 없다 */}
-                <Lnb bottomItems={[]} />
+                <Lnb />
 
                 <main className="content">
                     {terminalPicked ? (

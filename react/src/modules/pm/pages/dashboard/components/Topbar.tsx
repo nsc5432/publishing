@@ -1,17 +1,18 @@
+import { useRef } from 'react';
 import { PillSelect } from '@/components/ui/pill-select';
 import { Icon } from '@/components/icons/InlineIcon';
+import { HOUR_OPTIONS, MINUTE_OPTIONS, formatYmd, toDateInputValue, toYmd } from '@/lib/format';
 import { SIMULATION_LABEL, type SimulationType } from '../types';
 
 interface TopbarProps {
     simulationType: SimulationType;
-    baseDate: string;
+    /** 기준일자 (yyyyMMdd) — 달력에서 고른 값 */
+    baseYmd: string;
     hour: string;
     minute: string;
-    /** 선택 가능한 시 / 분 — 서버가 내려준 avlTimes 에서 뽑아 넘긴다 */
-    hourOptions: string[];
-    minuteOptions: string[];
     lastCalc: string;
     nextCalc: string;
+    onDateChange: (ymd: string) => void;
     onHourChange: (hour: string) => void;
     onMinuteChange: (minute: string) => void;
     onSearch: () => void;
@@ -25,17 +26,28 @@ interface TopbarProps {
  */
 export function Topbar({
     simulationType,
-    baseDate,
+    baseYmd,
     hour,
     minute,
-    hourOptions,
-    minuteOptions,
     lastCalc,
     nextCalc,
+    onDateChange,
     onHourChange,
     onMinuteChange,
     onSearch,
 }: TopbarProps) {
+    const dateRef = useRef<HTMLInputElement>(null);
+
+    // 날짜 입력은 디자인대로 보이도록 투명하게 겹쳐 두고, 달력은 여기서 직접 연다.
+    // (showPicker 가 없는 브라우저는 입력에 포커스만 주고 브라우저 기본 동작에 맡긴다)
+    const handleOpenCalendar = () => {
+        const input = dateRef.current;
+        if (!input) return;
+
+        if (typeof input.showPicker === 'function') input.showPicker();
+        else input.focus();
+    };
+
     return (
         <header className="topbar">
             <h1>
@@ -45,17 +57,33 @@ export function Topbar({
 
             <div className="datebox">
                 <span className="lbl">기준일자</span>
-                <Icon name="calendar" className="cal" />
-                <span className="val">{baseDate}</span>
-                <PillSelect value={hour} options={hourOptions} unit="시" onChange={onHourChange} />
+
+                <div className="datepick">
+                    <button type="button" className="datepick__btn" onClick={handleOpenCalendar}>
+                        <Icon name="calendar" className="cal" />
+                        <span className="val">{formatYmd(baseYmd)}</span>
+                    </button>
+                    <input
+                        ref={dateRef}
+                        type="date"
+                        className="datepick__input"
+                        value={toDateInputValue(baseYmd)}
+                        aria-label="기준일자"
+                        tabIndex={-1}
+                        onChange={(event) => onDateChange(toYmd(event.target.value))}
+                    />
+                </div>
+
+                <PillSelect value={hour} options={HOUR_OPTIONS} unit="시" onChange={onHourChange} />
                 <PillSelect
                     value={minute}
-                    options={minuteOptions}
+                    options={MINUTE_OPTIONS}
                     unit="분"
                     onChange={onMinuteChange}
                 />
                 <button type="button" className="search-btn" onClick={onSearch}>
                     <Icon name="search" />
+                    <span className="blind">조회</span>
                 </button>
             </div>
 

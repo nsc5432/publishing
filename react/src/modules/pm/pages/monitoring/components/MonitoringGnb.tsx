@@ -1,6 +1,6 @@
 import { PillSelect } from '@/components/ui/pill-select';
 import { Icon } from '@/components/icons/InlineIcon';
-import { HOUR_OPTIONS, MINUTE_OPTIONS } from '../options';
+import { HOUR_OPTIONS, MINUTE_OPTIONS } from '@/lib/format';
 import type { RangeCondition } from '../types';
 
 interface MonitoringGnbProps {

@@ -1,5 +1,5 @@
 import './dashboard.css';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Lnb } from '@/components/lnb';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
@@ -7,15 +7,7 @@ import type { DsbdCategory } from '@/types/api.types';
 import { HeaderSummary } from './components/HeaderSummary';
 import { TerminalSummary } from './components/TerminalSummary';
 import { Topbar } from './components/Topbar';
-import {
-    defaultTime,
-    formatDateTime,
-    formatYmd,
-    resolveTime,
-    toHourOptions,
-    toMinuteOptions,
-    todayYmd,
-} from '@/lib/format';
+import { defaultTime, formatDateTime, formatYmd, todayYmd } from '@/lib/format';
 import { useBaseInfo } from '@/hooks/useBaseInfo';
 import { toSimulationType } from './view';
 import {
@@ -24,9 +16,6 @@ import {
     type DashboardQuery,
 } from './hooks/useDashboardData';
 import { useFitToScreen } from './hooks/useFitToScreen';
-
-/** 최초 활성 네비 (하단 그룹) */
-const DEFAULT_NAV_BOTTOM = 'summary';
 
 /**
  * PM 예측관리 / 일일 시뮬레이션 결과 조회 — 메인 대시보드.
@@ -37,8 +26,8 @@ const DEFAULT_NAV_BOTTOM = 'summary';
 function Dashboard() {
     usePageScope('dashboard');
 
-    // 기준일자 — 최초 진입은 오늘. (달력 UI 가 붙으면 여기서 바꾼다)
-    const [ymd] = useState(todayYmd);
+    // 기준일자 — 최초 진입은 오늘. 달력에서 날짜를 바꾸면 기준 정보부터 다시 받는다.
+    const [ymd, setYmd] = useState(todayYmd);
     const { data: baseInfo, error: baseError } = useBaseInfo(ymd);
 
     // 상단 바에서 고르는 중인 시각 (아직 조회하지 않은 값)
@@ -67,9 +56,14 @@ function Dashboard() {
 
     useFitToScreen();
 
-    const avlTimes = useMemo(() => baseInfo?.avlTimes ?? [], [baseInfo]);
+    // 기준 정보를 받기 전에는 빈 값이라, 한쪽만 고를 때 나머지는 00 으로 채운다.
     const hour = draftTime.slice(0, 2);
     const minute = draftTime.slice(2, 4);
+
+    // 달력을 비우면(입력값이 지워지면) 직전 기준일자를 그대로 둔다.
+    const handleDateChange = useCallback((nextYmd: string) => {
+        if (nextYmd.length === 8) setYmd(nextYmd);
+    }, []);
 
     const handleSearch = useCallback(() => {
         if (!baseInfo || !draftTime) return;
@@ -81,20 +75,17 @@ function Dashboard() {
         <>
             <Topbar
                 simulationType={toSimulationType(baseInfo?.smltType ?? 'DAILY')}
-                baseDate={formatYmd(baseInfo?.ymd ?? '')}
+                baseYmd={ymd}
                 hour={hour}
                 minute={minute}
-                hourOptions={toHourOptions(avlTimes)}
-                minuteOptions={toMinuteOptions(avlTimes, hour)}
                 lastCalc={formatDateTime(baseInfo?.lastCalcDt ?? '')}
                 nextCalc={formatDateTime(baseInfo?.nextCalcDt ?? '')}
-                onHourChange={(nextHour) => setDraftTime(resolveTime(avlTimes, nextHour, minute))}
-                onMinuteChange={(nextMinute) =>
-                    setDraftTime(resolveTime(avlTimes, hour, nextMinute))
-                }
+                onDateChange={handleDateChange}
+                onHourChange={(nextHour) => setDraftTime(nextHour + (minute || '00'))}
+                onMinuteChange={(nextMinute) => setDraftTime((hour || '00') + nextMinute)}
                 onSearch={handleSearch}
             />
-            <Lnb defaultBottom={DEFAULT_NAV_BOTTOM} />
+            <Lnb />
 
             <div className="app">
                 <HeaderSummary

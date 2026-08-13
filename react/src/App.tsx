@@ -46,18 +46,9 @@ function usePreloadPages() {
     }, []);
 }
 
-/**
- * PM 화면 공통 셸.
- *
- * 화면들이 "한 화면에 꽉 차게" 짜여 있어(.wrap / .body 가 flex:1 로 남은 높이를 먹는다)
- * 셸이 높이를 그대로 흘려보내 줘야 한다. 여기서 flex 사슬이 한 번이라도 끊기면
- * 안쪽 높이가 전부 auto 로 풀려 하단 버튼이 화면 밖으로 밀려난다.
- */
 const PmLayout = () => {
     return (
         <div className="pm-shell">
-            {/* 화면이 최소 너비(맵 형태 조회 = 1440px)보다 좁으면 가로로 스크롤한다.
-                세로는 각 화면이 한 화면에 맞추므로 잠근다. */}
             <div className="pm-shell__body">
                 <Outlet />
             </div>
@@ -92,10 +83,7 @@ function App() {
                                 path="/rui/pm/user-smlt/config"
                                 element={<UserSmltConfigPage />}
                             />
-                            <Route
-                                path="/rui/pm/smlt-monitoring"
-                                element={<MonitoringPage />}
-                            />
+                            <Route path="/rui/pm/smlt-monitoring" element={<MonitoringPage />} />
                             <Route path="/rui/pm/fclt-map" element={<FacilityMapPage />} />
                         </Route>
                     </Routes>

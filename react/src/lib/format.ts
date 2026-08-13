@@ -71,41 +71,29 @@ export function todayYmd(): string {
     return `${now.getFullYear()}${month}${day}`;
 }
 
-/* ================= 선택 가능 시각 (avlTimes, HHmm) ================= */
+/** yyyyMMdd → yyyy-MM-dd (input[type=date] 값). 형식이 어긋나면 빈 값 */
+export function toDateInputValue(ymd: string): string {
+    if (!ymd || ymd.length !== 8) return '';
 
-/** 선택 가능한 시 목록 (중복 제거·오름차순) */
-export function toHourOptions(avlTimes: string[]): string[] {
-    return [...new Set(avlTimes.map((time) => time.slice(0, 2)))].sort();
+    return formatYmd(ymd, '-');
 }
 
-/** 특정 시에 고를 수 있는 분 목록 */
-export function toMinuteOptions(avlTimes: string[], hour: string): string[] {
-    return avlTimes
-        .filter((time) => time.slice(0, 2) === hour)
-        .map((time) => time.slice(2, 4))
-        .sort();
+/** yyyy-MM-dd (input[type=date] 값) → yyyyMMdd */
+export function toYmd(dateInputValue: string): string {
+    return dateInputValue.replace(/\D/g, '');
 }
 
-/** 기본 선택 시각 — 계산이 끝난 가장 늦은 시각 */
+/* ================= 조회 조건 시각 (HHmm) ================= */
+
+/** 조회 조건 시 목록 — 00 ~ 23 (1시간 단위) */
+export const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => pad2(hour));
+
+/** 조회 조건 분 목록 — 10분 단위 */
+export const MINUTE_OPTIONS = ['00', '10', '20', '30', '40', '50'];
+
+/** 기본 선택 시각 — 계산이 끝난 가장 늦은 시각 (없으면 자정) */
 export function defaultTime(avlTimes: string[]): string {
-    if (avlTimes.length === 0) return '';
+    if (avlTimes.length === 0) return HOUR_OPTIONS[0] + MINUTE_OPTIONS[0];
 
     return [...avlTimes].sort().at(-1) as string;
-}
-
-/**
- * 시 또는 분을 바꾼 뒤의 시각을 선택 가능한 값으로 맞춘다.
- */
-export function resolveTime(avlTimes: string[], hour: string, minute: string): string {
-    if (avlTimes.includes(hour + minute)) return hour + minute;
-
-    const minuteOptions = toMinuteOptions(avlTimes, hour);
-    if (minuteOptions.length === 0) return defaultTime(avlTimes);
-
-    // 고른 분에 가장 가까운(넘지 않는) 값으로, 그마저 없으면 그 시의 첫 분으로 내린다.
-    const nearest =
-        minuteOptions.filter((candidateMinute) => candidateMinute <= minute).at(-1) ??
-        minuteOptions[0];
-
-    return hour + nearest;
 }

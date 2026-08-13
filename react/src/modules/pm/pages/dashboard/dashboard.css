@@ -209,6 +209,40 @@ html[data-page='dashboard'] .datebox .val {
     letter-spacing: -0.4px;
 }
 
+/* 기준일자 달력 : 날짜 입력(input[type=date])을 표기 위에 투명하게 겹쳐 둔다.
+   display:none 으로 감추면 showPicker() 가 달력을 열지 못하므로 opacity 로만 지운다. */
+html[data-page='dashboard'] .datepick {
+    display: flex;
+    position: relative;
+    align-items: center;
+}
+
+html[data-page='dashboard'] .datepick__btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border: none;
+    border-radius: 10px;
+    background: none;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+html[data-page='dashboard'] .datepick__btn:hover {
+    background: #eff2fb;
+}
+
+html[data-page='dashboard'] .datepick__input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border: none;
+    opacity: 0;
+    pointer-events: none;
+}
+
 html[data-page='dashboard'] .search-btn {
     width: 34px;
     height: 34px;

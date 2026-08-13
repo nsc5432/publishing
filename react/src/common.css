@@ -237,6 +237,19 @@ td {
     color: #3b39c9;
 }
 
+/* 하위 메뉴를 가진 메뉴 — 아이콘과 플라이아웃을 함께 감싼다 (플라이아웃 위치 기준) */
+.nav-group {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    align-self: center;
+}
+
+/* 하위 메뉴가 펼쳐지므로 메뉴명 툴팁은 겹치지 않게 접는다 */
+.nav-group .nav-tip {
+    display: none;
+}
+
 /* InlineIcon 중에는 svg 에 width/height 를 달지 않은 것(plane 등)이 있고,
    그 크기를 잡아 주는 규칙은 dashboard.css 안에만 있다. 레일은 전 화면 공용이라
    여기서 크기를 고정해 어떤 아이콘을 넣어도 같게 보이도록 한다. */
@@ -244,13 +257,6 @@ td {
     flex: none;
     width: 23px;
     height: 23px;
-}
-
-.nav-sep {
-    width: 44px;
-    height: 1px;
-    margin: clamp(8px, 1.48vh, 16px) 0;
-    background: #e0e0ea;
 }
 
 .nav-toggle {
@@ -286,8 +292,8 @@ td {
     border-radius: 999px;
 }
 
-.sidebar.is-open .nav-sep {
-    align-self: center;
+.sidebar.is-open .nav-group {
+    align-self: stretch;
 }
 
 .sidebar.is-open .nav-item:not(.active):hover {
@@ -372,6 +378,79 @@ td {
 .nav-item:focus-visible .nav-tip {
     opacity: 1;
     transform: translate(0, -50%);
+}
+
+/* 하위 메뉴 플라이아웃 : 레일 오른쪽으로 아이콘 + 메뉴명을 한 줄로 펼친다.
+   왼쪽 padding 이 레일과 목록 사이의 여백을 겸해, 마우스가 그 사이를 지나도 hover 가 끊기지 않는다.
+   숨긴 동안에는 visibility 로 걷어내야 화면 위를 덮은 채로 클릭을 가로채지 않는다. */
+.nav-flyout {
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    z-index: 35;
+    padding-left: 12px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate(-6px, -50%);
+    transition:
+        opacity 0.16s ease,
+        transform 0.16s ease,
+        visibility 0.16s;
+}
+
+.nav-group:hover .nav-flyout,
+.nav-group:focus-within .nav-flyout {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(0, -50%);
+}
+
+.nav-flyout__list {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 10px 28px rgba(46, 50, 94, 0.2);
+}
+
+.nav-flyout__item {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 999px;
+    background: none;
+    color: #4b5364;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        color 0.15s;
+}
+
+.nav-flyout__item svg {
+    flex: none;
+    width: 20px;
+    height: 20px;
+}
+
+.nav-flyout__item:hover {
+    background: #eff2fb;
+    color: #2b313d;
+}
+
+.nav-flyout__item.on {
+    background: linear-gradient(150deg, #4441cc, #5b57de);
+    color: #fff;
+    box-shadow: 0 5px 13px rgba(68, 65, 204, 0.32);
 }
 
 /* ---------------------------------------------------------------------

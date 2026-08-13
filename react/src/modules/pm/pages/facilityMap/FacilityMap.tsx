@@ -305,7 +305,7 @@ function FacilityMap() {
             <Header terminal={terminal} onTerminalChange={setTerminal} onSearch={handleSearch} />
 
             <div className="body">
-                <Lnb bottomItems={[]} />
+                <Lnb />
 
                 <main className="container">
                     <StatusSummary

@@ -18,9 +18,6 @@ import { useTimeline } from '@/modules/pm/hooks/useTimeline';
 import { TIMELINE_RANGE } from './timeline';
 import type { DepGateMarker, IslandMarker, TerminalKind } from './types';
 
-/* 메뉴 구성은 화면 공용(@/components/lnb)이라 여기서는 활성 항목만 지정한다. */
-const DEFAULT_NAV_BOTTOM = 'map';
-
 /**
  * PM 예측관리 / 일일 시뮬레이션 결과 조회 — 맵 형태.
  *
@@ -97,7 +94,7 @@ function TerminalMap() {
             />
 
             <div className="body">
-                <Lnb defaultBottom={DEFAULT_NAV_BOTTOM} />
+                <Lnb />
 
                 <main className="container">
                     <CongestionNotice level={slot.notice.level} items={slot.notice.items} />

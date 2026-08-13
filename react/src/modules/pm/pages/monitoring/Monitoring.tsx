@@ -68,7 +68,7 @@ function Monitoring() {
             />
 
             <div className="body">
-                <Lnb bottomItems={[]} />
+                <Lnb />
 
                 <main className="content">
                     <StatCards cards={data?.stats ?? []} />
