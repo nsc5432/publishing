@@ -107,20 +107,52 @@ html[data-page='userSmlt'] .gnb__title {
     white-space: nowrap;
 }
 
-/* 단계 스테퍼 자리 — 터미널을 고르기 전에는 비어 있는 여백으로만 남는다 */
+/* 단계 스테퍼 자리 — 본문 패널(.panels)의 가로 중앙에 맞춘다.
+   GNB 는 왼쪽 타이틀과 오른쪽 조작부의 폭이 서로 달라 흐름상 가운데를 잡으면
+   패널 가운데와 어긋난다. 그래서 스테퍼만 흐름에서 떼어, LNB 레일 오른쪽부터
+   본문 오른쪽 끝까지(= .panels 가 차지하는 구간)를 기준으로 중앙에 세운다.
+   터미널을 고르기 전에는 빈 채로 남는다 */
 html[data-page='userSmlt'] .gnb__center {
-    flex: 1;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(var(--pm-shell-x) + var(--pm-lnb-w) + var(--pm-shell-gap));
+    right: var(--pm-shell-x);
     display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 0;
+    /* 타이틀·조작부와 겹치더라도 그쪽 클릭을 가로막지 않게 */
+    pointer-events: none;
 }
 
+html[data-page='userSmlt'] .gnb__center > * {
+    pointer-events: auto;
+}
+
+/* 스테퍼가 흐름에서 빠졌으므로 조작부를 오른쪽 끝으로 직접 민다 */
 html[data-page='userSmlt'] .gnb__right {
     display: flex;
     align-items: center;
     gap: 18px;
+    margin-left: auto;
     white-space: nowrap;
+}
+
+/* 폭이 좁아지면 패널 중앙(≈화면 중앙)에 세운 스테퍼가 오른쪽 조작부와 겹친다.
+   겹치기 시작하는 폭 언저리에서 흐름 배치로 되돌려, 남는 자리 안에서만 가운데를
+   잡는다 (LNB 레일 폭만큼은 그대로 오른쪽으로 밀어 둔다) */
+@media screen and (max-width: 1800px) {
+    html[data-page='userSmlt'] .gnb__center {
+        position: static;
+        flex: 1 1 auto;
+        min-width: 0;
+        padding-left: calc(var(--pm-lnb-w) + var(--pm-shell-gap));
+        pointer-events: auto;
+    }
+
+    html[data-page='userSmlt'] .gnb__right {
+        margin-left: 0;
+    }
 }
 
 html[data-page='userSmlt'] .gnb__link {
@@ -251,9 +283,15 @@ html[data-page='userSmlt'] .content {
     min-height: 0;
 }
 
-/* 단계 스테퍼 — GNB 가운데(.gnb__center)에 얹는다.
+/* 단계 스테퍼 + 다음 단계 버튼 — GNB 가운데(.gnb__center)에 얹는다.
    본문에서 한 줄을 쓰지 않으므로 그만큼 패널 높이가 늘어난다.
    ⚠ 수량 증감 컨트롤(.stepper, components/CountStepper.tsx)과는 다른 것 */
+html[data-page='userSmlt'] .steps {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
 html[data-page='userSmlt'] .tabs {
     flex: 0 0 auto;
     display: flex;
@@ -315,7 +353,14 @@ html[data-page='userSmlt'] .tabs__no svg {
     height: 12px;
 }
 
-html[data-page='userSmlt'] .tabs__item:hover {
+/* 지나갈 수 있는 단계라는 신호 — 눌리는 알약처럼 배경이 떠오른다 */
+html[data-page='userSmlt'] .tabs__item:not(.is-active):hover {
+    background: rgba(255, 255, 255, 0.6);
+    color: var(--pm-primary);
+}
+
+html[data-page='userSmlt'] .tabs__item:not(.is-active):hover .tabs__no {
+    background: #fff;
     color: var(--pm-primary);
 }
 
@@ -340,6 +385,69 @@ html[data-page='userSmlt'] .tabs__item.is-active {
 html[data-page='userSmlt'] .tabs__item.is-active .tabs__no {
     background: var(--pm-primary);
     color: #fff;
+}
+
+/* 다음 단계 버튼 — 스테퍼만으로는 "눌러서 넘어간다"가 읽히지 않아 옆에 세운다.
+   오른쪽 시뮬레이션 실행(.btn--run)이 이 화면의 최종 동작이므로,
+   그보다 한 단계 약한 흰 알약으로 둔다.
+   스테퍼 오른쪽에 매달아(absolute) 스테퍼 자체는 패널 중앙에 그대로 두고,
+   마지막 단계에서 버튼이 빠져도 스테퍼가 밀리지 않게 한다 */
+html[data-page='userSmlt'] .tabs__next {
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translateY(-50%);
+    margin-left: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: clamp(30px, 3.4vh, 36px);
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid var(--pm-primary-soft);
+    background: #fff;
+    color: var(--pm-primary);
+    font-size: clamp(12px, 1.3vh, 13px);
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(80, 78, 140, 0.14);
+    transition:
+        background 0.15s,
+        box-shadow 0.15s;
+}
+
+html[data-page='userSmlt'] .tabs__next::after {
+    content: '';
+    flex: 0 0 auto;
+    width: 5px;
+    height: 5px;
+    border-top: 1.5px solid currentColor;
+    border-right: 1.5px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 0.15s;
+}
+
+html[data-page='userSmlt'] .tabs__next:hover {
+    background: #f4f4fc;
+    box-shadow: 0 4px 12px rgba(68, 65, 204, 0.2);
+}
+
+html[data-page='userSmlt'] .tabs__next:hover::after {
+    transform: rotate(45deg) translate(1.5px, -1.5px);
+}
+
+/* 좁은 폭에서는 스테퍼가 흐름 배치로 돌아간다(위 .gnb__center 참고).
+   버튼도 같이 흐름으로 돌려야 남는 자리 안에서 함께 가운데를 잡는다 */
+@media screen and (max-width: 1800px) {
+    html[data-page='userSmlt'] .steps {
+        gap: 10px;
+    }
+
+    html[data-page='userSmlt'] .tabs__next {
+        position: static;
+        margin-left: 0;
+        transform: none;
+    }
 }
 
 /* ---------------------------------------------------------------------
