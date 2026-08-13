@@ -5,65 +5,76 @@ import type {
     UserSmltFltPsgSaveReq,
 } from '@/types/api.types';
 import { formatCount, formatHhmm } from '@/lib/format';
-import type { ChartData, EditMode, HourRow, TerminalFlightPax } from './types';
+import type { ChartData, HourRow, TerminalFlightPax } from './types';
 
 /**
  * 운항편/여객수 DTO → 화면 뷰 모델.
  * 단위·부호·시각 형식을 여기서 한 번에 정한다.
+ *
+ * 전체 비율(adjRate) 은 화면에서 스테퍼로 바꾸는 값이라 매핑 인자로 받는다.
+ * 조회한 수치를 기준으로 비율을 곱해 차트·표를 다시 계산한다.
  */
 
-function toChart(chartDto: FltPsgChartDto, title: string, unit: string): ChartData {
+/** 전체 비율(%) → 곱셈 계수 (10% → 1.1) */
+const toFactor = (adjRate: number) => 1 + adjRate / 100;
+
+/** 조회값 × 비율 — 화면에 나가는 값은 모두 반올림한 정수다 */
+const scale = (value: number, factor: number) => Math.round(value * factor);
+
+function toChart(chartDto: FltPsgChartDto, title: string, unit: string, factor: number): ChartData {
     return {
         title,
-        total: formatCount(chartDto.totCnt),
+        total: formatCount(scale(chartDto.totCnt, factor)),
         unit,
-        max: chartDto.maxCnt,
-        bars: chartDto.itemList.map((item) => ({ label: item.time, value: item.cnt })),
+        // 비율을 줄이면 축을 그대로 둬야 막대가 짧아지는 게 보이고,
+        // 늘릴 때는 축도 같이 키워야 막대가 잘리지 않는다.
+        max: Math.max(chartDto.maxCnt, scale(chartDto.maxCnt, factor)),
+        bars: chartDto.itemList.map((item) => ({
+            label: item.time,
+            value: scale(item.cnt, factor),
+        })),
     };
 }
 
-function toRows(dto: UserSmltFltPsgDto): HourRow[] {
+/** 수정 방식이 전체 비율뿐이라 모든 구간에 같은 비율이 걸린다 */
+function toRows(dto: UserSmltFltPsgDto, adjRate: number, factor: number): HourRow[] {
     return dto.hourList.map((hourRow) => ({
         start: formatHhmm(hourRow.bgnTime),
         end: formatHhmm(hourRow.endTime),
-        adjust: `${hourRow.adjRate}%`,
-        pax: `${formatCount(hourRow.psgCnt)}명`,
+        adjust: `${adjRate}%`,
+        pax: `${formatCount(scale(hourRow.psgCnt, factor))}명`,
     }));
 }
 
-export function toFlightPax(dto: UserSmltFltPsgDto): TerminalFlightPax {
+export function toFlightPax(dto: UserSmltFltPsgDto, adjRate: number): TerminalFlightPax {
+    const factor = toFactor(adjRate);
+
     return {
         flights: formatCount(dto.fltCnt),
         pax: formatCount(dto.psgCnt),
         peak: formatHhmm(dto.peakTime),
-        ratio: dto.adjRate,
-        flightChart: toChart(dto.fltChart, '운항편 수', '편'),
-        paxChart: toChart(dto.psgChart, '여객 수', '명'),
-        rows: toRows(dto),
+        flightChart: toChart(dto.fltChart, '운항편 수', '편', factor),
+        paxChart: toChart(dto.psgChart, '여객 수', '명', factor),
+        rows: toRows(dto, adjRate, factor),
     };
 }
 
-/** 화면 수정 방식 → 서버 코드 */
-const ADJ_TYPE: Record<EditMode, UserSmltFltPsgSaveReq['adjType']> = {
-    ratio: 'RATIO',
-    hourly: 'HOURLY',
-};
-
 /**
  * 저장 요청.
- * 시간대별 구간은 화면에서 편집하지 않으므로 조회한 값을 그대로 되돌려 보낸다.
+ * 수정 방식은 전체 비율(RATIO) 하나뿐이고, 서버가 무시하는 시간대별 구간은
+ * 조회한 값을 그대로 되돌려 보낸다.
  */
 export function toSaveReq(
     smltId: string,
     tmnlId: TmnlId,
     dto: UserSmltFltPsgDto,
-    edit: { ratio: number; mode: EditMode },
+    adjRate: number,
 ): UserSmltFltPsgSaveReq {
     return {
         smltId,
         tmnlId,
-        adjType: ADJ_TYPE[edit.mode],
-        adjRate: edit.ratio,
+        adjType: 'RATIO',
+        adjRate,
         hourList: dto.hourList.map((hourRow) => ({
             bgnTime: hourRow.bgnTime,
             endTime: hourRow.endTime,
@@ -77,7 +88,6 @@ export const EMPTY_FLIGHT_PAX: TerminalFlightPax = {
     flights: '-',
     pax: '-',
     peak: '-',
-    ratio: 0,
     flightChart: { title: '운항편 수', total: '-', unit: '편', max: 0, bars: [] },
     paxChart: { title: '여객 수', total: '-', unit: '명', max: 0, bars: [] },
     rows: [],

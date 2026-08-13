@@ -344,9 +344,17 @@ html[data-page='userSmlt'] .tabs__item.is-active .tabs__no {
 
 /* ---------------------------------------------------------------------
    3-1. 도입 — 터미널 선택 (components/TerminalIntro.tsx)
-   카드 두 장 중 하나를 골라야 설정 화면(탭바 + 2패널)으로 넘어간다.
+   카드는 라디오가 아니라 체크다 — 1장 또는 2장을 고르고 아래 버튼으로 넘어간다.
    --------------------------------------------------------------------- */
 html[data-page='userSmlt'] .intro {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(14px, 1.6vh, 24px);
+    min-height: 0;
+}
+
+html[data-page='userSmlt'] .intro__cards {
     flex: 1 1 auto;
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -403,6 +411,74 @@ html[data-page='userSmlt'] .intro__card:focus-visible {
     border-color: var(--pm-primary-light);
     box-shadow: 0 10px 26px rgba(80, 78, 140, 0.16);
     transform: translateY(-2px);
+}
+
+/* 고른 카드 — 테두리와 체크로 표시한다 (고르지 않은 카드는 그대로 둔다) */
+html[data-page='userSmlt'] .intro__card.is-on {
+    border-color: var(--pm-primary);
+    box-shadow: 0 12px 30px rgba(68, 65, 204, 0.22);
+}
+
+/* 좌상단 체크 — 꺼져 있으면 빈 동그라미 */
+html[data-page='userSmlt'] .intro__check {
+    display: flex;
+    position: absolute;
+    top: clamp(14px, 1.8vh, 22px);
+    left: clamp(14px, 1.2vw, 22px);
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border: 2px solid rgba(80, 78, 140, 0.35);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.7);
+    transition:
+        background 0.15s,
+        border-color 0.15s;
+}
+
+html[data-page='userSmlt'] .intro__card.is-on .intro__check {
+    border-color: var(--pm-primary);
+    background: var(--pm-primary);
+}
+
+html[data-page='userSmlt'] .intro__check svg {
+    width: 14px;
+    height: 14px;
+}
+
+/* 안내 문구 + 시작 버튼 */
+html[data-page='userSmlt'] .intro__foot {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: clamp(12px, 1.4vh, 18px) clamp(18px, 1.6vw, 28px);
+    border-radius: var(--panel-radius);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    background: rgba(255, 255, 255, 0.62);
+    backdrop-filter: blur(3px);
+}
+
+html[data-page='userSmlt'] .intro__hint {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-mute);
+}
+
+html[data-page='userSmlt'] .intro__start {
+    flex: 0 0 auto;
+    height: clamp(38px, 4.3vh, 46px);
+    margin-left: auto;
+    padding: 0 30px;
+    font-size: 14px;
+}
+
+html[data-page='userSmlt'] .btn.intro__start:disabled,
+html[data-page='userSmlt'] .btn.intro__start:disabled:hover {
+    background: #c9cad6;
+    box-shadow: none;
+    cursor: not-allowed;
 }
 
 html[data-page='userSmlt'] .intro__label {
@@ -488,6 +564,15 @@ html[data-page='userSmlt'] .panel--disabled * {
     pointer-events: none;
 }
 
+/* 편집 초점 — 두 터미널을 함께 켰을 때 도크·드로어가 어느 쪽을 보는지 표시한다.
+   하나만 켠 상태에서는 초점이 항상 그 패널이라 굳이 눈에 띌 필요가 없다 */
+html[data-page='userSmlt'] .panels:has(.panel--active + .panel--active) .panel--focus {
+    border-color: var(--pm-primary-light);
+    box-shadow:
+        0 0 0 1px var(--pm-primary-light),
+        0 6px 24px rgba(94, 100, 130, 0.1);
+}
+
 /* 패널 헤드 -------------------------------------------------------------- */
 html[data-page='userSmlt'] .panel__head {
     flex: 0 0 auto;
@@ -526,6 +611,69 @@ html[data-page='userSmlt'] .terminal-badge--t2 {
 html[data-page='userSmlt'] .panel--disabled .terminal-badge {
     background: linear-gradient(160deg, #cfd1d3 0%, #bfc2c4 100%);
     box-shadow: none;
+}
+
+/* 시뮬레이션 대상 스위치 — 설정 도중에도 터미널을 켜고 끈다.
+   헤드는 요약·결과지표로 꽉 차서 바닥(.panel__foot) 오른쪽 끝에 절대배치한다.
+   꺼진 패널에서는 .panel--disabled 가 클릭을 패널로 넘겨 어디를 눌러도 켜진다 */
+html[data-page='userSmlt'] .tswitch {
+    position: absolute;
+    right: 0;
+    top: clamp(10px, 1.8vh, 20px);
+    bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 14px 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #fff;
+    color: #8b90a0;
+    font-size: 12px;
+    font-weight: 700;
+    transition:
+        border-color 0.15s,
+        color 0.15s;
+}
+
+html[data-page='userSmlt'] .tswitch__track {
+    position: relative;
+    width: 34px;
+    height: 18px;
+    border-radius: 999px;
+    background: #d3d5df;
+    transition: background 0.15s;
+}
+
+html[data-page='userSmlt'] .tswitch__knob {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(35, 45, 90, 0.25);
+    transition: transform 0.15s;
+}
+
+html[data-page='userSmlt'] .tswitch.is-on {
+    border-color: var(--pm-primary-light);
+    color: var(--pm-primary);
+}
+
+html[data-page='userSmlt'] .tswitch.is-on .tswitch__track {
+    background: var(--pm-primary);
+}
+
+html[data-page='userSmlt'] .tswitch.is-on .tswitch__knob {
+    transform: translateX(16px);
+}
+
+/* 마지막 남은 1개 — 끄지 못한다 */
+html[data-page='userSmlt'] .tswitch:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 html[data-page='userSmlt'] .summary {
@@ -639,7 +787,9 @@ html[data-page='userSmlt'] .panel--disabled .summary__map {
 /* 탭마다 본문이 높이를 다 쓰지 않을 수 있어(예: 체크인 카운터) 남는 높이는 전부
    푸터 위쪽으로 몰아 저장 버튼이 항상 패널 바닥에 붙게 한다.
    여백이 없을 때 margin-top:auto 는 0 이 되므로 최소 간격은 padding 으로 확보한다. */
+/* 저장 버튼은 가운데, 시뮬레이션 대상 스위치(.tswitch)는 오른쪽 끝에 절대배치한다 */
 html[data-page='userSmlt'] .panel__foot {
+    position: relative;
     flex: 0 0 auto;
     display: flex;
     align-items: center;
@@ -687,10 +837,6 @@ html[data-page='userSmlt'] .stepper__btn:disabled {
 html[data-page='userSmlt'] .stepper__btn svg {
     width: 13px;
     height: 13px;
-}
-
-html[data-page='userSmlt'] .stepper.is-dim {
-    opacity: 0.45;
 }
 
 html[data-page='userSmlt'] .stepper__value {
@@ -781,67 +927,25 @@ html[data-page='userSmlt'] .editor__opts {
     margin-bottom: clamp(6px, 0.9vh, 10px);
 }
 
-/* 라디오 */
-html[data-page='userSmlt'] .radio {
+/* 수정 방식 라벨 — 고를 방식이 하나뿐이라 라디오 대신 마크를 앞에 둔다 */
+html[data-page='userSmlt'] .editor__label {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    cursor: pointer;
-    user-select: none;
-}
-
-html[data-page='userSmlt'] .radio input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-}
-
-html[data-page='userSmlt'] .radio__mark {
-    flex: 0 0 auto;
-    position: relative;
-    width: 18px;
-    height: 18px;
-    border: 1.5px solid #b9bdcb;
-    border-radius: 50%;
-    background: #fff;
-    transition:
-        border-color 0.15s,
-        background 0.15s;
-}
-
-html[data-page='userSmlt'] .radio__mark::after {
-    content: '';
-    position: absolute;
-    inset: 3.5px;
-    border-radius: 50%;
-    background: #fff;
-    transform: scale(0);
-    transition: transform 0.15s;
-}
-
-html[data-page='userSmlt'] .radio input:checked+.radio__mark {
-    border-color: var(--pm-primary);
-    background: var(--pm-primary);
-}
-
-html[data-page='userSmlt'] .radio input:checked+.radio__mark::after {
-    transform: scale(1);
-}
-
-html[data-page='userSmlt'] .radio__text {
+    margin: 0;
     font-size: clamp(12px, 1.35vh, 14px);
+    font-weight: 700;
     color: #3d4350;
 }
 
-html[data-page='userSmlt'] .radio input:checked~.radio__text {
-    font-weight: 700;
-}
-
-html[data-page='userSmlt'] .editor>.radio {
+html[data-page='userSmlt'] .editor__label::before {
+    content: '';
     flex: 0 0 auto;
-    margin-bottom: clamp(5px, 0.8vh, 9px);
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--pm-primary);
+    box-shadow: 0 0 0 3.5px rgba(68, 65, 204, 0.16);
 }
 
 /* 표 */
@@ -851,11 +955,6 @@ html[data-page='userSmlt'] .table-wrap {
     border: 1px solid var(--line);
     border-radius: 10px;
     background: #fff;
-    transition: opacity 0.15s;
-}
-
-html[data-page='userSmlt'] .table-wrap.is-dim {
-    opacity: 0.45;
 }
 
 html[data-page='userSmlt'] .data-table {

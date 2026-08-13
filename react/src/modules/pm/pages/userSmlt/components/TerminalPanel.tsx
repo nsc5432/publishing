@@ -1,11 +1,19 @@
-import type { ReactNode } from 'react';
+import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react';
 import { MapWhiteIcon, T1WhiteIcon, T2WhiteIcon } from '@/components/icons';
 import type { PanelKpi, TerminalKind } from '../types';
 
 interface TerminalPanelProps {
     terminal: TerminalKind;
-    active: boolean;
-    onActivate: () => void;
+    /** 시뮬레이션 대상으로 켰는가 — 끄면 회색 패널이 되고 편집이 잠긴다 */
+    enabled: boolean;
+    /** 편집 도크·드로어가 이 패널을 보고 있는가 (둘 다 켜져 있을 때만 갈린다) */
+    focused: boolean;
+    /** 끌 수 있는가 — 마지막 남은 1개는 끄지 못한다 */
+    canDisable: boolean;
+    /** 헤드 스위치 — 이 터미널을 켜고 끈다 */
+    onToggle: () => void;
+    /** 패널을 눌렀을 때 — 켜져 있으면 편집 초점을 가져온다 */
+    onFocus: () => void;
     summary: ReactNode;
     kpis?: PanelKpi[];
     onMapClick?: () => void;
@@ -13,13 +21,22 @@ interface TerminalPanelProps {
     children: ReactNode;
 }
 
+const LOCKED_HINT = '터미널 1개는 시뮬레이션 대상으로 남겨 둬야 합니다.';
+
 /**
- * T1/T2 패널
+ * T1/T2 패널.
+ *
+ * 두 패널은 각각 켜고 끈다. 꺼진 패널은 회색으로 잠기고(`.panel--disabled` 가
+ * 안쪽 pointer-events 를 끈다) 아무 데나 누르면 다시 켜진다.
+ * 둘 다 켜져 있을 때는 마지막으로 만진 쪽이 편집 초점(`.panel--focus`)을 갖는다.
  */
 export function TerminalPanel({
     terminal,
-    active,
-    onActivate,
+    enabled,
+    focused,
+    canDisable,
+    onToggle,
+    onFocus,
     summary,
     kpis,
     onMapClick,
@@ -27,12 +44,21 @@ export function TerminalPanel({
     children,
 }: TerminalPanelProps) {
     const BadgeIcon = terminal === 'T1' ? T1WhiteIcon : T2WhiteIcon;
+    const locked = enabled && !canDisable;
+
+    /** 스위치 클릭이 패널 클릭(초점 이동)까지 겹쳐 일어나지 않게 막는다 */
+    const handleToggle = (event: ReactMouseEvent) => {
+        event.stopPropagation();
+        onToggle();
+    };
 
     return (
         <section
-            className={`panel ${active ? 'panel--active' : 'panel--disabled'}`}
-            aria-disabled={active ? undefined : true}
-            onClick={active ? undefined : onActivate}
+            className={`panel ${enabled ? 'panel--active' : 'panel--disabled'}${
+                enabled && focused ? ' panel--focus' : ''
+            }`}
+            aria-disabled={enabled ? undefined : true}
+            onClick={enabled ? onFocus : onToggle}
         >
             <div className="panel__head">
                 <div
@@ -67,7 +93,7 @@ export function TerminalPanel({
                             type="button"
                             className="summary__map"
                             aria-label="지도 보기"
-                            disabled={!active}
+                            disabled={!enabled}
                             onClick={onMapClick}
                         >
                             <MapWhiteIcon aria-hidden="true" />
@@ -78,7 +104,28 @@ export function TerminalPanel({
 
             {children}
 
-            <div className="panel__foot">{active ? footer : null}</div>
+            {/* 헤드는 요약·결과지표로 꽉 차 스위치가 들어갈 자리가 없다 — 바닥 오른쪽에 둔다 */}
+            <div className="panel__foot">
+                {enabled ? footer : null}
+
+                <button
+                    type="button"
+                    className={`tswitch${enabled ? ' is-on' : ''}`}
+                    role="switch"
+                    aria-checked={enabled}
+                    aria-label={`${terminal} 시뮬레이션 대상`}
+                    disabled={locked}
+                    title={locked ? LOCKED_HINT : undefined}
+                    onClick={handleToggle}
+                >
+                    <span className="tswitch__track" aria-hidden="true">
+                        <i className="tswitch__knob" />
+                    </span>
+                    <span className="tswitch__text">
+                        {terminal} {enabled ? '사용' : '미사용'}
+                    </span>
+                </button>
+            </div>
         </section>
     );
 }

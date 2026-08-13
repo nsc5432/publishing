@@ -7,7 +7,8 @@ import { TERMINALS, type TerminalKind } from '../types';
 /**
  * 탭 1개분 조회 — T1/T2 를 한 번에 받는다.
  *
- * 화면이 두 패널을 나란히 그리므로 활성 터미널만 부르면 옆 패널이 비어 버린다.
+ * 화면이 두 패널을 나란히 그리므로 켜 둔 터미널만 부르면 옆 패널이 비어 버린다.
+ * (꺼 둔 터미널도 회색 패널에 값이 보이고, 스위치를 켜면 곧바로 편집으로 이어진다)
  * 조회·매핑 규칙만 탭마다 다르고 흐름은 같아서 여기 한 곳에 둔다.
  *
  * toView 는 렌더마다 새로 만들면 매핑이 끝없이 반복되므로
@@ -40,9 +41,10 @@ export function useTerminalData<D extends JsonResponse, V>(
     const t2SmltId = smltIds.T2;
 
     // 진입 정보(시뮬레이션 ID)가 아직 없으면 조회할 대상이 없다.
+    // 한쪽만 받았어도 그쪽은 그린다 — 없는 터미널 때문에 있는 터미널까지 비면 안 된다.
     const query = useMemo<TerminalPairQuery | null>(
         () =>
-            t1SmltId && t2SmltId ? { smltIds: { T1: t1SmltId, T2: t2SmltId }, reloadKey } : null,
+            t1SmltId || t2SmltId ? { smltIds: { T1: t1SmltId, T2: t2SmltId }, reloadKey } : null,
         [t1SmltId, t2SmltId, reloadKey],
     );
 
@@ -50,11 +52,12 @@ export function useTerminalData<D extends JsonResponse, V>(
         query,
         ({ smltIds: smltIdByTerminal }) =>
             Promise.all(
-                TERMINALS.map((tmnlId) =>
-                    fetcher(smltIdByTerminal[tmnlId], tmnlId).then((dto) =>
-                        unwrap(dto, failMessage),
-                    ),
-                ),
+                TERMINALS.map((tmnlId) => {
+                    const smltId = smltIdByTerminal[tmnlId];
+                    if (!smltId) return Promise.resolve(null);
+
+                    return fetcher(smltId, tmnlId).then((dto) => unwrap(dto, failMessage));
+                }),
             ).then((dtoList) => {
                 const raw = { ...EMPTY_PAIR } as Record<TerminalKind, D | null>;
                 TERMINALS.forEach((tmnlId, index) => {

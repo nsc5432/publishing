@@ -1,6 +1,3 @@
-/** 수정 방식 — 운항편 전체 비율(ratio) / 시간대별(hourly) */
-export type EditMode = 'ratio' | 'hourly';
-
 /** 막대 하나 (2시간 단위, 12개) */
 export interface ChartBar {
     /** 하단 스케일 라벨 (예: 04) */
@@ -22,7 +19,7 @@ export interface ChartData {
     bars: ChartBar[];
 }
 
-/** 시간대별 표 1행 */
+/** 시간대별 표 1행 — 전체 비율이 걸린 뒤의 값 */
 export interface HourRow {
     start: string;
     end: string;
@@ -42,7 +39,5 @@ export interface TerminalFlightPax {
     peak: string;
     flightChart: ChartData;
     paxChart: ChartData;
-    /** 전체 비율 스테퍼 초기값 (%) */
-    ratio: number;
     rows: HourRow[];
 }

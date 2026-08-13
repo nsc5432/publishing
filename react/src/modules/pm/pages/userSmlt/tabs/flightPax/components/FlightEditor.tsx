@@ -1,18 +1,13 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
-import type { TerminalKind } from '../../../types';
 import { MAX_RATIO, MIN_RATIO, RATIO_STEP } from '../constants';
-import type { EditMode, HourRow } from '../types';
+import type { HourRow } from '../types';
 
 interface FlightEditorProps {
-    /** 라디오 name 을 터미널별로 분리하기 위해 받는다 */
-    terminal: TerminalKind;
     /** 전체 비율 (%) */
     ratio: number;
     onRatioChange: (ratio: number) => void;
-    mode: EditMode;
-    onModeChange: (mode: EditMode) => void;
     rows: HourRow[];
-    /** 비활성 터미널이면 모든 컨트롤을 잠근다 */
+    /** 시뮬레이션 대상에서 뺀(꺼 둔) 터미널이면 모든 컨트롤을 잠근다 */
     disabled: boolean;
 }
 
@@ -21,37 +16,16 @@ const clamp = (value: number) => Math.max(MIN_RATIO, Math.min(MAX_RATIO, value))
 /**
  * 운항편 수정 영역 — 전체 비율 스테퍼 / 시간대별 표.
  *
- * 원본 script.js 의 sync() 가 하던 is-dim 토글을 mode 파생값으로 대체했다.
- * 스테퍼 값은 표시 전용이며 차트·표 데이터를 재계산하지 않는다(퍼블리싱과 동일).
+ * 수정 방식이 '운항편 전체 비율' 하나뿐이라 고를 것이 없어 라디오 대신 마크로 표시한다.
+ * 스테퍼를 움직이면 위쪽 차트와 아래 표가 조회값 × 비율로 다시 계산된다.
  */
-export function FlightEditor({
-    terminal,
-    ratio,
-    onRatioChange,
-    mode,
-    onModeChange,
-    rows,
-    disabled,
-}: FlightEditorProps) {
-    const name = `mode-${terminal}`;
-
+export function FlightEditor({ ratio, onRatioChange, rows, disabled }: FlightEditorProps) {
     return (
         <div className="editor">
             <div className="editor__opts">
-                <label className="radio">
-                    <input
-                        type="radio"
-                        name={name}
-                        value="ratio"
-                        checked={mode === 'ratio'}
-                        disabled={disabled}
-                        onChange={() => onModeChange('ratio')}
-                    />
-                    <span className="radio__mark" />
-                    <span className="radio__text">운항편 전체 비율로 수정</span>
-                </label>
+                <p className="editor__label">운항편 전체 비율로 수정</p>
 
-                <div className={`stepper${mode === 'hourly' ? ' is-dim' : ''}`}>
+                <div className="stepper">
                     <button
                         type="button"
                         className="stepper__btn"
@@ -74,20 +48,7 @@ export function FlightEditor({
                 </div>
             </div>
 
-            <label className="radio">
-                <input
-                    type="radio"
-                    name={name}
-                    value="hourly"
-                    checked={mode === 'hourly'}
-                    disabled={disabled}
-                    onChange={() => onModeChange('hourly')}
-                />
-                <span className="radio__mark" />
-                <span className="radio__text">시간대별 운항편 수정</span>
-            </label>
-
-            <div className={`table-wrap scroll-area${mode === 'ratio' ? ' is-dim' : ''}`}>
+            <div className="table-wrap scroll-area">
                 <table className="data-table">
                     <thead>
                         <tr>

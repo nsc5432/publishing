@@ -9,17 +9,16 @@ import { formatHour, formatOperating, toHourList } from '../../format';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
-import { TERMINALS, type BlockItem, type TerminalKind } from '../../types';
+import {
+    TERMINALS,
+    enabledTerminals,
+    type BlockItem,
+    type SmltTabProps,
+    type TerminalKind,
+} from '../../types';
 import { ScGrid } from './components/ScGrid';
 import type { DepartureGate } from './types';
 import { EMPTY_DEPARTURE, toDeparture, toHourArray, toPlans, toSaveReq } from './view';
-
-interface DepartureTabProps {
-    smltIds: Record<TerminalKind, string>;
-    reloadKey: number;
-    activeTerminal: TerminalKind;
-    onTerminalChange: (terminal: TerminalKind) => void;
-}
 
 /** 터미널별 편집 상태 */
 type EditState = Record<TerminalKind, DepartureGate[]>;
@@ -27,14 +26,29 @@ type EditState = Record<TerminalKind, DepartureGate[]>;
 /** 출국장 번호 */
 type ScState = Record<TerminalKind, Record<number, number[]>>;
 
-/** 드로어 편집값 */
+/** 강조한 격자 줄 — 패널마다 따로 잡힌다 */
+type SelectState = Record<TerminalKind, number | null>;
+
+/** 출국장 번호 → 드로어에서 고친 값 */
+type GateDrafts = Record<number, DepartureGate>;
+
+/**
+ * 드로어 편집값.
+ *
+ * 드로어는 화면에 하나뿐이라 편집 중인 터미널을 함께 들고 있고,
+ * 초점이 그 터미널에 있을 때만 뜬다. 편집값은 터미널별로 남겨 두므로
+ * 옆 패널을 만지다 돌아와도 고치던 값이 그대로 있다.
+ */
 interface DrawerState {
+    terminal: TerminalKind;
     no: number;
-    drafts: Record<number, DepartureGate>;
+    drafts: Record<TerminalKind, GateDrafts>;
 }
 
 const EMPTY_EDIT: EditState = { T1: [], T2: [] };
 const EMPTY_SC: ScState = { T1: {}, T2: {} };
+const EMPTY_SELECT: SelectState = { T1: null, T2: null };
+const EMPTY_DRAFTS: Record<TerminalKind, GateDrafts> = { T1: {}, T2: {} };
 const GATE_NOS: Record<TerminalKind, number[]> = {
     T1: [1, 2, 3, 4, 5, 6],
     T2: [1, 2],
@@ -88,7 +102,7 @@ function toGateItems(gates: DepartureGate[]): BlockItem[] {
 /** 드로어의 출국장 칩이 보여 줄 값 */
 function pickGate(
     gates: DepartureGate[],
-    drafts: Record<number, DepartureGate>,
+    drafts: GateDrafts,
     no: number,
 ): DepartureGate | undefined {
     return drafts[no] ?? gates.find((gate) => gate.no === no);
@@ -100,9 +114,11 @@ function pickGate(
 export function DepartureTab({
     smltIds,
     reloadKey,
-    activeTerminal,
-    onTerminalChange,
-}: DepartureTabProps) {
+    enabled,
+    onToggleTerminal,
+    focusTerminal,
+    onFocusChange,
+}: SmltTabProps) {
     const { data: fetched, error } = useTerminalData(
         smltIds,
         reloadKey,
@@ -114,12 +130,15 @@ export function DepartureTab({
     const [sc, setSc] = useState<ScState>(EMPTY_SC);
     const [drawer, setDrawer] = useState<DrawerState | null>(null);
     /** 위 차트 블럭 · 아래 격자 줄이 함께 쓰는 선택 상태 */
-    const [selected, setSelected] = useState<number | null>(null);
+    const [selected, setSelected] = useState<SelectState>(EMPTY_SELECT);
 
     useErrorAlert(error);
 
-    const gateNos = GATE_NOS[activeTerminal];
-    const draft = drawer ? drawer.drafts[drawer.no] : null;
+    const enabledCount = enabledTerminals(enabled).length;
+    /** 드로어는 초점이 그 터미널에 있을 때만 뜬다 */
+    const openDrawer = drawer && drawer.terminal === focusTerminal ? drawer : null;
+    const gateNos = openDrawer ? GATE_NOS[openDrawer.terminal] : [];
+    const draft = openDrawer ? openDrawer.drafts[openDrawer.terminal][openDrawer.no] : null;
 
     // 조회 결과가 들어오면 편집 상태를 조회한 값으로 되돌린다.
     useEffect(() => {
@@ -129,53 +148,64 @@ export function DepartureTab({
         setEdit({ T1: t1Gates, T2: t2Gates });
         setSc({ T1: toScState(t1Gates), T2: toScState(t2Gates) });
         setDrawer(null);
-        setSelected(null);
+        setSelected(EMPTY_SELECT);
     }, [fetched]);
 
-    /** 편집 중이던 드로어는 터미널이 바뀌면 닫는다 (편집값은 터미널별로 남는다) */
-    const handleTerminalChange = (terminal: TerminalKind) => {
-        setDrawer(null);
-        setSelected(null);
-        onTerminalChange(terminal);
-    };
-
-    /** 격자 줄 라벨 클릭 */
-    const openGate = (no: number) => {
-        const gate = edit[activeTerminal].find((candidate) => candidate.no === no);
+    /** 격자 줄 라벨 클릭 — 그 패널로 초점을 옮기고 출국장 속성 드로어를 연다 */
+    const openGate = (terminal: TerminalKind, no: number) => {
+        const gate = edit[terminal].find((candidate) => candidate.no === no);
         if (!gate) return;
 
-        setSelected(no);
-        setDrawer((prev) => ({ no, drafts: { ...prev?.drafts, [no]: prev?.drafts[no] ?? gate } }));
+        onFocusChange(terminal);
+        setSelected((prev) => ({ ...prev, [terminal]: no }));
+        setDrawer((prev) => {
+            const drafts = prev?.drafts ?? EMPTY_DRAFTS;
+            const gateDrafts = drafts[terminal];
+
+            return {
+                terminal,
+                no,
+                drafts: { ...drafts, [terminal]: { ...gateDrafts, [no]: gateDrafts[no] ?? gate } },
+            };
+        });
     };
 
     /** 세부 운영시간 직접 설정 */
-    const openDetail = () => {
-        const gates = edit[activeTerminal];
+    const openDetail = (terminal: TerminalKind) => {
+        const gates = edit[terminal];
         if (gates.length === 0) return;
 
-        const picked = gates.find((gate) => gate.no === selected) ?? gates[0];
-        openGate(picked.no);
+        const picked = gates.find((gate) => gate.no === selected[terminal]) ?? gates[0];
+        openGate(terminal, picked.no);
     };
 
     const patchDraft = (next: Partial<DepartureGate>) => {
         setDrawer((prev) => {
             if (!prev) return prev;
 
+            const gateDrafts = prev.drafts[prev.terminal];
+
             return {
                 ...prev,
-                drafts: { ...prev.drafts, [prev.no]: { ...prev.drafts[prev.no], ...next } },
+                drafts: {
+                    ...prev.drafts,
+                    [prev.terminal]: {
+                        ...gateDrafts,
+                        [prev.no]: { ...gateDrafts[prev.no], ...next },
+                    },
+                },
             };
         });
     };
 
-    /** 드로어 변경  */
+    /** 드로어 변경 — 그 터미널에서 고친 출국장만 편집 목록에 반영한다 */
     const handleConfirm = () => {
         if (!drawer) return;
 
-        const { drafts } = drawer;
+        const { terminal, drafts } = drawer;
         setEdit((prev) => ({
             ...prev,
-            [activeTerminal]: prev[activeTerminal].map((gate) => drafts[gate.no] ?? gate),
+            [terminal]: prev[terminal].map((gate) => drafts[terminal][gate.no] ?? gate),
         }));
         setDrawer(null);
     };
@@ -217,15 +247,18 @@ export function DepartureTab({
                 const panelData = fetched[terminal] ?? EMPTY_DEPARTURE;
                 const gates = edit[terminal];
                 const scCountsByGate = sc[terminal];
-                const active = terminal === activeTerminal;
+                const on = enabled[terminal];
                 const operatingGates = gates.filter((gate) => !gate.off);
 
                 return (
                     <TerminalPanel
                         key={terminal}
                         terminal={terminal}
-                        active={active}
-                        onActivate={() => handleTerminalChange(terminal)}
+                        enabled={on}
+                        focused={terminal === focusTerminal}
+                        canDisable={enabledCount > 1}
+                        onToggle={() => onToggleTerminal(terminal)}
+                        onFocus={() => onFocusChange(terminal)}
                         kpis={panelData.kpis}
                         onMapClick={() => handleMapClick(terminal)}
                         summary={
@@ -272,14 +305,18 @@ export function DepartureTab({
                                 <button
                                     type="button"
                                     className="bchart__act"
-                                    disabled={!active}
-                                    onClick={openDetail}
+                                    disabled={!on}
+                                    onClick={() => openDetail(terminal)}
                                 >
                                     세부 운영시간 직접 설정 →
                                 </button>
                             }
-                            selected={active && selected !== null ? [String(selected)] : []}
-                            onBlockSelect={(label) => setSelected(Number(label))}
+                            selected={
+                                selected[terminal] !== null ? [String(selected[terminal])] : []
+                            }
+                            onBlockSelect={(label) =>
+                                setSelected((prev) => ({ ...prev, [terminal]: Number(label) }))
+                            }
                             formatTip={(item, hour) => {
                                 const gate = gates.find((it) => String(it.no) === item.label);
                                 const range = gate?.ranges.find(
@@ -292,48 +329,52 @@ export function DepartureTab({
 
                                 return `${item.label}번 출국장 · ${when} · 검색대 ${count}대`;
                             }}
-                            disabled={!active}
+                            disabled={!on}
                         />
 
                         <ScGrid
                             gates={gates}
                             value={scCountsByGate}
                             onChange={(next) => setSc((prev) => ({ ...prev, [terminal]: next }))}
-                            selected={active ? selected : null}
-                            onSelect={setSelected}
-                            onLabelClick={openGate}
-                            disabled={!active}
+                            selected={selected[terminal]}
+                            onSelect={(no) => setSelected((prev) => ({ ...prev, [terminal]: no }))}
+                            onLabelClick={(no) => openGate(terminal, no)}
+                            disabled={!on}
                         />
                     </TerminalPanel>
                 );
             })}
 
-            {drawer && draft && (
+            {openDrawer && draft && (
                 <DetailDrawer
                     badge={String(draft.no)}
                     badgeColor={draft.color}
                     title={`${draft.no}번 출국장`}
-                    subtitle={formatOperating(activeTerminal, draft.ranges)}
+                    subtitle={formatOperating(openDrawer.terminal, draft.ranges)}
                     onClose={() => setDrawer(null)}
                     onConfirm={handleConfirm}
                 >
                     <DrawerSection
                         title="출국장 선택"
-                        hint={`${activeTerminal} ${gateNos.length}개`}
+                        hint={`${openDrawer.terminal} ${gateNos.length}개`}
                     >
                         <div className="gatepick">
                             {gateNos.map((no) => {
-                                const gate = pickGate(edit[activeTerminal], drawer.drafts, no);
-                                const on = no === drawer.no;
+                                const gate = pickGate(
+                                    edit[openDrawer.terminal],
+                                    openDrawer.drafts[openDrawer.terminal],
+                                    no,
+                                );
+                                const picked = no === openDrawer.no;
 
                                 return (
                                     <button
                                         key={no}
                                         type="button"
-                                        className={`gatepick__item${on ? ' is-on' : ''}${gate?.off ? ' is-off' : ''}`}
-                                        aria-pressed={on}
+                                        className={`gatepick__item${picked ? ' is-on' : ''}${gate?.off ? ' is-off' : ''}`}
+                                        aria-pressed={picked}
                                         disabled={!gate}
-                                        onClick={() => openGate(no)}
+                                        onClick={() => openGate(openDrawer.terminal, no)}
                                     >
                                         <i
                                             className="gatepick__dot"

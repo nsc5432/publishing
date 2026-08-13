@@ -16,20 +16,23 @@ import { useSmltInfo } from './hooks/useSmltInfo';
 import { CheckinCounterTab } from './tabs/checkinCounter/CheckinCounterTab';
 import { DepartureTab } from './tabs/departure/DepartureTab';
 import { FlightPaxTab } from './tabs/flightPax/FlightPaxTab';
-import { type SmltTabKey, type TerminalKind } from './types';
+import {
+    NO_TERMINAL,
+    enabledTerminals,
+    otherTerminal,
+    type SmltTabKey,
+    type SmltTabProps,
+    type TerminalEnabled,
+    type TerminalKind,
+} from './types';
 
 /** 화면 타이틀 (GNB) */
 const TITLE = 'PM 예측관리 / 사용자 시뮬레이션';
 
 const EXEC_FAIL = '시뮬레이션 실행에 실패했습니다.';
 
-interface TabContentProps {
+interface TabContentProps extends SmltTabProps {
     tab: SmltTabKey;
-    smltIds: Record<TerminalKind, string>;
-    /** 조회 버튼을 누를 때마다 올라간다 — 같은 조건이라도 다시 부르기 위한 값 */
-    reloadKey: number;
-    activeTerminal: TerminalKind;
-    onTerminalChange: (terminal: TerminalKind) => void;
 }
 
 /**
@@ -37,6 +40,9 @@ interface TabContentProps {
  *
  * 진입 정보(getInfo)로 터미널별 편집 대상 시뮬레이션 ID 를 받고,
  * 탭마다 그 ID 로 조건을 조회·저장한다. 실행은 저장된 조건으로 수행을 건다.
+ *
+ * 시뮬레이션 대상 터미널은 1개일 수도 2개일 수도 있다. 도입 화면에서 고르지만
+ * 설정 도중에도 패널 스위치로 켜고 끌 수 있어, 이 화면이 그 상태(enabled)를 쥐고 있다.
  */
 function UserSmltConfig() {
     usePageScope('userSmlt');
@@ -47,25 +53,54 @@ function UserSmltConfig() {
     const { smltIds, ymd: baseYmd, error } = useSmltInfo(ymd, reloadKey);
 
     const [activeTab, setActiveTab] = useState<SmltTabKey>('flightPax');
-    const [activeTerminal, setActiveTerminal] = useState<TerminalKind>('T1');
-    const [terminalPicked, setTerminalPicked] = useState(false);
+    /** 시뮬레이션 대상으로 켜 둔 터미널 — 둘 다 꺼져 있으면 도입 화면 */
+    const [enabled, setEnabled] = useState<TerminalEnabled>(NO_TERMINAL);
+    /** 화면에 하나뿐인 편집 도크·드로어가 보는 터미널 */
+    const [focusTerminal, setFocusTerminal] = useState<TerminalKind>('T1');
 
     useErrorAlert(error);
 
+    const targets = enabledTerminals(enabled);
+    const picked = targets.length > 0;
+
     const handleSearch = () => setReloadKey((key) => key + 1);
 
-    const handleRun = () => {
-        const smltId = smltIds[activeTerminal];
-        if (!smltId) return;
+    /** 도입 화면에서 고른 터미널로 진입 — 왼쪽(T1 우선) 패널이 첫 편집 초점이 된다 */
+    const handleStart = (next: TerminalEnabled) => {
+        setEnabled(next);
+        setFocusTerminal(enabledTerminals(next)[0]);
+    };
 
-        userSmltService
-            .execute(smltId, activeTerminal)
-            .then((dto) => unwrap(dto, EXEC_FAIL))
-            .then((execResult) => {
+    /**
+     * 패널 스위치 — 켜면 그 패널로 초점이 옮겨 가고, 끄면 초점을 반대편에 넘긴다.
+     * 둘 다 끄면 설정할 대상이 없어지므로 마지막 1개는 끄지 않는다.
+     */
+    const handleToggleTerminal = (terminal: TerminalKind) => {
+        const next = { ...enabled, [terminal]: !enabled[terminal] };
+        if (!next.T1 && !next.T2) return;
+
+        setEnabled(next);
+        setFocusTerminal(next[terminal] ? terminal : otherTerminal(terminal));
+    };
+
+    /** 켜 둔 터미널을 모두 수행한다 (T1 만 켰으면 T1 만) */
+    const handleRun = () => {
+        const runnable = targets.filter((terminal) => smltIds[terminal]);
+        if (runnable.length === 0) return;
+
+        Promise.all(
+            runnable.map((terminal) =>
+                userSmltService
+                    .execute(smltIds[terminal], terminal)
+                    .then((dto) => unwrap(dto, EXEC_FAIL))
+                    .then((execResult) => `${terminal} 수행번호 ${execResult.execSn}`),
+            ),
+        )
+            .then((lines) => {
                 dialog
                     .alert({
                         title: '시뮬레이션 실행',
-                        description: `${activeTerminal} 수행을 시작했습니다. (수행번호 ${execResult.execSn})`,
+                        description: `수행을 시작했습니다. (${lines.join(' · ')})`,
                     })
                     .catch(() => {});
             })
@@ -84,35 +119,32 @@ function UserSmltConfig() {
                 title={TITLE}
                 baseDate={formatYmd(baseYmd || ymd)}
                 steps={
-                    terminalPicked ? (
+                    picked ? (
                         <SmltTabs activeTab={activeTab} onTabChange={setActiveTab} />
                     ) : undefined
                 }
                 onSearch={handleSearch}
-                onRun={terminalPicked ? handleRun : undefined}
+                onRun={picked ? handleRun : undefined}
             />
 
             <div className="body">
                 <Lnb />
 
                 <main className="content">
-                    {terminalPicked ? (
+                    {picked ? (
                         <div className="panels">
                             <TabContent
                                 tab={activeTab}
                                 smltIds={smltIds}
                                 reloadKey={reloadKey}
-                                activeTerminal={activeTerminal}
-                                onTerminalChange={setActiveTerminal}
+                                enabled={enabled}
+                                onToggleTerminal={handleToggleTerminal}
+                                focusTerminal={focusTerminal}
+                                onFocusChange={setFocusTerminal}
                             />
                         </div>
                     ) : (
-                        <TerminalIntro
-                            onSelect={(terminal) => {
-                                setActiveTerminal(terminal);
-                                setTerminalPicked(true);
-                            }}
-                        />
+                        <TerminalIntro onStart={handleStart} />
                     )}
                 </main>
             </div>

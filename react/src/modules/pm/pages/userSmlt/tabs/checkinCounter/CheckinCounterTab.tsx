@@ -6,24 +6,36 @@ import { formatHour, toHourList } from '../../format';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
-import { BLOCK_COLORS, TERMINALS, type BlockItem, type TerminalKind } from '../../types';
+import {
+    BLOCK_COLORS,
+    TERMINALS,
+    enabledTerminals,
+    type BlockItem,
+    type SmltTabProps,
+    type TerminalKind,
+} from '../../types';
 import { EditDock } from './components/EditDock';
 import { ISLAND_BOOTHS, SIDE_BOOTHS } from './constants';
 import type { CheckinIsland, TerminalCheckinCounter } from './types';
-import { EMPTY_CHECKIN_COUNTER, assignedBoothCount, toBooths, toCheckinCounter, toSaveReq } from './view';
-
-interface CheckinCounterTabProps {
-    smltIds: Record<TerminalKind, string>;
-    reloadKey: number;
-    activeTerminal: TerminalKind;
-    onTerminalChange: (terminal: TerminalKind) => void;
-}
+import {
+    EMPTY_CHECKIN_COUNTER,
+    assignedBoothCount,
+    toBooths,
+    toCheckinCounter,
+    toSaveReq,
+} from './view';
 
 /** 터미널별 편집 상태 — 아일랜드 목록 전체가 편집 대상이다 */
 type EditState = Record<TerminalKind, CheckinIsland[]>;
 
-/** 도크 편집값 — 변경을 눌러야 목록(EditState)에 반영된다 */
+/**
+ * 도크 편집값 — 변경을 눌러야 목록(EditState)에 반영된다.
+ *
+ * 도크는 화면에 하나뿐이라 편집 중인 터미널을 함께 들고 있다. 초점이 옮겨 가도
+ * 편집값을 버리지 않고, 그 터미널로 돌아오면 편집하던 상태가 그대로 다시 보인다.
+ */
 interface DockState {
+    terminal: TerminalKind;
     /** 편집 대상. null 이면 칩 줄만 띄운 상태(아직 아일랜드를 고르지 않았다) */
     draft: CheckinIsland | null;
     /** 편집 중인 아일랜드 문자. null 이면 신규(목록에 아직 없다) */
@@ -32,7 +44,7 @@ interface DockState {
 }
 
 const EMPTY_EDIT: EditState = { T1: [], T2: [] };
-const EMPTY_DOCK: DockState = { draft: null, target: null, selectedBooth: null };
+const EMPTY_DOCK: DockState = { terminal: 'T1', draft: null, target: null, selectedBooth: null };
 const FETCH_FAIL = '체크인 카운터 정보를 불러오지 못했습니다.';
 const SAVE_FAIL = '체크인 카운터 저장에 실패했습니다.';
 
@@ -90,9 +102,11 @@ function newIsland(terminalData: TerminalCheckinCounter, label: string): Checkin
 export function CheckinCounterTab({
     smltIds,
     reloadKey,
-    activeTerminal,
-    onTerminalChange,
-}: CheckinCounterTabProps) {
+    enabled,
+    onToggleTerminal,
+    focusTerminal,
+    onFocusChange,
+}: SmltTabProps) {
     const { data: fetched, error } = useTerminalData(
         smltIds,
         reloadKey,
@@ -111,29 +125,29 @@ export function CheckinCounterTab({
         setDock(EMPTY_DOCK);
     }, [fetched]);
 
-    const data = fetched[activeTerminal] ?? EMPTY_CHECKIN_COUNTER;
-    const activeIslands = edit[activeTerminal];
-    /** 차트·칩 줄이 함께 쓰는 선택 상태 (다중 선택은 아직 열지 않았다) */
-    const selected = dock.draft ? [dock.draft.label] : [];
-
-    /** 편집 중이던 도크는 터미널이 바뀌면 닫는다 (편집값은 터미널별로 남는다) */
-    const handleTerminalChange = (terminal: TerminalKind) => {
-        setDock(EMPTY_DOCK);
-        onTerminalChange(terminal);
-    };
+    const enabledCount = enabledTerminals(enabled).length;
+    /** 도크가 보는 터미널 = 편집 초점. 다른 터미널의 편집값은 그대로 두고 감춘다 */
+    const focusData = fetched[focusTerminal] ?? EMPTY_CHECKIN_COUNTER;
+    const focusIslands = edit[focusTerminal];
+    const draft = dock.terminal === focusTerminal ? dock.draft : null;
 
     /**
      * 블럭 · 칩 클릭 — 운영 중이면 그 아일랜드를, 미운영이면 신규를 편집 대상으로 연다.
+     * 꺼진 패널의 블럭은 눌리지 않으므로 여기 오는 터미널은 항상 켜져 있다.
      * (Ctrl 누적 선택은 STEP-1 스텝 4 에서 켠다)
      */
-    const openIsland = (label: string) => {
+    const openIsland = (terminal: TerminalKind, label: string) => {
+        onFocusChange(terminal);
         setDock((prev) => {
-            if (prev.draft?.label === label) return prev; // 이미 편집 중이면 값을 지킨다
+            // 이미 편집 중이면 값을 지킨다
+            if (prev.terminal === terminal && prev.draft?.label === label) return prev;
 
-            const island = activeIslands.find((island) => island.label === label);
+            const island = edit[terminal].find((it) => it.label === label);
+            const source = fetched[terminal] ?? EMPTY_CHECKIN_COUNTER;
 
             return {
-                draft: island ?? newIsland(data, label),
+                terminal,
+                draft: island ?? newIsland(source, label),
                 target: island ? label : null,
                 selectedBooth: null,
             };
@@ -146,17 +160,17 @@ export function CheckinCounterTab({
 
     /** 도크 `변경` — 신규면 목록에 더하고, 기존이면 그 자리를 갈아 끼운다 */
     const handleConfirm = () => {
-        if (!dock.draft) return;
+        const { terminal, draft: edited, target } = dock;
+        if (!edited) return;
 
-        const { draft, target } = dock;
         setEdit((prev) => ({
             ...prev,
-            [activeTerminal]:
+            [terminal]:
                 target === null
-                    ? [...prev[activeTerminal], draft]
-                    : prev[activeTerminal].map((it) => (it.label === target ? draft : it)),
+                    ? [...prev[terminal], edited]
+                    : prev[terminal].map((it) => (it.label === target ? edited : it)),
         }));
-        setDock(EMPTY_DOCK);
+        setDock({ ...EMPTY_DOCK, terminal });
     };
 
     const handleSave = (terminal: TerminalKind) => {
@@ -187,14 +201,17 @@ export function CheckinCounterTab({
             {TERMINALS.map((terminal) => {
                 const panelData = fetched[terminal] ?? EMPTY_CHECKIN_COUNTER;
                 const panelIslands = edit[terminal];
-                const active = terminal === activeTerminal;
+                const on = enabled[terminal];
 
                 return (
                     <TerminalPanel
                         key={terminal}
                         terminal={terminal}
-                        active={active}
-                        onActivate={() => handleTerminalChange(terminal)}
+                        enabled={on}
+                        focused={terminal === focusTerminal}
+                        canDisable={enabledCount > 1}
+                        onToggle={() => onToggleTerminal(terminal)}
+                        onFocus={() => onFocusChange(terminal)}
                         kpis={panelData.kpis}
                         onMapClick={() => handleMapClick(terminal)}
                         summary={
@@ -242,8 +259,8 @@ export function CheckinCounterTab({
                                 note: `${assignedBoothCount(island)}석`,
                             }))}
                             line={panelData.wait}
-                            selected={active ? selected : []}
-                            onBlockSelect={(label) => openIsland(label)}
+                            selected={terminal === focusTerminal && draft ? [draft.label] : []}
+                            onBlockSelect={(label) => openIsland(terminal, label)}
                             formatTip={(item, hour) => {
                                 const one = item.sides?.length === 1 ? item.sides[0] : null;
                                 const detail = one
@@ -252,28 +269,26 @@ export function CheckinCounterTab({
 
                                 return `아일랜드 ${item.label} · ${detail} · ${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
                             }}
-                            disabled={!active}
+                            disabled={!on}
                         />
                     </TerminalPanel>
                 );
             })}
 
-            {
-                <EditDock
-                    terminal={activeTerminal}
-                    codes={data.islandCodes}
-                    islands={activeIslands}
-                    selected={selected}
-                    onSelect={(label) => openIsland(label)}
-                    draft={dock.draft}
-                    onPatch={patchDraft}
-                    airlines={data.airlines}
-                    selectedBooth={dock.selectedBooth}
-                    onSelectBooth={(no) => setDock((prev) => ({ ...prev, selectedBooth: no }))}
-                    onConfirm={handleConfirm}
-                    onCancel={() => setDock(EMPTY_DOCK)}
-                />
-            }
+            <EditDock
+                terminal={focusTerminal}
+                codes={focusData.islandCodes}
+                islands={focusIslands}
+                selected={draft ? [draft.label] : []}
+                onSelect={(label) => openIsland(focusTerminal, label)}
+                draft={draft}
+                onPatch={patchDraft}
+                airlines={focusData.airlines}
+                selectedBooth={draft ? dock.selectedBooth : null}
+                onSelectBooth={(no) => setDock((prev) => ({ ...prev, selectedBooth: no }))}
+                onConfirm={handleConfirm}
+                onCancel={() => setDock({ ...EMPTY_DOCK, terminal: focusTerminal })}
+            />
         </>
     );
 }

@@ -7,6 +7,46 @@ export type TerminalKind = 'T1' | 'T2';
 export const TERMINALS: readonly TerminalKind[] = ['T1', 'T2'];
 
 /**
+ * 시뮬레이션 대상으로 켜 둔 터미널.
+ *
+ * 도입 화면에서 1개 또는 2개를 고르고, 설정 도중에도 패널 스위치로 켜고 끌 수 있다.
+ * 켠 터미널은 계속 켜져 있다 — `한 번에 하나만 활성` 이 아니다.
+ * 둘 다 끄면 고를 것이 없어지므로 **최소 1개**는 켜 둔다.
+ */
+export type TerminalEnabled = Record<TerminalKind, boolean>;
+
+/** 아직 아무 터미널도 고르지 않은 상태 = 도입 화면 */
+export const NO_TERMINAL: TerminalEnabled = { T1: false, T2: false };
+
+/** 켜 둔 터미널 목록 (패널 순서대로) */
+export function enabledTerminals(enabled: TerminalEnabled): TerminalKind[] {
+    return TERMINALS.filter((terminal) => enabled[terminal]);
+}
+
+/** 반대편 터미널 — 하나를 끌 때 편집 초점을 넘길 곳 */
+export function otherTerminal(terminal: TerminalKind): TerminalKind {
+    return terminal === 'T1' ? 'T2' : 'T1';
+}
+
+/**
+ * 탭 3개가 똑같이 받는 props.
+ *
+ * `enabled` 는 편집 가능 여부(켜짐/꺼짐)이고, `focusTerminal` 은 화면에 하나뿐인
+ * 편집 도크·드로어가 어느 패널을 보고 있는지다. 둘 다 켜져 있어도 도크는 하나라
+ * 두 값을 나눠 둔다.
+ */
+export interface SmltTabProps {
+    smltIds: Record<TerminalKind, string>;
+    /** 조회 버튼을 누를 때마다 올라간다 — 같은 조건이라도 다시 부르기 위한 값 */
+    reloadKey: number;
+    enabled: TerminalEnabled;
+    /** 패널 스위치 — 마지막 1개는 끌 수 없다 */
+    onToggleTerminal: (terminal: TerminalKind) => void;
+    focusTerminal: TerminalKind;
+    onFocusChange: (terminal: TerminalKind) => void;
+}
+
+/**
  * 사용자 시뮬레이션 탭.
  * 리뉴얼에서 5개 → 3개로 줄었다.
  *   - 셀프체크인/백드롭 → 체크인 카운터로 흡수 (하단 셀프 서비스 바 + 드로어 스테퍼)
