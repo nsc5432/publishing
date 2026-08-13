@@ -134,7 +134,14 @@ const ALN_CD_LIST = ['KE', 'OZ'];
 /** [문자, 시작시, 종료시, 부스별 항공사(''=미배정), 키오스크, 백드롭] */
 type IslandSeed = [string, number, number, string[], number, number];
 
-function toIsland([island, bgnHour, endHour, alnCds, kioskCnt, bagDropCnt]: IslandSeed): ChknIslandDto {
+function toIsland([
+    island,
+    bgnHour,
+    endHour,
+    alnCds,
+    kioskCnt,
+    bagDropCnt,
+]: IslandSeed): ChknIslandDto {
     return {
         island,
         boothCnt: alnCds.length,
@@ -169,8 +176,8 @@ const CHKN_WAIT: Record<TmnlId, number[]> = {
         20, 0, 0,
     ],
     T2: [
-        0, 0, 0, 0, 0, 20, 60, 110, 150, 130, 110, 120, 140, 160, 130, 100, 80, 60, 45, 30, 15, 5, 0,
-        0,
+        0, 0, 0, 0, 0, 20, 60, 110, 150, 130, 110, 120, 140, 160, 130, 100, 80, 60, 45, 30, 15, 5,
+        0, 0,
     ],
 };
 
@@ -256,9 +263,33 @@ function toDep([
 
 const DEP_GATES: Record<TmnlId, DepSeed[]> = {
     T1: [
-        ['1', 5, 22, false, 8, 3, 2, [[5, 12, 6], [12, 22, 8]]],
+        [
+            '1',
+            5,
+            18,
+            false,
+            8,
+            3,
+            2,
+            [
+                [5, 12, 6],
+                [12, 18, 8],
+            ],
+        ],
         ['2', 6, 21, true, 6, 2, 1, [[6, 21, 6]]],
-        ['3', 6, 21, false, 6, 2, 2, [[6, 14, 4], [14, 21, 6]]],
+        [
+            '3',
+            6,
+            21,
+            false,
+            6,
+            2,
+            2,
+            [
+                [6, 14, 4],
+                [14, 21, 6],
+            ],
+        ],
         [
             '4',
             6,
@@ -278,15 +309,27 @@ const DEP_GATES: Record<TmnlId, DepSeed[]> = {
         ['6', 7, 19, false, 4, 2, 1, [[7, 19, 4]]],
     ],
     T2: [
-        ['1', 7, 21, false, 5, 3, 1, [[7, 13, 4], [13, 21, 5]]],
+        [
+            '1',
+            7,
+            21,
+            false,
+            5,
+            3,
+            1,
+            [
+                [7, 13, 4],
+                [13, 21, 5],
+            ],
+        ],
         ['2', 7, 20, true, 4, 2, 1, [[7, 20, 4]]],
     ],
 };
 
 const DEP_WAIT: Record<TmnlId, number[]> = {
     T1: [
-        0, 0, 0, 0, 0, 25, 90, 180, 260, 230, 190, 210, 240, 270, 220, 180, 150, 120, 95, 65, 35, 12,
-        0, 0,
+        0, 0, 0, 0, 0, 25, 90, 180, 260, 230, 190, 210, 240, 270, 220, 180, 150, 120, 95, 65, 35,
+        12, 0, 0,
     ],
     T2: [0, 0, 0, 0, 0, 0, 0, 30, 55, 48, 40, 44, 50, 58, 47, 38, 30, 24, 18, 12, 6, 0, 0, 0],
 };

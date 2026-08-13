@@ -265,7 +265,6 @@ export function DepartureTab({
                             levels={8}
                             rowH={CHART_ROW_H}
                             gridLeft={GUTTER}
-                            stackMode="fixed"
                             blockFontSize={13}
                             line={panelData.wait}
                             footText="블럭을 클릭하면 아래 격자에서 그 출국장 줄이 켜집니다. 줄 라벨을 클릭하면 출국장 속성을 편집합니다."
