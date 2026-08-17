@@ -35,6 +35,8 @@ function Dashboard() {
     // 조회 버튼으로 확정된 조건 — 실제 데이터 조회는 이 값만 따른다
     const [query, setQuery] = useState<DashboardQuery | null>(null);
     const [category, setCategory] = useState<DsbdCategory>('PSG');
+    // Prime Time 타일을 눌러 고른 지표만 담는다 — Top Bar 검색으로 조회하면 비운다 (패널 제목 문구용)
+    const [primeCategory, setPrimeCategory] = useState<DsbdCategory | null>(null);
 
     // 기준 정보를 받으면 가장 늦은 시각으로 첫 조회까지 끝낸다.
     useEffect(() => {
@@ -62,14 +64,23 @@ function Dashboard() {
 
     // 달력을 비우면(입력값이 지워지면) 직전 기준일자를 그대로 둔다.
     const handleDateChange = useCallback((nextYmd: string) => {
-        if (nextYmd.length === 8) setYmd(nextYmd);
+        if (nextYmd.length === 8) {
+            setYmd(nextYmd);
+            setPrimeCategory(null);
+        }
     }, []);
 
     const handleSearch = useCallback(() => {
         if (!baseInfo || !draftTime) return;
 
         setQuery({ smltId: baseInfo.smltId, ymd: baseInfo.ymd, hhmm: draftTime });
+        setPrimeCategory(null);
     }, [baseInfo, draftTime]);
+
+    const handleCategoryChange = useCallback((nextCategory: DsbdCategory) => {
+        setCategory(nextCategory);
+        setPrimeCategory(nextCategory);
+    }, []);
 
     return (
         <>
@@ -92,11 +103,19 @@ function Dashboard() {
                     planDate={formatYmd(header?.ymd ?? baseInfo?.ymd ?? '', '-')}
                     header={header}
                     category={category}
-                    onCategoryChange={setCategory}
+                    onCategoryChange={handleCategoryChange}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary terminal="T1" data={terminal1View} category={category} />
-                        <TerminalSummary terminal="T2" data={terminal2View} category={category} />
+                        <TerminalSummary
+                            terminal="T1"
+                            data={terminal1View}
+                            titleCategory={primeCategory}
+                        />
+                        <TerminalSummary
+                            terminal="T2"
+                            data={terminal2View}
+                            titleCategory={primeCategory}
+                        />
                     </section>
                 </HeaderSummary>
             </div>

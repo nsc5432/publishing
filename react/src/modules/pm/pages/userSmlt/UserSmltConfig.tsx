@@ -1,5 +1,6 @@
 import './userSmlt.css';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { unwrap } from '@/api/pm/result';
 import { Lnb } from '@/components/lnb';
@@ -30,6 +31,8 @@ import {
 const TITLE = 'PM 예측관리 / 사용자 시뮬레이션';
 
 const EXEC_FAIL = '시뮬레이션 실행에 실패했습니다.';
+const EXEC_CONFIRM = '시뮬레이션을 실행하시겠습니까?';
+const MONITORING_PATH = '/rui/pm/smlt-monitoring';
 
 interface TabContentProps extends SmltTabProps {
     tab: SmltTabKey;
@@ -46,6 +49,7 @@ interface TabContentProps extends SmltTabProps {
  */
 function UserSmltConfig() {
     usePageScope('userSmlt');
+    const navigate = useNavigate();
 
     // 기준일자 — 최초 진입은 오늘. (달력 UI 가 붙으면 여기서 바꾼다)
     const [ymd] = useState(todayYmd);
@@ -83,32 +87,31 @@ function UserSmltConfig() {
         setFocusTerminal(next[terminal] ? terminal : otherTerminal(terminal));
     };
 
-    /** 켜 둔 터미널을 모두 수행한다 (T1 만 켰으면 T1 만) */
+    /** 켜 둔 터미널을 모두 수행한다 (T1 만 켰으면 T1 만) — 확인 후 수행하고, 성공하면 모니터링 화면으로 이동한다 */
     const handleRun = () => {
         const runnable = targets.filter((terminal) => smltIds[terminal]);
         if (runnable.length === 0) return;
 
-        Promise.all(
-            runnable.map((terminal) =>
-                userSmltService
-                    .execute(smltIds[terminal], terminal)
-                    .then((dto) => unwrap(dto, EXEC_FAIL))
-                    .then((execResult) => `${terminal} 수행번호 ${execResult.execSn}`),
-            ),
-        )
-            .then((lines) => {
-                dialog
-                    .alert({
-                        title: '시뮬레이션 실행',
-                        description: `수행을 시작했습니다. (${lines.join(' · ')})`,
-                    })
-                    .catch(() => {});
+        dialog
+            .confirm({ title: '시뮬레이션 실행', description: EXEC_CONFIRM })
+            .then((confirmed) => {
+                if (!confirmed) return;
+
+                Promise.all(
+                    runnable.map((terminal) =>
+                        userSmltService
+                            .execute(smltIds[terminal], terminal)
+                            .then((dto) => unwrap(dto, EXEC_FAIL)),
+                    ),
+                )
+                    .then(() => navigate(MONITORING_PATH))
+                    .catch((err: ApiError) => {
+                        dialog
+                            .alert({ title: '실행 실패', description: err?.message || EXEC_FAIL })
+                            .catch(() => {});
+                    });
             })
-            .catch((err: ApiError) => {
-                dialog
-                    .alert({ title: '실행 실패', description: err?.message || EXEC_FAIL })
-                    .catch(() => {});
-            });
+            .catch(() => {});
     };
 
     return (

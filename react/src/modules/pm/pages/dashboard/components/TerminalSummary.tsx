@@ -16,8 +16,8 @@ interface TerminalSummaryProps {
     terminal: TerminalKind;
     /** 아직 못 받았으면 null — 골격만 그리고 값은 비운다 */
     data: TerminalView | null;
-    /** 선택한 퀵 타일 — 제목 문구가 이 지표를 따른다 */
-    category: DsbdCategory;
+    /** Prime Time 타일로 고른 지표 — Top Bar 검색으로 조회했으면 null (제목 공란) */
+    titleCategory: DsbdCategory | null;
 }
 
 /** 터미널별 큰 아이콘 / 워터마크 / 패널 색 / 게이지 색 (서버 값이 아니라 화면 규칙) */
@@ -48,7 +48,7 @@ const DEFAULT_VIEW: Record<TerminalKind, ViewKind> = {
     T2: 'table',
 };
 
-export function TerminalSummary({ terminal, data, category }: TerminalSummaryProps) {
+export function TerminalSummary({ terminal, data, titleCategory }: TerminalSummaryProps) {
     const view = data ?? EMPTY_TERMINAL_VIEW;
     const theme = TERMINAL_THEMES[terminal];
 
@@ -155,13 +155,18 @@ export function TerminalSummary({ terminal, data, category }: TerminalSummaryPro
             </div>
 
             {/* 제목 박스와 기준시각 바를 한 줄로 두고, 뷰 전환 스위치는 바 안에 넣는다 */}
+            {/* Prime Time 타일로 고른 게 아니면(Top Bar 검색) 제목을 비운다 — 요구사항 1.1 */}
             <div className="p-title-row">
                 {/* 비스듬한 파란 상자 위에 회색 상자를 한 겹 더 얹는다 */}
-                <div className="p-title">
-                    <span className="p-title-in">
-                        <span className="p-title-txt">{TITLE_LEAD[category]} 가장 많을 때</span>
-                    </span>
-                </div>
+                {titleCategory && (
+                    <div className="p-title">
+                        <span className="p-title-in">
+                            <span className="p-title-txt">
+                                {TITLE_LEAD[titleCategory]} 가장 많을 때
+                            </span>
+                        </span>
+                    </div>
+                )}
                 <div className="p-bar">
                     <span className="p-bar-txt">{view.barText}</span>
                     {/* 켜짐=포인트 왼쪽 '요약' / 꺼짐=포인트 오른쪽 '상세' 로 손잡이가 옮겨간다 */}

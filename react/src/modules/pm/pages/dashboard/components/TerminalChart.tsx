@@ -55,7 +55,11 @@ export function TerminalChart({ rsltList, peakIndex }: TerminalChartProps) {
             rsltList.map((_, index) => (hasData && index === peakIndex ? value : null));
 
         return {
-            animation: false,
+            animation: true,
+            animationDuration: 500,
+            animationEasing: 'cubicOut',
+            animationDurationUpdate: 500,
+            animationEasingUpdate: 'cubicOut',
             grid: { ...GRID, outerBoundsMode: 'none' },
             tooltip: {
                 trigger: 'axis',
