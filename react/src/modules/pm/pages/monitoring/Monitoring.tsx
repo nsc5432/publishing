@@ -1,5 +1,6 @@
 import './monitoring.css';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { monitoringService } from '@/api/pm/services/monitoring.service';
 import { unwrap } from '@/api/pm/result';
 import { Lnb } from '@/components/lnb';
@@ -15,6 +16,7 @@ import { defaultRange, TITLE, toDateTime } from './options';
 import type { HistoryRow, RangeCondition } from './types';
 
 const DETAIL_FAIL = '시뮬레이션 결과를 불러오지 못했습니다.';
+const DASHBOARD_PATH = '/rui/pm/daily-smlt/dashboard';
 
 /** 조회 조건 → 서버가 받는 기간 (yyyyMMddHHmm) */
 function toQuery(range: RangeCondition): MonitoringQuery {
@@ -32,6 +34,7 @@ function toQuery(range: RangeCondition): MonitoringQuery {
  */
 function Monitoring() {
     usePageScope('monitoring');
+    const navigate = useNavigate();
 
     const [range, setRange] = useState<RangeCondition>(defaultRange);
     // 조회 버튼으로 확정된 조건 — 최초 진입은 기본 기간으로 한 번 조회한다.
@@ -43,13 +46,25 @@ function Monitoring() {
 
     const handleSearch = () => setQuery(toQuery(range));
 
+    /**
+     * 결과 보기 — 그 시뮬레이션의 대시보드로 간다.
+     *
+     * 표준/사용자 두 그리드가 같은 핸들러를 쓴다. 어느 쪽인지는 이력 상세의 `smltType` 이
+     * 알려 주므로 행이 어느 표에서 왔는지 따로 넘기지 않아도 된다.
+     */
     const handleView = (row: HistoryRow) => {
         monitoringService
             .getExecDetail(row.smltId)
             .then((dto) => unwrap(dto, DETAIL_FAIL))
             .then((execDetail) => {
-                // 결과 화면 이동은 아직 정해지지 않았다. 받은 값만 남긴다.
-                console.log('[결과 보기]', execDetail);
+                const query = new URLSearchParams({
+                    smltId: execDetail.smltId,
+                    smltType: execDetail.smltType,
+                    ymd: execDetail.ymd,
+                    tmnlId: execDetail.tmnlId,
+                });
+
+                navigate(`${DASHBOARD_PATH}?${query.toString()}`);
             })
             .catch((err: ApiError) => {
                 dialog

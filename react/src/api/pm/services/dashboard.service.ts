@@ -15,11 +15,14 @@ import type {
 /** 일일 시뮬레이션 결과 조회 - 요약보기(대시보드) */
 export const dashboardService = {
     // 조회 조건 기준 정보 (시뮬레이션 ID / 계산 시각 / 선택 가능 시각)
-    getBaseInfo: async (ymd: string): Promise<DsbdBaseInfoDto> => {
-        if (USE_MOCK) return mockResponse(dashboardMock.getBaseInfo());
+    // smltId 를 주면 그 시뮬레이션을 지목해 받는다 (모니터링에서 넘어온 경우).
+    // 없으면 기준일자에 해당하는 일일 시뮬레이션이다.
+    getBaseInfo: async (ymd: string, smltId?: string): Promise<DsbdBaseInfoDto> => {
+        if (USE_MOCK) return mockResponse(dashboardMock.getBaseInfo(smltId));
 
         const response = await apiClient.post<DsbdBaseInfoDto>(API_ENDPOINTS.DSBD_BASE_INFO, {
             ymd,
+            ...(smltId ? { smltId } : {}),
         });
 
         return response.data;

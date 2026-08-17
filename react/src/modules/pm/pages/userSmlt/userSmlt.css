@@ -107,6 +107,24 @@ html[data-page='userSmlt'] .gnb__title {
     white-space: nowrap;
 }
 
+/* 조회 전용으로 들어왔을 때만 붙는다 — 결과 화면(대시보드)으로 되돌아가는 길 */
+html[data-page='userSmlt'] .gnb__back {
+    flex: 0 0 auto;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--pm-primary);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+html[data-page='userSmlt'] .gnb__back:hover {
+    text-decoration: underline;
+}
+
 /* 단계 스테퍼 자리 — 본문 패널(.panels)의 가로 중앙에 맞춘다.
    GNB 는 왼쪽 타이틀과 오른쪽 조작부의 폭이 서로 달라 흐름상 가운데를 잡으면
    패널 가운데와 어긋난다. 그래서 스테퍼만 흐름에서 떼어, LNB 레일 오른쪽부터
@@ -649,9 +667,11 @@ html[data-page='userSmlt'] .panel {
     padding: clamp(16px, 2.6vh, 28px) clamp(18px, 1.7vw, 32px) clamp(16px, 2.4vh, 26px);
     border-radius: var(--panel-radius);
     border: 1px solid rgba(255, 255, 255, 0.75);
-    background: linear-gradient(180deg,
-            rgba(255, 255, 255, 0.62) 0%,
-            rgba(255, 255, 255, 0.42) 100%);
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.62) 0%,
+        rgba(255, 255, 255, 0.42) 100%
+    );
     backdrop-filter: blur(3px);
     box-shadow: 0 6px 24px rgba(94, 100, 130, 0.07);
 }
@@ -660,9 +680,11 @@ html[data-page='userSmlt'] .panel {
 html[data-page='userSmlt'] .panel--disabled {
     filter: grayscale(1);
     opacity: 0.9;
-    background: linear-gradient(180deg,
-            rgba(206, 208, 210, 0.72) 0%,
-            rgba(198, 200, 202, 0.62) 100%);
+    background: linear-gradient(
+        180deg,
+        rgba(206, 208, 210, 0.72) 0%,
+        rgba(198, 200, 202, 0.62) 100%
+    );
     border-color: rgba(255, 255, 255, 0.45);
     cursor: pointer;
 }
@@ -1567,9 +1589,7 @@ html[data-page='userSmlt'] .sccell.is-zero {
 
 /* 미운영 — 값을 넣을 수 없다 */
 html[data-page='userSmlt'] .sccell.is-off {
-    background: repeating-linear-gradient(45deg,
-            #eceef4 0 3px,
-            #f7f8fb 3px 6px);
+    background: repeating-linear-gradient(45deg, #eceef4 0 3px, #f7f8fb 3px 6px);
 }
 
 html[data-page='userSmlt'] .sccell.is-pick {
@@ -1921,7 +1941,10 @@ html[data-page='userSmlt'] .gatepick__item {
     color: #5e6470;
     font-size: 13px;
     font-weight: 500;
-    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    transition:
+        background 0.15s,
+        color 0.15s,
+        border-color 0.15s;
 }
 
 html[data-page='userSmlt'] .gatepick__item::not(:disabled):hover {
@@ -1955,10 +1978,6 @@ html[data-page='userSmlt'] .gatepick__dot {
     border-radius: 50%;
     background: #d3d5dd;
 }
-
-
-
-
 
 /* 사용 / 미사용 세그먼트 --------------------------------------------------- */
 html[data-page='userSmlt'] .seg {
@@ -2305,7 +2324,6 @@ html[data-page='userSmlt'] .boothgrid--strip .bcell__no {
    9. 반응형 : 가로만 압축, 세로 스크롤은 만들지 않는다
    ===================================================================== */
 @media (max-width: 1500px) {
-
     /* 셸 */
     html[data-page='userSmlt'] .panels {
         gap: 16px;
@@ -2359,7 +2377,6 @@ html[data-page='userSmlt'] .boothgrid--strip .bcell__no {
 }
 
 @media (max-width: 1200px) {
-
     /* 셸 여백(.body)은 세 화면이 같아야 하므로 여기서 줄이지 않는다 */
     html[data-page='userSmlt'] .panels {
         gap: 12px;

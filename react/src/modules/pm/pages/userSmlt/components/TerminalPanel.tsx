@@ -18,6 +18,8 @@ interface TerminalPanelProps {
     kpis?: PanelKpi[];
     onMapClick?: () => void;
     footer?: ReactNode;
+    /** 조회 전용 — 저장 버튼과 대상 스위치를 그리지 않는다 */
+    readOnly?: boolean;
     children: ReactNode;
 }
 
@@ -41,6 +43,7 @@ export function TerminalPanel({
     kpis,
     onMapClick,
     footer,
+    readOnly,
     children,
 }: TerminalPanelProps) {
     const BadgeIcon = terminal === 'T1' ? T1WhiteIcon : T2WhiteIcon;
@@ -58,7 +61,7 @@ export function TerminalPanel({
                 enabled && focused ? ' panel--focus' : ''
             }`}
             aria-disabled={enabled ? undefined : true}
-            onClick={enabled ? onFocus : onToggle}
+            onClick={enabled || readOnly ? onFocus : onToggle}
         >
             <div className="panel__head">
                 <div
@@ -104,27 +107,32 @@ export function TerminalPanel({
 
             {children}
 
-            {/* 헤드는 요약·결과지표로 꽉 차 스위치가 들어갈 자리가 없다 — 바닥 오른쪽에 둔다 */}
+            {/* 헤드는 요약·결과지표로 꽉 차 스위치가 들어갈 자리가 없다 — 바닥 오른쪽에 둔다.
+                조회 전용이면 안이 비지만 칸은 남긴다 (세로 flex 사슬이 끊기지 않게) */}
             <div className="panel__foot">
-                {enabled ? footer : null}
+                {!readOnly && (
+                    <>
+                        {enabled ? footer : null}
 
-                <button
-                    type="button"
-                    className={`tswitch${enabled ? ' is-on' : ''}`}
-                    role="switch"
-                    aria-checked={enabled}
-                    aria-label={`${terminal} 시뮬레이션 대상`}
-                    disabled={locked}
-                    title={locked ? LOCKED_HINT : undefined}
-                    onClick={handleToggle}
-                >
-                    <span className="tswitch__track" aria-hidden="true">
-                        <i className="tswitch__knob" />
-                    </span>
-                    <span className="tswitch__text">
-                        {terminal} {enabled ? '사용' : '미사용'}
-                    </span>
-                </button>
+                        <button
+                            type="button"
+                            className={`tswitch${enabled ? ' is-on' : ''}`}
+                            role="switch"
+                            aria-checked={enabled}
+                            aria-label={`${terminal} 시뮬레이션 대상`}
+                            disabled={locked}
+                            title={locked ? LOCKED_HINT : undefined}
+                            onClick={handleToggle}
+                        >
+                            <span className="tswitch__track" aria-hidden="true">
+                                <i className="tswitch__knob" />
+                            </span>
+                            <span className="tswitch__text">
+                                {terminal} {enabled ? '사용' : '미사용'}
+                            </span>
+                        </button>
+                    </>
+                )}
             </div>
         </section>
     );

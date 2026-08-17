@@ -281,6 +281,54 @@ html[data-page='dashboard'] .btn-primary {
     font-family: inherit;
 }
 
+/* 설정 조건 보기 — 뱃지(.btn-primary)의 아웃라인 변형 */
+html[data-page='dashboard'] .btn-config {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    color: #4441cc;
+    border: 1px solid #4441cc;
+    border-radius: 20px;
+    height: 38px;
+    padding: 0 20px;
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+html[data-page='dashboard'] .btn-config:hover {
+    background: #f2f2fc;
+}
+
+/* 실행자(부서 · 성명) — 계산 시각(.calc)과 같은 2줄 구조 */
+html[data-page='dashboard'] .exec {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+}
+
+html[data-page='dashboard'] .exec .exec__ic {
+    color: #98a0b0;
+}
+
+html[data-page='dashboard'] .exec .txt {
+    line-height: 1.6;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .exec .txt .muted {
+    color: #6a7385;
+}
+
+html[data-page='dashboard'] .exec .strong {
+    color: #2b313d;
+    font-weight: 600;
+}
+
 html[data-page='dashboard'] .calc {
     display: flex;
     align-items: center;

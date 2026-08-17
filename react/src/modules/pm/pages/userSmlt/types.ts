@@ -44,6 +44,13 @@ export interface SmltTabProps {
     onToggleTerminal: (terminal: TerminalKind) => void;
     focusTerminal: TerminalKind;
     onFocusChange: (terminal: TerminalKind) => void;
+    /**
+     * 조회 전용 — 대시보드에서 `어떤 설정으로 실행했는지` 보러 들어온 상태.
+     *
+     * 결과를 확인하러 온 것이라 편집 진입점(저장 · 터미널 스위치 · 편집 도크 · 상세 드로어)을
+     * 아예 그리지 않는다. 차트·격자·KPI 는 그대로 보인다.
+     */
+    readOnly?: boolean;
 }
 
 /**

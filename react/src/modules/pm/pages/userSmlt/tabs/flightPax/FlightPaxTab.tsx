@@ -36,6 +36,7 @@ export function FlightPaxTab({
     onToggleTerminal,
     focusTerminal,
     onFocusChange,
+    readOnly,
 }: SmltTabProps) {
     const { raw, error } = useTerminalData(smltIds, reloadKey, fetchFltPsg, keepDto, FETCH_FAIL);
     const [ratios, setRatios] = useState<RatioState>(EMPTY_RATIO);
@@ -88,6 +89,7 @@ export function FlightPaxTab({
                         canDisable={enabledCount > 1}
                         onToggle={() => onToggleTerminal(terminal)}
                         onFocus={() => onFocusChange(terminal)}
+                        readOnly={readOnly}
                         summary={
                             <>
                                 <div className="summary__group">
@@ -123,7 +125,7 @@ export function FlightPaxTab({
                             ratio={ratios[terminal]}
                             onRatioChange={(ratio) => handleRatioChange(terminal, ratio)}
                             rows={panelData.rows}
-                            disabled={!on}
+                            disabled={!on || Boolean(readOnly)}
                         />
                     </TerminalPanel>
                 );

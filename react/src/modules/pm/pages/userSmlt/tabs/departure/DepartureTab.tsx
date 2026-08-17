@@ -118,6 +118,7 @@ export function DepartureTab({
     onToggleTerminal,
     focusTerminal,
     onFocusChange,
+    readOnly,
 }: SmltTabProps) {
     const { data: fetched, error } = useTerminalData(
         smltIds,
@@ -261,6 +262,7 @@ export function DepartureTab({
                         onFocus={() => onFocusChange(terminal)}
                         kpis={panelData.kpis}
                         onMapClick={() => handleMapClick(terminal)}
+                        readOnly={readOnly}
                         summary={
                             <>
                                 <div className="summary__group">
@@ -300,16 +302,22 @@ export function DepartureTab({
                             gridLeft={GUTTER}
                             blockFontSize={13}
                             line={panelData.wait}
-                            footText="블럭을 클릭하면 아래 격자에서 그 출국장 줄이 켜집니다. 줄 라벨을 클릭하면 출국장 속성을 편집합니다."
+                            footText={
+                                readOnly
+                                    ? '블럭을 클릭하면 아래 격자에서 그 출국장 줄이 켜집니다.'
+                                    : '블럭을 클릭하면 아래 격자에서 그 출국장 줄이 켜집니다. 줄 라벨을 클릭하면 출국장 속성을 편집합니다.'
+                            }
                             actions={
-                                <button
-                                    type="button"
-                                    className="bchart__act"
-                                    disabled={!on}
-                                    onClick={() => openDetail(terminal)}
-                                >
-                                    세부 운영시간 직접 설정 →
-                                </button>
+                                readOnly ? undefined : (
+                                    <button
+                                        type="button"
+                                        className="bchart__act"
+                                        disabled={!on}
+                                        onClick={() => openDetail(terminal)}
+                                    >
+                                        세부 운영시간 직접 설정 →
+                                    </button>
+                                )
                             }
                             selected={
                                 selected[terminal] !== null ? [String(selected[terminal])] : []
@@ -339,13 +347,14 @@ export function DepartureTab({
                             selected={selected[terminal]}
                             onSelect={(no) => setSelected((prev) => ({ ...prev, [terminal]: no }))}
                             onLabelClick={(no) => openGate(terminal, no)}
-                            disabled={!on}
+                            disabled={!on || readOnly}
                         />
                     </TerminalPanel>
                 );
             })}
 
-            {openDrawer && draft && (
+            {/* 조회 전용이면 편집 드로어를 아예 열지 않는다 (여는 길인 격자 라벨도 잠겨 있다) */}
+            {!readOnly && openDrawer && draft && (
                 <DetailDrawer
                     badge={String(draft.no)}
                     badgeColor={draft.color}

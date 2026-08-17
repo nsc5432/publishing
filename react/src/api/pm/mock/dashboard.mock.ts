@@ -382,8 +382,14 @@ export const dashboardMock = {
     /**
      * 조회 조건 기준 정보.
      * 기준일자는 화면 목업과 어긋나지 않도록 요청 값과 무관하게 2026-07-10 로 고정한다.
+     *
+     * 지목된 smltId 가 있으면 그대로 되돌려주고, 모니터링 목업의 ID 규칙(`STD-` / `USR-`)으로
+     * 시뮬레이션 구분을 정한다 — 그래야 일일/사용자 두 경로를 목업으로 다 볼 수 있다.
      */
-    getBaseInfo: (): DsbdBaseInfoDto => BASE_INFO,
+    getBaseInfo: (smltId?: string): DsbdBaseInfoDto =>
+        smltId
+            ? { ...BASE_INFO, smltId, smltType: smltId.startsWith('USR') ? 'USER' : 'DAILY' }
+            : { ...BASE_INFO, smltType: 'DAILY' },
 
     getHeader: (): DsbdHeaderDto => HEADER,
 

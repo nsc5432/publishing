@@ -1,6 +1,6 @@
 import './userSmlt.css';
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { unwrap } from '@/api/pm/result';
 import { Lnb } from '@/components/lnb';
@@ -29,6 +29,8 @@ import {
 
 /** 화면 타이틀 (GNB) */
 const TITLE = 'PM 예측관리 / 사용자 시뮬레이션';
+/** 조회 전용으로 들어왔을 때의 타이틀 — 편집 화면과 헷갈리지 않게 문구를 나눈다 */
+const VIEW_TITLE = 'PM 예측관리 / 사용자 시뮬레이션 설정 조건 조회';
 
 const EXEC_FAIL = '시뮬레이션 실행에 실패했습니다.';
 const EXEC_CONFIRM = '시뮬레이션을 실행하시겠습니까?';
@@ -39,6 +41,16 @@ interface TabContentProps extends SmltTabProps {
 }
 
 /**
+ * 조회 전용으로 펼 터미널.
+ * 실행은 터미널 단위라 보통 한쪽만 넘어오지만, 지정이 없으면 양쪽을 다 편다.
+ */
+function viewEnabled(tmnlId: TerminalKind | null): TerminalEnabled {
+    if (!tmnlId) return { T1: true, T2: true };
+
+    return { T1: tmnlId === 'T1', T2: tmnlId === 'T2' };
+}
+
+/**
  * 사용자 시뮬레이션 — 조건 설정 화면.
  *
  * 진입 정보(getInfo)로 터미널별 편집 대상 시뮬레이션 ID 를 받고,
@@ -46,21 +58,48 @@ interface TabContentProps extends SmltTabProps {
  *
  * 시뮬레이션 대상 터미널은 1개일 수도 2개일 수도 있다. 도입 화면에서 고르지만
  * 설정 도중에도 패널 스위치로 켜고 끌 수 있어, 이 화면이 그 상태(enabled)를 쥐고 있다.
+ *
+ * `?mode=view` 로 들어오면 **조회 전용**이다. 대시보드에서 `이 시뮬레이션을 어떤 설정으로
+ * 돌렸는지` 보러 온 것이라, 편집 대상 시뮬레이션을 새로 잡지 않고 넘어온 smltId 를 그대로
+ * 읽는다. 도입 화면도 건너뛰고 바로 패널을 편다.
  */
 function UserSmltConfig() {
     usePageScope('userSmlt');
     const navigate = useNavigate();
 
+    const [params] = useSearchParams();
+    const readOnly = params.get('mode') === 'view';
+    const viewSmltId = params.get('smltId') ?? '';
+    const viewTmnlId = params.get('tmnlId') as TerminalKind | null;
+
     // 기준일자 — 최초 진입은 오늘. (달력 UI 가 붙으면 여기서 바꾼다)
-    const [ymd] = useState(todayYmd);
+    // 조회 전용이면 볼 시뮬레이션의 일자를 쓴다.
+    const [ymd] = useState(() => params.get('ymd') || todayYmd());
     const [reloadKey, setReloadKey] = useState(0);
-    const { smltIds, ymd: baseYmd, error } = useSmltInfo(ymd, reloadKey);
+    // 조회 전용은 볼 시뮬레이션이 이미 정해져 있어 진입 정보를 부르지 않는다.
+    const {
+        smltIds: editSmltIds,
+        ymd: baseYmd,
+        error,
+    } = useSmltInfo(readOnly ? '' : ymd, reloadKey);
+
+    /** 조회 전용이면 넘어온 smltId 로 대신 채운다 — 터미널이 지정돼 있으면 그쪽만 */
+    const smltIds = useMemo(() => {
+        if (!readOnly) return editSmltIds;
+
+        return {
+            T1: !viewTmnlId || viewTmnlId === 'T1' ? viewSmltId : '',
+            T2: !viewTmnlId || viewTmnlId === 'T2' ? viewSmltId : '',
+        };
+    }, [readOnly, editSmltIds, viewTmnlId, viewSmltId]);
 
     const [activeTab, setActiveTab] = useState<SmltTabKey>('flightPax');
     /** 시뮬레이션 대상으로 켜 둔 터미널 — 둘 다 꺼져 있으면 도입 화면 */
-    const [enabled, setEnabled] = useState<TerminalEnabled>(NO_TERMINAL);
+    const [enabled, setEnabled] = useState<TerminalEnabled>(() =>
+        readOnly ? viewEnabled(viewTmnlId) : NO_TERMINAL,
+    );
     /** 화면에 하나뿐인 편집 도크·드로어가 보는 터미널 */
-    const [focusTerminal, setFocusTerminal] = useState<TerminalKind>('T1');
+    const [focusTerminal, setFocusTerminal] = useState<TerminalKind>(viewTmnlId ?? 'T1');
 
     useErrorAlert(error);
 
@@ -119,15 +158,16 @@ function UserSmltConfig() {
             <BgDeco />
 
             <SmltGnb
-                title={TITLE}
+                title={readOnly ? VIEW_TITLE : TITLE}
                 baseDate={formatYmd(baseYmd || ymd)}
                 steps={
                     picked ? (
                         <SmltTabs activeTab={activeTab} onTabChange={setActiveTab} />
                     ) : undefined
                 }
-                onSearch={handleSearch}
-                onRun={picked ? handleRun : undefined}
+                onBack={readOnly ? () => navigate(-1) : undefined}
+                onSearch={readOnly ? undefined : handleSearch}
+                onRun={picked && !readOnly ? handleRun : undefined}
             />
 
             <div className="body">
@@ -144,6 +184,7 @@ function UserSmltConfig() {
                                 onToggleTerminal={handleToggleTerminal}
                                 focusTerminal={focusTerminal}
                                 onFocusChange={setFocusTerminal}
+                                readOnly={readOnly}
                             />
                         </div>
                     ) : (

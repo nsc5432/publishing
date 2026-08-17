@@ -9,6 +9,12 @@ export const SIMULATION_LABEL: Record<SimulationType, string> = {
     user: '사용자 시뮬레이션',
 };
 
+/** 상단 바 제목 — 뱃지와 같은 구분을 문장으로 한 번 더 알린다 */
+export const SIMULATION_TITLE: Record<SimulationType, string> = {
+    daily: '일일 시뮬레이션 결과 조회',
+    user: '사용자 시뮬레이션 결과 조회',
+};
+
 /** 터미널 구분 (제1터미널=왼쪽 / 제2터미널=오른쪽) */
 export type TerminalKind = 'T1' | 'T2';
 

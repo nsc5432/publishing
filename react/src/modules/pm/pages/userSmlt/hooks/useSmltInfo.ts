@@ -28,6 +28,12 @@ export function useSmltInfo(ymd: string, reloadKey = 0): SmltInfoState {
     const [state, setState] = useState<SmltInfoState>(EMPTY);
 
     useEffect(() => {
+        // 기준일자가 없으면 잡을 대상이 없다 — 조회 전용 진입은 볼 시뮬레이션이 이미 정해져 있다.
+        if (!ymd) {
+            setState(EMPTY);
+            return;
+        }
+
         // 기준일자를 바꿔 다시 부르는 동안 이전 응답이 뒤늦게 덮어쓰지 않도록 막는다.
         let isCurrent = true;
 

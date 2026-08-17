@@ -106,6 +106,7 @@ export function CheckinCounterTab({
     onToggleTerminal,
     focusTerminal,
     onFocusChange,
+    readOnly,
 }: SmltTabProps) {
     const { data: fetched, error } = useTerminalData(
         smltIds,
@@ -214,6 +215,7 @@ export function CheckinCounterTab({
                         onFocus={() => onFocusChange(terminal)}
                         kpis={panelData.kpis}
                         onMapClick={() => handleMapClick(terminal)}
+                        readOnly={readOnly}
                         summary={
                             <>
                                 <div className="summary__group">
@@ -269,26 +271,29 @@ export function CheckinCounterTab({
 
                                 return `아일랜드 ${item.label} · ${detail} · ${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
                             }}
-                            disabled={!on}
+                            disabled={!on || readOnly}
                         />
                     </TerminalPanel>
                 );
             })}
 
-            <EditDock
-                terminal={focusTerminal}
-                codes={focusData.islandCodes}
-                islands={focusIslands}
-                selected={draft ? [draft.label] : []}
-                onSelect={(label) => openIsland(focusTerminal, label)}
-                draft={draft}
-                onPatch={patchDraft}
-                airlines={focusData.airlines}
-                selectedBooth={draft ? dock.selectedBooth : null}
-                onSelectBooth={(no) => setDock((prev) => ({ ...prev, selectedBooth: no }))}
-                onConfirm={handleConfirm}
-                onCancel={() => setDock({ ...EMPTY_DOCK, terminal: focusTerminal })}
-            />
+            {/* 조회 전용이면 편집 도크를 아예 그리지 않는다 (도크를 여는 블럭 차트도 잠겨 있다) */}
+            {!readOnly && (
+                <EditDock
+                    terminal={focusTerminal}
+                    codes={focusData.islandCodes}
+                    islands={focusIslands}
+                    selected={draft ? [draft.label] : []}
+                    onSelect={(label) => openIsland(focusTerminal, label)}
+                    draft={draft}
+                    onPatch={patchDraft}
+                    airlines={focusData.airlines}
+                    selectedBooth={draft ? dock.selectedBooth : null}
+                    onSelectBooth={(no) => setDock((prev) => ({ ...prev, selectedBooth: no }))}
+                    onConfirm={handleConfirm}
+                    onCancel={() => setDock({ ...EMPTY_DOCK, terminal: focusTerminal })}
+                />
+            )}
         </>
     );
 }
