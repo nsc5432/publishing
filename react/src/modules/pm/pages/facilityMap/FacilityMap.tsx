@@ -104,7 +104,7 @@ function downloadCsv(terminal: TerminalKind, rows: FcltMapRow[]): void {
             .join(','),
     );
 
-    const csv = '﻿' + [CSV_COLUMNS.map(toCsvCell).join(','), ...body].join('\r\n');
+    const csv = '\uFEFF' + [CSV_COLUMNS.map(toCsvCell).join(','), ...body].join('\r\n');
     const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
 
     const link = document.createElement('a');

@@ -420,10 +420,10 @@ function toMarkerList(tmnlId: TmnlId, fcltType: FcltType, island: string): MapMa
 }
 
 export const userSmltMock = {
-    getInfo: (tmnlId: TmnlId): UserSmltInfoDto => ({
+    getInfo: (ymd: string, tmnlId: TmnlId): UserSmltInfoDto => ({
         ...OK,
         smltId: SMLT_ID[tmnlId],
-        ymd: YMD,
+        ymd: ymd || YMD,
         saveDt: SAVE_DT,
         execStatus: 'DONE',
     }),

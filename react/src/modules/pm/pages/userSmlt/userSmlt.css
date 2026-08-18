@@ -200,6 +200,30 @@ html[data-page='userSmlt'] .date-picker__label {
     color: #5a5f6b;
 }
 
+/* 날짜 입력(input[type=date])을 표기 위에 투명하게 겹쳐 둔다 — showPicker() 가 여는
+   달력이 이 위치를 기준으로 뜨므로, 보이는 버튼과 정확히 겹치도록 relative 를 여기 둔다.
+   display:none 으로 감추면 showPicker() 가 달력을 열지 못하므로 opacity 로만 지운다. */
+html[data-page='userSmlt'] .date-picker__field {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+html[data-page='userSmlt'] .date-picker__btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: none;
+    background: none;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+html[data-page='userSmlt'] .date-picker__btn:disabled {
+    cursor: default;
+}
+
 html[data-page='userSmlt'] .date-picker__icon {
     width: 18px;
     height: 18px;
@@ -210,6 +234,15 @@ html[data-page='userSmlt'] .date-picker__value {
     font-size: 15px;
     font-weight: 500;
     letter-spacing: 0.2px;
+}
+
+html[data-page='userSmlt'] .date-picker__input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border: none;
+    opacity: 0;
+    pointer-events: none;
 }
 
 html[data-page='userSmlt'] .date-picker__search {

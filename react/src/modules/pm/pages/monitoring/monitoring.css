@@ -103,6 +103,40 @@ html[data-page='monitoring'] .datebox__tilde {
     font-size: 16px;
 }
 
+/* 날짜 달력 : 날짜 입력(input[type=date])을 표기 위에 투명하게 겹쳐 둔다.
+   display:none 으로 감추면 showPicker() 가 달력을 열지 못하므로 opacity 로만 지운다. */
+html[data-page='monitoring'] .datepick {
+    display: flex;
+    position: relative;
+    align-items: center;
+}
+
+html[data-page='monitoring'] .datepick__btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px;
+    border: none;
+    border-radius: 10px;
+    background: none;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+html[data-page='monitoring'] .datepick__btn:hover {
+    background: #eff2fb;
+}
+
+html[data-page='monitoring'] .datepick__input {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    border: none;
+    opacity: 0;
+    pointer-events: none;
+}
+
 html[data-page='monitoring'] .search-btn {
     display: flex;
     align-items: center;
@@ -156,9 +190,29 @@ html[data-page='monitoring'] .kpi__card {
     gap: 12px;
     min-height: clamp(88px, 11vh, 112px);
     padding: 0 clamp(16px, 1.4vw, 24px);
+    border: 2px solid transparent;
     border-radius: var(--card-radius);
     background: linear-gradient(120deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.42));
     box-shadow: 0 2px 10px rgba(63, 84, 145, 0.07);
+    font-family: inherit;
+    text-align: left;
+    cursor: default;
+}
+
+html[data-page='monitoring'] .kpi__card--clickable {
+    cursor: pointer;
+    transition:
+        border-color 0.15s,
+        box-shadow 0.15s;
+}
+
+html[data-page='monitoring'] .kpi__card--clickable:hover {
+    box-shadow: 0 4px 14px rgba(63, 84, 145, 0.12);
+}
+
+html[data-page='monitoring'] .kpi__card--clickable.is-active {
+    border-color: var(--blue);
+    box-shadow: 0 4px 14px rgba(63, 84, 145, 0.14);
 }
 
 html[data-page='monitoring'] .kpi__ico {

@@ -134,6 +134,7 @@ const TMNL_SMRY: Record<TmnlId, TmnlSmryDto> = {
         psgDiffCnt: 2688,
         befPsgDiffCnt: 1234,
         brdgRate: 79,
+        cgnStatus: 'FREE',
         peak: {
             ampm: 'AM',
             peakTime: '1000',
@@ -153,6 +154,7 @@ const TMNL_SMRY: Record<TmnlId, TmnlSmryDto> = {
         psgDiffCnt: 1942,
         befPsgDiffCnt: 842,
         brdgRate: 74,
+        cgnStatus: 'NORMAL',
         peak: {
             ampm: 'AM',
             peakTime: '0900',

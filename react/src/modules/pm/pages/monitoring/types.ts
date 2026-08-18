@@ -14,6 +14,9 @@ export const RUN_STATUS_LABEL: Record<RunStatus, string> = {
     running: '진행중',
 };
 
+/** 이력 그리드 상태 필터 — KPI 카드 클릭으로 바뀐다 */
+export type StatusFilter = 'all' | RunStatus;
+
 /** 시뮬레이션 이력 한 줄 */
 export interface HistoryRow {
     rowNo: number;

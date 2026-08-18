@@ -8,7 +8,7 @@ import { Icon } from '@/components/icons/InlineIcon';
 import { GaugeDonut } from './GaugeDonut';
 import { TerminalChart } from './TerminalChart';
 import { EMPTY_TERMINAL_VIEW } from '../view';
-import type { DsbdCategory } from '@/types/api.types';
+import type { CongestionStatus, DsbdCategory } from '@/types/api.types';
 import type { GateData, GateFcltType, TerminalKind, TerminalView } from '../types';
 
 type ViewKind = 'summary' | 'table';
@@ -21,11 +21,14 @@ interface TerminalSummaryProps {
     titleCategory: DsbdCategory | null;
 }
 
-/** 터미널별 큰 아이콘 / 워터마크 / 패널 색 / 게이지 색 (서버 값이 아니라 화면 규칙) */
-interface TerminalTheme {
+/** 터미널별 큰 아이콘 / 워터마크 (터미널 고정, 혼잡도와 무관) */
+interface TerminalImages {
     big: string;
     watermark: string;
-    /** dashboard.css 의 .panel-blue / .panel-green */
+}
+
+/** 혼잡도 → 패널 색 / 게이지 색 (dashboard.css 의 .panel-blue/-green/-orange/-red) */
+interface CongestionTheme {
     panelClass: string;
     gauge: string;
 }
@@ -44,23 +47,26 @@ const GATE_DETAIL_PATH: Record<GateFcltType, string> = {
     DEP: '/rui/pm/daily-smlt/departureHall',
 };
 
-const TERMINAL_THEMES: Record<TerminalKind, TerminalTheme> = {
-    T1: { big: t1White, watermark: t1Blue, panelClass: 'panel-blue', gauge: '#2f7ff0' },
-    T2: { big: t2White, watermark: t2Teal, panelClass: 'panel-green', gauge: '#2f7ff0' },
+const TERMINAL_IMAGES: Record<TerminalKind, TerminalImages> = {
+    T1: { big: t1White, watermark: t1Blue },
+    T2: { big: t2White, watermark: t2Teal },
 };
 
-/** 터미널별 최초 뷰 (T1=요약, T2=출국장 테이블) */
-const DEFAULT_VIEW: Record<TerminalKind, ViewKind> = {
-    T1: 'summary',
-    T2: 'table',
+/** FREE=원활(blue) · NORMAL=보통(yellow) · BUSY=혼잡(orange) · VERY_BUSY=매우혼잡(red) */
+const CONGESTION_THEMES: Record<CongestionStatus, CongestionTheme> = {
+    FREE: { panelClass: 'panel-blue', gauge: '#2f7ff0' },
+    NORMAL: { panelClass: 'panel-green', gauge: '#2f7ff0' },
+    BUSY: { panelClass: 'panel-orange', gauge: '#e0691c' },
+    VERY_BUSY: { panelClass: 'panel-red', gauge: '#d92626' },
 };
 
 export function TerminalSummary({ terminal, data, titleCategory }: TerminalSummaryProps) {
     const view = data ?? EMPTY_TERMINAL_VIEW;
-    const theme = TERMINAL_THEMES[terminal];
+    const images = TERMINAL_IMAGES[terminal];
+    const theme = CONGESTION_THEMES[view.cgnStatus];
     const navigate = useNavigate();
 
-    const [viewKind, setViewKind] = useState<ViewKind>(DEFAULT_VIEW[terminal]);
+    const [viewKind, setViewKind] = useState<ViewKind>('summary');
     const [selectedRow, setSelectedRow] = useState(view.defaultSelectedRow);
 
     // 조회 시각이 바뀌면 그 시각의 행으로 선택을 옮긴다.
@@ -72,7 +78,7 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
         <section className={`panel ${theme.panelClass}`}>
             <div className="p-top">
                 <div className="p-iconbox">
-                    <img className="tbig" alt="terminal" src={theme.big} />
+                    <img className="tbig" alt="terminal" src={images.big} />
                 </div>
                 <div className="p-mid">
                     <div className="p-stats">
@@ -143,7 +149,7 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
                 <div className="chartbox">
                     <div
                         className="chart-bg"
-                        style={{ backgroundImage: `url("${theme.watermark}")` }}
+                        style={{ backgroundImage: `url("${images.watermark}")` }}
                     />
                     <div className="legend">
                         <span>

@@ -579,7 +579,7 @@ html[data-page='facilityMap'] .list__tools {
 }
 
 html[data-page='facilityMap'] .list__search {
-    width: 120px;
+    width: 130px;
     height: 30px;
     padding: 0 12px;
     border: 1px solid var(--c-line);

@@ -7,7 +7,7 @@ import { Lnb } from '@/components/lnb';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
 import { dialog } from '@/lib/dialog';
-import { formatYmd, todayYmd } from '@/lib/format';
+import { todayYmd } from '@/lib/format';
 import type { ApiError } from '@/types/api.types';
 import { BgDeco } from './components/BgDeco';
 import { SmltGnb } from './components/SmltGnb';
@@ -50,19 +50,6 @@ function viewEnabled(tmnlId: TerminalKind | null): TerminalEnabled {
     return { T1: tmnlId === 'T1', T2: tmnlId === 'T2' };
 }
 
-/**
- * 사용자 시뮬레이션 — 조건 설정 화면.
- *
- * 진입 정보(getInfo)로 터미널별 편집 대상 시뮬레이션 ID 를 받고,
- * 탭마다 그 ID 로 조건을 조회·저장한다. 실행은 저장된 조건으로 수행을 건다.
- *
- * 시뮬레이션 대상 터미널은 1개일 수도 2개일 수도 있다. 도입 화면에서 고르지만
- * 설정 도중에도 패널 스위치로 켜고 끌 수 있어, 이 화면이 그 상태(enabled)를 쥐고 있다.
- *
- * `?mode=view` 로 들어오면 **조회 전용**이다. 대시보드에서 `이 시뮬레이션을 어떤 설정으로
- * 돌렸는지` 보러 온 것이라, 편집 대상 시뮬레이션을 새로 잡지 않고 넘어온 smltId 를 그대로
- * 읽는다. 도입 화면도 건너뛰고 바로 패널을 편다.
- */
 function UserSmltConfig() {
     usePageScope('userSmlt');
     const navigate = useNavigate();
@@ -72,9 +59,9 @@ function UserSmltConfig() {
     const viewSmltId = params.get('smltId') ?? '';
     const viewTmnlId = params.get('tmnlId') as TerminalKind | null;
 
-    // 기준일자 — 최초 진입은 오늘. (달력 UI 가 붙으면 여기서 바꾼다)
+    // 기준일자 — 최초 진입은 오늘. GNB 달력에서 바꿀 수 있다.
     // 조회 전용이면 볼 시뮬레이션의 일자를 쓴다.
-    const [ymd] = useState(() => params.get('ymd') || todayYmd());
+    const [ymd, setYmd] = useState(() => params.get('ymd') || todayYmd());
     const [reloadKey, setReloadKey] = useState(0);
     // 조회 전용은 볼 시뮬레이션이 이미 정해져 있어 진입 정보를 부르지 않는다.
     const {
@@ -159,15 +146,17 @@ function UserSmltConfig() {
 
             <SmltGnb
                 title={readOnly ? VIEW_TITLE : TITLE}
-                baseDate={formatYmd(baseYmd || ymd)}
+                ymd={baseYmd || ymd}
                 steps={
                     picked ? (
                         <SmltTabs activeTab={activeTab} onTabChange={setActiveTab} />
                     ) : undefined
                 }
                 onBack={readOnly ? () => navigate(-1) : undefined}
+                onDateChange={readOnly ? undefined : setYmd}
                 onSearch={readOnly ? undefined : handleSearch}
                 onRun={picked && !readOnly ? handleRun : undefined}
+                onHistory={picked && !readOnly ? () => navigate(MONITORING_PATH) : undefined}
             />
 
             <div className="body">

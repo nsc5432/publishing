@@ -136,6 +136,7 @@ export function toTerminalView({
 
     return {
         barText: `${formatYmd(ymd, '-')} ${dowLabel(ymd)} ${formatHhmm(hhmm)} ${smry.peak.ampm}`,
+        cgnStatus: smry.cgnStatus,
         stats: {
             flights: { delta: formatDiff(smry.fltDiffCnt), value: formatCount(smry.fltCnt) },
             pax: { delta: formatDiff(smry.psgDiffCnt), value: formatCount(smry.psgCnt) },
@@ -181,6 +182,7 @@ export function toTerminalView({
 /** 아직 응답이 없을 때 그릴 빈 패널 (골격은 그대로 두고 값만 비운다) */
 export const EMPTY_TERMINAL_VIEW: TerminalView = {
     barText: '-',
+    cgnStatus: 'FREE',
     stats: {
         flights: { delta: '-', value: '-' },
         pax: { delta: '-', value: '-' },

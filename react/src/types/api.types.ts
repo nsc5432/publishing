@@ -127,6 +127,7 @@ export interface TmnlSmryDto extends JsonResponse {
     psgDiffCnt: number; // 지난주 同요일 대비 여객 증감
     befPsgDiffCnt: number; // 전일 대비 여객 증감
     brdgRate: number; // 탑승률 (%)
+    cgnStatus: CongestionStatus; // 패널 전체 혼잡도 (blue/green/orange/red 4단계)
     peak: PeakDto;
 }
 

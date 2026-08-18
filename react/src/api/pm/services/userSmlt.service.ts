@@ -23,7 +23,7 @@ import type {
 export const userSmltService = {
     // 진입 정보 (편집 대상 시뮬레이션 ID / 마지막 저장 시각)
     getInfo: async (ymd: string, tmnlId: TmnlId): Promise<UserSmltInfoDto> => {
-        if (USE_MOCK) return mockResponse(userSmltMock.getInfo(tmnlId), { loading: true });
+        if (USE_MOCK) return mockResponse(userSmltMock.getInfo(ymd, tmnlId), { loading: true });
 
         const response = await apiClient.post<UserSmltInfoDto>(
             API_ENDPOINTS.USER_SMLT_INFO,

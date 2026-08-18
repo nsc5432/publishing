@@ -1,4 +1,4 @@
-import type { DsbdRsltDto, FcltType } from '@/types/api.types';
+import type { CongestionStatus, DsbdRsltDto, FcltType } from '@/types/api.types';
 import type { IconName } from '@/components/icons/InlineIcon';
 
 /** 일일 시뮬레이션 / 사용자 시뮬레이션 두 가지 버전 */
@@ -108,6 +108,8 @@ export interface TableRow {
 export interface TerminalView {
     /** 기준시각 바 문구 (예: 2026-07-10 FRI 10:00 AM) */
     barText: string;
+    /** 패널 전체 혼잡도 — p-iconbox/p-title/p-bar 색을 결정한다 */
+    cgnStatus: CongestionStatus;
     /** 헤더 통계(지난주 同요일 대비) */
     stats: {
         flights: { delta: string; value: string };

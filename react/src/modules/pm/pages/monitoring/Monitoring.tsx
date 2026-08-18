@@ -1,5 +1,5 @@
 import './monitoring.css';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { monitoringService } from '@/api/pm/services/monitoring.service';
 import { unwrap } from '@/api/pm/result';
@@ -13,7 +13,11 @@ import { MonitoringGnb } from './components/MonitoringGnb';
 import { StatCards } from './components/StatCards';
 import { useMonitoring, type MonitoringQuery } from './hooks/useMonitoringData';
 import { defaultRange, TITLE, toDateTime } from './options';
-import type { HistoryRow, RangeCondition } from './types';
+import type { HistoryRow, RangeCondition, StatusFilter } from './types';
+
+function filterByStatus(rows: HistoryRow[], filter: StatusFilter): HistoryRow[] {
+    return filter === 'all' ? rows : rows.filter((row) => row.status === filter);
+}
 
 const DETAIL_FAIL = '시뮬레이션 결과를 불러오지 못했습니다.';
 const DASHBOARD_PATH = '/rui/pm/daily-smlt/dashboard';
@@ -39,12 +43,25 @@ function Monitoring() {
     const [range, setRange] = useState<RangeCondition>(defaultRange);
     // 조회 버튼으로 확정된 조건 — 최초 진입은 기본 기간으로 한 번 조회한다.
     const [query, setQuery] = useState<MonitoringQuery>(() => toQuery(defaultRange()));
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
     const { data, error } = useMonitoring(query);
 
     useErrorAlert(error);
 
-    const handleSearch = () => setQuery(toQuery(range));
+    const handleSearch = () => {
+        setQuery(toQuery(range));
+        setStatusFilter('all');
+    };
+
+    const standardRows = useMemo(
+        () => filterByStatus(data?.history.standard ?? [], statusFilter),
+        [data, statusFilter],
+    );
+    const userRows = useMemo(
+        () => filterByStatus(data?.history.user ?? [], statusFilter),
+        [data, statusFilter],
+    );
 
     /**
      * 결과 보기 — 그 시뮬레이션의 대시보드로 간다.
@@ -86,19 +103,15 @@ function Monitoring() {
                 <Lnb />
 
                 <main className="content">
-                    <StatCards cards={data?.stats ?? []} />
+                    <StatCards
+                        cards={data?.stats ?? []}
+                        activeFilter={statusFilter}
+                        onFilterChange={setStatusFilter}
+                    />
 
                     <div className="history">
-                        <HistoryTable
-                            kind="standard"
-                            rows={data?.history.standard ?? []}
-                            onView={handleView}
-                        />
-                        <HistoryTable
-                            kind="user"
-                            rows={data?.history.user ?? []}
-                            onView={handleView}
-                        />
+                        <HistoryTable kind="standard" rows={standardRows} onView={handleView} />
+                        <HistoryTable kind="user" rows={userRows} onView={handleView} />
                     </div>
                 </main>
             </div>
