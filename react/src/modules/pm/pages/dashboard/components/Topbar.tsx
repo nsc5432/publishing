@@ -50,9 +50,13 @@ export function Topbar({
 }: TopbarProps) {
     const dateRef = useRef<HTMLInputElement>(null);
 
+    const isUserSmlt = simulationType === 'user';
+
     // 날짜 입력은 디자인대로 보이도록 투명하게 겹쳐 두고, 달력은 여기서 직접 연다.
     // (showPicker 가 없는 브라우저는 입력에 포커스만 주고 브라우저 기본 동작에 맡긴다)
     const handleOpenCalendar = () => {
+        if (isUserSmlt) return;
+
         const input = dateRef.current;
         if (!input) return;
 
@@ -70,8 +74,15 @@ export function Topbar({
             <div className="datebox">
                 <span className="lbl">기준일자</span>
 
+                {/* 사용자 시뮬레이션은 실행할 때 정한 일자의 결과라 기준일자를 바꿀 수 없다
+                    (시/분은 그 결과 안에서 고르는 값이라 그대로 열어 둔다) */}
                 <div className="datepick">
-                    <button type="button" className="datepick__btn" onClick={handleOpenCalendar}>
+                    <button
+                        type="button"
+                        className="datepick__btn"
+                        disabled={isUserSmlt}
+                        onClick={handleOpenCalendar}
+                    >
                         <Icon name="calendar" className="cal" />
                         <span className="val">{formatYmd(baseYmd)}</span>
                     </button>
@@ -82,6 +93,7 @@ export function Topbar({
                         value={toDateInputValue(baseYmd)}
                         aria-label="기준일자"
                         tabIndex={-1}
+                        disabled={isUserSmlt}
                         onChange={(event) => onDateChange(toYmd(event.target.value))}
                     />
                 </div>
@@ -106,13 +118,18 @@ export function Topbar({
 
                 {executor && (
                     <div className="exec">
-                        <Icon name="user" className="exec__ic" />
-                        <div className="txt">
-                            <div className="muted">
-                                실행 부서 <span className="strong">{executor.dept}</span>
+                        <div className="exec__item">
+                            <Icon name="building" className="exec__ic" />
+                            <div className="txt">
+                                <div className="muted">실행 부서</div>
+                                <div className="strong">{executor.dept}</div>
                             </div>
-                            <div className="muted">
-                                실행자 <span className="strong">{executor.name}</span>
+                        </div>
+                        <div className="exec__item">
+                            <Icon name="user" className="exec__ic" />
+                            <div className="txt">
+                                <div className="muted">실행자</div>
+                                <div className="strong">{executor.name}</div>
                             </div>
                         </div>
                     </div>
@@ -124,17 +141,21 @@ export function Topbar({
                     </button>
                 )}
 
-                <div className="calc">
-                    <Icon name="clock" className="clk" />
-                    <div className="txt">
-                        <div className="muted">
-                            마지막 계산 <span className="strong">{lastCalc}</span>
-                        </div>
-                        <div className="muted">
-                            재계산 예정 <span className="danger">{nextCalc}</span>
+                {/* 계산 시각은 일일 시뮬레이션에만 있다 — 사용자 시뮬레이션은 한 번 실행하고
+                    끝이라 재계산 예정이 없고, 대신 그 자리에 실행자를 세운다 */}
+                {!isUserSmlt && (
+                    <div className="calc">
+                        <Icon name="clock" className="clk" />
+                        <div className="txt">
+                            <div className="muted">
+                                마지막 계산 <span className="strong">{lastCalc}</span>
+                            </div>
+                            <div className="muted">
+                                재계산 예정 <span className="danger">{nextCalc}</span>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
             </div>
         </header>
     );

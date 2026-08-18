@@ -14,7 +14,14 @@ import {
     formatYmd,
     pad2,
 } from '@/lib/format';
-import type { GateData, GateVariant, SimulationType, TableRow, TerminalView } from './types';
+import type {
+    GateData,
+    GateFcltType,
+    GateVariant,
+    SimulationType,
+    TableRow,
+    TerminalView,
+} from './types';
 
 /**
  * 터미널 패널 DTO → 화면 뷰 모델.
@@ -44,6 +51,12 @@ const CONGESTION_CHIP_CLASS: Record<CongestionStatus, string> = {
 };
 
 const BUSY_STATUS: CongestionStatus[] = ['BUSY', 'VERY_BUSY'];
+
+/** 게이트 카드 제목 */
+const GATE_TITLE: Record<GateFcltType, string> = {
+    CHKN: '체크인카운터',
+    DEP: '출국장',
+};
 
 /** 서버 시뮬레이션 구분 → 화면 뱃지 구분 */
 export function toSimulationType(smltType: SmltType): SimulationType {
@@ -89,11 +102,12 @@ function toGateVariant(card: DsbdFcltCardDto): GateVariant {
     };
 }
 
-function toGateData(title: string, cards: DsbdFcltCardDto[]): GateData {
+function toGateData(fcltType: GateFcltType, cards: DsbdFcltCardDto[]): GateData {
     const busyCount = cards.filter((card) => BUSY_STATUS.includes(card.cgnStatus)).length;
 
     return {
-        title,
+        fcltType,
+        title: GATE_TITLE[fcltType],
         warn: busyCount > 0 ? `혼잡 ${busyCount}개` : '원활',
         variants: cards.map(toGateVariant),
     };
@@ -160,7 +174,7 @@ export function toTerminalView({
             { label: '최대\n대기시간', value: String(smry.peak.maxWtngHr), unit: '분' },
             { label: '시간당\n처리인원', value: formatCount(smry.peak.hrlyPrcsPsgCnt), unit: '명' },
         ],
-        gates: [toGateData('체크인카운터', chknCards), toGateData('출국장', depCards)],
+        gates: [toGateData('CHKN', chknCards), toGateData('DEP', depCards)],
         chart: { rsltList, peakIndex: Math.max(0, peakIndex) },
         tableRows: rsltList.map(toTableRow),
         defaultSelectedRow: Math.max(0, currentIndex),

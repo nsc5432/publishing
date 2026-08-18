@@ -91,9 +91,36 @@ export const HOUR_OPTIONS = Array.from({ length: 24 }, (_, hour) => pad2(hour));
 /** 조회 조건 분 목록 — 10분 단위 */
 export const MINUTE_OPTIONS = ['00', '10', '20', '30', '40', '50'];
 
-/** 기본 선택 시각 — 계산이 끝난 가장 늦은 시각 (없으면 자정) */
-export function defaultTime(avlTimes: string[]): string {
-    if (avlTimes.length === 0) return HOUR_OPTIONS[0] + MINUTE_OPTIONS[0];
+/** 분 선택 간격 (분) */
+const MINUTE_STEP = 60 / MINUTE_OPTIONS.length;
 
-    return [...avlTimes].sort().at(-1) as string;
+/** HHmm → 자정으로부터의 분 */
+function toMinuteOfDay(hhmm: string): number {
+    return Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(2, 4));
+}
+
+/** 현재 시각을 분 선택 간격에 맞춰 내린 값 (HHmm) */
+function nowHhmm(): string {
+    const now = new Date();
+
+    return pad2(now.getHours()) + pad2(Math.floor(now.getMinutes() / MINUTE_STEP) * MINUTE_STEP);
+}
+
+/**
+ * 기본 선택 시각 — 현재 시각에 가장 가까운 선택 가능 시각.
+ *
+ * 화면에 들어오면 "지금" 을 보고 싶어 하지, 계산이 끝난 마지막 시각을 보고 싶어 하지 않는다.
+ * 아직 계산되지 않은 시각은 목록에 없으므로 자연히 가장 늦은 시각으로 내려앉는다.
+ * (목록이 비면 현재 시각을 그대로 쓴다)
+ */
+export function defaultTime(avlTimes: string[]): string {
+    const now = toMinuteOfDay(nowHhmm());
+
+    if (avlTimes.length === 0) return nowHhmm();
+
+    return avlTimes.reduce((nearest, time) =>
+        Math.abs(toMinuteOfDay(time) - now) < Math.abs(toMinuteOfDay(nearest) - now)
+            ? time
+            : nearest,
+    );
 }

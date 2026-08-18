@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import t1White from '@/assets/svg/t1-white.svg';
 import t2White from '@/assets/svg/t2-white.svg';
 import t1Blue from '@/assets/svg/t1-blue.svg';
@@ -8,7 +9,7 @@ import { GaugeDonut } from './GaugeDonut';
 import { TerminalChart } from './TerminalChart';
 import { EMPTY_TERMINAL_VIEW } from '../view';
 import type { DsbdCategory } from '@/types/api.types';
-import type { GateData, TerminalKind, TerminalView } from '../types';
+import type { GateData, GateFcltType, TerminalKind, TerminalView } from '../types';
 
 type ViewKind = 'summary' | 'table';
 
@@ -31,10 +32,16 @@ interface TerminalTheme {
 
 /** 제목 앞부분 — 퀵 타일에서 고른 지표를 그대로 문장에 넣는다 ('… 가장 많을 때') */
 const TITLE_LEAD: Record<DsbdCategory, string> = {
-    PSG: '터미널에 여객수가',
+    PSG: '터미널 여객수가',
     FLT: '운항편이',
     CHKN: '체크인카운터에 대기인원이',
     DEP: '출국장에 대기인원이',
+};
+
+/** 게이트 카드 상세(+) 버튼이 여는 화면 */
+const GATE_DETAIL_PATH: Record<GateFcltType, string> = {
+    CHKN: '/rui/pm/daily-smlt/checkinCounter',
+    DEP: '/rui/pm/daily-smlt/departureHall',
 };
 
 const TERMINAL_THEMES: Record<TerminalKind, TerminalTheme> = {
@@ -51,6 +58,7 @@ const DEFAULT_VIEW: Record<TerminalKind, ViewKind> = {
 export function TerminalSummary({ terminal, data, titleCategory }: TerminalSummaryProps) {
     const view = data ?? EMPTY_TERMINAL_VIEW;
     const theme = TERMINAL_THEMES[terminal];
+    const navigate = useNavigate();
 
     const [viewKind, setViewKind] = useState<ViewKind>(DEFAULT_VIEW[terminal]);
     const [selectedRow, setSelectedRow] = useState(view.defaultSelectedRow);
@@ -226,7 +234,12 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
 
                 <div className="gates">
                     {view.gates.map((gate) => (
-                        <Gate key={gate.title} data={gate} gauge={theme.gauge} />
+                        <Gate
+                            key={gate.fcltType}
+                            data={gate}
+                            gauge={theme.gauge}
+                            onDetail={() => navigate(GATE_DETAIL_PATH[gate.fcltType])}
+                        />
                     ))}
                 </div>
             </div>
@@ -275,7 +288,7 @@ function Multiline({ text }: { text: string }) {
 }
 
 /** 체크인카운터 / 출국장 게이트 카드. 좌우 화살표로 아일랜드/게이트를 순환한다. */
-function Gate({ data, gauge }: { data: GateData; gauge: string }) {
+function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDetail: () => void }) {
     const [variantIndex, setVariantIndex] = useState(0);
     // 하단 칩(카운터/게이트) 선택 상태 — 버튼으로 동작하도록 (요구사항 2)
     const [selectedChip, setSelectedChip] = useState<number | null>(null);
@@ -298,7 +311,12 @@ function Gate({ data, gauge }: { data: GateData; gauge: string }) {
                 <b>{data.title}</b>
                 <div className="warn">
                     <span>{data.warn}</span>
-                    <button type="button" className="plus" aria-label={`${data.title} 상세`}>
+                    <button
+                        type="button"
+                        className="plus"
+                        aria-label={`${data.title} 상세`}
+                        onClick={onDetail}
+                    >
                         <Icon name="plus" />
                     </button>
                 </div>

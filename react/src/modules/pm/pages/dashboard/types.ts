@@ -1,4 +1,4 @@
-import type { DsbdRsltDto } from '@/types/api.types';
+import type { DsbdRsltDto, FcltType } from '@/types/api.types';
 import type { IconName } from '@/components/icons/InlineIcon';
 
 /** 일일 시뮬레이션 / 사용자 시뮬레이션 두 가지 버전 */
@@ -69,7 +69,12 @@ export interface GateVariant {
     chips: GateChip[];
 }
 
+/** 대시보드 게이트 카드로 올라오는 시설 (상세 화면이 따로 있는 둘) */
+export type GateFcltType = Extract<FcltType, 'CHKN' | 'DEP'>;
+
 export interface GateData {
+    /** 상세(+) 버튼이 어느 화면을 여는지 가른다 */
+    fcltType: GateFcltType;
     title: string;
     warn: string;
     variants: GateVariant[];

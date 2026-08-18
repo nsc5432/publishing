@@ -21,6 +21,9 @@ import { useFitToScreen } from './hooks/useFitToScreen';
 
 const USER_SMLT_CONFIG_PATH = '/rui/pm/user-smlt/config';
 
+/** 최초 진입 조회 지표 — Prime Time 타일과 패널 제목이 같은 값에서 출발한다 */
+const DEFAULT_CATEGORY: DsbdCategory = 'PSG';
+
 /**
  * PM 예측관리 / 시뮬레이션 결과 조회 — 메인 대시보드.
  *
@@ -57,9 +60,10 @@ function Dashboard() {
     const [draftTime, setDraftTime] = useState('');
     // 조회 버튼으로 확정된 조건 — 실제 데이터 조회는 이 값만 따른다
     const [query, setQuery] = useState<DashboardQuery | null>(null);
-    const [category, setCategory] = useState<DsbdCategory>('PSG');
-    // Prime Time 타일을 눌러 고른 지표만 담는다 — Top Bar 검색으로 조회하면 비운다 (패널 제목 문구용)
-    const [primeCategory, setPrimeCategory] = useState<DsbdCategory | null>(null);
+    const [category, setCategory] = useState<DsbdCategory>(DEFAULT_CATEGORY);
+    // Prime Time 타일을 눌러 고른 지표만 담는다 — Top Bar 검색으로 조회하면 비운다 (패널 제목 문구용).
+    // 최초 진입은 타일도 기본값이 눌린 상태라 제목 문구도 같이 세워 둔다.
+    const [primeCategory, setPrimeCategory] = useState<DsbdCategory | null>(DEFAULT_CATEGORY);
 
     // 기준 정보를 받으면 가장 늦은 시각으로 첫 조회까지 끝낸다.
     useEffect(() => {

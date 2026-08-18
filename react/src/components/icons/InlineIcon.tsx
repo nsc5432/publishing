@@ -6,6 +6,7 @@ export type IconName =
     | 'clock'
     | 'chart'
     | 'user'
+    | 'building'
     | 'monitor'
     | 'pin'
     | 'grid'
@@ -102,6 +103,14 @@ const ICONS: Record<IconName, ReactNode> = {
         <svg viewBox="0 0 24 24" {...LINE} width={23} height={23}>
             <circle cx="12" cy="8" r="3.4" />
             <path d="M4.5 20a7.5 7.5 0 0 1 15 0" />
+        </svg>
+    ),
+    building: (
+        <svg viewBox="0 0 24 24" {...LINE} width={23} height={23}>
+            <path d="M4 20.5h16" />
+            <path d="M6 20.5V5.2a1.2 1.2 0 0 1 1.2-1.2h6.6A1.2 1.2 0 0 1 15 5.2v15.3" />
+            <path d="M15 10h2.8A1.2 1.2 0 0 1 19 11.2v9.3" />
+            <path d="M9 7.5h3M9 11h3M9 14.5h3" />
         </svg>
     ),
     monitor: (

@@ -230,8 +230,18 @@ html[data-page='dashboard'] .datepick__btn {
     transition: background 0.15s;
 }
 
-html[data-page='dashboard'] .datepick__btn:hover {
+html[data-page='dashboard'] .datepick__btn:hover:not(:disabled) {
     background: #eff2fb;
+}
+
+/* 사용자 시뮬레이션 — 기준일자 고정 */
+html[data-page='dashboard'] .datepick__btn:disabled {
+    cursor: default;
+}
+
+html[data-page='dashboard'] .datepick__btn:disabled .cal,
+html[data-page='dashboard'] .datepick__btn:disabled .val {
+    color: #9aa1b1;
 }
 
 html[data-page='dashboard'] .datepick__input {
@@ -303,30 +313,56 @@ html[data-page='dashboard'] .btn-config:hover {
     background: #f2f2fc;
 }
 
-/* 실행자(부서 · 성명) — 계산 시각(.calc)과 같은 2줄 구조 */
+/* 실행자(부서 · 성명) — 사용자 시뮬레이션에서 계산 시각(.calc) 자리에 선다.
+   부서/사람을 각각 아이콘으로 갈라 두 칸으로 읽히게 한다 */
 html[data-page='dashboard'] .exec {
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 10px;
     font-size: 13px;
 }
 
+html[data-page='dashboard'] .exec .exec__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 12px;
+    border: 1px solid #e2e5ec;
+    border-radius: 19px;
+    background: #f7f8fb;
+}
+
 html[data-page='dashboard'] .exec .exec__ic {
-    color: #98a0b0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: #fff;
+    color: #4441cc;
+}
+
+html[data-page='dashboard'] .exec .exec__ic svg {
+    width: 16px;
+    height: 16px;
 }
 
 html[data-page='dashboard'] .exec .txt {
-    line-height: 1.6;
+    line-height: 1.35;
     white-space: nowrap;
 }
 
 html[data-page='dashboard'] .exec .txt .muted {
-    color: #6a7385;
+    color: #8a92a3;
+    font-size: 11px;
 }
 
 html[data-page='dashboard'] .exec .strong {
     color: #2b313d;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 html[data-page='dashboard'] .calc {
@@ -1255,7 +1291,7 @@ html[data-page='dashboard'] .p-title {
     /* 상자를 비스듬히 눕혀 포인트를 준다. 기운 만큼 좌우가 삐져나오므로 자리를 둔다 */
     transform: skewX(-10deg);
     position: relative;
-    top: -4px;
+    top: -1px;
     left: -6px;
     z-index: 1;
     /* 기준시각 바 쪽으로 살짝 겹쳐 얹는 이음매만큼만 당긴다 */

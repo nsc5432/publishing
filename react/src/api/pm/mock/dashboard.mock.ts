@@ -218,6 +218,7 @@ function buildUnits(labels: string[], busyLabels: string[], closedLabels: string
     });
 }
 
+/** 체크인카운터 아일랜드 — 두 터미널이 같은 구성이다 (I 는 쓰지 않는다) */
 const CHKN_LABELS = ['N', 'M', 'L', 'K', 'J', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
 
 const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
@@ -276,7 +277,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearRate: 58,
             cgnStatus: 'BUSY',
             recommend: { targetNm: '대한항공', addCnt: 4, needAssignYn: 'Y' },
-            unitList: buildUnits(['E', 'D', 'C', 'B', 'A'], ['C'], []),
+            unitList: buildUnits(CHKN_LABELS, ['M', 'C'], []),
         },
         {
             cardId: 'T2-CHKN-E',
@@ -294,7 +295,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearRate: 47,
             cgnStatus: 'NORMAL',
             recommend: { targetNm: '진에어', addCnt: 2, needAssignYn: 'N' },
-            unitList: buildUnits(['E', 'D', 'C', 'B', 'A'], [], ['A']),
+            unitList: buildUnits(CHKN_LABELS, ['J'], ['A']),
         },
     ],
 };
