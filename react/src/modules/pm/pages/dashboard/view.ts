@@ -133,9 +133,6 @@ export function toTerminalView({
 }: TerminalViewInput): TerminalView {
     // 시간대별 결과는 정시(HH00) 단위라 조회 시각과 같은 '시'를 찾는다.
     const currentIndex = rsltList.findIndex((rslt) => rslt.time.slice(0, 2) === hhmm.slice(0, 2));
-    const peakIndex = rsltList.findIndex(
-        (rslt) => rslt.time.slice(0, 2) === smry.peak.peakTime.slice(0, 2),
-    );
 
     return {
         barText: `${formatYmd(ymd, '-')} ${dowLabel(ymd)} ${formatHhmm(hhmm)} ${smry.peak.ampm}`,
@@ -175,7 +172,7 @@ export function toTerminalView({
             { label: '시간당\n처리인원', value: formatCount(smry.peak.hrlyPrcsPsgCnt), unit: '명' },
         ],
         gates: [toGateData('CHKN', chknCards), toGateData('DEP', depCards)],
-        chart: { rsltList, peakIndex: Math.max(0, peakIndex) },
+        chart: { rsltList },
         tableRows: rsltList.map(toTableRow),
         defaultSelectedRow: Math.max(0, currentIndex),
     };
@@ -193,7 +190,7 @@ export const EMPTY_TERMINAL_VIEW: TerminalView = {
     summaryStats: [],
     summaryInfo: [],
     gates: [],
-    chart: { rsltList: [], peakIndex: 0 },
+    chart: { rsltList: [] },
     tableRows: [],
     defaultSelectedRow: 0,
 };

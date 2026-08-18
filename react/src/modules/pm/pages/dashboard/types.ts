@@ -120,7 +120,7 @@ export interface TerminalView {
     summaryInfo: SummaryInfoCell[];
     gates: GateData[];
     /** 큰 차트 — 좌표 계산은 그리는 쪽(TerminalChart)이 한다 */
-    chart: { rsltList: DsbdRsltDto[]; peakIndex: number };
+    chart: { rsltList: DsbdRsltDto[] };
     tableRows: TableRow[];
     /** 테이블 뷰에서 최초 선택 행 (조회 기준 시각) */
     defaultSelectedRow: number;

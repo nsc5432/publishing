@@ -148,17 +148,14 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
                     <div className="legend">
                         <span>
                             <i style={{ background: '#f43f3f' }} />
-                            예측
+                            Cast 대기인원(예측)
                         </span>
                         <span>
                             <i style={{ background: '#3b82f6' }} />
-                            실적
+                            Xovis 대기인원(실적)
                         </span>
                     </div>
-                    <TerminalChart
-                        rsltList={view.chart.rsltList}
-                        peakIndex={view.chart.peakIndex}
-                    />
+                    <TerminalChart rsltList={view.chart.rsltList} />
                 </div>
             </div>
 

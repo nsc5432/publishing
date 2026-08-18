@@ -564,21 +564,40 @@ html[data-page='dashboard'] .plan-total .u {
 }
 
 /* 시간대별 출발여객 */
-html[data-page='dashboard'] .tval {
-    font-size: 15px;
-    color: #2b313d;
+html[data-page='dashboard'] .hourly-legend {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    color: #5f6a7e;
     font-weight: 600;
 }
 
-html[data-page='dashboard'] .tval .t1c {
-    color: #1c6ff0;
-    font-weight: 700;
+html[data-page='dashboard'] .hourly-legend .lg {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
 }
 
-html[data-page='dashboard'] .tval .t2c {
-    color: #00b3ab;
-    font-weight: 700;
-    margin-left: 10px;
+html[data-page='dashboard'] .hourly-legend .lg::before {
+    content: '';
+    display: block;
+}
+
+/* 예고 = 막대 */
+html[data-page='dashboard'] .hourly-legend .lg-fcst::before {
+    width: 9px;
+    height: 11px;
+    border-radius: 2px 2px 0 0;
+    background: #c5cbd6;
+}
+
+/* 실적 = 꺾은선. 선 색이 터미널마다 달라 T1 파랑 · T2 청록을 반씩 쓴다 */
+html[data-page='dashboard'] .hourly-legend .lg-rslt::before {
+    width: 14px;
+    height: 3px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #1c6ff0 0 50%, #00b3ab 50%);
 }
 
 html[data-page='dashboard'] .hourly-body {

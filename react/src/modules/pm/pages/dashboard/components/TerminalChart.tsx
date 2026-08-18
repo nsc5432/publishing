@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { echarts, type EChartsOption } from '@/lib/echarts';
+import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import type { DsbdRsltDto } from '@/types/api.types';
 import { formatCount } from '@/lib/format';
@@ -12,13 +12,9 @@ const GRID = { left: 40, right: 16, top: 26, bottom: 14 };
 const Y_TICK_COUNT = 6;
 /** 3시간 간격으로 x축 라벨을 찍는다 */
 const X_LABEL_INTERVAL = 3;
-/** 피크 막대 폭 — 원본 19 (viewBox) */
-const PEAK_BAR_WIDTH = 17;
 
 interface TerminalChartProps {
     rsltList: DsbdRsltDto[];
-    /** 피크 시간대 — 세로 막대로 표시 */
-    peakIndex: number;
 }
 
 /**
@@ -42,17 +38,11 @@ function roundUpAxisMax(value: number): number {
  *
  * 색과 선 모양은 범례(예측=빨강 실선 / 실적=파랑 점선)에 맞춘다.
  */
-export function TerminalChart({ rsltList, peakIndex }: TerminalChartProps) {
+export function TerminalChart({ rsltList }: TerminalChartProps) {
     const option = useMemo<EChartsOption>(() => {
         const axisMax = roundUpAxisMax(
             Math.max(1, ...rsltList.map((rslt) => Math.max(rslt.fcstWtngPsgCnt, rslt.wtngPsgCnt))),
         );
-        const hasData = rsltList.length > 0;
-
-        /* 피크 막대는 0 에서 시작하지 않고 한 칸(눈금 1개) 띄운 곳부터 그린다.
-           투명한 받침 막대를 아래에 쌓아 그 높이를 만든다. */
-        const barSegmentAtPeak = (value: number) =>
-            rsltList.map((_, index) => (hasData && index === peakIndex ? value : null));
 
         return {
             animation: true,
@@ -65,7 +55,7 @@ export function TerminalChart({ rsltList, peakIndex }: TerminalChartProps) {
                 trigger: 'axis',
                 confine: true,
                 textStyle: TOOLTIP_TEXT_STYLE,
-                // 피크 막대(받침 포함)는 안내할 값이 아니다.
+                // 안내할 값은 예측/실적 두 선뿐이다 (시리즈명으로 거른다).
                 formatter: (params) => {
                     const tooltipItems = toTooltipItems(params);
                     const seriesItems = tooltipItems.filter(
@@ -120,30 +110,6 @@ export function TerminalChart({ rsltList, peakIndex }: TerminalChartProps) {
             },
             series: [
                 {
-                    name: '피크받침',
-                    type: 'bar',
-                    stack: 'peak',
-                    barWidth: PEAK_BAR_WIDTH,
-                    silent: true,
-                    itemStyle: { color: 'transparent' },
-                    data: barSegmentAtPeak(axisMax / Y_TICK_COUNT),
-                },
-                {
-                    name: '피크',
-                    type: 'bar',
-                    stack: 'peak',
-                    barWidth: PEAK_BAR_WIDTH,
-                    silent: true,
-                    itemStyle: {
-                        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-                            { offset: 0, color: '#ff8f8f' },
-                            { offset: 0.45, color: '#ff1a1a' },
-                            { offset: 1, color: '#ffa3a3' },
-                        ]),
-                    },
-                    data: barSegmentAtPeak(axisMax - axisMax / Y_TICK_COUNT),
-                },
-                {
                     name: '예측',
                     type: 'line',
                     symbol: 'circle',
@@ -163,7 +129,7 @@ export function TerminalChart({ rsltList, peakIndex }: TerminalChartProps) {
                 },
             ],
         };
-    }, [rsltList, peakIndex]);
+    }, [rsltList]);
 
     return <EChart className="chartbox__chart" option={option} />;
 }

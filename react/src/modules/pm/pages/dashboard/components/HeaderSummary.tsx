@@ -125,13 +125,14 @@ export function HeaderSummary({
                         </div>
                     </div>
 
-                    {/* 시간대별 출발여객 */}
+                    {/* 승객예고/실적 비교 */}
                     <div className="card c-hourly">
                         <div className="card-head">
-                            <span className="card-title">시간대별 출발여객</span>
-                            <span className="tval">
-                                <span className="t1c">T1</span> {countText(t1Hourly?.totPsgCnt)}{' '}
-                                <span className="t2c">T2</span> {countText(t2Hourly?.totPsgCnt)}
+                            <span className="card-title">승객예고/실적 비교</span>
+                            {/* 범례 — 막대가 예고, 꺾은선이 실적 */}
+                            <span className="hourly-legend">
+                                <span className="lg lg-fcst">예고</span>
+                                <span className="lg lg-rslt">실적</span>
                             </span>
                         </div>
                         <div className="hourly-body">
@@ -139,13 +140,13 @@ export function HeaderSummary({
                                 data={t1Hourly}
                                 iconSrc={t1Blue}
                                 iconAlt="T1"
-                                lineColor="#6fd6c4"
+                                lineColor="#1c6ff0"
                             />
                             <HourlyPsgChart
                                 data={t2Hourly}
                                 iconSrc={t2Teal}
                                 iconAlt="T2"
-                                lineColor="#7cb6f5"
+                                lineColor="#00b3ab"
                             />
                         </div>
                     </div>
