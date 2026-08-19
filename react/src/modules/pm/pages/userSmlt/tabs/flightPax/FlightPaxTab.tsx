@@ -28,7 +28,6 @@ const fetchFltPsg = (smltId: string, tmnlId: TerminalKind) =>
  */
 const keepDto = (dto: UserSmltFltPsgDto) => dto;
 
-/** 운항편/여객수 탭 */
 export function FlightPaxTab({
     smltIds,
     reloadKey,

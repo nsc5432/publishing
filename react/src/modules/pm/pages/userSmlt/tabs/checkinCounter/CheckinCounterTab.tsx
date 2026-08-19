@@ -96,9 +96,6 @@ function newIsland(terminalData: TerminalCheckinCounter, label: string): Checkin
     };
 }
 
-/**
- * 체크인 카운터 탭
- */
 export function CheckinCounterTab({
     smltIds,
     reloadKey,

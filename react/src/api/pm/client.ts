@@ -4,7 +4,6 @@ import type { ApiResponse, ApiError } from '@/types/api.types';
 import { ENV } from '@/config/env';
 import { loadingBar } from '@/lib/loading-bar';
 
-// Axios 인스턴스 생성
 export const apiClient: AxiosInstance = axios.create({
     baseURL: '/',
     timeout: ENV.API_TIMEOUT,
@@ -13,7 +12,6 @@ export const apiClient: AxiosInstance = axios.create({
     },
 });
 
-// 요청 인터셉터
 apiClient.interceptors.request.use(
     (config: InternalAxiosRequestConfig) => {
         if (config.params?.loading) {
@@ -30,7 +28,6 @@ apiClient.interceptors.request.use(
     },
 );
 
-// 응답 인터셉터
 apiClient.interceptors.response.use(
     (response: AxiosResponse<ApiResponse<unknown>>) => {
         loadingBar.done();
@@ -39,20 +36,17 @@ apiClient.interceptors.response.use(
     (error: AxiosError<ApiError>) => {
         loadingBar.done();
 
-        // 에러 처리
         const apiError: ApiError = {
             status: error.response?.status || 500,
             message: error.response?.data?.message || error.message || 'Unknown error occurred',
             code: error.code,
         };
 
-        // 에러 타입별 처리
         if (error.code === 'ECONNABORTED') {
             apiError.message = 'Request timeout - 서버 응답 시간 초과';
         } else if (error.code === 'ERR_NETWORK') {
             apiError.message = 'Network error - 네트워크 연결을 확인하세요';
         } else if (error.response) {
-            // 서버 응답 에러
             switch (error.response.status) {
                 case 400:
                     apiError.message = 'Bad Request - 잘못된 요청입니다';

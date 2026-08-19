@@ -26,17 +26,12 @@ function buildScale(totalSlots: number): string[] {
 // 범위 계산은 인자에만 의존하므로 컴포넌트 밖에 둔다.
 // (안에 두면 렌더마다 새로 만들어져 아래 useCallback 의 의존성이 매번 바뀐다)
 
-/** 범위 병합 및 정규화 */
 function mergeRanges(newRange: TimeRange, existingRanges: TimeRange[]): TimeRange[] {
-    // 새 범위와 겹치지 않는 기존 범위만 유지
     const nonOverlapping = existingRanges.filter((range) => {
         return range.end <= newRange.start || range.start >= newRange.end;
     });
 
-    // 새 범위 추가
     const allRanges = [...nonOverlapping, newRange];
-
-    // 인접하거나 겹치는 범위 병합
     const sorted = allRanges.sort((a, b) => a.start - b.start);
     const merged: TimeRange[] = [];
 
@@ -55,7 +50,6 @@ function mergeRanges(newRange: TimeRange, existingRanges: TimeRange[]): TimeRang
     return merged;
 }
 
-/** 선택 영역에서 범위 제거 */
 function removeRange(toRemove: TimeRange, existingRanges: TimeRange[]): TimeRange[] {
     const result: TimeRange[] = [];
 
@@ -91,10 +85,8 @@ export function TimeRangeSelector({
     const [dragEnd, setDragEnd] = useState<number | null>(null);
     const [dragMode, setDragMode] = useState<'select' | 'deselect'>('select');
 
-    // 특정 슬롯이 선택되어 있는지 확인
     const isSlotSelected = (index: number): boolean => isHourInRanges(index, ranges);
 
-    // 슬롯에서 드래그 시작
     const handleSlotMouseDown = (index: number) => {
         if (disabled) return;
 
@@ -104,13 +96,11 @@ export function TimeRangeSelector({
         setDragMode(isSlotSelected(index) ? 'deselect' : 'select');
     };
 
-    // 드래그 중 지나간 슬롯까지 범위 확장
     const handleSlotMouseEnter = (index: number) => {
         if (!isDragging || disabled) return;
         setDragEnd(index);
     };
 
-    // 드래그 종료 — 범위 병합/제거 후 반영
     const handleMouseUp = useCallback(() => {
         if (!isDragging || dragStart === null || dragEnd === null || disabled) return;
 
@@ -138,7 +128,6 @@ export function TimeRangeSelector({
         return () => window.removeEventListener('mouseup', handleMouseUp);
     }, [isDragging, handleMouseUp]);
 
-    // 드래그 중인 범위 계산
     const getDraggedRange = (): TimeRange | null => {
         if (!isDragging || dragStart === null || dragEnd === null) return null;
         return {
@@ -149,7 +138,6 @@ export function TimeRangeSelector({
 
     const draggedRange = getDraggedRange();
 
-    // 슬롯이 현재 드래그 중인 범위에 포함되는지 확인
     const isSlotInDragRange = (index: number): boolean => {
         if (!draggedRange) return false;
         return index >= draggedRange.start && index < draggedRange.end;

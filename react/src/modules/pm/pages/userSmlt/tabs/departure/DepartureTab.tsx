@@ -108,9 +108,6 @@ function pickGate(
     return drafts[no] ?? gates.find((gate) => gate.no === no);
 }
 
-/**
- * 출국장 탭
- */
 export function DepartureTab({
     smltIds,
     reloadKey,

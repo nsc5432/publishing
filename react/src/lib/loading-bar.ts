@@ -1,9 +1,7 @@
 type Listener = () => void;
 
 export interface LoadingBarSnapshot {
-    /** 바가 DOM에 존재하는지 여부 */
     visible: boolean;
-    /** 완료 후 페이드아웃 중인지 여부 */
     fading: boolean;
     /** 진행률 0~100 */
     progress: number;
@@ -75,10 +73,6 @@ class LoadingBarManager {
         }, 280);
     }
 
-    /**
-     * API 요청 시작 (요청 수 카운팅)
-     * - axios 인터셉터에서 자동 호출됨
-     */
     start() {
         this.requestCount++;
         if (this.requestCount === 1) {
@@ -86,10 +80,6 @@ class LoadingBarManager {
         }
     }
 
-    /**
-     * API 요청 완료 (요청 수 카운팅)
-     * - axios 인터셉터에서 자동 호출됨
-     */
     done() {
         this.requestCount = Math.max(0, this.requestCount - 1);
         if (this.requestCount === 0) {
@@ -97,28 +87,16 @@ class LoadingBarManager {
         }
     }
 
-    /**
-     * 수동으로 로딩 표시 시작
-     * @example loadingBar.show()
-     */
     show() {
         this.start();
     }
 
-    /**
-     * 수동으로 로딩 완료 처리
-     * @example loadingBar.hide()
-     */
     hide() {
         // 진행 중인 요청 수와 관계없이 즉시 완료 처리
         this.requestCount = 1;
         this.done();
     }
 
-    /**
-     * 강제 초기화 (에러 복구 등)
-     * @example loadingBar.reset()
-     */
     reset() {
         this.requestCount = 0;
         this.clearTimers();
