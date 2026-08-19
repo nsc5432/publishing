@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.domains.DepHallLayout;
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepHallDto;
@@ -58,7 +57,6 @@ import lombok.RequiredArgsConstructor;
  * <b>마커·카드 좌표는 DB 가 아니라 {@link DepHallLayout} 이 준다</b> — 좌표 테이블이 확인되지 않았다 (G1).
  */
 @Service
-@ConditionalOnCastDb
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastDepHallServiceImpl implements CastDepHallService {

@@ -18,7 +18,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.dto.BdpsgAnceRawDto;
 import aoms.pm.cast.dto.DowAttrDto;
 import aoms.pm.cast.dto.DsbdBaseInfoDto;
@@ -76,7 +75,6 @@ import lombok.RequiredArgsConstructor;
  * <b>필드를 빼지 않고 기본값</b>으로 내려준다 (결정 로그 D7).
  */
 @Service
-@ConditionalOnCastDb
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastDsbdServiceImpl implements CastDsbdService {

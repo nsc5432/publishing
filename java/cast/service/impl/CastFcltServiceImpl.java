@@ -10,7 +10,6 @@ import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.domains.FcltMapLayout;
 import aoms.pm.cast.dto.FcltMapItemDto;
 import aoms.pm.cast.dto.FcltMapListDto;
@@ -45,7 +44,6 @@ import lombok.RequiredArgsConstructor;
  * 이 화면은 도면 그림이 맵형태보기와 달라 좌표도 따로 갖는다 — 자세한 사정은 그 클래스 주석 참고.
  */
 @Service
-@ConditionalOnCastDb
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastFcltServiceImpl implements CastFcltService {

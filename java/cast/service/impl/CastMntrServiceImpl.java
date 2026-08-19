@@ -6,7 +6,6 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.dto.MntrSearchDto;
 import aoms.pm.cast.dto.SmltExcnCntRawDto;
 import aoms.pm.cast.dto.SmltExcnDto;
@@ -41,7 +40,6 @@ import lombok.RequiredArgsConstructor;
  * 조인 키가 될 등록자 ID 는 {@code rgtrId} 로 함께 실린다.
  */
 @Service
-@ConditionalOnCastDb
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastMntrServiceImpl implements CastMntrService {

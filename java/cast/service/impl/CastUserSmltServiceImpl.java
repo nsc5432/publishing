@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.framework.cmmn.service.SessionService;
-import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.domains.MapLayout;
 import aoms.pm.cast.dto.MapMarkerDto;
 import aoms.pm.cast.dto.SmltExcnDto;
@@ -50,7 +49,6 @@ import lombok.RequiredArgsConstructor;
  * (결정 로그 D19).
  */
 @Service
-@ConditionalOnCastDb
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastUserSmltServiceImpl implements CastUserSmltService {

@@ -11,7 +11,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.domains.MapLayout;
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
@@ -68,7 +67,6 @@ import lombok.RequiredArgsConstructor;
  * </p>
  */
 @Service
-@ConditionalOnCastDb
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastMapServiceImpl implements CastMapService {

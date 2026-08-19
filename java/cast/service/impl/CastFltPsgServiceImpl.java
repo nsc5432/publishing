@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.framework.cmmn.service.SessionService;
-import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.dto.FltPsgChartDto;
 import aoms.pm.cast.dto.FltPsgChartItemDto;
 import aoms.pm.cast.dto.FltPsgHourDto;
@@ -46,7 +45,6 @@ import lombok.RequiredArgsConstructor;
  * </pre>
  */
 @Service
-@ConditionalOnCastDb
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastFltPsgServiceImpl implements CastFltPsgService {

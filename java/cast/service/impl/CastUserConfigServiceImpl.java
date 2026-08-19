@@ -9,7 +9,6 @@ import java.util.Map;
 
 import org.springframework.stereotype.Service;
 
-import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.dto.ChknRawDto;
 import aoms.pm.cast.dto.UserConfigChknDto;
 import aoms.pm.cast.mapper.CastUserConfigMapper;
@@ -33,7 +32,6 @@ import lombok.RequiredArgsConstructor;
  * </pre> 
  */
 @Service
-@ConditionalOnCastDb
 @RequiredArgsConstructor
 public class CastUserConfigServiceImpl implements CastUserConfigService {
 	private final CastUserConfigMapper castUserConfigMapper;

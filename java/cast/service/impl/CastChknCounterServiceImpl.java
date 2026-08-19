@@ -14,7 +14,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.dto.ChknCounterDto;
 import aoms.pm.cast.dto.ChknCounterIslandDto;
 import aoms.pm.cast.dto.ChknCounterRsrcDto;
@@ -74,7 +73,6 @@ import lombok.RequiredArgsConstructor;
  * </p>
  */
 @Service
-@ConditionalOnCastDb
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastChknCounterServiceImpl implements CastChknCounterService {

@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.stereotype.Service;
 
-import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.dto.SlfDeviceCntRawDto;
 import aoms.pm.cast.mapper.CastSlfchknMapper;
 import aoms.pm.cast.service.CastSlfchknService;
@@ -27,7 +26,6 @@ import lombok.RequiredArgsConstructor;
  * </pre>
  */
 @Service
-@ConditionalOnCastDb
 @RequiredArgsConstructor
 public class CastSlfchknServiceImpl implements CastSlfchknService {
 	private final CastSlfchknMapper castSlfchknMapper;

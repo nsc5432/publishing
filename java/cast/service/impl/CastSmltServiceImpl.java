@@ -9,7 +9,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import aoms.pm.cast.config.ConditionalOnCastDb;
 import aoms.pm.cast.dto.SmltKpiDto;
 import aoms.pm.cast.dto.SmltKpiRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
@@ -41,7 +40,6 @@ import lombok.RequiredArgsConstructor;
  * ({@link aoms.pm.cast.config.CastApiMode} 참고) — Mock 구현체는 이 서비스를 주입받지 않는다.
  */
 @Service("castSmltService")
-@ConditionalOnCastDb
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastSmltServiceImpl implements CastSmltService {
