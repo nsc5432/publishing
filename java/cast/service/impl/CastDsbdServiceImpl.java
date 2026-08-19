@@ -35,6 +35,7 @@ import aoms.pm.cast.dto.FltSmryRawDto;
 import aoms.pm.cast.dto.HourlyPsgDto;
 import aoms.pm.cast.dto.HourlyPsgItemDto;
 import aoms.pm.cast.dto.PeakDto;
+import aoms.pm.cast.dto.PsgDptcnyTrnsPrfmncRawDto;
 import aoms.pm.cast.dto.PsgWtngRawDto;
 import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
@@ -65,7 +66,8 @@ import lombok.RequiredArgsConstructor;
  * 2026. 08. 09. / 노세찬 / 최초작성
  * 2026. 08. 19. / 노세찬 / 기상정보 원천(GOOWN.TN_GO_WTHCN_INFO) 연동 (D7 해소)
  * 2026. 08. 19. / 노세찬 / 실적선 원천(PMOWN.TN_PM_PSG_WTNG_INFO) 연동 — 예측선은 시뮬레이션 결과
- * 2026. 08. 19. / 노세찬 / 승객예고 원천(PMOWN.TN_PM_BDPSG_ANCE_RSLT) 연동 (D7 해소) — 실적선은 추후 연동
+ * 2026. 08. 19. / 노세찬 / 승객예고 원천(PMOWN.TN_PM_BDPSG_ANCE_RSLT) 연동 (D7 해소)
+ * 2026. 08. 19. / 노세찬 / 시간대별 실적선 원천(PMOWN.TN_PM_PSG_DPTCNY_TRNS_PRFMNC) 연동
  * -----------------------------------------------------------------------------------
  *
  * </pre>
@@ -252,8 +254,9 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	private HourlyPsgDto getHourlyPsg(String ymd, TerminalKind tmnlId) {
-		Map<String, FltPsgRawDto> hourMap = castDsbdMapper.retrieveHourlyFltPsgList(ymd, tmnlId.getFltTmnlIdList())
-				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
+		Map<String, PsgDptcnyTrnsPrfmncRawDto> prcsMap = castDsbdMapper
+				.retrieveHourlyPsgDptcnyTrnsPrfmncList(ymd, tmnlId.getFltTmnlIdList())
+				.stream().collect(Collectors.toMap(PsgDptcnyTrnsPrfmncRawDto::getHour, Function.identity(), (first, ignored) -> first));
 		Map<String, BdpsgAnceRawDto> fcstMap = castDsbdMapper.retrieveHourlyBdpsgAnceList(ymd, tmnlId.getFltTmnlIdList())
 				.stream().collect(Collectors.toMap(BdpsgAnceRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
@@ -262,9 +265,9 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		int maxPsgCnt = 0;
 
 		for (String hour : TimeBucketUtils.hourList()) {
-			FltPsgRawDto raw = hourMap.get(hour);
+			PsgDptcnyTrnsPrfmncRawDto prcs = prcsMap.get(hour);
 			BdpsgAnceRawDto fcst = fcstMap.get(hour);
-			int psgCnt = raw != null ? raw.getPsgCnt() : 0;
+			int psgCnt = prcs != null ? prcs.getPrcsPsgCnt() : 0;
 			int fcstPsgCnt = fcst != null ? fcst.getEstBrdgTnope() : 0;
 
 			totPsgCnt += psgCnt;

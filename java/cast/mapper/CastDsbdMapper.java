@@ -9,6 +9,7 @@ import aoms.pm.cast.dto.BdpsgAnceRawDto;
 import aoms.pm.cast.dto.FcltUnitRawDto;
 import aoms.pm.cast.dto.FltPsgRawDto;
 import aoms.pm.cast.dto.FltSmryRawDto;
+import aoms.pm.cast.dto.PsgDptcnyTrnsPrfmncRawDto;
 import aoms.pm.cast.dto.PsgWtngRawDto;
 import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.dto.WeatherDto;
@@ -51,6 +52,12 @@ public interface CastDsbdMapper {
 
 	/** 시간대별 승객예고 (출발) — 승객예고/실적 비교 카드의 예고 막대 원천 */
 	List<BdpsgAnceRawDto> retrieveHourlyBdpsgAnceList(
+			@Param("ymd") String ymd,
+			@Param("tmnlIdList") List<String> tmnlIdList
+	);
+
+	/** 시간대별 여객출국환승실적 (1시간 단위 집계) — 승객예고/실적 비교 카드의 실적선 원천 */
+	List<PsgDptcnyTrnsPrfmncRawDto> retrieveHourlyPsgDptcnyTrnsPrfmncList(
 			@Param("ymd") String ymd,
 			@Param("tmnlIdList") List<String> tmnlIdList
 	);

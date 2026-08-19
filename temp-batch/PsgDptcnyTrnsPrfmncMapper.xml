@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="batch.PsgDptcnyTrnsPrfmncMapper">
+    <update id="upsertList">
+        /* PsgDptcnyTrnsPrfmncMapper.upsertList */
+        MERGE INTO PMOWN.TN_PM_PSG_DPTCNY_TRNS_PRFMNC A
+        USING (
+            <foreach collection="list" item="item" separator="UNION ALL">
+            SELECT
+                #{item.totDt} AS TOT_DT,
+                #{item.tmnlId} AS TMNL_ID,
+                #{item.psgFcltCd} AS PSG_FCLT_CD,
+                #{item.fltnm} AS FLTNM,
+                #{item.bdpsgPrcsCnt} AS BDPSG_PRCS_CNT
+            FROM DUAL
+            </foreach>
+        ) B
+        ON (
+            A.TOT_DT = B.TOT_DT
+            AND A.TMNL_ID = B.TMNL_ID
+            AND A.PSG_FCLT_CD = B.PSG_FCLT_CD
+            AND A.FLTNM = B.FLTNM
+        )
+        WHEN MATCHED THEN
+            UPDATE SET
+                A.BDPSG_PRCS_CNT = B.BDPSG_PRCS_CNT,
+                A.LAST_MDFR_ID = #{regId},
+                A.LAST_MDFR_IP_ADDR = #{regIp},
+                A.LAST_MDFCN_DT = SYSTIMESTAMP
+        WHEN NOT MATCHED THEN
+            INSERT (TOT_DT, TMNL_ID, PSG_FCLT_CD, FLTNM, BDPSG_PRCS_CNT, FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT)
+            VALUES (B.TOT_DT, B.TMNL_ID, B.PSG_FCLT_CD, B.FLTNM, B.BDPSG_PRCS_CNT, #{regId}, #{regIp}, SYSTIMESTAMP)
+    </update>
+</mapper>
