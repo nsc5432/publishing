@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.config.ConditionalOnCastDb;
+import aoms.pm.cast.dto.BdpsgAnceRawDto;
 import aoms.pm.cast.dto.DowAttrDto;
 import aoms.pm.cast.dto.DsbdBaseInfoDto;
 import aoms.pm.cast.dto.DsbdFcltCardDto;
@@ -34,10 +35,10 @@ import aoms.pm.cast.dto.FltSmryRawDto;
 import aoms.pm.cast.dto.HourlyPsgDto;
 import aoms.pm.cast.dto.HourlyPsgItemDto;
 import aoms.pm.cast.dto.PeakDto;
+import aoms.pm.cast.dto.PsgWtngRawDto;
 import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.TmnlSmryDto;
-import aoms.pm.cast.dto.WeatherDto;
 import aoms.pm.cast.enums.CongestionStatus;
 import aoms.pm.cast.enums.DowType;
 import aoms.pm.cast.enums.DsbdCategory;
@@ -62,11 +63,14 @@ import lombok.RequiredArgsConstructor;
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
  * 2026. 08. 09. / 노세찬 / 최초작성
+ * 2026. 08. 19. / 노세찬 / 기상정보 원천(GOOWN.TN_GO_WTHCN_INFO) 연동 (D7 해소)
+ * 2026. 08. 19. / 노세찬 / 실적선 원천(PMOWN.TN_PM_PSG_WTNG_INFO) 연동 — 예측선은 시뮬레이션 결과
+ * 2026. 08. 19. / 노세찬 / 승객예고 원천(PMOWN.TN_PM_BDPSG_ANCE_RSLT) 연동 (D7 해소) — 실적선은 추후 연동
  * -----------------------------------------------------------------------------------
  *
  * </pre>
  *
- * 원천이 확인되지 않은 필드(탑승률 · 기상 · 예측/지난주 비교선 · 추천 조치)는
+ * 원천이 확인되지 않은 필드(탑승률 · 지난주 비교선 · 추천 조치)는
  * <b>필드를 빼지 않고 기본값</b>으로 내려준다 (결정 로그 D7).
  */
 @Service
@@ -135,8 +139,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setFltPlan(getFltPlan(fltSmry));
 		result.setHourlyPsgList(hourlyPsgList);
 		result.setDowAttr(getDowAttr(ymd));
-		// 기상 원천 테이블이 확인되지 않았다 (D7)
-		result.setWeather(getEmptyWeather());
+		result.setWeather(castDsbdMapper.retrieveWeather(ymd));
 
 		return result;
 	}
@@ -184,11 +187,22 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				.retrieveHourlyFltPsgList(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList())
 				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
+		// 실적선은 시뮬레이션이 아니라 실측(Xovis)이다. 아직 지나지 않은 시간대는 원천에 행이 없다
+		Map<String, PsgWtngRawDto> psgWtngMap = castDsbdMapper
+				.retrievePsgWtngByHourList(smltStng.getExcnYmd(), tmnlId.getFcltTmnlId(), category.getPsgWtngFcltTypeCdList())
+				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+
 		List<DsbdRsltDto> result = new ArrayList<>();
 
 		// 결과가 없는 시간대는 행이 통째로 없다. 24시간 축은 애플리케이션이 채운다
 		for (String hour : TimeBucketUtils.hourList()) {
-			result.add(toRsltDto(hour, rsltMap.get(hour + HOUR_SUFFIX), fltPsgMap.get(hour), category));
+			result.add(toRsltDto(
+					hour,
+					rsltMap.get(hour + HOUR_SUFFIX),
+					fltPsgMap.get(hour),
+					psgWtngMap.get(hour + HOUR_SUFFIX),
+					category
+			));
 		}
 
 		return result;
@@ -240,6 +254,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private HourlyPsgDto getHourlyPsg(String ymd, TerminalKind tmnlId) {
 		Map<String, FltPsgRawDto> hourMap = castDsbdMapper.retrieveHourlyFltPsgList(ymd, tmnlId.getFltTmnlIdList())
 				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
+		Map<String, BdpsgAnceRawDto> fcstMap = castDsbdMapper.retrieveHourlyBdpsgAnceList(ymd, tmnlId.getFltTmnlIdList())
+				.stream().collect(Collectors.toMap(BdpsgAnceRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
 		List<HourlyPsgItemDto> itemList = new ArrayList<>();
 		int totPsgCnt = 0;
@@ -247,12 +263,13 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		for (String hour : TimeBucketUtils.hourList()) {
 			FltPsgRawDto raw = hourMap.get(hour);
+			BdpsgAnceRawDto fcst = fcstMap.get(hour);
 			int psgCnt = raw != null ? raw.getPsgCnt() : 0;
+			int fcstPsgCnt = fcst != null ? fcst.getEstBrdgTnope() : 0;
 
 			totPsgCnt += psgCnt;
-			maxPsgCnt = Math.max(maxPsgCnt, psgCnt);
-			// 예측 여객 라인의 원천이 확인되지 않았다 (D7)
-			itemList.add(new HourlyPsgItemDto().withTime(hour).withPsgCnt(psgCnt).withFcstPsgCnt(0));
+			maxPsgCnt = Math.max(maxPsgCnt, Math.max(psgCnt, fcstPsgCnt));
+			itemList.add(new HourlyPsgItemDto().withTime(hour).withPsgCnt(psgCnt).withFcstPsgCnt(fcstPsgCnt));
 		}
 
 		HourlyPsgDto result = new HourlyPsgDto();
@@ -286,16 +303,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return dowType == DowType.WEEKEND ? "주말(" + dowNm + ")" : "평일(" + dowNm + ")";
 	}
 
-	private WeatherDto getEmptyWeather() {
-		WeatherDto result = new WeatherDto();
-
-		result.setWthrCd(EMPTY);
-		result.setLowVisStep1Time(EMPTY);
-		result.setLowVisStep2Time(EMPTY);
-
-		return result;
-	}
-
 	/* ================= 터미널 요약 ================= */
 
 	// 피크는 대기인원이 가장 많은 시간대다
@@ -326,7 +333,13 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	/* ================= 시간대별 결과 ================= */
 
-	private DsbdRsltDto toRsltDto(String hour, SmltRsltRawDto rslt, FltPsgRawDto fltPsg, DsbdCategory category) {
+	private DsbdRsltDto toRsltDto(
+			String hour,
+			SmltRsltRawDto rslt,
+			FltPsgRawDto fltPsg,
+			PsgWtngRawDto psgWtng,
+			DsbdCategory category
+	) {
 		DsbdRsltDto result = new DsbdRsltDto();
 		result.setTime(hour + HOUR_SUFFIX);
 
@@ -335,15 +348,17 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		}
 
 		if (rslt != null) {
-			result.setWtngPsgCnt(rslt.getWtngPsgCnt());
+			result.setFcstWtngPsgCnt(rslt.getWtngPsgCnt());
 			result.setWtngHr(rslt.getWtngHr() / SEC_PER_MIN);
 			result.setPrcsPsgCnt(rslt.getTrnstPsgCnt());
 			result.setPrcsHr(rslt.getPrcsHr() / SEC_PER_MIN);
 			result.setPrcsRate(getPrcsRate(rslt.getTrnstPsgCnt(), rslt.getWtngPsgCnt()));
 		}
 
-		// 예측·지난주 비교선의 원천이 확인되지 않았다 (D7)
-		result.setFcstWtngPsgCnt(0);
+		// 측정값이 없는 시간대는 0 이 아니라 null 이다 — 실적선을 끊어 그린다
+		result.setWtngPsgCnt(psgWtng == null ? null : psgWtng.getWtngPsgCnt());
+
+		// 지난주 비교선의 원천이 확인되지 않았다 (D7)
 		result.setLastWeekWtngPsgCnt(0);
 
 		return result;

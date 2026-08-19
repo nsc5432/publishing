@@ -5,15 +5,15 @@ import lombok.Setter;
 
 /**
  * 상단 카드 — 기상정보.
- * 기상 원천 테이블이 확인되지 않아 DB 모드에서는 전 필드가 기본값이다 (결정 로그 D7).
+ * GOOWN.TN_GO_WTHCN_INFO 는 하루 최대 2회(07/09시) 발표된다. 조회일의 가장 최근 발표 1건을 쓴다.
  */
 @Getter
 @Setter
 public class WeatherDto {
-	private String wthrCd; // 날씨 코드 (아이콘 매핑)
-	private int tmpr; // 기온 ℃
-	private int rainAmt; // 강수량 mm
-	private int snowAmt; // 적설 mm
-	private String lowVisStep1Time; // 저시정 1단계 HHmm (없으면 '')
-	private String lowVisStep2Time; // 저시정 2단계 HHmm (없으면 '')
+	private String wthrCn; // 날씨내용 (예: 흐리고 비)
+	private int maxTp; // 최대온도 ℃
+	private int minTp; // 최소온도 ℃
+	private int hmdtVl; // 습도값 %
+	private int wsVl; // 풍속값 m/s
+	private double rwyAtm; // 활주로대기압 hPa
 }

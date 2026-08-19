@@ -34,14 +34,18 @@ function roundUpAxisMax(value: number): number {
 }
 
 /**
- * 터미널 패널의 큰 차트 — 시간대별 대기인원 예측/실적.
+ * 터미널 패널의 큰 차트 — 시간대별 대기인원 예측(Cast)/실적(Xovis).
  *
  * 색과 선 모양은 범례(예측=빨강 실선 / 실적=파랑 점선)에 맞춘다.
+ * 실적은 아직 측정되지 않은 시간대가 null 로 와서 선이 그 앞에서 끊긴다.
  */
 export function TerminalChart({ rsltList }: TerminalChartProps) {
     const option = useMemo<EChartsOption>(() => {
         const axisMax = roundUpAxisMax(
-            Math.max(1, ...rsltList.map((rslt) => Math.max(rslt.fcstWtngPsgCnt, rslt.wtngPsgCnt))),
+            Math.max(
+                1,
+                ...rsltList.map((rslt) => Math.max(rslt.fcstWtngPsgCnt, rslt.wtngPsgCnt ?? 0)),
+            ),
         );
 
         return {
@@ -56,17 +60,21 @@ export function TerminalChart({ rsltList }: TerminalChartProps) {
                 confine: true,
                 textStyle: TOOLTIP_TEXT_STYLE,
                 // 안내할 값은 예측/실적 두 선뿐이다 (시리즈명으로 거른다).
+                // 측정 전 시간대(실적 null)는 줄을 아예 빼서 0명으로 읽히지 않게 한다.
                 formatter: (params) => {
                     const tooltipItems = toTooltipItems(params);
                     const seriesItems = tooltipItems.filter(
-                        (item) => item.seriesName === '예측' || item.seriesName === '실적',
+                        (item) =>
+                            (item.seriesName === '예측' || item.seriesName === '실적') &&
+                            item.value !== null &&
+                            item.value !== undefined,
                     );
                     if (seriesItems.length === 0) return '';
 
                     const lines = seriesItems
                         .map(
                             (item) =>
-                                `${item.marker}${item.seriesName} <b>${formatCount(Number(item.value ?? 0))}</b>명`,
+                                `${item.marker}${item.seriesName} <b>${formatCount(Number(item.value))}</b>명`,
                         )
                         .join('<br/>');
 

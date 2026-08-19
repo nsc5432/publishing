@@ -24,6 +24,11 @@ export type IconName =
     | 'chevL'
     | 'chevR'
     | 'weather'
+    | 'wxClear'
+    | 'wxCloudy'
+    | 'wxWind'
+    | 'wxRain'
+    | 'wxSnow'
     | 'layers'
     | 'checkCircle'
     | 'spinner'
@@ -286,6 +291,130 @@ const ICONS: Record<IconName, ReactNode> = {
                 d="M39.6 45.4H25.1c-4.8 0-8.6-3.6-8.6-8s3.9-8 8.6-8c.5 0 1 0 1.5.1 1.8-4.9 6.7-8.4 12.5-8.4 7.2 0 13.1 5.4 13.1 12.2 0 .6 0 1.2-.1 1.7 3 .9 5.2 3.4 5.2 6.4 0 2.3-1.3 4.3-3.3 5.4-.9.5-2 .6-3.1.6h-11.3z"
                 fill="url(#wcl1)"
             />
+        </svg>
+    ),
+    wxClear: (
+        <svg viewBox="0 0 64 48" width={64} height={48}>
+            <defs>
+                <radialGradient id="wc-clear-sun" cx=".35" cy=".3" r=".75">
+                    <stop offset="0" stopColor="#ffe680" />
+                    <stop offset=".55" stopColor="#ffc21f" />
+                    <stop offset="1" stopColor="#f79c1b" />
+                </radialGradient>
+            </defs>
+            <g stroke="#ffc21f" strokeWidth={3} strokeLinecap="round">
+                <path d="M32 2v5M32 41v5M4 24h5M55 24h5M11.5 3.5l3.5 3.5M49 41l3.5 3.5M52.5 3.5 49 7M15 41l-3.5 3.5" />
+            </g>
+            <circle cx="32" cy="24" r="13.5" fill="url(#wc-clear-sun)" />
+        </svg>
+    ),
+    wxCloudy: (
+        <svg viewBox="0 0 64 48" width={64} height={48}>
+            <defs>
+                <linearGradient id="wc-cloudy-back" x1="0" y1="0" x2=".3" y2="1">
+                    <stop offset="0" stopColor="#d7dde6" />
+                    <stop offset="1" stopColor="#b6c0cf" />
+                </linearGradient>
+                <linearGradient id="wc-cloudy-front" x1=".2" y1="0" x2=".6" y2="1">
+                    <stop offset="0" stopColor="#eef1f5" />
+                    <stop offset="1" stopColor="#c7cfda" />
+                </linearGradient>
+            </defs>
+            <g transform="translate(0,-14)">
+                <path
+                    d="M42.4 47.5H26c-5.4 0-9.8-4.1-9.8-9.2s4.4-9.2 9.8-9.2c.6 0 1.2 0 1.7.1C29.6 23.6 35.2 19.6 41.8 19.6c8.2 0 14.9 6.2 14.9 13.9 0 .7 0 1.3-.1 1.9 3.4 1 5.9 3.9 5.9 7.3 0 2.6-1.5 4.9-3.7 6.2-1.1.6-2.3.6-3.6.6H42.4z"
+                    fill="url(#wc-cloudy-back)"
+                />
+                <path
+                    d="M39.6 45.4H25.1c-4.8 0-8.6-3.6-8.6-8s3.9-8 8.6-8c.5 0 1 0 1.5.1 1.8-4.9 6.7-8.4 12.5-8.4 7.2 0 13.1 5.4 13.1 12.2 0 .6 0 1.2-.1 1.7 3 .9 5.2 3.4 5.2 6.4 0 2.3-1.3 4.3-3.3 5.4-.9.5-2 .6-3.1.6h-11.3z"
+                    fill="url(#wc-cloudy-front)"
+                />
+            </g>
+        </svg>
+    ),
+    wxWind: (
+        <svg viewBox="0 0 64 48" width={64} height={48}>
+            <defs>
+                <linearGradient id="wc-wind-back" x1="0" y1="0" x2=".3" y2="1">
+                    <stop offset="0" stopColor="#cfe0f0" />
+                    <stop offset="1" stopColor="#a6c3e0" />
+                </linearGradient>
+                <linearGradient id="wc-wind-front" x1=".2" y1="0" x2=".6" y2="1">
+                    <stop offset="0" stopColor="#eef5fc" />
+                    <stop offset="1" stopColor="#c3d9ef" />
+                </linearGradient>
+            </defs>
+            <g transform="translate(4,-17)">
+                <path
+                    d="M42.4 47.5H26c-5.4 0-9.8-4.1-9.8-9.2s4.4-9.2 9.8-9.2c.6 0 1.2 0 1.7.1C29.6 23.6 35.2 19.6 41.8 19.6c8.2 0 14.9 6.2 14.9 13.9 0 .7 0 1.3-.1 1.9 3.4 1 5.9 3.9 5.9 7.3 0 2.6-1.5 4.9-3.7 6.2-1.1.6-2.3.6-3.6.6H42.4z"
+                    fill="url(#wc-wind-back)"
+                />
+                <path
+                    d="M39.6 45.4H25.1c-4.8 0-8.6-3.6-8.6-8s3.9-8 8.6-8c.5 0 1 0 1.5.1 1.8-4.9 6.7-8.4 12.5-8.4 7.2 0 13.1 5.4 13.1 12.2 0 .6 0 1.2-.1 1.7 3 .9 5.2 3.4 5.2 6.4 0 2.3-1.3 4.3-3.3 5.4-.9.5-2 .6-3.1.6h-11.3z"
+                    fill="url(#wc-wind-front)"
+                />
+            </g>
+            <g fill="none" stroke="#5e8fc4" strokeWidth={2.6} strokeLinecap="round">
+                <path d="M3 33h19q6 0 6-5t-5-4" />
+                <path d="M2 40.5h25q7 0 7 5.5t-6 4" />
+                <path d="M9 47h13" />
+            </g>
+        </svg>
+    ),
+    wxRain: (
+        <svg viewBox="0 0 64 48" width={64} height={48}>
+            <defs>
+                <linearGradient id="wc-rain-back" x1="0" y1="0" x2=".3" y2="1">
+                    <stop offset="0" stopColor="#aebdd6" />
+                    <stop offset="1" stopColor="#8296b8" />
+                </linearGradient>
+                <linearGradient id="wc-rain-front" x1=".2" y1="0" x2=".6" y2="1">
+                    <stop offset="0" stopColor="#c7d3e6" />
+                    <stop offset="1" stopColor="#9aacc9" />
+                </linearGradient>
+            </defs>
+            <g transform="translate(0,-18)">
+                <path
+                    d="M42.4 47.5H26c-5.4 0-9.8-4.1-9.8-9.2s4.4-9.2 9.8-9.2c.6 0 1.2 0 1.7.1C29.6 23.6 35.2 19.6 41.8 19.6c8.2 0 14.9 6.2 14.9 13.9 0 .7 0 1.3-.1 1.9 3.4 1 5.9 3.9 5.9 7.3 0 2.6-1.5 4.9-3.7 6.2-1.1.6-2.3.6-3.6.6H42.4z"
+                    fill="url(#wc-rain-back)"
+                />
+                <path
+                    d="M39.6 45.4H25.1c-4.8 0-8.6-3.6-8.6-8s3.9-8 8.6-8c.5 0 1 0 1.5.1 1.8-4.9 6.7-8.4 12.5-8.4 7.2 0 13.1 5.4 13.1 12.2 0 .6 0 1.2-.1 1.7 3 .9 5.2 3.4 5.2 6.4 0 2.3-1.3 4.3-3.3 5.4-.9.5-2 .6-3.1.6h-11.3z"
+                    fill="url(#wc-rain-front)"
+                />
+            </g>
+            <g stroke="#3f80ea" strokeWidth={2.6} strokeLinecap="round">
+                <path d="M22 36.5 19 43M32 36.5 29 43M42 36.5 39 43" />
+            </g>
+        </svg>
+    ),
+    wxSnow: (
+        <svg viewBox="0 0 64 48" width={64} height={48}>
+            <defs>
+                <linearGradient id="wc-snow-back" x1="0" y1="0" x2=".3" y2="1">
+                    <stop offset="0" stopColor="#dbe7f5" />
+                    <stop offset="1" stopColor="#b9cde6" />
+                </linearGradient>
+                <linearGradient id="wc-snow-front" x1=".2" y1="0" x2=".6" y2="1">
+                    <stop offset="0" stopColor="#f3f8fd" />
+                    <stop offset="1" stopColor="#d3e2f2" />
+                </linearGradient>
+            </defs>
+            <g transform="translate(0,-18)">
+                <path
+                    d="M42.4 47.5H26c-5.4 0-9.8-4.1-9.8-9.2s4.4-9.2 9.8-9.2c.6 0 1.2 0 1.7.1C29.6 23.6 35.2 19.6 41.8 19.6c8.2 0 14.9 6.2 14.9 13.9 0 .7 0 1.3-.1 1.9 3.4 1 5.9 3.9 5.9 7.3 0 2.6-1.5 4.9-3.7 6.2-1.1.6-2.3.6-3.6.6H42.4z"
+                    fill="url(#wc-snow-back)"
+                />
+                <path
+                    d="M39.6 45.4H25.1c-4.8 0-8.6-3.6-8.6-8s3.9-8 8.6-8c.5 0 1 0 1.5.1 1.8-4.9 6.7-8.4 12.5-8.4 7.2 0 13.1 5.4 13.1 12.2 0 .6 0 1.2-.1 1.7 3 .9 5.2 3.4 5.2 6.4 0 2.3-1.3 4.3-3.3 5.4-.9.5-2 .6-3.1.6h-11.3z"
+                    fill="url(#wc-snow-front)"
+                />
+            </g>
+            <g stroke="#7fa8d6" strokeWidth={1.8} strokeLinecap="round">
+                <path d="M22 36v8M18.3 38.3l7.4 3.4M25.7 38.3l-7.4 3.4" />
+                <path d="M42 36v8M38.3 38.3l7.4 3.4M45.7 38.3l-7.4 3.4" />
+            </g>
+            <circle cx="32" cy="40" r="1.6" fill="#7fa8d6" />
         </svg>
     ),
 };

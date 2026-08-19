@@ -3,9 +3,9 @@ import t1Blue from '@/assets/svg/t1-blue.svg';
 import t2Teal from '@/assets/svg/t2-teal-full.svg';
 import { QuickCheckinIcon, QuickFlightIcon, QuickGateIcon, QuickPaxIcon } from '@/components/icons';
 import type { DowAttrDto, DsbdCategory, DsbdHeaderDto, TmnlId } from '@/types/api.types';
-import { formatCount, formatHhmm } from '@/lib/format';
+import { formatCount } from '@/lib/format';
 import { HourlyPsgChart } from './HourlyPsgChart';
-import { Icon } from '@/components/icons/InlineIcon';
+import { Icon, type IconName } from '@/components/icons/InlineIcon';
 
 interface HeaderSummaryProps {
     planDate: string;
@@ -28,6 +28,16 @@ const DOW_STEPS: { type: DowAttrDto['dowType']; label: string }[] = [
 
 /** 특이점 — 서버가 내려준 문구와 같은 것만 강조한다 */
 const SPECIAL_NOTES = ['하계 전일', '하계', '추석 전일', '추석', '공휴'];
+
+/** 날씨내용 문구로 아이콘을 고른다 — 눈 > 비 > 강풍 > 흐림 순으로 우선 매칭 */
+const weatherIconName = (wthrCn: string | undefined): IconName => {
+    if (!wthrCn) return 'wxClear';
+    if (wthrCn.includes('눈')) return 'wxSnow';
+    if (wthrCn.includes('비')) return 'wxRain';
+    if (wthrCn.includes('강풍') || wthrCn.includes('바람')) return 'wxWind';
+    if (wthrCn.includes('흐') || wthrCn.includes('구름')) return 'wxCloudy';
+    return 'wxClear';
+};
 
 /** 퀵 타일 = 조회 대상 지표 */
 const QUICK_TILES: { category: DsbdCategory; label: string; Icon: typeof QuickPaxIcon }[] = [
@@ -192,29 +202,28 @@ export function HeaderSummary({
                             <span className="card-title">기상정보</span>
                         </div>
                         <div className="wx-row">
-                            {/* 아이콘 세트에 날씨 글리프가 하나뿐이라 wthrCd 별 구분은 아직 없다 */}
                             <span className="wx-ic">
-                                <Icon name="weather" />
+                                <Icon name={weatherIconName(weather?.wthrCn)} />
                             </span>
                             <div className="wx-temp">
-                                {weather ? weather.tmpr : EMPTY}
+                                {weather ? weather.maxTp : EMPTY}
                                 <small>°C</small>
                             </div>
                         </div>
                         <div className="wx-sub">
                             <span>
-                                강수량 <b>{weather ? weather.rainAmt : EMPTY}</b>mm
+                                최저 <b>{weather ? weather.minTp : EMPTY}</b>°C
                             </span>
                             <span>
-                                적설 <b>{weather ? weather.snowAmt : EMPTY}</b>mm
+                                습도 <b>{weather ? weather.hmdtVl : EMPTY}</b>%
                             </span>
                         </div>
                         <div className="card-foot">
-                            <span className="tag-chip">저시정</span>
+                            <span className="tag-chip">{weather ? weather.wthrCn : EMPTY}</span>
                             <span className="wx-foot-r">
-                                1단계 <b>{formatHhmm(weather?.lowVisStep1Time ?? '')}</b>
+                                풍속 <b>{weather ? weather.wsVl : EMPTY}</b>m/s
                                 <br />
-                                2단계 <b>{formatHhmm(weather?.lowVisStep2Time ?? '')}</b>
+                                기압 <b>{weather ? weather.rwyAtm.toFixed(1) : EMPTY}</b>hPa
                             </span>
                         </div>
                     </div>

@@ -111,12 +111,12 @@ const HEADER: DsbdHeaderDto = {
         spclNote: '하계',
     },
     weather: {
-        wthrCd: 'CLOUDY',
-        tmpr: 24,
-        rainAmt: 0,
-        snowAmt: 0,
-        lowVisStep1Time: '1500',
-        lowVisStep2Time: '1600',
+        wthrCn: '구름조금',
+        maxTp: 30,
+        minTp: 23,
+        hmdtVl: 71,
+        wsVl: 2,
+        rwyAtm: 1015.9,
     },
 };
 
@@ -178,23 +178,29 @@ const CATEGORY_SCALE: Record<DsbdCategory, number> = {
     DEP: 0.32,
 };
 
+/** 실측(Xovis)은 흘러간 시간까지만 있다 — 이 시각 뒤로는 실적선이 끊긴다 */
+const MEASURED_UNTIL_HOUR = 14;
+
 function buildRsltList(tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] {
     const scale = CATEGORY_SCALE[category];
 
     return HOURLY_PSG[tmnlId].map((base, hour) => {
         const psgCnt = Math.round(base * scale);
-        const wtngPsgCnt = Math.round(psgCnt * 0.12);
+        const fcstWtngPsgCnt = Math.round(psgCnt * 0.12);
 
         return {
             time: `${String(hour).padStart(2, '0')}00`,
             psgCnt,
-            wtngPsgCnt,
-            wtngHr: Math.min(40, Math.round(wtngPsgCnt / 8)),
+            wtngPsgCnt:
+                hour <= MEASURED_UNTIL_HOUR
+                    ? Math.round(fcstWtngPsgCnt * (0.85 + ((hour * 13) % 6) / 20))
+                    : null,
+            wtngHr: Math.min(40, Math.round(fcstWtngPsgCnt / 8)),
             prcsPsgCnt: Math.round(psgCnt * 0.9),
-            prcsHr: Math.min(30, Math.round(wtngPsgCnt / 12)),
+            prcsHr: Math.min(30, Math.round(fcstWtngPsgCnt / 12)),
             prcsRate: 70 + ((hour * 7) % 26),
-            fcstWtngPsgCnt: Math.round(wtngPsgCnt * 1.12),
-            lastWeekWtngPsgCnt: Math.round(wtngPsgCnt * 0.88),
+            fcstWtngPsgCnt,
+            lastWeekWtngPsgCnt: Math.round(fcstWtngPsgCnt * 0.88),
         };
     });
 }

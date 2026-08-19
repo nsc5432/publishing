@@ -8,8 +8,8 @@ import lombok.Setter;
 @Setter
 public class HourlyPsgItemDto {
 	private String time; // HH
-	private int psgCnt; // 출발 여객수 (막대)
-	private int fcstPsgCnt; // 예측 여객수 (라인)
+	private int psgCnt; // 출발 여객수 — 실적 (라인)
+	private int fcstPsgCnt; // 승객예고 인원수 — 예고 (막대)
 
 	public HourlyPsgItemDto withTime(String time) {
 		this.time = time;

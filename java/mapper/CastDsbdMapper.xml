@@ -93,6 +93,24 @@
         ORDER BY HOUR
     </select>
 
+    <select id="retrieveHourlyBdpsgAnceList" resultType="aoms.pm.cast.dto.BdpsgAnceRawDto">
+        /* CastDsbdMapper.retrieveHourlyBdpsgAnceList */
+        -- 승객예고는 10분 간격이다. 화면 축이 1시간이라 시 단위로 합산한다
+        -- BDPSG_ANCE_SE_CD='DE' 는 출발 탑승객예고다 (도착은 화면에서 아직 안 쓴다)
+        SELECT
+            A.BDPSG_ANCE_HOUR AS HOUR,
+            NVL(SUM(A.EST_BRDG_TNOPE), 0) AS EST_BRDG_TNOPE
+        FROM PMOWN.TN_PM_BDPSG_ANCE_RSLT A
+        WHERE 1 = 1
+        AND A.BDPSG_ANCE_SE_CD = 'DE'
+        AND A.BDPSG_ANCE_YMD = #{ymd}
+        <if test="tmnlIdList != null and tmnlIdList.size() > 0">
+        AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
+        </if>
+        GROUP BY A.BDPSG_ANCE_HOUR
+        ORDER BY HOUR
+    </select>
+
     <select id="retrieveRsltByHourList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
         /* CastDsbdMapper.retrieveRsltByHourList */
         -- 결과 상세는 10분 간격이다. 화면 축이 1시간이라 시 단위로 접는다.
@@ -113,6 +131,26 @@
         -- LS 랜드사이드 좌석, CC 체크인카운터, CK 셀프체크인, SBD 셀프백드랍, LGT 출국장, LC 출국심사, SC 보안검색대, SR 보안검색대RED
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
         GROUP BY TO_CHAR(A.SMLT_ACTL_DT, 'HH24')
+        ORDER BY TIME
+    </select>
+
+    <select id="retrievePsgWtngByHourList" resultType="aoms.pm.cast.dto.PsgWtngRawDto">
+        /* CastDsbdMapper.retrievePsgWtngByHourList */
+        -- 여객대기정보(Xovis 실측)도 10분 간격이다. 접는 방식은 retrieveRsltByHourList 와 맞춘다
+        -- (예측선과 실적선을 같은 축에 겹쳐 그리므로 대기인원은 합이 아니라 MAX 로 통일한다)
+        SELECT
+            SUBSTR(A.PSG_FLOW_DATA_CRT_DT, 9, 2) || '00' AS TIME,
+            NVL(MAX(A.WTNG_LINE_LEN), 0) AS WTNG_PSG_CNT
+        FROM PMOWN.TN_PM_PSG_WTNG_INFO A
+        WHERE 1 = 1
+        -- 여객흐름자료생성일시는 yyyyMMddHHmm 문자열이자 PK 선두라 앞자리 범위로 자른다
+        AND A.PSG_FLOW_DATA_CRT_DT BETWEEN #{ymd} || '0000' AND #{ymd} || '2359'
+        AND A.TMNL_ID = #{tmnlId}
+        <if test="fcltTypeCdList != null and fcltTypeCdList.size() > 0">
+        -- Queue 체크인 대기열, DG 출국장, SC 보안검색대
+        AND A.FCLT_TYPE_CD IN (<foreach collection="fcltTypeCdList" item="item" separator=",">#{item}</foreach>)
+        </if>
+        GROUP BY SUBSTR(A.PSG_FLOW_DATA_CRT_DT, 9, 2)
         ORDER BY TIME
     </select>
 
@@ -152,5 +190,22 @@
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
         GROUP BY <include refid="unitCdExpr" />
         ORDER BY UNIT_CD
+    </select>
+
+    <select id="retrieveWeather" resultType="aoms.pm.cast.dto.WeatherDto">
+        /* CastDsbdMapper.retrieveWeather */
+        -- 기상정보는 하루 최대 2회(07/09시) 발표된다. 가장 최근 발표를 그날의 대표값으로 쓴다.
+        -- 집계라 대상 일자에 발표가 없어도 NULL 채운 행 1개가 온다 (NVL 로 기본값 처리)
+        SELECT
+            NVL(MAX(A.WTHR_CN) KEEP (DENSE_RANK FIRST ORDER BY A.CRT_HM DESC), '') AS WTHR_CN,
+            TO_NUMBER(NVL(MAX(A.MAX_TP) KEEP (DENSE_RANK FIRST ORDER BY A.CRT_HM DESC), '0')) AS MAX_TP,
+            TO_NUMBER(NVL(MAX(A.MIN_TP) KEEP (DENSE_RANK FIRST ORDER BY A.CRT_HM DESC), '0')) AS MIN_TP,
+            TO_NUMBER(NVL(MAX(A.HMDT_VL) KEEP (DENSE_RANK FIRST ORDER BY A.CRT_HM DESC), '0')) AS HMDT_VL,
+            TO_NUMBER(NVL(MAX(A.WS_VL) KEEP (DENSE_RANK FIRST ORDER BY A.CRT_HM DESC), '0')) AS WS_VL,
+            TO_NUMBER(NVL(MAX(A.RWY_ATM) KEEP (DENSE_RANK FIRST ORDER BY A.CRT_HM DESC), '0')) AS RWY_ATM
+        FROM GOOWN.TN_GO_WTHCN_INFO A
+        WHERE 1 = 1
+        AND A.CRT_YMD = #{ymd}
+        AND A.CTY_NM = '인천'
     </select>
 </mapper>

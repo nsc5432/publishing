@@ -19,6 +19,10 @@ public enum DsbdCategory {
 	private static final List<String> CHKN_FCLT_CD_LIST = List.of("CC", "CK", "SBD");
 	private static final List<String> DEP_FCLT_CD_LIST = List.of("LGT", "LC", "SC", "SR");
 
+	// 여객대기정보(Xovis)는 시설 구분이 시뮬레이션과 다르다 — Queue 체크인 대기열, DG 출국장, SC 보안검색대
+	private static final List<String> CHKN_WTNG_TYPE_CD_LIST = List.of("Queue");
+	private static final List<String> DEP_WTNG_TYPE_CD_LIST = List.of("DG", "SC");
+
 	private final String value;
 
 	DsbdCategory(String value) {
@@ -44,6 +48,22 @@ public enum DsbdCategory {
 		}
 
 		return ALL_FCLT_CD_LIST;
+	}
+
+	/**
+	 * 여객대기정보(Xovis) 집계 대상 시설유형코드.
+	 * PSG·FLT 는 터미널에서 측정된 대기열 전체를 보므로 빈 목록(= 유형 조건 없음)이다.
+	 */
+	public List<String> getPsgWtngFcltTypeCdList() {
+		if (this == CHKN) {
+			return CHKN_WTNG_TYPE_CD_LIST;
+		}
+
+		if (this == DEP) {
+			return DEP_WTNG_TYPE_CD_LIST;
+		}
+
+		return List.of();
 	}
 
 	public static List<DsbdCategory> getList() {

@@ -70,8 +70,8 @@ export interface FltPlanDto {
 /** 시간대별 출발여객 — 막대 1개 (시간 단위) */
 export interface HourlyPsgItemDto {
     time: string; // HH
-    psgCnt: number; // 출발 여객수 (막대)
-    fcstPsgCnt: number; // 예측 여객수 (라인)
+    psgCnt: number; // 출발 여객수 — 실적 (라인)
+    fcstPsgCnt: number; // 승객예고 인원수 — 예고 (막대)
 }
 
 /** 시간대별 출발여객 — 터미널 1개분 */
@@ -89,14 +89,14 @@ export interface DowAttrDto {
     spclNote: string; // 특이점 (예: 공휴일 전일)
 }
 
-/** 기상정보 카드 */
+/** 기상정보 카드 — 그날 가장 최근 발표(07/09시) 1건 */
 export interface WeatherDto {
-    wthrCd: string; // 날씨 코드 (아이콘 매핑)
-    tmpr: number; // 기온 (℃)
-    rainAmt: number; // 강수량 (mm)
-    snowAmt: number; // 적설 (mm)
-    lowVisStep1Time: string; // 저시정 1단계 (HHmm, 없으면 '')
-    lowVisStep2Time: string; // 저시정 2단계 (HHmm, 없으면 '')
+    wthrCn: string; // 날씨내용 (예: 흐리고 비)
+    maxTp: number; // 최대온도 (℃)
+    minTp: number; // 최소온도 (℃)
+    hmdtVl: number; // 습도값 (%)
+    wsVl: number; // 풍속값 (m/s)
+    rwyAtm: number; // 활주로대기압 (hPa)
 }
 
 /** 대시보드 상단 카드 묶음 */
@@ -138,12 +138,12 @@ export type DsbdCategory = 'PSG' | 'FLT' | 'CHKN' | 'DEP';
 export interface DsbdRsltDto {
     time: string; // HHmm
     psgCnt: number; // 여객수
-    wtngPsgCnt: number; // 대기인원 (명)
+    wtngPsgCnt: number | null; // Xovis 실측 대기인원 (차트 실적선) — 측정값이 없는 시간대는 null
     wtngHr: number; // 대기시간 (분)
     prcsPsgCnt: number; // 처리인원 (명)
     prcsHr: number; // 처리시간 (분)
     prcsRate: number; // 처리율 (%)
-    fcstWtngPsgCnt: number; // 예측 대기인원 (차트 점선)
+    fcstWtngPsgCnt: number; // Cast 예측 대기인원 (차트 예측선)
     lastWeekWtngPsgCnt: number; // 지난주 同요일 대기인원 (차트 비교선)
 }
 

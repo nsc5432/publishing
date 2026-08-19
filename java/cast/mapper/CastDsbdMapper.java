@@ -5,10 +5,13 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
+import aoms.pm.cast.dto.BdpsgAnceRawDto;
 import aoms.pm.cast.dto.FcltUnitRawDto;
 import aoms.pm.cast.dto.FltPsgRawDto;
 import aoms.pm.cast.dto.FltSmryRawDto;
+import aoms.pm.cast.dto.PsgWtngRawDto;
 import aoms.pm.cast.dto.SmltRsltRawDto;
+import aoms.pm.cast.dto.WeatherDto;
 
 /**
  * @Classname   : CastDsbdMapper.java
@@ -46,11 +49,24 @@ public interface CastDsbdMapper {
 			@Param("tmnlIdList") List<String> tmnlIdList
 	);
 
+	/** 시간대별 승객예고 (출발) — 승객예고/실적 비교 카드의 예고 막대 원천 */
+	List<BdpsgAnceRawDto> retrieveHourlyBdpsgAnceList(
+			@Param("ymd") String ymd,
+			@Param("tmnlIdList") List<String> tmnlIdList
+	);
+
 	/** 시간대별 시뮬레이션 결과 (1시간 단위 집계) */
 	List<SmltRsltRawDto> retrieveRsltByHourList(
 			@Param("smltId") String smltId,
 			@Param("tmnlId") String tmnlId,
 			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
+	);
+
+	/** 시간대별 Xovis 실측 대기인원 (1시간 단위 집계) — 차트의 실적선 */
+	List<PsgWtngRawDto> retrievePsgWtngByHourList(
+			@Param("ymd") String ymd,
+			@Param("tmnlId") String tmnlId,
+			@Param("fcltTypeCdList") List<String> fcltTypeCdList
 	);
 
 	/** 기준 시각의 시설 묶음 단위(아일랜드 · 출국장) 결과 — 게이트 카드 원형 */
@@ -66,4 +82,7 @@ public interface CastDsbdMapper {
 			@Param("tmnlId") String tmnlId,
 			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
 	);
+
+	/** 기상정보 — 그날 가장 최근 발표 1건 (없으면 전 필드 기본값 1행) */
+	WeatherDto retrieveWeather(@Param("ymd") String ymd);
 }
