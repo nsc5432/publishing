@@ -42,12 +42,20 @@ export const dashboardService = {
     },
 
     // 터미널 패널 요약 (운항/여객 증감, 탑승률, 피크시간)
-    getTmnlSmry: async (smltId: string, tmnlId: TmnlId, hhmm: string): Promise<TmnlSmryDto> => {
-        if (USE_MOCK) return mockResponse(dashboardMock.getTmnlSmry(tmnlId), { loading: true });
+    // itvlMin 은 요약 블록이 세는 구간 길이 — hhmm 부터 이만큼 안에 출발하는 편만 센다
+    getTmnlSmry: async (
+        smltId: string,
+        tmnlId: TmnlId,
+        hhmm: string,
+        itvlMin: number,
+    ): Promise<TmnlSmryDto> => {
+        if (USE_MOCK) {
+            return mockResponse(dashboardMock.getTmnlSmry(tmnlId, hhmm, itvlMin), { loading: true });
+        }
 
         const response = await apiClient.post<TmnlSmryDto>(
             API_ENDPOINTS.DSBD_TMNL_SMRY,
-            { smltId, tmnlId, hhmm },
+            { smltId, tmnlId, hhmm, itvlMin },
             { params: { loading: true } },
         );
 

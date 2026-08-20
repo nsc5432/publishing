@@ -56,14 +56,17 @@
         ORDER BY AVL_TIME
     </select>
 
+    <!-- 출발/도착을 한 번에 센다. 대시보드 상단 카드는 도착편도 쓰기 때문이다 -->
+    <sql id="fltSmryCols">
+        NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN 1 ELSE 0 END), 0) AS DEP_FLT_CNT,
+        NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN 1 ELSE 0 END), 0) AS ARR_FLT_CNT,
+        NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS DEP_PSG_CNT,
+        NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS ARR_PSG_CNT
+    </sql>
+
     <select id="retrieveFltSmry" resultType="aoms.pm.cast.dto.FltSmryRawDto">
         /* CastDsbdMapper.retrieveFltSmry */
-        -- 출발/도착을 한 번에 센다. 대시보드 상단 카드는 도착편도 쓰기 때문이다
-        SELECT
-            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN 1 ELSE 0 END), 0) AS DEP_FLT_CNT,
-            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN 1 ELSE 0 END), 0) AS ARR_FLT_CNT,
-            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS DEP_PSG_CNT,
-            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS ARR_PSG_CNT
+        SELECT <include refid="fltSmryCols" />
         FROM GOOWN.TN_GO_GD_DATA A
         WHERE 1 = 1
         AND A.GD_SE_YMD = #{ymd}
@@ -71,6 +74,20 @@
         -- T1 은 제1여객터미널(P01) + 탑승동(P02), T2 는 제2여객터미널(P03)
         AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
         </if>
+        <include refid="validFltCond" />
+    </select>
+
+    <select id="retrieveFltSmryByTime" resultType="aoms.pm.cast.dto.FltSmryRawDto">
+        /* CastDsbdMapper.retrieveFltSmryByTime */
+        SELECT <include refid="fltSmryCols" />
+        FROM GOOWN.TN_GO_GD_DATA A
+        WHERE 1 = 1
+        AND A.GD_SE_YMD = #{ymd}
+        AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
+        -- 예측시분은 날짜 없는 HHmm 문자열이라 사전순 비교로 구간을 자른다.
+        -- 자정을 넘는 구간은 호출하는 쪽이 끝을 '2400' 으로 잘라 넘긴다
+        AND A.PREDC_HM &gt;= #{bgnHhmm}
+        AND A.PREDC_HM &lt; #{endHhmm}
         <include refid="validFltCond" />
     </select>
 

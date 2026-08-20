@@ -8,8 +8,17 @@ import {
 } from 'react';
 import type { ECElementEvent } from 'echarts/core';
 import type { TimeRange } from '@/components/ui/time-range-selector';
-import type { EChartsOption } from '@/lib/echarts';
+import type {
+    CustomSeriesOption,
+    CustomSeriesRenderItemReturn,
+    EChartsOption,
+    LineSeriesOption,
+    TooltipComponentOption,
+    XAXisComponentOption,
+    YAXisComponentOption,
+} from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
+import { CHART_FONT_FAMILY } from '@/lib/chart';
 import { pad2 } from '@/lib/format';
 import { toHourList } from '../format';
 import type { BlockColor, BlockItem, BlockLegend, WaitLineData } from '../types';
@@ -32,71 +41,358 @@ interface BlockChartProps {
     headExtra?: ReactNode;
     headActions?: ReactNode;
     selected?: string[];
-    onBlockSelect?: (label: string, meta: { additive: boolean }) => void;
-    stackMode?: 'packed' | 'fixed'; /** packed: 열린 것부터 아래에서 쌓음(기본), fixed: items 순서로 층 고정 */
-    gridLeft?: number; /** 좌측 축 자리(px) */
+    onBlockSelect?: (label: string) => void;
+    stackMode?: 'packed' | 'fixed';
+    gridLeft?: number;
     selectedRange?: TimeRange | null;
     onRangeSelect?: (label: string, range: TimeRange) => void;
     formatTip?: (item: BlockItem, hour: number) => string;
     disabled?: boolean;
 }
 
-/** 렌더할 블럭 1개 — 자리는 [시각, 아래에서 센 층] */
 interface Cell {
     label: string;
     color: BlockColor;
     hour: number;
     level: number;
-    /** 한쪽 면만 운영하면 블럭을 위/아래로 가른다 (BlockItem.sides) */
     sides?: readonly ('L' | 'R')[];
-    /** 호버 툴팁 문구 */
     tip: string;
 }
 
-/* ---------- 아래 격자(출국장 .scgrid)와 좌표를 맞출 때 호출부가 쓰는 값 ---------- */
-
-/** 좌측 눈금 자리(22px) + 눈금과 플롯 사이(8px) */
 export const Y_LEFT = 30;
-/** 아래 격자(출국장 .scgrid)와 좌표를 맞출 때 쓰는 좌측 자리 — CSS 의 --gut 과 같은 값 */
 export const GUTTER = 44;
-/** 우측 대기인원수 눈금 자리(32px) + 간격(8px) — 꺾은선이 있을 때만 쓴다 */
 export const Y_RIGHT = 40;
 
-/* ---------- 렌더 전용 ---------- */
-
-/** 블럭 색 — userSmlt.css 의 --i1 ~ --i6 과 같은 값 */
 const BLOCK_FILL: Record<BlockColor, string> = {
-    i1: '#4441cc',
-    i2: '#5b58d6',
+    i1: '#7472e0',
+    i2: '#7472e0',
     i3: '#7472e0',
-    i4: '#8f8de9',
-    i5: '#a09eff',
-    i6: '#12b09a',
+    i4: '#7472e0',
+    i5: '#7472e0',
+    i6: '#7472e0',
 };
-/** 대기인원수 꺾은선 색 (--line-wait) */
+const PLOT_BG = '#dde1f2';
 const WAIT_COLOR = '#f2762e';
-/** 플롯 위 여백 — 최댓값 말풍선과 맨 위 눈금 글자 자리. userSmlt.css 에서 음수 마진으로 되돌린다 */
 const PAD_TOP = 18;
-/** 플롯 아래 여백 — 0 눈금 글자의 아래 절반 */
 const PAD_BOTTOM = 7;
-/** 블럭 사이 가로 간격 (원본 grid column-gap) */
 const BLOCK_GAP = 3;
-/** 우측 축 눈금 칸 수 (라벨 5개) */
 const WAIT_TICKS = 4;
-/** 하단 시각 눈금 개수 — 00,02,…,24 (2시간 간격) */
 const SCALE_TICK_COUNT = 13;
-/** 하단 시각 눈금 간격(시간) */
 const SCALE_TICK_STEP_HOUR = 2;
-/** 최댓값 말풍선 크기 — 말풍선 아래가 점 위 14px 에 오도록 띄운다 */
 const PEAK_TIP = { width: 58, height: 18, gap: 14 };
-/** 미운영 면(반쪽 블럭)의 불투명도 */
 const SIDE_OFF_OPACITY = 0.26;
+const DIM_OPACITY = 0.26;
 
-const AXIS_FONT = { fontSize: 11, fontFamily: 'Pretendard, sans-serif' };
+const AXIS_FONT = { fontSize: 11, fontFamily: CHART_FONT_FAMILY };
 const BLOCK_SERIES = '블럭';
 const VALUE_LABEL = 2;
+const WAIT_LABEL = '대기인원수';
+const WAIT_UNIT = '명';
 
-/** 범례 가로 스크롤 상태 — 넘쳤는지, 양 끝에 닿았는지 (좌우 페이드를 켜고 끄는 값) */
+interface BlockBox {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+interface BlockView {
+    rowH: number;
+    blockH: number;
+    radius: number;
+    fontSize: number;
+    compact: boolean;
+    selectedLabels: Set<string>;
+}
+
+const BLOCK_EMPHASIS = {
+    style: {
+        stroke: '#fff',
+        lineWidth: 2,
+        shadowBlur: 12,
+        shadowOffsetY: 4,
+        shadowColor: 'rgba(46, 50, 94, 0.35)',
+    },
+};
+
+function blockPaint(cell: Cell, view: BlockView) {
+    const selected = view.selectedLabels.has(cell.label);
+    const dimmed = view.selectedLabels.size > 0 && !selected;
+    const fill = BLOCK_FILL[cell.color] ?? BLOCK_FILL.i1;
+    const opacity = dimmed ? DIM_OPACITY : 1;
+
+    return {
+        fill,
+        opacity,
+        radius: view.radius,
+        style: {
+            fill,
+            opacity,
+            ...(view.compact
+                ? {}
+                : {
+                      shadowBlur: 3,
+                      shadowOffsetY: 1,
+                      shadowColor: 'rgba(46, 50, 94, 0.18)',
+                  }),
+            ...(selected ? { stroke: 'rgba(68, 65, 204, 0.55)', lineWidth: 2 } : {}),
+        },
+        label: view.compact
+            ? undefined
+            : {
+                  type: 'text' as const,
+                  style: {
+                      text: cell.label,
+                      fill: '#fff',
+                      opacity,
+                      fontSize: view.fontSize,
+                      fontWeight: 'bold' as const,
+                      fontFamily: CHART_FONT_FAMILY,
+                  },
+              },
+    };
+}
+
+type BlockPaint = ReturnType<typeof blockPaint>;
+type BlockLabel = NonNullable<BlockPaint['label']>;
+
+function wholeBlock(box: BlockBox, paint: BlockPaint): CustomSeriesRenderItemReturn {
+    return {
+        type: 'rect',
+        shape: { ...box, r: paint.radius },
+        style: paint.style,
+        textContent: paint.label,
+        textConfig: { position: 'inside' },
+        emphasis: BLOCK_EMPHASIS,
+    };
+}
+
+function splitBlock(
+    box: BlockBox,
+    operatingSide: 'L' | 'R',
+    paint: BlockPaint,
+): CustomSeriesRenderItemReturn {
+    const half = box.height / 2;
+    const r = Math.min(paint.radius, half);
+    const topCorners = [r, r, 0, 0];
+    const bottomCorners = [0, 0, r, r];
+    const operatingOnTop = operatingSide === 'L';
+
+    const operating = {
+        type: 'rect' as const,
+        shape: {
+            x: box.x,
+            y: operatingOnTop ? box.y : box.y + half,
+            width: box.width,
+            height: half,
+            r: operatingOnTop ? topCorners : bottomCorners,
+        },
+        style: paint.style,
+        emphasis: BLOCK_EMPHASIS,
+    };
+    const closed = {
+        type: 'rect' as const,
+        shape: {
+            x: box.x + 0.5,
+            y: (operatingOnTop ? box.y + half : box.y) + 0.5,
+            width: box.width - 1,
+            height: half - 1,
+            r: operatingOnTop ? bottomCorners : topCorners,
+        },
+        style: {
+            fill: paint.fill,
+            opacity: paint.opacity * SIDE_OFF_OPACITY,
+            stroke: paint.fill,
+            lineWidth: 1,
+        },
+    };
+
+    return {
+        type: 'group',
+        children: [closed, operating, ...(paint.label ? [centeredLabel(paint.label, box)] : [])],
+    };
+}
+
+function centeredLabel(label: BlockLabel, box: BlockBox) {
+    return {
+        ...label,
+        style: {
+            ...label.style,
+            x: box.x + box.width / 2,
+            y: box.y + box.height / 2,
+            align: 'center' as const,
+            verticalAlign: 'middle' as const,
+        },
+    };
+}
+
+function renderBlock(cell: Cell, box: BlockBox, view: BlockView): CustomSeriesRenderItemReturn {
+    const paint = blockPaint(cell, view);
+    const soleOperatingSide = cell.sides?.length === 1 ? cell.sides[0] : null;
+
+    return soleOperatingSide ? splitBlock(box, soleOperatingSide, paint) : wholeBlock(box, paint);
+}
+
+interface WaitLine {
+    data: number[];
+    peak: number;
+    peakIndex: number;
+    axisMax: number;
+}
+
+function toWaitLine(line?: WaitLineData): WaitLine {
+    const data = line?.data ?? [];
+    const peak = data.length > 0 ? Math.max(...data) : 0;
+
+    return {
+        data,
+        peak,
+        peakIndex: data.length > 0 ? data.indexOf(peak) : -1,
+        axisMax: line?.max || peak,
+    };
+}
+
+const TOOLTIP: TooltipComponentOption = {
+    trigger: 'item',
+    confine: true,
+    backgroundColor: '#2f3440',
+    borderWidth: 0,
+    padding: [7, 11],
+    textStyle: { color: '#fff', fontSize: 11, fontFamily: CHART_FONT_FAMILY },
+    formatter: (params) => (Array.isArray(params) ? '' : String(params.name ?? '')),
+};
+
+const HOUR_AXIS: XAXisComponentOption = {
+    type: 'value',
+    min: 0,
+    max: 24,
+    interval: 2,
+    axisLine: { show: false },
+    axisTick: { show: false },
+    axisLabel: { show: false },
+    splitLine: {
+        lineStyle: {
+            color: [...Array<string>(12).fill('rgba(210, 214, 226, 0.55)'), 'transparent'],
+            width: 1,
+        },
+    },
+};
+
+function levelAxis(levels: number): YAXisComponentOption {
+    return {
+        type: 'value',
+        min: 0,
+        max: levels,
+        interval: 1,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { ...AXIS_FONT, color: '#9aa0ac', margin: 8 },
+        splitLine: {
+            lineStyle: {
+                color: [
+                    '#ccd0dd',
+                    ...Array<string>(Math.max(levels - 1, 0)).fill('#e9ebf2'),
+                    'transparent',
+                ],
+                width: 1,
+            },
+        },
+    };
+}
+
+function waitAxis(axisMax: number, show: boolean): YAXisComponentOption {
+    const max = axisMax || WAIT_TICKS;
+
+    return {
+        type: 'value',
+        min: 0,
+        max,
+        interval: max / WAIT_TICKS,
+        show,
+        axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: {
+            ...AXIS_FONT,
+            color: WAIT_COLOR,
+            fontWeight: 600,
+            margin: 8,
+            formatter: (value: number) => String(Math.round(value)),
+        },
+        splitLine: { show: false },
+    };
+}
+
+function blockSeries(cells: Cell[], view: BlockView, disabled: boolean): CustomSeriesOption {
+    return {
+        name: BLOCK_SERIES,
+        type: 'custom',
+        z: 3,
+        clip: true,
+        silent: disabled,
+        renderItem: (params, api) => {
+            const cell = cells[params.dataIndex];
+            if (!cell) return { type: 'group', children: [] };
+
+            const [left] = api.coord([cell.hour, 0]);
+            const [right] = api.coord([cell.hour + 1, 0]);
+            const [, top] = api.coord([0, cell.level + 1]);
+            const box: BlockBox = {
+                x: left + BLOCK_GAP / 2,
+                y: top + (view.rowH - view.blockH) / 2,
+                width: right - left - BLOCK_GAP,
+                height: view.blockH,
+            };
+
+            return renderBlock(cell, box, view);
+        },
+        encode: { x: 0, y: 1 },
+        data: cells.map((cell) => ({
+            name: cell.tip,
+            value: [cell.hour, cell.level, cell.label],
+        })),
+    };
+}
+
+function waitLineSeries(line: WaitLineData, wait: WaitLine): LineSeriesOption {
+    return {
+        name: line.label ?? WAIT_LABEL,
+        type: 'line',
+        yAxisIndex: 1,
+        z: 5,
+        silent: true,
+        symbol: 'circle',
+        symbolSize: (_: unknown, params: { dataIndex: number }) =>
+            params.dataIndex % 2 === 0 || params.dataIndex === wait.peakIndex ? 7 : 0,
+        itemStyle: { color: '#fff', borderColor: WAIT_COLOR, borderWidth: 2 },
+        lineStyle: { color: WAIT_COLOR, width: 2, cap: 'round', join: 'round' },
+        data: wait.data.map((value, hour) => [hour + 0.5, value]),
+        markPoint: {
+            silent: true,
+            animation: false,
+            symbol: 'roundRect',
+            symbolSize: [PEAK_TIP.width, PEAK_TIP.height],
+            symbolOffset: [0, -(PEAK_TIP.gap + PEAK_TIP.height / 2)],
+            itemStyle: {
+                color: WAIT_COLOR,
+                shadowBlur: 8,
+                shadowOffsetY: 3,
+                shadowColor: 'rgba(242, 118, 46, 0.35)',
+            },
+            label: {
+                formatter: `최대 ${wait.peak}${line.unit ?? WAIT_UNIT}`,
+                color: '#fff',
+                fontSize: 10,
+                fontWeight: 'bold',
+                fontFamily: CHART_FONT_FAMILY,
+            },
+            data:
+                wait.peakIndex < 0
+                    ? []
+                    : [{ name: 'peak', coord: [wait.peakIndex + 0.5, wait.peak] }],
+        },
+    };
+}
+
 interface LegendScroll {
     scrollable: boolean;
     atStart: boolean;
@@ -105,12 +401,6 @@ interface LegendScroll {
 
 const LEGEND_FIT: LegendScroll = { scrollable: false, atStart: true, atEnd: true };
 
-/**
- * 범례가 폭을 넘을 때 — 줄바꿈 대신 한 줄로 두고 마우스로 끌어서 본다.
- * 끌 수 있다는 신호(커서 · 페이드 · 화살표)는 CSS 가 상태 클래스를 보고 붙인다.
- *
- * 요소는 호출부가 state 로 들고 있다가 넘겨준다(ref 대신 state 여야 붙는 즉시 관찰이 걸린다).
- */
 function useLegendDrag(el: HTMLDivElement | null) {
     const [scroll, setScroll] = useState<LegendScroll>(LEGEND_FIT);
     const [dragging, setDragging] = useState(false);
@@ -133,7 +423,6 @@ function useLegendDrag(el: HTMLDivElement | null) {
         });
     }, [el]);
 
-    // 칸 폭이 줄면 안 넘치던 범례도 넘친다
     useEffect(() => {
         if (!el) return;
 
@@ -161,7 +450,6 @@ function useLegendDrag(el: HTMLDivElement | null) {
                 setDragging(false);
             };
 
-            // 포인터를 잡아 뒀으므로 칩 밖으로 나가도 이벤트는 계속 여기로 온다
             el.addEventListener('pointermove', handleMove);
             el.addEventListener('pointerup', handleUp);
             el.addEventListener('pointercancel', handleUp);
@@ -172,12 +460,6 @@ function useLegendDrag(el: HTMLDivElement | null) {
     return { ...scroll, dragging, sync, onPointerDown };
 }
 
-/**
- * 시간대별 운영 블럭 차트 — 체크인 카운터(아일랜드) · 출국장 · 보안검색대 공용.
- *
- * 블럭은 ECharts custom 시리즈로 그린다. 시각(0~24)과 층(0~levels)을 좌표축으로 두고
- * 그 위에 둥근 사각형을 얹는 방식이라, 대기인원수 꺾은선(오른쪽 축)과 눈금이 저절로 맞는다.
- */
 export function BlockChart({
     items,
     title,
@@ -203,12 +485,10 @@ export function BlockChart({
     disabled = false,
 }: BlockChartProps) {
     const cells = useMemo<Cell[]>(() => {
-        // 시간별로 이미 쌓인 칸 수 — 다음 시설은 그 위에 올라간다
         const levelsByHour: number[] = [];
         const cellList: Cell[] = [];
 
         items.forEach((item, index) => {
-            // fixed 는 항목 1개 = 층 1개다. 닫힌 시간의 자리는 비워 둔다.
             const blockCount =
                 stackMode === 'fixed' ? 1 : Math.max(1, Math.ceil((item.size || 1) / unitSize));
 
@@ -218,7 +498,7 @@ export function BlockChart({
 
                 for (let blockIndex = 0; blockIndex < blockCount; blockIndex += 1) {
                     const level = baseLevel + blockIndex;
-                    if (level >= levels) continue; // 축을 넘치면 그리지 않는다
+                    if (level >= levels) continue;
 
                     cellList.push({
                         label: item.label,
@@ -239,7 +519,6 @@ export function BlockChart({
 
     const height = levels * rowH + PAD_TOP + PAD_BOTTOM;
 
-    // 호출부가 배열을 매 렌더 새로 만들어도 차트 옵션까지 다시 만들지 않도록 문자열로 굳힌다
     const selectedLabelKey = (selected ?? []).join('|');
     const selectedLabels = useMemo(
         () => new Set(selectedLabelKey ? selectedLabelKey.split('|') : []),
@@ -247,15 +526,15 @@ export function BlockChart({
     );
 
     const option = useMemo<EChartsOption>(() => {
-        // 조회 전에는 꺾은선 값이 비어 있다. 축 최댓값이 0/-Infinity 가 되지 않게 받쳐 둔다.
-        const waitData = line?.data ?? [];
-        const waitPeak = waitData.length > 0 ? Math.max(...waitData) : 0;
-        const waitAxisMax = (line?.max || waitPeak) ?? 0;
-        const blockH = rowH - (compact ? 4 : 6);
-        const radius = compact ? 4 : 6;
-        // 편집 표면이 열렸을 때 — 선택 블럭만 남기고 흐리게
-        const hasSelection = selectedLabels.size > 0;
-        const peakIndex = waitData.length > 0 ? waitData.indexOf(waitPeak) : -1;
+        const wait = toWaitLine(line);
+        const view: BlockView = {
+            rowH,
+            blockH: rowH - (compact ? 4 : 6),
+            radius: compact ? 4 : 6,
+            fontSize: blockFontSize,
+            compact,
+            selectedLabels,
+        };
 
         return {
             animation: false,
@@ -265,274 +544,16 @@ export function BlockChart({
                 top: PAD_TOP,
                 bottom: PAD_BOTTOM,
                 outerBoundsMode: 'none',
-            },
-            tooltip: {
-                trigger: 'item',
-                confine: true,
-                backgroundColor: '#2f3440',
+                show: true,
+                backgroundColor: PLOT_BG,
                 borderWidth: 0,
-                padding: [7, 11],
-                textStyle: { color: '#fff', fontSize: 11, fontFamily: 'Pretendard, sans-serif' },
-                formatter: (params) =>
-                    Array.isArray(params) ? '' : String((params.name as string) ?? ''),
             },
-            xAxis: {
-                type: 'value',
-                min: 0,
-                max: 24,
-                interval: 2,
-                axisLine: { show: false },
-                axisTick: { show: false },
-                axisLabel: { show: false },
-                // 2시간 단위 세로 보조선 — 오른쪽 끝(24시)에는 긋지 않는다
-                splitLine: {
-                    lineStyle: {
-                        color: [
-                            ...Array<string>(12).fill('rgba(210, 214, 226, 0.55)'),
-                            'transparent',
-                        ],
-                        width: 1,
-                    },
-                },
-            },
-            yAxis: [
-                {
-                    type: 'value',
-                    min: 0,
-                    max: levels,
-                    interval: 1,
-                    axisLine: { show: false },
-                    axisTick: { show: false },
-                    axisLabel: { ...AXIS_FONT, color: '#9aa0ac', margin: 8 },
-                    // 색은 아래(0선)부터 돈다. 0선은 진하게, 맨 위 선은 긋지 않는다.
-                    splitLine: {
-                        lineStyle: {
-                            color: [
-                                '#ccd0dd',
-                                ...Array<string>(Math.max(levels - 1, 0)).fill('#e9ebf2'),
-                                'transparent',
-                            ],
-                            width: 1,
-                        },
-                    },
-                },
-                {
-                    type: 'value',
-                    min: 0,
-                    max: waitAxisMax || WAIT_TICKS,
-                    interval: (waitAxisMax || WAIT_TICKS) / WAIT_TICKS,
-                    show: Boolean(line),
-                    axisLine: { show: false },
-                    axisTick: { show: false },
-                    axisLabel: {
-                        ...AXIS_FONT,
-                        color: WAIT_COLOR,
-                        fontWeight: 600,
-                        margin: 8,
-                        formatter: (value: number) => String(Math.round(value)),
-                    },
-                    splitLine: { show: false },
-                },
-            ],
+            tooltip: TOOLTIP,
+            xAxis: HOUR_AXIS,
+            yAxis: [levelAxis(levels), waitAxis(wait.axisMax, Boolean(line))],
             series: [
-                {
-                    name: BLOCK_SERIES,
-                    type: 'custom',
-                    // 격자 위, 꺾은선 아래
-                    z: 3,
-                    clip: true,
-                    silent: disabled,
-                    renderItem: (params, api) => {
-                        const cell = cells[params.dataIndex];
-                        if (!cell) return { type: 'group', children: [] };
-
-                        const isSelected = selectedLabels.has(cell.label);
-                        const [left] = api.coord([cell.hour, 0]);
-                        const [right] = api.coord([cell.hour + 1, 0]);
-                        const [, top] = api.coord([0, cell.level + 1]);
-                        const opacity = hasSelection && !isSelected ? 0.26 : 1;
-
-                        const x = left + BLOCK_GAP / 2;
-                        const y = top + (rowH - blockH) / 2;
-                        const width = right - left - BLOCK_GAP;
-                        const fill = BLOCK_FILL[cell.color] ?? BLOCK_FILL.i1;
-
-                        const style = {
-                            fill,
-                            opacity,
-                            ...(compact
-                                ? {}
-                                : {
-                                    shadowBlur: 3,
-                                    shadowOffsetY: 1,
-                                    shadowColor: 'rgba(46, 50, 94, 0.18)',
-                                }),
-                            ...(isSelected
-                                ? { stroke: 'rgba(68, 65, 204, 0.55)', lineWidth: 2 }
-                                : {}),
-                        };
-                        const emphasis = {
-                            style: {
-                                stroke: '#fff',
-                                lineWidth: 2,
-                                shadowBlur: 12,
-                                shadowOffsetY: 4,
-                                shadowColor: 'rgba(46, 50, 94, 0.35)',
-                            },
-                        };
-                        const label = compact
-                            ? undefined
-                            : {
-                                type: 'text' as const,
-                                style: {
-                                    text: cell.label,
-                                    fill: '#fff',
-                                    opacity,
-                                    fontSize: blockFontSize,
-                                    fontWeight: 'bold' as const,
-                                    fontFamily: 'Pretendard, sans-serif',
-                                },
-                            };
-
-                        // 한쪽 면만 운영하는 시설 — 통 블럭 대신 위/아래로 가른다
-                        const soleOperatingSide = cell.sides?.length === 1 ? cell.sides[0] : null;
-                        if (!soleOperatingSide) {
-                            return {
-                                type: 'rect',
-                                shape: { x, y, width, height: blockH, r: radius },
-                                style,
-                                textContent: label,
-                                textConfig: { position: 'inside' },
-                                emphasis,
-                            };
-                        }
-
-                        const halfHeight = blockH / 2;
-                        // 반쪽은 높이가 절반이라 모서리도 그만큼만 굴린다
-                        const cornerRadius = Math.min(radius, halfHeight);
-                        // 운영 면이 진한 절반 — L 이면 위, R 이면 아래
-                        const operatingY = soleOperatingSide === 'L' ? y : y + halfHeight;
-                        const closedY = soleOperatingSide === 'L' ? y + halfHeight : y;
-
-                        return {
-                            type: 'group',
-                            children: [
-                                {
-                                    type: 'rect',
-                                    // 테두리가 블럭 밖으로 삐져나오지 않게 0.5px 안으로 들인다
-                                    shape: {
-                                        x: x + 0.5,
-                                        y: closedY + 0.5,
-                                        width: width - 1,
-                                        height: halfHeight - 1,
-                                        r:
-                                            soleOperatingSide === 'L'
-                                                ? [0, 0, cornerRadius, cornerRadius]
-                                                : [cornerRadius, cornerRadius, 0, 0],
-                                    },
-                                    // 미운영 면 — 안쪽 1px 테두리로 자리만 남긴다
-                                    style: {
-                                        fill,
-                                        opacity: opacity * SIDE_OFF_OPACITY,
-                                        stroke: fill,
-                                        lineWidth: 1,
-                                    },
-                                },
-                                {
-                                    type: 'rect',
-                                    shape: {
-                                        x,
-                                        y: operatingY,
-                                        width,
-                                        height: halfHeight,
-                                        r:
-                                            soleOperatingSide === 'L'
-                                                ? [cornerRadius, cornerRadius, 0, 0]
-                                                : [0, 0, cornerRadius, cornerRadius],
-                                    },
-                                    style,
-                                    emphasis,
-                                },
-                                ...(label
-                                    ? [
-                                        {
-                                            ...label,
-                                            // 글자는 반쪽이 아니라 블럭 한가운데에 둔다
-                                            style: {
-                                                ...label.style,
-                                                x: x + width / 2,
-                                                y: y + blockH / 2,
-                                                align: 'center' as const,
-                                                verticalAlign: 'middle' as const,
-                                            },
-                                        },
-                                    ]
-                                    : []),
-                            ],
-                        };
-                    },
-                    encode: { x: 0, y: 1 },
-                    data: cells.map((cell) => ({
-                        // 툴팁 문구는 name 으로 넘긴다 (빈 문자열이면 툴팁이 뜨지 않는다)
-                        name: cell.tip,
-                        value: [cell.hour, cell.level, cell.label],
-                    })),
-                },
-                ...(line
-                    ? [
-                        {
-                            name: line.label ?? '대기인원수',
-                            type: 'line' as const,
-                            yAxisIndex: 1,
-                            z: 5,
-                            silent: true,
-                            symbol: 'circle',
-                            // 점은 2시간마다 + 최댓값에만 찍는다
-                            symbolSize: (_: unknown, params: { dataIndex: number }) =>
-                                params.dataIndex % 2 === 0 || params.dataIndex === peakIndex
-                                    ? 7
-                                    : 0,
-                            itemStyle: {
-                                color: '#fff',
-                                borderColor: WAIT_COLOR,
-                                borderWidth: 2,
-                            },
-                            lineStyle: {
-                                color: WAIT_COLOR,
-                                width: 2,
-                                cap: 'round' as const,
-                                join: 'round' as const,
-                            },
-                            // 블럭 칸의 가운데(시각 + 0.5)를 지나게 한다
-                            data: waitData.map((value, hour) => [hour + 0.5, value]),
-                            // 최댓값 말풍선 — 값이 아직 없으면 띄우지 않는다
-                            markPoint: {
-                                silent: true,
-                                animation: false,
-                                symbol: 'roundRect',
-                                symbolSize: [PEAK_TIP.width, PEAK_TIP.height],
-                                symbolOffset: [0, -(PEAK_TIP.gap + PEAK_TIP.height / 2)],
-                                itemStyle: {
-                                    color: WAIT_COLOR,
-                                    shadowBlur: 8,
-                                    shadowOffsetY: 3,
-                                    shadowColor: 'rgba(242, 118, 46, 0.35)',
-                                },
-                                label: {
-                                    formatter: `최대 ${waitPeak}${line.unit ?? '명'}`,
-                                    color: '#fff',
-                                    fontSize: 10,
-                                    fontWeight: 'bold' as const,
-                                    fontFamily: 'Pretendard, sans-serif',
-                                },
-                                data:
-                                    peakIndex < 0
-                                        ? []
-                                        : [{ name: 'peak', coord: [peakIndex + 0.5, waitPeak] }],
-                            },
-                        },
-                    ]
-                    : []),
+                blockSeries(cells, view, disabled),
+                ...(line ? [waitLineSeries(line, wait)] : []),
             ],
         };
     }, [cells, levels, rowH, compact, blockFontSize, selectedLabels, gridLeft, line, disabled]);
@@ -541,7 +562,6 @@ export function BlockChart({
     const legendDrag = useLegendDrag(legendEl);
     const { sync: syncLegend } = legendDrag;
 
-    // 칩이 늘거나 줄어도 넘침 여부가 바뀐다
     useEffect(() => {
         syncLegend();
     }, [syncLegend, legend, line]);
@@ -554,20 +574,16 @@ export function BlockChart({
             const label = Array.isArray(params.value) ? params.value[VALUE_LABEL] : undefined;
             if (typeof label !== 'string' || !label) return;
 
-
-            // Ctrl(Win) / Cmd(Mac) 누른 채 클릭 = 선택 누적
-            const mouseEvent = params.event?.event as MouseEvent | undefined;
-            onBlockSelect(label, {
-                additive: Boolean(mouseEvent?.ctrlKey || mouseEvent?.metaKey),
-            });
+            onBlockSelect(label);
         },
         [disabled, onBlockSelect],
     );
 
     return (
         <div
-            className={`bchart${compact ? ' bchart--compact' : ''}${selectedLabels.size > 0 ? ' is-picking' : ''
-                }`}
+            className={`bchart${compact ? ' bchart--compact' : ''}${
+                selectedLabels.size > 0 ? ' is-picking' : ''
+            }`}
         >
             <div className="bchart__head">
                 <p className="bchart__title">{title}</p>
@@ -576,8 +592,9 @@ export function BlockChart({
 
                 {(legend || line) && (
                     <div
-                        className={`legend-wrap${legendDrag.scrollable ? ' is-scrollable' : ''}${legendDrag.atStart ? '' : ' is-scrolled'
-                            }${legendDrag.atEnd ? ' is-end' : ''}`}
+                        className={`legend-wrap${legendDrag.scrollable ? ' is-scrollable' : ''}${
+                            legendDrag.atStart ? '' : ' is-scrolled'
+                        }${legendDrag.atEnd ? ' is-end' : ''}`}
                     >
                         <div
                             ref={setLegendEl}
@@ -598,7 +615,7 @@ export function BlockChart({
                             {line && (
                                 <span className="legend__chip legend__chip--line">
                                     <i className="legend__line" />
-                                    <b>{line.label ?? '대기인원수'}</b> {line.unit ?? '명'}
+                                    <b>{line.label ?? WAIT_LABEL}</b> {line.unit ?? WAIT_UNIT}
                                 </span>
                             )}
                         </div>
@@ -621,7 +638,6 @@ export function BlockChart({
             {showScale && (
                 <div
                     className="bchart__scale"
-                    // 눈금줄은 플롯과 같은 좌우 여백을 써야 시각이 블럭 위에 선다
                     style={{ marginLeft: gridLeft, ...(line ? { marginRight: Y_RIGHT } : {}) }}
                 >
                     {Array.from({ length: SCALE_TICK_COUNT }, (_, tickIndex) => (

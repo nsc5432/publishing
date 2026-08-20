@@ -8,7 +8,7 @@ import {
     XAxis,
     YAxis,
 } from 'recharts';
-import type { ChartData } from '../types';
+import type { ChartBar, ChartData } from '../types';
 
 interface BarChartProps {
     data: ChartData;
@@ -83,8 +83,8 @@ export function BarChart({ data }: BarChartProps) {
                                 padding: '6px 10px',
                             }}
                             labelFormatter={(label) => `${label}시`}
-                            formatter={(value: number) => [
-                                `${value.toLocaleString('ko-KR')}${data.unit}`,
+                            formatter={(value: number, _name: string, item: { payload?: ChartBar }) => [
+                                `${(item.payload?.actual ?? value).toLocaleString('ko-KR')}${data.unit}`,
                                 data.title,
                             ]}
                         />
@@ -99,7 +99,9 @@ export function BarChart({ data }: BarChartProps) {
                             fill={`url(#${gradientId})`}
                             barSize={9}
                             radius={[2, 2, 0, 0]}
-                            isAnimationActive={false}
+                            isAnimationActive
+                            animationDuration={300}
+                            animationEasing="ease-out"
                         />
                     </RcBarChart>
                 </ResponsiveContainer>

@@ -25,13 +25,6 @@ interface TerminalPanelProps {
 
 const LOCKED_HINT = '터미널 1개는 시뮬레이션 대상으로 남겨 둬야 합니다.';
 
-/**
- * T1/T2 패널.
- *
- * 두 패널은 각각 켜고 끈다. 꺼진 패널은 회색으로 잠기고(`.panel--disabled` 가
- * 안쪽 pointer-events 를 끈다) 아무 데나 누르면 다시 켜진다.
- * 둘 다 켜져 있을 때는 마지막으로 만진 쪽이 편집 초점(`.panel--focus`)을 갖는다.
- */
 export function TerminalPanel({
     terminal,
     enabled,
@@ -49,7 +42,6 @@ export function TerminalPanel({
     const BadgeIcon = terminal === 'T1' ? T1WhiteIcon : T2WhiteIcon;
     const locked = enabled && !canDisable;
 
-    /** 스위치 클릭이 패널 클릭(초점 이동)까지 겹쳐 일어나지 않게 막는다 */
     const handleToggle = (event: ReactMouseEvent) => {
         event.stopPropagation();
         onToggle();
@@ -107,8 +99,6 @@ export function TerminalPanel({
 
             {children}
 
-            {/* 헤드는 요약·결과지표로 꽉 차 스위치가 들어갈 자리가 없다 — 바닥 오른쪽에 둔다.
-                조회 전용이면 안이 비지만 칸은 남긴다 (세로 flex 사슬이 끊기지 않게) */}
             <div className="panel__foot">
                 {!readOnly && (
                     <>

@@ -61,7 +61,6 @@ public class CastMntrServiceImpl implements CastMntrService {
 		result.setTotCnt(raw.getTotCnt());
 		result.setDoneCnt(raw.getDoneCnt());
 		result.setRunningCnt(raw.getRunningCnt());
-		// 화면이 "15분 00초" 처럼 분·초를 나눠 찍는다
 		result.setAvgExecMin(raw.getAvgExecSec() / SEC_PER_MIN);
 		result.setAvgExecSec(raw.getAvgExecSec() % SEC_PER_MIN);
 

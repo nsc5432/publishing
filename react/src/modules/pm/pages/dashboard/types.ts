@@ -18,6 +18,9 @@ export const SIMULATION_TITLE: Record<SimulationType, string> = {
 /** 터미널 구분 (제1터미널=왼쪽 / 제2터미널=오른쪽) */
 export type TerminalKind = 'T1' | 'T2';
 
+/** 요약 블록이 세는 구간 길이(분) — 조회 시각부터 이만큼 안에 출발하는 편만 센다 */
+export const SMRY_ITVL_MIN = 60;
+
 /* ================= 터미널 패널 뷰 모델 =================
  *
  * 서버 DTO 를 화면이 그대로 쓰기엔 표기 규칙(단위 · 부호 · 시각 형식)이 섞여 있다.

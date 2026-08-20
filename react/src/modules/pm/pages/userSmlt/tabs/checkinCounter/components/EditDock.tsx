@@ -11,7 +11,7 @@ interface EditDockProps {
     codes: string[];
     islands: CheckinIsland[];
     selected: string[];
-    onSelect: (label: string, additive: boolean) => void;
+    onSelect: (label: string) => void;
 
     draft: CheckinIsland | null;
     onPatch: (next: Partial<CheckinIsland>) => void;
@@ -74,7 +74,7 @@ export function EditDock({
                                     island ? { background: `var(--${island.color})` } : undefined
                                 }
                                 aria-pressed={selected.includes(code)}
-                                onClick={(event) => onSelect(code, event.ctrlKey || event.metaKey)}
+                                onClick={() => onSelect(code)}
                             >
                                 {code}
                             </button>

@@ -1,26 +1,23 @@
 import { useState } from 'react';
 import { CheckWhiteIcon } from '@/components/icons';
+import { HeaderInfoCards } from '@/modules/pm/components/HeaderInfoCards';
+import { formatYmd } from '@/lib/format';
+import { useIntroHeader } from '../hooks/useIntroHeader';
 import { NO_TERMINAL, TERMINALS, type TerminalEnabled, type TerminalKind } from '../types';
 
-/** 카드 안에 크게 들어가는 표기 (T1 → Terminal1) */
 const INTRO_LABEL: Record<TerminalKind, string> = {
     T1: 'Terminal1',
     T2: 'Terminal2',
 };
 
 interface TerminalIntroProps {
-    /** 고른 터미널로 시뮬레이션 설정 화면 진입 — 1개 또는 2개 */
+    ymd: string;
     onStart: (enabled: TerminalEnabled) => void;
 }
 
-/**
- * 사용자 시뮬레이션 도입 화면.
- *
- * 카드는 라디오가 아니라 체크다 — 한 터미널만 시뮬레이션할 수도, 두 터미널을 함께
- * 돌릴 수도 있다. 여기서 고르지 못했더라도 설정 화면의 패널 스위치로 다시 켜고 끈다.
- */
-export function TerminalIntro({ onStart }: TerminalIntroProps) {
+export function TerminalIntro({ ymd, onStart }: TerminalIntroProps) {
     const [picked, setPicked] = useState<TerminalEnabled>(NO_TERMINAL);
+    const { data: header } = useIntroHeader(ymd);
 
     const pickedCount = TERMINALS.filter((terminal) => picked[terminal]).length;
 
@@ -30,6 +27,10 @@ export function TerminalIntro({ onStart }: TerminalIntroProps) {
 
     return (
         <div className="intro">
+            <div className="intro__header">
+                <HeaderInfoCards planDate={formatYmd(ymd, '-')} header={header} />
+            </div>
+
             <div className="intro__cards">
                 {TERMINALS.map((terminal) => {
                     const on = picked[terminal];
@@ -53,8 +54,7 @@ export function TerminalIntro({ onStart }: TerminalIntroProps) {
 
             <div className="intro__foot">
                 <p className="intro__hint">
-                    시뮬레이션할 터미널을 고르세요. 1개만 고르면 그 터미널만, 2개를 고르면 두
-                    터미널을 함께 설정합니다.
+                    시뮬레이션할 터미널을 고르세요. 1개만 고르면 그 터미널만, 2개를 고르면 두 터미널을 함께 설정합니다.
                 </p>
                 <button
                     type="button"

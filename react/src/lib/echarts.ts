@@ -33,4 +33,12 @@ echarts.use([
 ]);
 
 export { echarts, ReactEChartsCore };
-export type { EChartsOption } from 'echarts';
+export type {
+    CustomSeriesOption,
+    CustomSeriesRenderItemReturn,
+    EChartsOption,
+    LineSeriesOption,
+    TooltipComponentOption,
+    XAXisComponentOption,
+    YAXisComponentOption,
+} from 'echarts';

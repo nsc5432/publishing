@@ -148,10 +148,13 @@
             NVL(TO_CHAR(A.SMLT_EXCN_END_DT, 'YYYYMMDDHH24MISS'), '') AS END_DT,
             NVL(ROUND((CAST(A.SMLT_EXCN_END_DT AS DATE) - CAST(A.SMLT_EXCN_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
             A.FRST_RGTR_ID AS RGTR_ID,
-            -- 사용자 테이블이 확인되지 않아 부서/성명은 아직 조인하지 못한다 (G1)
-            '' AS DEPT_NM,
-            '' AS USER_NM
+            NVL(D.DEPT_NM, '') AS DEPT_NM,
+            NVL(C.USER_NM, '') AS USER_NM
         FROM PMOWN.TH_PM_SMLT_EXCN_HSTRY A
+            LEFT OUTER JOIN CAOWN.TN_CA_USER C
+            ON A.FRST_RGTR_ID = C.USER_ID
+            LEFT OUTER JOIN CAOWN.TN_CA_DEPT D
+            ON C.DEPT_CD = D.DEPT_CD
         WHERE 1 = 1
         AND TO_CHAR(A.SMLT_EXCN_BGNG_DT, 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
         ORDER BY A.SMLT_EXCN_BGNG_DT DESC
@@ -191,12 +194,15 @@
                 NVL(ROUND((CAST(A.SMLT_EXCN_END_DT AS DATE) - CAST(A.SMLT_EXCN_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
                 A.FRST_RGTR_ID AS RGTR_ID,
                 NVL(B.EXCN_YMD, '') AS EXCN_YMD,
-                -- 사용자 테이블이 확인되지 않아 부서/성명은 아직 조인하지 못한다 (G1)
-                '' AS DEPT_NM,
-                '' AS USER_NM
+                NVL(D.DEPT_NM, '') AS DEPT_NM,
+                NVL(C.USER_NM, '') AS USER_NM
             FROM PMOWN.TH_PM_SMLT_EXCN_HSTRY A
                 LEFT OUTER JOIN PMOWN.TN_PM_SMLT_STNG B
                 ON A.SMLT_ID = B.SMLT_ID
+                LEFT OUTER JOIN CAOWN.TN_CA_USER C
+                ON A.FRST_RGTR_ID = C.USER_ID
+                LEFT OUTER JOIN CAOWN.TN_CA_DEPT D
+                ON C.DEPT_CD = D.DEPT_CD
             WHERE 1 = 1
             AND A.SMLT_ID = #{smltId}
             ORDER BY A.SMLT_EXCN_SN DESC

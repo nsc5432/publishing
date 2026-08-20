@@ -44,6 +44,14 @@ public interface CastDsbdMapper {
 	/** 운항 요약 — 기준일 / 전일 / 지난주 同요일에 같은 statement 를 3번 쓴다 */
 	FltSmryRawDto retrieveFltSmry(@Param("ymd") String ymd, @Param("tmnlIdList") List<String> tmnlIdList);
 
+	/** 조회 시각부터 N분 구간의 운항 요약 — 기준일 / 전일에 같은 statement 를 2번 쓴다 */
+	FltSmryRawDto retrieveFltSmryByTime(
+			@Param("ymd") String ymd,
+			@Param("tmnlIdList") List<String> tmnlIdList,
+			@Param("bgnHhmm") String bgnHhmm,
+			@Param("endHhmm") String endHhmm
+	);
+
 	/** 시간대별 출발 운항편·여객 */
 	List<FltPsgRawDto> retrieveHourlyFltPsgList(
 			@Param("ymd") String ymd,

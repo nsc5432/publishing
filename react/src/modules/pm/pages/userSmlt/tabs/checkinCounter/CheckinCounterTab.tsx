@@ -117,23 +117,16 @@ export function CheckinCounterTab({
 
     useErrorAlert(error);
 
-    // 조회 결과가 들어오면 편집 상태를 조회한 값으로 되돌린다.
     useEffect(() => {
         setEdit({ T1: fetched.T1?.islands ?? [], T2: fetched.T2?.islands ?? [] });
         setDock(EMPTY_DOCK);
     }, [fetched]);
 
     const enabledCount = enabledTerminals(enabled).length;
-    /** 도크가 보는 터미널 = 편집 초점. 다른 터미널의 편집값은 그대로 두고 감춘다 */
     const focusData = fetched[focusTerminal] ?? EMPTY_CHECKIN_COUNTER;
     const focusIslands = edit[focusTerminal];
     const draft = dock.terminal === focusTerminal ? dock.draft : null;
 
-    /**
-     * 블럭 · 칩 클릭 — 운영 중이면 그 아일랜드를, 미운영이면 신규를 편집 대상으로 연다.
-     * 꺼진 패널의 블럭은 눌리지 않으므로 여기 오는 터미널은 항상 켜져 있다.
-     * (Ctrl 누적 선택은 STEP-1 스텝 4 에서 켠다)
-     */
     const openIsland = (terminal: TerminalKind, label: string) => {
         onFocusChange(terminal);
         setDock((prev) => {

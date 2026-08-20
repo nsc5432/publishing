@@ -17,8 +17,8 @@ import type {
  * 화면 목업과 달리 서버 DTO 와 같은 모양으로 둔다. 화면은 목업이든 실통신이든
  * 같은 DTO 를 받으므로 연동 시 화면 코드를 고칠 일이 없다.
  *
- * 값은 전부 고정이다. 호출할 때마다 흔들리면 화면이 제대로 그려진 것인지
- * 목업이 튄 것인지 구분할 수 없다.
+ * 값은 조회 조건에만 좌우된다. 같은 조건으로 다시 부르면 반드시 같은 값이 나온다 —
+ * 호출할 때마다 흔들리면 화면이 제대로 그려진 것인지 목업이 튄 것인지 구분할 수 없다.
  */
 
 /* ================= 기준 정보 ================= */
@@ -122,7 +122,13 @@ const HEADER: DsbdHeaderDto = {
 
 /* ================= 터미널 패널 요약 ================= */
 
-const TMNL_SMRY: Record<TmnlId, TmnlSmryDto> = {
+/** 조회 시각과 무관한 부분 — 구간 4필드는 buildTmnlSmry 가 얹는다 */
+type TmnlSmryBase = Omit<
+    TmnlSmryDto,
+    'itvlMin' | 'itvlFltCnt' | 'itvlPsgCnt' | 'itvlBefFltDiffCnt' | 'itvlBefPsgDiffCnt'
+>;
+
+const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
     T1: {
         error: false,
         errorMessage: '',
@@ -164,6 +170,51 @@ const TMNL_SMRY: Record<TmnlId, TmnlSmryDto> = {
         },
     },
 };
+
+/** 전일 같은 구간을 만드는 터미널별 배율 — 증감 부호가 두 터미널에서 갈리도록 골랐다 */
+const BEF_DAY_RATIO: Record<TmnlId, number> = { T1: 0.94, T2: 1.05 };
+
+const MIN_PER_HOUR = 60;
+const MIN_PER_DAY = 24 * MIN_PER_HOUR;
+
+/** 시간대별 운항편 — 하루 합이 TMNL_FLT_CNT 와 맞도록 여객 곡선에 비례 배분한다 */
+function toHourlyFlt(tmnlId: TmnlId): number[] {
+    const counts = HOURLY_PSG[tmnlId];
+    const total = sum(counts);
+
+    return counts.map((psgCnt) => (TMNL_FLT_CNT[tmnlId] * psgCnt) / total);
+}
+
+/** 시간대(00~23시) 곡선에서 [bgnHhmm, +itvlMin) 과 겹치는 분만큼만 비례해 더한다 */
+function sumByItvl(hourly: number[], bgnHhmm: string, itvlMin: number): number {
+    const bgnMin = Number(bgnHhmm.slice(0, 2)) * MIN_PER_HOUR + Number(bgnHhmm.slice(2, 4));
+    // 예측시분에 날짜가 없어 자정을 넘는 구간은 그날 끝까지로 자른다 (서버와 같은 규칙)
+    const endMin = Math.min(bgnMin + itvlMin, MIN_PER_DAY);
+
+    const total = hourly.reduce((acc, count, hour) => {
+        const overlap =
+            Math.min(endMin, (hour + 1) * MIN_PER_HOUR) - Math.max(bgnMin, hour * MIN_PER_HOUR);
+
+        return overlap > 0 ? acc + (count * overlap) / MIN_PER_HOUR : acc;
+    }, 0);
+
+    return Math.round(total);
+}
+
+function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, itvlMin: number): TmnlSmryDto {
+    const itvlFltCnt = sumByItvl(toHourlyFlt(tmnlId), hhmm, itvlMin);
+    const itvlPsgCnt = sumByItvl(HOURLY_PSG[tmnlId], hhmm, itvlMin);
+    const ratio = BEF_DAY_RATIO[tmnlId];
+
+    return {
+        ...TMNL_SMRY[tmnlId],
+        itvlMin,
+        itvlFltCnt,
+        itvlPsgCnt,
+        itvlBefFltDiffCnt: itvlFltCnt - Math.round(itvlFltCnt * ratio),
+        itvlBefPsgDiffCnt: itvlPsgCnt - Math.round(itvlPsgCnt * ratio),
+    };
+}
 
 /* ================= 시간대별 결과 (차트 / 테이블) ================= */
 
@@ -402,7 +453,8 @@ export const dashboardMock = {
 
     getHeader: (): DsbdHeaderDto => HEADER,
 
-    getTmnlSmry: (tmnlId: TmnlId): TmnlSmryDto => TMNL_SMRY[tmnlId],
+    getTmnlSmry: (tmnlId: TmnlId, hhmm: string, itvlMin: number): TmnlSmryDto =>
+        buildTmnlSmry(tmnlId, hhmm, itvlMin),
 
     getTmnlRsltByTime: (tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] =>
         buildRsltList(tmnlId, category),

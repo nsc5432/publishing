@@ -2,8 +2,10 @@
 export interface ChartBar {
     /** 하단 스케일 라벨 (예: 04) */
     label: string;
-    /** 막대 값 (편 / 명) */
+    /** 막대 높이 값 — 축을 넘지 않도록 max 로 clamp 될 수 있다 */
     value: number;
+    /** 툴팁에 보여줄 실제 값 (clamp 되지 않는다) */
+    actual: number;
 }
 
 /** 막대 차트 1개 (운항편 수 / 여객 수) */

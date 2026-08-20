@@ -7,16 +7,6 @@ interface SmltTabsProps {
     onTabChange: (tab: SmltTabKey) => void;
 }
 
-/**
- * 시뮬레이션 대상 단계 3개 (운항편/여객수 → 체크인 카운터 → 출국장).
- *
- * GNB 가운데에 얹히는 스테퍼 — 번호와 셰브론으로 순서를 보이고,
- * 지나온 단계는 체크(is-done), 현재 단계는 흰 알약(is-active)으로 구분한다.
- * 단계 건너뛰기는 막지 않는다 (어느 단계든 눌러서 이동할 수 있다).
- *
- * 스테퍼는 "지금 어디인지"만 말해 줄 뿐 다음 단계로 넘어가려면 눌러야 한다는 게
- * 읽히지 않는다. 그래서 오른쪽에 다음 단계 버튼을 붙여 진행 방향을 드러낸다.
- */
 export function SmltTabs({ activeTab, onTabChange }: SmltTabsProps) {
     const activeIndex = SMLT_TABS.indexOf(activeTab);
     const nextTab: SmltTabKey | undefined = SMLT_TABS[activeIndex + 1];

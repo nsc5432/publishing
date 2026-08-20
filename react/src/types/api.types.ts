@@ -128,6 +128,11 @@ export interface TmnlSmryDto extends JsonResponse {
     befPsgDiffCnt: number; // 전일 대비 여객 증감
     brdgRate: number; // 탑승률 (%)
     cgnStatus: CongestionStatus; // 패널 전체 혼잡도 (blue/green/orange/red 4단계)
+    itvlMin: number; // 구간 집계 길이 (분)
+    itvlFltCnt: number; // 조회 시각 ~ +itvlMin 구간의 운항편
+    itvlPsgCnt: number; // 같은 구간의 여객
+    itvlBefFltDiffCnt: number; // 전일 같은 구간 대비 운항편 증감
+    itvlBefPsgDiffCnt: number; // 전일 같은 구간 대비 여객 증감
     peak: PeakDto;
 }
 

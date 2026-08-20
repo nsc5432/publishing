@@ -17,19 +17,9 @@ import { useSmltInfo } from './hooks/useSmltInfo';
 import { CheckinCounterTab } from './tabs/checkinCounter/CheckinCounterTab';
 import { DepartureTab } from './tabs/departure/DepartureTab';
 import { FlightPaxTab } from './tabs/flightPax/FlightPaxTab';
-import {
-    NO_TERMINAL,
-    enabledTerminals,
-    otherTerminal,
-    type SmltTabKey,
-    type SmltTabProps,
-    type TerminalEnabled,
-    type TerminalKind,
-} from './types';
+import { NO_TERMINAL, enabledTerminals, otherTerminal, type SmltTabKey, type SmltTabProps, type TerminalEnabled, type TerminalKind } from './types';
 
-/** 화면 타이틀 (GNB) */
 const TITLE = 'PM 예측관리 / 사용자 시뮬레이션';
-/** 조회 전용으로 들어왔을 때의 타이틀 — 편집 화면과 헷갈리지 않게 문구를 나눈다 */
 const VIEW_TITLE = 'PM 예측관리 / 사용자 시뮬레이션 설정 조건 조회';
 
 const EXEC_FAIL = '시뮬레이션 실행에 실패했습니다.';
@@ -40,10 +30,6 @@ interface TabContentProps extends SmltTabProps {
     tab: SmltTabKey;
 }
 
-/**
- * 조회 전용으로 펼 터미널.
- * 실행은 터미널 단위라 보통 한쪽만 넘어오지만, 지정이 없으면 양쪽을 다 편다.
- */
 function viewEnabled(tmnlId: TerminalKind | null): TerminalEnabled {
     if (!tmnlId) return { T1: true, T2: true };
 
@@ -59,16 +45,9 @@ function UserSmltConfig() {
     const viewSmltId = params.get('smltId') ?? '';
     const viewTmnlId = params.get('tmnlId') as TerminalKind | null;
 
-    // 기준일자 — 최초 진입은 오늘. GNB 달력에서 바꿀 수 있다.
-    // 조회 전용이면 볼 시뮬레이션의 일자를 쓴다.
     const [ymd, setYmd] = useState(() => params.get('ymd') || todayYmd());
     const [reloadKey, setReloadKey] = useState(0);
-    // 조회 전용은 볼 시뮬레이션이 이미 정해져 있어 진입 정보를 부르지 않는다.
-    const {
-        smltIds: editSmltIds,
-        ymd: baseYmd,
-        error,
-    } = useSmltInfo(readOnly ? '' : ymd, reloadKey);
+    const { smltIds: editSmltIds, ymd: baseYmd, error } = useSmltInfo(readOnly ? '' : ymd, reloadKey);
 
     /** 조회 전용이면 넘어온 smltId 로 대신 채운다 — 터미널이 지정돼 있으면 그쪽만 */
     const smltIds = useMemo(() => {
@@ -82,9 +61,7 @@ function UserSmltConfig() {
 
     const [activeTab, setActiveTab] = useState<SmltTabKey>('flightPax');
     /** 시뮬레이션 대상으로 켜 둔 터미널 — 둘 다 꺼져 있으면 도입 화면 */
-    const [enabled, setEnabled] = useState<TerminalEnabled>(() =>
-        readOnly ? viewEnabled(viewTmnlId) : NO_TERMINAL,
-    );
+    const [enabled, setEnabled] = useState<TerminalEnabled>(() => (readOnly ? viewEnabled(viewTmnlId) : NO_TERMINAL));
     /** 화면에 하나뿐인 편집 도크·드로어가 보는 터미널 */
     const [focusTerminal, setFocusTerminal] = useState<TerminalKind>(viewTmnlId ?? 'T1');
 
@@ -101,10 +78,6 @@ function UserSmltConfig() {
         setFocusTerminal(enabledTerminals(next)[0]);
     };
 
-    /**
-     * 패널 스위치 — 켜면 그 패널로 초점이 옮겨 가고, 끄면 초점을 반대편에 넘긴다.
-     * 둘 다 끄면 설정할 대상이 없어지므로 마지막 1개는 끄지 않는다.
-     */
     const handleToggleTerminal = (terminal: TerminalKind) => {
         const next = { ...enabled, [terminal]: !enabled[terminal] };
         if (!next.T1 && !next.T2) return;
@@ -123,18 +96,10 @@ function UserSmltConfig() {
             .then((confirmed) => {
                 if (!confirmed) return;
 
-                Promise.all(
-                    runnable.map((terminal) =>
-                        userSmltService
-                            .execute(smltIds[terminal], terminal)
-                            .then((dto) => unwrap(dto, EXEC_FAIL)),
-                    ),
-                )
+                Promise.all(runnable.map((terminal) => userSmltService.execute(smltIds[terminal], terminal).then((dto) => unwrap(dto, EXEC_FAIL))))
                     .then(() => navigate(MONITORING_PATH))
                     .catch((err: ApiError) => {
-                        dialog
-                            .alert({ title: '실행 실패', description: err?.message || EXEC_FAIL })
-                            .catch(() => {});
+                        dialog.alert({ title: '실행 실패', description: err?.message || EXEC_FAIL }).catch(() => {});
                     });
             })
             .catch(() => {});
@@ -142,16 +107,12 @@ function UserSmltConfig() {
 
     return (
         <>
-            <BgDeco />
+            {/* <BgDeco /> */}
 
             <SmltGnb
                 title={readOnly ? VIEW_TITLE : TITLE}
                 ymd={baseYmd || ymd}
-                steps={
-                    picked ? (
-                        <SmltTabs activeTab={activeTab} onTabChange={setActiveTab} />
-                    ) : undefined
-                }
+                steps={picked ? <SmltTabs activeTab={activeTab} onTabChange={setActiveTab} /> : undefined}
                 onBack={readOnly ? () => navigate(-1) : undefined}
                 onDateChange={readOnly ? undefined : setYmd}
                 onSearch={readOnly ? undefined : handleSearch}
@@ -177,7 +138,7 @@ function UserSmltConfig() {
                             />
                         </div>
                     ) : (
-                        <TerminalIntro onStart={handleStart} />
+                        <TerminalIntro ymd={baseYmd || ymd} onStart={handleStart} />
                     )}
                 </main>
             </div>

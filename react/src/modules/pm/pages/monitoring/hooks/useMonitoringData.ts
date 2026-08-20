@@ -25,7 +25,6 @@ const LIST_FAIL = '시뮬레이션 이력을 불러오지 못했습니다.';
 
 const EMPTY_HISTORY: Record<HistoryKind, HistoryRow[]> = { standard: [], user: [] };
 
-/** 상단 KPI + 시뮬레이션 이력 (같은 조회 조건을 쓰므로 함께 부른다) */
 export function useMonitoring(query: MonitoringQuery | null): Fetched<MonitoringView> {
     const execSmry = useFetched(
         query,

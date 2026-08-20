@@ -83,10 +83,16 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private static final String AM = "AM";
 	private static final String PM = "PM";
 
+	private static final String DAY_END_HHMM = "2400"; // 자정을 넘는 구간을 잘라 붙이는 상한
+
 	private static final int SEC_PER_MIN = 60; // _HR 컬럼(초) → 화면 표시 단위(분)
+	private static final int MIN_PER_HOUR = 60;
+	private static final int MIN_PER_DAY = 24 * MIN_PER_HOUR;
+	private static final int HHMM_LENGTH = 4;
 	private static final int NOON_HOUR = 12;
 	private static final int PERCENT = 100;
 	private static final int DAYS_A_WEEK = 7;
+	private static final int DEFAULT_ITVL_MIN = 60; // 요약 블록의 구간 집계 기본 길이(분)
 	private static final int CARD_CNT_LIMIT = 12; // 캐러셀이 감당하는 카드 수 상한
 
 	private final CastDsbdMapper castDsbdMapper;
@@ -163,6 +169,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		// 탑승률의 원천 컬럼이 확인되지 않았다 (D7)
 		result.setBrdgRate(0);
 		result.setPeak(getPeak(searchDto.getSmltId(), tmnlId));
+
+		setItvlSmry(result, searchDto, baseDate, fltTmnlIdList);
 
 		return result;
 	}
@@ -301,6 +309,27 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	/* ================= 터미널 요약 ================= */
+
+	// 요약 블록은 하루 전체가 아니라 조회 시각부터 itvlMin 분 동안 출발하는 편만 센다
+	private void setItvlSmry(TmnlSmryDto result, DsbdSearchDto searchDto, LocalDate baseDate, List<String> fltTmnlIdList) {
+		int itvlMin = searchDto.getItvlMin() != null ? searchDto.getItvlMin() : DEFAULT_ITVL_MIN;
+		String bgnHhmm = searchDto.getHhmm();
+
+		result.setItvlMin(itvlMin);
+
+		if (bgnHhmm == null || bgnHhmm.length() != HHMM_LENGTH) {
+			return;
+		}
+
+		String endHhmm = getEndHhmm(bgnHhmm, itvlMin);
+		FltSmryRawDto baseItvl = castDsbdMapper.retrieveFltSmryByTime(formatYmd(baseDate), fltTmnlIdList, bgnHhmm, endHhmm);
+		FltSmryRawDto befItvl = castDsbdMapper.retrieveFltSmryByTime(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, bgnHhmm, endHhmm);
+
+		result.setItvlFltCnt(baseItvl.getDepFltCnt());
+		result.setItvlPsgCnt(baseItvl.getDepPsgCnt());
+		result.setItvlBefFltDiffCnt(baseItvl.getDepFltCnt() - befItvl.getDepFltCnt());
+		result.setItvlBefPsgDiffCnt(baseItvl.getDepPsgCnt() - befItvl.getDepPsgCnt());
+	}
 
 	// 피크는 대기인원이 가장 많은 시간대다
 	private PeakDto getPeak(String smltId, TerminalKind tmnlId) {
@@ -485,6 +514,16 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		LocalDateTime lastCalc = LocalDateTime.parse(lastCalcDt, DateTimeFormatter.ofPattern(DT_FORMAT));
 
 		return lastCalc.plusHours(1).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern(DT_FORMAT));
+	}
+
+	// 예측시분(PREDC_HM)에 날짜가 없어 자정을 넘는 구간은 그날 끝까지로 자른다
+	private String getEndHhmm(String bgnHhmm, int itvlMin) {
+		int endMin = Integer.parseInt(bgnHhmm.substring(0, 2)) * MIN_PER_HOUR
+				+ Integer.parseInt(bgnHhmm.substring(2, HHMM_LENGTH)) + itvlMin;
+
+		return endMin >= MIN_PER_DAY
+				? DAY_END_HHMM
+				: String.format("%02d%02d", endMin / MIN_PER_HOUR, endMin % MIN_PER_HOUR);
 	}
 
 	private LocalDate parseYmd(String ymd) {

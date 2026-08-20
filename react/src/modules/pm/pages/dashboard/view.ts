@@ -153,18 +153,18 @@ export function toTerminalView({
             {
                 icon: 'plane',
                 iconClass: 'i-blue i-32',
-                value: formatCount(smry.fltCnt),
+                value: formatCount(smry.itvlFltCnt),
                 unit: '편',
                 deltaLabel: '전일 대비',
-                delta: formatDiff(smry.befFltDiffCnt),
+                delta: formatDiff(smry.itvlBefFltDiffCnt),
             },
             {
                 icon: 'people',
                 iconClass: 'i-teal i-32',
-                value: formatCount(smry.psgCnt),
+                value: formatCount(smry.itvlPsgCnt),
                 unit: '명',
                 deltaLabel: '전일 대비',
-                delta: formatDiff(smry.befPsgDiffCnt),
+                delta: formatDiff(smry.itvlBefPsgDiffCnt),
             },
         ],
         summaryInfo: [

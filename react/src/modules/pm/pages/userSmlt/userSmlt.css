@@ -17,12 +17,12 @@ html[data-page='userSmlt'] {
     --text-mute: #9aa0ac;
     --line: #e4e6ee;
     --panel-radius: 20px;
-    --i1: #4441cc;
-    --i2: #5b58d6;
+    --i1: #7472e0;
+    --i2: #7472e0;
     --i3: #7472e0;
-    --i4: #8f8de9;
-    --i5: #a09eff;
-    --i6: #12b09a;
+    --i4: #7472e0;
+    --i5: #7472e0;
+    --i6: #7472e0;
     --line-wait: #f2762e;
 }
 
@@ -410,7 +410,7 @@ html[data-page='userSmlt'] .tabs__item:not(.is-active):hover {
     color: var(--pm-primary);
 }
 
-html[data-page='userSmlt'] .tabs__item:not(.is-active):hover .tabs__no {
+html[data-page='userSmlt'] .tabs__item:not(.is-active):not(.is-done):hover .tabs__no {
     background: #fff;
     color: var(--pm-primary);
 }
@@ -511,6 +511,12 @@ html[data-page='userSmlt'] .intro {
     flex-direction: column;
     gap: clamp(14px, 1.6vh, 24px);
     min-height: 0;
+}
+
+html[data-page='userSmlt'] .intro__header {
+    flex: 0 0 auto;
+    display: flex;
+    height: 197px;
 }
 
 html[data-page='userSmlt'] .intro__cards {
@@ -1023,7 +1029,13 @@ html[data-page='userSmlt'] .chart {
     padding: clamp(8px, 1.3vh, 14px) 16px clamp(6px, 1vh, 10px);
     margin-bottom: clamp(8px, 1.4vh, 16px);
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.7);
+    background: linear-gradient(
+        180deg,
+        rgba(233, 231, 250, 0.82) 0%,
+        rgba(221, 219, 244, 0.64) 100%
+    );
+    box-shadow: inset 0 1px 2px rgba(94, 100, 130, 0.08);
 }
 
 html[data-page='userSmlt'] .panel--disabled .chart {
@@ -2160,9 +2172,9 @@ html[data-page='userSmlt'] .dock {
     overflow: auto;
     padding: 14px 22px 18px;
     border: 1px solid rgba(255, 255, 255, 0.9);
-    border-bottom: 0;
     border-top: 2px solid var(--pm-primary);
-    border-radius: 20px 20px 0 0;
+    /* 패널 바닥에 붙으므로 아래 모서리도 패널과 같은 곡률이어야 흰 각이 밖으로 삐져나오지 않는다 */
+    border-radius: var(--panel-radius);
     background: linear-gradient(180deg, #f4f3f9 0%, #fbfbfd 40%, #ffffff 100%);
     box-shadow: 0 -18px 44px rgba(35, 45, 90, 0.16);
 }
