@@ -45,8 +45,9 @@ function Dashboard() {
     const targetTmnlId = (params.get('tmnlId') as TmnlId | null) ?? null;
 
     // 기준일자 — 지목된 시뮬레이션이 있으면 그 일자로, 아니면 오늘.
-    // 달력에서 날짜를 바꾸면 기준 정보부터 다시 받는다.
+    // 실제 조회는 조회 버튼을 눌러야 나간다 — 달력에서 고르는 동안은 draftYmd 에만 담아 둔다.
     const [ymd, setYmd] = useState(() => params.get('ymd') || todayYmd());
+    const [draftYmd, setDraftYmd] = useState(ymd);
     const { data: baseInfo, error: baseError } = useBaseInfo(ymd, targetSmltId);
 
     // 파라미터가 알려 준 구분을 먼저 믿는다 — 기준 정보를 받기 전에도 제목·뱃지가 흔들리지 않는다.
@@ -90,25 +91,28 @@ function Dashboard() {
     const minute = draftTime.slice(2, 4);
 
     // 달력을 비우면(입력값이 지워지면) 직전 기준일자를 그대로 둔다.
-    // 날짜를 바꾸면 지목된 시뮬레이션과 일자가 어긋나므로, 파라미터를 비워
-    // 그날의 일일 시뮬레이션으로 되돌아간다.
-    const handleDateChange = useCallback(
-        (nextYmd: string) => {
-            if (nextYmd.length !== 8) return;
+    const handleDateChange = useCallback((nextYmd: string) => {
+        if (nextYmd.length !== 8) return;
 
-            setYmd(nextYmd);
-            setPrimeCategory(null);
-            setParams({}, { replace: true });
-        },
-        [setParams],
-    );
+        setDraftYmd(nextYmd);
+    }, []);
 
+    // 날짜가 바뀌었다면 기준 정보부터 다시 받는다 — 지목된 시뮬레이션과 일자가
+    // 어긋나므로 파라미터도 비워 그날의 일일 시뮬레이션으로 되돌아간다.
+    // 날짜가 그대로면 고른 시각으로 다시 조회한다.
     const handleSearch = useCallback(() => {
+        if (draftYmd !== ymd) {
+            setYmd(draftYmd);
+            setParams({}, { replace: true });
+            setPrimeCategory(null);
+            return;
+        }
+
         if (!baseInfo || !draftTime) return;
 
         setQuery({ smltId: baseInfo.smltId, ymd: baseInfo.ymd, hhmm: draftTime });
         setPrimeCategory(null);
-    }, [baseInfo, draftTime]);
+    }, [baseInfo, draftTime, draftYmd, ymd, setParams]);
 
     const handleCategoryChange = useCallback((nextCategory: DsbdCategory) => {
         setCategory(nextCategory);
@@ -140,7 +144,7 @@ function Dashboard() {
         <>
             <Topbar
                 simulationType={simulationType}
-                baseYmd={ymd}
+                baseYmd={draftYmd}
                 hour={hour}
                 minute={minute}
                 lastCalc={formatDateTime(baseInfo?.lastCalcDt ?? '')}
