@@ -35,9 +35,24 @@ export function AirlinePopover({ airlines, count, pos, onPick }: AirlinePopoverP
         rail.onPointerDown(e);
     };
 
-    // 레일을 밀고 손을 뗀 자리에 칩이 있으면 클릭이 따라 들어온다 — 민 거리로 가려낸다
-    const pick = (e: MouseEvent<HTMLButtonElement>, airline: string) => {
+    /*
+     * 레일에 포인터 캡처가 걸려 있으면 pointerup 이 레일로 되돌려져 칩에는 click 이 오지 않는다.
+     * 그래서 손을 뗀 자리를 좌표로 되짚는다. 민 거리가 크면 칩을 고른 게 아니라 레일을 민 것이다.
+     */
+    const handlePointerUp = (e: ReactPointerEvent<HTMLDivElement>) => {
         if (Math.abs(e.clientX - downX.current) > DRAG_SLOP) return;
+
+        const chip = document
+            .elementFromPoint(e.clientX, e.clientY)
+            ?.closest<HTMLElement>('[data-airline]');
+        if (!chip) return;
+
+        onPick(chip.dataset.airline ?? '');
+    };
+
+    // 마우스는 위 pointerup 경로가 처리했다. 키보드로 눌린 클릭만 받는다
+    const handleClick = (e: MouseEvent<HTMLButtonElement>, airline: string) => {
+        if (e.detail !== 0) return;
 
         onPick(airline);
     };
@@ -56,21 +71,24 @@ export function AirlinePopover({ airlines, count, pos, onPick }: AirlinePopoverP
                     className={`airpop__list${rail.dragging ? ' is-dragging' : ''}`}
                     onScroll={rail.sync}
                     onPointerDown={handlePointerDown}
+                    onPointerUp={handlePointerUp}
                 >
                     {airlines.map((airline) => (
                         <button
                             key={airline}
                             type="button"
+                            data-airline={airline}
                             className="airchip"
-                            onClick={(e) => pick(e, airline)}
+                            onClick={(e) => handleClick(e, airline)}
                         >
                             {airline}
                         </button>
                     ))}
                     <button
                         type="button"
+                        data-airline=""
                         className="airchip airchip--ghost"
-                        onClick={(e) => pick(e, '')}
+                        onClick={(e) => handleClick(e, '')}
                     >
                         미배정
                     </button>

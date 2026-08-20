@@ -14,6 +14,8 @@ interface BoothGridProps {
 interface DragRange {
     anchor: number;
     head: number;
+    /** 누르기 전에 이미 이 칸만 잡혀 있었나 — 손을 뗄 때 해제할지 가른다 */
+    wasSole: boolean;
 }
 
 function toRange({ anchor, head }: DragRange, booths: Booth[]): number[] {
@@ -35,12 +37,13 @@ export function BoothGrid({ booths, selected, onSelect, side, disabled = false }
     const [drag, setDrag] = useState<DragRange | null>(null);
 
     const visibleBooths = side ? booths.filter((booth) => booth.side === side) : booths;
+    const isSole = (no: number) => selected.length === 1 && selected[0] === no;
 
     const handlePointerDown = (e: ReactPointerEvent<HTMLButtonElement>, no: number) => {
         if (disabled || e.button !== 0) return;
 
         rootRef.current?.setPointerCapture(e.pointerId);
-        setDrag({ anchor: no, head: no });
+        setDrag({ anchor: no, head: no, wasSole: isSole(no) });
         onSelect([no]);
     };
 
@@ -64,8 +67,8 @@ export function BoothGrid({ booths, selected, onSelect, side, disabled = false }
     const handlePointerUp = () => {
         if (!drag) return;
 
-        // 끌지 않고 단독 선택돼 있던 칸을 다시 눌렀다 = 해제
-        if (drag.anchor === drag.head && selected.length === 1 && selected[0] === drag.anchor) {
+        // 끌지 않고, 누르기 전부터 단독으로 잡혀 있던 칸을 다시 눌렀다 = 해제
+        if (drag.anchor === drag.head && drag.wasSole) {
             onSelect([]);
         }
 
@@ -76,7 +79,7 @@ export function BoothGrid({ booths, selected, onSelect, side, disabled = false }
     const handleClick = (e: MouseEvent<HTMLButtonElement>, no: number) => {
         if (e.detail !== 0) return;
 
-        onSelect(selected.length === 1 && selected[0] === no ? [] : [no]);
+        onSelect(isSole(no) ? [] : [no]);
     };
 
     return (
