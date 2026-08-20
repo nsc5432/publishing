@@ -38,6 +38,7 @@ import aoms.pm.cast.mapper.CastDepMapper;
 import aoms.pm.cast.mapper.CastDsbdMapper;
 import aoms.pm.cast.mapper.CastMapMapper;
 import aoms.pm.cast.service.CastMapService;
+import aoms.pm.cast.service.CastOperHrService;
 import aoms.pm.cast.service.CastSmltService;
 
 import lombok.RequiredArgsConstructor;
@@ -95,6 +96,7 @@ public class CastMapServiceImpl implements CastMapService {
 	private final CastDsbdMapper castDsbdMapper;
 	private final CastDepMapper castDepMapper;
 	private final CastSmltService castSmltService;
+	private final CastOperHrService castOperHrService;
 
 	@Override
 	public SmltMapDto retrieveSmltMap(MapSearchDto searchDto) {
@@ -187,9 +189,8 @@ public class CastMapServiceImpl implements CastMapService {
 
 		Map<String, String> useYnMap = castDepMapper.retrieveDepFcltList(fcltTmnlId).stream()
 				.collect(Collectors.toMap(DepFcltRawDto::getDepNum, DepFcltRawDto::getUseYn, (first, ignored) -> first));
-		Map<String, List<DepOperHrRawDto>> operHrMap = castDepMapper
-				.retrieveDepOperHrList(fcltTmnlId, smltStng.getFcltyOpngTblDgRsrcId(), smltStng.getExcnYmd())
-				.stream().collect(Collectors.groupingBy(DepOperHrRawDto::getDepNum));
+		Map<String, List<DepOperHrRawDto>> operHrMap = castOperHrService
+				.retrieveDepOperHrMap(fcltTmnlId, smltStng.getExcnYmd());
 
 		List<MapOperCardDto> result = new ArrayList<>();
 

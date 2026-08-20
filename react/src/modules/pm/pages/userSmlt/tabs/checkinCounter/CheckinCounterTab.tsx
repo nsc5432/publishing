@@ -6,24 +6,11 @@ import { formatHour, toHourList } from '../../format';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
-import {
-    BLOCK_COLORS,
-    TERMINALS,
-    enabledTerminals,
-    type BlockItem,
-    type SmltTabProps,
-    type TerminalKind,
-} from '../../types';
+import { BLOCK_COLORS, TERMINALS, enabledTerminals, type BlockItem, type SmltTabProps, type TerminalKind } from '../../types';
 import { EditDock } from './components/EditDock';
 import { ISLAND_BOOTHS, SIDE_BOOTHS } from './constants';
 import type { CheckinIsland, TerminalCheckinCounter } from './types';
-import {
-    EMPTY_CHECKIN_COUNTER,
-    assignedBoothCount,
-    toBooths,
-    toCheckinCounter,
-    toSaveReq,
-} from './view';
+import { EMPTY_CHECKIN_COUNTER, assignedBoothCount, toBooths, toCheckinCounter, toSaveReq } from './view';
 
 /** 터미널별 편집 상태 — 아일랜드 목록 전체가 편집 대상이다 */
 type EditState = Record<TerminalKind, CheckinIsland[]>;
@@ -40,22 +27,21 @@ interface DockState {
     draft: CheckinIsland | null;
     /** 편집 중인 아일랜드 문자. null 이면 신규(목록에 아직 없다) */
     target: string | null;
-    selectedBooth: number | null;
+    selectedBooths: number[];
 }
 
 const EMPTY_EDIT: EditState = { T1: [], T2: [] };
-const EMPTY_DOCK: DockState = { terminal: 'T1', draft: null, target: null, selectedBooth: null };
+const EMPTY_DOCK: DockState = { terminal: 'T1', draft: null, target: null, selectedBooths: [] };
 const FETCH_FAIL = '체크인 카운터 정보를 불러오지 못했습니다.';
 const SAVE_FAIL = '체크인 카운터 저장에 실패했습니다.';
 
-/** 차트 세로 층수 — 아일랜드 13개(A~N, I 제외)가 다 열려도 기둥이 잘리지 않는다 */
+/** 차트 세로 층수 — 아일랜드 13개(A~N, I 제외) */
 const CHART_LEVELS = 13;
-/** 층 높이 — 13층이 세로 예산(380~420px) 안에 들어가는 값 */
+/** 층 높이 */
 const CHART_ROW_H = 18;
 
 /** 조회 함수는 렌더마다 새로 만들지 않도록 컴포넌트 밖에 둔다 */
-const fetchChkn = (smltId: string, tmnlId: TerminalKind) =>
-    userSmltService.getChknCounterInfo(smltId, tmnlId);
+const fetchChkn = (smltId: string, tmnlId: TerminalKind) => userSmltService.getChknCounterInfo(smltId, tmnlId);
 
 /** 블럭 차트 항목 — 블럭 1개가 아일랜드 1개다 */
 function toBlockItems(islands: CheckinIsland[]): BlockItem[] {
@@ -64,9 +50,7 @@ function toBlockItems(islands: CheckinIsland[]): BlockItem[] {
         color: island.color,
         ranges: island.ranges,
         size: assignedBoothCount(island),
-        sides: (['L', 'R'] as const).filter((side) =>
-            island.booths.some((booth) => booth.side === side && booth.airline),
-        ),
+        sides: (['L', 'R'] as const).filter((side) => island.booths.some((booth) => booth.side === side && booth.airline)),
     }));
 }
 
@@ -96,22 +80,8 @@ function newIsland(terminalData: TerminalCheckinCounter, label: string): Checkin
     };
 }
 
-export function CheckinCounterTab({
-    smltIds,
-    reloadKey,
-    enabled,
-    onToggleTerminal,
-    focusTerminal,
-    onFocusChange,
-    readOnly,
-}: SmltTabProps) {
-    const { data: fetched, error } = useTerminalData(
-        smltIds,
-        reloadKey,
-        fetchChkn,
-        toCheckinCounter,
-        FETCH_FAIL,
-    );
+export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTerminal, focusTerminal, onFocusChange, readOnly }: SmltTabProps) {
+    const { data: fetched, error } = useTerminalData(smltIds, reloadKey, fetchChkn, toCheckinCounter, FETCH_FAIL);
     const [edit, setEdit] = useState<EditState>(EMPTY_EDIT);
     const [dock, setDock] = useState<DockState>(EMPTY_DOCK);
 
@@ -140,7 +110,7 @@ export function CheckinCounterTab({
                 terminal,
                 draft: island ?? newIsland(source, label),
                 target: island ? label : null,
-                selectedBooth: null,
+                selectedBooths: [],
             };
         });
     };
@@ -156,10 +126,7 @@ export function CheckinCounterTab({
 
         setEdit((prev) => ({
             ...prev,
-            [terminal]:
-                target === null
-                    ? [...prev[terminal], edited]
-                    : prev[terminal].map((it) => (it.label === target ? edited : it)),
+            [terminal]: target === null ? [...prev[terminal], edited] : prev[terminal].map((it) => (it.label === target ? edited : it)),
         }));
         setDock({ ...EMPTY_DOCK, terminal });
     };
@@ -168,10 +135,7 @@ export function CheckinCounterTab({
         const smltId = smltIds[terminal];
         if (!smltId) return;
 
-        runSave(
-            userSmltService.saveChknCounterInfo(toSaveReq(smltId, terminal, edit[terminal])),
-            SAVE_FAIL,
-        );
+        runSave(userSmltService.saveChknCounterInfo(toSaveReq(smltId, terminal, edit[terminal])), SAVE_FAIL);
     };
 
     /** 지도 보기 — 배치 마커를 받아 둔다 (도면 UI 는 아직 붙지 않았다) */
@@ -214,24 +178,16 @@ export function CheckinCounterTab({
                                 </div>
                                 <div className="summary__group">
                                     <span className="summary__label">운영 아일랜드</span>
-                                    <strong className="summary__value summary__value--accent">
-                                        {panelIslands.length}
-                                    </strong>
+                                    <strong className="summary__value summary__value--accent">{panelIslands.length}</strong>
                                 </div>
                                 <div className="summary__group">
                                     <span className="summary__label">피크 카운터</span>
-                                    <strong className="summary__value summary__value--accent">
-                                        {peakBooths(panelIslands)}
-                                    </strong>
+                                    <strong className="summary__value summary__value--accent">{peakBooths(panelIslands)}</strong>
                                 </div>
                             </>
                         }
                         footer={
-                            <button
-                                type="button"
-                                className="btn btn--save"
-                                onClick={() => handleSave(terminal)}
-                            >
+                            <button type="button" className="btn btn--save" onClick={() => handleSave(terminal)}>
                                 현재상태 저장
                             </button>
                         }
@@ -255,9 +211,7 @@ export function CheckinCounterTab({
                             onBlockSelect={(label) => openIsland(terminal, label)}
                             formatTip={(item, hour) => {
                                 const one = item.sides?.length === 1 ? item.sides[0] : null;
-                                const detail = one
-                                    ? `${one} ${SIDE_BOOTHS}석 · ${one === 'L' ? 'R' : 'L'} 미운영`
-                                    : `L ${SIDE_BOOTHS}석 · R ${SIDE_BOOTHS}석`;
+                                const detail = one ? `${one} ${SIDE_BOOTHS}석 · ${one === 'L' ? 'R' : 'L'} 미운영` : `L ${SIDE_BOOTHS}석 · R ${SIDE_BOOTHS}석`;
 
                                 return `아일랜드 ${item.label} · ${detail} · ${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
                             }}
@@ -278,8 +232,8 @@ export function CheckinCounterTab({
                     draft={draft}
                     onPatch={patchDraft}
                     airlines={focusData.airlines}
-                    selectedBooth={draft ? dock.selectedBooth : null}
-                    onSelectBooth={(no) => setDock((prev) => ({ ...prev, selectedBooth: no }))}
+                    selectedBooths={draft ? dock.selectedBooths : []}
+                    onSelectBooths={(nos) => setDock((prev) => ({ ...prev, selectedBooths: nos }))}
                     onConfirm={handleConfirm}
                     onCancel={() => setDock({ ...EMPTY_DOCK, terminal: focusTerminal })}
                 />

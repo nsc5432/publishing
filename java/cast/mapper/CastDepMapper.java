@@ -7,7 +7,6 @@ import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepGateDto;
-import aoms.pm.cast.dto.DepOperHrRawDto;
 import aoms.pm.cast.dto.ScCntRawDto;
 import aoms.pm.cast.dto.UserDepOperHrRawDto;
 import aoms.pm.cast.dto.UserScPlanRawDto;
@@ -32,10 +31,6 @@ import aoms.pm.cast.dto.UserSmltDepSaveDto;
 @Mapper                                                                                                     	
 public interface CastDepMapper {
 	List<DepFcltRawDto> retrieveDepFcltList(@Param("tmnlId") String tmnlId);
-
-	List<DepOperHrRawDto> retrieveDepOperHrList(
-		@Param("tmnlId") String tmnlId, @Param("dgRsrcId") String dgRsrcId, @Param("ymd") String ymd
-	);
 
 	List<ScCntRawDto> retrieveScCntList(
 		@Param("tmnlId") String tmnlId, @Param("scRsrcId") String scRsrcId

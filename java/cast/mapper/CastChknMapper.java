@@ -33,7 +33,8 @@ public interface CastChknMapper {
 		@Param("tmnlId") String tmnlId, @Param("useCrgTypeCdList") List<String> useCrgTypeCdList
 	);
 
-	List<String> retrieveAlnCdList(@Param("tmnlId") String tmnlId);
+	// 그날 그 터미널에 배정된 항공사 — 도크 팝오버의 선택지다
+	List<String> retrieveAlnCdList(@Param("ymd") String ymd, @Param("tmnlId") String tmnlId);
 
 	// 사용자 저장분 재조회 — 있으면 기준 데이터(배정정보) 대신 이쪽이 화면 초기값이 된다
 	List<ChknIslandDto> retrieveUserChknIslandList(

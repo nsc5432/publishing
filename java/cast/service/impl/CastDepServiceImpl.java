@@ -30,6 +30,7 @@ import aoms.pm.cast.dto.WaitPsgDto;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDepMapper;
 import aoms.pm.cast.service.CastDepService;
+import aoms.pm.cast.service.CastOperHrService;
 import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.utils.SessionUtils;
 import aoms.pm.utils.TimeBucketUtils;
@@ -65,6 +66,7 @@ public class CastDepServiceImpl implements CastDepService {
 	private static final int FIRST_PLAN_SN = 1;
 
 	private final CastSmltService castSmltService;
+	private final CastOperHrService castOperHrService;
 	private final CastDepMapper castDepMapper;
 	private final SessionService sessionService;
 
@@ -200,9 +202,8 @@ public class CastDepServiceImpl implements CastDepService {
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(smltId);
 
 		List<DepFcltRawDto> fcltList = castDepMapper.retrieveDepFcltList(fcltTmnlId);
-		Map<String, List<DepOperHrRawDto>> operHrMap = castDepMapper
-				.retrieveDepOperHrList(fcltTmnlId, smltStng.getFcltyOpngTblDgRsrcId(), smltStng.getExcnYmd())
-				.stream().collect(Collectors.groupingBy(DepOperHrRawDto::getDepNum));
+		Map<String, List<DepOperHrRawDto>> operHrMap = castOperHrService
+				.retrieveDepOperHrMap(fcltTmnlId, smltStng.getExcnYmd());
 		Map<String, Integer> scCntMap = castDepMapper
 				.retrieveScCntList(fcltTmnlId, smltStng.getFcltyOpngTblScrtyCntrlRsrcId())
 				.stream().collect(Collectors.toMap(ScCntRawDto::getDepNum, ScCntRawDto::getScCnt, (first, ignored) -> first));

@@ -128,8 +128,11 @@ function toWaitList(counts: number[]): WaitPsgDto[] {
 /** 아일랜드 문자 — 원본 배정정보와 동일하게 I 를 건너뛴다 */
 const ISLAND_CD_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N'];
 
-/** 배정 가능 항공사 */
-const ALN_CD_LIST = ['KE', 'OZ'];
+/** 그날 배정된 항공사 — 터미널마다 다르다 */
+const ALN_CD_LIST: Record<TmnlId, string[]> = {
+    T1: ['7C', 'BX', 'KE', 'LJ', 'OZ', 'RS', 'TG', 'TW', 'UA', 'YP', 'ZE'],
+    T2: ['AF', 'CI', 'CZ', 'DL', 'GA', 'KE', 'KL', 'MU', 'VN'],
+};
 
 /** [문자, 시작시, 종료시, 부스별 항공사(''=미배정), 키오스크, 백드롭] */
 type IslandSeed = [string, number, number, string[], number, number];
@@ -213,7 +216,7 @@ function buildChkn(tmnlId: TmnlId): UserSmltChknDto {
         totBagDropCnt: sum((island) => island.bagDropCnt),
         waitMaxCnt: 400,
         islandCdList: ISLAND_CD_LIST,
-        alnCdList: ALN_CD_LIST,
+        alnCdList: ALN_CD_LIST[tmnlId],
         islandList,
         waitList: toWaitList(CHKN_WAIT[tmnlId]),
         kpi: CHKN_KPI[tmnlId],

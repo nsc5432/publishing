@@ -1926,14 +1926,8 @@ html[data-page='userSmlt'] .drow .stepper__value {
 }
 
 /* 항공사 칩 -------------------------------------------------------------- */
-html[data-page='userSmlt'] .airchips {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 6px;
-}
-
 html[data-page='userSmlt'] .airchip {
+    flex: 0 0 auto;
     display: inline-flex;
     align-items: center;
     height: 28px;
@@ -1946,14 +1940,8 @@ html[data-page='userSmlt'] .airchip {
     transition: background 0.15s;
 }
 
-html[data-page='userSmlt'] .airchip:not(:disabled):hover {
+html[data-page='userSmlt'] .airchip:hover {
     background: #d3d3ee;
-}
-
-/* 배정할 부스를 아직 고르지 않았다 */
-html[data-page='userSmlt'] .airchip:disabled {
-    opacity: 0.45;
-    cursor: default;
 }
 
 html[data-page='userSmlt'] .airchip--ghost {
@@ -2283,8 +2271,9 @@ html[data-page='userSmlt'] .dock__foot .btn {
     height: 38px;
 }
 
-/* 좌우 스트립 2줄 + 가운데 스파인 */
+/* 좌우 스트립 2줄 + 가운데 스파인 — 항공사 팝오버의 기준면이다 */
 html[data-page='userSmlt'] .booths {
+    position: relative;
     display: flex;
     flex-direction: column;
     gap: 5px;
@@ -2345,6 +2334,161 @@ html[data-page='userSmlt'] .boothgrid--strip .bcell__no {
     height: 13px;
     padding: 0 3px;
     font-size: 9px;
+}
+
+/* 끌어서 여러 석을 잡는 중 — 지나가는 칸의 글자가 잡히면 안 된다 */
+html[data-page='userSmlt'] .boothgrid.is-dragging {
+    user-select: none;
+}
+
+/* 항공사 배정 팝오버 ------------------------------------------------------
+   선택한 칸 바로 아래에 붙어, 그 자리에서 배정할 항공사를 고르게 한다.
+   칩이 폭을 넘치면 범례(.legend)와 같은 방식으로 좌우로 끌어 본다. */
+html[data-page='userSmlt'] .airpop {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    z-index: 5;
+    transform: translate(-50%, 8px);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: max-content;
+    max-width: min(420px, 100%);
+    padding: 8px 10px 10px;
+    border: 1px solid #e2e2ee;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0 10px 26px rgba(35, 45, 90, 0.18);
+}
+
+html[data-page='userSmlt'] .airpop::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: -5px;
+    width: 8px;
+    height: 8px;
+    transform: translateX(-50%) rotate(45deg);
+    border-top: 1px solid #e2e2ee;
+    border-left: 1px solid #e2e2ee;
+    background: #fff;
+}
+
+html[data-page='userSmlt'] .airpop__head {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-mute);
+}
+
+html[data-page='userSmlt'] .airpop__rail {
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+html[data-page='userSmlt'] .airpop__list {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+    min-width: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+}
+
+html[data-page='userSmlt'] .airpop__list::-webkit-scrollbar {
+    display: none;
+}
+
+html[data-page='userSmlt'] .airpop__rail.is-scrollable .airpop__list {
+    --fade-l: 0px;
+    --fade-r: 26px;
+    padding-right: 20px;
+    cursor: grab;
+    -webkit-mask-image: linear-gradient(
+        90deg,
+        transparent 0,
+        #000 var(--fade-l),
+        #000 calc(100% - var(--fade-r)),
+        transparent 100%
+    );
+    mask-image: linear-gradient(
+        90deg,
+        transparent 0,
+        #000 var(--fade-l),
+        #000 calc(100% - var(--fade-r)),
+        transparent 100%
+    );
+}
+
+html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-scrolled .airpop__list {
+    --fade-l: 20px;
+}
+
+html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__list {
+    --fade-r: 0px;
+}
+
+html[data-page='userSmlt'] .airpop__rail.is-scrollable .airpop__list.is-dragging {
+    cursor: grabbing;
+    user-select: none;
+}
+
+html[data-page='userSmlt'] .airpop__grip {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    width: 18px;
+    height: 18px;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background: rgba(68, 65, 204, 0.08);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+}
+
+html[data-page='userSmlt'] .airpop__grip::before,
+html[data-page='userSmlt'] .airpop__grip::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 4px;
+    height: 4px;
+    border-top: 1.5px solid #6f6ea6;
+    border-right: 1.5px solid #6f6ea6;
+}
+
+html[data-page='userSmlt'] .airpop__grip::before {
+    left: 3px;
+    transform: translateY(-50%) rotate(-135deg);
+}
+
+html[data-page='userSmlt'] .airpop__grip::after {
+    right: 3px;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+html[data-page='userSmlt'] .airpop__rail.is-scrollable .airpop__grip {
+    opacity: 1;
+}
+
+html[data-page='userSmlt'] .airpop__rail.is-scrollable:not(.is-scrolled) .airpop__grip {
+    animation: legend-nudge 1.8s ease-in-out infinite;
+}
+
+html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
+    opacity: 0.35;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-page='userSmlt'] .airpop__rail.is-scrollable:not(.is-scrolled) .airpop__grip {
+        animation: none;
+    }
 }
 
 @media (max-width: 900px) {

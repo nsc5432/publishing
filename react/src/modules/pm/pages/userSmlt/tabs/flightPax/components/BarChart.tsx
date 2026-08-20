@@ -3,6 +3,7 @@ import {
     Bar,
     CartesianGrid,
     BarChart as RcBarChart,
+    ReferenceLine,
     ResponsiveContainer,
     Tooltip,
     XAxis,
@@ -16,6 +17,8 @@ interface BarChartProps {
 
 /** 눈금 색 — 원본 CSS(rgba(150,155,175,.22)) 를 그대로 옮겼다 */
 const GRID_COLOR = 'rgba(150, 155, 175, 0.22)';
+/** 0 눈금선 — 라벨과 바로 붙어 있어 다른 눈금선과 같은 옅기면 안 보인다 */
+const BASELINE_COLOR = 'rgba(150, 155, 175, 0.5)';
 const AXIS_TICK = { fill: '#9aa0ac', fontSize: 10, fontFamily: 'Pretendard, sans-serif' };
 const SCALE_TICK = { fill: '#6e747f', fontSize: 10, fontFamily: 'Pretendard, sans-serif' };
 /** Y축 자리 — 원본 .chart__axis(26px) + 간격(8px) */
@@ -73,6 +76,7 @@ export function BarChart({ data }: BarChartProps) {
                             axisLine={false}
                             tick={AXIS_TICK}
                         />
+                        <ReferenceLine y={0} stroke={BASELINE_COLOR} strokeWidth={1} />
                         <Tooltip
                             cursor={{ fill: 'rgba(68, 65, 204, 0.06)' }}
                             contentStyle={{

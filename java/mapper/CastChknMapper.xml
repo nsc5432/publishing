@@ -17,16 +17,19 @@
         ORDER BY ISLAND
     </select>
 
+    <!--
+        도크 팝오버에 뜨는 항공사 = 시뮬레이션 일자에 그 터미널로 배정된 항공사다.
+        체크인 페이지 보유 항공사(CAOWN.TN_CA_ALN_PGE) 전량이 아니다 — 그날 안 오는 항공사까지 뜬다.
+    -->
     <select id="retrieveAlnCdList" resultType="java.lang.String">
         /* CastChknMapper.retrieveAlnCdList */
         SELECT DISTINCT A.ALN_CD
-        FROM CAOWN.TN_CA_ALN_PGE A
+        FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
         WHERE 1 = 1
+        AND A.OPER_YMD = #{ymd}
         AND A.TMNL_ID = #{tmnlId}
-        -- C 체크인용 페이지를 가진 항공사 = 그 터미널에서 부스 배정이 가능한 항공사
-        AND A.PGE_SE_CD = 'C'
         AND A.USE_YN = 'Y'
-        ORDER BY ALN_CD
+        ORDER BY A.ALN_CD
     </select>
 
     <!--

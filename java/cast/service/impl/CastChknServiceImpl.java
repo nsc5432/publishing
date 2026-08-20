@@ -80,11 +80,12 @@ public class CastChknServiceImpl implements CastChknService {
 		UserSmltChknDto result = new UserSmltChknDto();
 		TerminalKind tmnlId = searchDto.getTmnlId();
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
+		String excnYmd = getExcnYmd(searchDto);
 
 		List<CknctCntRawDto> cknctCntList = castChknMapper.retrieveCknctCntList(fcltTmnlId, BOOTH_USE_CRG_TYPE_CD_LIST);
 
 		List<String> islandCdList = cknctCntList.stream().map(CknctCntRawDto::getIsland).collect(toList());
-		List<ChknIslandDto> islandList = getIslandList(searchDto, fcltTmnlId, islandCdList);
+		List<ChknIslandDto> islandList = getIslandList(searchDto, excnYmd, fcltTmnlId, islandCdList);
 		List<Integer> oprBoothCntList = getOprBoothCntList(islandList);
 		List<WaitPsgDto> waitList = castSmltService.retrieveWaitPsgList(searchDto.getSmltId(), fcltTmnlId, UP_PSG_FCLT_CD_LIST);
 
@@ -100,7 +101,7 @@ public class CastChknServiceImpl implements CastChknService {
 		result.setTotBagDropCnt(islandList.stream().mapToInt(ChknIslandDto::getBagDropCnt).sum());
 		result.setWaitMaxCnt(waitList.stream().mapToInt(WaitPsgDto::getWaitPsgCnt).max().orElse(0));
 		result.setIslandCdList(islandCdList);
-		result.setAlnCdList(castChknMapper.retrieveAlnCdList(fcltTmnlId));
+		result.setAlnCdList(castChknMapper.retrieveAlnCdList(excnYmd, fcltTmnlId));
 		result.setIslandList(islandList);
 		result.setWaitList(waitList);
 		result.setKpi(kpi);
@@ -216,14 +217,14 @@ public class CastChknServiceImpl implements CastChknService {
 	 *   2. 없으면 그날의 배정정보 (TI_GO_CKNCT_DALY_ALOT)
 	 * 저장분이 있으면 배정정보는 읽지 않는다 — 사용자가 지운 아일랜드가 되살아나면 안 된다.
 	 */
-	private List<ChknIslandDto> getIslandList(UserSmltChknSearchDto searchDto, String fcltTmnlId, List<String> islandCdList) {
+	private List<ChknIslandDto> getIslandList(UserSmltChknSearchDto searchDto, String excnYmd, String fcltTmnlId, List<String> islandCdList) {
 		List<ChknIslandDto> savedList = getSavedIslandList(searchDto.getSmltId(), fcltTmnlId);
 
 		if (!savedList.isEmpty()) {
 			return savedList;
 		}
 
-		Map<String, List<UserConfigChknDto>> boothMap = castUserConfigService.retrieveChknMapGroupByIsland(getExcnYmd(searchDto), fcltTmnlId);
+		Map<String, List<UserConfigChknDto>> boothMap = castUserConfigService.retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
 		Map<String, List<SlfDeviceCntRawDto>> slfMap = castSlfchknService.retrieveSlfDeviceCntList(fcltTmnlId)
 				.stream().collect(Collectors.groupingBy(SlfDeviceCntRawDto::getIsland));
 

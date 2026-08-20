@@ -1,9 +1,10 @@
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { TerminalKind } from '../../../types';
 import { CountStepper } from '../../../components/CountStepper';
 import { TimeBar } from '../../../components/TimeBar';
-import { SIDE_BOOTHS } from '../constants';
 import type { CheckinIsland } from '../types';
 import { assignedBoothCount } from '../view';
+import { AirlinePopover } from './AirlinePopover';
 import { BoothGrid } from './BoothGrid';
 
 interface EditDockProps {
@@ -17,11 +18,16 @@ interface EditDockProps {
     onPatch: (next: Partial<CheckinIsland>) => void;
 
     airlines: string[];
-    selectedBooth: number | null;
-    onSelectBooth: (no: number | null) => void;
+    selectedBooths: number[];
+    onSelectBooths: (nos: number[]) => void;
 
     onConfirm: () => void;
     onCancel: () => void;
+}
+
+interface PopoverPos {
+    x: number;
+    y: number;
 }
 
 /**
@@ -39,20 +45,62 @@ export function EditDock({
     draft,
     onPatch,
     airlines,
-    selectedBooth,
-    onSelectBooth,
+    selectedBooths,
+    onSelectBooths,
     onConfirm,
     onCancel,
 }: EditDockProps) {
-    /** 선택한 부스에 항공사를 배정한다 — 부스를 먼저 골라야 한다 */
-    const assign = (airline: string) => {
-        if (!draft || selectedBooth === null) return;
+    const boothsRef = useRef<HTMLDivElement>(null);
+    const [popover, setPopover] = useState<PopoverPos | null>(null);
 
+    // 범위의 가운데 칸에 매단다 — 팝오버가 -50% 로 밀리므로 선택 전체 위에 대칭으로 놓인다
+    const anchorBooth =
+        selectedBooths.length > 0 ? selectedBooths[Math.floor(selectedBooths.length / 2)] : null;
+
+    useLayoutEffect(() => {
+        const wrap = boothsRef.current;
+        const cell =
+            anchorBooth === null
+                ? null
+                : wrap?.querySelector<HTMLElement>(`[data-booth-no="${anchorBooth}"]`);
+
+        setPopover(
+            cell
+                ? { x: cell.offsetLeft + cell.offsetWidth / 2, y: cell.offsetTop + cell.offsetHeight }
+                : null,
+        );
+    }, [anchorBooth]);
+
+    useEffect(() => {
+        if (selectedBooths.length === 0) return;
+
+        const close = (e: Event) => {
+            const target = e.target as Node | null;
+            if (target && boothsRef.current?.contains(target)) return;
+
+            onSelectBooths([]);
+        };
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onSelectBooths([]);
+        };
+
+        document.addEventListener('pointerdown', close);
+        document.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('pointerdown', close);
+            document.removeEventListener('keydown', onKeyDown);
+        };
+    }, [selectedBooths, onSelectBooths]);
+
+    /** 선택한 부스 전부에 항공사를 배정한다 — 배정이 끝나면 선택도 함께 푼다 */
+    const assign = (airline: string) => {
+        if (!draft || selectedBooths.length === 0) return;
+
+        const target = new Set(selectedBooths);
         onPatch({
-            booths: draft.booths.map((booth) =>
-                booth.no === selectedBooth ? { ...booth, airline } : booth,
-            ),
+            booths: draft.booths.map((booth) => (target.has(booth.no) ? { ...booth, airline } : booth)),
         });
+        onSelectBooths([]);
     };
 
     return (
@@ -68,11 +116,8 @@ export function EditDock({
                             <button
                                 key={code}
                                 type="button"
-                                className={`isle${island ? ' is-on' : ''}${selected.includes(code) ? ' is-sel' : ''
-                                    }`}
-                                style={
-                                    island ? { background: `var(--${island.color})` } : undefined
-                                }
+                                className={`isle${island ? ' is-on' : ''}${selected.includes(code) ? ' is-sel' : ''}`}
+                                style={island ? { background: `var(--${island.color})` } : undefined}
                                 aria-pressed={selected.includes(code)}
                                 onClick={() => onSelect(code)}
                             >
@@ -81,37 +126,27 @@ export function EditDock({
                         );
                     })}
                 </div>
-
-                <p className="dock__hint">회색 칩을 누르면 그 아일랜드를 새로 엽니다</p>
             </div>
 
             {draft === null ? (
-                <p className="dock__empty">
-                    위 칩에서 아일랜드를 하나 고르면 부스 배정 · 운영시간 · 셀프 서비스를
-                    편집합니다.
-                </p>
+                <p className="dock__empty">편집할 아일랜드를 위의 차트에서 선택해주세요.</p>
             ) : (
                 <>
                     <div className="dock__cols">
                         <section className="dock__col">
                             <p className="dsec__title">
-                                부스 배정
-                                <span className="dsec__hint">
-                                    아일랜드 {draft.label} L/R 각 {SIDE_BOOTHS}석 고정 · 배정 {' '}
-                                    {assignedBoothCount(draft)}석 · 셀을 고르고 항공사를 누릅니다
-                                </span>
+                                {draft.label} 아일랜드 {assignedBoothCount(draft)}석
+                                <span className="dsec__hint">끌어서 여러 석 선택</span>
                             </p>
 
-                            <div className="booths">
+                            <div className="booths" ref={boothsRef}>
                                 <div className="booths__row">
                                     <span className="booths__side">L</span>
                                     <BoothGrid
                                         booths={draft.booths}
                                         side="L"
-                                        selected={selectedBooth}
-                                        onSelect={(no) =>
-                                            onSelectBooth(selectedBooth === no ? null : no)
-                                        }
+                                        selected={selectedBooths}
+                                        onSelect={onSelectBooths}
                                     />
                                 </div>
 
@@ -122,41 +157,19 @@ export function EditDock({
                                     <BoothGrid
                                         booths={draft.booths}
                                         side="R"
-                                        selected={selectedBooth}
-                                        onSelect={(no) =>
-                                            onSelectBooth(selectedBooth === no ? null : no)
-                                        }
+                                        selected={selectedBooths}
+                                        onSelect={onSelectBooths}
                                     />
                                 </div>
-                            </div>
 
-                            <div className="airchips">
-                                {airlines.map((airline) => (
-                                    <button
-                                        key={airline}
-                                        type="button"
-                                        className="airchip"
-                                        disabled={selectedBooth === null}
-                                        onClick={() => assign(airline)}
-                                    >
-                                        {airline}
-                                    </button>
-                                ))}
-                                <button
-                                    type="button"
-                                    className="airchip airchip--ghost"
-                                    disabled={selectedBooth === null}
-                                    onClick={() => assign('')}
-                                >
-                                    미배정
-                                </button>
-                                <button
-                                    type="button"
-                                    className="airchip airchip--ghost"
-                                    onClick={() => console.log('[Custom 항공사 추가]')}
-                                >
-                                    + Custom
-                                </button>
+                                {popover && (
+                                    <AirlinePopover
+                                        airlines={airlines}
+                                        count={selectedBooths.length}
+                                        pos={popover}
+                                        onPick={assign}
+                                    />
+                                )}
                             </div>
                         </section>
 
@@ -164,27 +177,15 @@ export function EditDock({
                             <p className="dsec__title">
                                 운영시간<span className="dsec__hint">1시간 단위</span>
                             </p>
-                            <TimeBar
-                                label="운영시간"
-                                ranges={draft.ranges}
-                                onChange={(ranges) => onPatch({ ranges })}
-                            />
+                            <TimeBar label="운영시간" ranges={draft.ranges} onChange={(ranges) => onPatch({ ranges })} />
                         </section>
 
                         <section className="dock__col">
                             <p className="dsec__title">
                                 셀프 서비스<span className="dsec__hint">아일랜드별</span>
                             </p>
-                            <CountStepper
-                                label="셀프체크인 키오스크"
-                                value={draft.kiosk}
-                                onChange={(kiosk) => onPatch({ kiosk })}
-                            />
-                            <CountStepper
-                                label="셀프백드롭"
-                                value={draft.bagdrop}
-                                onChange={(bagdrop) => onPatch({ bagdrop })}
-                            />
+                            <CountStepper label="셀프체크인 키오스크" value={draft.kiosk} onChange={(kiosk) => onPatch({ kiosk })} />
+                            <CountStepper label="셀프백드롭" value={draft.bagdrop} onChange={(bagdrop) => onPatch({ bagdrop })} />
                         </section>
                     </div>
 

@@ -1,11 +1,4 @@
-import {
-    useCallback,
-    useEffect,
-    useMemo,
-    useState,
-    type PointerEvent as ReactPointerEvent,
-    type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { ECElementEvent } from 'echarts/core';
 import type { TimeRange } from '@/components/ui/time-range-selector';
 import type {
@@ -21,6 +14,7 @@ import { EChart } from '@/components/charts/EChart';
 import { CHART_FONT_FAMILY } from '@/lib/chart';
 import { pad2 } from '@/lib/format';
 import { toHourList } from '../format';
+import { useDragScroll } from '../hooks/useDragScroll';
 import type { BlockColor, BlockItem, BlockLegend, WaitLineData } from '../types';
 
 interface BlockChartProps {
@@ -393,73 +387,6 @@ function waitLineSeries(line: WaitLineData, wait: WaitLine): LineSeriesOption {
     };
 }
 
-interface LegendScroll {
-    scrollable: boolean;
-    atStart: boolean;
-    atEnd: boolean;
-}
-
-const LEGEND_FIT: LegendScroll = { scrollable: false, atStart: true, atEnd: true };
-
-function useLegendDrag(el: HTMLDivElement | null) {
-    const [scroll, setScroll] = useState<LegendScroll>(LEGEND_FIT);
-    const [dragging, setDragging] = useState(false);
-
-    const sync = useCallback(() => {
-        if (!el) return;
-
-        const max = el.scrollWidth - el.clientWidth;
-        setScroll((prev) => {
-            const next: LegendScroll = {
-                scrollable: max > 1,
-                atStart: el.scrollLeft <= 1,
-                atEnd: el.scrollLeft >= max - 1,
-            };
-            return prev.scrollable === next.scrollable &&
-                prev.atStart === next.atStart &&
-                prev.atEnd === next.atEnd
-                ? prev
-                : next;
-        });
-    }, [el]);
-
-    useEffect(() => {
-        if (!el) return;
-
-        const observer = new ResizeObserver(sync);
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, [el, sync]);
-
-    const onPointerDown = useCallback(
-        (e: ReactPointerEvent<HTMLDivElement>) => {
-            if (!el || e.button !== 0 || el.scrollWidth - el.clientWidth <= 1) return;
-
-            const startX = e.clientX;
-            const startLeft = el.scrollLeft;
-            el.setPointerCapture(e.pointerId);
-            setDragging(true);
-
-            const handleMove = (ev: PointerEvent) => {
-                el.scrollLeft = startLeft - (ev.clientX - startX);
-            };
-            const handleUp = () => {
-                el.removeEventListener('pointermove', handleMove);
-                el.removeEventListener('pointerup', handleUp);
-                el.removeEventListener('pointercancel', handleUp);
-                setDragging(false);
-            };
-
-            el.addEventListener('pointermove', handleMove);
-            el.addEventListener('pointerup', handleUp);
-            el.addEventListener('pointercancel', handleUp);
-        },
-        [el],
-    );
-
-    return { ...scroll, dragging, sync, onPointerDown };
-}
-
 export function BlockChart({
     items,
     title,
@@ -559,7 +486,7 @@ export function BlockChart({
     }, [cells, levels, rowH, compact, blockFontSize, selectedLabels, gridLeft, line, disabled]);
 
     const [legendEl, setLegendEl] = useState<HTMLDivElement | null>(null);
-    const legendDrag = useLegendDrag(legendEl);
+    const legendDrag = useDragScroll(legendEl);
     const { sync: syncLegend } = legendDrag;
 
     useEffect(() => {

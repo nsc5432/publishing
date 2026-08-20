@@ -25,7 +25,6 @@ public class SmltStngDto {
 	private String excnId;
 	private String cknctSrvcHrRsrcId;
 	private String chknTypeRsrcId;
-	private String fcltyOpngTblDgRsrcId;
 	private String fcltyOpngTblEmiRsrcId;
 	private String fcltyOpngTblImmiRsrcId;
 	private String fcltyOpngTblScrtyCntrlRsrcId;

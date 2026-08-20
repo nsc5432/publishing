@@ -31,6 +31,7 @@ import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDepMapper;
 import aoms.pm.cast.mapper.CastMapMapper;
 import aoms.pm.cast.service.CastDepHallService;
+import aoms.pm.cast.service.CastOperHrService;
 import aoms.pm.cast.service.CastSmltService;
 
 import lombok.RequiredArgsConstructor;
@@ -83,6 +84,7 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 	private final CastMapMapper castMapMapper;
 	private final CastDepMapper castDepMapper;
 	private final CastSmltService castSmltService;
+	private final CastOperHrService castOperHrService;
 
 	@Override
 	public DepHallDto retrieveDepHall(DepHallSearchDto searchDto) {
@@ -164,9 +166,8 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 
 		Map<String, String> useYnMap = castDepMapper.retrieveDepFcltList(fcltTmnlId).stream()
 				.collect(Collectors.toMap(DepFcltRawDto::getDepNum, DepFcltRawDto::getUseYn, (first, ignored) -> first));
-		Map<String, List<DepOperHrRawDto>> operHrMap = castDepMapper
-				.retrieveDepOperHrList(fcltTmnlId, smltStng.getFcltyOpngTblDgRsrcId(), smltStng.getExcnYmd())
-				.stream().collect(Collectors.groupingBy(DepOperHrRawDto::getDepNum));
+		Map<String, List<DepOperHrRawDto>> operHrMap = castOperHrService
+				.retrieveDepOperHrMap(fcltTmnlId, smltStng.getExcnYmd());
 		Map<String, Integer> scCntMap = castDepMapper
 				.retrieveScCntList(fcltTmnlId, smltStng.getFcltyOpngTblScrtyCntrlRsrcId()).stream()
 				.collect(Collectors.toMap(ScCntRawDto::getDepNum, ScCntRawDto::getScCnt, (first, ignored) -> first));
