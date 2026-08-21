@@ -5,10 +5,12 @@ import type { ApiError } from '@/types/api.types';
 export interface Fetched<T> {
     data: T | null;
     error: string;
+    /** 조회가 새로 끝날 때마다 늘어난다 — 사유 문구가 같아도 알럿을 다시 띄우는 데 쓴다 */
+    token: number;
 }
 
 /** 아직 못 받았거나 조회 대상이 없을 때 */
-export const EMPTY_FETCHED = { data: null, error: '' };
+export const EMPTY_FETCHED = { data: null, error: '', token: 0 };
 
 /** 통신 실패 사유 — 서버가 준 문구가 없으면 화면이 정한 문구로 */
 export function toErrorMessage(err: ApiError, fallback: string): string {
@@ -36,6 +38,7 @@ export function useFetched<Q, T>(
     // 조회 함수는 매 렌더 새로 만들어져도 상관없도록 참조로만 들고 간다.
     // (조회를 다시 걸지 말지는 오직 query 가 정한다)
     const loadRef = useRef(load);
+    const tokenRef = useRef(0);
 
     // 아래 조회 이펙트보다 먼저 선언해야 같은 커밋에서 최신 함수가 먼저 꽂힌다.
     useEffect(() => {
@@ -53,10 +56,16 @@ export function useFetched<Q, T>(
         loadRef
             .current(query)
             .then((data) => {
-                if (isCurrent) setState({ data, error: '' });
+                if (isCurrent) setState({ data, error: '', token: ++tokenRef.current });
             })
             .catch((err: ApiError) => {
-                if (isCurrent) setState({ data: null, error: toErrorMessage(err, failMessage) });
+                if (isCurrent) {
+                    setState({
+                        data: null,
+                        error: toErrorMessage(err, failMessage),
+                        token: ++tokenRef.current,
+                    });
+                }
             });
 
         return () => {

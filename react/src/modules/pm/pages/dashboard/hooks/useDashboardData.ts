@@ -109,7 +109,8 @@ export function useTerminalPanel(
 
     return useMemo(() => {
         const error = panelBase.error || hourlyResults.error;
-        if (!panelBase.data || !hourlyResults.data) return { data: null, error };
+        const token = panelBase.token + hourlyResults.token;
+        if (!panelBase.data || !hourlyResults.data) return { data: null, error, token };
 
         return {
             data: toTerminalView({
@@ -121,6 +122,7 @@ export function useTerminalPanel(
                 depCards: panelBase.data.depCards,
             }),
             error,
+            token,
         };
     }, [panelBase, hourlyResults]);
 }

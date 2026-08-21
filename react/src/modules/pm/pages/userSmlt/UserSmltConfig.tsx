@@ -47,7 +47,12 @@ function UserSmltConfig() {
 
     const [ymd, setYmd] = useState(() => params.get('ymd') || todayYmd());
     const [reloadKey, setReloadKey] = useState(0);
-    const { smltIds: editSmltIds, ymd: baseYmd, error } = useSmltInfo(readOnly ? '' : ymd, reloadKey);
+    const {
+        smltIds: editSmltIds,
+        ymd: baseYmd,
+        error,
+        token,
+    } = useSmltInfo(readOnly ? '' : ymd, reloadKey);
 
     /** 조회 전용이면 넘어온 smltId 로 대신 채운다 — 터미널이 지정돼 있으면 그쪽만 */
     const smltIds = useMemo(() => {
@@ -65,7 +70,7 @@ function UserSmltConfig() {
     /** 화면에 하나뿐인 편집 도크·드로어가 보는 터미널 */
     const [focusTerminal, setFocusTerminal] = useState<TerminalKind>(viewTmnlId ?? 'T1');
 
-    useErrorAlert(error);
+    useErrorAlert(error, token);
 
     const targets = enabledTerminals(enabled);
     const picked = targets.length > 0;

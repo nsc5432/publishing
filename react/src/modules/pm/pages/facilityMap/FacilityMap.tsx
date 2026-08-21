@@ -135,7 +135,7 @@ function FacilityMap() {
     const [selectedCode, setSelectedCode] = useState('');
     const [drafts, setDrafts] = useState<CastDrafts>({});
 
-    const { data, error } = useFacilityMap(query);
+    const { data, error, token } = useFacilityMap(query);
 
     // 서버가 준 행 위에 편집 중인 CAST명을 얹는다 (원본은 data.rows 에 그대로 남는다).
     const editedRows = useMemo(() => applyCastDrafts(data?.rows ?? [], drafts), [data, drafts]);
@@ -190,7 +190,7 @@ function FacilityMap() {
         : '';
     const markerNote = markerName ? `도면에서 고른 ${markerName}의 시설만 보고 있습니다.` : '';
 
-    useErrorAlert(error);
+    useErrorAlert(error, token);
 
     // 저장하지 않고 탭을 닫거나 새로고침하면 브라우저가 한 번 물어보게 한다.
     useEffect(() => {

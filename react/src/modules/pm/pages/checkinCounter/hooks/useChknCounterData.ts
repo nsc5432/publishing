@@ -30,7 +30,11 @@ export function useChknCounter(query: ChknCounterQuery | null): Fetched<ChknDay>
     );
 
     return useMemo(
-        () => ({ data: state.data ? toChknDay(state.data) : null, error: state.error }),
+        () => ({
+            data: state.data ? toChknDay(state.data) : null,
+            error: state.error,
+            token: state.token,
+        }),
         [state],
     );
 }

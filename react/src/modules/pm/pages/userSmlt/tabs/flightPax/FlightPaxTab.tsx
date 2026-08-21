@@ -37,7 +37,13 @@ export function FlightPaxTab({
     onFocusChange,
     readOnly,
 }: SmltTabProps) {
-    const { raw, error } = useTerminalData(smltIds, reloadKey, fetchFltPsg, keepDto, FETCH_FAIL);
+    const { raw, error, token } = useTerminalData(
+        smltIds,
+        reloadKey,
+        fetchFltPsg,
+        keepDto,
+        FETCH_FAIL,
+    );
     const [ratios, setRatios] = useState<RatioState>(EMPTY_RATIO);
 
     // 비율이 바뀌면 차트·표를 조회값 기준으로 다시 계산한다.
@@ -49,7 +55,7 @@ export function FlightPaxTab({
         [raw, ratios],
     );
 
-    useErrorAlert(error);
+    useErrorAlert(error, token);
 
     // 조회 결과가 들어오면 비율을 조회한 값으로 되돌린다.
     useEffect(() => {

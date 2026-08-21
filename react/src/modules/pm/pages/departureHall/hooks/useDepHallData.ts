@@ -30,7 +30,11 @@ export function useDepHall(query: DepHallQuery | null): Fetched<DepDay> {
     );
 
     return useMemo(
-        () => ({ data: state.data ? toDepDay(state.data) : null, error: state.error }),
+        () => ({
+            data: state.data ? toDepDay(state.data) : null,
+            error: state.error,
+            token: state.token,
+        }),
         [state],
     );
 }

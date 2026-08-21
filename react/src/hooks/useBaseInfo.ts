@@ -22,10 +22,7 @@ export function useBaseInfo(ymd: string, smltId = ''): Fetched<DsbdBaseInfoDto> 
 
     return useFetched(
         query,
-        ({ ymd: baseYmd, smltId: targetId }) =>
-            dashboardService
-                .getBaseInfo(baseYmd, targetId)
-                .then((dto) => unwrap(dto, FAIL_MESSAGE)),
+        ({ ymd: baseYmd, smltId: targetId }) => dashboardService.getBaseInfo(baseYmd, targetId).then((dto) => unwrap(dto, FAIL_MESSAGE)),
         FAIL_MESSAGE,
     );
 }

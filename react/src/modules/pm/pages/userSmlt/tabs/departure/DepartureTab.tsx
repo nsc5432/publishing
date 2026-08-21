@@ -117,7 +117,7 @@ export function DepartureTab({
     onFocusChange,
     readOnly,
 }: SmltTabProps) {
-    const { data: fetched, error } = useTerminalData(
+    const { data: fetched, error, token } = useTerminalData(
         smltIds,
         reloadKey,
         fetchDep,
@@ -130,7 +130,7 @@ export function DepartureTab({
     /** 위 차트 블럭 · 아래 격자 줄이 함께 쓰는 선택 상태 */
     const [selected, setSelected] = useState<SelectState>(EMPTY_SELECT);
 
-    useErrorAlert(error);
+    useErrorAlert(error, token);
 
     const enabledCount = enabledTerminals(enabled).length;
     /** 드로어는 초점이 그 터미널에 있을 때만 뜬다 */

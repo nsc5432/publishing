@@ -30,7 +30,11 @@ export function useSmltMap(query: MapQuery | null): Fetched<MapDay> {
     );
 
     return useMemo(
-        () => ({ data: state.data ? toMapDay(state.data) : null, error: state.error }),
+        () => ({
+            data: state.data ? toMapDay(state.data) : null,
+            error: state.error,
+            token: state.token,
+        }),
         [state],
     );
 }

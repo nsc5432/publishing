@@ -32,7 +32,7 @@ function DepartureHall() {
 
     // 기준일자 — 최초 진입은 오늘. (달력 UI 가 붙으면 여기서 바꾼다)
     const [ymd] = useState(todayYmd);
-    const { data: baseInfo, error: baseError } = useBaseInfo(ymd);
+    const { data: baseInfo, error: baseError, token: baseToken } = useBaseInfo(ymd);
 
     const [terminal, setTerminal] = useState<TerminalKind>('T1');
     const [view, setView] = useState<ViewMode>('map');
@@ -50,12 +50,12 @@ function DepartureHall() {
 
     useEffect(applyQuery, [applyQuery]);
 
-    const { data: depDay, error: depHallError } = useDepHall(query);
+    const { data: depDay, error: depHallError, token: depHallToken } = useDepHall(query);
 
     // 조회가 두 갈래라 먼저 걸린 사유 하나만 알린다 (같은 실패로 알럿이 겹치지 않게).
     const error = baseError || depHallError;
 
-    useErrorAlert(error);
+    useErrorAlert(error, baseToken + depHallToken);
 
     // 타임라인이 가리키는 시각의 값 — 받아 둔 하루치에서 자리만 옮긴다.
     const slot = depDay?.slots[timeline.hhmm] ?? EMPTY_DEP_SLOT;

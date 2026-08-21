@@ -81,11 +81,11 @@ function newIsland(terminalData: TerminalCheckinCounter, label: string): Checkin
 }
 
 export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTerminal, focusTerminal, onFocusChange, readOnly }: SmltTabProps) {
-    const { data: fetched, error } = useTerminalData(smltIds, reloadKey, fetchChkn, toCheckinCounter, FETCH_FAIL);
+    const { data: fetched, error, token } = useTerminalData(smltIds, reloadKey, fetchChkn, toCheckinCounter, FETCH_FAIL);
     const [edit, setEdit] = useState<EditState>(EMPTY_EDIT);
     const [dock, setDock] = useState<DockState>(EMPTY_DOCK);
 
-    useErrorAlert(error);
+    useErrorAlert(error, token);
 
     useEffect(() => {
         setEdit({ T1: fetched.T1?.islands ?? [], T2: fetched.T2?.islands ?? [] });

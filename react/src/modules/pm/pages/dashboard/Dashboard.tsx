@@ -48,7 +48,11 @@ function Dashboard() {
     // 실제 조회는 조회 버튼을 눌러야 나간다 — 달력에서 고르는 동안은 draftYmd 에만 담아 둔다.
     const [ymd, setYmd] = useState(() => params.get('ymd') || todayYmd());
     const [draftYmd, setDraftYmd] = useState(ymd);
-    const { data: baseInfo, error: baseError } = useBaseInfo(ymd, targetSmltId);
+    const {
+        data: baseInfo,
+        error: baseError,
+        token: baseToken,
+    } = useBaseInfo(ymd, targetSmltId);
 
     // 파라미터가 알려 준 구분을 먼저 믿는다 — 기준 정보를 받기 전에도 제목·뱃지가 흔들리지 않는다.
     const simulationType = toSimulationType(targetSmltType ?? baseInfo?.smltType ?? 'DAILY');
@@ -75,14 +79,22 @@ function Dashboard() {
         setQuery({ smltId: baseInfo.smltId, ymd: baseInfo.ymd, hhmm });
     }, [baseInfo]);
 
-    const { data: header, error: headerError } = useDashboardHeader(query);
-    const { data: terminal1View, error: t1Error } = useTerminalPanel(query, 'T1', category);
-    const { data: terminal2View, error: t2Error } = useTerminalPanel(query, 'T2', category);
+    const { data: header, error: headerError, token: headerToken } = useDashboardHeader(query);
+    const {
+        data: terminal1View,
+        error: t1Error,
+        token: t1Token,
+    } = useTerminalPanel(query, 'T1', category);
+    const {
+        data: terminal2View,
+        error: t2Error,
+        token: t2Token,
+    } = useTerminalPanel(query, 'T2', category);
 
     // 조회가 여러 갈래라 먼저 걸린 사유 하나만 알린다 (같은 실패로 알럿이 겹치지 않게).
     const error = baseError || headerError || t1Error || t2Error;
 
-    useErrorAlert(error);
+    useErrorAlert(error, baseToken + headerToken + t1Token + t2Token);
 
     useFitToScreen();
 

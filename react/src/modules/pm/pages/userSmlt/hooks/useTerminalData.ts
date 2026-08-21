@@ -20,6 +20,7 @@ export interface TerminalData<D, V> {
     /** 저장 요청을 만들 때 필요한 원본 DTO */
     raw: Record<TerminalKind, D | null>;
     error: string;
+    token: number;
 }
 
 /** 두 터미널을 함께 부르는 조회 조건 — 조회 버튼(reloadKey)으로도 다시 건다 */
@@ -77,6 +78,6 @@ export function useTerminalData<D extends JsonResponse, V>(
             data[tmnlId] = dto ? toView(dto) : null;
         });
 
-        return { data, raw, error: state.error };
+        return { data, raw, error: state.error, token: state.token };
     }, [state, toView]);
 }

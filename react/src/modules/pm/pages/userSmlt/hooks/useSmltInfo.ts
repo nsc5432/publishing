@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { unwrap } from '@/api/pm/result';
 import type { ApiError } from '@/types/api.types';
@@ -18,14 +18,23 @@ export interface SmltInfoState {
     /** 마지막 저장 시각 (yyyyMMddHHmmss, 없으면 '') */
     saveDt: string;
     error: string;
+    /** 조회가 새로 끝날 때마다 늘어난다 — 사유 문구가 같아도 알럿을 다시 띄우는 데 쓴다 */
+    token: number;
 }
 
 const FAIL_MESSAGE = '사용자 시뮬레이션 정보를 불러오지 못했습니다.';
 
-const EMPTY: SmltInfoState = { smltIds: { T1: '', T2: '' }, ymd: '', saveDt: '', error: '' };
+const EMPTY: SmltInfoState = {
+    smltIds: { T1: '', T2: '' },
+    ymd: '',
+    saveDt: '',
+    error: '',
+    token: 0,
+};
 
 export function useSmltInfo(ymd: string, reloadKey = 0): SmltInfoState {
     const [state, setState] = useState<SmltInfoState>(EMPTY);
+    const tokenRef = useRef(0);
 
     useEffect(() => {
         // 기준일자가 없으면 잡을 대상이 없다 — 조회 전용 진입은 볼 시뮬레이션이 이미 정해져 있다.
@@ -50,10 +59,22 @@ export function useSmltInfo(ymd: string, reloadKey = 0): SmltInfoState {
                     smltIds[tmnlId] = infoList[index].smltId;
                 });
 
-                setState({ smltIds, ymd: infoList[0].ymd, saveDt: infoList[0].saveDt, error: '' });
+                setState({
+                    smltIds,
+                    ymd: infoList[0].ymd,
+                    saveDt: infoList[0].saveDt,
+                    error: '',
+                    token: ++tokenRef.current,
+                });
             })
             .catch((err: ApiError) => {
-                if (isCurrent) setState({ ...EMPTY, error: err?.message || FAIL_MESSAGE });
+                if (isCurrent) {
+                    setState({
+                        ...EMPTY,
+                        error: err?.message || FAIL_MESSAGE,
+                        token: ++tokenRef.current,
+                    });
+                }
             });
 
         return () => {
