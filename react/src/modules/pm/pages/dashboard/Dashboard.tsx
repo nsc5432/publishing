@@ -11,11 +11,7 @@ import { Topbar } from './components/Topbar';
 import { defaultTime, formatDateTime, formatYmd, todayYmd } from '@/lib/format';
 import { useBaseInfo } from '@/hooks/useBaseInfo';
 import { toSimulationType } from './view';
-import {
-    useDashboardHeader,
-    useTerminalPanel,
-    type DashboardQuery,
-} from './hooks/useDashboardData';
+import { useDashboardHeader, useTerminalPanel, type DashboardQuery } from './hooks/useDashboardData';
 import { useExecDetail } from './hooks/useExecDetail';
 import { useFitToScreen } from './hooks/useFitToScreen';
 
@@ -26,13 +22,6 @@ const DEFAULT_CATEGORY: DsbdCategory = 'PSG';
 
 /**
  * PM 예측관리 / 시뮬레이션 결과 조회 — 메인 대시보드.
- *
- * 화면에 들어오면 기준 정보(getBaseInfo)를 먼저 부르고, 거기서 받은
- * 시뮬레이션 ID·기준 시각으로 상단 카드와 두 터미널 패널을 조회한다.
- *
- * 일일 시뮬레이션과 사용자 시뮬레이션이 **같은 화면**을 쓴다. 그냥 들어오면 오늘의 일일
- * 시뮬레이션이고, 모니터링 이력에서 넘어오면 쿼리 파라미터로 볼 시뮬레이션을 지목한다.
- * 사용자 시뮬레이션이면 실행자(부서·성명)와 실행에 쓴 설정 조건으로 가는 길이 함께 붙는다.
  */
 function Dashboard() {
     usePageScope('dashboard');
@@ -48,11 +37,7 @@ function Dashboard() {
     // 실제 조회는 조회 버튼을 눌러야 나간다 — 달력에서 고르는 동안은 draftYmd 에만 담아 둔다.
     const [ymd, setYmd] = useState(() => params.get('ymd') || todayYmd());
     const [draftYmd, setDraftYmd] = useState(ymd);
-    const {
-        data: baseInfo,
-        error: baseError,
-        token: baseToken,
-    } = useBaseInfo(ymd, targetSmltId);
+    const { data: baseInfo, error: baseError, token: baseToken } = useBaseInfo(ymd, targetSmltId);
 
     // 파라미터가 알려 준 구분을 먼저 믿는다 — 기준 정보를 받기 전에도 제목·뱃지가 흔들리지 않는다.
     const simulationType = toSimulationType(targetSmltType ?? baseInfo?.smltType ?? 'DAILY');
@@ -80,16 +65,8 @@ function Dashboard() {
     }, [baseInfo]);
 
     const { data: header, error: headerError, token: headerToken } = useDashboardHeader(query);
-    const {
-        data: terminal1View,
-        error: t1Error,
-        token: t1Token,
-    } = useTerminalPanel(query, 'T1', category);
-    const {
-        data: terminal2View,
-        error: t2Error,
-        token: t2Token,
-    } = useTerminalPanel(query, 'T2', category);
+    const { data: terminal1View, error: t1Error, token: t1Token } = useTerminalPanel(query, 'T1', category);
+    const { data: terminal2View, error: t2Error, token: t2Token } = useTerminalPanel(query, 'T2', category);
 
     // 조회가 여러 갈래라 먼저 걸린 사유 하나만 알린다 (같은 실패로 알럿이 겹치지 않게).
     const error = baseError || headerError || t1Error || t2Error;
@@ -147,10 +124,7 @@ function Dashboard() {
     }, [navigate, targetSmltId, targetTmnlId, execDetail, baseInfo, ymd]);
 
     // 실행자는 사용자 시뮬레이션이면서 이력을 받아 왔을 때만 띄운다.
-    const executor = useMemo(
-        () => (execDetail ? { dept: execDetail.deptNm, name: execDetail.userNm } : undefined),
-        [execDetail],
-    );
+    const executor = useMemo(() => (execDetail ? { dept: execDetail.deptNm, name: execDetail.userNm } : undefined), [execDetail]);
 
     return (
         <>
@@ -178,16 +152,8 @@ function Dashboard() {
                     onCategoryChange={handleCategoryChange}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary
-                            terminal="T1"
-                            data={terminal1View}
-                            titleCategory={primeCategory}
-                        />
-                        <TerminalSummary
-                            terminal="T2"
-                            data={terminal2View}
-                            titleCategory={primeCategory}
-                        />
+                        <TerminalSummary terminal="T1" data={terminal1View} titleCategory={primeCategory} />
+                        <TerminalSummary terminal="T2" data={terminal2View} titleCategory={primeCategory} />
                     </section>
                 </HeaderSummary>
             </div>

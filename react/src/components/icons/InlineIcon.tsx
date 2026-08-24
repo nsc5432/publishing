@@ -30,6 +30,7 @@ export type IconName =
     | 'wxRain'
     | 'wxSnow'
     | 'layers'
+    | 'dataLink'
     | 'checkCircle'
     | 'spinner'
     | 'planeDep';
@@ -50,15 +51,7 @@ const ICONS: Record<IconName, ReactNode> = {
         </svg>
     ),
     search: (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.6}
-            strokeLinecap="round"
-            width={17}
-            height={17}
-        >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round" width={17} height={17}>
             <circle cx="11" cy="11" r="7" />
             <path d="m21 21-4.3-4.3" />
         </svg>
@@ -69,12 +62,19 @@ const ICONS: Record<IconName, ReactNode> = {
             <path d="M12 6.6V12l3.4 2.2" />
         </svg>
     ),
-    /* 시뮬레이션 모니터링 KPI — 전체 수행 / 완료 / 진행중 */
     layers: (
         <svg viewBox="0 0 24 24" {...LINE} width={19} height={19}>
             <path d="M12 3 3 7.5l9 4.5 9-4.5L12 3Z" />
             <path d="m3 12 9 4.5L21 12" />
             <path d="m3 16.5 9 4.5 9-4.5" />
+        </svg>
+    ),
+    dataLink: (
+        <svg viewBox="0 0 24 24" {...LINE} width={23} height={23}>
+            <path d="M5.2 3.5h10.2l3.4 3.4v13.6h-13.6z" />
+            <path d="M15.4 3.5v3.8h3.4M8.3 11h7.4M8.3 14.3h7.4M8.3 17.6h4.4" />
+            <circle cx="5.2" cy="7.2" r="1.7" fill="currentColor" stroke="none" />
+            <path d="M3.5 7.2H2M5.2 5.5V4" />
         </svg>
     ),
     checkCircle: (
@@ -83,23 +83,13 @@ const ICONS: Record<IconName, ReactNode> = {
             <path d="m8 12.2 2.8 2.8L16 9.8" />
         </svg>
     ),
-    /* 진행중 : 점선 원호 (계산이 도는 중임을 나타낸다) */
     spinner: (
         <svg viewBox="0 0 24 24" {...LINE} width={19} height={19} strokeDasharray="3 3.2">
             <circle cx="12" cy="12" r="8.4" />
         </svg>
     ),
     chart: (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.1}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            width={24}
-            height={24}
-        >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.1} strokeLinecap="round" strokeLinejoin="round" width={24} height={24}>
             <path d="M3 3v18h18" />
             <path d="m7 15 3-4 4 3 5-7" />
         </svg>
@@ -147,11 +137,7 @@ const ICONS: Record<IconName, ReactNode> = {
     pass: (
         <svg viewBox="0 0 24 24" {...LINE} width={23} height={23}>
             <rect x="2.5" y="5.5" width="19" height="13" rx="2.4" />
-            <path
-                d="M7 14.5h5.5l5-4.6-1.9-.6-2.6 1.9-3.4-1.1-1.2.5 1.8 1.4-2 .8-1-.6-1 .4 1.8 1.9z"
-                fill="currentColor"
-                stroke="none"
-            />
+            <path d="M7 14.5h5.5l5-4.6-1.9-.6-2.6 1.9-3.4-1.1-1.2.5 1.8 1.4-2 .8-1-.6-1 .4 1.8 1.9z" fill="currentColor" stroke="none" />
         </svg>
     ),
     luggage: (
@@ -178,7 +164,6 @@ const ICONS: Record<IconName, ReactNode> = {
             </g>
         </svg>
     ),
-    /* 출국장 메뉴용 */
     planeDep: (
         <svg viewBox="0 0 24 24" fill="currentColor" width={23} height={23}>
             <g transform="rotate(45 12 12)">
@@ -197,12 +182,7 @@ const ICONS: Record<IconName, ReactNode> = {
             <path d="M14.2 6.6c-.5 0-1 .2-1.3.6l-2.6 3 2.6 2.9.5 8.3h2.1l-.5-9.2-2-2.5 2.3-1.7 1.9 3.1 3.3.7.4-2-2.5-.6-2.2-3.2c-.4-.6-1-.9-1.6-.9-.1 0-.2 0-.4.1z" />
             <path d="m11.2 14.1-2 3.9-3.1 3.8h2.6l3.3-3.4z" />
             <rect x="1.4" y="12.6" width="5.4" height="8.6" rx="1.1" />
-            <path
-                d="M3.1 12.5v-.9c0-.5.4-.9.9-.9h.4c.5 0 .9.4.9.9v.9"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.2}
-            />
+            <path d="M3.1 12.5v-.9c0-.5.4-.9.9-.9h.4c.5 0 .9.4.9.9v.9" fill="none" stroke="currentColor" strokeWidth={1.2} />
         </svg>
     ),
     ticket: (
@@ -228,37 +208,17 @@ const ICONS: Record<IconName, ReactNode> = {
         </svg>
     ),
     plus: (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.6}
-            strokeLinecap="round"
-        >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} strokeLinecap="round">
             <path d="M12 5v14M5 12h14" />
         </svg>
     ),
     chevL: (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
             <path d="M15 5 8 12l7 7" />
         </svg>
     ),
     chevR: (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2.2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-        >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
             <path d="m9 5 7 7-7 7" />
         </svg>
     ),

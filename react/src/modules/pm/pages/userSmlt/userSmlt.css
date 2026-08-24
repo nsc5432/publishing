@@ -50,41 +50,6 @@ html[data-page='userSmlt'] body {
 }
 
 /* =====================================================================
-   1. 배경 데코 (터미널 실루엣)
-   ===================================================================== */
-html[data-page='userSmlt'] .bg-deco {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    pointer-events: none;
-    overflow: hidden;
-}
-
-html[data-page='userSmlt'] .bg-deco__t1,
-html[data-page='userSmlt'] .bg-deco__t2 {
-    position: absolute;
-    top: 16%;
-    width: 52%;
-    height: 78%;
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: contain;
-    filter: blur(14px);
-}
-
-html[data-page='userSmlt'] .bg-deco__t1 {
-    left: -2%;
-    background-image: url('../../../../assets/svg/t1-blue.svg');
-    opacity: 0.16;
-}
-
-html[data-page='userSmlt'] .bg-deco__t2 {
-    right: -2%;
-    background-image: url('../../../../assets/svg/t2-teal-full.svg');
-    opacity: 0.18;
-}
-
-/* =====================================================================
    2. GNB
    ===================================================================== */
 html[data-page='userSmlt'] .gnb {
@@ -544,7 +509,6 @@ html[data-page='userSmlt'] .intro__card {
         transform 0.15s;
 }
 
-/* 터미널 도형 — 배경 데코(.bg-deco)와 같은 SVG 를 선명하게 크게 깐다 */
 html[data-page='userSmlt'] .intro__card::before {
     content: '';
     position: absolute;
@@ -706,11 +670,7 @@ html[data-page='userSmlt'] .panel {
     padding: clamp(16px, 2.6vh, 28px) clamp(18px, 1.7vw, 32px) clamp(16px, 2.4vh, 26px);
     border-radius: var(--panel-radius);
     border: 1px solid rgba(255, 255, 255, 0.75);
-    background: linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.62) 0%,
-        rgba(255, 255, 255, 0.42) 100%
-    );
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0.42) 100%);
     backdrop-filter: blur(3px);
     box-shadow: 0 6px 24px rgba(94, 100, 130, 0.07);
 }
@@ -719,11 +679,7 @@ html[data-page='userSmlt'] .panel {
 html[data-page='userSmlt'] .panel--disabled {
     filter: grayscale(1);
     opacity: 0.9;
-    background: linear-gradient(
-        180deg,
-        rgba(206, 208, 210, 0.72) 0%,
-        rgba(198, 200, 202, 0.62) 100%
-    );
+    background: linear-gradient(180deg, rgba(206, 208, 210, 0.72) 0%, rgba(198, 200, 202, 0.62) 100%);
     border-color: rgba(255, 255, 255, 0.45);
     cursor: pointer;
 }
@@ -1030,11 +986,7 @@ html[data-page='userSmlt'] .chart {
     margin-bottom: clamp(8px, 1.4vh, 16px);
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.7);
-    background: linear-gradient(
-        180deg,
-        rgba(233, 231, 250, 0.82) 0%,
-        rgba(221, 219, 244, 0.64) 100%
-    );
+    background: linear-gradient(180deg, rgba(233, 231, 250, 0.82) 0%, rgba(221, 219, 244, 0.64) 100%);
     box-shadow: inset 0 1px 2px rgba(94, 100, 130, 0.08);
 }
 
@@ -1266,20 +1218,8 @@ html[data-page='userSmlt'] .legend-wrap.is-scrollable .legend {
     --fade-r: 26px;
     padding-right: 20px;
     cursor: grab;
-    -webkit-mask-image: linear-gradient(
-        90deg,
-        transparent 0,
-        #000 var(--fade-l),
-        #000 calc(100% - var(--fade-r)),
-        transparent 100%
-    );
-    mask-image: linear-gradient(
-        90deg,
-        transparent 0,
-        #000 var(--fade-l),
-        #000 calc(100% - var(--fade-r)),
-        transparent 100%
-    );
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
 }
 
 /* 한 번이라도 밀었으면 왼쪽에도 잘린 게 있다 / 끝에 닿으면 오른쪽 페이드를 끈다 */
@@ -2409,20 +2349,8 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable .airpop__list {
     --fade-r: 26px;
     padding-right: 20px;
     cursor: grab;
-    -webkit-mask-image: linear-gradient(
-        90deg,
-        transparent 0,
-        #000 var(--fade-l),
-        #000 calc(100% - var(--fade-r)),
-        transparent 100%
-    );
-    mask-image: linear-gradient(
-        90deg,
-        transparent 0,
-        #000 var(--fade-l),
-        #000 calc(100% - var(--fade-r)),
-        transparent 100%
-    );
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
 }
 
 html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-scrolled .airpop__list {

@@ -523,9 +523,7 @@ export interface UserSmltChknDto extends JsonResponse {
 export interface UserSmltChknSaveReq {
     smltId: string;
     tmnlId: TmnlId;
-    islandList: Array<
-        Pick<ChknIslandDto, 'island' | 'oprTimeList' | 'boothList' | 'kioskCnt' | 'bagDropCnt'>
-    >;
+    islandList: Array<Pick<ChknIslandDto, 'island' | 'oprTimeList' | 'boothList' | 'kioskCnt' | 'bagDropCnt'>>;
 }
 
 /* --------- 출국장 탭 (보안 검색대 흡수) --------- */
@@ -567,12 +565,7 @@ export interface UserSmltDepDto extends JsonResponse {
 export interface UserSmltDepSaveReq {
     smltId: string;
     tmnlId: TmnlId;
-    depList: Array<
-        Pick<
-            UserSmltDepItemDto,
-            'depNum' | 'oprYn' | 'oprTimeList' | 'normalCnt' | 'smartPassCnt' | 'scCnt' | 'planList'
-        >
-    >;
+    depList: Array<Pick<UserSmltDepItemDto, 'depNum' | 'oprYn' | 'oprTimeList' | 'normalCnt' | 'smartPassCnt' | 'scCnt' | 'planList'>>;
 }
 
 /* --------- 지도 보기 / 시뮬레이션 실행 --------- */
@@ -676,4 +669,50 @@ export interface FcltMapListDto extends JsonResponse {
 export interface FcltMapSaveItemDto {
     psgFcltCd: string; // 여객시설코드 (PK)
     smltFcltNm: string; // 새 시뮬레이션시설명 ('' = 매핑 해제)
+}
+
+/* ================= Cast 설정 ================= */
+
+export interface CastConfigGroupListDto extends JsonResponse {
+    tmnlId: TmnlId;
+    groupList: CastConfigGroupDto[];
+}
+
+export interface CastConfigGroupDto {
+    groupId: string;
+    groupNm: string;
+    groupNmEn: string;
+    groupDesc: string;
+    datasetList: CastConfigDatasetSummaryDto[];
+}
+
+export interface CastConfigDatasetSummaryDto {
+    sheetNm: string;
+    rowCnt: number;
+}
+
+export interface CastConfigDatasetDto extends JsonResponse {
+    sheetNm: string;
+    dimension: string;
+    columnList: string[];
+    rowList: CastConfigGridRowDto[];
+}
+
+export interface CastConfigGridRowDto {
+    rowNo: number;
+    cellList: CastConfigGridCellDto[];
+}
+
+export interface CastConfigGridCellDto {
+    column: string;
+    value: string;
+    formula: string;
+    editableYn: YnFlag;
+}
+
+export interface CastConfigSaveItemDto {
+    sheetNm: string;
+    rowNo: number;
+    column: string;
+    value: string;
 }

@@ -9,7 +9,6 @@ import { usePageScope } from '@/hooks/usePageScope';
 import { dialog } from '@/lib/dialog';
 import { todayYmd } from '@/lib/format';
 import type { ApiError } from '@/types/api.types';
-import { BgDeco } from './components/BgDeco';
 import { SmltGnb } from './components/SmltGnb';
 import { SmltTabs } from './components/SmltTabs';
 import { TerminalIntro } from './components/TerminalIntro';
@@ -47,14 +46,8 @@ function UserSmltConfig() {
 
     const [ymd, setYmd] = useState(() => params.get('ymd') || todayYmd());
     const [reloadKey, setReloadKey] = useState(0);
-    const {
-        smltIds: editSmltIds,
-        ymd: baseYmd,
-        error,
-        token,
-    } = useSmltInfo(readOnly ? '' : ymd, reloadKey);
+    const { smltIds: editSmltIds, ymd: baseYmd, error, token } = useSmltInfo(readOnly ? '' : ymd, reloadKey);
 
-    /** 조회 전용이면 넘어온 smltId 로 대신 채운다 — 터미널이 지정돼 있으면 그쪽만 */
     const smltIds = useMemo(() => {
         if (!readOnly) return editSmltIds;
 
@@ -65,9 +58,7 @@ function UserSmltConfig() {
     }, [readOnly, editSmltIds, viewTmnlId, viewSmltId]);
 
     const [activeTab, setActiveTab] = useState<SmltTabKey>('flightPax');
-    /** 시뮬레이션 대상으로 켜 둔 터미널 — 둘 다 꺼져 있으면 도입 화면 */
     const [enabled, setEnabled] = useState<TerminalEnabled>(() => (readOnly ? viewEnabled(viewTmnlId) : NO_TERMINAL));
-    /** 화면에 하나뿐인 편집 도크·드로어가 보는 터미널 */
     const [focusTerminal, setFocusTerminal] = useState<TerminalKind>(viewTmnlId ?? 'T1');
 
     useErrorAlert(error, token);
@@ -77,7 +68,6 @@ function UserSmltConfig() {
 
     const handleSearch = () => setReloadKey((key) => key + 1);
 
-    /** 도입 화면에서 고른 터미널로 진입 — 왼쪽(T1 우선) 패널이 첫 편집 초점이 된다 */
     const handleStart = (next: TerminalEnabled) => {
         setEnabled(next);
         setFocusTerminal(enabledTerminals(next)[0]);
@@ -91,7 +81,6 @@ function UserSmltConfig() {
         setFocusTerminal(next[terminal] ? terminal : otherTerminal(terminal));
     };
 
-    /** 켜 둔 터미널을 모두 수행한다 (T1 만 켰으면 T1 만) — 확인 후 수행하고, 성공하면 모니터링 화면으로 이동한다 */
     const handleRun = () => {
         const runnable = targets.filter((terminal) => smltIds[terminal]);
         if (runnable.length === 0) return;
@@ -112,8 +101,6 @@ function UserSmltConfig() {
 
     return (
         <>
-            {/* <BgDeco /> */}
-
             <SmltGnb
                 title={readOnly ? VIEW_TITLE : TITLE}
                 ymd={baseYmd || ymd}
@@ -151,7 +138,6 @@ function UserSmltConfig() {
     );
 }
 
-/** 활성 탭의 T1/T2 패널(+ 상세 드로어)을 그린다 — 탭 3개가 같은 props 를 받는다. */
 function TabContent({ tab, ...props }: TabContentProps) {
     switch (tab) {
         case 'flightPax':

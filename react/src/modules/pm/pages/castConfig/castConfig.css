@@ -1,0 +1,813 @@
+@charset "utf-8";
+
+html[data-page='castConfig'] {
+    --cast-primary: #4441cc;
+    --cast-primary-dark: #3734ad;
+    --cast-primary-light: #a09eff;
+    --cast-bg: #26394d;
+    --cast-bg-deep: #172737;
+    --cast-panel: #32485f;
+    --cast-line: rgba(236, 244, 251, 0.76);
+    --cast-muted: #a9bccd;
+    --cast-border: rgba(220, 235, 247, 0.16);
+    --cast-text: #f7fbff;
+    --cast-red: #e12b2b;
+    --cast-green: #1f9d3a;
+    --cast-amber: #e8a318;
+    --cast-teal: #12b09a;
+}
+
+html[data-page='castConfig'] body {
+    overflow-x: auto;
+    overflow-y: hidden;
+    font-size: 14px;
+    line-height: 1.4;
+    color: #1f2430;
+    letter-spacing: -0.02em;
+    background: #eef1f8;
+}
+
+html[data-page='castConfig'] .wrap {
+    display: flex;
+    flex-direction: column;
+    min-width: 1280px;
+    height: 100%;
+    background: linear-gradient(180deg, #fafbfe 0%, #eaeef7 100%);
+}
+
+html[data-page='castConfig'] .body {
+    display: flex;
+    flex: 1;
+    gap: var(--pm-shell-gap);
+    min-height: 0;
+    padding: var(--pm-shell-top) var(--pm-shell-x) var(--pm-shell-bottom);
+}
+
+html[data-page='castConfig'] .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex: none;
+    height: var(--pm-header-h);
+    padding: 0 var(--pm-shell-x);
+}
+
+html[data-page='castConfig'] .header__title {
+    font-size: 19px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+html[data-page='castConfig'] .header__title strong {
+    color: var(--cast-primary);
+}
+
+html[data-page='castConfig'] .header__note {
+    justify-self: end;
+    color: #6b7280;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+html[data-page='castConfig'] .cast-config-container {
+    display: flex;
+    position: relative;
+    flex: 1;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding: clamp(20px, 2.4vw, 34px);
+    overflow: auto;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    color: var(--cast-text);
+    background:
+        radial-gradient(circle at 86% -10%, rgba(96, 92, 235, 0.2), transparent 36%),
+        radial-gradient(circle at -10% 42%, rgba(225, 43, 43, 0.11), transparent 31%), linear-gradient(145deg, #1c2e40 0%, var(--cast-bg) 48%, #24394f 100%);
+    box-shadow: 0 22px 55px rgba(63, 84, 145, 0.17);
+}
+
+html[data-page='castConfig'] .cast-config-container::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background-image: linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
+    background-size: 28px 28px;
+    pointer-events: none;
+}
+
+html[data-page='castConfig'] .cast-config-intro {
+    display: flex;
+    position: relative;
+    z-index: 1;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 18px;
+}
+
+html[data-page='castConfig'] .cast-config-intro__eyebrow {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--cast-primary-light);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+}
+
+html[data-page='castConfig'] .cast-config-intro h2 {
+    font-size: clamp(21px, 2vw, 28px);
+    font-weight: 650;
+    letter-spacing: -0.035em;
+}
+
+html[data-page='castConfig'] .cast-config-intro p {
+    color: var(--cast-muted);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+html[data-page='castConfig'] .cast-config-scene-row {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    gap: clamp(28px, 6vh, 64px);
+    min-height: 0;
+}
+
+html[data-page='castConfig'] .cast-config-scene {
+    display: flex;
+    position: relative;
+    z-index: 1;
+    flex: 1 1 0;
+    flex-direction: column;
+    width: 100%;
+    min-height: 260px;
+    max-height: 420px;
+    overflow: hidden;
+    border: 1px solid var(--cast-border);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(57, 78, 101, 0.94), rgba(42, 62, 82, 0.92));
+    box-shadow: 0 18px 52px rgba(8, 18, 29, 0.17);
+}
+
+html[data-page='castConfig'] .cast-config-scene__head {
+    display: flex;
+    position: relative;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px 20px;
+    padding: 16px 18px 0;
+}
+
+html[data-page='castConfig'] .cast-config-scene__terminal {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+html[data-page='castConfig'] .cast-config-scene__terminal-icon {
+    width: 26px;
+    height: auto;
+}
+
+html[data-page='castConfig'] .cast-config-scene h2 {
+    font-size: clamp(17px, 1.3vw, 22px);
+    font-weight: 520;
+    letter-spacing: -0.035em;
+}
+
+html[data-page='castConfig'] .cast-config-scene__meta {
+    padding-top: 6px;
+    color: var(--cast-muted);
+    font-size: 11px;
+}
+
+html[data-page='castConfig'] .cast-config-flow-scroll {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 40px 16px 18px;
+    scrollbar-color: #58728d transparent;
+}
+
+html[data-page='castConfig'] .cast-config-flow-track {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    min-width: 820px;
+    min-height: 148px;
+}
+
+html[data-page='castConfig'] .cast-config-flow-entry,
+html[data-page='castConfig'] .cast-config-flow-exit {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 50%;
+    color: #dce8f1;
+    background: rgba(13, 28, 42, 0.48);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+html[data-page='castConfig'] .cast-config-flow-entry__icon {
+    width: 24px;
+    height: auto;
+}
+
+html[data-page='castConfig'] .cast-config-flow-exit {
+    border-radius: 14px;
+}
+
+html[data-page='castConfig'] .cast-config-connector {
+    position: relative;
+    flex: 1 1 40px;
+    min-width: 28px;
+    height: 2px;
+    background: var(--cast-line);
+    transition: 0.25s ease;
+}
+
+html[data-page='castConfig'] .cast-config-connector::after {
+    content: '';
+    position: absolute;
+    top: -4px;
+    right: -1px;
+    width: 8px;
+    height: 8px;
+    border-top: 2px solid var(--cast-line);
+    border-right: 2px solid var(--cast-line);
+    transform: rotate(45deg);
+}
+
+html[data-page='castConfig'] .cast-config-connector.is-active {
+    height: 3px;
+    background: var(--cast-primary-light);
+    box-shadow: 0 0 12px rgba(96, 92, 235, 0.82);
+}
+
+html[data-page='castConfig'] .cast-config-connector.is-active::after {
+    border-color: var(--cast-primary-light);
+}
+
+html[data-page='castConfig'] .cast-config-flow-node {
+    display: flex;
+    position: relative;
+    flex: 0 0 122px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 0;
+    min-height: 116px;
+    padding: 13px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.38);
+    border-radius: 13px;
+    color: #fff;
+    text-align: center;
+    box-shadow:
+        0 9px 24px rgba(7, 17, 29, 0.22),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+    transform: translateY(0);
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease,
+        border-color 0.2s ease,
+        filter 0.2s ease;
+}
+
+html[data-page='castConfig'] .cast-config-flow-node:hover,
+html[data-page='castConfig'] .cast-config-flow-node:focus-visible,
+html[data-page='castConfig'] .cast-config-flow-node.is-active {
+    border-color: #fff;
+    outline: none;
+    box-shadow:
+        0 14px 36px rgba(5, 14, 24, 0.32),
+        0 0 0 3px rgba(160, 158, 255, 0.2),
+        0 0 24px rgba(68, 65, 204, 0.35);
+    filter: saturate(1.12) brightness(1.08);
+    transform: translateY(-5px);
+}
+
+html[data-page='castConfig'] .cast-config-flow-node[data-group='checkin'] {
+    background: linear-gradient(145deg, #6f6ae0, var(--cast-primary));
+}
+
+html[data-page='castConfig'] .cast-config-flow-node[data-group='departure'] {
+    background: linear-gradient(145deg, #35b653, #167c2d);
+}
+
+html[data-page='castConfig'] .cast-config-flow-node[data-group='security'] {
+    background: linear-gradient(145deg, #ea4848, #b91f2a);
+}
+
+html[data-page='castConfig'] .cast-config-flow-node[data-group='border'] {
+    background: linear-gradient(145deg, #f0b23d, #c77c00);
+}
+
+html[data-page='castConfig'] .cast-config-flow-node[data-group='gate'] {
+    background: linear-gradient(145deg, #27c5af, #0b8273);
+}
+
+html[data-page='castConfig'] .cast-config-node-icon {
+    display: grid;
+    place-items: center;
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    border: 1px solid rgba(255, 255, 255, 0.65);
+    border-radius: 8px;
+    background: rgba(12, 26, 39, 0.18);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+}
+
+html[data-page='castConfig'] .cast-config-node-copy strong {
+    display: block;
+    font-size: 13px;
+    line-height: 1.3;
+}
+
+html[data-page='castConfig'] .cast-config-node-copy small {
+    display: block;
+    margin-top: 4px;
+    color: rgba(255, 255, 255, 0.77);
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+html[data-page='castConfig'] .cast-config-tooltip {
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    z-index: 5;
+    width: max-content;
+    max-width: 230px;
+    padding: 8px 10px;
+    border: 1px solid var(--cast-border);
+    border-radius: 8px;
+    color: #dceaf4;
+    background: #132333;
+    box-shadow: 0 9px 28px rgba(4, 11, 20, 0.35);
+    font-size: 10px;
+    line-height: 1.45;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(-50%, 5px);
+    transition: 0.18s ease;
+}
+
+html[data-page='castConfig'] .cast-config-flow-node:hover .cast-config-tooltip,
+html[data-page='castConfig'] .cast-config-flow-node:focus-visible .cast-config-tooltip {
+    opacity: 1;
+    transform: translate(-50%, 0);
+}
+
+html[data-page='castConfig'] .cast-config-legend {
+    display: flex;
+    position: relative;
+    z-index: 1;
+    flex-wrap: wrap;
+    gap: 9px 18px;
+    margin-top: 16px;
+    padding: 13px 16px;
+    border: 1px solid var(--cast-border);
+    border-radius: 13px;
+    color: #afc1cf;
+    background: rgba(12, 26, 40, 0.24);
+    font-size: 11px;
+}
+
+html[data-page='castConfig'] .cast-config-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+}
+
+html[data-page='castConfig'] .cast-config-legend i {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+}
+
+html[data-page='castConfig'] .cast-config-legend .is-checkin {
+    background: var(--cast-primary);
+}
+
+html[data-page='castConfig'] .cast-config-legend .is-departure {
+    background: var(--cast-green);
+}
+
+html[data-page='castConfig'] .cast-config-legend .is-security {
+    background: var(--cast-red);
+}
+
+html[data-page='castConfig'] .cast-config-legend .is-border {
+    background: var(--cast-amber);
+}
+
+html[data-page='castConfig'] .cast-config-legend .is-gate {
+    background: var(--cast-teal);
+}
+
+html[data-page='castConfig'] .cast-config-modal-backdrop {
+    display: grid;
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    place-items: center;
+    padding: 24px;
+    background: rgba(6, 15, 25, 0.76);
+    backdrop-filter: blur(10px);
+}
+
+html[data-page='castConfig'] .cast-config-modal {
+    display: flex;
+    flex-direction: column;
+    width: min(1460px, 96vw);
+    height: min(870px, 93vh);
+    overflow: hidden;
+    border: 1px solid rgba(220, 235, 247, 0.22);
+    border-radius: 20px;
+    color: #1d3245;
+    background: #edf3f7;
+    box-shadow: 0 26px 70px rgba(4, 12, 22, 0.34);
+    user-select: none;
+}
+
+html[data-page='castConfig'] .cast-config-modal__header {
+    display: flex;
+    flex: none;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 22px 24px 18px;
+    color: #fff;
+    background: linear-gradient(110deg, #23263f, #2d2f52);
+}
+
+html[data-page='castConfig'] .cast-config-modal__header h2 {
+    margin-top: 4px;
+    font-size: 25px;
+    font-weight: 750;
+    letter-spacing: -0.035em;
+}
+
+html[data-page='castConfig'] .cast-config-modal__header p {
+    margin-top: 7px;
+    color: #b9cad7;
+    font-size: 12px;
+}
+
+html[data-page='castConfig'] .cast-config-modal__kicker {
+    color: #b9b8ff;
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+html[data-page='castConfig'] .cast-config-icon-button {
+    flex: none;
+    width: 42px;
+    min-height: 40px;
+    border: 1px solid rgba(220, 235, 247, 0.16);
+    border-radius: 11px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.07);
+    font-size: 21px;
+    transition: 0.2s ease;
+}
+
+html[data-page='castConfig'] .cast-config-icon-button:hover,
+html[data-page='castConfig'] .cast-config-icon-button:focus-visible {
+    border-color: #fff;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+html[data-page='castConfig'] .cast-config-dataset-tabs {
+    display: flex;
+    flex: none;
+    align-items: flex-start;
+    gap: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 11px 18px 0;
+    border-bottom: 1px solid #c8d5dd;
+    background: #dfe9ef;
+}
+
+html[data-page='castConfig'] .cast-config-dataset-tab {
+    flex: 0 0 auto;
+    min-height: 34px;
+    padding: 10px 14px;
+    border: 1px solid transparent;
+    border-bottom: 0;
+    border-radius: 9px 9px 0 0;
+    color: #51697a;
+    font-size: 12px;
+    font-weight: 760;
+    line-height: 1.3;
+}
+
+html[data-page='castConfig'] .cast-config-dataset-tab[aria-selected='true'] {
+    border-color: var(--cast-primary);
+    color: var(--cast-primary);
+    background: #f6f9fb;
+}
+
+html[data-page='castConfig'] .cast-config-grid-toolbar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 18px;
+    border-bottom: 1px solid #d5e0e6;
+    background: #f6f9fb;
+}
+
+html[data-page='castConfig'] .cast-config-search-wrap {
+    display: block;
+    position: relative;
+    flex: 1 1 360px;
+    max-width: 520px;
+}
+
+html[data-page='castConfig'] .cast-config-search-wrap > svg {
+    position: absolute;
+    top: 11px;
+    left: 12px;
+    z-index: 1;
+    color: #668093;
+}
+
+html[data-page='castConfig'] .cast-config-search-input {
+    width: 100%;
+    height: 39px;
+    padding: 0 13px 0 38px;
+    border: 1px solid #c5d2da;
+    border-radius: 9px;
+    outline: none;
+    color: #1d3245;
+    background: #fff;
+}
+
+html[data-page='castConfig'] .cast-config-search-input:focus {
+    border-color: var(--cast-primary);
+    box-shadow: 0 0 0 3px rgba(68, 65, 204, 0.13);
+}
+
+html[data-page='castConfig'] .cast-config-grid-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+    color: #657b8b;
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+html[data-page='castConfig'] .cast-config-change-pill {
+    padding: 6px 9px;
+    border-radius: 999px;
+    color: #a33b46;
+    background: #ffe6e8;
+    font-weight: 800;
+}
+
+html[data-page='castConfig'] .cast-config-grid-container {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    background: #f6f9fb;
+}
+
+html[data-page='castConfig'] .cast-config-data-grid {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: fixed;
+    font-size: 11px;
+}
+
+html[data-page='castConfig'] .cast-config-data-grid tr {
+    height: auto;
+}
+
+html[data-page='castConfig'] .cast-config-data-grid th {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    min-width: 150px;
+    max-width: 320px;
+    padding: 10px 11px;
+    overflow: hidden;
+    border-right: 1px solid #d7e1e7;
+    border-bottom: 1px solid #c4d2db;
+    color: #52697a;
+    background: #e7eef3;
+    font-weight: 850;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html[data-page='castConfig'] .cast-config-data-grid th:first-child {
+    left: 0;
+    z-index: 4;
+    min-width: 64px;
+    width: 64px;
+    text-align: center;
+}
+
+html[data-page='castConfig'] .cast-config-data-grid td {
+    min-width: 150px;
+    max-width: 320px;
+    padding: 0;
+    border-right: 1px solid #e0e8ed;
+    border-bottom: 1px solid #e0e8ed;
+    background: #fff;
+    vertical-align: top;
+}
+
+html[data-page='castConfig'] .cast-config-data-grid td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    min-width: 64px;
+    width: 64px;
+    padding: 11px 8px;
+    color: #7790a1;
+    background: #eef3f6;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+html[data-page='castConfig'] .cast-config-cell-view,
+html[data-page='castConfig'] .cast-config-cell-input {
+    display: block;
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 11px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+html[data-page='castConfig'] .cast-config-cell-view.is-formula::after {
+    content: ' ƒx';
+    color: #9a6a13;
+    font-weight: 800;
+}
+
+html[data-page='castConfig'] .cast-config-cell-input {
+    border: 0;
+    border-radius: 0;
+    outline: none;
+    color: #173448;
+    background: #fffaf0;
+    resize: vertical;
+    user-select: text;
+}
+
+html[data-page='castConfig'] .cast-config-cell-input:focus {
+    position: relative;
+    z-index: 1;
+    background: #fff;
+    box-shadow: inset 0 0 0 2px #e69a17;
+}
+
+html[data-page='castConfig'] .cast-config-data-grid td.is-edited {
+    background: #fff0f1;
+    box-shadow: inset 3px 0 0 var(--cast-red);
+}
+
+html[data-page='castConfig'] .cast-config-data-grid td.is-edited .cast-config-cell-input {
+    background: #fff0f1;
+}
+
+html[data-page='castConfig'] .cast-config-empty-state {
+    display: grid;
+    place-items: center;
+    height: 100%;
+    min-height: 260px;
+    color: #607789;
+    text-align: center;
+}
+
+html[data-page='castConfig'] .cast-config-modal__footer {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    border-top: 1px solid #ccd9e1;
+    background: #edf3f7;
+}
+
+html[data-page='castConfig'] .cast-config-pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: auto;
+    color: #5c7282;
+    font-size: 11px;
+}
+
+html[data-page='castConfig'] .cast-config-page-button {
+    min-width: 34px;
+    height: 34px;
+    border: 1px solid #c4d2da;
+    border-radius: 8px;
+    color: #344f62;
+    background: #fff;
+}
+
+html[data-page='castConfig'] .cast-config-page-button:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
+
+html[data-page='castConfig'] .cast-config-ghost-button,
+html[data-page='castConfig'] .cast-config-primary-button {
+    min-height: 40px;
+    padding: 0 18px;
+    border: 1px solid #e2e8f0;
+    border-radius: 11px;
+    transition: 0.2s ease;
+}
+
+html[data-page='castConfig'] .cast-config-ghost-button {
+    color: #456073;
+    background: #fff;
+}
+
+html[data-page='castConfig'] .cast-config-ghost-button:hover,
+html[data-page='castConfig'] .cast-config-ghost-button:focus-visible {
+    border-color: var(--cast-primary);
+    color: var(--cast-primary);
+}
+
+html[data-page='castConfig'] .cast-config-primary-button {
+    border-color: var(--cast-primary);
+    color: #fff;
+    background: var(--cast-primary);
+    box-shadow: 0 6px 16px rgba(68, 65, 204, 0.25);
+    font-weight: 800;
+}
+
+html[data-page='castConfig'] .cast-config-primary-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+html[data-page='castConfig'] .cast-config-primary-button:not(:disabled):hover {
+    border-color: var(--cast-primary-dark);
+    background: var(--cast-primary-dark);
+}
+
+@media screen and (max-height: 820px) {
+    html[data-page='castConfig'] .cast-config-container {
+        padding-block: 18px;
+    }
+
+    html[data-page='castConfig'] .cast-config-intro {
+        margin-bottom: 12px;
+    }
+
+    html[data-page='castConfig'] .cast-config-flow-scroll {
+        padding-block: 34px 20px;
+    }
+
+    html[data-page='castConfig'] .cast-config-legend {
+        margin-top: 12px;
+        padding-block: 10px;
+    }
+}
+
+@media screen and (max-width: 1380px) {
+    html[data-page='castConfig'] .header__note {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html[data-page='castConfig'] .cast-config-flow-node,
+    html[data-page='castConfig'] .cast-config-connector,
+    html[data-page='castConfig'] .cast-config-tooltip {
+        transition-duration: 0.01ms;
+    }
+}

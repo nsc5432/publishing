@@ -42,4 +42,8 @@ export const API_ENDPOINTS = {
     // 시설물 매핑
     FCLT_MAP_LIST: prefix + '/fclt/retrieveFcltMapList',
     FCLT_MAP_SAVE: prefix + '/fclt/saveFcltMapList',
+
+    CAST_CONFIG_GROUP_LIST: prefix + '/cast-config/retrieveGroupList',
+    CAST_CONFIG_DATASET: prefix + '/cast-config/retrieveDataset',
+    CAST_CONFIG_SAVE: prefix + '/cast-config/saveDataset',
 };
