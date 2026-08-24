@@ -5,7 +5,9 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
+import aoms.pm.cast.dto.FltPsgHourDto;
 import aoms.pm.cast.dto.FltPsgRawDto;
+import aoms.pm.cast.dto.UserFltPsgRawDto;
 import aoms.pm.cast.dto.UserSmltFltPsgSaveDto;
 
 /**
@@ -28,6 +30,12 @@ import aoms.pm.cast.dto.UserSmltFltPsgSaveDto;
 public interface CastFltPsgMapper {
 	List<FltPsgRawDto> retrieveFltPsgHourList(
 		@Param("ymd") String ymd, @Param("tmnlIdList") List<String> tmnlIdList
+	);
+
+	UserFltPsgRawDto retrieveUserFltPsg(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
+
+	List<FltPsgHourDto> retrieveUserFltPsgHourList(
+			@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
 	);
 
 	// 저장 — 헤더 1행은 병합(update-or-insert), 시간대별 목록은 전체 교체

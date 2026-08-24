@@ -8,7 +8,7 @@ import lombok.Setter;
 public class ChknBoothDto {
 	private int boothNo; // 아일랜드 안의 부스 번호 (1부터)
 	private String alnCd; // 배정 항공사 코드 — 미배정이면 ''
-	private String customYn; // Custom 배정 여부 (원천 미확보, 항상 'N')
+	private String customYn; // Custom 배정 여부
 
 	public ChknBoothDto withBoothNo(int boothNo) {
 		this.boothNo = boothNo;

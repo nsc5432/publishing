@@ -49,6 +49,7 @@ function buildRows(smltType: SmltType, ymd: string): SmltCastExecDto[] {
             rowNum,
             smltId: `${smltType === 'DAILY' ? 'STD' : 'USR'}-${ymd}-${String(rowNum).padStart(4, '0')}`,
             smltType,
+            rgtrId: `mock-user-${String(rowNum).padStart(2, '0')}`,
             deptNm: '시설관리팀',
             userNm: '김민수',
             bgnDt,

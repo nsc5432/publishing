@@ -257,8 +257,10 @@ public class CastMapServiceImpl implements CastMapService {
 			info.setIsland(island);
 			info.setFcltCd(tmnlId.getValue() + "-3RD-" + island + "01-01");
 			info.setFcltList(getIslandFcltList());
-			// 상업시설 매출 원천이 확인되지 않았다 (D7)
-			info.setSales(new MapSalesDto());
+			// 상업시설 매출 원천은 아직 없지만 문자열 필드는 API 계약대로 null 없이 내린다
+			MapSalesDto sales = new MapSalesDto();
+			sales.setCmprYear(EMPTY);
+			info.setSales(sales);
 
 			result.add(info);
 		}

@@ -16,6 +16,7 @@ import aoms.pm.cast.dto.FltPsgChartItemDto;
 import aoms.pm.cast.dto.FltPsgHourDto;
 import aoms.pm.cast.dto.FltPsgRawDto;
 import aoms.pm.cast.dto.JsonResponse;
+import aoms.pm.cast.dto.UserFltPsgRawDto;
 import aoms.pm.cast.dto.UserSmltFltPsgDto;
 import aoms.pm.cast.dto.UserSmltFltPsgSaveDto;
 import aoms.pm.cast.dto.UserSmltFltPsgSearchDto;
@@ -71,16 +72,19 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 		List<FltPsgRawDto> rawList = castFltPsgMapper.retrieveFltPsgHourList(getExcnYmd(searchDto), tmnlId.getFltTmnlIdList());
 		Map<String, FltPsgRawDto> rawMap = rawList.stream()
 				.collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
+		UserFltPsgRawDto saved = castFltPsgMapper.retrieveUserFltPsg(searchDto.getSmltId(), tmnlId.getFcltTmnlId());
+		Map<String, FltPsgHourDto> savedHourMap = castFltPsgMapper
+				.retrieveUserFltPsgHourList(searchDto.getSmltId(), tmnlId.getFcltTmnlId())
+				.stream().collect(Collectors.toMap(FltPsgHourDto::getBgnTime, Function.identity(), (first, ignored) -> first));
 
-		List<FltPsgHourDto> hourList = getHourDatas(rawMap);
+		List<FltPsgHourDto> hourList = getHourDatas(rawMap, savedHourMap);
 
 		result.setTmnlId(tmnlId.getValue());
 		result.setFltCnt(rawList.stream().mapToInt(FltPsgRawDto::getFltCnt).sum());
 		result.setPsgCnt(rawList.stream().mapToInt(FltPsgRawDto::getPsgCnt).sum());
 		result.setPeakTime(getPeakTime(hourList));
-		// 수정 방식·비율을 담을 컬럼이 없다 — 4단계 저장 구조 확보 후 채운다
-		result.setAdjType(AdjType.RATIO);
-		result.setAdjRate(0);
+		result.setAdjType(toAdjType(saved));
+		result.setAdjRate(saved != null ? saved.getAdjRate() : 0);
 		result.setFltChart(getChart(rawMap, FltPsgRawDto::getFltCnt));
 		result.setPsgChart(getChart(rawMap, FltPsgRawDto::getPsgCnt));
 		result.setHourList(hourList);
@@ -194,7 +198,10 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 		return result;
 	}
 
-	private List<FltPsgHourDto> getHourDatas(Map<String, FltPsgRawDto> rawMap) {
+	private List<FltPsgHourDto> getHourDatas(
+			Map<String, FltPsgRawDto> rawMap,
+			Map<String, FltPsgHourDto> savedHourMap
+	) {
 		List<FltPsgHourDto> result = new ArrayList<>();
 		List<String> hourList = TimeBucketUtils.hourList();
 
@@ -205,14 +212,27 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 			FltPsgHourDto item = new FltPsgHourDto();
 			item.setBgnTime(hour + ZERO_MIN);
 			item.setEndTime(isLast ? END_OF_DAY : hourList.get(i + 1) + ZERO_MIN);
-			// 시간대별 조정 비율을 담을 컬럼이 없다 — 4단계 저장 구조 확보 후 채운다
-			item.setAdjRate(0);
+			FltPsgHourDto saved = savedHourMap.get(item.getBgnTime());
+
+			if (saved != null) {
+				item.setEndTime(saved.getEndTime());
+				item.setAdjRate(saved.getAdjRate());
+			}
+
 			item.setPsgCnt(getCnt(rawMap, hour, FltPsgRawDto::getPsgCnt));
 
 			result.add(item);
 		}
 
 		return result;
+	}
+
+	private AdjType toAdjType(UserFltPsgRawDto saved) {
+		if (saved != null && AdjType.HOURLY.getValue().equals(saved.getAdjTypeCd())) {
+			return AdjType.HOURLY;
+		}
+
+		return AdjType.RATIO;
 	}
 
 	// 피크 시간 = 여객수가 가장 많은 시간대

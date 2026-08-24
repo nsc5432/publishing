@@ -1,5 +1,7 @@
 package aoms.pm.cast.dto;
 
+import aoms.pm.cast.enums.CongestionStatus;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -20,6 +22,7 @@ public class TmnlSmryDto extends JsonResponse {
 	private int psgDiffCnt; // 지난주 同요일 대비 여객 증감
 	private int befPsgDiffCnt; // 전일 대비 여객 증감
 	private int brdgRate; // 탑승률 (%) — 원천 미확보, 항상 0
+	private CongestionStatus cgnStatus; // 패널 전체 혼잡도
 	private int itvlMin; // 구간 집계 길이 (분)
 	private int itvlFltCnt; // 조회 시각 ~ +itvlMin 구간의 출발 운항편
 	private int itvlPsgCnt; // 같은 구간의 출발 여객 (예약탑승객 - 예약환승객)

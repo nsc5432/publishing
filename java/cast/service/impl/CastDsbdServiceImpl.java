@@ -67,7 +67,7 @@ import lombok.RequiredArgsConstructor;
  *
  * </pre>
  *
- * 원천이 확인되지 않은 필드(탑승률 · 지난주 비교선 · 추천 조치)는
+ * 원천이 확인되지 않은 필드(탑승률 · 추천 조치)는
  * <b>필드를 빼지 않고 기본값</b>으로 내려준다 (결정 로그 D7).
  */
 @Service
@@ -168,7 +168,9 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setBefPsgDiffCnt(baseFltSmry.getDepPsgCnt() - befFltSmry.getDepPsgCnt());
 		// 탑승률의 원천 컬럼이 확인되지 않았다 (D7)
 		result.setBrdgRate(0);
-		result.setPeak(getPeak(searchDto.getSmltId(), tmnlId));
+		PeakDto peak = getPeak(searchDto.getSmltId(), tmnlId);
+		result.setCgnStatus(CongestionStatus.ofWtngPsgCnt(peak.getWtngPsgCnt()));
+		result.setPeak(peak);
 
 		setItvlSmry(result, searchDto, baseDate, fltTmnlIdList);
 
@@ -195,6 +197,10 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		Map<String, PsgWtngRawDto> psgWtngMap = castDsbdMapper
 				.retrievePsgWtngByHourList(smltStng.getExcnYmd(), tmnlId.getFcltTmnlId(), category.getPsgWtngFcltTypeCdList())
 				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+		String lastWeekYmd = formatYmd(parseYmd(smltStng.getExcnYmd()).minusDays(DAYS_A_WEEK));
+		Map<String, PsgWtngRawDto> lastWeekPsgWtngMap = castDsbdMapper
+				.retrievePsgWtngByHourList(lastWeekYmd, tmnlId.getFcltTmnlId(), category.getPsgWtngFcltTypeCdList())
+				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
 
 		List<DsbdRsltDto> result = new ArrayList<>();
 
@@ -205,6 +211,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 					rsltMap.get(hour + HOUR_SUFFIX),
 					fltPsgMap.get(hour),
 					psgWtngMap.get(hour + HOUR_SUFFIX),
+					lastWeekPsgWtngMap.get(hour + HOUR_SUFFIX),
 					category
 			));
 		}
@@ -364,6 +371,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			SmltRsltRawDto rslt,
 			FltPsgRawDto fltPsg,
 			PsgWtngRawDto psgWtng,
+			PsgWtngRawDto lastWeekPsgWtng,
 			DsbdCategory category
 	) {
 		DsbdRsltDto result = new DsbdRsltDto();
@@ -384,8 +392,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		// 측정값이 없는 시간대는 0 이 아니라 null 이다 — 실적선을 끊어 그린다
 		result.setWtngPsgCnt(psgWtng == null ? null : psgWtng.getWtngPsgCnt());
 
-		// 지난주 비교선의 원천이 확인되지 않았다 (D7)
-		result.setLastWeekWtngPsgCnt(0);
+		result.setLastWeekWtngPsgCnt(lastWeekPsgWtng == null ? 0 : lastWeekPsgWtng.getWtngPsgCnt());
 
 		return result;
 	}

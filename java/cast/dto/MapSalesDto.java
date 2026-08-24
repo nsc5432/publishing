@@ -15,5 +15,5 @@ public class MapSalesDto {
 	private int amtPerPsg; // 인원대비 매출 (원)
 	private int psgDiffCnt; // 매출 인원 증감 (명)
 	private int diffRate; // 증감률 (%) — 음수 가능
-	private String cmprYear; // 비교 기준 연도
+	private String cmprYear = ""; // 비교 기준 연도 — 원천이 없을 때도 null 로 내리지 않는다
 }

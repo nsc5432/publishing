@@ -61,6 +61,7 @@ import lombok.RequiredArgsConstructor;
 public class CastChknServiceImpl implements CastChknService {
 	private static final List<String> UP_PSG_FCLT_CD_LIST = List.of("CC"); // 체크인카운터
 	private static final List<String> BOOTH_USE_CRG_TYPE_CD_LIST = List.of("A", "B"); // 유인 체크인카운터
+	private static final String CUSTOM_YN_Y = "Y";
 	private static final String CUSTOM_YN_N = "N";
 	private static final String EMPTY_ALN_CD = "";
 	private static final int PERCENT = 100;
@@ -199,7 +200,7 @@ public class CastChknServiceImpl implements CastChknService {
 				.collect(toList());
 
 		for (ChknBoothDto booth : result) {
-			booth.setCustomYn(booth.getCustomYn() != null ? booth.getCustomYn() : CUSTOM_YN_N);
+			booth.setCustomYn(toCustomYn(booth.getCustomYn()));
 		}
 
 		return result;
@@ -247,15 +248,17 @@ public class CastChknServiceImpl implements CastChknService {
 		for (ChknIslandDto island : result) {
 			List<UserChknBoothRawDto> booths = boothMap.getOrDefault(island.getIsland(), new ArrayList<>());
 			Map<Integer, String> alnCdMap = new LinkedHashMap<>();
+			Map<Integer, String> customYnMap = new LinkedHashMap<>();
 
 			for (UserChknBoothRawDto booth : booths) {
 				alnCdMap.put(booth.getBoothNo(), nvl(booth.getAlnCd()));
+				customYnMap.put(booth.getBoothNo(), toCustomYn(booth.getCustomYn()));
 			}
 
 			island.setOprTimeList(operHrMap.getOrDefault(island.getIsland(), new ArrayList<>()).stream()
 					.map(x -> new OprTimeDto().withBgnHour(x.getBgnHour()).withEndHour(x.getEndHour()))
 					.collect(toList()));
-			island.setBoothList(toBoothList(alnCdMap));
+			island.setBoothList(toBoothList(alnCdMap, customYnMap));
 		}
 
 		return result;
@@ -287,7 +290,7 @@ public class CastChknServiceImpl implements CastChknService {
 			item.setKioskCnt(getDeviceCnt(slfDevices, SlfType.KIOSK));
 			item.setBagDropCnt(getDeviceCnt(slfDevices, SlfType.SBD));
 			item.setOprTimeList(toOprTimeList(SmltUtils.mergeTimeRanges(boothRanges)));
-			item.setBoothList(toBoothList(alnCdMap));
+			item.setBoothList(toBoothList(alnCdMap, new LinkedHashMap<>()));
 
 			result.add(item);
 		}
@@ -311,7 +314,7 @@ public class CastChknServiceImpl implements CastChknService {
 	 * 그 좌석을 편집할 방법이 없고 한쪽 번호대만 배정된 아일랜드가 반쪽 블럭으로 잘못 그려진다.
 	 * 면(L/R) 구분 필드는 원천에 없다 — 화면이 부스 번호로 파생한다 (1~18 좌 / 19~36 우).
 	 */
-	private List<ChknBoothDto> toBoothList(Map<Integer, String> alnCdMap) {
+	private List<ChknBoothDto> toBoothList(Map<Integer, String> alnCdMap, Map<Integer, String> customYnMap) {
 		List<ChknBoothDto> result = new ArrayList<>();
 		// 36 을 넘는 번호를 쓰는 아일랜드가 있으면 골격을 늘린다 — 배정을 잘라 버리지 않기 위함
 		int maxBoothNo = alnCdMap.keySet().stream().mapToInt(Integer::intValue).max().orElse(0);
@@ -320,7 +323,7 @@ public class CastChknServiceImpl implements CastChknService {
 			result.add(new ChknBoothDto()
 					.withBoothNo(boothNo)
 					.withAlnCd(alnCdMap.getOrDefault(boothNo, EMPTY_ALN_CD))
-					.withCustomYn(CUSTOM_YN_N));
+					.withCustomYn(customYnMap.getOrDefault(boothNo, CUSTOM_YN_N)));
 		}
 
 		return result;
@@ -328,6 +331,10 @@ public class CastChknServiceImpl implements CastChknService {
 
 	private String nvl(String value) {
 		return value != null ? value : EMPTY_ALN_CD;
+	}
+
+	private String toCustomYn(String value) {
+		return CUSTOM_YN_Y.equals(value) ? CUSTOM_YN_Y : CUSTOM_YN_N;
 	}
 
 	private List<OprTimeDto> toOprTimeList(List<TimeRange> timeRanges) {

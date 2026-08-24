@@ -27,6 +27,30 @@
         ORDER BY HOUR
     </select>
 
+    <select id="retrieveUserFltPsg" resultType="aoms.pm.cast.dto.UserFltPsgRawDto">
+        /* CastFltPsgMapper.retrieveUserFltPsg */
+        SELECT
+            NVL(A.ADJ_TYPE_CD, 'RATIO') AS ADJ_TYPE_CD,
+            NVL(A.ADJ_RT, 0) AS ADJ_RATE
+        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG A
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND A.TMNL_ID = #{tmnlId}
+    </select>
+
+    <select id="retrieveUserFltPsgHourList" resultType="aoms.pm.cast.dto.FltPsgHourDto">
+        /* CastFltPsgMapper.retrieveUserFltPsgHourList */
+        SELECT
+            A.BGNG_HM AS BGN_TIME,
+            NVL(A.END_HM, '2400') AS END_TIME,
+            NVL(A.ADJ_RT, 0) AS ADJ_RATE
+        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_HR A
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND A.TMNL_ID = #{tmnlId}
+        ORDER BY A.BGNG_HM
+    </select>
+
     <update id="updateUserFltPsg" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
         /* CastFltPsgMapper.updateUserFltPsg */
         UPDATE PMOWN.TN_PM_SMLT_USER_FLT_PSG

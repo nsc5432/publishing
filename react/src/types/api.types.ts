@@ -491,7 +491,7 @@ export interface SmltKpiDto {
 export interface ChknBoothDto {
     boothNo: number; // 아일랜드 안의 부스 번호 (1부터)
     alnCd: string; // 배정 항공사 코드 — 미배정이면 ''
-    customYn: YnFlag; // Custom 배정 여부 — 원천 미확보라 항상 N
+    customYn: YnFlag; // Custom 배정 여부 — 사용자 저장분은 재조회 시 유지
 }
 
 /** 아일랜드 1개 = 블럭 차트 항목 1개 */
@@ -547,8 +547,8 @@ export interface UserSmltDepItemDto {
     depNm: string; // 표시명 (예: 출국장 1)
     oprYn: YnFlag; // N = 미사용 (차트에서 빠지고 미운영 칩으로 내려간다)
     scCnt: number; // 검색대 대수(피크 기준) — 보조 차트 블럭 수 = ceil(scCnt / 4)
-    normalCnt: number; // 일반 검색대 대수 — 원천 미확보라 항상 0
-    smartPassCnt: number; // 스마트패스 검색대 대수 — 원천 미확보라 항상 0
+    normalCnt: number; // 일반 검색대 대수 — 저장 전 기준정보에는 구분 원천이 없어 0
+    smartPassCnt: number; // 스마트패스 검색대 대수 — 저장 전 기준정보에는 구분 원천이 없어 0
     oprTimeList: OprTimeDto[]; // 출국장 운영 시간 구간
     planList: ScPlanDto[]; // 보안검색대 운영계획 — 현재는 구간 1개만 내려온다
 }
@@ -612,6 +612,7 @@ export interface SmltCastExecDto {
     rowNum: number; // No
     smltId: string;
     smltType: SmltType;
+    rgtrId: string; // 등록자 ID
     deptNm: string; // 부서
     userNm: string; // 성명
     bgnDt: string; // 시작일시 (yyyyMMddHHmmss)
