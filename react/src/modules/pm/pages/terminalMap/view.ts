@@ -28,8 +28,10 @@ import type {
     NoticeData,
     NoticeLevel,
     OperCard,
+    TerminalKind,
     TerminalMapData,
 } from './types';
+import { toPlanPoint } from './layout';
 
 /**
  * 맵형태보기 DTO → 화면 뷰 모델.
@@ -86,6 +88,7 @@ function toSummary(summary: MapSmryDto): HeaderSummary {
 function toOperCards(cardList: MapOperCardDto[]): OperCard[] {
     const cards: OperCard[] = cardList.map((card) => ({
         id: `o${card.depNum}`,
+        depNum: card.depNum,
         rate: card.oprRate,
         time: `${formatHhmm(card.oprBgnTime)}-${formatHhmm(card.oprEndTime)}`,
         desc: `하루 ${card.oprHr}시간 운영`,
@@ -98,7 +101,7 @@ function toOperCards(cardList: MapOperCardDto[]): OperCard[] {
 
     return [
         ...cards.slice(0, middle),
-        { id: 'o-gap', rate: 0, time: '', desc: '', empty: true },
+        { id: 'o-gap', depNum: '', rate: 0, time: '', desc: '', empty: true },
         ...cards.slice(middle),
     ];
 }
@@ -125,20 +128,35 @@ function toRsltMap<T extends MapUnitRsltDto>(rsltList: T[]): Map<string, T> {
  * 마커는 자리만 알고 색은 그 시각 결과에서 온다 — 결과가 없는 시각은 원활로 둔다.
  */
 function toCongestionMarker(
+    terminal: TerminalKind,
+    kind: 'depGate' | 'island',
     marker: MapMarkerDto,
     rslt: MapUnitRsltDto | undefined,
 ): IslandMarker & DepGateMarker {
+    const cgnStatus = rslt?.cgnStatus ?? 'NORMAL';
+    const point = toPlanPoint(terminal, kind, marker.label, {
+        x: marker.cdntX,
+        y: marker.cdntY,
+    });
+
     return {
         id: marker.markerId,
         label: marker.label,
-        level: CONGESTION_TO_LEVEL[rslt?.cgnStatus ?? 'NORMAL'],
-        x: marker.cdntX,
-        y: marker.cdntY,
+        level: CONGESTION_TO_LEVEL[cgnStatus],
+        cgnStatus,
+        ...point,
     };
 }
 
-function toGateMarker(marker: MapMarkerDto): GateMarker {
-    return { id: marker.markerId, label: marker.label, x: marker.cdntX, y: marker.cdntY };
+function toGateMarker(terminal: TerminalKind, marker: MapMarkerDto): GateMarker {
+    return {
+        id: marker.markerId,
+        label: marker.label,
+        ...toPlanPoint(terminal, 'gate', marker.label, {
+            x: marker.cdntX,
+            y: marker.cdntY,
+        }),
+    };
 }
 
 /* ================= 상세 팝업 ================= */
@@ -212,10 +230,10 @@ function toMapSlot(dto: SmltMapDto, slot: SmltMapSlotDto, gates: GateMarker[]): 
         map: {
             stageAspect: STAGE_ASPECT,
             depGates: dto.depMarkerList.map((marker) =>
-                toCongestionMarker(marker, depMap.get(marker.label)),
+                toCongestionMarker(dto.tmnlId, 'depGate', marker, depMap.get(marker.label)),
             ),
             islands: dto.chknMarkerList.map((marker) =>
-                toCongestionMarker(marker, chknMap.get(marker.label)),
+                toCongestionMarker(dto.tmnlId, 'island', marker, chknMap.get(marker.label)),
             ),
             gates,
         },
@@ -233,7 +251,7 @@ function toMapSlot(dto: SmltMapDto, slot: SmltMapSlotDto, gates: GateMarker[]): 
 
 export function toMapDay(dto: SmltMapDto): MapDay {
     // 출입구 게이트는 혼잡도가 없어 슬롯마다 다시 만들지 않는다
-    const gates = dto.gateMarkerList.map(toGateMarker);
+    const gates = dto.gateMarkerList.map((marker) => toGateMarker(dto.tmnlId, marker));
 
     return {
         summary: toSummary(dto.summary),

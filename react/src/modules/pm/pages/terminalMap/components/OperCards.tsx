@@ -18,9 +18,6 @@ const TOP_ANGLE = -270;
 const TRACK_COLOR = '#e5e9f0';
 const VALUE_COLOR = '#2f7ff0';
 
-/**
- * 맵 상단 운영시간 카드 — 출국장 1곳당 1칸.
- */
 export function OperCards({ cards }: OperCardsProps) {
     const gridStyle = { '--oper-cols': cards.length } as CSSProperties;
 
@@ -31,6 +28,9 @@ export function OperCards({ cards }: OperCardsProps) {
                     <div key={card.id} className="oper-card oper-card--empty" aria-hidden="true" />
                 ) : (
                     <div key={card.id} className={`oper-card${card.dim ? ' is-dim' : ''}`}>
+                        <span className="oper-card__gate" aria-label={`출국장 ${card.depNum}`}>
+                            {card.depNum}
+                        </span>
                         <Donut card={card} />
                     </div>
                 ),
@@ -58,7 +58,6 @@ function useBoxSize<T extends HTMLElement>() {
     return [ref, size] as const;
 }
 
-/** 운영시간 도넛 */
 function Donut({ card }: { card: OperCard }) {
     const [ref, size] = useBoxSize<HTMLDivElement>();
     const rate = Math.min(Math.max(card.rate, 0), 100);

@@ -1,14 +1,16 @@
 import type {
     CongestionLevel,
+    DepGateMarker as BaseDepGateMarker,
+    GateMarker,
+    IslandMarker,
     NoticeData,
     NoticeLevel,
     NoticeLevelPreset,
 } from '@/modules/pm/types/map.types';
-import type { DepGateMarker, GateMarker, IslandMarker } from '@/modules/pm/types/map.types';
+import type { CongestionStatus } from '@/types/api.types';
 
 export type {
     CongestionLevel,
-    DepGateMarker,
     GateMarker,
     IslandMarker,
     MarkerPoint,
@@ -19,6 +21,10 @@ export type {
     TerminalKind,
 } from '@/modules/pm/types/map.types';
 export { CONGESTION_LABEL, TERMINAL_LABEL, TERMINALS } from '@/modules/pm/types/map.types';
+
+export interface DepGateMarker extends BaseDepGateMarker {
+    cgnStatus: CongestionStatus;
+}
 
 /** 터미널별 도면 + 마커 세트 */
 export interface TerminalMapData {
@@ -42,6 +48,7 @@ export const NOTICE_LEVEL: Record<NoticeLevel, NoticeLevelPreset> = {
 /** 운영시간 도넛 카드 */
 export interface OperCard {
     id: string;
+    depNum: string;
     /** 도넛 게이지 비율 (0~100) */
     rate: number;
     /** 운영 시간 (예: 05:30-23:30) */

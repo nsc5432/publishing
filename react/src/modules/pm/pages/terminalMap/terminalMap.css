@@ -354,9 +354,20 @@ html[data-page='terminalMap'] .oper-cards {
     --donut-mark: 22px;
 }
 
+/* T2는 운영시간 카드가 2개라 도면 중앙 하단의 빈 공간에 둔다. */
+html[data-page='terminalMap'] .oper-cards:has(> .oper-card:nth-child(2):last-child) {
+    position: absolute;
+    top: 62%;
+    left: 50%;
+    z-index: 2;
+    padding: 0;
+    transform: translate(-50%, -50%);
+}
+
 html[data-page='terminalMap'] .oper-card {
     container-type: inline-size;
     display: flex;
+    position: relative;
     align-items: center;
     justify-content: center;
     aspect-ratio: 1 / 1;
@@ -364,6 +375,24 @@ html[data-page='terminalMap'] .oper-card {
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.55);
     box-shadow: 0 2px 8px rgba(63, 84, 145, 0.06);
+}
+
+html[data-page='terminalMap'] .oper-card__gate {
+    display: flex;
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    z-index: 1;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 9px;
+    background: var(--c-dark);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
 }
 
 html[data-page='terminalMap'] .oper-card--empty {
@@ -465,7 +494,9 @@ html[data-page='terminalMap'] .markers {
     position: absolute;
     bottom: 0;
     left: 50%;
-    width: 101.2%;
+    width: 45%;
+    min-width: 1200px;
+    min-height: 746px;
     aspect-ratio: var(--stage-ar, 1798.6 / 1118.7);
     transform: translate(-50%, -2.35%);
 }
@@ -474,22 +505,18 @@ html[data-page='terminalMap'] .markers {
 
     html[data-page='terminalMap'] .map__bg,
     html[data-page='terminalMap'] .markers {
-        width: min(101.2cqw, 330cqh);
+        width: min(45cqw, 150cqh);
     }
 }
 
 html[data-page='terminalMap'] .map__bg {
     display: block;
-    /* svg 의 width/height 속성 대신 무대 박스(aspect-ratio)를 따르게 한다 */
     height: auto;
-    opacity: 0.11;
-    filter: blur(5px);
     pointer-events: none;
 }
 
 html[data-page='terminalMap'] .map__bg path {
-    fill: #3f80ea;
-    stroke: #3f80ea;
+    fill-opacity: 1;
 }
 
 html[data-page='terminalMap'] .markers {
@@ -532,6 +559,22 @@ html[data-page='terminalMap'] .marker--dep-gate {
     border-radius: 10px;
     background: var(--c-dark);
     font-size: 26px;
+}
+
+html[data-page='terminalMap'] .marker--dep-gate[data-congestion='FREE'] {
+    background: #2f7ff0;
+}
+
+html[data-page='terminalMap'] .marker--dep-gate[data-congestion='NORMAL'] {
+    background: #d6aa00;
+}
+
+html[data-page='terminalMap'] .marker--dep-gate[data-congestion='BUSY'] {
+    background: #e87918;
+}
+
+html[data-page='terminalMap'] .marker--dep-gate[data-congestion='VERY_BUSY'] {
+    background: var(--c-red);
 }
 
 html[data-page='terminalMap'] .marker--island {

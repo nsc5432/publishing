@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react';
-import { Terminal1Icon, Terminal2Plan } from '@/components/icons';
+import { Terminal1SolidPlan, Terminal2SolidPlan } from '@/components/icons';
 import { toStagePosition } from '@/lib/chart';
 import type { DepGateMarker, IslandMarker, TerminalKind, TerminalMapData } from '../types';
 
@@ -11,9 +11,6 @@ interface MapStageProps {
     onDepGateClick: (depGate: DepGateMarker) => void;
 }
 
-/**
- * 터미널 도면 + 구역 마커 레이어.
- */
 export function MapStage({
     terminal,
     data,
@@ -21,7 +18,7 @@ export function MapStage({
     onIslandClick,
     onDepGateClick,
 }: MapStageProps) {
-    const Plan = terminal === 'T1' ? Terminal1Icon : Terminal2Plan;
+    const Plan = terminal === 'T1' ? Terminal1SolidPlan : Terminal2SolidPlan;
     const stageStyle = { '--stage-ar': data.stageAspect } as CSSProperties;
 
     return (
@@ -32,10 +29,7 @@ export function MapStage({
                 aria-hidden="true"
                 focusable="false"
             />
-
-            {/* 구역 마커 : 좌표는 도면 viewBox 기준 비율 */}
             <div className="markers">
-                {/* 출국장 (T1: 1~6 / T2: 1~2) */}
                 {data.depGates.map((depGate) => (
                     <button
                         type="button"
@@ -43,6 +37,7 @@ export function MapStage({
                         className={`marker marker--dep-gate${
                             depGate.id === activeMarkerId ? ' is-active' : ''
                         }`}
+                        data-congestion={depGate.cgnStatus}
                         style={toStagePosition(depGate.x, depGate.y)}
                         aria-label={`출국장 ${depGate.label}`}
                         onClick={() => onDepGateClick(depGate)}
@@ -50,8 +45,6 @@ export function MapStage({
                         {depGate.label}
                     </button>
                 ))}
-
-                {/* 아일랜드 */}
                 {data.islands.map((island) => (
                     <button
                         type="button"
@@ -65,8 +58,6 @@ export function MapStage({
                         {island.label}
                     </button>
                 ))}
-
-                {/* 출입구 게이트 : 탑승동 아치 안쪽 라인 위에 배치 */}
                 {data.gates.map((gate) => (
                     <button
                         type="button"
