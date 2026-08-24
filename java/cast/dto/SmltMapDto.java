@@ -20,7 +20,7 @@ public class SmltMapDto extends JsonResponse {
 	private String tmnlId; // T1 / T2
 	private MapSmryDto summary; // 헤더 우측 운항/여객
 	private List<MapOperCardDto> operCardList; // 운영시간 도넛 카드
-	private List<MapMarkerDto> depMarkerList; // 출국장 마커 (T1 6곳 / T2 2곳)
+	private List<MapMarkerDto> dptgtMarkerList; // 출국장 마커 (T1 6곳 / T2 2곳)
 	private List<MapMarkerDto> chknMarkerList; // 아일랜드 마커 A~N
 	private List<MapMarkerDto> gateMarkerList; // 출입구 게이트 마커 1~14
 	private List<MapChknInfoDto> chknInfoList; // 아일랜드 상세 팝업 고정 정보

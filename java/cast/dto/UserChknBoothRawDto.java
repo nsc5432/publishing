@@ -10,5 +10,5 @@ public class UserChknBoothRawDto {
 	private String island; // 아일랜드 문자 — 부모 키
 	private int boothNo; // 부스 번호 (1부터)
 	private String alnCd; // 배정 항공사 코드 — 미배정이면 null
-	private String customYn; // Custom 배정 여부
+	private String cstmAltmntYn; // Custom 배정 여부
 }

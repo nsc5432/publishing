@@ -5,8 +5,8 @@ import type { BlockColor, PanelKpi, WaitLineData } from '../../types';
 export interface ScRange {
     id: string;
     /** 시작 / 종료 시각 (0~24) */
-    startHour: number;
-    endHour: number;
+    operBgngHour: number;
+    operEndHour: number;
     /** 그 구간에 운영할 검색대 갯수 */
     count: number;
 }
@@ -20,11 +20,11 @@ export interface DepartureGate {
     ranges: TimeRange[];
     /** 미사용 여부 — 미사용이면 차트에서 빠지고 헤드의 미운영 칩으로 내려간다 */
     off: boolean;
-    /** 검색대 대수 (피크 시간대 기준) — 보조 차트의 블럭 수 = ceil(scCnt / 4) */
-    scCnt: number;
+    /** 검색대 대수 (피크 시간대 기준) — 보조 차트의 블럭 수 = ceil(scshCntom / 4) */
+    scshCntom: number;
     /** 검색대 구성 — 일반 / 스마트패스 */
-    normalCnt: number;
-    smartPassCnt: number;
+    gnrlSrchCntom: number;
+    smartPassSrchCntom: number;
     /** 보안검색대 운영계획 */
     plans: ScRange[];
 }

@@ -50,7 +50,7 @@ export interface DepStat {
 export interface DepGateCard extends MarkerPoint {
     id: string;
     /** 출국장 번호 (예: 3) */
-    depNum: string;
+    dptgtNo: string;
     /** 표시명 (예: 출국장 3) */
     title: string;
     level: CongestionLevel;
@@ -66,7 +66,7 @@ export interface DepGateCard extends MarkerPoint {
 /** 터미널 1개분 도면 데이터 */
 export interface TerminalDepMap {
     cards: DepGateCard[];
-    depGates: DepGateMarker[];
+    dptgtGates: DepGateMarker[];
     islands: IslandMarker[];
     gates: GateMarker[];
 }
@@ -87,7 +87,7 @@ export const NOTICE_LEVEL: Record<NoticeLevel, NoticeLevelPreset> = {
 
 /** 출국장 1곳의 시간대별 추이 */
 export interface DepTrendSeries {
-    depNum: string;
+    dptgtNo: string;
     title: string;
     /** 꺾은선 색 */
     color: string;

@@ -17,7 +17,7 @@ public enum FcltType {
 
 	private static final List<String> CHKN_FCLT_CD_LIST = List.of("CC");
 	private static final List<String> SLFCHKN_FCLT_CD_LIST = List.of("CK", "SBD");
-	private static final List<String> DEP_FCLT_CD_LIST = List.of("LGT");
+	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT");
 	private static final List<String> SC_FCLT_CD_LIST = List.of("SC", "SR");
 
 	private final String value;
@@ -41,7 +41,7 @@ public enum FcltType {
 			case SLFCHKN:
 				return SLFCHKN_FCLT_CD_LIST;
 			case DEP:
-				return DEP_FCLT_CD_LIST;
+				return DPTGT_FCLT_CD_LIST;
 			case SC:
 				return SC_FCLT_CD_LIST;
 			default:

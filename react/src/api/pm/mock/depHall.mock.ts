@@ -45,7 +45,7 @@ const TIME_LIST: string[] = Array.from({ length: MAX_STEP + 1 }, (_, step) =>
 /* ================= 출국장 ================= */
 
 interface GateSeed {
-    depNum: string;
+    dptgtNo: string;
     /** 도면 마커 자리 (무대 기준 비율 %) */
     marker: [number, number];
     /** 카드 자리 (무대 기준 비율 %) */
@@ -61,18 +61,18 @@ interface GateSeed {
  * 카드는 무대를 6등분한 자리에 아치를 따라 높낮이를 준다(가장자리가 낮다).
  */
 const T1_GATES: GateSeed[] = [
-    { depNum: '6', marker: [16.65, 79.59], card: [8.33, 67.5], boothCnt: 2, peakStep: 10, peakWtng: 320 },
-    { depNum: '5', marker: [27.16, 69.76], card: [25.0, 51.3], boothCnt: 2, peakStep: 11, peakWtng: 320 },
-    { depNum: '4', marker: [38.22, 63.5], card: [41.67, 45.0], boothCnt: 4, peakStep: 12, peakWtng: 140 },
-    { depNum: '3', marker: [61.68, 63.5], card: [58.33, 45.0], boothCnt: 4, peakStep: 13, peakWtng: 140 },
-    { depNum: '2', marker: [72.69, 69.76], card: [75.0, 51.3], boothCnt: 2, peakStep: 14, peakWtng: 320 },
-    { depNum: '1', marker: [82.87, 79.59], card: [91.67, 67.5], boothCnt: 2, peakStep: 15, peakWtng: 320 },
+    { dptgtNo: '6', marker: [16.65, 79.59], card: [8.33, 67.5], boothCnt: 2, peakStep: 10, peakWtng: 320 },
+    { dptgtNo: '5', marker: [27.16, 69.76], card: [25.0, 51.3], boothCnt: 2, peakStep: 11, peakWtng: 320 },
+    { dptgtNo: '4', marker: [38.22, 63.5], card: [41.67, 45.0], boothCnt: 4, peakStep: 12, peakWtng: 140 },
+    { dptgtNo: '3', marker: [61.68, 63.5], card: [58.33, 45.0], boothCnt: 4, peakStep: 13, peakWtng: 140 },
+    { dptgtNo: '2', marker: [72.69, 69.76], card: [75.0, 51.3], boothCnt: 2, peakStep: 14, peakWtng: 320 },
+    { dptgtNo: '1', marker: [82.87, 79.59], card: [91.67, 67.5], boothCnt: 2, peakStep: 15, peakWtng: 320 },
 ];
 
 /** 출국장 : T2 는 2곳뿐이라 카드를 마커 바로 위에 세운다 */
 const T2_GATES: GateSeed[] = [
-    { depNum: '2', marker: [36.95, 68.62], card: [36.95, 45.0], boothCnt: 4, peakStep: 12, peakWtng: 120 },
-    { depNum: '1', marker: [63.05, 68.62], card: [63.05, 45.0], boothCnt: 2, peakStep: 14, peakWtng: 280 },
+    { dptgtNo: '2', marker: [36.95, 68.62], card: [36.95, 45.0], boothCnt: 4, peakStep: 12, peakWtng: 120 },
+    { dptgtNo: '1', marker: [63.05, 68.62], card: [63.05, 45.0], boothCnt: 2, peakStep: 14, peakWtng: 280 },
 ];
 
 const GATE_SEEDS: Record<TmnlId, GateSeed[]> = { T1: T1_GATES, T2: T2_GATES };
@@ -109,8 +109,8 @@ function toStatus(wtngPsgCnt: number): CongestionStatus {
 /** 출국장 카드 — 자리·운영시간처럼 하루 내내 그대로인 부분만 담는다 */
 function toGate(seed: GateSeed): DepHallGateDto {
     return {
-        depNum: seed.depNum,
-        depNm: `출국장 ${seed.depNum}`,
+        dptgtNo: seed.dptgtNo,
+        dptgtNm: `출국장 ${seed.dptgtNo}`,
         cdntX: seed.card[0],
         cdntY: seed.card[1],
         boothCnt: seed.boothCnt,
@@ -219,10 +219,10 @@ function toGateMarkers(tmnlId: TmnlId): MapMarkerDto[] {
     }));
 }
 
-function toDepMarkers(seeds: GateSeed[]): MapMarkerDto[] {
+function toDptgtMarkers(seeds: GateSeed[]): MapMarkerDto[] {
     return seeds.map((seed) => ({
-        markerId: `dg${seed.depNum}`,
-        label: seed.depNum,
+        markerId: `dg${seed.dptgtNo}`,
+        label: seed.dptgtNo,
         cdntX: seed.marker[0],
         cdntY: seed.marker[1],
     }));
@@ -235,9 +235,9 @@ function toUnitRslt(unitCd: string, wtngPsgCnt: number): MapUnitRsltDto {
 }
 
 /** 알림은 매우혼잡한 출국장만 모은다 (카드와 같은 근거) */
-function toNotice(depRsltList: MapUnitRsltDto[], seeds: GateSeed[]): MapNoticeDto {
-    const boothCntMap = new Map(seeds.map((seed) => [seed.depNum, seed.boothCnt]));
-    const busy = depRsltList.filter((rslt) => rslt.cgnStatus === 'VERY_BUSY');
+function toNotice(dptgtRsltList: MapUnitRsltDto[], seeds: GateSeed[]): MapNoticeDto {
+    const boothCntMap = new Map(seeds.map((seed) => [seed.dptgtNo, seed.boothCnt]));
+    const busy = dptgtRsltList.filter((rslt) => rslt.cgnStatus === 'VERY_BUSY');
 
     return {
         cgnStatus: busy.length > 0 ? 'BUSY' : 'NORMAL',
@@ -253,14 +253,14 @@ function toNotice(depRsltList: MapUnitRsltDto[], seeds: GateSeed[]): MapNoticeDt
 
 function toSlot(tmnlId: TmnlId, hhmm: string, step: number): DepHallSlotDto {
     const seeds = GATE_SEEDS[tmnlId];
-    const depRsltList = seeds.map((seed) =>
-        toUnitRslt(seed.depNum, wtngAt(seed.peakStep, seed.peakWtng, step)),
+    const dptgtRsltList = seeds.map((seed) =>
+        toUnitRslt(seed.dptgtNo, wtngAt(seed.peakStep, seed.peakWtng, step)),
     );
 
     return {
         hhmm,
-        notice: toNotice(depRsltList, seeds),
-        depRsltList,
+        notice: toNotice(dptgtRsltList, seeds),
+        dptgtRsltList,
         chknRsltList: ISLAND_SEEDS[tmnlId].map(([label, , , peakStep, peakWtng]) =>
             toUnitRslt(label, wtngAt(peakStep, peakWtng, step)),
         ),
@@ -275,7 +275,7 @@ export const depHallMock = {
         smltId: SMLT_ID,
         tmnlId,
         gateList: GATE_SEEDS[tmnlId].map(toGate),
-        depMarkerList: toDepMarkers(GATE_SEEDS[tmnlId]),
+        dptgtMarkerList: toDptgtMarkers(GATE_SEEDS[tmnlId]),
         chknMarkerList: toIslandMarkers(tmnlId),
         gateMarkerList: toGateMarkers(tmnlId),
         slotList: TIME_LIST.map((hhmm, step) => toSlot(tmnlId, hhmm, step)),

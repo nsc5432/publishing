@@ -45,7 +45,7 @@ import aoms.pm.cast.enums.TerminalKind;
  * </p>
  */
 public final class MapLayout {
-	private static final String DEP_MARKER_PREFIX = "dg";
+	private static final String DPTGT_MARKER_PREFIX = "dg";
 	private static final String GATE_MARKER_PREFIX = "g";
 
 	/** 출국장 마커 — T1 은 6곳 */
@@ -127,8 +127,8 @@ public final class MapLayout {
 	}
 
 	/** 그 터미널이 도면에 그리는 출국장 번호 (배치 순서대로) */
-	public static List<String> depNumList(TerminalKind tmnlId) {
-		return new ArrayList<>(depPointMap(tmnlId).keySet());
+	public static List<String> dptgtNoList(TerminalKind tmnlId) {
+		return new ArrayList<>(dptgtPointMap(tmnlId).keySet());
 	}
 
 	/** 그 터미널이 도면에 그리는 아일랜드 문자 (배치 순서대로) */
@@ -137,10 +137,10 @@ public final class MapLayout {
 	}
 
 	/** 출국장 마커 1개. 자리·표시 문구만 준다 (혼잡도는 슬롯이 갖는다) */
-	public static MapMarkerDto depMarker(TerminalKind tmnlId, String depNum) {
-		double[] point = depPointMap(tmnlId).get(depNum);
+	public static MapMarkerDto dptgtMarker(TerminalKind tmnlId, String dptgtNo) {
+		double[] point = dptgtPointMap(tmnlId).get(dptgtNo);
 
-		return marker(DEP_MARKER_PREFIX + depNum, depNum, point);
+		return marker(DPTGT_MARKER_PREFIX + dptgtNo, dptgtNo, point);
 	}
 
 	/** 아일랜드 마커 1개. 자리·표시 문구만 준다 (혼잡도는 슬롯이 갖는다) */
@@ -159,7 +159,7 @@ public final class MapLayout {
 		return result;
 	}
 
-	private static Map<String, double[]> depPointMap(TerminalKind tmnlId) {
+	private static Map<String, double[]> dptgtPointMap(TerminalKind tmnlId) {
 		return tmnlId == TerminalKind.T1 ? T1_DEP_POINT_MAP : T2_DEP_POINT_MAP;
 	}
 

@@ -79,11 +79,11 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 			return result;
 		}
 
-		SmltExcnDto lastExcn = castSmltMapper.retrieveLastSmltExcn(smltId);
+		SmltExcnDto lastFlfmt = castSmltMapper.retrieveLastSmltFlfmt(smltId);
 
 		result.setSmltId(smltId);
 		result.setSaveDt(nvl(castSmltMapper.retrieveUserSmltSaveDt(smltId, fcltTmnlId)));
-		result.setExecStatus(toExecStatus(lastExcn));
+		result.setSmltFlfmtSttsCd(toExecStatus(lastFlfmt));
 
 		return result;
 	}
@@ -127,18 +127,18 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 		}
 
 		// 2. 수행 이력 행 생성 (상태 RUNNING)
-		int smltExcnSn = castSmltMapper.retrieveNextSmltExcnSn(searchDto.getSmltId());
-		castSmltMapper.insertSmltExcnHstry(getExcnHstry(searchDto, smltExcnSn));
+		int smltFlfmtSn = castSmltMapper.retrieveNextSmltFlfmtSn(searchDto.getSmltId());
+		castSmltMapper.insertSmltFlfmtHstry(getFlfmtHstry(searchDto, smltFlfmtSn));
 
 		// 3~4. CAST 리소스 발행 · 수행 시작 트리거 — 연동 DTO 부재로 보류 (G8 / D19)
 
 		// 5. 시작 일시는 DB 의 CURRENT_TIMESTAMP 로 찍고 다시 읽어 온다
-		SmltExcnDto excn = castSmltMapper.retrieveSmltExcnByKey(searchDto.getSmltId(), smltExcnSn);
+		SmltExcnDto flfmt = castSmltMapper.retrieveSmltFlfmtByKey(searchDto.getSmltId(), smltFlfmtSn);
 
 		result.setSmltId(searchDto.getSmltId());
-		result.setExecSn(smltExcnSn);
-		result.setExecStatus(SmltExecStatus.RUNNING);
-		result.setBgnDt(excn != null ? nvl(excn.getBgnDt()) : EMPTY);
+		result.setSmltFlfmtSn(smltFlfmtSn);
+		result.setSmltFlfmtSttsCd(SmltExecStatus.RUNNING);
+		result.setSmltFlfmtBgngDt(flfmt != null ? nvl(flfmt.getSmltFlfmtBgngDt()) : EMPTY);
 
 		return result;
 	}
@@ -159,25 +159,25 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 	}
 
 	// 미수행이면 '' 다. 수행한 적이 있으면 마지막 이력의 상태를 그대로 쓴다
-	private String toExecStatus(SmltExcnDto lastExcn) {
-		if (lastExcn == null) {
+	private String toExecStatus(SmltExcnDto lastFlfmt) {
+		if (lastFlfmt == null) {
 			return EMPTY;
 		}
 
-		return SmltExecStatus.DONE.getValue().equals(lastExcn.getSmltExcnSttsCd())
+		return SmltExecStatus.DONE.getValue().equals(lastFlfmt.getSmltFlfmtSttsCd())
 				? SmltExecStatus.DONE.getValue()
 				: SmltExecStatus.RUNNING.getValue();
 	}
 
-	private SmltExcnDto getExcnHstry(UserSmltExecSearchDto searchDto, int smltExcnSn) {
+	private SmltExcnDto getFlfmtHstry(UserSmltExecSearchDto searchDto, int smltFlfmtSn) {
 		SmltExcnDto result = new SmltExcnDto();
 		SessionUtils.setUserContext(result, sessionService);
 
 		result.setSmltId(searchDto.getSmltId());
-		result.setSmltExcnSn(smltExcnSn);
+		result.setSmltFlfmtSn(smltFlfmtSn);
 		result.setTmnlId(searchDto.getFcltTmnlId());
 		result.setSmltType(SmltType.USER.getDbCode());
-		result.setSmltExcnSttsCd(SmltExecStatus.RUNNING.getValue());
+		result.setSmltFlfmtSttsCd(SmltExecStatus.RUNNING.getValue());
 
 		return result;
 	}
@@ -187,8 +187,8 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 		List<MapMarkerDto> result = new ArrayList<>();
 
 		if (fcltType == FcltType.DEP || fcltType == FcltType.SC) {
-			for (String depNum : MapLayout.depNumList(tmnlId)) {
-				result.add(MapLayout.depMarker(tmnlId, depNum));
+			for (String dptgtNo : MapLayout.dptgtNoList(tmnlId)) {
+				result.add(MapLayout.dptgtMarker(tmnlId, dptgtNo));
 			}
 
 			return result;

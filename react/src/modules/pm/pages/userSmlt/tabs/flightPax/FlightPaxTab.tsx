@@ -59,7 +59,7 @@ export function FlightPaxTab({
 
     // 조회 결과가 들어오면 비율을 조회한 값으로 되돌린다.
     useEffect(() => {
-        setRatios({ T1: raw.T1?.adjRate ?? 0, T2: raw.T2?.adjRate ?? 0 });
+        setRatios({ T1: raw.T1?.ajmtRt ?? 0, T2: raw.T2?.ajmtRt ?? 0 });
     }, [raw]);
 
     const handleRatioChange = (terminal: TerminalKind, ratio: number) => {

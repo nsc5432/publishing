@@ -17,7 +17,7 @@ public enum DsbdCategory {
 	// LS 랜드사이드 좌석, CC 체크인카운터, CK 셀프체크인, SBD 셀프백드랍, LGT 출국장, LC 출국심사, SC 보안검색대, SR 보안검색대RED
 	private static final List<String> ALL_FCLT_CD_LIST = List.of("LS", "CC", "CK", "SBD", "LGT", "LC", "SC", "SR");
 	private static final List<String> CHKN_FCLT_CD_LIST = List.of("CC", "CK", "SBD");
-	private static final List<String> DEP_FCLT_CD_LIST = List.of("LGT", "LC", "SC", "SR");
+	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT", "LC", "SC", "SR");
 
 	// 여객대기정보(Xovis)는 시설 구분이 시뮬레이션과 다르다 — Queue 체크인 대기열, DG 출국장, SC 보안검색대
 	private static final List<String> CHKN_WTNG_TYPE_CD_LIST = List.of("Queue");
@@ -44,7 +44,7 @@ public enum DsbdCategory {
 		}
 
 		if (this == DEP) {
-			return DEP_FCLT_CD_LIST;
+			return DPTGT_FCLT_CD_LIST;
 		}
 
 		return ALL_FCLT_CD_LIST;

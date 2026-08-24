@@ -33,7 +33,7 @@ function toIslands(dto: UserSmltChknDto): CheckinIsland[] {
     return dto.islandList.map((island, i) => ({
         label: island.island,
         color: BLOCK_COLORS[i % BLOCK_COLORS.length],
-        ranges: island.oprTimeList.map((time) => ({ start: time.bgnHour, end: time.endHour })),
+        ranges: island.oprTimeList.map((time) => ({ start: time.operBgngHour, end: time.operEndHour })),
         booths: toBooths(island.boothList),
         kiosk: island.kioskCnt,
         bagdrop: island.bagDropCnt,
@@ -66,8 +66,8 @@ export function toSaveReq(
         islandList: islands.map(island => ({
             island: island.label,
             oprTimeList: island.ranges.map(range => ({
-                bgnHour: range.start,
-                endHour: range.end,
+                operBgngHour: range.start,
+                operEndHour: range.end,
             })),
             boothList: island.booths
                 .filter(booth => booth.airline)
@@ -75,7 +75,7 @@ export function toSaveReq(
                     boothNo: booth.no,
                     alnCd: booth.airline,
                     // Custom 배정은 원천 미확보라 항상 N 이다
-                    customYn: 'N' as const,
+                    cstmAltmntYn: 'N' as const,
                 })),
             kioskCnt: island.kiosk,
             bagDropCnt: island.bagdrop,

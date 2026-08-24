@@ -43,7 +43,7 @@ function buildRows(smltType: SmltType, ymd: string): SmltCastExecDto[] {
     return Array.from({ length: ROW_COUNT }, (_, i) => {
         const rowNum = i + 1;
         const running = RUNNING_NOS[smltType].includes(rowNum);
-        const bgnDt = toDateTime(ymd, i);
+        const smltFlfmtBgngDt = toDateTime(ymd, i);
 
         return {
             rowNum,
@@ -52,10 +52,10 @@ function buildRows(smltType: SmltType, ymd: string): SmltCastExecDto[] {
             rgtrId: `mock-user-${String(rowNum).padStart(2, '0')}`,
             deptNm: '시설관리팀',
             userNm: '김민수',
-            bgnDt,
-            endDt: running ? '' : toDateTime(ymd, i + EXEC_MIN),
+            smltFlfmtBgngDt,
+            smltFlfmtEndDt: running ? '' : toDateTime(ymd, i + EXEC_MIN),
             execMin: running ? 0 : EXEC_MIN,
-            execStatus: running ? 'RUNNING' : 'DONE',
+            smltFlfmtSttsCd: running ? 'RUNNING' : 'DONE',
         };
     });
 }
@@ -98,10 +98,10 @@ export const monitoringMock = {
             tmnlId: rowNum % 2 === 0 ? 'T2' : 'T1',
             deptNm: '시설관리팀',
             userNm: '김민수',
-            bgnDt: toDateTime(ymd, rowNum - 1),
-            endDt: running ? '' : toDateTime(ymd, rowNum - 1 + EXEC_MIN),
+            smltFlfmtBgngDt: toDateTime(ymd, rowNum - 1),
+            smltFlfmtEndDt: running ? '' : toDateTime(ymd, rowNum - 1 + EXEC_MIN),
             execMin: running ? 0 : EXEC_MIN,
-            execStatus: running ? 'RUNNING' : 'DONE',
+            smltFlfmtSttsCd: running ? 'RUNNING' : 'DONE',
         };
     },
 };

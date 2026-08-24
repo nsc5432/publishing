@@ -48,7 +48,7 @@ import lombok.RequiredArgsConstructor;
 @Transactional(rollbackFor = Exception.class)
 public class CastFcltServiceImpl implements CastFcltService {
 	private static final String EMPTY = "";
-	private static final String DEP_MARKER_PREFIX = "dg"; // FcltMapLayout 의 출국장 마커 id 접두사
+	private static final String DPTGT_MARKER_PREFIX = "dg";
 
 	/** 상위여객시설코드 → 화면 시설구분. FcltType 이 이미 가진 대응을 뒤집어 쓴다 */
 	private static final Map<String, FcltType> FCLT_TYPE_BY_UP_CD = toFcltTypeByUpCd();
@@ -238,7 +238,7 @@ public class CastFcltServiceImpl implements CastFcltService {
 				return unitCd;
 			case DEP:
 			case SC:
-				return DEP_MARKER_PREFIX + unitCd;
+				return DPTGT_MARKER_PREFIX + unitCd;
 			default:
 				return EMPTY;
 		}
@@ -261,9 +261,9 @@ public class CastFcltServiceImpl implements CastFcltService {
 			}
 		}
 
-		for (String depNum : FcltMapLayout.depNumList(tmnlId)) {
-			if (used.contains(DEP_MARKER_PREFIX + depNum)) {
-				result.add(FcltMapLayout.depMarker(tmnlId, depNum));
+		for (String dptgtNo : FcltMapLayout.dptgtNoList(tmnlId)) {
+			if (used.contains(DPTGT_MARKER_PREFIX + dptgtNo)) {
+				result.add(FcltMapLayout.dptgtMarker(tmnlId, dptgtNo));
 			}
 		}
 

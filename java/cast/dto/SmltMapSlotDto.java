@@ -12,5 +12,5 @@ public class SmltMapSlotDto {
 	private String hhmm; // 슬롯 시각 HHmm (30분 단위)
 	private MapNoticeDto notice; // 상단 혼잡 알림
 	private List<MapChknRsltDto> chknRsltList; // 아일랜드 A~N
-	private List<MapUnitRsltDto> depRsltList; // 출국장 (T1 6곳 / T2 2곳)
+	private List<MapUnitRsltDto> dptgtRsltList; // 출국장 (T1 6곳 / T2 2곳)
 }

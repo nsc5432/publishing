@@ -146,7 +146,7 @@ export function DepChartView({ trend, step, time }: DepChartViewProps) {
                 </p>
                 <ul className="dep-chart__legend">
                     {trend.series.map((series) => (
-                        <li key={series.depNum}>
+                        <li key={series.dptgtNo}>
                             <i style={{ background: series.color }} aria-hidden="true" />
                             {series.title}
                         </li>

@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class MapOperCardDto {
-	private String depNum; // 출국장 번호
+	private String dptgtNo; // 출국장 번호
 	private int oprRate; // 도넛 게이지 0~100
 	private String oprBgnTime; // 운영 시작 HHmm
 	private String oprEndTime; // 운영 종료 HHmm

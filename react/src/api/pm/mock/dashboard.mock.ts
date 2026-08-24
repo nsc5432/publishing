@@ -286,7 +286,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cardId: 'T1-CHKN-B',
             fcltType: 'CHKN',
             island: 'B',
-            depNum: '',
+            dptgtNo: '',
             fcltNm: 'B',
             fcltDesc: '좌측 B4~B8',
             totCnt: 14,
@@ -304,7 +304,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cardId: 'T1-CHKN-D',
             fcltType: 'CHKN',
             island: 'D',
-            depNum: '',
+            dptgtNo: '',
             fcltNm: 'D',
             fcltDesc: '중앙 D1~D6',
             totCnt: 12,
@@ -324,7 +324,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cardId: 'T2-CHKN-C',
             fcltType: 'CHKN',
             island: 'C',
-            depNum: '',
+            dptgtNo: '',
             fcltNm: 'C',
             fcltDesc: '좌측 C1~C5',
             totCnt: 12,
@@ -342,7 +342,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cardId: 'T2-CHKN-E',
             fcltType: 'CHKN',
             island: 'E',
-            depNum: '',
+            dptgtNo: '',
             fcltNm: 'E',
             fcltDesc: '우측 E1~E4',
             totCnt: 10,
@@ -359,13 +359,13 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
     ],
 };
 
-const DEP_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
+const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
     T1: [
         {
             cardId: 'T1-DEP-3',
             fcltType: 'DEP',
             island: '',
-            depNum: '3',
+            dptgtNo: '3',
             fcltNm: '3번',
             fcltDesc: '',
             totCnt: 6,
@@ -383,7 +383,7 @@ const DEP_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cardId: 'T1-DEP-1',
             fcltType: 'DEP',
             island: '',
-            depNum: '1',
+            dptgtNo: '1',
             fcltNm: '1번',
             fcltDesc: '',
             totCnt: 6,
@@ -403,7 +403,7 @@ const DEP_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cardId: 'T2-DEP-1',
             fcltType: 'DEP',
             island: '',
-            depNum: '1',
+            dptgtNo: '1',
             fcltNm: '1번',
             fcltDesc: '',
             totCnt: 2,
@@ -421,7 +421,7 @@ const DEP_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cardId: 'T2-DEP-2',
             fcltType: 'DEP',
             island: '',
-            depNum: '2',
+            dptgtNo: '2',
             fcltNm: '2번',
             fcltDesc: '',
             totCnt: 2,
@@ -460,5 +460,5 @@ export const dashboardMock = {
         buildRsltList(tmnlId, category),
 
     getFcltCardList: (tmnlId: TmnlId, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto[] =>
-        fcltType === 'CHKN' ? CHKN_CARDS[tmnlId] : DEP_CARDS[tmnlId],
+        fcltType === 'CHKN' ? CHKN_CARDS[tmnlId] : DPTGT_CARDS[tmnlId],
 };

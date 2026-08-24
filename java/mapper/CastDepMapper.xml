@@ -5,27 +5,27 @@
     <select id="retrieveDepFcltList" resultType="aoms.pm.cast.dto.DepFcltRawDto">
         /* CastDepMapper.retrieveDepFcltList */
         SELECT
-            SUBSTR(B.PSG_FCLT_CD, 4, 1) AS DEP_NUM,
-            B.PSG_FCLT_NM AS DEP_NM,
+            SUBSTR(B.PSG_FCLT_CD, 4, 1) AS DPTGT_NO,
+            B.PSG_FCLT_NM AS DPTGT_NM,
             B.USE_YN
         FROM PMOWN.TN_PM_SMLT_PSG_FCLT B
         WHERE 1 = 1
         AND B.TMNL_ID = #{tmnlId}
         -- 미운영 출국장도 화면 하단 칩으로 내려가므로 USE_YN 으로 거르지 않는다
         AND B.UP_PSG_FCLT_CD IN ('LGT')
-        ORDER BY DEP_NUM
+        ORDER BY DPTGT_NO
     </select>
 
     <select id="retrieveScCntList" resultType="aoms.pm.cast.dto.ScCntRawDto">
         /* CastDepMapper.retrieveScCntList */
         SELECT
-            A.GATE_NO AS DEP_NUM,
-            A.FCLTY_CNT AS SC_CNT
+            A.GATE_NO AS DPTGT_NO,
+            A.FCLTY_CNT AS SCSH_CNTOM
         FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_SCRTY_CNTRL_ATRB A
         WHERE 1 = 1
         AND A.SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{scRsrcId}, 'FOTSC|FacilityOpeningTable_SecurityControl', '')
         AND A.TMNL_ID = #{tmnlId}
-        ORDER BY DEP_NUM
+        ORDER BY DPTGT_NO
     </select>
 
     <!--
@@ -36,44 +36,44 @@
     <select id="retrieveUserDepList" resultType="aoms.pm.cast.dto.DepGateDto">
         /* CastDepMapper.retrieveUserDepList */
         SELECT
-            A.DEP_NUM,
+            A.DPTGT_NO,
             A.OPER_YN AS OPR_YN,
-            NVL(A.SCRTY_CNTRL_CNT, 0) AS SC_CNT,
-            NVL(A.NRML_CNT, 0) AS NORMAL_CNT,
-            NVL(A.SMART_PASS_CNT, 0) AS SMART_PASS_CNT
-        FROM PMOWN.TN_PM_SMLT_USER_DEP A
+            NVL(A.SCSH_CNTOM, 0) AS SCSH_CNTOM,
+            NVL(A.GNRL_SRCH_CNTOM, 0) AS GNRL_SRCH_CNTOM,
+            NVL(A.SMART_PASS_SRCH_CNTOM, 0) AS SMART_PASS_SRCH_CNTOM
+        FROM PMOWN.TN_PM_SMLT_USER_DPTGT A
         WHERE 1 = 1
         AND A.SMLT_ID = #{smltId}
         AND A.TMNL_ID = #{tmnlId}
-        ORDER BY A.DEP_NUM
+        ORDER BY A.DPTGT_NO
     </select>
 
     <select id="retrieveUserDepOperHrList" resultType="aoms.pm.cast.dto.UserDepOperHrRawDto">
         /* CastDepMapper.retrieveUserDepOperHrList */
         SELECT
-            A.DEP_NUM,
-            NVL(A.OPER_BGNG_HR, 0) AS BGN_HOUR,
-            NVL(A.OPER_END_HR, 0) AS END_HOUR
-        FROM PMOWN.TN_PM_SMLT_USER_DEP_OPER_HR A
+            A.DPTGT_NO,
+            NVL(A.OPER_BGNG_HOUR, 0) AS OPER_BGNG_HOUR,
+            NVL(A.OPER_END_HOUR, 0) AS OPER_END_HOUR
+        FROM PMOWN.TN_PM_SMLT_USER_DPTGT_OPER_HR A
         WHERE 1 = 1
         AND A.SMLT_ID = #{smltId}
         AND A.TMNL_ID = #{tmnlId}
-        ORDER BY A.DEP_NUM, A.OPER_HR_SN
+        ORDER BY A.DPTGT_NO, A.OPER_HR_SN
     </select>
 
     <select id="retrieveUserScPlanList" resultType="aoms.pm.cast.dto.UserScPlanRawDto">
         /* CastDepMapper.retrieveUserScPlanList */
         SELECT
-            A.DEP_NUM,
+            A.DPTGT_NO,
             A.PLAN_SN,
-            NVL(A.OPER_BGNG_HR, 0) AS BGN_HOUR,
-            NVL(A.OPER_END_HR, 0) AS END_HOUR,
-            NVL(A.SCRTY_CNTRL_CNT, 0) AS SC_CNT
-        FROM PMOWN.TN_PM_SMLT_SC_PLAN A
+            NVL(A.OPER_BGNG_HOUR, 0) AS OPER_BGNG_HOUR,
+            NVL(A.OPER_END_HOUR, 0) AS OPER_END_HOUR,
+            NVL(A.SCSH_CNTOM, 0) AS SCSH_CNTOM
+        FROM PMOWN.TN_PM_SMLT_SCSH_OPER_PLAN A
         WHERE 1 = 1
         AND A.SMLT_ID = #{smltId}
         AND A.TMNL_ID = #{tmnlId}
-        ORDER BY A.DEP_NUM, A.OPER_BGNG_HR
+        ORDER BY A.DPTGT_NO, A.OPER_BGNG_HOUR
     </select>
 
     <!--
@@ -84,7 +84,7 @@
     -->
     <delete id="deleteUserDepList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
         /* CastDepMapper.deleteUserDepList */
-        DELETE FROM PMOWN.TN_PM_SMLT_USER_DEP
+        DELETE FROM PMOWN.TN_PM_SMLT_USER_DPTGT
         WHERE 1 = 1
         AND SMLT_ID = #{smltId}
         AND TMNL_ID = #{fcltTmnlId}
@@ -92,7 +92,7 @@
 
     <delete id="deleteUserDepOperHrList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
         /* CastDepMapper.deleteUserDepOperHrList */
-        DELETE FROM PMOWN.TN_PM_SMLT_USER_DEP_OPER_HR
+        DELETE FROM PMOWN.TN_PM_SMLT_USER_DPTGT_OPER_HR
         WHERE 1 = 1
         AND SMLT_ID = #{smltId}
         AND TMNL_ID = #{fcltTmnlId}
@@ -100,7 +100,7 @@
 
     <delete id="deleteUserScPlanList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
         /* CastDepMapper.deleteUserScPlanList */
-        DELETE FROM PMOWN.TN_PM_SMLT_SC_PLAN
+        DELETE FROM PMOWN.TN_PM_SMLT_SCSH_OPER_PLAN
         WHERE 1 = 1
         AND SMLT_ID = #{smltId}
         AND TMNL_ID = #{fcltTmnlId}
@@ -109,26 +109,26 @@
     <insert id="insertUserDepList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
         /* CastDepMapper.insertUserDepList */
         INSERT ALL
-        <foreach collection="depList" item="dep">
-        INTO PMOWN.TN_PM_SMLT_USER_DEP (
+        <foreach collection="dptgtList" item="dep">
+        INTO PMOWN.TN_PM_SMLT_USER_DPTGT (
             SMLT_ID,
             TMNL_ID,
-            DEP_NUM,
+            DPTGT_NO,
             OPER_YN,
-            SCRTY_CNTRL_CNT,
-            NRML_CNT,
-            SMART_PASS_CNT,
+            SCSH_CNTOM,
+            GNRL_SRCH_CNTOM,
+            SMART_PASS_SRCH_CNTOM,
             FRST_RGTR_ID,
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
             #{smltId},
             #{fcltTmnlId},
-            #{dep.depNum},
+            #{dep.dptgtNo},
             #{dep.oprYn},
-            #{dep.scCnt},
-            #{dep.normalCnt},
-            #{dep.smartPassCnt},
+            #{dep.scshCntom},
+            #{dep.gnrlSrchCntom},
+            #{dep.smartPassSrchCntom},
             #{loginUserId},
             #{loginIpAddr},
             CURRENT_TIMESTAMP
@@ -140,25 +140,25 @@
     <insert id="insertUserDepOperHrList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
         /* CastDepMapper.insertUserDepOperHrList */
         INSERT ALL
-        <foreach collection="depList" item="dep">
+        <foreach collection="dptgtList" item="dep">
             <foreach collection="dep.oprTimeList" item="oprTime" index="oprTimeIdx">
-        INTO PMOWN.TN_PM_SMLT_USER_DEP_OPER_HR (
+        INTO PMOWN.TN_PM_SMLT_USER_DPTGT_OPER_HR (
             SMLT_ID,
             TMNL_ID,
-            DEP_NUM,
+            DPTGT_NO,
             OPER_HR_SN,
-            OPER_BGNG_HR,
-            OPER_END_HR,
+            OPER_BGNG_HOUR,
+            OPER_END_HOUR,
             FRST_RGTR_ID,
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
             #{smltId},
             #{fcltTmnlId},
-            #{dep.depNum},
+            #{dep.dptgtNo},
             #{oprTimeIdx} + 1,
-            #{oprTime.bgnHour},
-            #{oprTime.endHour},
+            #{oprTime.operBgngHour},
+            #{oprTime.operEndHour},
             #{loginUserId},
             #{loginIpAddr},
             CURRENT_TIMESTAMP
@@ -171,27 +171,27 @@
     <insert id="insertUserScPlanList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
         /* CastDepMapper.insertUserScPlanList */
         INSERT ALL
-        <foreach collection="depList" item="dep">
+        <foreach collection="dptgtList" item="dep">
             <foreach collection="dep.planList" item="plan" index="planIdx">
-        INTO PMOWN.TN_PM_SMLT_SC_PLAN (
+        INTO PMOWN.TN_PM_SMLT_SCSH_OPER_PLAN (
             SMLT_ID,
             TMNL_ID,
-            DEP_NUM,
+            DPTGT_NO,
             PLAN_SN,
-            OPER_BGNG_HR,
-            OPER_END_HR,
-            SCRTY_CNTRL_CNT,
+            OPER_BGNG_HOUR,
+            OPER_END_HOUR,
+            SCSH_CNTOM,
             FRST_RGTR_ID,
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
             #{smltId},
             #{fcltTmnlId},
-            #{dep.depNum},
+            #{dep.dptgtNo},
             #{planIdx} + 1,
-            #{plan.bgnHour},
-            #{plan.endHour},
-            #{plan.scCnt},
+            #{plan.operBgngHour},
+            #{plan.operEndHour},
+            #{plan.scshCntom},
             #{loginUserId},
             #{loginIpAddr},
             CURRENT_TIMESTAMP

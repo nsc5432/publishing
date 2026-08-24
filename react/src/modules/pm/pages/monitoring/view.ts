@@ -64,10 +64,10 @@ export function toHistoryRows(execList: SmltCastExecDto[]): HistoryRow[] {
         smltId: exec.smltId,
         dept: exec.deptNm,
         name: exec.userNm,
-        startAt: formatExecDt(exec.bgnDt),
-        endAt: formatExecDt(exec.endDt),
+        startAt: formatExecDt(exec.smltFlfmtBgngDt),
+        endAt: formatExecDt(exec.smltFlfmtEndDt),
         duration: exec.execMin,
-        status: EXEC_STATUS_TO_RUN_STATUS[exec.execStatus],
+        status: EXEC_STATUS_TO_RUN_STATUS[exec.smltFlfmtSttsCd],
     }));
 }
 

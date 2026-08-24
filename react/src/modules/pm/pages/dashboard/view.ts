@@ -36,7 +36,7 @@ interface TerminalViewInput {
     smry: TmnlSmryDto;
     rsltList: DsbdRsltDto[];
     chknCards: DsbdFcltCardDto[];
-    depCards: DsbdFcltCardDto[];
+    dptgtCards: DsbdFcltCardDto[];
 }
 
 /**
@@ -129,7 +129,7 @@ export function toTerminalView({
     smry,
     rsltList,
     chknCards,
-    depCards,
+    dptgtCards,
 }: TerminalViewInput): TerminalView {
     // 시간대별 결과는 정시(HH00) 단위라 조회 시각과 같은 '시'를 찾는다.
     const currentIndex = rsltList.findIndex((rslt) => rslt.time.slice(0, 2) === hhmm.slice(0, 2));
@@ -172,7 +172,7 @@ export function toTerminalView({
             { label: '최대\n대기시간', value: String(smry.peak.maxWtngHr), unit: '분' },
             { label: '시간당\n처리인원', value: formatCount(smry.peak.hrlyPrcsPsgCnt), unit: '명' },
         ],
-        gates: [toGateData('CHKN', chknCards), toGateData('DEP', depCards)],
+        gates: [toGateData('CHKN', chknCards), toGateData('DEP', dptgtCards)],
         chart: { rsltList },
         tableRows: rsltList.map(toTableRow),
         defaultSelectedRow: Math.max(0, currentIndex),

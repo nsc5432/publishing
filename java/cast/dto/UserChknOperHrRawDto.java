@@ -8,6 +8,6 @@ import lombok.Setter;
 @Setter
 public class UserChknOperHrRawDto {
 	private String island; // 아일랜드 문자 — 부모 키
-	private int bgnHour; // 운영 시작 (0~24)
-	private int endHour; // 운영 종료 (0~24)
+	private int operBgngHour; // 운영 시작 (0~24)
+	private int operEndHour; // 운영 종료 (0~24)
 }

@@ -47,21 +47,21 @@ public interface CastSmltMapper {
 	// 수행 — 저장된 조건 존재 확인 · 이력 채번 · 이력 기록 · 이력 조회
 	int retrieveUserSmltCondCnt(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
 
-	int retrieveNextSmltExcnSn(@Param("smltId") String smltId);
+	int retrieveNextSmltFlfmtSn(@Param("smltId") String smltId);
 
-	void insertSmltExcnHstry(SmltExcnDto dto);
+	void insertSmltFlfmtHstry(SmltExcnDto dto);
 
-	SmltExcnDto retrieveSmltExcnByKey(@Param("smltId") String smltId, @Param("smltExcnSn") int smltExcnSn);
+	SmltExcnDto retrieveSmltFlfmtByKey(@Param("smltId") String smltId, @Param("smltFlfmtSn") int smltFlfmtSn);
 
-	List<SmltExcnDto> retrieveSmltExcnList(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);
+	List<SmltExcnDto> retrieveSmltFlfmtList(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);
 
 	// 모니터링 — 상단 KPI 집계 · 이력 1건 결과 보기
-	SmltExcnCntRawDto retrieveSmltExcnSmry(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);
+	SmltExcnCntRawDto retrieveSmltFlfmtSmry(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);
 
-	SmltExcnDto retrieveSmltExcnDetail(@Param("smltId") String smltId);
+	SmltExcnDto retrieveSmltFlfmtDetail(@Param("smltId") String smltId);
 
 	// 사용자 시뮬레이션 진입 — 저장 시각 · 직전 수행 상태
 	String retrieveUserSmltSaveDt(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
 
-	SmltExcnDto retrieveLastSmltExcn(@Param("smltId") String smltId);
+	SmltExcnDto retrieveLastSmltFlfmt(@Param("smltId") String smltId);
 }                                                                                                            

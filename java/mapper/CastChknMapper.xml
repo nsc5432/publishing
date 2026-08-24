@@ -55,8 +55,8 @@
         /* CastChknMapper.retrieveUserChknOperHrList */
         SELECT
             A.CHKN_ISL_CD AS ISLAND,
-            NVL(A.OPER_BGNG_HR, 0) AS BGN_HOUR,
-            NVL(A.OPER_END_HR, 0) AS END_HOUR
+            NVL(A.OPER_BGNG_HOUR, 0) AS OPER_BGNG_HOUR,
+            NVL(A.OPER_END_HOUR, 0) AS OPER_END_HOUR
         FROM PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR A
         WHERE 1 = 1
         AND A.SMLT_ID = #{smltId}
@@ -70,7 +70,7 @@
             A.CHKN_ISL_CD AS ISLAND,
             A.BOOTH_NO,
             A.ALN_CD,
-            A.CSTM_ALCTN_YN AS CUSTOM_YN
+            A.CSTM_ALTMNT_YN AS CSTM_ALTMNT_YN
         FROM PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH A
         WHERE 1 = 1
         AND A.SMLT_ID = #{smltId}
@@ -147,8 +147,8 @@
             TMNL_ID,
             CHKN_ISL_CD,
             OPER_HR_SN,
-            OPER_BGNG_HR,
-            OPER_END_HR,
+            OPER_BGNG_HOUR,
+            OPER_END_HOUR,
             FRST_RGTR_ID,
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
@@ -157,8 +157,8 @@
             #{fcltTmnlId},
             #{island.island},
             #{oprTimeIdx} + 1,
-            #{oprTime.bgnHour},
-            #{oprTime.endHour},
+            #{oprTime.operBgngHour},
+            #{oprTime.operEndHour},
             #{loginUserId},
             #{loginIpAddr},
             CURRENT_TIMESTAMP
@@ -179,7 +179,7 @@
             CHKN_ISL_CD,
             BOOTH_NO,
             ALN_CD,
-            CSTM_ALCTN_YN,
+            CSTM_ALTMNT_YN,
             FRST_RGTR_ID,
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
@@ -189,7 +189,7 @@
             #{island.island},
             #{booth.boothNo},
             #{booth.alnCd},
-            #{booth.customYn},
+            #{booth.cstmAltmntYn},
             #{loginUserId},
             #{loginIpAddr},
             CURRENT_TIMESTAMP

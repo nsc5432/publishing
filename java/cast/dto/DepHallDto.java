@@ -19,7 +19,7 @@ public class DepHallDto extends JsonResponse {
 	private String smltId;
 	private String tmnlId; // T1 / T2
 	private List<DepHallGateDto> gateList; // 출국장 카드 (T1 6곳 / T2 2곳)
-	private List<MapMarkerDto> depMarkerList; // 출국장 마커
+	private List<MapMarkerDto> dptgtMarkerList; // 출국장 마커
 	private List<MapMarkerDto> chknMarkerList; // 아일랜드 마커 A~N
 	private List<MapMarkerDto> gateMarkerList; // 출입구 게이트 마커 (T1 14곳 / T2 12곳)
 	private List<DepHallSlotDto> slotList; // 04:00~24:00 (30분, 41칸)

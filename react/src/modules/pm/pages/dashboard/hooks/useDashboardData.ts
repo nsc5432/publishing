@@ -28,7 +28,7 @@ interface PanelBase {
     query: DashboardQuery;
     smry: TmnlSmryDto;
     chknCards: DsbdFcltCardDto[];
-    depCards: DsbdFcltCardDto[];
+    dptgtCards: DsbdFcltCardDto[];
 }
 
 /** 터미널 패널의 조회 조건 — 조건과 터미널이 함께 바뀌어야 다시 부른다 */
@@ -90,11 +90,11 @@ export function useTerminalPanel(
                     .then((dto) => unwrap(dto, PANEL_FAIL)),
                 dashboardService.getFcltCardList(smltId, terminal, hhmm, 'CHKN'),
                 dashboardService.getFcltCardList(smltId, terminal, hhmm, 'DEP'),
-            ]).then(([smry, chknCards, depCards]): PanelBase => ({
+            ]).then(([smry, chknCards, dptgtCards]): PanelBase => ({
                 query: dashboardQuery,
                 smry,
                 chknCards,
-                depCards,
+                dptgtCards,
             }));
         },
         PANEL_FAIL,
@@ -119,7 +119,7 @@ export function useTerminalPanel(
                 smry: panelBase.data.smry,
                 rsltList: hourlyResults.data,
                 chknCards: panelBase.data.chknCards,
-                depCards: panelBase.data.depCards,
+                dptgtCards: panelBase.data.dptgtCards,
             }),
             error,
             token,

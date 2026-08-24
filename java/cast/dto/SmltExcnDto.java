@@ -10,14 +10,14 @@ import lombok.Setter;
 public class SmltExcnDto extends AomsDefaultDto {
 	private static final long serialVersionUID = 1L;
 
-	// TH_PM_SMLT_EXCN_HSTRY 컬럼 미러
+	// TH_PM_SMLT_FLFMT_HSTRY 컬럼 미러
 	private String smltId;
-	private int smltExcnSn; // 수행 일련번호
+	private int smltFlfmtSn; // 수행 일련번호
 	private String tmnlId; // DB 터미널 코드 (P01/P03)
 	private String smltType; // AUTO 일일 / USER 사용자
-	private String smltExcnSttsCd; // RUNNING 진행중 / DONE 완료
-	private String bgnDt; // 수행 시작일시 yyyyMMddHHmmss
-	private String endDt; // 수행 종료일시 yyyyMMddHHmmss — 진행중이면 ''
+	private String smltFlfmtSttsCd; // RUNNING 진행중 / DONE 완료
+	private String smltFlfmtBgngDt; // 수행 시작일시 yyyyMMddHHmmss
+	private String smltFlfmtEndDt; // 수행 종료일시 yyyyMMddHHmmss — 진행중이면 ''
 
 	// 이력 결과 보기에서 TN_PM_SMLT_STNG 을 조인해 채우는 컬럼
 	private String excnYmd; // 시뮬레이션 기준일자 yyyyMMdd

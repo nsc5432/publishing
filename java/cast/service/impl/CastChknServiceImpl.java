@@ -200,7 +200,7 @@ public class CastChknServiceImpl implements CastChknService {
 				.collect(toList());
 
 		for (ChknBoothDto booth : result) {
-			booth.setCustomYn(toCustomYn(booth.getCustomYn()));
+			booth.setCstmAltmntYn(toCustomYn(booth.getCstmAltmntYn()));
 		}
 
 		return result;
@@ -252,11 +252,11 @@ public class CastChknServiceImpl implements CastChknService {
 
 			for (UserChknBoothRawDto booth : booths) {
 				alnCdMap.put(booth.getBoothNo(), nvl(booth.getAlnCd()));
-				customYnMap.put(booth.getBoothNo(), toCustomYn(booth.getCustomYn()));
+				customYnMap.put(booth.getBoothNo(), toCustomYn(booth.getCstmAltmntYn()));
 			}
 
 			island.setOprTimeList(operHrMap.getOrDefault(island.getIsland(), new ArrayList<>()).stream()
-					.map(x -> new OprTimeDto().withBgnHour(x.getBgnHour()).withEndHour(x.getEndHour()))
+					.map(x -> new OprTimeDto().withOperBgngHour(x.getOperBgngHour()).withOperEndHour(x.getOperEndHour()))
 					.collect(toList()));
 			island.setBoothList(toBoothList(alnCdMap, customYnMap));
 		}
@@ -323,7 +323,7 @@ public class CastChknServiceImpl implements CastChknService {
 			result.add(new ChknBoothDto()
 					.withBoothNo(boothNo)
 					.withAlnCd(alnCdMap.getOrDefault(boothNo, EMPTY_ALN_CD))
-					.withCustomYn(customYnMap.getOrDefault(boothNo, CUSTOM_YN_N)));
+					.withCstmAltmntYn(customYnMap.getOrDefault(boothNo, CUSTOM_YN_N)));
 		}
 
 		return result;
@@ -339,7 +339,7 @@ public class CastChknServiceImpl implements CastChknService {
 
 	private List<OprTimeDto> toOprTimeList(List<TimeRange> timeRanges) {
 		return timeRanges.stream()
-				.map(x -> new OprTimeDto().withBgnHour(x.getStart()).withEndHour(x.getEnd()))
+				.map(x -> new OprTimeDto().withOperBgngHour(x.getStart()).withOperEndHour(x.getEnd()))
 				.collect(toList());
 	}
 
@@ -360,7 +360,7 @@ public class CastChknServiceImpl implements CastChknService {
 	}
 
 	private boolean isOpr(List<OprTimeDto> oprTimeList, int hour) {
-		return oprTimeList.stream().anyMatch(x -> x.getBgnHour() <= hour && hour < x.getEndHour());
+		return oprTimeList.stream().anyMatch(x -> x.getOperBgngHour() <= hour && hour < x.getOperEndHour());
 	}
 
 	// 가동률 = 운영 부스·시간 합 / (전체 카운터 수 × 24시간)

@@ -88,9 +88,9 @@ function toRsltMap(rsltList: MapUnitRsltDto[]): Map<string, MapUnitRsltDto> {
  */
 function toCard(gate: DepHallGateDto, rslt: MapUnitRsltDto | undefined): DepGateCard {
     return {
-        id: `dg${gate.depNum}`,
-        depNum: gate.depNum,
-        title: gate.depNm,
+        id: `dg${gate.dptgtNo}`,
+        dptgtNo: gate.dptgtNo,
+        title: gate.dptgtNm,
         level: CONGESTION_TO_LEVEL[rslt?.cgnStatus ?? 'NORMAL'],
         stats: toDepStats(rslt?.stat ?? EMPTY_STAT),
         boothCnt: gate.boothCnt,
@@ -137,13 +137,13 @@ function toNotice(notice: MapNoticeDto): NoticeData {
 
 /** 슬롯 1칸 — 카드·마커 색이 같은 결과에서 나온다 */
 function toDepSlot(dto: DepHallDto, slot: DepHallSlotDto, gates: GateMarker[]): DepSlot {
-    const depMap = toRsltMap(slot.depRsltList);
+    const dptgtMap = toRsltMap(slot.dptgtRsltList);
     const chknMap = toRsltMap(slot.chknRsltList);
 
     const map: TerminalDepMap = {
-        cards: dto.gateList.map((gate) => toCard(gate, depMap.get(gate.depNum))),
-        depGates: dto.depMarkerList.map((marker) =>
-            toCongestionMarker(marker, depMap.get(marker.label)),
+        cards: dto.gateList.map((gate) => toCard(gate, dptgtMap.get(gate.dptgtNo))),
+        dptgtGates: dto.dptgtMarkerList.map((marker) =>
+            toCongestionMarker(marker, dptgtMap.get(marker.label)),
         ),
         islands: dto.chknMarkerList.map((marker) =>
             toCongestionMarker(marker, chknMap.get(marker.label)),
@@ -162,12 +162,12 @@ function toTrend(dto: DepHallDto): DepTrend {
     return {
         timeLabels: dto.slotList.map((slot) => formatHhmm(slot.hhmm)),
         series: dto.gateList.map((gate, gateIndex): DepTrendSeries => ({
-            depNum: gate.depNum,
-            title: gate.depNm,
+            dptgtNo: gate.dptgtNo,
+            title: gate.dptgtNm,
             color: TREND_COLORS[gateIndex % TREND_COLORS.length],
             values: dto.slotList.map(
                 (slot) =>
-                    slot.depRsltList.find((rslt) => rslt.unitCd === gate.depNum)?.stat.wtngPsgCnt ??
+                    slot.dptgtRsltList.find((rslt) => rslt.unitCd === gate.dptgtNo)?.stat.wtngPsgCnt ??
                     0,
             ),
         })),
@@ -193,7 +193,7 @@ const EMPTY_STAT: MapCgnStatDto = { wtngPsgCnt: 0, wtngHr: 0, prcsPsgCnt: 0, prc
 /** 아직 응답이 없을 때 그릴 빈 도면 (골격은 그대로 두고 값만 비운다) */
 export const EMPTY_DEP_MAP: TerminalDepMap = {
     cards: [],
-    depGates: [],
+    dptgtGates: [],
     islands: [],
     gates: [],
 };

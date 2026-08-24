@@ -3,7 +3,7 @@ package aoms.pm.cast.dto;
 import lombok.Getter;
 import lombok.Setter;
 
-/** TH_PM_SMLT_EXCN_HSTRY 수행 현황 집계 1행 — 모니터링 상단 KPI 원형 */
+/** TH_PM_SMLT_FLFMT_HSTRY 수행 현황 집계 1행 — 모니터링 상단 KPI 원형 */
 @Getter
 @Setter
 public class SmltExcnCntRawDto {

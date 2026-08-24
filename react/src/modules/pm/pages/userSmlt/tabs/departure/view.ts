@@ -13,8 +13,8 @@ import type { DepartureGate, ScRange, TerminalDeparture } from './types';
  * 운영계획 행의 화면 키.
  * 저장할 때 서버 일련번호(planSn)를 되돌려야 하므로 키에 실어 둔다.
  */
-function toPlanId(depNum: string, planSn: number): string {
-    return `g${depNum}-r${planSn}`;
+function toPlanId(dptgtNo: string, planSn: number): string {
+    return `g${dptgtNo}-r${planSn}`;
 }
 
 /** 화면 키 → 서버 일련번호 (화면에서 새로 만든 행은 0 으로 보낸다) */
@@ -25,27 +25,27 @@ function toPlanSn(id: string): number {
 }
 
 function toScRanges(
-    depNum: string,
-    planList: UserSmltDepDto['depList'][number]['planList'],
+    dptgtNo: string,
+    planList: UserSmltDepDto['dptgtList'][number]['planList'],
 ): ScRange[] {
     return planList.map((plan) => ({
-        id: toPlanId(depNum, plan.planSn),
-        startHour: plan.bgnHour,
-        endHour: plan.endHour,
-        count: plan.scCnt,
+        id: toPlanId(dptgtNo, plan.planSn),
+        operBgngHour: plan.operBgngHour,
+        operEndHour: plan.operEndHour,
+        count: plan.scshCntom,
     }));
 }
 
 function toGates(dto: UserSmltDepDto): DepartureGate[] {
-    return dto.depList.map((dep, i) => ({
-        no: Number(dep.depNum),
+    return dto.dptgtList.map((dep, i) => ({
+        no: Number(dep.dptgtNo),
         color: BLOCK_COLORS[i % BLOCK_COLORS.length],
-        ranges: dep.oprTimeList.map((time) => ({ start: time.bgnHour, end: time.endHour })),
+        ranges: dep.oprTimeList.map((time) => ({ start: time.operBgngHour, end: time.operEndHour })),
         off: dep.oprYn === 'N',
-        scCnt: dep.scCnt,
-        normalCnt: dep.normalCnt,
-        smartPassCnt: dep.smartPassCnt,
-        plans: toScRanges(dep.depNum, dep.planList),
+        scshCntom: dep.scshCntom,
+        gnrlSrchCntom: dep.gnrlSrchCntom,
+        smartPassSrchCntom: dep.smartPassSrchCntom,
+        plans: toScRanges(dep.dptgtNo, dep.planList),
     }));
 }
 
@@ -68,7 +68,7 @@ const nextTempRangeId = (() => {
 export function toHourArray(gate: DepartureGate): number[] {
     const byHour = Array<number>(24).fill(0);
     gate.plans.forEach((plan) => {
-        for (let hour = plan.startHour; hour < plan.endHour; hour += 1) byHour[hour] = plan.count;
+        for (let hour = plan.operBgngHour; hour < plan.operEndHour; hour += 1) byHour[hour] = plan.count;
     });
 
     return byHour;
@@ -87,18 +87,18 @@ export function toPlans(byHour: number[], prev: ScRange[]): ScRange[] {
             continue;
         }
 
-        let endHour = hour + 1;
-        while (endHour < 24 && byHour[endHour] === count) endHour += 1;
+        let operEndHour = hour + 1;
+        while (operEndHour < 24 && byHour[operEndHour] === count) operEndHour += 1;
 
         // 시작 시각이 같은 기존 행이 있으면 그 id 를 물려받아 planSn 을 지킨다
-        const existing = prev.find((plan) => plan.startHour === hour);
+        const existing = prev.find((plan) => plan.operBgngHour === hour);
         ranges.push({
             id: existing?.id ?? nextTempRangeId(),
-            startHour: hour,
-            endHour,
+            operBgngHour: hour,
+            operEndHour,
             count,
         });
-        hour = endHour;
+        hour = operEndHour;
     }
 
     return ranges;
@@ -113,18 +113,18 @@ export function toSaveReq(
     return {
         smltId,
         tmnlId,
-        depList: gates.map((gate) => ({
-            depNum: String(gate.no),
+        dptgtList: gates.map((gate) => ({
+            dptgtNo: String(gate.no),
             oprYn: gate.off ? ('N' as const) : ('Y' as const),
-            oprTimeList: gate.ranges.map((range) => ({ bgnHour: range.start, endHour: range.end })),
-            normalCnt: gate.normalCnt,
-            smartPassCnt: gate.smartPassCnt,
-            scCnt: gate.scCnt,
+            oprTimeList: gate.ranges.map((range) => ({ operBgngHour: range.start, operEndHour: range.end })),
+            gnrlSrchCntom: gate.gnrlSrchCntom,
+            smartPassSrchCntom: gate.smartPassSrchCntom,
+            scshCntom: gate.scshCntom,
             planList: gate.plans.map((plan) => ({
                 planSn: toPlanSn(plan.id),
-                bgnHour: plan.startHour,
-                endHour: plan.endHour,
-                scCnt: plan.count,
+                operBgngHour: plan.operBgngHour,
+                operEndHour: plan.operEndHour,
+                scshCntom: plan.count,
             })),
         })),
     };

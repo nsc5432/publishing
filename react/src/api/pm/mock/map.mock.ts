@@ -153,7 +153,7 @@ const GATES: Array<[string, number, number]> = [
     ['1', 78.53, 97.12],
 ];
 
-const DEP_SEEDS: Record<TmnlId, DepSeed[]> = { T1: T1_DEPS, T2: T2_DEPS };
+const DPTGT_SEEDS: Record<TmnlId, DepSeed[]> = { T1: T1_DEPS, T2: T2_DEPS };
 
 /** 마커는 자리와 라벨만 갖는다 (혼잡도는 슬롯이 채운다) */
 function toMarkers(seeds: DepSeed[], prefix: string): MapMarkerDto[] {
@@ -203,10 +203,10 @@ function toNoticeItem([rslt, fcltNm]: NoticeSeed): MapNoticeItemDto {
 }
 
 /** 알림은 혼잡(BUSY) 이상인 곳만, 혼잡한 순으로 모은다 */
-function toNotice(chknList: MapChknRsltDto[], depList: MapUnitRsltDto[]): MapNoticeDto {
+function toNotice(chknList: MapChknRsltDto[], dptgtList: MapUnitRsltDto[]): MapNoticeDto {
     const seeds: NoticeSeed[] = [
         ...chknList.map((rslt): NoticeSeed => [rslt, '체크인카운터']),
-        ...depList.map((rslt): NoticeSeed => [rslt, '출국장']),
+        ...dptgtList.map((rslt): NoticeSeed => [rslt, '출국장']),
     ];
     const busy = seeds
         .filter(([rslt]) => rslt.cgnStatus === 'BUSY' || rslt.cgnStatus === 'VERY_BUSY')
@@ -220,13 +220,13 @@ function toNotice(chknList: MapChknRsltDto[], depList: MapUnitRsltDto[]): MapNot
 
 function toSlot(tmnlId: TmnlId, hhmm: string, step: number): SmltMapSlotDto {
     const chknRsltList = ISLAND_SEEDS[tmnlId].map((seed) => toChknRslt(seed, step));
-    const depRsltList = DEP_SEEDS[tmnlId].map((seed) => toUnitRslt(seed, step));
+    const dptgtRsltList = DPTGT_SEEDS[tmnlId].map((seed) => toUnitRslt(seed, step));
 
     return {
         hhmm,
-        notice: toNotice(chknRsltList, depRsltList),
+        notice: toNotice(chknRsltList, dptgtRsltList),
         chknRsltList,
-        depRsltList,
+        dptgtRsltList,
     };
 }
 
@@ -239,8 +239,8 @@ function toSlot(tmnlId: TmnlId, hhmm: string, step: number): SmltMapSlotDto {
 function toOperCards(seeds: DepSeed[]): MapOperCardDto[] {
     const offFrom = seeds.length - 2;
 
-    return seeds.map(([depNum], i) => ({
-        depNum,
+    return seeds.map(([dptgtNo], i) => ({
+        dptgtNo,
         oprRate: 75,
         oprBgnTime: '0530',
         oprEndTime: '2330',
@@ -294,8 +294,8 @@ export const mapMock = {
         smltId: SMLT_ID,
         tmnlId,
         summary: SUMMARY[tmnlId],
-        operCardList: toOperCards(DEP_SEEDS[tmnlId]),
-        depMarkerList: toMarkers(DEP_SEEDS[tmnlId], 'dg'),
+        operCardList: toOperCards(DPTGT_SEEDS[tmnlId]),
+        dptgtMarkerList: toMarkers(DPTGT_SEEDS[tmnlId], 'dg'),
         chknMarkerList: toMarkers(ISLAND_SEEDS[tmnlId], ''),
         gateMarkerList: GATES.map(([label, cdntX, cdntY]) => ({
             markerId: `g${label}`,

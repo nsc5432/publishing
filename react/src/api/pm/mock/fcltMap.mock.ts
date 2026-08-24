@@ -61,7 +61,7 @@ const ISLAND_POINTS: Record<TmnlId, Record<string, [number, number]>> = {
 };
 
 /** 도면 마커 좌표 — 출국장 */
-const DEP_POINTS: Record<TmnlId, Record<string, [number, number]>> = {
+const DPTGT_POINTS: Record<TmnlId, Record<string, [number, number]>> = {
     T1: {
         '6': [16.65, 79.59],
         '5': [27.16, 69.76],
@@ -182,21 +182,21 @@ function toItemSeeds(tmnlId: TmnlId): ItemSeed[] {
     }
 
     // 출국장 / 보안검색대 — 둘 다 출국장 마커에 붙는다
-    for (const depNum of Object.keys(DEP_POINTS[tmnlId])) {
+    for (const dptgtNo of Object.keys(DPTGT_POINTS[tmnlId])) {
         seeds.push({
-            psgFcltCd: `${tmnlId}DEP0${depNum}`,
-            psgFcltNm: `${depNum}번 출국장`,
-            psgFcltExpln: `출국장 ${depNum} 게이트`,
-            smltFcltNm: `DEP_0${depNum}`,
-            island: `dg${depNum}`,
+            psgFcltCd: `${tmnlId}DEP0${dptgtNo}`,
+            psgFcltNm: `${dptgtNo}번 출국장`,
+            psgFcltExpln: `출국장 ${dptgtNo} 게이트`,
+            smltFcltNm: `DEP_0${dptgtNo}`,
+            island: `dg${dptgtNo}`,
             groupSuffix: 'DEP',
         });
         seeds.push({
-            psgFcltCd: `${tmnlId}SECdg${depNum}`,
-            psgFcltNm: `${depNum}번 보안검색대`,
-            psgFcltExpln: `출국장 ${depNum} 보안검색`,
-            smltFcltNm: `SEC_0${depNum}`,
-            island: `dg${depNum}`,
+            psgFcltCd: `${tmnlId}SECdg${dptgtNo}`,
+            psgFcltNm: `${dptgtNo}번 보안검색대`,
+            psgFcltExpln: `출국장 ${dptgtNo} 보안검색`,
+            smltFcltNm: `SEC_0${dptgtNo}`,
+            island: `dg${dptgtNo}`,
             groupSuffix: 'SEC',
         });
     }
@@ -247,14 +247,16 @@ function toMarkerList(tmnlId: TmnlId): MapMarkerDto[] {
         cdntY: ISLAND_POINTS[tmnlId][island][1],
     }));
 
-    const depGates: MapMarkerDto[] = Object.entries(DEP_POINTS[tmnlId]).map(([depNum, point]) => ({
-        markerId: `dg${depNum}`,
-        label: depNum,
+    const dptgtGates: MapMarkerDto[] = Object.entries(DPTGT_POINTS[tmnlId]).map(
+        ([dptgtNo, point]) => ({
+        markerId: `dg${dptgtNo}`,
+        label: dptgtNo,
         cdntX: point[0],
         cdntY: point[1],
-    }));
+        }),
+    );
 
-    return [...islands, ...depGates];
+    return [...islands, ...dptgtGates];
 }
 
 /**

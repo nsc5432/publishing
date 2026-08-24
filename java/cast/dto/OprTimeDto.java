@@ -6,16 +6,16 @@ import lombok.Setter;
 @Getter
 @Setter
 public class OprTimeDto {
-	private int bgnHour; // 운영 시작 (0~24)
-	private int endHour; // 운영 종료 (0~24)
+	private int operBgngHour; // 운영 시작 (0~24)
+	private int operEndHour; // 운영 종료 (0~24)
 
-	public OprTimeDto withBgnHour(int bgnHour) {
-		this.bgnHour = bgnHour;
+	public OprTimeDto withOperBgngHour(int operBgngHour) {
+		this.operBgngHour = operBgngHour;
 		return this;
 	}
 
-	public OprTimeDto withEndHour(int endHour) {
-		this.endHour = endHour;
+	public OprTimeDto withOperEndHour(int operEndHour) {
+		this.operEndHour = operEndHour;
 		return this;
 	}
 }

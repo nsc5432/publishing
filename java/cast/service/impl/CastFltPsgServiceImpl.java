@@ -56,8 +56,8 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 	private static final String ZERO_MIN = "00";
 	private static final String END_OF_DAY = "2400";
 	private static final String DEFAULT_PEAK_TIME = "0000";
-	private static final int ADJ_RATE_MIN = -100;
-	private static final int ADJ_RATE_MAX = 100;
+	private static final int AJMT_RT_MIN = -100;
+	private static final int AJMT_RT_MAX = 100;
 
 	private final CastSmltService castSmltService;
 	private final CastFltPsgMapper castFltPsgMapper;
@@ -83,8 +83,8 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 		result.setFltCnt(rawList.stream().mapToInt(FltPsgRawDto::getFltCnt).sum());
 		result.setPsgCnt(rawList.stream().mapToInt(FltPsgRawDto::getPsgCnt).sum());
 		result.setPeakTime(getPeakTime(hourList));
-		result.setAdjType(toAdjType(saved));
-		result.setAdjRate(saved != null ? saved.getAdjRate() : 0);
+		result.setAjmtTypeCd(toAjmtTypeCd(saved));
+		result.setAjmtRt(saved != null ? saved.getAjmtRt() : 0);
 		result.setFltChart(getChart(rawMap, FltPsgRawDto::getFltCnt));
 		result.setPsgChart(getChart(rawMap, FltPsgRawDto::getPsgCnt));
 		result.setHourList(hourList);
@@ -110,8 +110,8 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 		}
 
 		saveDto.setFcltTmnlId(saveDto.getTmnlId().getFcltTmnlId());
-		saveDto.setAdjType(saveDto.getAdjType() != null ? saveDto.getAdjType() : AdjType.RATIO);
-		saveDto.setAdjTypeCd(saveDto.getAdjType().getValue());
+		saveDto.setAjmtTypeCd(saveDto.getAjmtTypeCd() != null ? saveDto.getAjmtTypeCd() : AdjType.RATIO);
+		saveDto.setAjmtTypeCdValue(saveDto.getAjmtTypeCd().getValue());
 		saveDto.setHourList(normalizeHourList(saveDto.getHourList()));
 
 		// 병합 — 있으면 갱신(LAST_* 3종 함께), 없으면 신규 등록
@@ -139,19 +139,19 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 			return new JsonResponse().error("저장 대상 시뮬레이션이 지정되지 않았습니다.");
 		}
 
-		if (isOutOfRange(saveDto.getAdjRate())) {
+		if (isOutOfRange(saveDto.getAjmtRt())) {
 			return new JsonResponse().error("수정 비율은 -100 ~ 100 사이여야 합니다.");
 		}
 
-		if (saveDto.getHourList() != null && saveDto.getHourList().stream().anyMatch(x -> isOutOfRange(x.getAdjRate()))) {
+		if (saveDto.getHourList() != null && saveDto.getHourList().stream().anyMatch(x -> isOutOfRange(x.getAjmtRt()))) {
 			return new JsonResponse().error("시간대별 수정 비율은 -100 ~ 100 사이여야 합니다.");
 		}
 
 		return null;
 	}
 
-	private boolean isOutOfRange(int adjRate) {
-		return adjRate < ADJ_RATE_MIN || adjRate > ADJ_RATE_MAX;
+	private boolean isOutOfRange(int ajmtRt) {
+		return ajmtRt < AJMT_RT_MIN || ajmtRt > AJMT_RT_MAX;
 	}
 
 	// null 을 그대로 바인딩하면 Oracle 이 JdbcType 을 못 정한다. 시각이 없는 행은 버린다
@@ -216,7 +216,7 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 
 			if (saved != null) {
 				item.setEndTime(saved.getEndTime());
-				item.setAdjRate(saved.getAdjRate());
+				item.setAjmtRt(saved.getAjmtRt());
 			}
 
 			item.setPsgCnt(getCnt(rawMap, hour, FltPsgRawDto::getPsgCnt));
@@ -227,8 +227,8 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 		return result;
 	}
 
-	private AdjType toAdjType(UserFltPsgRawDto saved) {
-		if (saved != null && AdjType.HOURLY.getValue().equals(saved.getAdjTypeCd())) {
+	private AdjType toAjmtTypeCd(UserFltPsgRawDto saved) {
+		if (saved != null && AdjType.HOURLY.getValue().equals(saved.getAjmtTypeCd())) {
 			return AdjType.HOURLY;
 		}
 

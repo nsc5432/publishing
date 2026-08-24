@@ -18,8 +18,8 @@ public class SmltExecDetailDto extends JsonResponse {
 	private String tmnlId; // T1 / T2
 	private String deptNm; // 부서 — 원천 미확보, 현재 ''
 	private String userNm; // 성명 — 원천 미확보, 현재 ''
-	private String bgnDt; // 시작일시 yyyyMMddHHmmss
-	private String endDt; // 종료일시 yyyyMMddHHmmss — 진행중이면 ''
+	private String smltFlfmtBgngDt; // 시작일시 yyyyMMddHHmmss
+	private String smltFlfmtEndDt; // 종료일시 yyyyMMddHHmmss — 진행중이면 ''
 	private int execMin; // 소요시간 (분)
-	private SmltExecStatus execStatus; // 완료 / 진행중
+	private SmltExecStatus smltFlfmtSttsCd; // 완료 / 진행중
 }

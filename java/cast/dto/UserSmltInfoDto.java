@@ -15,5 +15,5 @@ public class UserSmltInfoDto extends JsonResponse {
 
 	// 직전 수행 상태 (RUNNING / DONE). 미수행이면 '' 다 —
 	// enum 은 빈 문자열을 가질 수 없어 여기만 String 으로 둔다 (화면 타입도 SmltExecStatus | '')
-	private String execStatus;
+	private String smltFlfmtSttsCd;
 }

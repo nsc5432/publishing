@@ -76,17 +76,17 @@ public class CastDepServiceImpl implements CastDepService {
 		TerminalKind tmnlId = searchDto.getTmnlId();
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 
-		List<DepGateDto> depList = getGateList(searchDto.getSmltId(), fcltTmnlId);
-		List<Integer> oprScCntList = getOprScCntList(depList);
+		List<DepGateDto> dptgtList = getGateList(searchDto.getSmltId(), fcltTmnlId);
+		List<Integer> oprScCntList = getOprScCntList(dptgtList);
 		List<WaitPsgDto> waitList = castSmltService.retrieveWaitPsgList(searchDto.getSmltId(), fcltTmnlId, UP_PSG_FCLT_CD_LIST);
 
 		SmltKpiDto kpi = castSmltService.retrieveSmltKpi(searchDto.getSmltId(), fcltTmnlId, UP_PSG_FCLT_CD_LIST);
-		kpi.setUtilRate(getUtilRate(depList));
+		kpi.setUtilRate(getUtilRate(dptgtList));
 
 		result.setTmnlId(tmnlId.getValue());
 		result.setPeakScCnt(oprScCntList.stream().mapToInt(Integer::intValue).max().orElse(0));
 		result.setWaitMaxCnt(waitList.stream().mapToInt(WaitPsgDto::getWaitPsgCnt).max().orElse(0));
-		result.setDepList(depList);
+		result.setDptgtList(dptgtList);
 		result.setWaitList(waitList);
 		result.setKpi(kpi);
 
@@ -107,25 +107,25 @@ public class CastDepServiceImpl implements CastDepService {
 		}
 
 		saveDto.setFcltTmnlId(saveDto.getTmnlId().getFcltTmnlId());
-		saveDto.setDepList(normalizeDepList(saveDto.getDepList()));
+		saveDto.setDptgtList(normalizeDepList(saveDto.getDptgtList()));
 
 		// 자식부터 지운다
 		castDepMapper.deleteUserScPlanList(saveDto);
 		castDepMapper.deleteUserDepOperHrList(saveDto);
 		castDepMapper.deleteUserDepList(saveDto);
 
-		if (saveDto.getDepList().isEmpty()) {
+		if (saveDto.getDptgtList().isEmpty()) {
 			return new JsonResponse();
 		}
 
 		castDepMapper.insertUserDepList(saveDto);
 
 		// INSERT ALL 은 INTO 절이 0개면 문법 오류다. 비어 있으면 호출하지 않는다
-		if (saveDto.getDepList().stream().anyMatch(x -> !x.getOprTimeList().isEmpty())) {
+		if (saveDto.getDptgtList().stream().anyMatch(x -> !x.getOprTimeList().isEmpty())) {
 			castDepMapper.insertUserDepOperHrList(saveDto);
 		}
 
-		if (saveDto.getDepList().stream().anyMatch(x -> !x.getPlanList().isEmpty())) {
+		if (saveDto.getDptgtList().stream().anyMatch(x -> !x.getPlanList().isEmpty())) {
 			castDepMapper.insertUserScPlanList(saveDto);
 		}
 
@@ -146,13 +146,13 @@ public class CastDepServiceImpl implements CastDepService {
 	}
 
 	// null 을 그대로 바인딩하면 Oracle 이 JdbcType 을 못 정한다. 빈 목록·기본값으로 채워 넘긴다
-	private List<DepGateDto> normalizeDepList(List<DepGateDto> depList) {
-		if (depList == null) {
+	private List<DepGateDto> normalizeDepList(List<DepGateDto> dptgtList) {
+		if (dptgtList == null) {
 			return new ArrayList<>();
 		}
 
-		List<DepGateDto> result = depList.stream()
-				.filter(x -> x.getDepNum() != null && !x.getDepNum().isEmpty())
+		List<DepGateDto> result = dptgtList.stream()
+				.filter(x -> x.getDptgtNo() != null && !x.getDptgtNo().isEmpty())
 				.collect(toList());
 
 		for (DepGateDto dep : result) {
@@ -181,7 +181,7 @@ public class CastDepServiceImpl implements CastDepService {
 		List<DepGateDto> result = new ArrayList<>();
 
 		for (DepGateDto base : baseList) {
-			DepGateDto saved = savedMap.remove(base.getDepNum());
+			DepGateDto saved = savedMap.remove(base.getDptgtNo());
 
 			if (saved == null) {
 				result.add(base);
@@ -189,7 +189,7 @@ public class CastDepServiceImpl implements CastDepService {
 			}
 
 			// 시설명은 사용자 테이블에 없다 — 마스터 값을 그대로 물려준다
-			saved.setDepNm(base.getDepNm());
+			saved.setDptgtNm(base.getDptgtNm());
 			result.add(saved);
 		}
 
@@ -206,12 +206,12 @@ public class CastDepServiceImpl implements CastDepService {
 				.retrieveDepOperHrMap(fcltTmnlId, smltStng.getExcnYmd());
 		Map<String, Integer> scCntMap = castDepMapper
 				.retrieveScCntList(fcltTmnlId, smltStng.getFcltyOpngTblScrtyCntrlRsrcId())
-				.stream().collect(Collectors.toMap(ScCntRawDto::getDepNum, ScCntRawDto::getScCnt, (first, ignored) -> first));
+				.stream().collect(Collectors.toMap(ScCntRawDto::getDptgtNo, ScCntRawDto::getScshCntom, (first, ignored) -> first));
 
 		return getGateDatas(fcltList, operHrMap, scCntMap);
 	}
 
-	// 저장분 재조회 — 부모 1건에 자식 2종을 출국장 번호로 붙인다. 키 순서는 DEP_NUM 오름차순이다
+	// 저장분 재조회 — 부모 1건에 자식 2종을 출국장 번호로 붙인다. 키 순서는 DPTGT_NO 오름차순이다
 	private Map<String, DepGateDto> getSavedGateMap(String smltId, String fcltTmnlId) {
 		Map<String, DepGateDto> result = new LinkedHashMap<>();
 		List<DepGateDto> savedList = castDepMapper.retrieveUserDepList(smltId, fcltTmnlId);
@@ -221,24 +221,24 @@ public class CastDepServiceImpl implements CastDepService {
 		}
 
 		Map<String, List<UserDepOperHrRawDto>> operHrMap = castDepMapper.retrieveUserDepOperHrList(smltId, fcltTmnlId)
-				.stream().collect(Collectors.groupingBy(UserDepOperHrRawDto::getDepNum));
+				.stream().collect(Collectors.groupingBy(UserDepOperHrRawDto::getDptgtNo));
 		Map<String, List<UserScPlanRawDto>> planMap = castDepMapper.retrieveUserScPlanList(smltId, fcltTmnlId)
-				.stream().collect(Collectors.groupingBy(UserScPlanRawDto::getDepNum));
+				.stream().collect(Collectors.groupingBy(UserScPlanRawDto::getDptgtNo));
 
 		for (DepGateDto saved : savedList) {
-			saved.setDepNm(saved.getDepNum());
-			saved.setOprTimeList(operHrMap.getOrDefault(saved.getDepNum(), new ArrayList<>()).stream()
-					.map(x -> new OprTimeDto().withBgnHour(x.getBgnHour()).withEndHour(x.getEndHour()))
+			saved.setDptgtNm(saved.getDptgtNo());
+			saved.setOprTimeList(operHrMap.getOrDefault(saved.getDptgtNo(), new ArrayList<>()).stream()
+					.map(x -> new OprTimeDto().withOperBgngHour(x.getOperBgngHour()).withOperEndHour(x.getOperEndHour()))
 					.collect(toList()));
-			saved.setPlanList(planMap.getOrDefault(saved.getDepNum(), new ArrayList<>()).stream()
+			saved.setPlanList(planMap.getOrDefault(saved.getDptgtNo(), new ArrayList<>()).stream()
 					.map(x -> new ScPlanDto()
 							.withPlanSn(x.getPlanSn())
-							.withBgnHour(x.getBgnHour())
-							.withEndHour(x.getEndHour())
-							.withScCnt(x.getScCnt()))
+							.withOperBgngHour(x.getOperBgngHour())
+							.withOperEndHour(x.getOperEndHour())
+							.withScshCntom(x.getScshCntom()))
 					.collect(toList()));
 
-			result.put(saved.getDepNum(), saved);
+			result.put(saved.getDptgtNo(), saved);
 		}
 
 		return result;
@@ -252,20 +252,20 @@ public class CastDepServiceImpl implements CastDepService {
 		List<DepGateDto> result = new ArrayList<>();
 
 		for (DepFcltRawDto fclt : fcltList) {
-			String depNum = fclt.getDepNum();
-			List<OprTimeDto> oprTimeList = toOprTimeList(operHrMap.getOrDefault(depNum, new ArrayList<>()));
-			int scCnt = scCntMap.getOrDefault(depNum, 0);
+			String dptgtNo = fclt.getDptgtNo();
+			List<OprTimeDto> oprTimeList = toOprTimeList(operHrMap.getOrDefault(dptgtNo, new ArrayList<>()));
+			int scshCntom = scCntMap.getOrDefault(dptgtNo, 0);
 
 			DepGateDto item = new DepGateDto();
-			item.setDepNum(depNum);
-			item.setDepNm(fclt.getDepNm());
+			item.setDptgtNo(dptgtNo);
+			item.setDptgtNm(fclt.getDptgtNm());
 			item.setOprYn(fclt.getUseYn());
-			item.setScCnt(scCnt);
+			item.setScshCntom(scshCntom);
 			// 일반/스마트패스 구분 컬럼이 없다 — 4단계에서 컬럼 신설 후 채운다
-			item.setNormalCnt(0);
-			item.setSmartPassCnt(0);
+			item.setGnrlSrchCntom(0);
+			item.setSmartPassSrchCntom(0);
 			item.setOprTimeList(oprTimeList);
-			item.setPlanList(toPlanList(oprTimeList, scCnt));
+			item.setPlanList(toPlanList(oprTimeList, scshCntom));
 
 			result.add(item);
 		}
@@ -275,27 +275,27 @@ public class CastDepServiceImpl implements CastDepService {
 
 	private List<OprTimeDto> toOprTimeList(List<DepOperHrRawDto> operHrList) {
 		return operHrList.stream()
-				.map(x -> new OprTimeDto().withBgnHour(toBgnHour(x.getBgnHm())).withEndHour(toEndHour(x.getBgnHm(), x.getEndHm())))
-				.sorted((a, b) -> a.getBgnHour() - b.getBgnHour())
+				.map(x -> new OprTimeDto().withOperBgngHour(toBgnHour(x.getBgnHm())).withOperEndHour(toEndHour(x.getBgnHm(), x.getEndHm())))
+				.sorted((a, b) -> a.getOperBgngHour() - b.getOperBgngHour())
 				.collect(toList());
 	}
 
 	/*
 	 * 기준 데이터의 검색대 대수는 시간축이 없는 단일 값이라, 저장 이력이 없을 때의 초기값은
 	 * 운영시간 전체를 덮는 구간 1개다 (G7). 시간대별로 갈라지는 것은 사용자가 격자에서
-	 * 편집해 저장한 뒤부터이며 그때는 TN_PM_SMLT_SC_PLAN 을 읽는다.
+	 * 편집해 저장한 뒤부터이며 그때는 TN_PM_SMLT_SCSH_OPER_PLAN 을 읽는다.
 	 */
-	private List<ScPlanDto> toPlanList(List<OprTimeDto> oprTimeList, int scCnt) {
+	private List<ScPlanDto> toPlanList(List<OprTimeDto> oprTimeList, int scshCntom) {
 		List<ScPlanDto> result = new ArrayList<>();
 
 		if (oprTimeList.isEmpty()) {
 			return result;
 		}
 
-		int bgnHour = oprTimeList.stream().mapToInt(OprTimeDto::getBgnHour).min().orElse(0);
-		int endHour = oprTimeList.stream().mapToInt(OprTimeDto::getEndHour).max().orElse(0);
+		int operBgngHour = oprTimeList.stream().mapToInt(OprTimeDto::getOperBgngHour).min().orElse(0);
+		int operEndHour = oprTimeList.stream().mapToInt(OprTimeDto::getOperEndHour).max().orElse(0);
 
-		result.add(new ScPlanDto().withPlanSn(FIRST_PLAN_SN).withScCnt(scCnt).withBgnHour(bgnHour).withEndHour(endHour));
+		result.add(new ScPlanDto().withPlanSn(FIRST_PLAN_SN).withScshCntom(scshCntom).withOperBgngHour(operBgngHour).withOperEndHour(operEndHour));
 
 		return result;
 	}
@@ -322,37 +322,37 @@ public class CastDepServiceImpl implements CastDepService {
 
 	/*
 	 * 시간대별 검색대 대수 — 그 시간의 운영계획 구간 값을 쓴다.
-	 * scCnt(피크 고정값)를 시간마다 그대로 더하면 시간대별 조정이 요약에 전혀 반영되지 않는다.
+	 * scshCntom(피크 고정값)를 시간마다 그대로 더하면 시간대별 조정이 요약에 전혀 반영되지 않는다.
 	 * 화면 격자(ScGrid)의 합계 줄과 같은 계산이어야 두 숫자가 어긋나지 않는다.
 	 */
-	private List<Integer> getOprScCntList(List<DepGateDto> depList) {
+	private List<Integer> getOprScCntList(List<DepGateDto> dptgtList) {
 		List<Integer> result = new ArrayList<>();
 
 		for (String hour : TimeBucketUtils.hourList()) {
 			int hourValue = Integer.parseInt(hour);
-			result.add(depList.stream().filter(x -> isOpr(x, hourValue)).mapToInt(x -> getScCnt(x, hourValue)).sum());
+			result.add(dptgtList.stream().filter(x -> isOpr(x, hourValue)).mapToInt(x -> getScshCntom(x, hourValue)).sum());
 		}
 
 		return result;
 	}
 
 	// 운영시간 안인데 운영계획이 없는 시간은 0 대다 — 화면은 이것을 붉은 0 으로 그린다
-	private int getScCnt(DepGateDto gate, int hour) {
+	private int getScshCntom(DepGateDto gate, int hour) {
 		return gate.getPlanList().stream()
-				.filter(x -> x.getBgnHour() <= hour && hour < x.getEndHour())
-				.mapToInt(ScPlanDto::getScCnt)
+				.filter(x -> x.getOperBgngHour() <= hour && hour < x.getOperEndHour())
+				.mapToInt(ScPlanDto::getScshCntom)
 				.findFirst()
 				.orElse(0);
 	}
 
 	private boolean isOpr(DepGateDto gate, int hour) {
 		return OPR_YN_Y.equals(gate.getOprYn())
-				&& gate.getOprTimeList().stream().anyMatch(x -> x.getBgnHour() <= hour && hour < x.getEndHour());
+				&& gate.getOprTimeList().stream().anyMatch(x -> x.getOperBgngHour() <= hour && hour < x.getOperEndHour());
 	}
 
 	// 가동률 = 운영 출국장·시간 합 / (전체 출국장 수 × 24시간)
-	private int getUtilRate(List<DepGateDto> depList) {
-		if (depList.isEmpty()) {
+	private int getUtilRate(List<DepGateDto> dptgtList) {
+		if (dptgtList.isEmpty()) {
 			return 0;
 		}
 
@@ -360,9 +360,9 @@ public class CastDepServiceImpl implements CastDepService {
 
 		for (String hour : TimeBucketUtils.hourList()) {
 			int hourValue = Integer.parseInt(hour);
-			oprGateHour += (int) depList.stream().filter(x -> isOpr(x, hourValue)).count();
+			oprGateHour += (int) dptgtList.stream().filter(x -> isOpr(x, hourValue)).count();
 		}
 
-		return oprGateHour * PERCENT / (depList.size() * HOUR_PER_DAY);
+		return oprGateHour * PERCENT / (dptgtList.size() * HOUR_PER_DAY);
 	}
 }

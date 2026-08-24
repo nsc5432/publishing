@@ -54,17 +54,17 @@ public class CastOperHrServiceImpl implements CastOperHrService {
 		Map<String, List<DepOperHrRawDto>> result = new LinkedHashMap<>();
 
 		for (AdtOperHrMngDto raw : adtOperHrMngMapper.retrieveOperHr(searchDto)) {
-			String depNum = toDepNum(raw.getFcltyTypeId());
+			String dptgtNo = toDptgtNo(raw.getFcltyTypeId());
 
-			if (depNum.isEmpty()) {
+			if (dptgtNo.isEmpty()) {
 				continue;
 			}
 
-			List<DepOperHrRawDto> operHrList = result.computeIfAbsent(depNum, key -> new ArrayList<>());
+			List<DepOperHrRawDto> operHrList = result.computeIfAbsent(dptgtNo, key -> new ArrayList<>());
 
-			addOperHr(operHrList, depNum, raw.getOperBgng1Hr(), raw.getOperEnd1Hr());
-			addOperHr(operHrList, depNum, raw.getOperBgng2Hr(), raw.getOperEnd2Hr());
-			addOperHr(operHrList, depNum, raw.getOperBgng3Hr(), raw.getOperEnd3Hr());
+			addOperHr(operHrList, dptgtNo, raw.getOperBgng1Hr(), raw.getOperEnd1Hr());
+			addOperHr(operHrList, dptgtNo, raw.getOperBgng2Hr(), raw.getOperEnd2Hr());
+			addOperHr(operHrList, dptgtNo, raw.getOperBgng3Hr(), raw.getOperEnd3Hr());
 		}
 
 		return result;
@@ -74,11 +74,11 @@ public class CastOperHrServiceImpl implements CastOperHrService {
 	 * FCLTY_TYPE_ID 는 VARCHAR2(4) 인데 실제 값은 출국장 한 자리 번호다. 공백이 섞여 들어오면
 	 * TN_PM_SMLT_PSG_FCLT 쪽 키(SUBSTR(PSG_FCLT_CD, 4, 1))와 어긋나 전 출국장이 조용히 빈 값이 된다.
 	 */
-	private String toDepNum(String fcltyTypeId) {
+	private String toDptgtNo(String fcltyTypeId) {
 		return fcltyTypeId != null ? fcltyTypeId.trim() : "";
 	}
 
-	private void addOperHr(List<DepOperHrRawDto> operHrList, String depNum, String bgnHm, String endHm) {
+	private void addOperHr(List<DepOperHrRawDto> operHrList, String dptgtNo, String bgnHm, String endHm) {
 		String bgn = toHm(bgnHm);
 		String end = toHm(endHm);
 
@@ -87,7 +87,7 @@ public class CastOperHrServiceImpl implements CastOperHrService {
 		}
 
 		DepOperHrRawDto item = new DepOperHrRawDto();
-		item.setDepNum(depNum);
+		item.setDptgtNo(dptgtNo);
 		item.setBgnHm(bgn);
 		item.setEndHm(end);
 

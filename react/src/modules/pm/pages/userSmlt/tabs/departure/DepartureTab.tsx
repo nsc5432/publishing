@@ -377,7 +377,10 @@ export function DepartureTab({
                                     <button
                                         key={no}
                                         type="button"
-                                        className={`gatepick__item${picked ? ' is-on' : ''}${gate?.off ? ' is-off' : ''}`}
+                                        className={
+                                            `gatepick__item${picked ? ' is-on' : ''}` +
+                                            `${gate?.off ? ' is-off' : ''}`
+                                        }
                                         aria-pressed={picked}
                                         disabled={!gate}
                                         onClick={() => openGate(openDrawer.terminal, no)}
@@ -433,19 +436,19 @@ export function DepartureTab({
                     <DrawerSection title="검색대 구성" hint={`${draft.no}번 출국장 소속`}>
                         <CountStepper
                             label="일반"
-                            value={draft.normalCnt}
-                            onChange={(normalCnt) => patchDraft({ normalCnt })}
+                            value={draft.gnrlSrchCntom}
+                            onChange={(gnrlSrchCntom) => patchDraft({ gnrlSrchCntom })}
                         />
                         <CountStepper
                             label="스마트패스"
-                            value={draft.smartPassCnt}
-                            onChange={(smartPassCnt) => patchDraft({ smartPassCnt })}
+                            value={draft.smartPassSrchCntom}
+                            onChange={(smartPassSrchCntom) => patchDraft({ smartPassSrchCntom })}
                         />
                         <CountStepper
                             label="보안검색대"
                             sub="피크 시간대 기준"
-                            value={draft.scCnt}
-                            onChange={(scCnt) => patchDraft({ scCnt })}
+                            value={draft.scshCntom}
+                            onChange={(scshCntom) => patchDraft({ scshCntom })}
                         />
                     </DrawerSection>
                 </DetailDrawer>

@@ -20,7 +20,7 @@ import aoms.pm.cast.dto.SmltExecSmryDto;
  *
  * </pre>
  *
- * 원천은 {@code PMOWN.TH_PM_SMLT_EXCN_HSTRY} 다 — {@code executeUserSmlt} 가 쓰는 이력 테이블과 같은 곳이다.
+ * 원천은 {@code PMOWN.TH_PM_SMLT_FLFMT_HSTRY} 다 — {@code executeUserSmlt} 가 쓰는 이력 테이블과 같은 곳이다.
  * 구현체가 둘이며 {@code pm.cast.data-source} 플래그로 하나만 등록된다.
  */
 public interface CastMntrService {

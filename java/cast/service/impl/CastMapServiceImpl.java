@@ -71,7 +71,7 @@ import lombok.RequiredArgsConstructor;
 @Transactional(rollbackFor = Exception.class)
 public class CastMapServiceImpl implements CastMapService {
 	private static final List<String> CHKN_FCLT_CD_LIST = List.of("CC", "CK", "SBD");
-	private static final List<String> DEP_FCLT_CD_LIST = List.of("LGT", "SC", "SR");
+	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT", "SC", "SR");
 
 	private static final String EMPTY = "";
 	private static final String YN_Y = "Y";
@@ -79,7 +79,7 @@ public class CastMapServiceImpl implements CastMapService {
 	private static final String DEFAULT_HM = "0000";
 	private static final String ZERO_MIN = "00";
 	private static final String CHKN_FCLT_NM = "체크인카운터";
-	private static final String DEP_FCLT_NM = "출국장";
+	private static final String DPTGT_FCLT_NM = "출국장";
 
 	/** 타임라인 구간 : 00:00 ~ 24:00 을 30분으로 나눈다 (49칸) */
 	private static final int SLOT_BGN_MIN = 0;
@@ -106,7 +106,7 @@ public class CastMapServiceImpl implements CastMapService {
 
 		// 시각 → (묶음 단위 → 결과)
 		Map<String, Map<String, SmltRsltRawDto>> chknDayMap = retrieveUnitRsltDayMap(searchDto, CHKN_FCLT_CD_LIST);
-		Map<String, Map<String, SmltRsltRawDto>> depDayMap = retrieveUnitRsltDayMap(searchDto, DEP_FCLT_CD_LIST);
+		Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap = retrieveUnitRsltDayMap(searchDto, DPTGT_FCLT_CD_LIST);
 
 		FltSmryRawDto fltSmry = castDsbdMapper.retrieveFltSmry(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList());
 
@@ -114,11 +114,11 @@ public class CastMapServiceImpl implements CastMapService {
 		result.setTmnlId(tmnlId.getValue());
 		result.setSummary(getSummary(fltSmry));
 		result.setOperCardList(getOperCardList(tmnlId, smltStng));
-		result.setDepMarkerList(getDepMarkerList(tmnlId));
+		result.setDptgtMarkerList(getDptgtMarkerList(tmnlId));
 		result.setChknMarkerList(getChknMarkerList(tmnlId));
 		result.setGateMarkerList(MapLayout.gateMarkerList());
 		result.setChknInfoList(getChknInfoList(tmnlId));
-		result.setSlotList(getSlotList(tmnlId, chknDayMap, depDayMap));
+		result.setSlotList(getSlotList(tmnlId, chknDayMap, dptgtDayMap));
 
 		return result;
 	}
@@ -188,22 +188,22 @@ public class CastMapServiceImpl implements CastMapService {
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 
 		Map<String, String> useYnMap = castDepMapper.retrieveDepFcltList(fcltTmnlId).stream()
-				.collect(Collectors.toMap(DepFcltRawDto::getDepNum, DepFcltRawDto::getUseYn, (first, ignored) -> first));
+				.collect(Collectors.toMap(DepFcltRawDto::getDptgtNo, DepFcltRawDto::getUseYn, (first, ignored) -> first));
 		Map<String, List<DepOperHrRawDto>> operHrMap = castOperHrService
 				.retrieveDepOperHrMap(fcltTmnlId, smltStng.getExcnYmd());
 
 		List<MapOperCardDto> result = new ArrayList<>();
 
-		for (String depNum : MapLayout.depNumList(tmnlId)) {
-			result.add(toOperCard(depNum, useYnMap.get(depNum), operHrMap.get(depNum)));
+		for (String dptgtNo : MapLayout.dptgtNoList(tmnlId)) {
+			result.add(toOperCard(dptgtNo, useYnMap.get(dptgtNo), operHrMap.get(dptgtNo)));
 		}
 
 		return result;
 	}
 
-	private MapOperCardDto toOperCard(String depNum, String useYn, List<DepOperHrRawDto> operHrList) {
+	private MapOperCardDto toOperCard(String dptgtNo, String useYn, List<DepOperHrRawDto> operHrList) {
 		MapOperCardDto result = new MapOperCardDto();
-		result.setDepNum(depNum);
+		result.setDptgtNo(dptgtNo);
 		result.setUseYn(YN_Y.equals(useYn) ? YN_Y : YN_N);
 		result.setOprBgnTime(EMPTY);
 		result.setOprEndTime(EMPTY);
@@ -227,11 +227,11 @@ public class CastMapServiceImpl implements CastMapService {
 	/* ================= 마커 ================= */
 
 	// 마커는 자리·표시 문구만 갖는다 (혼잡도는 슬롯이 채운다)
-	private List<MapMarkerDto> getDepMarkerList(TerminalKind tmnlId) {
+	private List<MapMarkerDto> getDptgtMarkerList(TerminalKind tmnlId) {
 		List<MapMarkerDto> result = new ArrayList<>();
 
-		for (String depNum : MapLayout.depNumList(tmnlId)) {
-			result.add(MapLayout.depMarker(tmnlId, depNum));
+		for (String dptgtNo : MapLayout.dptgtNoList(tmnlId)) {
+			result.add(MapLayout.dptgtMarker(tmnlId, dptgtNo));
 		}
 
 		return result;
@@ -285,18 +285,18 @@ public class CastMapServiceImpl implements CastMapService {
 	private List<SmltMapSlotDto> getSlotList(
 			TerminalKind tmnlId,
 			Map<String, Map<String, SmltRsltRawDto>> chknDayMap,
-			Map<String, Map<String, SmltRsltRawDto>> depDayMap) {
+			Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap) {
 		List<SmltMapSlotDto> result = new ArrayList<>();
 
 		for (String hhmm : getTimeList()) {
 			Map<String, SmltRsltRawDto> chknMap = defaultMap(chknDayMap.get(hhmm));
-			Map<String, SmltRsltRawDto> depMap = defaultMap(depDayMap.get(hhmm));
+			Map<String, SmltRsltRawDto> dptgtMap = defaultMap(dptgtDayMap.get(hhmm));
 
 			SmltMapSlotDto slot = new SmltMapSlotDto();
 			slot.setHhmm(hhmm);
-			slot.setNotice(getNotice(chknMap, depMap));
+			slot.setNotice(getNotice(chknMap, dptgtMap));
 			slot.setChknRsltList(getChknRsltList(tmnlId, chknMap));
-			slot.setDepRsltList(getDepRsltList(tmnlId, depMap));
+			slot.setDptgtRsltList(getDptgtRsltList(tmnlId, dptgtMap));
 
 			result.add(slot);
 		}
@@ -337,14 +337,14 @@ public class CastMapServiceImpl implements CastMapService {
 		return result;
 	}
 
-	private List<MapUnitRsltDto> getDepRsltList(TerminalKind tmnlId, Map<String, SmltRsltRawDto> depMap) {
+	private List<MapUnitRsltDto> getDptgtRsltList(TerminalKind tmnlId, Map<String, SmltRsltRawDto> dptgtMap) {
 		List<MapUnitRsltDto> result = new ArrayList<>();
 
-		for (String depNum : MapLayout.depNumList(tmnlId)) {
-			SmltRsltRawDto rslt = depMap.get(depNum);
+		for (String dptgtNo : MapLayout.dptgtNoList(tmnlId)) {
+			SmltRsltRawDto rslt = dptgtMap.get(dptgtNo);
 
 			MapUnitRsltDto item = new MapUnitRsltDto();
-			item.setUnitCd(depNum);
+			item.setUnitCd(dptgtNo);
 			item.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0));
 			item.setStat(getStat(rslt));
 
@@ -379,9 +379,9 @@ public class CastMapServiceImpl implements CastMapService {
 	/* ================= 혼잡 알림 ================= */
 
 	// 알림은 혼잡(BUSY) 이상인 곳만, 혼잡한 순으로 보여준다
-	private MapNoticeDto getNotice(Map<String, SmltRsltRawDto> chknMap, Map<String, SmltRsltRawDto> depMap) {
+	private MapNoticeDto getNotice(Map<String, SmltRsltRawDto> chknMap, Map<String, SmltRsltRawDto> dptgtMap) {
 		List<SmltRsltRawDto> candidates = new ArrayList<>(chknMap.values());
-		candidates.addAll(depMap.values());
+		candidates.addAll(dptgtMap.values());
 
 		List<MapNoticeItemDto> itemList = new ArrayList<>();
 		int maxWtngPsgCnt = 0;
@@ -411,7 +411,7 @@ public class CastMapServiceImpl implements CastMapService {
 
 	private MapNoticeItemDto toNoticeItem(SmltRsltRawDto rslt, boolean isChkn) {
 		return new MapNoticeItemDto()
-				.withFcltNm(isChkn ? CHKN_FCLT_NM : DEP_FCLT_NM)
+				.withFcltNm(isChkn ? CHKN_FCLT_NM : DPTGT_FCLT_NM)
 				.withFcltCd(rslt.getUnitCd())
 				// 조치 부스 수는 대기인원을 부스 단위로 환산한 값이다 — 정식 산식은 현업 확인 대상
 				.withBoothCnt(Math.max(1, rslt.getWtngPsgCnt() / BOOTH_PER_STEP));

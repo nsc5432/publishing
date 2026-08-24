@@ -30,9 +30,9 @@
     <select id="retrieveUserFltPsg" resultType="aoms.pm.cast.dto.UserFltPsgRawDto">
         /* CastFltPsgMapper.retrieveUserFltPsg */
         SELECT
-            NVL(A.ADJ_TYPE_CD, 'RATIO') AS ADJ_TYPE_CD,
-            NVL(A.ADJ_RT, 0) AS ADJ_RATE
-        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG A
+            NVL(A.AJMT_TYPE_CD, 'RATIO') AS AJMT_TYPE_CD,
+            NVL(A.AJMT_RT, 0) AS AJMT_RT
+        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT A
         WHERE 1 = 1
         AND A.SMLT_ID = #{smltId}
         AND A.TMNL_ID = #{tmnlId}
@@ -43,8 +43,8 @@
         SELECT
             A.BGNG_HM AS BGN_TIME,
             NVL(A.END_HM, '2400') AS END_TIME,
-            NVL(A.ADJ_RT, 0) AS ADJ_RATE
-        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_HR A
+            NVL(A.AJMT_RT, 0) AS AJMT_RT
+        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT A
         WHERE 1 = 1
         AND A.SMLT_ID = #{smltId}
         AND A.TMNL_ID = #{tmnlId}
@@ -53,9 +53,9 @@
 
     <update id="updateUserFltPsg" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
         /* CastFltPsgMapper.updateUserFltPsg */
-        UPDATE PMOWN.TN_PM_SMLT_USER_FLT_PSG
-        SET ADJ_TYPE_CD = #{adjTypeCd},
-            ADJ_RT = #{adjRate},
+        UPDATE PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT
+        SET AJMT_TYPE_CD = #{ajmtTypeCdValue},
+            AJMT_RT = #{ajmtRt},
             LAST_MDFR_ID = #{loginUserId},
             LAST_MDFR_IP_ADDR = #{loginIpAddr},
             LAST_MDFCN_DT = CURRENT_TIMESTAMP
@@ -66,19 +66,19 @@
 
     <insert id="insertUserFltPsg" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
         /* CastFltPsgMapper.insertUserFltPsg */
-        INSERT INTO PMOWN.TN_PM_SMLT_USER_FLT_PSG (
+        INSERT INTO PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT (
             SMLT_ID,
             TMNL_ID,
-            ADJ_TYPE_CD,
-            ADJ_RT,
+            AJMT_TYPE_CD,
+            AJMT_RT,
             FRST_RGTR_ID,
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
             #{smltId},
             #{fcltTmnlId},
-            #{adjTypeCd},
-            #{adjRate},
+            #{ajmtTypeCdValue},
+            #{ajmtRt},
             #{loginUserId},
             #{loginIpAddr},
             CURRENT_TIMESTAMP
@@ -87,7 +87,7 @@
 
     <delete id="deleteUserFltPsgHrList" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
         /* CastFltPsgMapper.deleteUserFltPsgHrList */
-        DELETE FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_HR
+        DELETE FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT
         WHERE 1 = 1
         AND SMLT_ID = #{smltId}
         AND TMNL_ID = #{fcltTmnlId}
@@ -97,12 +97,12 @@
         /* CastFltPsgMapper.insertUserFltPsgHrList */
         INSERT ALL
         <foreach collection="hourList" item="hour">
-        INTO PMOWN.TN_PM_SMLT_USER_FLT_PSG_HR (
+        INTO PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT (
             SMLT_ID,
             TMNL_ID,
             BGNG_HM,
             END_HM,
-            ADJ_RT,
+            AJMT_RT,
             FRST_RGTR_ID,
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
@@ -111,7 +111,7 @@
             #{fcltTmnlId},
             #{hour.bgnTime},
             #{hour.endTime},
-            #{hour.adjRate},
+            #{hour.ajmtRt},
             #{loginUserId},
             #{loginIpAddr},
             CURRENT_TIMESTAMP

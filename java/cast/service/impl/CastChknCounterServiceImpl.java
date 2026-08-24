@@ -245,7 +245,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 				.collect(toList());
 
 		return SmltUtils.mergeTimeRanges(boothRanges).stream()
-				.map(x -> new OprTimeDto().withBgnHour(x.getStart()).withEndHour(x.getEnd()))
+				.map(x -> new OprTimeDto().withOperBgngHour(x.getStart()).withOperEndHour(x.getEnd()))
 				.collect(toList());
 	}
 
@@ -304,7 +304,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 	}
 
 	private boolean isOpr(List<OprTimeDto> oprTimeList, int hour) {
-		return oprTimeList.stream().anyMatch(x -> x.getBgnHour() <= hour && hour < x.getEndHour());
+		return oprTimeList.stream().anyMatch(x -> x.getOperBgngHour() <= hour && hour < x.getOperEndHour());
 	}
 
 	// 가동률 = 운영 카운터·시간 합 / (전체 카운터 수 × 24시간) — 사용자 시뮬레이션 탭과 같은 식이다

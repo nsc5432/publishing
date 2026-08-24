@@ -117,7 +117,7 @@ function toOperTime(oprTimeList: OprTimeDto[]): string {
     if (oprTimeList.length === 0) return EMPTY;
 
     return oprTimeList
-        .map((time) => `${pad2(time.bgnHour)}:00-${pad2(time.endHour)}:00`)
+        .map((time) => `${pad2(time.operBgngHour)}:00-${pad2(time.operEndHour)}:00`)
         .join(', ');
 }
 
@@ -131,7 +131,7 @@ function toOperTime(oprTimeList: OprTimeDto[]): string {
 function isOperating(island: ChknCounterIslandDto, hour: number): boolean {
     if (island.useYn === 'N') return false;
 
-    return island.oprTimeList.some((time) => time.bgnHour <= hour && hour < time.endHour);
+    return island.oprTimeList.some((time) => time.operBgngHour <= hour && hour < time.operEndHour);
 }
 
 /**

@@ -1,6 +1,6 @@
 import type { MarkerPoint, TerminalKind } from './types';
 
-type MarkerKind = 'depGate' | 'island' | 'gate';
+type MarkerKind = 'dptgtGate' | 'island' | 'gate';
 type MarkerPoints = Record<string, readonly [number, number]>;
 
 const T2_DEP_GATE_POINTS: MarkerPoints = {
@@ -42,7 +42,7 @@ const T2_GATE_POINTS: MarkerPoints = {
 };
 
 const T2_POINTS: Record<MarkerKind, MarkerPoints> = {
-    depGate: T2_DEP_GATE_POINTS,
+    dptgtGate: T2_DEP_GATE_POINTS,
     island: T2_ISLAND_POINTS,
     gate: T2_GATE_POINTS,
 };

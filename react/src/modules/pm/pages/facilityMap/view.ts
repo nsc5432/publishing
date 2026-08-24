@@ -26,7 +26,7 @@ import {
 const STAGE_ASPECT = '1798.6 / 1118.7';
 
 /** 출국장 마커 id 접두사 — 서버 마커와 시설의 island 값이 공유하는 규칙 */
-const DEP_GATE_PREFIX = 'dg';
+const DPTGT_GATE_PREFIX = 'dg';
 
 /**
  * 매핑 상태 판정.
@@ -130,7 +130,7 @@ function toFcltMarkers(markerList: MapMarkerDto[]): FcltMarker[] {
         label: marker.label,
         x: marker.cdntX,
         y: marker.cdntY,
-        kind: marker.markerId.startsWith(DEP_GATE_PREFIX) ? 'depGate' : 'island',
+        kind: marker.markerId.startsWith(DPTGT_GATE_PREFIX) ? 'depGate' : 'island',
         total: 0,
         unmapped: 0,
     }));

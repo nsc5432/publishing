@@ -50,7 +50,7 @@ function DepartureHall() {
 
     useEffect(applyQuery, [applyQuery]);
 
-    const { data: depDay, error: depHallError, token: depHallToken } = useDepHall(query);
+    const { data: dptgtDay, error: depHallError, token: depHallToken } = useDepHall(query);
 
     // 조회가 두 갈래라 먼저 걸린 사유 하나만 알린다 (같은 실패로 알럿이 겹치지 않게).
     const error = baseError || depHallError;
@@ -58,7 +58,7 @@ function DepartureHall() {
     useErrorAlert(error, baseToken + depHallToken);
 
     // 타임라인이 가리키는 시각의 값 — 받아 둔 하루치에서 자리만 옮긴다.
-    const slot = depDay?.slots[timeline.hhmm] ?? EMPTY_DEP_SLOT;
+    const slot = dptgtDay?.slots[timeline.hhmm] ?? EMPTY_DEP_SLOT;
     const FloorPlan = terminal === 'T1' ? Terminal1Icon : Terminal2Plan;
 
     const handleTerminalChange = (nextTerminal: TerminalKind) => {
@@ -112,7 +112,7 @@ function DepartureHall() {
 
                             {view === 'chart' && (
                                 <DepChartView
-                                    trend={depDay?.trend ?? EMPTY_TREND}
+                                    trend={dptgtDay?.trend ?? EMPTY_TREND}
                                     step={timeline.step}
                                     time={timeline.label}
                                 />

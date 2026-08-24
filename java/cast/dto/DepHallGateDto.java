@@ -11,8 +11,8 @@ import lombok.Setter;
 @Getter
 @Setter
 public class DepHallGateDto {
-	private String depNum; // 출국장 번호
-	private String depNm; // 표시명 (예: 출국장 3)
+	private String dptgtNo; // 출국장 번호
+	private String dptgtNm; // 표시명 (예: 출국장 3)
 	private double cdntX; // 카드 자리 — 가로 비율 0~100
 	private double cdntY; // 카드 자리 — 세로 비율 0~100
 	private int boothCnt; // 운영 중인 부스(검색대) 수

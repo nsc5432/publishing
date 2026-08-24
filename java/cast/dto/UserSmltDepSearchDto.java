@@ -11,5 +11,5 @@ public class UserSmltDepSearchDto {
 	private String smltId;
 	private TerminalKind tmnlId; // T1 / T2 — 터미널 코드 변환은 TerminalKind 안에서만 한다
 	private String ymd;
-	private String depNum;
+	private String dptgtNo;
 }

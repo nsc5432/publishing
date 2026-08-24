@@ -28,8 +28,8 @@ export function OperCards({ cards }: OperCardsProps) {
                     <div key={card.id} className="oper-card oper-card--empty" aria-hidden="true" />
                 ) : (
                     <div key={card.id} className={`oper-card${card.dim ? ' is-dim' : ''}`}>
-                        <span className="oper-card__gate" aria-label={`출국장 ${card.depNum}`}>
-                            {card.depNum}
+                        <span className="oper-card__gate" aria-label={`출국장 ${card.dptgtNo}`}>
+                            {card.dptgtNo}
                         </span>
                         <Donut card={card} />
                     </div>

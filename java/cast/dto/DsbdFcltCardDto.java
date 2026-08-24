@@ -15,7 +15,7 @@ public class DsbdFcltCardDto {
 	private String cardId; // 카드 식별자
 	private FcltType fcltType; // CHKN / DEP
 	private String island; // 체크인카운터 아일랜드 (출국장이면 '')
-	private String depNum; // 출국장 번호 (체크인카운터면 '')
+	private String dptgtNo; // 출국장 번호 (체크인카운터면 '')
 	private String fcltNm; // 표시명 (예: B / 3번)
 	private String fcltDesc; // 부가 표기 (예: 좌측 B4~B8)
 	private int totCnt; // 전체 (개)

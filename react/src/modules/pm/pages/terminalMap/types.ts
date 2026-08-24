@@ -31,7 +31,7 @@ export interface TerminalMapData {
     /** .map__bg 무대 가로세로 비율 (CSS aspect-ratio 값) */
     stageAspect: string;
     /** 출국장 (T1: 6곳 / T2: 2곳) — 운영시간 도넛과 1:1 대응 */
-    depGates: DepGateMarker[];
+    dptgtGates: DepGateMarker[];
     islands: IslandMarker[];
     gates: GateMarker[];
 }
@@ -48,7 +48,7 @@ export const NOTICE_LEVEL: Record<NoticeLevel, NoticeLevelPreset> = {
 /** 운영시간 도넛 카드 */
 export interface OperCard {
     id: string;
-    depNum: string;
+    dptgtNo: string;
     /** 도넛 게이지 비율 (0~100) */
     rate: number;
     /** 운영 시간 (예: 05:30-23:30) */
@@ -138,7 +138,7 @@ export interface MapSlot {
     /** 아일랜드 문자(A~N) → 상세 팝업 */
     islandDetails: Record<string, IslandDetail>;
     /** 출국장 번호(1~6) → 미니 팝업 */
-    depGateDetails: Record<string, FacilityDetail>;
+    dptgtGateDetails: Record<string, FacilityDetail>;
 }
 
 /**

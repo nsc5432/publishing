@@ -22,8 +22,8 @@ interface ScGridProps {
 /** 사각형 드래그 선택 — 미운영(빗금) 칸은 자동으로 빠진다 */
 interface CellRect {
     gateNos: number[];
-    startHour: number;
-    endHour: number; // 미포함
+    operBgngHour: number;
+    operEndHour: number; // 미포함
 }
 
 /** 드래그 중인 칸 자리 */
@@ -139,8 +139,8 @@ export function ScGrid({
 
         setSelection({
             gateNos: selectedRows.map((row) => row.gate.no),
-            startHour: dragRect.firstHour,
-            endHour: dragRect.lastHour + 1,
+            operBgngHour: dragRect.firstHour,
+            operEndHour: dragRect.lastHour + 1,
         });
         // 스테퍼는 선택 안에서 처음 만나는 값으로 연다
         setDraftCount(
@@ -210,8 +210,8 @@ export function ScGrid({
         return (
             gateNo != null &&
             selection.gateNos.includes(gateNo) &&
-            hour >= selection.startHour &&
-            hour < selection.endHour
+            hour >= selection.operBgngHour &&
+            hour < selection.operEndHour
         );
     };
 
@@ -233,7 +233,7 @@ export function ScGrid({
             if (!row) return;
 
             const countsByHour = [...(value[gateNo] ?? EMPTY_HOURS)];
-            for (let hour = selection.startHour; hour < selection.endHour; hour += 1) {
+            for (let hour = selection.operBgngHour; hour < selection.operEndHour; hour += 1) {
                 // 미운영 칸은 건드리지 않는다
                 if (row.counts[hour] !== null) countsByHour[hour] = draftCount;
             }
@@ -252,12 +252,12 @@ export function ScGrid({
     const openUpward =
         selectedRowIndexes.length > 0 && Math.max(...selectedRowIndexes) >= rows.length - 2;
     /** 오른쪽 끝 시간대는 왼쪽으로 넘치므로 오른쪽 끝에 맞춰 붙인다 */
-    const alignRight = (selection?.startHour ?? 0) >= 13;
+    const alignRight = (selection?.operBgngHour ?? 0) >= 13;
     /** 보유 합계 — 여러 줄을 잡았으면 가장 적게 가진 출국장이 상한이다 (0 은 미입력이라 상한으로 보지 않는다) */
     const capacityLimit = selection
         ? Math.min(
               ...selection.gateNos.map(
-                  (gateNo) => gates.find((gate) => gate.no === gateNo)?.scCnt ?? 0,
+                  (gateNo) => gates.find((gate) => gate.no === gateNo)?.scshCntom ?? 0,
               ),
           )
         : 0;
@@ -376,10 +376,10 @@ export function ScGrid({
                             transform: openUpward ? 'translateY(-100%)' : undefined,
                             ...(alignRight
                                 ? {
-                                      right: `calc(var(--rgt) + var(--col) * ${24 - selection.endHour})`,
+                                      right: `calc(var(--rgt) + var(--col) * ${24 - selection.operEndHour})`,
                                   }
                                 : {
-                                      left: `calc(var(--gut) + var(--col) * ${selection.startHour})`,
+                                      left: `calc(var(--gut) + var(--col) * ${selection.operBgngHour})`,
                                   }),
                         }}
                     >
@@ -387,7 +387,7 @@ export function ScGrid({
                             {selection.gateNos.length === 1
                                 ? `${selection.gateNos[0]}번 출국장`
                                 : `출국장 ${selection.gateNos.length}개`}
-                            <b>{`${formatHour(selection.startHour)} ~ ${formatHour(selection.endHour)}`}</b>
+                            <b>{`${formatHour(selection.operBgngHour)} ~ ${formatHour(selection.operEndHour)}`}</b>
                         </span>
 
                         <CountStepper

@@ -61,7 +61,7 @@ import lombok.RequiredArgsConstructor;
 @Transactional(rollbackFor = Exception.class)
 public class CastDepHallServiceImpl implements CastDepHallService {
 	/** 출국장 구역 시설 : 출국장(LGT) + 보안검색대(SC / SR) */
-	private static final List<String> DEP_FCLT_CD_LIST = List.of("LGT", "SC", "SR");
+	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT", "SC", "SR");
 
 	/** 아일랜드 마커 색을 맞추기 위한 체크인 구역 시설 */
 	private static final List<String> CHKN_FCLT_CD_LIST = List.of("CC", "CK", "SBD");
@@ -70,7 +70,7 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 	private static final String USE_YN_Y = "Y";
 	private static final String USE_YN_N = "N";
 	private static final String DEFAULT_HM = "0000";
-	private static final String DEP_NM_PREFIX = "출국장 ";
+	private static final String DPTGT_NM_PREFIX = "출국장 ";
 	private static final String FCLT_NM = "출국장";
 
 	/** 타임라인 구간 : 04:00 ~ 24:00 을 30분으로 나눈다 (출국장은 04시 전에 열지 않는다) */
@@ -96,16 +96,16 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 		List<MapMarkerDto> chknMarkerList = DepHallLayout.islandMarkerList(tmnlId);
 
 		// 시각 → (묶음 단위 → 결과)
-		Map<String, Map<String, SmltRsltRawDto>> depDayMap = retrieveUnitRsltDayMap(searchDto, DEP_FCLT_CD_LIST);
+		Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap = retrieveUnitRsltDayMap(searchDto, DPTGT_FCLT_CD_LIST);
 		Map<String, Map<String, SmltRsltRawDto>> chknDayMap = retrieveUnitRsltDayMap(searchDto, CHKN_FCLT_CD_LIST);
 
 		result.setSmltId(searchDto.getSmltId());
 		result.setTmnlId(tmnlId.getValue());
 		result.setGateList(gateList);
-		result.setDepMarkerList(getDepMarkerList(tmnlId));
+		result.setDptgtMarkerList(getDptgtMarkerList(tmnlId));
 		result.setChknMarkerList(chknMarkerList);
 		result.setGateMarkerList(DepHallLayout.gateMarkerList(tmnlId));
-		result.setSlotList(getSlotList(gateList, chknMarkerList, depDayMap, chknDayMap));
+		result.setSlotList(getSlotList(gateList, chknMarkerList, dptgtDayMap, chknDayMap));
 
 		return result;
 	}
@@ -165,32 +165,32 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 
 		Map<String, String> useYnMap = castDepMapper.retrieveDepFcltList(fcltTmnlId).stream()
-				.collect(Collectors.toMap(DepFcltRawDto::getDepNum, DepFcltRawDto::getUseYn, (first, ignored) -> first));
+				.collect(Collectors.toMap(DepFcltRawDto::getDptgtNo, DepFcltRawDto::getUseYn, (first, ignored) -> first));
 		Map<String, List<DepOperHrRawDto>> operHrMap = castOperHrService
 				.retrieveDepOperHrMap(fcltTmnlId, smltStng.getExcnYmd());
 		Map<String, Integer> scCntMap = castDepMapper
 				.retrieveScCntList(fcltTmnlId, smltStng.getFcltyOpngTblScrtyCntrlRsrcId()).stream()
-				.collect(Collectors.toMap(ScCntRawDto::getDepNum, ScCntRawDto::getScCnt, (first, ignored) -> first));
+				.collect(Collectors.toMap(ScCntRawDto::getDptgtNo, ScCntRawDto::getScshCntom, (first, ignored) -> first));
 
 		List<DepHallGateDto> result = new ArrayList<>();
 
-		for (String depNum : DepHallLayout.depNumList(tmnlId)) {
-			result.add(toGate(tmnlId, depNum, useYnMap.get(depNum), operHrMap.get(depNum), scCntMap.get(depNum)));
+		for (String dptgtNo : DepHallLayout.dptgtNoList(tmnlId)) {
+			result.add(toGate(tmnlId, dptgtNo, useYnMap.get(dptgtNo), operHrMap.get(dptgtNo), scCntMap.get(dptgtNo)));
 		}
 
 		return result;
 	}
 
 	private DepHallGateDto toGate(
-			TerminalKind tmnlId, String depNum, String useYn, List<DepOperHrRawDto> operHrList, Integer scCnt) {
+			TerminalKind tmnlId, String dptgtNo, String useYn, List<DepOperHrRawDto> operHrList, Integer scshCntom) {
 		DepHallGateDto result = new DepHallGateDto();
-		double[] point = DepHallLayout.cardPoint(tmnlId, depNum);
+		double[] point = DepHallLayout.cardPoint(tmnlId, dptgtNo);
 
-		result.setDepNum(depNum);
-		result.setDepNm(DEP_NM_PREFIX + depNum);
+		result.setDptgtNo(dptgtNo);
+		result.setDptgtNm(DPTGT_NM_PREFIX + dptgtNo);
 		result.setUseYn(USE_YN_Y.equals(useYn) ? USE_YN_Y : USE_YN_N);
 		// 카드의 부스 = 그 출국장에 열려 있는 보안검색대 대수
-		result.setBoothCnt(scCnt != null ? scCnt : 0);
+		result.setBoothCnt(scshCntom != null ? scshCntom : 0);
 		result.setOprBgnTime(EMPTY);
 		result.setOprEndTime(EMPTY);
 
@@ -211,11 +211,11 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 
 	/* ================= 마커 ================= */
 
-	private List<MapMarkerDto> getDepMarkerList(TerminalKind tmnlId) {
+	private List<MapMarkerDto> getDptgtMarkerList(TerminalKind tmnlId) {
 		List<MapMarkerDto> result = new ArrayList<>();
 
-		for (String depNum : DepHallLayout.depNumList(tmnlId)) {
-			result.add(DepHallLayout.depMarker(tmnlId, depNum));
+		for (String dptgtNo : DepHallLayout.dptgtNoList(tmnlId)) {
+			result.add(DepHallLayout.dptgtMarker(tmnlId, dptgtNo));
 		}
 
 		return result;
@@ -226,17 +226,17 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 	private List<DepHallSlotDto> getSlotList(
 			List<DepHallGateDto> gateList,
 			List<MapMarkerDto> chknMarkerList,
-			Map<String, Map<String, SmltRsltRawDto>> depDayMap,
+			Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap,
 			Map<String, Map<String, SmltRsltRawDto>> chknDayMap) {
 		List<DepHallSlotDto> result = new ArrayList<>();
 
 		for (String hhmm : getTimeList()) {
-			List<MapUnitRsltDto> depRsltList = getDepRsltList(gateList, defaultMap(depDayMap.get(hhmm)));
+			List<MapUnitRsltDto> dptgtRsltList = getDptgtRsltList(gateList, defaultMap(dptgtDayMap.get(hhmm)));
 
 			DepHallSlotDto slot = new DepHallSlotDto();
 			slot.setHhmm(hhmm);
-			slot.setNotice(getNotice(gateList, depRsltList));
-			slot.setDepRsltList(depRsltList);
+			slot.setNotice(getNotice(gateList, dptgtRsltList));
+			slot.setDptgtRsltList(dptgtRsltList);
 			slot.setChknRsltList(getChknRsltList(chknMarkerList, defaultMap(chknDayMap.get(hhmm))));
 
 			result.add(slot);
@@ -260,11 +260,11 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 		return result;
 	}
 
-	private List<MapUnitRsltDto> getDepRsltList(List<DepHallGateDto> gateList, Map<String, SmltRsltRawDto> depMap) {
+	private List<MapUnitRsltDto> getDptgtRsltList(List<DepHallGateDto> gateList, Map<String, SmltRsltRawDto> dptgtMap) {
 		List<MapUnitRsltDto> result = new ArrayList<>();
 
 		for (DepHallGateDto gate : gateList) {
-			result.add(toUnitRslt(gate.getDepNum(), depMap.get(gate.getDepNum())));
+			result.add(toUnitRslt(gate.getDptgtNo(), dptgtMap.get(gate.getDptgtNo())));
 		}
 
 		return result;
@@ -314,14 +314,14 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 	/* ================= 혼잡 알림 ================= */
 
 	// 알림은 혼잡(BUSY) 이상인 출국장만, 혼잡한 순으로 보여준다
-	private MapNoticeDto getNotice(List<DepHallGateDto> gateList, List<MapUnitRsltDto> depRsltList) {
+	private MapNoticeDto getNotice(List<DepHallGateDto> gateList, List<MapUnitRsltDto> dptgtRsltList) {
 		Map<String, Integer> boothCntMap = gateList.stream()
-				.collect(Collectors.toMap(DepHallGateDto::getDepNum, DepHallGateDto::getBoothCnt, (first, ignored) -> first));
+				.collect(Collectors.toMap(DepHallGateDto::getDptgtNo, DepHallGateDto::getBoothCnt, (first, ignored) -> first));
 
 		List<MapNoticeItemDto> itemList = new ArrayList<>();
 		int maxWtngPsgCnt = 0;
 
-		for (MapUnitRsltDto rslt : depRsltList.stream()
+		for (MapUnitRsltDto rslt : dptgtRsltList.stream()
 				.sorted(Comparator.comparingInt((MapUnitRsltDto target) -> target.getStat().getWtngPsgCnt()).reversed())
 				.collect(Collectors.toList())) {
 			CongestionStatus cgnStatus = rslt.getCgnStatus();

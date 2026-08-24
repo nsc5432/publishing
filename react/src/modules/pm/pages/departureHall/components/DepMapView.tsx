@@ -6,7 +6,7 @@ interface DepMapViewProps {
     data: TerminalDepMap;
     /** 마우스를 올린 출국장 (마커 ↔ 카드 연결 표시) */
     activeId?: string;
-    onDepGateHover: (depGate: DepGateMarker | null) => void;
+    onDepGateHover: (dptgtGate: DepGateMarker | null) => void;
 }
 
 /**
@@ -24,19 +24,19 @@ export function DepMapView({ data, activeId, onDepGateHover }: DepMapViewProps) 
             ))}
 
             {/* 출국장 (T1: 1~6 / T2: 1~2) */}
-            {data.depGates.map((depGate) => (
+            {data.dptgtGates.map((dptgtGate) => (
                 <button
                     type="button"
-                    key={depGate.id}
-                    className={`marker marker--dep-gate${depGate.id === activeId ? ' is-active' : ''}`}
-                    style={toStagePosition(depGate.x, depGate.y)}
-                    aria-label={`출국장 ${depGate.label}`}
-                    onMouseEnter={() => onDepGateHover(depGate)}
+                    key={dptgtGate.id}
+                    className={`marker marker--dep-gate${dptgtGate.id === activeId ? ' is-active' : ''}`}
+                    style={toStagePosition(dptgtGate.x, dptgtGate.y)}
+                    aria-label={`출국장 ${dptgtGate.label}`}
+                    onMouseEnter={() => onDepGateHover(dptgtGate)}
                     onMouseLeave={() => onDepGateHover(null)}
-                    onFocus={() => onDepGateHover(depGate)}
+                    onFocus={() => onDepGateHover(dptgtGate)}
                     onBlur={() => onDepGateHover(null)}
                 >
-                    {depGate.label}
+                    {dptgtGate.label}
                 </button>
             ))}
 

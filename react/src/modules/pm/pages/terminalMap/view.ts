@@ -50,7 +50,7 @@ import { toPlanPoint } from './layout';
 const STAGE_ASPECT = '1798.6 / 1118.7';
 
 /** 출국장 팝업 제목 (예: 출국장 3) */
-const DEP_TITLE_PREFIX = '출국장 ';
+const DPTGT_TITLE_PREFIX = '출국장 ';
 
 /** 혼잡도 4단계 → 마커·뱃지 3단계 (여유와 보통은 같은 색을 쓴다) */
 const CONGESTION_TO_LEVEL: Record<CongestionStatus, CongestionLevel> = {
@@ -87,8 +87,8 @@ function toSummary(summary: MapSmryDto): HeaderSummary {
  */
 function toOperCards(cardList: MapOperCardDto[]): OperCard[] {
     const cards: OperCard[] = cardList.map((card) => ({
-        id: `o${card.depNum}`,
-        depNum: card.depNum,
+        id: `o${card.dptgtNo}`,
+        dptgtNo: card.dptgtNo,
         rate: card.oprRate,
         time: `${formatHhmm(card.oprBgnTime)}-${formatHhmm(card.oprEndTime)}`,
         desc: `하루 ${card.oprHr}시간 운영`,
@@ -101,7 +101,7 @@ function toOperCards(cardList: MapOperCardDto[]): OperCard[] {
 
     return [
         ...cards.slice(0, middle),
-        { id: 'o-gap', depNum: '', rate: 0, time: '', desc: '', empty: true },
+        { id: 'o-gap', dptgtNo: '', rate: 0, time: '', desc: '', empty: true },
         ...cards.slice(middle),
     ];
 }
@@ -129,7 +129,7 @@ function toRsltMap<T extends MapUnitRsltDto>(rsltList: T[]): Map<string, T> {
  */
 function toCongestionMarker(
     terminal: TerminalKind,
-    kind: 'depGate' | 'island',
+    kind: 'dptgtGate' | 'island',
     marker: MapMarkerDto,
     rslt: MapUnitRsltDto | undefined,
 ): IslandMarker & DepGateMarker {
@@ -212,7 +212,7 @@ function toIslandDetail(info: MapChknInfoDto, rslt: MapChknRsltDto | undefined):
 function toFacilityDetail(rslt: MapUnitRsltDto): FacilityDetail {
     return {
         id: `dg${rslt.unitCd}`,
-        title: DEP_TITLE_PREFIX + rslt.unitCd,
+        title: DPTGT_TITLE_PREFIX + rslt.unitCd,
         level: CONGESTION_TO_LEVEL[rslt.cgnStatus],
         stats: toStats(rslt.stat),
     };
@@ -223,14 +223,14 @@ function toFacilityDetail(rslt: MapUnitRsltDto): FacilityDetail {
 /** 슬롯 1칸 — 마커 색과 팝업이 같은 결과에서 나온다 */
 function toMapSlot(dto: SmltMapDto, slot: SmltMapSlotDto, gates: GateMarker[]): MapSlot {
     const chknMap = toRsltMap(slot.chknRsltList);
-    const depMap = toRsltMap(slot.depRsltList);
+    const dptgtMap = toRsltMap(slot.dptgtRsltList);
 
     return {
         notice: toNotice(slot.notice),
         map: {
             stageAspect: STAGE_ASPECT,
-            depGates: dto.depMarkerList.map((marker) =>
-                toCongestionMarker(dto.tmnlId, 'depGate', marker, depMap.get(marker.label)),
+            dptgtGates: dto.dptgtMarkerList.map((marker) =>
+                toCongestionMarker(dto.tmnlId, 'dptgtGate', marker, dptgtMap.get(marker.label)),
             ),
             islands: dto.chknMarkerList.map((marker) =>
                 toCongestionMarker(dto.tmnlId, 'island', marker, chknMap.get(marker.label)),
@@ -243,8 +243,8 @@ function toMapSlot(dto: SmltMapDto, slot: SmltMapSlotDto, gates: GateMarker[]): 
                 toIslandDetail(info, chknMap.get(info.island)),
             ]),
         ),
-        depGateDetails: Object.fromEntries(
-            slot.depRsltList.map((rslt) => [rslt.unitCd, toFacilityDetail(rslt)]),
+        dptgtGateDetails: Object.fromEntries(
+            slot.dptgtRsltList.map((rslt) => [rslt.unitCd, toFacilityDetail(rslt)]),
         ),
     };
 }
@@ -269,7 +269,7 @@ const EMPTY_STAT: MapCgnStatDto = { wtngPsgCnt: 0, wtngHr: 0, prcsPsgCnt: 0, prc
 /** 아직 응답이 없을 때 그릴 빈 도면 (골격은 그대로 두고 값만 비운다) */
 export const EMPTY_MAP_DATA: TerminalMapData = {
     stageAspect: STAGE_ASPECT,
-    depGates: [],
+    dptgtGates: [],
     islands: [],
     gates: [],
 };
@@ -283,5 +283,5 @@ export const EMPTY_MAP_SLOT: MapSlot = {
     notice: EMPTY_NOTICE,
     map: EMPTY_MAP_DATA,
     islandDetails: {},
-    depGateDetails: {},
+    dptgtGateDetails: {},
 };

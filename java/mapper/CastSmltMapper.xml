@@ -62,7 +62,7 @@
     <!--
         수행 — executeUserSmlt 가 쓰는 statement 4종 + 모니터링 화면이 읽을 이력 목록 1종.
         기존 TH_PM_SMLT_EXCN_LOG 는 CAST 엔진의 단계 로그이고 SMLT_ID 컬럼이 없어
-        시뮬레이션 단위 이력을 담을 수 없다. TH_PM_SMLT_EXCN_HSTRY 를 신설해 쓴다.
+        시뮬레이션 단위 이력을 담을 수 없다. TH_PM_SMLT_FLFMT_HSTRY 를 신설해 쓴다.
     -->
     <select id="retrieveUserSmltCondCnt" resultType="int">
         /* CastSmltMapper.retrieveUserSmltCondCnt */
@@ -74,44 +74,44 @@
             AND TMNL_ID = #{tmnlId}
             UNION ALL
             SELECT COUNT(*) AS CNT
-            FROM PMOWN.TN_PM_SMLT_USER_DEP
+            FROM PMOWN.TN_PM_SMLT_USER_DPTGT
             WHERE SMLT_ID = #{smltId}
             AND TMNL_ID = #{tmnlId}
             UNION ALL
             SELECT COUNT(*) AS CNT
-            FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG
+            FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT
             WHERE SMLT_ID = #{smltId}
             AND TMNL_ID = #{tmnlId}
         ) A
     </select>
 
-    <select id="retrieveNextSmltExcnSn" resultType="int">
-        /* CastSmltMapper.retrieveNextSmltExcnSn */
+    <select id="retrieveNextSmltFlfmtSn" resultType="int">
+        /* CastSmltMapper.retrieveNextSmltFlfmtSn */
         -- 시퀀스가 없어 SMLT_ID 스코프의 MAX + 1 로 채번한다.
         -- 트랜잭션 격리 수준에 의존하므로 동시 수행 시 PK 충돌로 드러난다 (지시서 5.2 관행 ②)
-        SELECT NVL(MAX(A.SMLT_EXCN_SN), 0) + 1 AS SMLT_EXCN_SN
-        FROM PMOWN.TH_PM_SMLT_EXCN_HSTRY A
+        SELECT NVL(MAX(A.SMLT_FLFMT_SN), 0) + 1 AS SMLT_FLFMT_SN
+        FROM PMOWN.TH_PM_SMLT_FLFMT_HSTRY A
         WHERE A.SMLT_ID = #{smltId}
     </select>
 
-    <insert id="insertSmltExcnHstry" parameterType="aoms.pm.cast.dto.SmltExcnDto">
-        /* CastSmltMapper.insertSmltExcnHstry */
-        INSERT INTO PMOWN.TH_PM_SMLT_EXCN_HSTRY (
+    <insert id="insertSmltFlfmtHstry" parameterType="aoms.pm.cast.dto.SmltExcnDto">
+        /* CastSmltMapper.insertSmltFlfmtHstry */
+        INSERT INTO PMOWN.TH_PM_SMLT_FLFMT_HSTRY (
             SMLT_ID,
-            SMLT_EXCN_SN,
+            SMLT_FLFMT_SN,
             TMNL_ID,
             SMLT_TYPE,
-            SMLT_EXCN_STTS_CD,
-            SMLT_EXCN_BGNG_DT,
+            SMLT_FLFMT_STTS_CD,
+            SMLT_FLFMT_BGNG_DT,
             FRST_RGTR_ID,
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
             #{smltId},
-            #{smltExcnSn},
+            #{smltFlfmtSn},
             #{tmnlId},
             #{smltType},
-            #{smltExcnSttsCd},
+            #{smltFlfmtSttsCd},
             CURRENT_TIMESTAMP,
             #{loginUserId},
             #{loginIpAddr},
@@ -119,84 +119,84 @@
         )
     </insert>
 
-    <select id="retrieveSmltExcnByKey" resultType="aoms.pm.cast.dto.SmltExcnDto">
-        /* CastSmltMapper.retrieveSmltExcnByKey */
+    <select id="retrieveSmltFlfmtByKey" resultType="aoms.pm.cast.dto.SmltExcnDto">
+        /* CastSmltMapper.retrieveSmltFlfmtByKey */
         SELECT
             A.SMLT_ID,
-            A.SMLT_EXCN_SN,
+            A.SMLT_FLFMT_SN,
             A.TMNL_ID,
             A.SMLT_TYPE,
-            A.SMLT_EXCN_STTS_CD,
-            TO_CHAR(A.SMLT_EXCN_BGNG_DT, 'YYYYMMDDHH24MISS') AS BGN_DT,
-            NVL(TO_CHAR(A.SMLT_EXCN_END_DT, 'YYYYMMDDHH24MISS'), '') AS END_DT
-        FROM PMOWN.TH_PM_SMLT_EXCN_HSTRY A
+            A.SMLT_FLFMT_STTS_CD,
+            TO_CHAR(A.SMLT_FLFMT_BGNG_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_BGNG_DT,
+            NVL(TO_CHAR(A.SMLT_FLFMT_END_DT, 'YYYYMMDDHH24MISS'), '') AS SMLT_FLFMT_END_DT
+        FROM PMOWN.TH_PM_SMLT_FLFMT_HSTRY A
         WHERE 1 = 1
         AND A.SMLT_ID = #{smltId}
-        AND A.SMLT_EXCN_SN = #{smltExcnSn}
+        AND A.SMLT_FLFMT_SN = #{smltFlfmtSn}
     </select>
 
-    <select id="retrieveSmltExcnList" resultType="aoms.pm.cast.dto.SmltExcnDto">
-        /* CastSmltMapper.retrieveSmltExcnList */
+    <select id="retrieveSmltFlfmtList" resultType="aoms.pm.cast.dto.SmltExcnDto">
+        /* CastSmltMapper.retrieveSmltFlfmtList */
         SELECT
-            ROW_NUMBER() OVER (ORDER BY A.SMLT_EXCN_BGNG_DT DESC) AS ROW_NUM,
+            ROW_NUMBER() OVER (ORDER BY A.SMLT_FLFMT_BGNG_DT DESC) AS ROW_NUM,
             A.SMLT_ID,
-            A.SMLT_EXCN_SN,
+            A.SMLT_FLFMT_SN,
             A.TMNL_ID,
             A.SMLT_TYPE,
-            A.SMLT_EXCN_STTS_CD,
-            TO_CHAR(A.SMLT_EXCN_BGNG_DT, 'YYYYMMDDHH24MISS') AS BGN_DT,
-            NVL(TO_CHAR(A.SMLT_EXCN_END_DT, 'YYYYMMDDHH24MISS'), '') AS END_DT,
-            NVL(ROUND((CAST(A.SMLT_EXCN_END_DT AS DATE) - CAST(A.SMLT_EXCN_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
+            A.SMLT_FLFMT_STTS_CD,
+            TO_CHAR(A.SMLT_FLFMT_BGNG_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_BGNG_DT,
+            NVL(TO_CHAR(A.SMLT_FLFMT_END_DT, 'YYYYMMDDHH24MISS'), '') AS SMLT_FLFMT_END_DT,
+            NVL(ROUND((CAST(A.SMLT_FLFMT_END_DT AS DATE) - CAST(A.SMLT_FLFMT_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
             A.FRST_RGTR_ID AS RGTR_ID,
             NVL(D.DEPT_NM, '') AS DEPT_NM,
             NVL(C.USER_NM, '') AS USER_NM
-        FROM PMOWN.TH_PM_SMLT_EXCN_HSTRY A
+        FROM PMOWN.TH_PM_SMLT_FLFMT_HSTRY A
             LEFT OUTER JOIN CAOWN.TN_CA_USER C
             ON A.FRST_RGTR_ID = C.USER_ID
             LEFT OUTER JOIN CAOWN.TN_CA_DEPT D
             ON C.DEPT_CD = D.DEPT_CD
         WHERE 1 = 1
-        AND TO_CHAR(A.SMLT_EXCN_BGNG_DT, 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
-        ORDER BY A.SMLT_EXCN_BGNG_DT DESC
+        AND TO_CHAR(A.SMLT_FLFMT_BGNG_DT, 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
+        ORDER BY A.SMLT_FLFMT_BGNG_DT DESC
     </select>
 
-    <select id="retrieveSmltExcnSmry" resultType="aoms.pm.cast.dto.SmltExcnCntRawDto">
-        /* CastSmltMapper.retrieveSmltExcnSmry */
+    <select id="retrieveSmltFlfmtSmry" resultType="aoms.pm.cast.dto.SmltExcnCntRawDto">
+        /* CastSmltMapper.retrieveSmltFlfmtSmry */
         -- 평균 수행시간은 완료 건만 센다. 진행중 건을 섞으면 종료일시가 없어 평균이 0 쪽으로 끌린다
         SELECT
             COUNT(*) AS TOT_CNT,
-            NVL(SUM(CASE WHEN A.SMLT_EXCN_STTS_CD = 'DONE' THEN 1 ELSE 0 END), 0) AS DONE_CNT,
-            NVL(SUM(CASE WHEN A.SMLT_EXCN_STTS_CD = 'RUNNING' THEN 1 ELSE 0 END), 0) AS RUNNING_CNT,
+            NVL(SUM(CASE WHEN A.SMLT_FLFMT_STTS_CD = 'DONE' THEN 1 ELSE 0 END), 0) AS DONE_CNT,
+            NVL(SUM(CASE WHEN A.SMLT_FLFMT_STTS_CD = 'RUNNING' THEN 1 ELSE 0 END), 0) AS RUNNING_CNT,
             NVL(ROUND(AVG(
                 CASE
-                    WHEN A.SMLT_EXCN_END_DT IS NULL THEN NULL
-                    ELSE (CAST(A.SMLT_EXCN_END_DT AS DATE) - CAST(A.SMLT_EXCN_BGNG_DT AS DATE)) * 86400
+                    WHEN A.SMLT_FLFMT_END_DT IS NULL THEN NULL
+                    ELSE (CAST(A.SMLT_FLFMT_END_DT AS DATE) - CAST(A.SMLT_FLFMT_BGNG_DT AS DATE)) * 86400
                 END
             )), 0) AS AVG_EXEC_SEC
-        FROM PMOWN.TH_PM_SMLT_EXCN_HSTRY A
+        FROM PMOWN.TH_PM_SMLT_FLFMT_HSTRY A
         WHERE 1 = 1
-        AND TO_CHAR(A.SMLT_EXCN_BGNG_DT, 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
+        AND TO_CHAR(A.SMLT_FLFMT_BGNG_DT, 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
     </select>
 
-    <select id="retrieveSmltExcnDetail" resultType="aoms.pm.cast.dto.SmltExcnDto">
-        /* CastSmltMapper.retrieveSmltExcnDetail */
+    <select id="retrieveSmltFlfmtDetail" resultType="aoms.pm.cast.dto.SmltExcnDto">
+        /* CastSmltMapper.retrieveSmltFlfmtDetail */
         -- 한 시뮬레이션이 여러 번 수행됐으면 가장 최근 수행 1건을 보여준다
         SELECT *
         FROM (
             SELECT
                 A.SMLT_ID,
-                A.SMLT_EXCN_SN,
+                A.SMLT_FLFMT_SN,
                 A.TMNL_ID,
                 A.SMLT_TYPE,
-                A.SMLT_EXCN_STTS_CD,
-                TO_CHAR(A.SMLT_EXCN_BGNG_DT, 'YYYYMMDDHH24MISS') AS BGN_DT,
-                NVL(TO_CHAR(A.SMLT_EXCN_END_DT, 'YYYYMMDDHH24MISS'), '') AS END_DT,
-                NVL(ROUND((CAST(A.SMLT_EXCN_END_DT AS DATE) - CAST(A.SMLT_EXCN_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
+                A.SMLT_FLFMT_STTS_CD,
+                TO_CHAR(A.SMLT_FLFMT_BGNG_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_BGNG_DT,
+                NVL(TO_CHAR(A.SMLT_FLFMT_END_DT, 'YYYYMMDDHH24MISS'), '') AS SMLT_FLFMT_END_DT,
+                NVL(ROUND((CAST(A.SMLT_FLFMT_END_DT AS DATE) - CAST(A.SMLT_FLFMT_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
                 A.FRST_RGTR_ID AS RGTR_ID,
                 NVL(B.EXCN_YMD, '') AS EXCN_YMD,
                 NVL(D.DEPT_NM, '') AS DEPT_NM,
                 NVL(C.USER_NM, '') AS USER_NM
-            FROM PMOWN.TH_PM_SMLT_EXCN_HSTRY A
+            FROM PMOWN.TH_PM_SMLT_FLFMT_HSTRY A
                 LEFT OUTER JOIN PMOWN.TN_PM_SMLT_STNG B
                 ON A.SMLT_ID = B.SMLT_ID
                 LEFT OUTER JOIN CAOWN.TN_CA_USER C
@@ -205,7 +205,7 @@
                 ON C.DEPT_CD = D.DEPT_CD
             WHERE 1 = 1
             AND A.SMLT_ID = #{smltId}
-            ORDER BY A.SMLT_EXCN_SN DESC
+            ORDER BY A.SMLT_FLFMT_SN DESC
         )
         WHERE ROWNUM = 1
     </select>
@@ -216,7 +216,7 @@
         SELECT NVL(TO_CHAR(MAX(A.SAVE_DT), 'YYYYMMDDHH24MISS'), '') AS SAVE_DT
         FROM (
             SELECT MAX(NVL(LAST_MDFCN_DT, FRST_REG_DT)) AS SAVE_DT
-            FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG
+            FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT
             WHERE SMLT_ID = #{smltId}
             AND TMNL_ID = #{tmnlId}
             UNION ALL
@@ -226,28 +226,28 @@
             AND TMNL_ID = #{tmnlId}
             UNION ALL
             SELECT MAX(NVL(LAST_MDFCN_DT, FRST_REG_DT)) AS SAVE_DT
-            FROM PMOWN.TN_PM_SMLT_USER_DEP
+            FROM PMOWN.TN_PM_SMLT_USER_DPTGT
             WHERE SMLT_ID = #{smltId}
             AND TMNL_ID = #{tmnlId}
         ) A
     </select>
 
-    <select id="retrieveLastSmltExcn" resultType="aoms.pm.cast.dto.SmltExcnDto">
-        /* CastSmltMapper.retrieveLastSmltExcn */
+    <select id="retrieveLastSmltFlfmt" resultType="aoms.pm.cast.dto.SmltExcnDto">
+        /* CastSmltMapper.retrieveLastSmltFlfmt */
         SELECT *
         FROM (
             SELECT
                 A.SMLT_ID,
-                A.SMLT_EXCN_SN,
+                A.SMLT_FLFMT_SN,
                 A.TMNL_ID,
                 A.SMLT_TYPE,
-                A.SMLT_EXCN_STTS_CD,
-                TO_CHAR(A.SMLT_EXCN_BGNG_DT, 'YYYYMMDDHH24MISS') AS BGN_DT,
-                NVL(TO_CHAR(A.SMLT_EXCN_END_DT, 'YYYYMMDDHH24MISS'), '') AS END_DT
-            FROM PMOWN.TH_PM_SMLT_EXCN_HSTRY A
+                A.SMLT_FLFMT_STTS_CD,
+                TO_CHAR(A.SMLT_FLFMT_BGNG_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_BGNG_DT,
+                NVL(TO_CHAR(A.SMLT_FLFMT_END_DT, 'YYYYMMDDHH24MISS'), '') AS SMLT_FLFMT_END_DT
+            FROM PMOWN.TH_PM_SMLT_FLFMT_HSTRY A
             WHERE 1 = 1
             AND A.SMLT_ID = #{smltId}
-            ORDER BY A.SMLT_EXCN_SN DESC
+            ORDER BY A.SMLT_FLFMT_SN DESC
         )
         WHERE ROWNUM = 1
     </select>

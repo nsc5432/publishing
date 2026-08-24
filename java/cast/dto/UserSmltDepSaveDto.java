@@ -16,5 +16,5 @@ public class UserSmltDepSaveDto extends AomsDefaultDto {
 	private String smltId;
 	private TerminalKind tmnlId; // T1 / T2 — 터미널 코드 변환은 TerminalKind 안에서만 한다
 	private String fcltTmnlId; // TerminalKind 가 변환한 DB 터미널 코드 (P01/P03). 서비스가 채운다
-	private List<DepGateDto> depList; // 터미널 1개분 전체. 구 saveScPlanInfo 의 planList 를 흡수했다
+	private List<DepGateDto> dptgtList; // 터미널 1개분 전체. 구 saveScPlanInfo 의 planList 를 흡수했다
 }

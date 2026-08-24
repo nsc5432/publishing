@@ -52,7 +52,7 @@ public class CastMntrServiceImpl implements CastMntrService {
 	@Override
 	public SmltExecSmryDto retrieveSmltExecSmry(MntrSearchDto searchDto) {
 		SmltExecSmryDto result = new SmltExecSmryDto();
-		SmltExcnCntRawDto raw = castSmltMapper.retrieveSmltExcnSmry(searchDto.getBgnDt(), searchDto.getEndDt());
+		SmltExcnCntRawDto raw = castSmltMapper.retrieveSmltFlfmtSmry(searchDto.getBgnDt(), searchDto.getEndDt());
 
 		if (raw == null) {
 			return result;
@@ -75,11 +75,11 @@ public class CastMntrServiceImpl implements CastMntrService {
 
 		// 표준/사용자를 좌우로 나란히 보여주므로 한 번 읽어 화면 기준으로 나눈다.
 		// 목록 No 는 각 표에서 1부터 다시 매긴다 — 매퍼의 ROW_NUM 은 전체 기준이라 쓸 수 없다
-		for (SmltExcnDto excn : castSmltMapper.retrieveSmltExcnList(searchDto.getBgnDt(), searchDto.getEndDt())) {
-			SmltType smltType = SmltType.ofDbCode(excn.getSmltType());
+		for (SmltExcnDto flfmt : castSmltMapper.retrieveSmltFlfmtList(searchDto.getBgnDt(), searchDto.getEndDt())) {
+			SmltType smltType = SmltType.ofDbCode(flfmt.getSmltType());
 			List<SmltCastExecDto> target = smltType == SmltType.USER ? userList : stdList;
 
-			target.add(toExecDto(excn, smltType, target.size() + 1));
+			target.add(toExecDto(flfmt, smltType, target.size() + 1));
 		}
 
 		result.setStdList(stdList);
@@ -91,47 +91,47 @@ public class CastMntrServiceImpl implements CastMntrService {
 	@Override
 	public SmltExecDetailDto retrieveSmltExecDetail(MntrSearchDto searchDto) {
 		SmltExecDetailDto result = new SmltExecDetailDto();
-		SmltExcnDto excn = castSmltMapper.retrieveSmltExcnDetail(searchDto.getSmltId());
+		SmltExcnDto flfmt = castSmltMapper.retrieveSmltFlfmtDetail(searchDto.getSmltId());
 
-		if (excn == null) {
+		if (flfmt == null) {
 			result.error("수행 이력을 찾을 수 없습니다.");
 			return result;
 		}
 
-		result.setSmltId(excn.getSmltId());
-		result.setSmltType(SmltType.ofDbCode(excn.getSmltType()));
-		result.setYmd(nvl(excn.getExcnYmd()));
-		result.setTmnlId(toTerminalKind(excn.getTmnlId()).getValue());
-		result.setDeptNm(nvl(excn.getDeptNm()));
-		result.setUserNm(nvl(excn.getUserNm()));
-		result.setBgnDt(nvl(excn.getBgnDt()));
-		result.setEndDt(nvl(excn.getEndDt()));
-		result.setExecMin(excn.getExecMin());
-		result.setExecStatus(toExecStatus(excn.getSmltExcnSttsCd()));
+		result.setSmltId(flfmt.getSmltId());
+		result.setSmltType(SmltType.ofDbCode(flfmt.getSmltType()));
+		result.setYmd(nvl(flfmt.getExcnYmd()));
+		result.setTmnlId(toTerminalKind(flfmt.getTmnlId()).getValue());
+		result.setDeptNm(nvl(flfmt.getDeptNm()));
+		result.setUserNm(nvl(flfmt.getUserNm()));
+		result.setSmltFlfmtBgngDt(nvl(flfmt.getSmltFlfmtBgngDt()));
+		result.setSmltFlfmtEndDt(nvl(flfmt.getSmltFlfmtEndDt()));
+		result.setExecMin(flfmt.getExecMin());
+		result.setSmltFlfmtSttsCd(toExecStatus(flfmt.getSmltFlfmtSttsCd()));
 
 		return result;
 	}
 
-	private SmltCastExecDto toExecDto(SmltExcnDto excn, SmltType smltType, int rowNum) {
+	private SmltCastExecDto toExecDto(SmltExcnDto flfmt, SmltType smltType, int rowNum) {
 		SmltCastExecDto result = new SmltCastExecDto();
 
 		result.setRowNum(rowNum);
-		result.setSmltId(excn.getSmltId());
+		result.setSmltId(flfmt.getSmltId());
 		result.setSmltType(smltType);
-		result.setRgtrId(nvl(excn.getRgtrId()));
-		result.setDeptNm(nvl(excn.getDeptNm()));
-		result.setUserNm(nvl(excn.getUserNm()));
-		result.setBgnDt(nvl(excn.getBgnDt()));
-		result.setEndDt(nvl(excn.getEndDt()));
-		result.setExecMin(excn.getExecMin());
-		result.setExecStatus(toExecStatus(excn.getSmltExcnSttsCd()));
+		result.setRgtrId(nvl(flfmt.getRgtrId()));
+		result.setDeptNm(nvl(flfmt.getDeptNm()));
+		result.setUserNm(nvl(flfmt.getUserNm()));
+		result.setSmltFlfmtBgngDt(nvl(flfmt.getSmltFlfmtBgngDt()));
+		result.setSmltFlfmtEndDt(nvl(flfmt.getSmltFlfmtEndDt()));
+		result.setExecMin(flfmt.getExecMin());
+		result.setSmltFlfmtSttsCd(toExecStatus(flfmt.getSmltFlfmtSttsCd()));
 
 		return result;
 	}
 
 	// 종료일시가 없으면 아직 도는 중이다
-	private SmltExecStatus toExecStatus(String smltExcnSttsCd) {
-		return SmltExecStatus.DONE.getValue().equals(smltExcnSttsCd) ? SmltExecStatus.DONE : SmltExecStatus.RUNNING;
+	private SmltExecStatus toExecStatus(String smltFlfmtSttsCd) {
+		return SmltExecStatus.DONE.getValue().equals(smltFlfmtSttsCd) ? SmltExecStatus.DONE : SmltExecStatus.RUNNING;
 	}
 
 	// DB 는 P01/P02/P03, 화면은 T1/T2 다. 탑승동(P02)은 T1 에 붙는다

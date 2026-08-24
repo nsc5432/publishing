@@ -480,7 +480,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setCardId(fcltType.getValue() + "-" + unitCd);
 		result.setFcltType(isChkn ? FcltType.CHKN : FcltType.DEP);
 		result.setIsland(isChkn ? unitCd : EMPTY);
-		result.setDepNum(isChkn ? EMPTY : unitCd);
+		result.setDptgtNo(isChkn ? EMPTY : unitCd);
 		result.setFcltNm(isChkn ? unitCd : unitCd + "번");
 		// 카드 부제(예: 좌측 B4~B8)를 만들 배치 정보가 없다 (D7)
 		result.setFcltDesc(EMPTY);

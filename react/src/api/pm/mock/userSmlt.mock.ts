@@ -55,10 +55,10 @@ function toChart(totCnt: number, maxCnt: number, ratios: number[]): FltPsgChartD
 function toHourList(seed: Array<[number, number]>) {
     const pad = (hour: number) => `${String(hour).padStart(2, '0')}00`;
 
-    return seed.map(([adjRate, psgCnt], i) => ({
+    return seed.map(([ajmtRt, psgCnt], i) => ({
         bgnTime: pad(4 + i),
         endTime: pad(5 + i),
-        adjRate,
+        ajmtRt,
         psgCnt,
     }));
 }
@@ -70,8 +70,8 @@ const FLT_PSG: Record<TmnlId, UserSmltFltPsgDto> = {
         fltCnt: 15,
         psgCnt: 1234567,
         peakTime: '1400',
-        adjType: 'RATIO',
-        adjRate: 10,
+        ajmtTypeCd: 'RATIO',
+        ajmtRt: 10,
         fltChart: toChart(1234, 300, [5, 8, 6, 33, 40, 67, 68, 67, 33, 33, 16, 6]),
         psgChart: toChart(1234567, 90000, [6, 10, 7, 34, 39, 68, 68, 67, 34, 33, 15, 6]),
         hourList: toHourList([
@@ -95,8 +95,8 @@ const FLT_PSG: Record<TmnlId, UserSmltFltPsgDto> = {
         fltCnt: 9,
         psgCnt: 842310,
         peakTime: '1600',
-        adjType: 'RATIO',
-        adjRate: 0,
+        ajmtTypeCd: 'RATIO',
+        ajmtRt: 0,
         fltChart: toChart(842, 300, [4, 6, 9, 22, 31, 44, 52, 48, 27, 21, 11, 5]),
         psgChart: toChart(842310, 90000, [5, 7, 10, 23, 30, 45, 53, 47, 26, 20, 12, 4]),
         hourList: toHourList([
@@ -139,8 +139,8 @@ type IslandSeed = [string, number, number, string[], number, number];
 
 function toIsland([
     island,
-    bgnHour,
-    endHour,
+    operBgngHour,
+    operEndHour,
     alnCds,
     kioskCnt,
     bagDropCnt,
@@ -150,8 +150,8 @@ function toIsland([
         boothCnt: alnCds.length,
         kioskCnt,
         bagDropCnt,
-        oprTimeList: [{ bgnHour, endHour }],
-        boothList: alnCds.map((alnCd, i) => ({ boothNo: i + 1, alnCd, customYn: 'N' })),
+        oprTimeList: [{ operBgngHour, operEndHour }],
+        boothList: alnCds.map((alnCd, i) => ({ boothNo: i + 1, alnCd, cstmAltmntYn: 'N' })),
     };
 }
 
@@ -194,8 +194,8 @@ function peakCounterCnt(islands: ChknIslandDto[]): number {
     const byHour: number[] = Array(24).fill(0);
 
     islands.forEach((island) => {
-        island.oprTimeList.forEach(({ bgnHour, endHour }) => {
-            for (let hour = bgnHour; hour < endHour; hour += 1) byHour[hour] += island.boothCnt;
+        island.oprTimeList.forEach(({ operBgngHour, operEndHour }) => {
+            for (let hour = operBgngHour; hour < operEndHour; hour += 1) byHour[hour] += island.boothCnt;
         });
     });
 
@@ -237,34 +237,34 @@ type DepSeed = [
     Array<[number, number, number]>,
 ];
 
-function toDep([
-    depNum,
-    bgnHour,
-    endHour,
+function toDptgt([
+    dptgtNo,
+    operBgngHour,
+    operEndHour,
     off,
-    scCnt,
-    normalCnt,
-    smartPassCnt,
+    scshCntom,
+    gnrlSrchCntom,
+    smartPassSrchCntom,
     plans,
 ]: DepSeed): UserSmltDepItemDto {
     return {
-        depNum,
-        depNm: `출국장 ${depNum}`,
+        dptgtNo,
+        dptgtNm: `출국장 ${dptgtNo}`,
         oprYn: off ? 'N' : 'Y',
-        scCnt,
-        normalCnt,
-        smartPassCnt,
-        oprTimeList: [{ bgnHour, endHour }],
+        scshCntom,
+        gnrlSrchCntom,
+        smartPassSrchCntom,
+        oprTimeList: [{ operBgngHour, operEndHour }],
         planList: plans.map(([planBgn, planEnd, cnt], i) => ({
             planSn: i + 1,
-            bgnHour: planBgn,
-            endHour: planEnd,
-            scCnt: cnt,
+            operBgngHour: planBgn,
+            operEndHour: planEnd,
+            scshCntom: cnt,
         })),
     };
 }
 
-const DEP_GATES: Record<TmnlId, DepSeed[]> = {
+const DPTGT_GATES: Record<TmnlId, DepSeed[]> = {
     T1: [
         [
             '1',
@@ -329,7 +329,7 @@ const DEP_GATES: Record<TmnlId, DepSeed[]> = {
     ],
 };
 
-const DEP_WAIT: Record<TmnlId, number[]> = {
+const DPTGT_WAIT: Record<TmnlId, number[]> = {
     T1: [
         0, 0, 0, 0, 0, 25, 90, 180, 260, 230, 190, 210, 240, 270, 220, 180, 150, 120, 95, 65, 35,
         12, 0, 0,
@@ -337,21 +337,21 @@ const DEP_WAIT: Record<TmnlId, number[]> = {
     T2: [0, 0, 0, 0, 0, 0, 0, 30, 55, 48, 40, 44, 50, 58, 47, 38, 30, 24, 18, 12, 6, 0, 0, 0],
 };
 
-const DEP_KPI: Record<TmnlId, SmltKpiDto> = {
+const DPTGT_KPI: Record<TmnlId, SmltKpiDto> = {
     T1: { avgWaitMin: 15, p95WaitMin: 12, maxQueuePsgCnt: 20, utilRate: 84 },
     T2: { avgWaitMin: 6, p95WaitMin: 5, maxQueuePsgCnt: 8, utilRate: 47 },
 };
 
 /** 피크 검색대 = 시간대별 검색대 합의 최댓값 (미운영 출국장은 뺀다) */
-function peakScCnt(depList: UserSmltDepItemDto[]): number {
+function peakScshCntom(dptgtList: UserSmltDepItemDto[]): number {
     const byHour: number[] = Array(24).fill(0);
 
-    depList
+    dptgtList
         .filter((dep) => dep.oprYn === 'Y')
         .forEach((dep) => {
             dep.planList.forEach((plan) => {
-                for (let hour = plan.bgnHour; hour < plan.endHour; hour += 1) {
-                    byHour[hour] += plan.scCnt;
+                for (let hour = plan.operBgngHour; hour < plan.operEndHour; hour += 1) {
+                    byHour[hour] += plan.scshCntom;
                 }
             });
         });
@@ -360,16 +360,16 @@ function peakScCnt(depList: UserSmltDepItemDto[]): number {
 }
 
 function buildDep(tmnlId: TmnlId): UserSmltDepDto {
-    const depList = DEP_GATES[tmnlId].map(toDep);
+    const dptgtList = DPTGT_GATES[tmnlId].map(toDptgt);
 
     return {
         ...OK,
         tmnlId,
-        peakScCnt: peakScCnt(depList),
+        peakScshCntom: peakScshCntom(dptgtList),
         waitMaxCnt: 300,
-        depList,
-        waitList: toWaitList(DEP_WAIT[tmnlId]),
-        kpi: DEP_KPI[tmnlId],
+        dptgtList,
+        waitList: toWaitList(DPTGT_WAIT[tmnlId]),
+        kpi: DPTGT_KPI[tmnlId],
     };
 }
 
@@ -393,7 +393,7 @@ const CHKN_MARKERS: Array<[string, number, number]> = [
 ];
 
 /** 출국장 마커 */
-const DEP_MARKERS: Record<TmnlId, Array<[string, number, number]>> = {
+const DPTGT_MARKERS: Record<TmnlId, Array<[string, number, number]>> = {
     T1: [
         ['6', 16.65, 79.59],
         ['5', 27.16, 69.76],
@@ -410,7 +410,9 @@ const DEP_MARKERS: Record<TmnlId, Array<[string, number, number]>> = {
 
 function toMarkerList(tmnlId: TmnlId, fcltType: FcltType, island: string): MapMarkerDto[] {
     const seeds =
-        fcltType === 'CHKN' || fcltType === 'SLFCHKN' ? CHKN_MARKERS : DEP_MARKERS[tmnlId];
+        fcltType === 'CHKN' || fcltType === 'SLFCHKN'
+            ? CHKN_MARKERS
+            : DPTGT_MARKERS[tmnlId];
 
     return seeds
         .filter(([label]) => !island || label === island)
@@ -428,7 +430,7 @@ export const userSmltMock = {
         smltId: SMLT_ID[tmnlId],
         ymd: ymd || YMD,
         saveDt: SAVE_DT,
-        execStatus: 'DONE',
+        smltFlfmtSttsCd: 'DONE',
     }),
 
     getFltPsgInfo: (tmnlId: TmnlId): UserSmltFltPsgDto => FLT_PSG[tmnlId],
@@ -452,8 +454,8 @@ export const userSmltMock = {
     execute: (smltId: string): UserSmltExecDto => ({
         ...OK,
         smltId,
-        execSn: 1,
-        execStatus: 'RUNNING',
-        bgnDt: SAVE_DT,
+        smltFlfmtSn: 1,
+        smltFlfmtSttsCd: 'RUNNING',
+        smltFlfmtBgngDt: SAVE_DT,
     }),
 };

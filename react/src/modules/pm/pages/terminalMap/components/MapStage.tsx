@@ -8,7 +8,7 @@ interface MapStageProps {
     data: TerminalMapData;
     activeMarkerId?: string;
     onIslandClick: (island: IslandMarker) => void;
-    onDepGateClick: (depGate: DepGateMarker) => void;
+    onDepGateClick: (dptgtGate: DepGateMarker) => void;
 }
 
 export function MapStage({
@@ -30,19 +30,19 @@ export function MapStage({
                 focusable="false"
             />
             <div className="markers">
-                {data.depGates.map((depGate) => (
+                {data.dptgtGates.map((dptgtGate) => (
                     <button
                         type="button"
-                        key={depGate.id}
+                        key={dptgtGate.id}
                         className={`marker marker--dep-gate${
-                            depGate.id === activeMarkerId ? ' is-active' : ''
+                            dptgtGate.id === activeMarkerId ? ' is-active' : ''
                         }`}
-                        data-congestion={depGate.cgnStatus}
-                        style={toStagePosition(depGate.x, depGate.y)}
-                        aria-label={`출국장 ${depGate.label}`}
-                        onClick={() => onDepGateClick(depGate)}
+                        data-congestion={dptgtGate.cgnStatus}
+                        style={toStagePosition(dptgtGate.x, dptgtGate.y)}
+                        aria-label={`출국장 ${dptgtGate.label}`}
+                        onClick={() => onDepGateClick(dptgtGate)}
                     >
-                        {depGate.label}
+                        {dptgtGate.label}
                     </button>
                 ))}
                 {data.islands.map((island) => (

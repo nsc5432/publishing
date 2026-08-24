@@ -56,7 +56,7 @@ function TerminalMap() {
     // 타임라인이 가리키는 시각의 값 — 받아 둔 하루치에서 자리만 옮긴다.
     const slot = mapDay?.slots[timeline.hhmm] ?? EMPTY_MAP_SLOT;
     const islandDetail = selectedIsland ? slot.islandDetails[selectedIsland.label] : null;
-    const depGateDetail = selectedDepGate ? slot.depGateDetails[selectedDepGate.label] : null;
+    const dptgtGateDetail = selectedDepGate ? slot.dptgtGateDetails[selectedDepGate.label] : null;
 
     // 팝업은 한 번에 하나만 열린다
     const handleIslandClick = (island: IslandMarker) => {
@@ -64,9 +64,9 @@ function TerminalMap() {
         setSelectedIsland(island);
     };
 
-    const handleDepGateClick = (depGate: DepGateMarker) => {
+    const handleDepGateClick = (dptgtGate: DepGateMarker) => {
         setSelectedIsland(null);
-        setSelectedDepGate(depGate);
+        setSelectedDepGate(dptgtGate);
     };
 
     const handleTerminalChange = (nextTerminal: TerminalKind) => {
@@ -121,9 +121,9 @@ function TerminalMap() {
                 <IslandModal detail={islandDetail} onClose={() => setSelectedIsland(null)} />
             )}
 
-            {depGateDetail && (
+            {dptgtGateDetail && (
                 <FacilityMiniModal
-                    detail={depGateDetail}
+                    detail={dptgtGateDetail}
                     onClose={() => setSelectedDepGate(null)}
                 />
             )}
