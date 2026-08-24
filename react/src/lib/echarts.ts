@@ -12,6 +12,7 @@ import { BarChart, CustomChart, GaugeChart, LineChart } from 'echarts/charts';
 import {
     GraphicComponent,
     GridComponent,
+    LegendComponent,
     MarkLineComponent,
     MarkPointComponent,
     TooltipComponent,
@@ -26,6 +27,7 @@ echarts.use([
     LineChart,
     GraphicComponent,
     GridComponent,
+    LegendComponent,
     MarkLineComponent,
     MarkPointComponent,
     TooltipComponent,

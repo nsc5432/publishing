@@ -16,6 +16,7 @@ export function DatasetTabs({ tabs, activeIndex, onSelect }: DatasetTabsProps) {
                     className="cast-config-dataset-tab"
                     role="tab"
                     aria-selected={index === activeIndex}
+                    aria-controls="cast-config-grid-panel"
                     tabIndex={index === activeIndex ? 0 : -1}
                     onClick={() => onSelect(index)}
                 >

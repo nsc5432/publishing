@@ -39,11 +39,11 @@ export function FlowDiagram({ terminal, groups, onOpenGroup }: FlowDiagramProps)
     const terminalIcon = TERMINAL_ICON[terminal];
 
     return (
-        <section className="cast-config-scene" aria-labelledby="cast-config-flow-title">
+        <section className="cast-config-scene" aria-labelledby={`cast-config-flow-title-${terminal}`}>
             <header className="cast-config-scene__head">
                 <div className="cast-config-scene__terminal">
                     <img src={terminalIcon} alt="" className="cast-config-scene__terminal-icon" />
-                    <h2 id="cast-config-flow-title">{TERMINAL_LABEL[terminal]}</h2>
+                    <h2 id={`cast-config-flow-title-${terminal}`}>{TERMINAL_LABEL[terminal]}</h2>
                 </div>
             </header>
 

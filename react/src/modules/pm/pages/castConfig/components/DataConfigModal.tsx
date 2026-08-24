@@ -2,15 +2,24 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { castConfigService } from '@/api/pm/services/castConfig.service';
 import { unwrap } from '@/api/pm/result';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
+import { downloadCsv } from '@/lib/csv';
 import { dialog } from '@/lib/dialog';
-import type { ApiError, CastConfigSaveItemDto } from '@/types/api.types';
-import { toCellKey } from '../cell';
-import type { DraftChanges, FacilityGroup, GridRow, TerminalKind } from '../types';
-import { EMPTY_CAST_CONFIG_DATASET } from '../view';
+import { formatCount } from '@/lib/format';
+import type { ApiError, CastConfigCategorySaveDto, CastConfigSaveItemDto } from '@/types/api.types';
+import { CFMTN_COLUMN, USE_COLUMN, toCellKey } from '../cell';
+import type { Category, Dataset, DraftChanges, FacilityGroup, GridRow, TerminalKind } from '../types';
+import { readCellValue, toShapeColumns, validateDataset } from '../view';
+import { useCastConfigCategories } from '../hooks/useCastConfigCategories';
 import { useCastConfigDataset } from '../hooks/useCastConfigDataset';
+import { useDatasetDraft } from '../hooks/useDatasetDraft';
+import { CategoryBar } from './CategoryBar';
+import { CategoryManagerModal } from './CategoryManagerModal';
+import { CategoryRegisterModal } from './CategoryRegisterModal';
+import { CumulativeChart } from './CumulativeChart';
 import { DataGrid } from './DataGrid';
 import { DatasetTabs } from './DatasetTabs';
 import { GridToolbar } from './GridToolbar';
+import { Pagination } from './Pagination';
 
 interface DataConfigModalProps {
     terminal: TerminalKind;
@@ -18,62 +27,96 @@ interface DataConfigModalProps {
     onClose: () => void;
 }
 
+type Layer = 'none' | 'register' | 'manage';
+
 const PAGE_SIZE = 25;
 const SAVE_FAIL = '변경사항을 저장하지 못했습니다.';
-const CLOSE_WARNING = '저장하지 않은 변경사항이 있습니다. 닫으시겠습니까?';
+const DISCARD_WARNING = '저장하지 않은 변경사항이 있습니다. 계속하시겠습니까?';
 
-function toSaveItems(drafts: DraftChanges): CastConfigSaveItemDto[] {
+function toSaveItems(categoryCode: string, drafts: DraftChanges): CastConfigSaveItemDto[] {
     return Object.entries(drafts).map(([key, value]) => {
         const [sheetNm, rowNo, column] = key.split('::');
-        return { sheetNm, rowNo: Number(rowNo), column, value };
+        return { fixAtrbGroupId: categoryCode, sheetNm, rowNo: Number(rowNo), column, value };
     });
 }
 
-function includesQuery(row: GridRow, sheetName: string, drafts: DraftChanges, query: string): boolean {
-    return Object.entries(row.cells).some(([column, cell]) => {
-        const key = toCellKey(sheetName, row.rowNo, column);
-        return (drafts[key] ?? cell.value).toLocaleLowerCase('ko-KR').includes(query);
-    });
+function toOriginalValue(row: GridRow, column: string): string {
+    if (column === CFMTN_COLUMN) return row.confirmed ? 'Y' : 'N';
+    if (column === USE_COLUMN) return row.inUse ? 'Y' : 'N';
+
+    return row.cells[column]?.value ?? '';
+}
+
+function includesQuery(dataset: Dataset, row: GridRow, drafts: DraftChanges, query: string): boolean {
+    return dataset.columns.some((column) =>
+        readCellValue(dataset.sheetName, row, column.key, drafts).toLocaleLowerCase('ko-KR').includes(query),
+    );
 }
 
 export function DataConfigModal({ terminal, group, onClose }: DataConfigModalProps) {
+    const [categoryCode, setCategoryCode] = useState('');
     const [activeTab, setActiveTab] = useState(0);
     const [query, setQuery] = useState('');
     const [page, setPage] = useState(1);
-    const [drafts, setDrafts] = useState<DraftChanges>({});
+    const [reloadToken, setReloadToken] = useState(0);
+    const [layer, setLayer] = useState<Layer>('none');
+    const [previewOpen, setPreviewOpen] = useState(false);
     const [saving, setSaving] = useState(false);
     const closeButtonRef = useRef<HTMLButtonElement>(null);
     const gridRef = useRef<HTMLDivElement>(null);
-    const activeSheet = group.datasets[activeTab]?.sheetName ?? '';
 
-    const datasetQuery = useMemo(() => (activeSheet ? { terminal, groupId: group.id, sheetName: activeSheet } : null), [activeSheet, group.id, terminal]);
+    const draft = useDatasetDraft();
+    const { drafts } = draft;
+
+    const categoryQuery = useMemo(() => ({ terminal }), [terminal]);
+    const fetchedCategories = useCastConfigCategories(categoryQuery);
+    const categories = fetchedCategories.data;
+    const current: Category | null = categories.find((category) => category.code === categoryCode) ?? categories[0] ?? null;
+    const readOnly = current?.isBase ?? true;
+
+    const activeSheet = group.datasets[activeTab]?.sheetName ?? '';
+    const datasetQuery = useMemo(
+        () =>
+            activeSheet && current
+                ? { terminal, categoryCode: current.code, groupId: group.id, sheetName: activeSheet, reloadToken }
+                : null,
+        [activeSheet, current, group.id, reloadToken, terminal],
+    );
     const fetched = useCastConfigDataset(datasetQuery);
-    const dataset = fetched.data ?? EMPTY_CAST_CONFIG_DATASET;
+    const dataset = fetched.data;
+
     const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR');
     const filteredRows = useMemo(
-        () => (normalizedQuery ? dataset.rows.filter((row) => includesQuery(row, dataset.sheetName, drafts, normalizedQuery)) : dataset.rows),
+        () => (normalizedQuery ? dataset.rows.filter((row) => includesQuery(dataset, row, drafts, normalizedQuery)) : dataset.rows),
         [dataset, drafts, normalizedQuery],
     );
     const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
     const currentPage = Math.min(page, totalPages);
     const pageRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-    const changeCount = Object.keys(drafts).length;
 
+    const totalChangeCount = Object.keys(drafts).length;
+    const sheetChangeCount = useMemo(
+        () => Object.keys(drafts).filter((key) => key.startsWith(`${activeSheet}::`)).length,
+        [drafts, activeSheet],
+    );
+
+    useErrorAlert(fetchedCategories.error, fetchedCategories.token);
     useErrorAlert(fetched.error, fetched.token);
 
-    const requestClose = useCallback(() => {
-        if (changeCount === 0) {
-            onClose();
-            return;
-        }
+    /** 편집분을 버려야 하는 동작 앞에 한 번 묻는다 */
+    const confirmDiscard = useCallback(async () => {
+        if (totalChangeCount === 0) return true;
 
-        dialog
-            .confirm({ title: 'Cast 설정', description: CLOSE_WARNING })
+        return dialog.confirm({ title: 'Cast 설정', description: DISCARD_WARNING }).catch(() => false);
+    }, [totalChangeCount]);
+
+    const requestClose = useCallback(() => {
+        confirmDiscard()
             .then((ok) => {
                 if (ok) onClose();
             })
             .catch(() => {});
-    }, [changeCount, onClose]);
+    }, [confirmDiscard, onClose]);
 
     useEffect(() => {
         const previousFocus = document.activeElement as HTMLElement | null;
@@ -91,61 +134,174 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
         const onKeyDown = (event: KeyboardEvent) => {
             if (event.key !== 'Escape' || document.querySelector('[role="alertdialog"]')) return;
             event.preventDefault();
-            requestClose();
+            if (layer !== 'none') setLayer('none');
+            else requestClose();
         };
 
         document.addEventListener('keydown', onKeyDown);
         return () => document.removeEventListener('keydown', onKeyDown);
-    }, [requestClose]);
+    }, [layer, requestClose]);
 
     const handleTabSelect = (index: number) => {
         setActiveTab(index);
         setQuery('');
         setPage(1);
+        draft.clearSelection();
         gridRef.current?.scrollTo({ top: 0, left: 0 });
     };
 
-    const handleQueryChange = (value: string) => {
-        setQuery(value);
-        setPage(1);
+    const handleCategorySelect = (code: string) => {
+        if (code === current?.code) return;
+
+        confirmDiscard()
+            .then((ok) => {
+                if (!ok) return;
+
+                draft.clearAll();
+                draft.clearSelection();
+                setCategoryCode(code);
+                setPage(1);
+                setLayer('none');
+            })
+            .catch(() => {});
     };
 
     const handleCellChange = (row: GridRow, column: string, value: string) => {
-        const key = toCellKey(dataset.sheetName, row.rowNo, column);
-        const original = row.cells[column]?.value ?? '';
+        draft.setValue(toCellKey(dataset.sheetName, row.rowNo, column), value, toOriginalValue(row, column));
 
-        setDrafts((previous) => {
-            if (value !== original) return { ...previous, [key]: value };
-            if (previous[key] === undefined) return previous;
+        // 분포 함수유형을 바꾸면 더 이상 쓰이지 않는 값 칸의 편집분은 의미가 없다
+        if (column !== dataset.shapeColumn) return;
 
-            const next = { ...previous };
-            delete next[key];
-            return next;
-        });
+        const driver = dataset.columns.find((candidate) => candidate.key === column);
+        const nextActive = new Set(driver?.options.find((option) => option.code === value)?.shapeColumns ?? []);
+        const stale = [...toShapeColumns(dataset)].filter((shapeColumn) => !nextActive.has(shapeColumn));
+
+        draft.removeKeys(stale.map((shapeColumn) => toCellKey(dataset.sheetName, row.rowNo, shapeColumn)));
     };
 
-    const handlePageChange = (nextPage: number) => {
-        setPage(nextPage);
-        gridRef.current?.scrollTo({ top: 0 });
+    const handleBulkStatus = (column: string, value: string) => {
+        for (const row of dataset.rows) {
+            if (!draft.selected.has(row.rowNo)) continue;
+            draft.setValue(toCellKey(dataset.sheetName, row.rowNo, column), value, toOriginalValue(row, column));
+        }
+    };
+
+    const handleDownload = () => {
+        if (filteredRows.length === 0) {
+            dialog.alert({ title: '엑셀저장', description: '저장할 행이 없습니다.' }).catch(() => {});
+            return;
+        }
+
+        downloadCsv(
+            `${dataset.sheetName}_${terminal}_${current?.code ?? ''}.csv`,
+            [...dataset.columns.map((column) => column.label), '처리상태', '확정여부', '사용여부'],
+            filteredRows.map((row) => [
+                ...dataset.columns.map((column) => readCellValue(dataset.sheetName, row, column.key, drafts)),
+                row.status,
+                row.confirmed ? '승인' : '미승인',
+                row.inUse ? '사용' : '미사용',
+            ]),
+        );
+    };
+
+    const runAndReload = (title: string, run: () => Promise<unknown>) => {
+        setSaving(true);
+        run()
+            .then(() => {
+                setSaving(false);
+                draft.clearSheet(dataset.sheetName);
+                draft.clearSelection();
+                setReloadToken((token) => token + 1);
+            })
+            .catch((error: ApiError) => {
+                setSaving(false);
+                dialog.alert({ title, description: error?.message || '요청을 처리하지 못했습니다.' }).catch(() => {});
+            });
+    };
+
+    const handleUpload = (file: File) => {
+        if (!current) return;
+
+        runAndReload('엑셀업로드', () =>
+            castConfigService.uploadExcel(terminal, current.code, dataset.sheetName, file).then((dto) => unwrap(dto, '엑셀을 반영하지 못했습니다.')),
+        );
+    };
+
+    const handleApplyDefault = () => {
+        if (!current) return;
+
+        const rowNoList = [...draft.selected];
+        const scope = rowNoList.length > 0 ? `선택한 ${formatCount(rowNoList.length)}개 행` : '이 시트 전체';
+
+        dialog
+            .confirm({ title: '디폴트속성적용', description: `${scope}을 기준정보 값으로 되돌립니다. 계속하시겠습니까?` })
+            .then((ok) => {
+                if (!ok) return;
+
+                runAndReload('디폴트속성적용', () =>
+                    castConfigService
+                        .applyDefault(terminal, current.code, dataset.sheetName, rowNoList)
+                        .then((dto) => unwrap(dto, '기준정보를 적용하지 못했습니다.')),
+                );
+            })
+            .catch(() => {});
+    };
+
+    const handleReset = () => {
+        if (sheetChangeCount === 0) return;
+
+        dialog
+            .confirm({ title: '초기화', description: '이 시트의 편집 내용을 모두 버립니다. 계속하시겠습니까?' })
+            .then((ok) => {
+                if (!ok) return;
+
+                draft.clearSheet(dataset.sheetName);
+                draft.clearSelection();
+                setReloadToken((token) => token + 1);
+            })
+            .catch(() => {});
+    };
+
+    const handleCategorySave = (dto: CastConfigCategorySaveDto) => {
+        setSaving(true);
+        castConfigService
+            .saveCategory(terminal, dto)
+            .then((response) => unwrap(response, '카테고리를 등록하지 못했습니다.'))
+            .then(() => {
+                setSaving(false);
+                setLayer('none');
+                draft.clearAll();
+                draft.clearSelection();
+                setCategoryCode(dto.fixAtrbGroupId);
+                setReloadToken((token) => token + 1);
+            })
+            .catch((error: ApiError) => {
+                setSaving(false);
+                dialog.alert({ title: '카테고리 등록', description: error?.message || '카테고리를 등록하지 못했습니다.' }).catch(() => {});
+            });
     };
 
     const handleSave = () => {
-        const itemList = toSaveItems(drafts);
-        if (itemList.length === 0 || saving) return;
+        if (totalChangeCount === 0 || saving || !current) return;
 
+        const messages = validateDataset(dataset, drafts);
+        if (messages.length > 0) {
+            dialog.alert({ title: '저장 전 확인', description: messages.join('\n') }).catch(() => {});
+            return;
+        }
+
+        const itemList = toSaveItems(current.code, drafts);
         setSaving(true);
         castConfigService
             .saveDataset(terminal, itemList)
             .then((dto) => unwrap(dto, SAVE_FAIL))
             .then(() => {
                 setSaving(false);
-                setDrafts({});
-                onClose();
+                draft.clearAll();
+                draft.clearSelection();
+                setReloadToken((token) => token + 1);
                 dialog
-                    .alert({
-                        title: '저장 완료',
-                        description: `${itemList.length.toLocaleString('ko-KR')}개 변경사항을 저장했습니다.`,
-                    })
+                    .alert({ title: '저장 완료', description: `${formatCount(itemList.length)}개 변경사항을 저장했습니다.` })
                     .catch(() => {});
             })
             .catch((error: ApiError) => {
@@ -187,52 +343,109 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                     </button>
                 </header>
 
+                <CategoryBar
+                    categories={categories}
+                    current={current}
+                    onSelect={handleCategorySelect}
+                    onRegister={() => setLayer('register')}
+                    onManage={() => setLayer('manage')}
+                />
+
                 <DatasetTabs tabs={group.datasets} activeIndex={activeTab} onSelect={handleTabSelect} />
+
                 <GridToolbar
+                    sheetName={dataset.sheetName || activeSheet}
                     query={query}
                     rowCount={filteredRows.length}
                     dimension={dataset.dimension}
-                    changeCount={changeCount}
-                    onQueryChange={handleQueryChange}
+                    sheetChangeCount={sheetChangeCount}
+                    totalChangeCount={totalChangeCount}
+                    readOnly={readOnly}
+                    onQueryChange={(value) => {
+                        setQuery(value);
+                        setPage(1);
+                    }}
+                    onDownload={handleDownload}
+                    onUpload={handleUpload}
+                    onApplyDefault={handleApplyDefault}
+                    onReset={handleReset}
                 />
 
-                <div ref={gridRef} className="cast-config-grid-container">
-                    <DataGrid dataset={dataset} rows={pageRows} drafts={drafts} emptyMessage={emptyMessage} onCellChange={handleCellChange} />
+                {dataset.validation?.kind === 'cumulative' && (
+                    <div className="cast-config-preview-wrap">
+                        <button type="button" className="cast-config-preview-toggle" aria-expanded={previewOpen} onClick={() => setPreviewOpen((open) => !open)}>
+                            {previewOpen ? '▾' : '▸'} 누적곡선 미리보기
+                        </button>
+                        {previewOpen && <CumulativeChart dataset={dataset} rule={dataset.validation} drafts={drafts} />}
+                    </div>
+                )}
+
+                <div ref={gridRef} className="cast-config-grid-container" role="tabpanel" id="cast-config-grid-panel">
+                    <DataGrid
+                        dataset={dataset}
+                        rows={pageRows}
+                        drafts={drafts}
+                        readOnly={readOnly}
+                        selected={draft.selected}
+                        emptyMessage={emptyMessage}
+                        onCellChange={handleCellChange}
+                        onToggleRow={draft.toggleRow}
+                        onToggleAll={draft.toggleAll}
+                    />
                 </div>
 
-                <footer className="cast-config-modal__footer">
-                    <div className="cast-config-pagination">
-                        <button
-                            type="button"
-                            className="cast-config-page-button"
-                            aria-label="이전 페이지"
-                            disabled={currentPage <= 1}
-                            onClick={() => handlePageChange(currentPage - 1)}
-                        >
-                            ‹
+                {!readOnly && draft.selected.size > 0 && (
+                    <div className="cast-config-bulk-bar">
+                        <span>{formatCount(draft.selected.size)}행 선택</span>
+                        <button type="button" className="cast-config-ghost-button" onClick={() => handleBulkStatus(CFMTN_COLUMN, 'Y')}>
+                            확정
                         </button>
-                        <span>
-                            {filteredRows.length === 0 ? 0 : currentPage.toLocaleString('ko-KR')} /{' '}
-                            {filteredRows.length === 0 ? 0 : totalPages.toLocaleString('ko-KR')}
-                        </span>
-                        <button
-                            type="button"
-                            className="cast-config-page-button"
-                            aria-label="다음 페이지"
-                            disabled={currentPage >= totalPages}
-                            onClick={() => handlePageChange(currentPage + 1)}
-                        >
-                            ›
+                        <button type="button" className="cast-config-ghost-button" onClick={() => handleBulkStatus(CFMTN_COLUMN, 'N')}>
+                            미확정
+                        </button>
+                        <button type="button" className="cast-config-ghost-button" onClick={() => handleBulkStatus(USE_COLUMN, 'Y')}>
+                            사용
+                        </button>
+                        <button type="button" className="cast-config-ghost-button" onClick={() => handleBulkStatus(USE_COLUMN, 'N')}>
+                            미사용
+                        </button>
+                        <button type="button" className="cast-config-ghost-button" onClick={draft.clearSelection}>
+                            선택 해제
                         </button>
                     </div>
+                )}
+
+                <footer className="cast-config-modal__footer">
+                    <Pagination page={currentPage} totalPages={totalPages} onChange={(next) => {
+                        setPage(next);
+                        gridRef.current?.scrollTo({ top: 0 });
+                    }} />
                     <button type="button" className="cast-config-ghost-button" onClick={requestClose}>
                         취소
                     </button>
-                    <button type="button" className="cast-config-primary-button" disabled={changeCount === 0 || saving} onClick={handleSave}>
-                        {saving ? '저장 중' : '변경사항 저장'}
+                    <button type="button" className="cast-config-primary-button" disabled={totalChangeCount === 0 || saving || readOnly} onClick={handleSave}>
+                        {saving ? '저장 중' : '저장'}
                     </button>
                 </footer>
             </section>
+
+            {layer === 'register' && (
+                <CategoryRegisterModal
+                    sheetNames={group.datasets.map((tab) => tab.sheetName)}
+                    saving={saving}
+                    onSubmit={handleCategorySave}
+                    onClose={() => setLayer('none')}
+                />
+            )}
+
+            {layer === 'manage' && (
+                <CategoryManagerModal
+                    categories={categories}
+                    currentCode={current?.code ?? ''}
+                    onSelect={handleCategorySelect}
+                    onClose={() => setLayer('none')}
+                />
+            )}
         </div>
     );
 }

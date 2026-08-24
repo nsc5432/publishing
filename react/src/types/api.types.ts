@@ -702,15 +702,67 @@ export interface CastConfigDatasetSummaryDto {
     rowCnt: number;
 }
 
+export type CastConfigColumnType = 'TEXT' | 'NUMBER' | 'SELECT' | 'TIME' | 'READONLY';
+
+export type CastConfigValidationKind = 'SUM' | 'CUMULATIVE';
+
+/** 속성그룹(TN_PM_SMLT_FIX_ATRB_GROUP) — 설계서의 '카테고리' */
+export interface CastConfigCategoryDto {
+    fixAtrbGroupId: string; // 고정속성그룹아이디 (PK, 카테고리 코드)
+    atrbGroupNm: string; // 속성그룹명
+    baseYn: YnFlag; // Y = 기준정보 (편집 불가)
+    cfmtnYn: YnFlag; // 확정여부
+    groupPrcsSttsCd: string; // 그룹처리상태코드
+    frstRegDt: string; // 최초등록일시 (yyyyMMddHHmmss)
+}
+
+export interface CastConfigCategoryListDto extends JsonResponse {
+    totalCnt: number;
+    categoryList: CastConfigCategoryDto[];
+}
+
+export interface CastConfigCategorySaveDto {
+    fixAtrbGroupId: string;
+    atrbGroupNm: string;
+    frstRegDt: string;
+    sheetNmList: string[]; // 새 카테고리에 포함할 시트
+}
+
+export interface CastConfigOptionDto {
+    code: string;
+    label: string;
+    shapeColumnList: string[]; // 이 옵션을 고르면 활성화되는 값 컬럼
+}
+
+export interface CastConfigColumnDto {
+    column: string;
+    label: string;
+    type: CastConfigColumnType;
+    optionList: CastConfigOptionDto[];
+    mergeYn: YnFlag; // 위 행과 값이 같으면 세로 병합
+}
+
+export interface CastConfigValidationDto {
+    kind: CastConfigValidationKind;
+    column: string;
+    groupColumn: string;
+    target: number;
+}
+
 export interface CastConfigDatasetDto extends JsonResponse {
     sheetNm: string;
     dimension: string;
-    columnList: string[];
+    columnList: CastConfigColumnDto[];
     rowList: CastConfigGridRowDto[];
+    shapeColumn: string; // 값 컬럼의 활성 여부를 결정하는 컬럼 ('' = 없음)
+    validation: CastConfigValidationDto | null;
 }
 
 export interface CastConfigGridRowDto {
     rowNo: number;
+    prcsSttsCd: string; // 처리상태코드
+    cfmtnYn: YnFlag; // 확정여부
+    useYn: YnFlag; // 사용여부
     cellList: CastConfigGridCellDto[];
 }
 
@@ -722,6 +774,7 @@ export interface CastConfigGridCellDto {
 }
 
 export interface CastConfigSaveItemDto {
+    fixAtrbGroupId: string;
     sheetNm: string;
     rowNo: number;
     column: string;

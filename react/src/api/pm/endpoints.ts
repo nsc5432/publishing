@@ -43,7 +43,12 @@ export const API_ENDPOINTS = {
     FCLT_MAP_LIST: prefix + '/fclt/retrieveFcltMapList',
     FCLT_MAP_SAVE: prefix + '/fclt/saveFcltMapList',
 
+    // Cast 설정
     CAST_CONFIG_GROUP_LIST: prefix + '/cast-config/retrieveGroupList',
     CAST_CONFIG_DATASET: prefix + '/cast-config/retrieveDataset',
     CAST_CONFIG_SAVE: prefix + '/cast-config/saveDataset',
+    CAST_CONFIG_CATEGORY_LIST: prefix + '/cast-config/retrieveCategoryList',
+    CAST_CONFIG_CATEGORY_SAVE: prefix + '/cast-config/saveCategory',
+    CAST_CONFIG_DEFAULT_APPLY: prefix + '/cast-config/applyDefaultAttribute',
+    CAST_CONFIG_EXCEL_UPLOAD: prefix + '/cast-config/uploadExcel',
 };

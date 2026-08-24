@@ -5,6 +5,7 @@ import { unwrap } from '@/api/pm/result';
 import { Lnb } from '@/components/lnb';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
+import { downloadCsv } from '@/lib/csv';
 import { dialog } from '@/lib/dialog';
 import type { ApiError } from '@/types/api.types';
 import { EditBar } from './components/EditBar';
@@ -78,41 +79,17 @@ function filterRows(
     });
 }
 
-/** CSV 한 칸 — 쉼표·따옴표·줄바꿈이 섞여도 열이 밀리지 않게 감싼다 */
-function toCsvCell(value: string): string {
-    return `"${value.replace(/"/g, '""')}"`;
-}
-
-/**
- * 지금 보고 있는 목록을 그대로 파일로 내린다.
- *
- * 앞에 BOM 을 붙인다 — 없으면 엑셀이 UTF-8 로 읽지 않아 한글이 깨진다.
- */
-function downloadCsv(terminal: TerminalKind, rows: FcltMapRow[]): void {
-    const body = rows.map((row) =>
-        [
-            TERMINAL_LABEL[terminal],
-            row.groupName,
-            row.code,
-            row.name,
-            row.desc,
-            row.castName,
-            MAPPING_STATUS_LABEL[row.status],
-            row.modified,
-        ]
-            .map(toCsvCell)
-            .join(','),
-    );
-
-    const csv = '\uFEFF' + [CSV_COLUMNS.map(toCsvCell).join(','), ...body].join('\r\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `시설물매핑_${terminal}.csv`;
-    link.click();
-
-    URL.revokeObjectURL(url);
+function toCsvRows(terminal: TerminalKind, rows: FcltMapRow[]): string[][] {
+    return rows.map((row) => [
+        TERMINAL_LABEL[terminal],
+        row.groupName,
+        row.code,
+        row.name,
+        row.desc,
+        row.castName,
+        MAPPING_STATUS_LABEL[row.status],
+        row.modified,
+    ]);
 }
 
 /**
@@ -297,7 +274,7 @@ function FacilityMap() {
             return;
         }
 
-        downloadCsv(query.terminal, rows);
+        downloadCsv(`시설물매핑_${query.terminal}.csv`, CSV_COLUMNS, toCsvRows(query.terminal, rows));
     };
 
     return (

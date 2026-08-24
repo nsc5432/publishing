@@ -122,12 +122,6 @@ html[data-page='castConfig'] .cast-config-intro h2 {
     letter-spacing: -0.035em;
 }
 
-html[data-page='castConfig'] .cast-config-intro p {
-    color: var(--cast-muted);
-    font-size: 12px;
-    white-space: nowrap;
-}
-
 html[data-page='castConfig'] .cast-config-scene-row {
     display: flex;
     flex-direction: column;
@@ -178,12 +172,6 @@ html[data-page='castConfig'] .cast-config-scene h2 {
     font-size: clamp(17px, 1.3vw, 22px);
     font-weight: 520;
     letter-spacing: -0.035em;
-}
-
-html[data-page='castConfig'] .cast-config-scene__meta {
-    padding-top: 6px;
-    color: var(--cast-muted);
-    font-size: 11px;
 }
 
 html[data-page='castConfig'] .cast-config-flow-scroll {
@@ -625,11 +613,11 @@ html[data-page='castConfig'] .cast-config-data-grid th {
     white-space: nowrap;
 }
 
-html[data-page='castConfig'] .cast-config-data-grid th:first-child {
+html[data-page='castConfig'] .cast-config-data-grid th.cast-config-check-col {
     left: 0;
     z-index: 4;
-    min-width: 64px;
-    width: 64px;
+    min-width: 44px;
+    width: 44px;
     text-align: center;
 }
 
@@ -643,17 +631,16 @@ html[data-page='castConfig'] .cast-config-data-grid td {
     vertical-align: top;
 }
 
-html[data-page='castConfig'] .cast-config-data-grid td:first-child {
+html[data-page='castConfig'] .cast-config-data-grid td.cast-config-check-col {
     position: sticky;
     left: 0;
     z-index: 2;
-    min-width: 64px;
-    width: 64px;
+    min-width: 44px;
+    width: 44px;
     padding: 11px 8px;
-    color: #7790a1;
     background: #eef3f6;
     text-align: center;
-    font-variant-numeric: tabular-nums;
+    vertical-align: middle;
 }
 
 html[data-page='castConfig'] .cast-config-cell-view,
@@ -683,9 +670,17 @@ html[data-page='castConfig'] .cast-config-cell-input {
     user-select: text;
 }
 
-html[data-page='castConfig'] .cast-config-cell-input:focus {
+/*
+ * 편집 중인 셀은 스티키 헤더(4)·고정 체크박스 열(2) 보다 위로 올라와야 한다.
+ * 셀렉트는 열린 목록이 아래·위 행을 덮으므로 특히 스태킹 컨텍스트가 필요하다.
+ */
+html[data-page='castConfig'] .cast-config-cell-input:focus,
+html[data-page='castConfig'] .cast-config-cell-select:focus {
     position: relative;
-    z-index: 1;
+    z-index: 5;
+}
+
+html[data-page='castConfig'] .cast-config-cell-input:focus {
     background: #fff;
     box-shadow: inset 0 0 0 2px #e69a17;
 }
@@ -777,6 +772,444 @@ html[data-page='castConfig'] .cast-config-primary-button:disabled {
 html[data-page='castConfig'] .cast-config-primary-button:not(:disabled):hover {
     border-color: var(--cast-primary-dark);
     background: var(--cast-primary-dark);
+}
+
+/* ---- 카테고리 바 ---- */
+
+html[data-page='castConfig'] .cast-config-category-bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 18px;
+    border-bottom: 1px solid #ccd9e1;
+    background: #e4edf2;
+}
+
+html[data-page='castConfig'] .cast-config-category-pick select {
+    min-height: 36px;
+    padding: 0 10px;
+    border: 1px solid #b9cad6;
+    border-radius: 9px;
+    color: #1d3245;
+    background: #fff;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+html[data-page='castConfig'] .cast-config-category-badge {
+    padding: 5px 9px;
+    border-radius: 999px;
+    color: #1f6b52;
+    background: #d7f0e5;
+    font-size: 10px;
+    font-weight: 850;
+}
+
+html[data-page='castConfig'] .cast-config-category-badge.is-base {
+    color: #7a5410;
+    background: #fdefcd;
+}
+
+html[data-page='castConfig'] .cast-config-category-meta {
+    margin-right: auto;
+    color: #647c8c;
+    font-size: 11px;
+}
+
+/* ---- 그리드 머리(제목 + 툴바) ---- */
+
+html[data-page='castConfig'] .cast-config-grid-head {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    border-bottom: 1px solid #d5e0e6;
+    background: #f6f9fb;
+}
+
+html[data-page='castConfig'] .cast-config-grid-title {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 18px 0;
+}
+
+html[data-page='castConfig'] .cast-config-grid-title h3 {
+    color: #1d3245;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+html[data-page='castConfig'] .cast-config-grid-hint {
+    color: #a33b46;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+html[data-page='castConfig'] .cast-config-grid-toolbar {
+    flex-wrap: wrap;
+    border-bottom: 0;
+}
+
+html[data-page='castConfig'] .cast-config-grid-actions {
+    display: flex;
+    gap: 6px;
+}
+
+html[data-page='castConfig'] .cast-config-grid-actions .cast-config-ghost-button {
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 11px;
+}
+
+html[data-page='castConfig'] .cast-config-ghost-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+html[data-page='castConfig'] .cast-config-ghost-button.is-compact {
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 8px;
+    font-size: 11px;
+}
+
+/* ---- 그리드 셀 ---- */
+
+html[data-page='castConfig'] .cast-config-cell-select {
+    width: 100%;
+    min-height: 40px;
+    padding: 0 8px;
+    border: 0;
+    color: #173448;
+    background: #fffaf0;
+    font-size: 11px;
+}
+
+html[data-page='castConfig'] .cast-config-cell-select:disabled {
+    color: #5d7488;
+    background: transparent;
+}
+
+html[data-page='castConfig'] .cast-config-cell-time {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding-left: 8px;
+    color: #7790a1;
+    background: #fffaf0;
+}
+
+html[data-page='castConfig'] .cast-config-cell-off {
+    color: #a8b7c2;
+    background: #f2f5f8;
+    text-align: center;
+    vertical-align: middle;
+}
+
+html[data-page='castConfig'] .cast-config-status-badge {
+    display: inline-block;
+    margin: 9px 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    color: #45607a;
+    background: #e5ecf2;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+html[data-page='castConfig'] .cast-config-data-grid tr.is-selected td {
+    background: #eef2ff;
+}
+
+/* ---- 선택 행 일괄 처리 ---- */
+
+html[data-page='castConfig'] .cast-config-bulk-bar {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-top: 1px solid #ccd9e1;
+    background: #eef2ff;
+    color: #333a8f;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+html[data-page='castConfig'] .cast-config-bulk-bar .cast-config-ghost-button {
+    min-height: 30px;
+    padding: 0 12px;
+    font-size: 11px;
+}
+
+/* ---- 누적곡선 미리보기 ---- */
+
+html[data-page='castConfig'] .cast-config-preview-wrap {
+    flex: none;
+    border-bottom: 1px solid #d5e0e6;
+    background: #f6f9fb;
+}
+
+html[data-page='castConfig'] .cast-config-preview-toggle {
+    padding: 9px 18px;
+    color: #456073;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+html[data-page='castConfig'] .cast-config-preview {
+    height: 190px;
+    padding: 0 12px 10px;
+}
+
+/* ---- 카테고리 등록 / 관리 레이어 ---- */
+
+html[data-page='castConfig'] .cast-config-layer-backdrop {
+    display: grid;
+    position: fixed;
+    inset: 0;
+    z-index: 46;
+    place-items: center;
+    padding: 24px;
+    background: rgba(6, 15, 25, 0.5);
+}
+
+html[data-page='castConfig'] .cast-config-layer {
+    display: flex;
+    flex-direction: column;
+    width: min(560px, 94vw);
+    max-height: 88vh;
+    overflow: hidden;
+    border-radius: 16px;
+    color: #1d3245;
+    background: #f2f6f9;
+    box-shadow: 0 22px 56px rgba(4, 12, 22, 0.4);
+}
+
+html[data-page='castConfig'] .cast-config-layer.is-wide {
+    width: min(760px, 94vw);
+}
+
+html[data-page='castConfig'] .cast-config-layer__header {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 18px;
+    color: #fff;
+    background: linear-gradient(110deg, #23263f, #2d2f52);
+}
+
+html[data-page='castConfig'] .cast-config-layer__header h3 {
+    font-size: 15px;
+    font-weight: 800;
+}
+
+html[data-page='castConfig'] .cast-config-layer__header .cast-config-icon-button {
+    min-height: 32px;
+    width: 34px;
+    font-size: 18px;
+}
+
+html[data-page='castConfig'] .cast-config-layer__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 18px;
+}
+
+html[data-page='castConfig'] .cast-config-layer__lead {
+    margin-bottom: 8px;
+    color: #1d3245;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+html[data-page='castConfig'] .cast-config-layer__lead:not(:first-child) {
+    margin-top: 18px;
+}
+
+html[data-page='castConfig'] .cast-config-layer__hint {
+    margin-bottom: 10px;
+    color: #647c8c;
+    font-size: 11px;
+}
+
+html[data-page='castConfig'] .cast-config-layer__footer {
+    display: flex;
+    flex: none;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 18px;
+    border-top: 1px solid #ccd9e1;
+    background: #e8eff4;
+}
+
+html[data-page='castConfig'] .cast-config-layer__footer.is-center {
+    justify-content: center;
+}
+
+html[data-page='castConfig'] .cast-config-layer__footer .cast-config-pagination {
+    margin-right: 0;
+}
+
+/* ---- 카테고리 등록 폼 ---- */
+
+html[data-page='castConfig'] .cast-config-form {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    border: 1px solid #ccd9e1;
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 12px;
+}
+
+html[data-page='castConfig'] .cast-config-form dt {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid #dde6ec;
+    background: #e4edf2;
+    font-weight: 800;
+}
+
+html[data-page='castConfig'] .cast-config-form dd {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid #dde6ec;
+    background: #fff;
+}
+
+html[data-page='castConfig'] .cast-config-form dt:last-of-type,
+html[data-page='castConfig'] .cast-config-form dd:last-of-type {
+    border-bottom: 0;
+}
+
+html[data-page='castConfig'] .cast-config-form input[type='text'],
+html[data-page='castConfig'] .cast-config-form input[type='date'] {
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid #c4d2da;
+    border-radius: 8px;
+    color: #173448;
+    background: #fff;
+    font-size: 12px;
+    user-select: text;
+}
+
+html[data-page='castConfig'] .cast-config-form input[type='text'] {
+    flex: 1 1 auto;
+}
+
+html[data-page='castConfig'] .cast-config-form__datetime {
+    flex-wrap: wrap;
+}
+
+html[data-page='castConfig'] .cast-config-form__checks {
+    flex-wrap: wrap;
+    gap: 6px 14px;
+}
+
+html[data-page='castConfig'] .cast-config-form__checks label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+}
+
+/* ---- 카테고리 검색 · 목록 ---- */
+
+html[data-page='castConfig'] .cast-config-category-search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+html[data-page='castConfig'] .cast-config-category-search label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #45607a;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+html[data-page='castConfig'] .cast-config-category-search input {
+    min-height: 32px;
+    width: 150px;
+    padding: 0 10px;
+    border: 1px solid #c4d2da;
+    border-radius: 8px;
+    color: #173448;
+    background: #fff;
+    font-size: 12px;
+    user-select: text;
+}
+
+html[data-page='castConfig'] .cast-config-category-search .cast-config-ghost-button {
+    min-height: 32px;
+    padding: 0 14px;
+    font-size: 11px;
+}
+
+html[data-page='castConfig'] .cast-config-category-table {
+    border: 1px solid #ccd9e1;
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 11px;
+}
+
+html[data-page='castConfig'] .cast-config-category-table__head,
+html[data-page='castConfig'] .cast-config-category-table__row {
+    display: grid;
+    grid-template-columns: var(--cat-cols);
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+}
+
+html[data-page='castConfig'] .cast-config-category-table__head {
+    border-bottom: 1px solid #c4d2db;
+    background: #e4edf2;
+    color: #52697a;
+    font-weight: 850;
+}
+
+html[data-page='castConfig'] .cast-config-category-table__row {
+    border-bottom: 1px solid #e2eaef;
+    background: #fff;
+}
+
+html[data-page='castConfig'] .cast-config-category-table__row:last-child {
+    border-bottom: 0;
+}
+
+html[data-page='castConfig'] .cast-config-category-table__empty {
+    padding: 26px 12px;
+    background: #fff;
+    color: #607789;
+    text-align: center;
+}
+
+/* ---- 페이지 번호 ---- */
+
+html[data-page='castConfig'] .cast-config-page-number {
+    min-width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    color: #45607a;
+    font-weight: 750;
+}
+
+html[data-page='castConfig'] .cast-config-page-number.is-current {
+    color: #fff;
+    background: var(--cast-primary);
 }
 
 @media screen and (max-height: 820px) {

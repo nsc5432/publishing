@@ -216,6 +216,19 @@ npm run build:prd  # 운영 빌드
 | 모니터링 | `MNTR_EXEC_SMRY` | `/mntr/retrieveSmltExecSmry` |
 | 〃 | `MNTR_EXEC_LIST` | `/mntr/retrieveSmltExecList` |
 | 〃 | `MNTR_EXEC_DETAIL` | `/mntr/retrieveSmltExecDetail` |
+| 시설물 매핑 | `FCLT_MAP_LIST` / `_SAVE` | `/fclt/retrieveFcltMapList` · `saveFcltMapList` |
+| Cast 설정 | `CAST_CONFIG_GROUP_LIST` | `/cast-config/retrieveGroupList` |
+| 〃 | `CAST_CONFIG_DATASET` | `/cast-config/retrieveDataset` |
+| 〃 | `CAST_CONFIG_SAVE` | `/cast-config/saveDataset` |
+| 〃 | `CAST_CONFIG_CATEGORY_LIST` | `/cast-config/retrieveCategoryList` |
+| 〃 | `CAST_CONFIG_CATEGORY_SAVE` | `/cast-config/saveCategory` |
+| 〃 | `CAST_CONFIG_DEFAULT_APPLY` | `/cast-config/applyDefaultAttribute` |
+| 〃 | `CAST_CONFIG_EXCEL_UPLOAD` | `/cast-config/uploadExcel` (multipart) |
+
+**Cast 설정은 아직 백엔드가 없다** (`java/` 에 `cast-config` 컨트롤러 없음). 목업으로만 돈다.
+데이터 모델은 `java/ddl/cast-ddl.sql` 의 `TN_PM_SMLT_FIX_ATRB_GROUP`(속성그룹=화면의 '카테고리')과
+`TN_PM_SMLT_{PSG,SHOW_UP,SRVC}_ATRB` 를 따른다 — 이 세 테이블은 `FIX_ATRB_GROUP_ID` 가 PK 선두라
+**카테고리가 데이터의 1차 축**이고, '기준정보'와 '테스트정보'는 서로 다른 그룹 ID 일 뿐이다.
 
 **서버는 처리 실패도 HTTP 200 으로 내려보내고 본문의 `error` 플래그로 알린다.**
 그래서 모든 조회는 `unwrap(dto, fallback)` 을 거쳐 통신 실패와 같은 catch 경로로 흘려보낸다.
