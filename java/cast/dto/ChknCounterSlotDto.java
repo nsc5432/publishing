@@ -9,7 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ChknCounterSlotDto {
-	private String hhmm; // 슬롯 시각 (HHmm, 30분 단위)
+	private String hhmm; // 슬롯 시각 HHmm
 	private MapNoticeDto notice; // 상단 혼잡 알림 (아일랜드만)
-	private List<MapChknRsltDto> chknRsltList; // 아일랜드별 그 시각 상태 (islandList 와 같은 단위)
+	private List<MapChknRsltDto> chknRsltList; // 아일랜드별 상태
 }

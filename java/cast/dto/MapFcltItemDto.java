@@ -6,15 +6,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 아일랜드 상세 팝업의 시설 목록 1행 — 시각과 무관한 구성이다.
- * 처리율 값 자체는 시각마다 달라 {@link MapChknRsltDto} 가 갖는다.
+ * 아일랜드 상세의 시설 목록 1행
  */
 @Getter
 @Setter
 public class MapFcltItemDto {
-	private FcltType fcltType; // 시설 구분 (아이콘)
+	private FcltType fcltType; // 시설 구분
 	private String fcltNm; // 시설명
-	private String prcsRateYn; // N 이면 처리율을 쓰지 않는다 (상업시설)
+	private String prcsRateYn; // 처리율 사용여부
 
 	public MapFcltItemDto withFcltType(FcltType fcltType) {
 		this.fcltType = fcltType;

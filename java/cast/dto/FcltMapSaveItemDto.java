@@ -7,6 +7,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class FcltMapSaveItemDto {
-	private String psgFcltCd; // 여객시설코드 (PK)
-	private String smltFcltNm; // 새 시뮬레이션시설명. 빈 값이면 매핑 해제
+	private String psgFcltCd; // 여객시설코드
+	private String smltFcltNm; // 시뮬레이션시설명
 }

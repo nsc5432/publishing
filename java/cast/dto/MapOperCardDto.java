@@ -12,5 +12,5 @@ public class MapOperCardDto {
 	private String oprBgnTime; // 운영 시작 HHmm
 	private String oprEndTime; // 운영 종료 HHmm
 	private int oprHr; // 하루 운영 시간
-	private String useYn; // N 이면 미운영(흐림)
+	private String useYn; // 사용여부(흐림)
 }

@@ -11,7 +11,7 @@ public class UserSmltDepDto extends JsonResponse {
 	private static final long serialVersionUID = 1L;
 
 	private String tmnlId; // T1 / T2
-	private int peakScshCntom; // 피크 검색대 — 시간대별 검색대 합의 최댓값
+	private int peakScshCntom; // 피크 검색대
 	private int waitMaxCnt; // 대기인원 꺾은선 우측 축 최댓값
 	private List<DepGateDto> dptgtList; // 출국장별 운영 정보
 	private List<WaitPsgDto> waitList; // 시간대별 대기인원 (24개)

@@ -9,6 +9,6 @@ import lombok.Setter;
 public class FltSmryRawDto {
 	private int depFltCnt; // 출발 운항편
 	private int arrFltCnt; // 도착 운항편
-	private int depPsgCnt; // 출발 여객 (예약탑승객 - 예약환승객)
+	private int depPsgCnt; // 출발 여객 (명)
 	private int arrPsgCnt; // 도착 여객
 }

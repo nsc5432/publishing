@@ -11,7 +11,7 @@ import lombok.Setter;
 public class FcltUnitDto {
 	private String unitCd; // 칩 라벨 (A~N, 1~6)
 	private CongestionStatus cgnStatus; // 칩 색상
-	private String useYn; // N 이면 미운영(회색)
+	private String useYn; // 사용여부(회색)
 
 	public FcltUnitDto withUnitCd(String unitCd) {
 		this.unitCd = unitCd;

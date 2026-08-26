@@ -9,7 +9,7 @@ import lombok.Setter;
 public class MapNoticeItemDto {
 	private String fcltNm; // 시설명 (예: 체크인카운터)
 	private String fcltCd; // 시설 코드 (예: M11)
-	private int boothCnt; // 조치 부스 수 — "n개 부스 OPEN"
+	private int boothCnt; // 조치 부스 수
 
 	public MapNoticeItemDto withFcltNm(String fcltNm) {
 		this.fcltNm = fcltNm;

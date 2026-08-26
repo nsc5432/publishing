@@ -13,5 +13,5 @@ public class UserSmltInfoSearchDto extends AomsDefaultDto {
 	private static final long serialVersionUID = 1L;
 
 	private String ymd; // 기준일자 yyyyMMdd
-	private TerminalKind tmnlId; // T1 / T2 — 터미널 코드 변환은 TerminalKind 안에서만 한다
+	private TerminalKind tmnlId; // T1 / T2
 }
