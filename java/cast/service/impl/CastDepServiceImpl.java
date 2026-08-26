@@ -84,7 +84,7 @@ public class CastDepServiceImpl implements CastDepService {
 		kpi.setUtilRate(getUtilRate(dptgtList));
 
 		result.setTmnlId(tmnlId.getValue());
-		result.setPeakScCnt(oprScCntList.stream().mapToInt(Integer::intValue).max().orElse(0));
+		result.setPeakScshCntom(oprScCntList.stream().mapToInt(Integer::intValue).max().orElse(0));
 		result.setWaitMaxCnt(waitList.stream().mapToInt(WaitPsgDto::getWaitPsgCnt).max().orElse(0));
 		result.setDptgtList(dptgtList);
 		result.setWaitList(waitList);
