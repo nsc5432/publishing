@@ -9,17 +9,7 @@ import type {
     CastConfigValidationKind,
 } from '@/types/api.types';
 import { toCellKey } from './cell';
-import type {
-    Category,
-    ColumnType,
-    Dataset,
-    DraftChanges,
-    FacilityGroup,
-    FacilityGroupId,
-    GridRow,
-    GroupDefinition,
-    ValidationKind,
-} from './types';
+import type { Category, ColumnType, Dataset, DraftChanges, FacilityGroup, FacilityGroupId, GridRow, GroupDefinition, ValidationKind } from './types';
 
 const GROUP_IDS: FacilityGroupId[] = ['checkin', 'departure', 'security', 'border', 'gate'];
 
@@ -74,16 +64,6 @@ export const PRCS_STTS_LABEL: Record<string, string> = {
     '02': '검토',
     '03': '반려',
 };
-
-export const CFMTN_OPTIONS = [
-    { value: 'Y', label: '승인' },
-    { value: 'N', label: '미승인' },
-];
-
-export const USE_OPTIONS = [
-    { value: 'Y', label: '사용' },
-    { value: 'N', label: '미사용' },
-];
 
 function isFacilityGroupId(value: string): value is FacilityGroupId {
     return GROUP_IDS.some((id) => id === value);
@@ -143,9 +123,6 @@ export function toCastConfigDataset(dto: CastConfigDatasetDto): Dataset {
         })),
         rows: dto.rowList.map((row) => ({
             rowNo: row.rowNo,
-            status: PRCS_STTS_LABEL[row.prcsSttsCd] ?? row.prcsSttsCd,
-            confirmed: row.cfmtnYn === 'Y',
-            inUse: row.useYn === 'Y',
             cells: Object.fromEntries(
                 row.cellList.map((cell) => [
                     cell.column,
@@ -169,12 +146,10 @@ export function toCastConfigDataset(dto: CastConfigDatasetDto): Dataset {
     };
 }
 
-/** 저장되지 않은 편집분이 있으면 그 값을, 없으면 서버 값을 읽는다 */
 export function readCellValue(sheetName: string, row: GridRow, column: string, drafts: DraftChanges): string {
     return drafts[toCellKey(sheetName, row.rowNo, column)] ?? row.cells[column]?.value ?? '';
 }
 
-/** 분포 함수유형처럼 어떤 컬럼을 켜고 끄는 드라이버가 있는 시트에서, 값 칸으로 쓰이는 컬럼 전부 */
 export function toShapeColumns(dataset: Dataset): Set<string> {
     const driver = dataset.columns.find((column) => column.key === dataset.shapeColumn);
     if (!driver) return new Set();
@@ -182,7 +157,6 @@ export function toShapeColumns(dataset: Dataset): Set<string> {
     return new Set(driver.options.flatMap((option) => option.shapeColumns));
 }
 
-/** 그 행에서 실제로 켜져 있는 값 칸 */
 export function toActiveShapeColumns(dataset: Dataset, row: GridRow, drafts: DraftChanges): Set<string> {
     const driver = dataset.columns.find((column) => column.key === dataset.shapeColumn);
     if (!driver) return new Set();
@@ -199,7 +173,6 @@ function toNumber(text: string): number | null {
     return Number.isFinite(value) ? value : null;
 }
 
-/** 저장 전 합계·누적 검사. 빈 배열이면 통과 */
 export function validateDataset(dataset: Dataset, drafts: DraftChanges): string[] {
     const rule = dataset.validation;
     if (!rule) return [];

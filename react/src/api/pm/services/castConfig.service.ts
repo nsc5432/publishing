@@ -39,37 +39,34 @@ export const castConfigService = {
     getDataset: async (tmnlId: TmnlId, fixAtrbGroupId: string, groupId: string, sheetNm: string): Promise<CastConfigDatasetDto> => {
         if (USE_MOCK) return mockResponse(castConfigMock.getDataset(tmnlId, fixAtrbGroupId, groupId, sheetNm), { loading: true });
 
-        const response = await apiClient.post<CastConfigDatasetDto>(
-            API_ENDPOINTS.CAST_CONFIG_DATASET,
-            { tmnlId, fixAtrbGroupId, groupId, sheetNm },
-            LOADING,
-        );
+        const response = await apiClient.post<CastConfigDatasetDto>(API_ENDPOINTS.CAST_CONFIG_DATASET, { tmnlId, fixAtrbGroupId, groupId, sheetNm }, LOADING);
         return response.data;
     },
 
-    saveDataset: async (tmnlId: TmnlId, itemList: CastConfigSaveItemDto[]): Promise<JsonResponse> => {
-        if (USE_MOCK) return mockResponse(castConfigMock.saveDataset(tmnlId, itemList), { loading: true });
+    saveDataset: async (tmnlId: TmnlId, groupId: string, itemList: CastConfigSaveItemDto[]): Promise<JsonResponse> => {
+        if (USE_MOCK) return mockResponse(castConfigMock.saveDataset(tmnlId, groupId, itemList), { loading: true });
 
-        const response = await apiClient.post<JsonResponse>(API_ENDPOINTS.CAST_CONFIG_SAVE, { tmnlId, itemList }, LOADING);
+        const response = await apiClient.post<JsonResponse>(API_ENDPOINTS.CAST_CONFIG_SAVE, { tmnlId, groupId, itemList }, LOADING);
         return response.data;
     },
 
-    applyDefault: async (tmnlId: TmnlId, fixAtrbGroupId: string, sheetNm: string, rowNoList: number[]): Promise<JsonResponse> => {
-        if (USE_MOCK) return mockResponse(castConfigMock.applyDefault(tmnlId, fixAtrbGroupId, sheetNm, rowNoList), { loading: true });
+    applyDefault: async (tmnlId: TmnlId, groupId: string, fixAtrbGroupId: string, sheetNm: string, rowNoList: number[]): Promise<JsonResponse> => {
+        if (USE_MOCK) return mockResponse(castConfigMock.applyDefault(tmnlId, groupId, fixAtrbGroupId, sheetNm, rowNoList), { loading: true });
 
         const response = await apiClient.post<JsonResponse>(
             API_ENDPOINTS.CAST_CONFIG_DEFAULT_APPLY,
-            { tmnlId, fixAtrbGroupId, sheetNm, rowNoList },
+            { tmnlId, groupId, fixAtrbGroupId, sheetNm, rowNoList },
             LOADING,
         );
         return response.data;
     },
 
-    uploadExcel: async (tmnlId: TmnlId, fixAtrbGroupId: string, sheetNm: string, file: File): Promise<JsonResponse> => {
-        if (USE_MOCK) return mockResponse(castConfigMock.uploadExcel(), { loading: true });
+    uploadExcel: async (tmnlId: TmnlId, groupId: string, fixAtrbGroupId: string, sheetNm: string, file: File): Promise<JsonResponse> => {
+        if (USE_MOCK) return mockResponse(castConfigMock.uploadExcel(tmnlId, groupId, sheetNm), { loading: true });
 
         const form = new FormData();
         form.append('tmnlId', tmnlId);
+        form.append('groupId', groupId);
         form.append('fixAtrbGroupId', fixAtrbGroupId);
         form.append('sheetNm', sheetNm);
         form.append('file', file);

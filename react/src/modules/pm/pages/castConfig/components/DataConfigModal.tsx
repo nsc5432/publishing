@@ -6,7 +6,7 @@ import { downloadCsv } from '@/lib/csv';
 import { dialog } from '@/lib/dialog';
 import { formatCount } from '@/lib/format';
 import type { ApiError, CastConfigCategorySaveDto, CastConfigSaveItemDto } from '@/types/api.types';
-import { CFMTN_COLUMN, USE_COLUMN, toCellKey } from '../cell';
+import { toCellKey } from '../cell';
 import type { Category, Dataset, DraftChanges, FacilityGroup, GridRow, TerminalKind } from '../types';
 import { readCellValue, toShapeColumns, validateDataset } from '../view';
 import { useCastConfigCategories } from '../hooks/useCastConfigCategories';
@@ -41,16 +41,11 @@ function toSaveItems(categoryCode: string, drafts: DraftChanges): CastConfigSave
 }
 
 function toOriginalValue(row: GridRow, column: string): string {
-    if (column === CFMTN_COLUMN) return row.confirmed ? 'Y' : 'N';
-    if (column === USE_COLUMN) return row.inUse ? 'Y' : 'N';
-
     return row.cells[column]?.value ?? '';
 }
 
 function includesQuery(dataset: Dataset, row: GridRow, drafts: DraftChanges, query: string): boolean {
-    return dataset.columns.some((column) =>
-        readCellValue(dataset.sheetName, row, column.key, drafts).toLocaleLowerCase('ko-KR').includes(query),
-    );
+    return dataset.columns.some((column) => readCellValue(dataset.sheetName, row, column.key, drafts).toLocaleLowerCase('ko-KR').includes(query));
 }
 
 export function DataConfigModal({ terminal, group, onClose }: DataConfigModalProps) {
@@ -76,10 +71,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
 
     const activeSheet = group.datasets[activeTab]?.sheetName ?? '';
     const datasetQuery = useMemo(
-        () =>
-            activeSheet && current
-                ? { terminal, categoryCode: current.code, groupId: group.id, sheetName: activeSheet, reloadToken }
-                : null,
+        () => (activeSheet && current ? { terminal, categoryCode: current.code, groupId: group.id, sheetName: activeSheet, reloadToken } : null),
         [activeSheet, current, group.id, reloadToken, terminal],
     );
     const fetched = useCastConfigDataset(datasetQuery);
@@ -95,15 +87,11 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
     const pageRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
     const totalChangeCount = Object.keys(drafts).length;
-    const sheetChangeCount = useMemo(
-        () => Object.keys(drafts).filter((key) => key.startsWith(`${activeSheet}::`)).length,
-        [drafts, activeSheet],
-    );
+    const sheetChangeCount = useMemo(() => Object.keys(drafts).filter((key) => key.startsWith(`${activeSheet}::`)).length, [drafts, activeSheet]);
 
     useErrorAlert(fetchedCategories.error, fetchedCategories.token);
     useErrorAlert(fetched.error, fetched.token);
 
-    /** 편집분을 버려야 하는 동작 앞에 한 번 묻는다 */
     const confirmDiscard = useCallback(async () => {
         if (totalChangeCount === 0) return true;
 
@@ -169,7 +157,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
     const handleCellChange = (row: GridRow, column: string, value: string) => {
         draft.setValue(toCellKey(dataset.sheetName, row.rowNo, column), value, toOriginalValue(row, column));
 
-        // 분포 함수유형을 바꾸면 더 이상 쓰이지 않는 값 칸의 편집분은 의미가 없다
         if (column !== dataset.shapeColumn) return;
 
         const driver = dataset.columns.find((candidate) => candidate.key === column);
@@ -177,13 +164,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
         const stale = [...toShapeColumns(dataset)].filter((shapeColumn) => !nextActive.has(shapeColumn));
 
         draft.removeKeys(stale.map((shapeColumn) => toCellKey(dataset.sheetName, row.rowNo, shapeColumn)));
-    };
-
-    const handleBulkStatus = (column: string, value: string) => {
-        for (const row of dataset.rows) {
-            if (!draft.selected.has(row.rowNo)) continue;
-            draft.setValue(toCellKey(dataset.sheetName, row.rowNo, column), value, toOriginalValue(row, column));
-        }
     };
 
     const handleDownload = () => {
@@ -194,13 +174,8 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
 
         downloadCsv(
             `${dataset.sheetName}_${terminal}_${current?.code ?? ''}.csv`,
-            [...dataset.columns.map((column) => column.label), '처리상태', '확정여부', '사용여부'],
-            filteredRows.map((row) => [
-                ...dataset.columns.map((column) => readCellValue(dataset.sheetName, row, column.key, drafts)),
-                row.status,
-                row.confirmed ? '승인' : '미승인',
-                row.inUse ? '사용' : '미사용',
-            ]),
+            dataset.columns.map((column) => column.label),
+            filteredRows.map((row) => dataset.columns.map((column) => readCellValue(dataset.sheetName, row, column.key, drafts))),
         );
     };
 
@@ -223,7 +198,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
         if (!current) return;
 
         runAndReload('엑셀업로드', () =>
-            castConfigService.uploadExcel(terminal, current.code, dataset.sheetName, file).then((dto) => unwrap(dto, '엑셀을 반영하지 못했습니다.')),
+            castConfigService.uploadExcel(terminal, group.id, current.code, dataset.sheetName, file).then((dto) => unwrap(dto, '엑셀을 반영하지 못했습니다.')),
         );
     };
 
@@ -240,7 +215,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
 
                 runAndReload('디폴트속성적용', () =>
                     castConfigService
-                        .applyDefault(terminal, current.code, dataset.sheetName, rowNoList)
+                        .applyDefault(terminal, group.id, current.code, dataset.sheetName, rowNoList)
                         .then((dto) => unwrap(dto, '기준정보를 적용하지 못했습니다.')),
                 );
             })
@@ -293,16 +268,14 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
         const itemList = toSaveItems(current.code, drafts);
         setSaving(true);
         castConfigService
-            .saveDataset(terminal, itemList)
+            .saveDataset(terminal, group.id, itemList)
             .then((dto) => unwrap(dto, SAVE_FAIL))
             .then(() => {
                 setSaving(false);
                 draft.clearAll();
                 draft.clearSelection();
                 setReloadToken((token) => token + 1);
-                dialog
-                    .alert({ title: '저장 완료', description: `${formatCount(itemList.length)}개 변경사항을 저장했습니다.` })
-                    .catch(() => {});
+                dialog.alert({ title: '저장 완료', description: `${formatCount(itemList.length)}개 변경사항을 저장했습니다.` }).catch(() => {});
             })
             .catch((error: ApiError) => {
                 setSaving(false);
@@ -373,7 +346,12 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
 
                 {dataset.validation?.kind === 'cumulative' && (
                     <div className="cast-config-preview-wrap">
-                        <button type="button" className="cast-config-preview-toggle" aria-expanded={previewOpen} onClick={() => setPreviewOpen((open) => !open)}>
+                        <button
+                            type="button"
+                            className="cast-config-preview-toggle"
+                            aria-expanded={previewOpen}
+                            onClick={() => setPreviewOpen((open) => !open)}
+                        >
                             {previewOpen ? '▾' : '▸'} 누적곡선 미리보기
                         </button>
                         {previewOpen && <CumulativeChart dataset={dataset} rule={dataset.validation} drafts={drafts} />}
@@ -397,18 +375,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                 {!readOnly && draft.selected.size > 0 && (
                     <div className="cast-config-bulk-bar">
                         <span>{formatCount(draft.selected.size)}행 선택</span>
-                        <button type="button" className="cast-config-ghost-button" onClick={() => handleBulkStatus(CFMTN_COLUMN, 'Y')}>
-                            확정
-                        </button>
-                        <button type="button" className="cast-config-ghost-button" onClick={() => handleBulkStatus(CFMTN_COLUMN, 'N')}>
-                            미확정
-                        </button>
-                        <button type="button" className="cast-config-ghost-button" onClick={() => handleBulkStatus(USE_COLUMN, 'Y')}>
-                            사용
-                        </button>
-                        <button type="button" className="cast-config-ghost-button" onClick={() => handleBulkStatus(USE_COLUMN, 'N')}>
-                            미사용
-                        </button>
                         <button type="button" className="cast-config-ghost-button" onClick={draft.clearSelection}>
                             선택 해제
                         </button>
@@ -416,10 +382,14 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                 )}
 
                 <footer className="cast-config-modal__footer">
-                    <Pagination page={currentPage} totalPages={totalPages} onChange={(next) => {
-                        setPage(next);
-                        gridRef.current?.scrollTo({ top: 0 });
-                    }} />
+                    <Pagination
+                        page={currentPage}
+                        totalPages={totalPages}
+                        onChange={(next) => {
+                            setPage(next);
+                            gridRef.current?.scrollTo({ top: 0 });
+                        }}
+                    />
                     <button type="button" className="cast-config-ghost-button" onClick={requestClose}>
                         취소
                     </button>

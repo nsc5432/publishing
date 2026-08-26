@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="aoms.pm.cast.mapper.CastConfigMapper">
+    <select id="retrieveCategoryList" resultType="aoms.pm.cast.dto.CastConfigCategoryDto">
+        /* CastConfigMapper.retrieveCategoryList */
+        SELECT
+            A.FIX_ATRB_GROUP_ID AS FIX_ATRB_GROUP_ID,
+            NVL(A.ATRB_GROUP_NM, ' ') AS ATRB_GROUP_NM,
+            CASE WHEN A.FIX_ATRB_GROUP_ID = '001' THEN 'Y' ELSE 'N' END AS BASE_YN,
+            NVL(A.CFMTN_YN, 'N') AS CFMTN_YN,
+            NVL(A.GROUP_PRCS_STTS_CD, ' ') AS GROUP_PRCS_STTS_CD,
+            NVL(TO_CHAR(A.FRST_REG_DT, 'YYYYMMDDHH24MISS'), ' ') AS FRST_REG_DT
+        FROM PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP A
+        WHERE 1 = 1
+        AND NVL(A.DEL_YN, 'N') = 'N'
+        ORDER BY CASE WHEN A.FIX_ATRB_GROUP_ID = '001' THEN 0 ELSE 1 END, A.FIX_ATRB_GROUP_ID
+    </select>
+
+    <select id="retrieveCategoryCnt" resultType="int">
+        /* CastConfigMapper.retrieveCategoryCnt */
+        SELECT COUNT(*)
+        FROM PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP A
+        WHERE 1 = 1
+        AND A.FIX_ATRB_GROUP_ID = #{fixAtrbGroupId}
+    </select>
+
+    <insert id="insertCategory">
+        /* CastConfigMapper.insertCategory */
+        INSERT INTO PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP (
+            FIX_ATRB_GROUP_ID,
+            ATRB_GROUP_NM,
+            CFMTN_YN,
+            GROUP_PRCS_STTS_CD,
+            DEL_YN,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        ) VALUES (
+            #{fixAtrbGroupId},
+            #{atrbGroupNm},
+            'N',
+            '01',
+            'N',
+            #{loginUserId},
+            #{loginIpAddr},
+            TO_TIMESTAMP(#{frstRegDt}, 'YYYYMMDDHH24MISS')
+        )
+    </insert>
+
+    <select id="retrievePsgAtrbList" resultType="aoms.pm.cast.dto.CastConfigAtrbRawDto">
+        /* CastConfigMapper.retrievePsgAtrbList */
+        SELECT
+            A.PSG_ATRB_CD AS ATRB_CD,
+            A.PSG_DTL_SE_CD AS DTL_SE_CD,
+            NVL(A.INPT_VL, ' ') AS INPT_VL,
+            NVL(A.USER_DEF_1_VL, ' ') AS USER_DEF_1_VL,
+            NVL(A.USER_DEF_2_VL, ' ') AS USER_DEF_2_VL,
+            NVL(P.PSG_FIX_PARA_CD_NM, ' ') AS ATRB_CD_NM,
+            NVL(D.PSG_FIX_PARA_CD_NM, ' ') AS DTL_SE_CD_NM,
+            NVL(D.VL_TYPE, 'String') AS CATALOG_VL_TYPE,
+            NVL(D.PSG_FIX_PARA_CND_TYPE_CD, ' ') AS CND_TYPE_CD,
+            NVL(D.PSG_FIX_PARA_CND_VL, ' ') AS CND_VL,
+            NVL(D.PRE_PRCS_YN, 'N') AS PRE_PRCS_YN
+        FROM PMOWN.${tableNm} A
+        JOIN PMOWN.TN_PM_SMLT_PSG_FIX_PARA_CD P
+            ON P.PSG_FIX_PARA_CD = A.PSG_ATRB_CD
+        JOIN PMOWN.TN_PM_SMLT_PSG_FIX_PARA_CD D
+            ON D.PSG_FIX_PARA_CD = A.PSG_DTL_SE_CD
+            AND D.PSG_FIX_PARA_GROUP_CD = P.PSG_FIX_PARA_CD
+        WHERE 1 = 1
+        AND A.FIX_ATRB_GROUP_ID = #{fixAtrbGroupId}
+        AND D.USE_YN = 'Y'
+        AND SUBSTR(A.PSG_ATRB_CD, 1, 2) IN
+        <foreach collection="rootCdList" item="rootCd" open="(" separator="," close=")">
+            #{rootCd}
+        </foreach>
+        AND (
+            (#{tmnlId} = 'T1' AND (
+                REGEXP_LIKE(P.PSG_FIX_PARA_CD_NM, '^T1([ _]|$)')
+                OR P.PSG_FIX_PARA_CD_NM IN ('P01', 'P02')
+                OR REGEXP_LIKE(P.PSG_SMLT_APLCN_NM, '^(P01|P02)(_|$)')
+            ))
+            OR
+            (#{tmnlId} = 'T2' AND (
+                REGEXP_LIKE(P.PSG_FIX_PARA_CD_NM, '^T2([ _]|$)')
+                OR P.PSG_FIX_PARA_CD_NM = 'P03'
+                OR REGEXP_LIKE(P.PSG_SMLT_APLCN_NM, '^P03(_|$)')
+            ))
+        )
+        ORDER BY A.PSG_ATRB_CD, A.PSG_DTL_SE_CD
+    </select>
+
+    <select id="retrieveSrvcAtrbList" resultType="aoms.pm.cast.dto.CastConfigAtrbRawDto">
+        /* CastConfigMapper.retrieveSrvcAtrbList */
+        SELECT
+            A.FCLTY_SE_CD AS ATRB_CD,
+            A.FCLTY_DTL_CD AS DTL_SE_CD,
+            NVL(A.INPT_VL, ' ') AS INPT_VL,
+            NVL(A.MIN_VL, 0) AS MIN_VL,
+            NVL(A.MAX_VL, 0) AS MAX_VL,
+            NVL(A.DSTB_MAX_VL, 0) AS DSTB_MAX_VL,
+            NVL(A.VL_TYPE, ' ') AS VL_TYPE,
+            NVL(A.SWTC_FNC_ID, ' ') AS SWTC_FNC_ID,
+            NVL(A.VRFC_FNC_ID, ' ') AS VRFC_FNC_ID,
+            A.FCLTY_SE_CD AS ATRB_CD_NM,
+            A.FCLTY_DTL_CD AS DTL_SE_CD_NM,
+            'String' AS CATALOG_VL_TYPE,
+            'N' AS PRE_PRCS_YN
+        FROM PMOWN.TN_PM_SMLT_SRVC_ATRB A
+        WHERE 1 = 1
+        AND A.FIX_ATRB_GROUP_ID = #{fixAtrbGroupId}
+        AND A.FCLTY_SE_CD IN
+        <foreach collection="fcltySeCdList" item="fcltySeCd" open="(" separator="," close=")">
+            #{fcltySeCd}
+        </foreach>
+        ORDER BY A.FCLTY_SE_CD, A.FCLTY_DTL_CD
+    </select>
+
+    <update id="updateAtrbTextValue">
+        /* CastConfigMapper.updateAtrbTextValue */
+        UPDATE PMOWN.${tableNm}
+        SET ${columnNm} = #{value},
+            LAST_MDFR_ID = #{loginUserId},
+            LAST_MDFR_IP_ADDR = #{loginIpAddr},
+            LAST_MDFCN_DT = CURRENT_TIMESTAMP
+        WHERE 1 = 1
+        AND FIX_ATRB_GROUP_ID = #{fixAtrbGroupId}
+        AND ${keyColumnNm} = #{keyCd}
+        AND ${dtlColumnNm} = #{dtlSeCd}
+    </update>
+
+    <update id="updateAtrbNumberValue">
+        /* CastConfigMapper.updateAtrbNumberValue */
+        UPDATE PMOWN.${tableNm}
+        SET ${columnNm} = #{value},
+            LAST_MDFR_ID = #{loginUserId},
+            LAST_MDFR_IP_ADDR = #{loginIpAddr},
+            LAST_MDFCN_DT = CURRENT_TIMESTAMP
+        WHERE 1 = 1
+        AND FIX_ATRB_GROUP_ID = #{fixAtrbGroupId}
+        AND ${keyColumnNm} = #{keyCd}
+        AND ${dtlColumnNm} = #{dtlSeCd}
+    </update>
+
+    <update id="copyFromBaseGroup">
+        /* CastConfigMapper.copyFromBaseGroup */
+        UPDATE PMOWN.${tableNm} A
+        SET
+        <foreach collection="valueColumnList" item="columnNm" separator=",">
+            A.${columnNm} = (
+                SELECT B.${columnNm}
+                FROM PMOWN.${tableNm} B
+                WHERE B.FIX_ATRB_GROUP_ID = '001'
+                AND B.${keyColumnNm} = A.${keyColumnNm}
+                AND B.${dtlColumnNm} = A.${dtlColumnNm}
+            )
+        </foreach>,
+            A.LAST_MDFR_ID = #{loginUserId},
+            A.LAST_MDFR_IP_ADDR = #{loginIpAddr},
+            A.LAST_MDFCN_DT = CURRENT_TIMESTAMP
+        WHERE 1 = 1
+        AND A.FIX_ATRB_GROUP_ID = #{fixAtrbGroupId}
+        AND A.${keyColumnNm} = #{keyCd}
+        AND A.${dtlColumnNm} = #{dtlSeCd}
+        AND EXISTS (
+            SELECT 1
+            FROM PMOWN.${tableNm} B
+            WHERE B.FIX_ATRB_GROUP_ID = '001'
+            AND B.${keyColumnNm} = A.${keyColumnNm}
+            AND B.${dtlColumnNm} = A.${dtlColumnNm}
+        )
+    </update>
+
+    <insert id="insertFromBaseGroup">
+        /* CastConfigMapper.insertFromBaseGroup */
+        INSERT INTO PMOWN.${tableNm} (
+            FIX_ATRB_GROUP_ID,
+            ${keyColumnNm},
+            ${dtlColumnNm},
+            <foreach collection="valueColumnList" item="columnNm" separator=",">
+                ${columnNm}
+            </foreach>,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        )
+        SELECT
+            #{fixAtrbGroupId},
+            A.${keyColumnNm},
+            A.${dtlColumnNm},
+            <foreach collection="valueColumnList" item="columnNm" separator=",">
+                A.${columnNm}
+            </foreach>,
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        FROM PMOWN.${tableNm} A
+        WHERE 1 = 1
+        AND A.FIX_ATRB_GROUP_ID = '001'
+    </insert>
+</mapper>

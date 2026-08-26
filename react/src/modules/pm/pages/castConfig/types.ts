@@ -56,9 +56,6 @@ export interface GridCell {
 
 export interface GridRow {
     rowNo: number;
-    status: string;
-    confirmed: boolean;
-    inUse: boolean;
     cells: Record<string, GridCell>;
 }
 

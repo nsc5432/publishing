@@ -908,17 +908,6 @@ html[data-page='castConfig'] .cast-config-cell-off {
     vertical-align: middle;
 }
 
-html[data-page='castConfig'] .cast-config-status-badge {
-    display: inline-block;
-    margin: 9px 11px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    color: #45607a;
-    background: #e5ecf2;
-    font-size: 10px;
-    font-weight: 800;
-}
-
 html[data-page='castConfig'] .cast-config-data-grid tr.is-selected td {
     background: #eef2ff;
 }

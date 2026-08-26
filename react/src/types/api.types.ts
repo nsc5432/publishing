@@ -760,9 +760,6 @@ export interface CastConfigDatasetDto extends JsonResponse {
 
 export interface CastConfigGridRowDto {
     rowNo: number;
-    prcsSttsCd: string; // 처리상태코드
-    cfmtnYn: YnFlag; // 확정여부
-    useYn: YnFlag; // 사용여부
     cellList: CastConfigGridCellDto[];
 }
 

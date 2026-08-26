@@ -87,7 +87,6 @@ const GROUPS: MockGroupDefinition[] = [
     },
 ];
 
-/** 분포 함수유형 — 고른 함수가 어떤 값 칸을 켜는지 함께 들고 있다 */
 const DISTRIBUTION_OPTIONS: CastConfigOptionDto[] = [
     { code: 'TIDConstant', label: 'TIDConstant', shapeColumnList: ['Value'] },
     { code: 'TIDRandomized', label: 'TIDRandomized', shapeColumnList: ['Min', 'Max'] },
@@ -101,11 +100,7 @@ function toOptions(codes: string[]): CastConfigOptionDto[] {
     return codes.map((code) => ({ code, label: code, shapeColumnList: [] }));
 }
 
-function column(
-    columnName: string,
-    type: CastConfigColumnType,
-    extra: Partial<Pick<MockColumn, 'editable' | 'mergeYn' | 'optionList'>> = {},
-): MockColumn {
+function column(columnName: string, type: CastConfigColumnType, extra: Partial<Pick<MockColumn, 'editable' | 'mergeYn' | 'optionList'>> = {}): MockColumn {
     return {
         column: columnName,
         label: columnName,
@@ -119,9 +114,6 @@ function column(
 function toRow(columns: MockColumn[], rowNo: number, input: MockRowInput): CastConfigGridRowDto {
     return {
         rowNo,
-        prcsSttsCd: '01',
-        cfmtnYn: 'Y',
-        useYn: 'Y',
         cellList: columns.map((col, index) => {
             const formula = input.formulas?.[col.column] ?? '';
             return {
@@ -246,11 +238,7 @@ function createDatasetStore(tmnlId: TmnlId): DatasetStore {
 
     const passengerShare = toDataset(
         '여객유형 분포',
-        [
-            column('중분류', 'READONLY', { mergeYn: 'Y' }),
-            column('소분류', 'READONLY'),
-            column('기준값', 'NUMBER'),
-        ],
+        [column('중분류', 'READONLY', { mergeYn: 'Y' }), column('소분류', 'READONLY'), column('기준값', 'NUMBER')],
         [
             { values: [`${tmnlId} 국제선 개별여객`, '대한민국 국적', '58'] },
             { values: [`${tmnlId} 국제선 개별여객`, '외국인 국적', '42'] },
@@ -264,12 +252,7 @@ function createDatasetStore(tmnlId: TmnlId): DatasetStore {
 
     const showUpTime = toDataset(
         '출현시간',
-        [
-            column('중분류', 'READONLY', { mergeYn: 'Y' }),
-            column('소분류', 'READONLY'),
-            column('시간대', 'TIME'),
-            column('비율', 'NUMBER'),
-        ],
+        [column('중분류', 'READONLY', { mergeYn: 'Y' }), column('소분류', 'READONLY'), column('시간대', 'TIME'), column('비율', 'NUMBER')],
         ['그룹1', '그룹2', '그룹3'].flatMap((group) =>
             [
                 ['1', '01:40:00', '0'],
@@ -359,7 +342,6 @@ function createDatasetStore(tmnlId: TmnlId): DatasetStore {
     );
 }
 
-/** 기준정보 카테고리는 어떤 셀도 고칠 수 없다 */
 function toReadOnlyStore(store: DatasetStore): DatasetStore {
     const clone = structuredClone(store);
     for (const dataset of Object.values(clone)) {
@@ -469,18 +451,19 @@ export const castConfigMock = {
         return findDataset(tmnlId, fixAtrbGroupId, sheetNm) ?? emptyDataset(sheetNm, '이 카테고리에 등록되지 않은 시트입니다.');
     },
 
-    saveDataset: (tmnlId: TmnlId, itemList: CastConfigSaveItemDto[]): JsonResponse => {
+    saveDataset: (tmnlId: TmnlId, groupId: string, itemList: CastConfigSaveItemDto[]): JsonResponse => {
+        const group = GROUPS.find((item) => item.groupId === groupId);
+        if (!group || itemList.some((item) => !group.sheets.includes(item.sheetNm))) {
+            return { error: true, errorMessage: '시설그룹에 연결되지 않은 원본 시트입니다.' };
+        }
+        if (itemList.some((item) => item.fixAtrbGroupId === BASE_CATEGORY_ID)) {
+            return { error: true, errorMessage: '기준정보는 수정할 수 없습니다.' };
+        }
+
         for (const item of itemList) {
             const dataset = findDataset(tmnlId, item.fixAtrbGroupId, item.sheetNm);
             const row = dataset?.rowList.find((candidate) => candidate.rowNo === item.rowNo);
             if (!row) return { error: true, errorMessage: '저장할 행을 찾지 못했습니다.' };
-
-            if (item.column === '__cfmtnYn' || item.column === '__useYn') {
-                const flag = item.value === 'Y' ? 'Y' : 'N';
-                if (item.column === '__cfmtnYn') row.cfmtnYn = flag;
-                else row.useYn = flag;
-                continue;
-            }
 
             const cell = row.cellList.find((candidate) => candidate.column === item.column);
             if (!cell || cell.editableYn !== 'Y') {
@@ -492,7 +475,12 @@ export const castConfigMock = {
         return OK;
     },
 
-    applyDefault: (tmnlId: TmnlId, fixAtrbGroupId: string, sheetNm: string, rowNoList: number[]): JsonResponse => {
+    applyDefault: (tmnlId: TmnlId, groupId: string, fixAtrbGroupId: string, sheetNm: string, rowNoList: number[]): JsonResponse => {
+        const group = GROUPS.find((item) => item.groupId === groupId);
+        if (!group?.sheets.includes(sheetNm)) {
+            return { error: true, errorMessage: '시설그룹에 연결되지 않은 원본 시트입니다.' };
+        }
+
         const base = findDataset(tmnlId, BASE_CATEGORY_ID, sheetNm);
         const target = findDataset(tmnlId, fixAtrbGroupId, sheetNm);
         if (!base || !target) return { error: true, errorMessage: '기준정보를 찾지 못했습니다.' };
@@ -511,5 +499,8 @@ export const castConfigMock = {
         return OK;
     },
 
-    uploadExcel: (): JsonResponse => OK,
+    uploadExcel: (_tmnlId: TmnlId, groupId: string, sheetNm: string): JsonResponse => {
+        const group = GROUPS.find((item) => item.groupId === groupId);
+        return group?.sheets.includes(sheetNm) ? OK : { error: true, errorMessage: '시설그룹에 연결되지 않은 원본 시트입니다.' };
+    },
 };
