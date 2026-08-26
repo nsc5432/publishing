@@ -3,7 +3,7 @@
 --
 -- 왜 신규 테이블인가
 --   "어떤 터미널 / 몇 번 출국장의 보안검색대가 몇 대 운영되었는지"를 담은 원천이 없다.
---   기준 데이터 TN_PM_SMLT_FCLTY_OPNG_TBL_SCRTY_CNTRL_ATRB 는 시간축이 없어 출국장당 값이
+--   기준 데이터 TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB 는 시간축이 없어 출국장당 값이
 --   하나뿐이고, TN_PM_SMLT_SC_PLAN 은 사용자가 저장한 시뮬레이션 조건이라 실적이 아니다.
 --   그래서 Xovis 실측(TN_PM_PSG_WTNG_INFO)의 보안검색대 레인 행에서 운영 대수를 유추해
 --   시간당 1행으로 적재한다 (temp-batch/ScMake 참고).

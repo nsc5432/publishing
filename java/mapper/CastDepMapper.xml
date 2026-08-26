@@ -21,7 +21,7 @@
         SELECT
             A.GATE_NO AS DPTGT_NO,
             A.FCLTY_CNT AS SCSH_CNTOM
-        FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TBL_SCRTY_CNTRL_ATRB A
+        FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB A
         WHERE 1 = 1
         AND A.SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{scRsrcId}, 'FOTSC|FacilityOpeningTable_SecurityControl', '')
         AND A.TMNL_ID = #{tmnlId}
@@ -31,7 +31,7 @@
     <!--
         사용자 저장분 재조회 — 저장한 적이 있으면 그 값이 화면 초기값이다.
         검색대 격자(ScGrid)가 요구하는 "시간대별 대수"는 기준 데이터
-        (TN_PM_SMLT_FCLTY_OPNG_TBL_SCRTY_CNTRL_ATRB) 에 시간축이 없어 이 테이블에서만 나온다.
+        (TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB) 에 시간축이 없어 이 테이블에서만 나온다.
     -->
     <select id="retrieveUserDepList" resultType="aoms.pm.cast.dto.DepGateDto">
         /* CastDepMapper.retrieveUserDepList */
