@@ -2,15 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="aoms.pm.cast.mapper.CastFcltMapper">
-    <!--
-        시설코드에서 도면 구역(아일랜드 · 출국장 번호)을 잘라내는 식.
-        CastDsbdMapper.unitCdExpr 과 같은 자리수 규칙이다 — 한쪽만 고치면 도면과 목록이 어긋난다.
-          CC  T1CCG29 / T1CCDZ01 → 아일랜드는 뒤에서 3번째 자리
-          CK  T1CKIM01           → 아일랜드는 뒤에서 3번째 자리
-          SBD T1SBDG01           → 아일랜드는 뒤에서 3번째 자리
-          LGT T1L5NY19           → 출국장은 4번째 자리
-          SC  T1SC5_14           → 출국장은 5번째 자리
-    -->
     <sql id="unitCdExpr">
         CASE
             WHEN A.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(A.PSG_FCLT_CD, -3, 1)

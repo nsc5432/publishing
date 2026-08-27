@@ -39,9 +39,6 @@ import lombok.RequiredArgsConstructor;
  * -----------------------------------------------------------------------------------
  *
  * </pre>
- *
- * <b>도면 마커 좌표는 DB 가 아니라 {@link FcltMapLayout} 이 준다</b> (좌표 테이블 미확인, G1).
- * 이 화면은 도면 그림이 맵형태보기와 달라 좌표도 따로 갖는다 — 자세한 사정은 그 클래스 주석 참고.
  */
 @Service
 @RequiredArgsConstructor

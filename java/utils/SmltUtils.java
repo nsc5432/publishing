@@ -28,7 +28,7 @@ public class SmltUtils {
 	public static <T extends AggData> List<T> aggregate(List<T> src, int interval, Supplier<T> factory) {
 		Map<String, AggBuffer<T>> bufferMap = new LinkedHashMap<>();
 		
-		for (T item  : src) {
+		for (T item : src) {
 			String key = SmltUtils.groupKey(item.getTime(), interval);
 			AggBuffer<T> buffer = bufferMap.get(key);
 			

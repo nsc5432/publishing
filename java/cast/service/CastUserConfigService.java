@@ -21,6 +21,5 @@ import aoms.pm.cast.dto.UserConfigChknDto;
  * </pre>
  */
 public interface CastUserConfigService {
-	/** 체크인 카운터 탭(retrieveChknCounterInfo)의 부스 배정 입력이다. 자체 엔드포인트는 없다 */
 	Map<String, List<UserConfigChknDto>> retrieveChknMapGroupByIsland(String ymd, String tmnlId);
 }

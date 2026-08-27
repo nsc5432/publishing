@@ -35,9 +35,6 @@ import lombok.RequiredArgsConstructor;
  * -----------------------------------------------------------------------------------
  *
  * </pre>
- *
- * 부서/성명은 사용자 테이블이 확인되지 않아(G1) 매퍼가 '' 를 내려준다.
- * 조인 키가 될 등록자 ID 는 {@code rgtrId} 로 함께 실린다.
  */
 @Service
 @RequiredArgsConstructor

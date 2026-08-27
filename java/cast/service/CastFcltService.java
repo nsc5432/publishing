@@ -19,14 +19,9 @@ import aoms.pm.cast.dto.JsonResponse;
  * -----------------------------------------------------------------------------------
  *
  * </pre>
- *
- * 여객시설(TN_PM_SMLT_PSG_FCLT)과 CAST 시뮬레이션 시설의 짝을 확인하는 화면이 쓴다.
- * 고칠 수 있는 값은 시뮬레이션시설명 하나뿐이라 저장도 그 한 열만 건드린다.
  */
 public interface CastFcltService {
-	/** 터미널 1개분 매핑 전량 + 도면 마커 */
 	FcltMapListDto retrieveFcltMapList(FcltMapSearchDto searchDto);
 
-	/** 바뀐 매핑만 모아 저장 */
 	JsonResponse saveFcltMapList(FcltMapSaveDto saveDto);
 }

@@ -20,8 +20,7 @@ import aoms.pm.utils.ResponseUtils;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 일일 시뮬레이션 결과 조회 — 요약보기(대시보드).
- * 화면은 {@code retrieveDailySmltBaseInfo} 로 smltId 를 잡은 뒤 나머지 4개를 부른다.
+ * 일일 시뮬레이션 결과 조회 — 요약보기
  */
 @RestController
 @RequestMapping("/cast/smry")

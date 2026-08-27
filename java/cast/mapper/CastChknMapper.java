@@ -29,27 +29,16 @@ import aoms.pm.cast.dto.UserSmltChknSaveDto;
  */                                                                   		                                
 @Mapper                                                                                                     	
 public interface CastChknMapper {
-	List<CknctCntRawDto> retrieveCknctCntList(
-		@Param("tmnlId") String tmnlId, @Param("useCrgTypeCdList") List<String> useCrgTypeCdList
-	);
+	List<CknctCntRawDto> retrieveCknctCntList(@Param("tmnlId") String tmnlId, @Param("useCrgTypeCdList") List<String> useCrgTypeCdList);
 
-	// 그날 그 터미널에 배정된 항공사 — 도크 팝오버의 선택지다
 	List<String> retrieveAlnCdList(@Param("ymd") String ymd, @Param("tmnlId") String tmnlId);
 
-	// 사용자 저장분 재조회 — 있으면 기준 데이터(배정정보) 대신 이쪽이 화면 초기값이 된다
-	List<ChknIslandDto> retrieveUserChknIslandList(
-		@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
-	);
+	List<ChknIslandDto> retrieveUserChknIslandList(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
 
-	List<UserChknOperHrRawDto> retrieveUserChknOperHrList(
-		@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
-	);
+	List<UserChknOperHrRawDto> retrieveUserChknOperHrList(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
 
-	List<UserChknBoothRawDto> retrieveUserChknBoothList(
-		@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
-	);
+	List<UserChknBoothRawDto> retrieveUserChknBoothList(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
 
-	// 저장 — 전체 교체(delete-then-insert). 삭제 범위는 SMLT_ID + TMNL_ID 로 한정한다
 	void deleteUserChknIslandList(UserSmltChknSaveDto saveDto);
 
 	void deleteUserChknOperHrList(UserSmltChknSaveDto saveDto);

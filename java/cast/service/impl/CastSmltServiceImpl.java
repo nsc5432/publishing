@@ -34,9 +34,6 @@ import lombok.RequiredArgsConstructor;
  * -----------------------------------------------------------------------------------
  *
  * </pre>
- *
- * 조회 계층이 공유하는 헬퍼다. Mock 모드에서는 등록되지 않는다
- * ({@link aoms.pm.cast.config.CastApiMode} 참고) — Mock 구현체는 이 서비스를 주입받지 않는다.
  */
 @Service("castSmltService")
 @RequiredArgsConstructor

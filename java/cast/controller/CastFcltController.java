@@ -16,8 +16,7 @@ import aoms.pm.utils.ResponseUtils;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 시설물 매핑.
- * 여객시설과 CAST 시뮬레이션 시설의 짝을 확인하고, 시뮬레이션시설명만 고쳐 저장한다.
+ * 시설물 매핑
  */
 @RestController
 @RequestMapping("/cast/fclt")

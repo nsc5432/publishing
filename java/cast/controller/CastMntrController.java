@@ -16,8 +16,7 @@ import aoms.pm.utils.ResponseUtils;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 시뮬레이션 모니터링.
- * 조회 기간(bgnDt ~ endDt)은 화면의 시작/종료 일시를 합친 yyyyMMddHHmm 이다.
+ * 시뮬레이션 모니터링
  */
 @RestController
 @RequestMapping("/cast/mntr")

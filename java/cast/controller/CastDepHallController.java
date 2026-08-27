@@ -14,9 +14,7 @@ import aoms.pm.utils.ResponseUtils;
 import lombok.RequiredArgsConstructor;
 
 /**
- * 일일 시뮬레이션 결과 조회 — 출국장.
- * {@code retrieveDepHall} 은 하루치(30분 41칸)를 한 번에 내려준다. 맵 · 표 · 차트 세 보기와
- * 하단 타임라인이 이 한 건을 나눠 쓰므로 터미널이 바뀔 때만 부른다.
+ * 일일 시뮬레이션 결과 조회 — 출국장
  */
 @RestController
 @RequestMapping("/cast/dep-hall")

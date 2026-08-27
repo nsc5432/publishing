@@ -25,11 +25,6 @@ import aoms.pm.cast.dto.SmltRsltRawDto;
  */
 @Mapper
 public interface CastMapMapper {
-	/**
-	 * 하루치 시설 묶음 단위 결과를 30분 버킷으로 접어 돌려준다.
-	 * 도면 마커 · 상단 혼잡 알림 · 상세 팝업 · 출국장 추이가 <b>이 한 건</b>을 나눠 쓴다.
-	 * 결과 상세는 10분 간격이라 한 버킷에 3행이 들어온다.
-	 */
 	List<SmltRsltRawDto> retrieveMapRsltDayList(
 			@Param("smltId") String smltId,
 			@Param("tmnlId") String tmnlId,

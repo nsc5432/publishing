@@ -2,14 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="aoms.pm.cast.mapper.CastDsbdMapper">
-    <!--
-        시설코드에서 화면 묶음 단위를 잘라내는 식. 자리수 규칙은 실데이터로 확인했다 (G11 해소).
-          CC  T1CCG29  / T1CCDZ01 → 아일랜드는 뒤에서 3번째 자리 (국내선은 T1CC 뒤에 D 가 하나 더 붙는다)
-          CK  T1CKIM01                → 아일랜드는 뒤에서 3번째 자리
-          SBD T1SBDG01                → 아일랜드는 뒤에서 3번째 자리
-          LGT T1L5NY19                → 출국장은 4번째 자리
-          SC  T1SC5_14                → 출국장은 5번째 자리
-    -->
     <sql id="unitCdExpr">
         CASE
             WHEN B.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(B.PSG_FCLT_CD, -3, 1)
@@ -19,7 +11,6 @@
         END
     </sql>
 
-    <!-- 유효 운항편 필터 8종 — CastFltPsgMapper 와 같은 조건을 쓴다 -->
     <sql id="validFltCond">
         AND A.CSHR_STTS_CD != 'SL'
         AND A.PSG_CGO_SE_CD = 'Y'
@@ -56,7 +47,6 @@
         ORDER BY AVL_TIME
     </select>
 
-    <!-- 출발/도착을 한 번에 센다. 대시보드 상단 카드는 도착편도 쓰기 때문이다 -->
     <sql id="fltSmryCols">
         NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN 1 ELSE 0 END), 0) AS DEP_FLT_CNT,
         NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN 1 ELSE 0 END), 0) AS ARR_FLT_CNT,

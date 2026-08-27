@@ -17,14 +17,7 @@ import aoms.pm.cast.dto.SmltMapDto;
  * -----------------------------------------------------------------------------------
  *
  * </pre>
- *
- * 구현체가 둘이다. {@code pm.cast.data-source} 플래그로 하나만 등록된다
- * ({@link aoms.pm.cast.config.CastApiMode} 참고).
  */
 public interface CastMapService {
-	/**
-	 * 도면 하루치 (혼잡 알림 · 운영시간 카드 · 마커 · 30분 슬롯).
-	 * 마커 상세 팝업 값까지 슬롯에 담아 내려주므로 화면은 터미널이 바뀔 때만 부른다.
-	 */
 	SmltMapDto retrieveSmltMap(MapSearchDto searchDto);
 }

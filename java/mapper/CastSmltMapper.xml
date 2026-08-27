@@ -59,11 +59,6 @@
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
     </select>
 
-    <!--
-        수행 — executeUserSmlt 가 쓰는 statement 4종 + 모니터링 화면이 읽을 이력 목록 1종.
-        기존 TH_PM_SMLT_EXCN_LOG 는 CAST 엔진의 단계 로그이고 SMLT_ID 컬럼이 없어
-        시뮬레이션 단위 이력을 담을 수 없다. TH_PM_SMLT_FLFMT_HSTRY 를 신설해 쓴다.
-    -->
     <select id="retrieveUserSmltCondCnt" resultType="int">
         /* CastSmltMapper.retrieveUserSmltCondCnt */
         SELECT SUM(A.CNT) AS CNT

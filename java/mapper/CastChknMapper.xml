@@ -17,10 +17,6 @@
         ORDER BY ISLAND
     </select>
 
-    <!--
-        도크 팝오버에 뜨는 항공사 = 시뮬레이션 일자에 그 터미널로 배정된 항공사다.
-        체크인 페이지 보유 항공사(CAOWN.TN_CA_ALN_PGE) 전량이 아니다 — 그날 안 오는 항공사까지 뜬다.
-    -->
     <select id="retrieveAlnCdList" resultType="java.lang.String">
         /* CastChknMapper.retrieveAlnCdList */
         SELECT DISTINCT A.ALN_CD
@@ -32,11 +28,6 @@
         ORDER BY A.ALN_CD
     </select>
 
-    <!--
-        사용자 저장분 재조회 — 저장한 적이 있으면 그 값이 화면 초기값이다.
-        기준 데이터(배정정보 TI_GO_CKNCT_DALY_ALOT)는 저장 이력이 없을 때만 쓴다.
-        아일랜드 목록이 곧 "운영 중인 아일랜드"다 — 화면에서 지운 아일랜드는 여기 없다.
-    -->
     <select id="retrieveUserChknIslandList" resultType="aoms.pm.cast.dto.ChknIslandDto">
         /* CastChknMapper.retrieveUserChknIslandList */
         SELECT
@@ -78,12 +69,6 @@
         ORDER BY A.CHKN_ISL_CD, A.BOOTH_NO
     </select>
 
-    <!--
-        저장 — 전체 교체(delete-then-insert).
-        화면이 터미널 1개분 아일랜드 전체를 보내므로 부분 수정이 아니라 묶음 교체다.
-        삭제 범위는 SMLT_ID + TMNL_ID 로만 한정한다. TMNL_ID 를 빼면 T1 저장이 T2 를 지운다.
-        벌크 INSERT 는 Oracle 문법인 INSERT ALL 을 쓴다 (VALUES 다중행은 ORA-00933, G18).
-    -->
     <delete id="deleteUserChknIslandList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
         /* CastChknMapper.deleteUserChknIslandList */
         DELETE FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL

@@ -28,11 +28,6 @@
         ORDER BY DPTGT_NO
     </select>
 
-    <!--
-        사용자 저장분 재조회 — 저장한 적이 있으면 그 값이 화면 초기값이다.
-        검색대 격자(ScGrid)가 요구하는 "시간대별 대수"는 기준 데이터
-        (TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB) 에 시간축이 없어 이 테이블에서만 나온다.
-    -->
     <select id="retrieveUserDepList" resultType="aoms.pm.cast.dto.DepGateDto">
         /* CastDepMapper.retrieveUserDepList */
         SELECT
@@ -76,12 +71,6 @@
         ORDER BY A.DPTGT_NO, A.OPER_BGNG_HOUR
     </select>
 
-    <!--
-        저장 — 전체 교체(delete-then-insert). 구 saveScPlanInfo 를 흡수해 한 트랜잭션에서
-        출국장 · 운영시간 · 보안검색대 운영계획 3개 테이블을 함께 쓴다.
-        삭제 범위는 SMLT_ID + TMNL_ID 로만 한정한다. TMNL_ID 를 빼면 T1 저장이 T2 를 지운다.
-        벌크 INSERT 는 Oracle 문법인 INSERT ALL 을 쓴다 (VALUES 다중행은 ORA-00933, G18).
-    -->
     <delete id="deleteUserDepList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
         /* CastDepMapper.deleteUserDepList */
         DELETE FROM PMOWN.TN_PM_SMLT_USER_DPTGT

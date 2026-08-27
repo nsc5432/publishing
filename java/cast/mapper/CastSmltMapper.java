@@ -44,7 +44,6 @@ public interface CastSmltMapper {
 			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
 	);
 
-	// 수행 — 저장된 조건 존재 확인 · 이력 채번 · 이력 기록 · 이력 조회
 	int retrieveUserSmltCondCnt(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
 
 	int retrieveNextSmltFlfmtSn(@Param("smltId") String smltId);
@@ -55,12 +54,10 @@ public interface CastSmltMapper {
 
 	List<SmltExcnDto> retrieveSmltFlfmtList(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);
 
-	// 모니터링 — 상단 KPI 집계 · 이력 1건 결과 보기
 	SmltExcnCntRawDto retrieveSmltFlfmtSmry(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);
 
 	SmltExcnDto retrieveSmltFlfmtDetail(@Param("smltId") String smltId);
 
-	// 사용자 시뮬레이션 진입 — 저장 시각 · 직전 수행 상태
 	String retrieveUserSmltSaveDt(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
 
 	SmltExcnDto retrieveLastSmltFlfmt(@Param("smltId") String smltId);

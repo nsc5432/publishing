@@ -22,19 +22,6 @@ import aoms.pm.cast.enums.TerminalKind;
  * -----------------------------------------------------------------------------------
  *
  * </pre>
- *
- * <b>좌표 테이블이 확인되지 않아(G1) 배치를 코드가 갖는다.</b> {@link MapLayout} 과 같은 이유다.
- * 결과 테이블에서는 혼잡도·지표만 채우고 위치는 여기서 온다.
- *
- * <p>
- * 맵형태보기({@link MapLayout})와 도면이 달라 좌표를 따로 갖는다. 출국장 화면은 T2 도면이
- * 별도로 그려져 있어 아일랜드·출입구 게이트 배치가 T1 과 다르다 (게이트도 12곳뿐이다).
- * </p>
- *
- * <p>
- * 값은 화면(react {@code departureHall/mock.ts})의 배치 상수와 같아야 마커·카드가
- * 도면 위 같은 자리에 얹힌다. 한쪽만 고치면 어긋난다.
- * </p>
  */
 public final class DepHallLayout {
 	private static final String DPTGT_MARKER_PREFIX = "dg";

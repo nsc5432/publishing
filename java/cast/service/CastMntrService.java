@@ -19,17 +19,11 @@ import aoms.pm.cast.dto.SmltExecSmryDto;
  * -----------------------------------------------------------------------------------
  *
  * </pre>
- *
- * 원천은 {@code PMOWN.TH_PM_SMLT_FLFMT_HSTRY} 다 — {@code executeUserSmlt} 가 쓰는 이력 테이블과 같은 곳이다.
- * 구현체가 둘이며 {@code pm.cast.data-source} 플래그로 하나만 등록된다.
  */
 public interface CastMntrService {
-	/** 상단 KPI 카드 4종 (전체 수행 / 완료 / 진행중 / 평균 수행시간) */
 	SmltExecSmryDto retrieveSmltExecSmry(MntrSearchDto searchDto);
 
-	/** 시뮬레이션 이력 — 표준 / 사용자를 한 번에 내려준다 */
 	SmltExecListDto retrieveSmltExecList(MntrSearchDto searchDto);
 
-	/** 이력 1건 결과 보기 */
 	SmltExecDetailDto retrieveSmltExecDetail(MntrSearchDto searchDto);
 }

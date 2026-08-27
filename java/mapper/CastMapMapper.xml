@@ -4,11 +4,6 @@
 <mapper namespace="aoms.pm.cast.mapper.CastMapMapper">
     <select id="retrieveMapRsltDayList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
         /* CastMapMapper.retrieveMapRsltDayList */
-        <!--
-            하루 전체를 타임라인 1칸(30분) 단위로 접는다. 결과 상세는 10분 간격이므로
-            한 칸에 3행이 들어온다. 화면이 하루치를 한 번에 받아 두므로 시각으로 거르지 않는다.
-            묶음 단위 자리수 규칙은 CastDsbdMapper.unitCdExpr 과 같다 (G11 해소).
-        -->
         SELECT
             TO_CHAR(A.SMLT_ACTL_DT, 'HH24')
                 || LPAD(FLOOR(TO_NUMBER(TO_CHAR(A.SMLT_ACTL_DT, 'MI')) / 30) * 30, 2, '0') AS TIME,

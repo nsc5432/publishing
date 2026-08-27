@@ -36,7 +36,6 @@ public interface CastDepMapper {
 		@Param("tmnlId") String tmnlId, @Param("scRsrcId") String scRsrcId
 	);
 
-	// 사용자 저장분 재조회 — 시간대별 검색대 대수는 기준 데이터에 시간축이 없어 여기서만 나온다
 	List<DepGateDto> retrieveUserDepList(
 		@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
 	);
@@ -49,7 +48,6 @@ public interface CastDepMapper {
 		@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
 	);
 
-	// 저장 — 전체 교체(delete-then-insert). 삭제 범위는 SMLT_ID + TMNL_ID 로 한정한다
 	void deleteUserDepList(UserSmltDepSaveDto saveDto);
 
 	void deleteUserDepOperHrList(UserSmltDepSaveDto saveDto);

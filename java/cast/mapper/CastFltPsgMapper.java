@@ -38,7 +38,6 @@ public interface CastFltPsgMapper {
 			@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
 	);
 
-	// 저장 — 헤더 1행은 병합(update-or-insert), 시간대별 목록은 전체 교체
 	int updateUserFltPsg(UserSmltFltPsgSaveDto saveDto);
 
 	void insertUserFltPsg(UserSmltFltPsgSaveDto saveDto);
