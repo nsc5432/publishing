@@ -12,11 +12,7 @@ import type {
     TmnlSmryDto,
 } from '@/types/api.types';
 
-/** 일일 시뮬레이션 결과 조회 - 요약보기(대시보드) */
 export const dashboardService = {
-    // 조회 조건 기준 정보 (시뮬레이션 ID / 계산 시각 / 선택 가능 시각)
-    // smltId 를 주면 그 시뮬레이션을 지목해 받는다 (모니터링에서 넘어온 경우).
-    // 없으면 기준일자에 해당하는 일일 시뮬레이션이다.
     getBaseInfo: async (ymd: string, smltId?: string): Promise<DsbdBaseInfoDto> => {
         if (USE_MOCK) return mockResponse(dashboardMock.getBaseInfo(smltId));
 
@@ -28,7 +24,6 @@ export const dashboardService = {
         return response.data;
     },
 
-    // 상단 카드 (운항계획 / 시간대별 출발여객 / 요일 속성 / 기상정보)
     getHeader: async (ymd: string, hhmm: string): Promise<DsbdHeaderDto> => {
         if (USE_MOCK) return mockResponse(dashboardMock.getHeader(), { loading: true });
 
@@ -41,7 +36,6 @@ export const dashboardService = {
         return response.data;
     },
 
-    // 터미널 패널 요약 (운항/여객 증감, 탑승률, 피크시간)
     // itvlMin 은 요약 블록이 세는 구간 길이 — hhmm 부터 이만큼 안에 출발하는 편만 센다
     getTmnlSmry: async (
         smltId: string,
@@ -50,7 +44,9 @@ export const dashboardService = {
         itvlMin: number,
     ): Promise<TmnlSmryDto> => {
         if (USE_MOCK) {
-            return mockResponse(dashboardMock.getTmnlSmry(tmnlId, hhmm, itvlMin), { loading: true });
+            return mockResponse(dashboardMock.getTmnlSmry(tmnlId, hhmm, itvlMin), {
+                loading: true,
+            });
         }
 
         const response = await apiClient.post<TmnlSmryDto>(
@@ -62,7 +58,6 @@ export const dashboardService = {
         return response.data;
     },
 
-    // 시간대별 결과 (터미널 패널의 차트 / 테이블 뷰 공용)
     getTmnlRsltByTime: async (
         smltId: string,
         tmnlId: TmnlId,
@@ -79,14 +74,13 @@ export const dashboardService = {
         return response.data;
     },
 
-    // 게이트 카드 (체크인카운터 / 출국장 캐러셀)
     getFcltCardList: async (
         smltId: string,
         tmnlId: TmnlId,
         hhmm: string,
         fcltType: 'CHKN' | 'DEP',
     ): Promise<DsbdFcltCardDto[]> => {
-        if (USE_MOCK) return mockResponse(dashboardMock.getFcltCardList(tmnlId, fcltType));
+        if (USE_MOCK) return mockResponse(dashboardMock.getFcltCardList(tmnlId, hhmm, fcltType));
 
         const response = await apiClient.post<DsbdFcltCardDto[]>(API_ENDPOINTS.DSBD_FCLT_CARD, {
             smltId,

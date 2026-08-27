@@ -2,8 +2,13 @@ package aoms.pm.cast.service.impl;
 
 import static java.util.stream.Collectors.toList;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.ArrayList;
@@ -12,6 +17,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -19,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.dto.BdpsgAnceRawDto;
+import aoms.pm.cast.dto.ChknAlnAssignmentRawDto;
 import aoms.pm.cast.dto.DowAttrDto;
 import aoms.pm.cast.dto.DsbdBaseInfoDto;
 import aoms.pm.cast.dto.DsbdFcltCardDto;
@@ -35,6 +43,7 @@ import aoms.pm.cast.dto.HourlyPsgDto;
 import aoms.pm.cast.dto.HourlyPsgItemDto;
 import aoms.pm.cast.dto.PeakDto;
 import aoms.pm.cast.dto.PsgDptcnyTrnsPrfmncRawDto;
+import aoms.pm.cast.dto.PsgPrcsGradeRawDto;
 import aoms.pm.cast.dto.PsgWtngRawDto;
 import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
@@ -47,26 +56,12 @@ import aoms.pm.cast.enums.SmltType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDsbdMapper;
 import aoms.pm.cast.service.CastDsbdService;
+import aoms.pm.cast.service.FcltRecommendationCalculator;
 import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.utils.TimeBucketUtils;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * @Classname : CastDsbdServiceImpl.java
- * @Description : 요약보기(대시보드) ServiceImpl — DB 조회
- *
- * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
- * <pre>
- * -----------------------------------------------------------------------------------
- * Modification Information
- * -----------------------------------------------------------------------------------
- * 수정일 / 수정자 / 수정내용
- * 2026. 08. 09. / 노세찬 / 최초작성
- * -----------------------------------------------------------------------------------
- *
- * </pre>
- */
 @Service
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
@@ -90,7 +85,19 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private static final int PERCENT = 100;
 	private static final int DAYS_A_WEEK = 7;
 	private static final int DEFAULT_ITVL_MIN = 60; // 요약 블록의 구간 집계 기본 길이(분)
+	private static final int FCLT_ROLLING_MIN = 60;
+	private static final int CAST_SLOT_MIN = 10;
 	private static final int CARD_CNT_LIMIT = 12; // 캐러셀이 감당하는 카드 수 상한
+	private static final MathContext MATH_CONTEXT = MathContext.DECIMAL128;
+	private static final String NORMAL_GRADE_CD = "02";
+	private static final Map<String, String> FCLT_GROUP_CD_MAP = Map.of(
+			"CK", "01",
+			"CC", "02",
+			"LGT", "03",
+			"SC", "04",
+			"SR", "04");
+	private static final Set<String> CHKN_RECOMMEND_FCLT_CD_SET = Set.of("CC");
+	private static final Set<String> SCRTY_RECOMMEND_FCLT_CD_SET = Set.of("SC", "SR");
 
 	private final CastDsbdMapper castDsbdMapper;
 	private final CastSmltService castSmltService;
@@ -221,31 +228,76 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		FcltType fcltType = searchDto.getFcltType();
 		TerminalKind tmnlId = searchDto.getTmnlId();
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
-		List<String> upPsgFcltCdList = getCardFcltCdList(fcltType);
+		List<String> cardFcltCdList = getCardFcltCdList(fcltType);
+		Set<String> recommendFcltCdSet = getRecommendFcltCdSet(fcltType);
+		String fcltGroupCd = getFcltGroupCd(fcltType);
+		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(searchDto.getSmltId());
+		RollingRange range = getRollingRange(smltStng.getExcnYmd(), searchDto.getHhmm());
+		List<SmltRsltRawDto> rawSlotList = castDsbdMapper.retrieveRsltByUnitList(
+				searchDto.getSmltId(), fcltTmnlId, range.getBgnDt(), range.getEndDt(), cardFcltCdList);
+		Map<String, List<SmltRsltRawDto>> displaySlotMap = mergeSlotsByUnit(rawSlotList, Set.copyOf(cardFcltCdList));
+		Map<String, List<SmltRsltRawDto>> recommendSlotMap = mergeSlotsByUnit(rawSlotList, recommendFcltCdSet);
+		Map<String, SmltRsltRawDto> displayRsltMap = aggregateByUnit(displaySlotMap);
+		Map<String, SmltRsltRawDto> recommendRsltMap = aggregateByUnit(recommendSlotMap);
 
-		// 묶음 단위(아일랜드 · 출국장) 별로 접는다. 한 단위에 상위시설코드가 여러 개 걸리므로 여기서 합친다
-		Map<String, SmltRsltRawDto> rsltMap = mergeByUnit(castDsbdMapper.retrieveRsltByUnitList(
-				searchDto.getSmltId(), fcltTmnlId, searchDto.getHhmm(), upPsgFcltCdList));
-		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, upPsgFcltCdList)
+		if (range.hasEndSnapshot()) {
+			List<SmltRsltRawDto> endSnapshotList = castDsbdMapper.retrieveRsltAtTimeList(
+					searchDto.getSmltId(), fcltTmnlId, range.getEndDt(), new ArrayList<>(recommendFcltCdSet));
+			appendSlots(recommendSlotMap, mergeSlotsByUnit(endSnapshotList, recommendFcltCdSet));
+		}
+		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, cardFcltCdList)
 				.stream().collect(Collectors.toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
-
-		List<FcltUnitDto> unitList = getUnitList(unitMap, rsltMap);
+		GradeScale gradeScale = getGradeScale(fcltGroupCd, searchDto);
+		RecommendationResources resources = getRecommendationResources(fcltType, smltStng, fcltTmnlId, range.getBgnDt());
+		List<FcltUnitDto> unitList = getUnitList(unitMap, recommendRsltMap, gradeScale, searchDto, fcltGroupCd);
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
-		// 캐러셀은 혼잡한 곳부터 보여준다 — 사용자가 먼저 볼 카드가 앞이어야 한다
-		List<SmltRsltRawDto> ordered = rsltMap.values().stream()
+		List<SmltRsltRawDto> ordered = displayRsltMap.values().stream()
 				.sorted(Comparator.comparingInt(SmltRsltRawDto::getWtngPsgCnt).reversed())
 				.limit(CARD_CNT_LIMIT)
 				.collect(toList());
 
 		for (SmltRsltRawDto rslt : ordered) {
-			result.add(getFcltCard(fcltType, rslt, unitMap.get(rslt.getUnitCd()), unitList, searchDto.getHhmm()));
+			String unitCd = rslt.getUnitCd();
+			SmltRsltRawDto recommendRslt = requireRecommendationRslt(
+					recommendRsltMap.get(unitCd), searchDto, fcltType, fcltGroupCd, unitCd);
+			List<SmltRsltRawDto> unitSlotList = recommendSlotMap.get(unitCd);
+			BigDecimal forecastArrivals = getForecastArrivals(unitSlotList, range, searchDto, fcltType, unitCd);
+			int currentOpenCount = resources.getOpenCountValue(unitCd);
+			BigDecimal serviceRate = getServiceRate(
+					searchDto,
+					smltStng,
+					fcltType,
+					fcltTmnlId,
+					unitCd,
+					recommendFcltCdSet,
+					range,
+					recommendRslt.getTrnstPsgCnt(),
+					currentOpenCount);
+			FcltRecommendationCalculator.Result calculation = calculateRecommendation(
+					recommendRslt,
+					unitSlotList,
+					forecastArrivals,
+					serviceRate,
+					gradeScale,
+					range,
+					searchDto,
+					fcltType,
+					unitCd);
+			result.add(getFcltCard(
+					fcltType,
+					rslt,
+					recommendRslt,
+					unitMap.get(unitCd),
+					unitList,
+					resources.getTargetName(unitCd, searchDto, fcltType),
+					calculation,
+					gradeScale,
+					range));
 		}
 
 		return result;
 	}
-
-	/* ================= 상단 카드 ================= */
 
 	private FltPlanDto getFltPlan(FltSmryRawDto raw) {
 		FltPlanDto result = new FltPlanDto();
@@ -312,9 +364,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return dowType == DowType.WEEKEND ? "주말(" + dowNm + ")" : "평일(" + dowNm + ")";
 	}
 
-	/* ================= 터미널 요약 ================= */
-
-	// 요약 블록은 하루 전체가 아니라 조회 시각부터 itvlMin 분 동안 출발하는 편만 센다
 	private void setItvlSmry(TmnlSmryDto result, DsbdSearchDto searchDto, LocalDate baseDate, List<String> fltTmnlIdList) {
 		int itvlMin = searchDto.getItvlMin() != null ? searchDto.getItvlMin() : DEFAULT_ITVL_MIN;
 		String bgnHhmm = searchDto.getHhmm();
@@ -335,7 +384,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setItvlBefPsgDiffCnt(baseItvl.getDepPsgCnt() - befItvl.getDepPsgCnt());
 	}
 
-	// 피크는 대기인원이 가장 많은 시간대다
 	private PeakDto getPeak(String smltId, TerminalKind tmnlId) {
 		List<SmltRsltRawDto> rsltList = castDsbdMapper.retrieveRsltByHourList(
 				smltId, tmnlId.getFcltTmnlId(), DsbdCategory.PSG.getUpPsgFcltCdList());
@@ -360,8 +408,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		return result;
 	}
-
-	/* ================= 시간대별 결과 ================= */
 
 	private DsbdRsltDto toRsltDto(
 			String hour,
@@ -394,16 +440,12 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return result;
 	}
 
-	// 처리율 = 처리인원 / (처리인원 + 대기인원)
 	private int getPrcsRate(int prcsPsgCnt, int wtngPsgCnt) {
 		int total = prcsPsgCnt + wtngPsgCnt;
 
 		return total == 0 ? 0 : prcsPsgCnt * PERCENT / total;
 	}
 
-	/* ================= 게이트 카드 ================= */
-
-	// 체크인 카드는 유인 카운터 + 셀프 서비스를, 출국장 카드는 출국장 + 검색대를 한 장에 담는다
 	private List<String> getCardFcltCdList(FcltType fcltType) {
 		if (fcltType == FcltType.DEP) {
 			return List.of("LGT", "SC", "SR");
@@ -412,51 +454,117 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return List.of("CC", "CK", "SBD");
 	}
 
-	private Map<String, SmltRsltRawDto> mergeByUnit(List<SmltRsltRawDto> rsltList) {
+	private Set<String> getRecommendFcltCdSet(FcltType fcltType) {
+		return fcltType == FcltType.DEP ? SCRTY_RECOMMEND_FCLT_CD_SET : CHKN_RECOMMEND_FCLT_CD_SET;
+	}
+
+	private String getFcltGroupCd(FcltType fcltType) {
+		String upPsgFcltCd = fcltType == FcltType.DEP ? "SC" : "CC";
+		String fcltGroupCd = FCLT_GROUP_CD_MAP.get(upPsgFcltCd);
+
+		if (fcltGroupCd == null) {
+			throw new IllegalStateException("시설 그룹 매핑을 찾을 수 없습니다. upPsgFcltCd=" + upPsgFcltCd);
+		}
+
+		return fcltGroupCd;
+	}
+
+	private Map<String, List<SmltRsltRawDto>> mergeSlotsByUnit(
+			List<SmltRsltRawDto> rawSlotList,
+			Set<String> upPsgFcltCdSet
+	) {
+		Map<String, Map<LocalDateTime, SmltRsltRawDto>> unitTimeMap = new LinkedHashMap<>();
+
+		for (SmltRsltRawDto raw : rawSlotList) {
+			if (!upPsgFcltCdSet.contains(raw.getUpPsgFcltCd())) {
+				continue;
+			}
+
+			String unitCd = normalizeUnitCd(raw.getUnitCd());
+
+			if (unitCd.isEmpty() || raw.getSmltActlDt() == null) {
+				continue;
+			}
+
+			Map<LocalDateTime, SmltRsltRawDto> timeMap = unitTimeMap.computeIfAbsent(unitCd, ignored -> new TreeMap<>());
+			SmltRsltRawDto slot = timeMap.get(raw.getSmltActlDt());
+
+			if (slot == null) {
+				timeMap.put(raw.getSmltActlDt(), newSlot(raw, unitCd));
+				continue;
+			}
+
+			slot.setWtngPsgCnt(slot.getWtngPsgCnt() + raw.getWtngPsgCnt());
+			slot.setTrnstPsgCnt(slot.getTrnstPsgCnt() + raw.getTrnstPsgCnt());
+			slot.setWtngHr(Math.max(slot.getWtngHr(), raw.getWtngHr()));
+			slot.setPrcsHr(Math.max(slot.getPrcsHr(), raw.getPrcsHr()));
+		}
+
+		Map<String, List<SmltRsltRawDto>> result = new LinkedHashMap<>();
+		unitTimeMap.forEach((unitCd, timeMap) -> result.put(unitCd, new ArrayList<>(timeMap.values())));
+		return result;
+	}
+
+	private SmltRsltRawDto newSlot(SmltRsltRawDto raw, String unitCd) {
+		SmltRsltRawDto result = new SmltRsltRawDto();
+		result.setTime(raw.getTime());
+		result.setSmltActlDt(raw.getSmltActlDt());
+		result.setUnitCd(unitCd);
+		result.setWtngPsgCnt(raw.getWtngPsgCnt());
+		result.setTrnstPsgCnt(raw.getTrnstPsgCnt());
+		result.setWtngHr(raw.getWtngHr());
+		result.setPrcsHr(raw.getPrcsHr());
+		return result;
+	}
+
+	private void appendSlots(
+			Map<String, List<SmltRsltRawDto>> target,
+			Map<String, List<SmltRsltRawDto>> additional
+	) {
+		additional.forEach((unitCd, slots) -> target.computeIfAbsent(unitCd, ignored -> new ArrayList<>()).addAll(slots));
+		target.values().forEach(slots -> slots.sort(Comparator.comparing(SmltRsltRawDto::getSmltActlDt)));
+	}
+
+	private Map<String, SmltRsltRawDto> aggregateByUnit(Map<String, List<SmltRsltRawDto>> slotMap) {
 		Map<String, SmltRsltRawDto> result = new LinkedHashMap<>();
 
-		for (SmltRsltRawDto rslt : rsltList) {
-			String unitCd = rslt.getUnitCd() != null ? rslt.getUnitCd().trim() : EMPTY;
-
-			if (unitCd.isEmpty()) {
-				continue;
+		slotMap.forEach((unitCd, slots) -> {
+			SmltRsltRawDto aggregate = new SmltRsltRawDto();
+			aggregate.setUnitCd(unitCd);
+			for (SmltRsltRawDto slot : slots) {
+				aggregate.setWtngPsgCnt(Math.max(aggregate.getWtngPsgCnt(), slot.getWtngPsgCnt()));
+				aggregate.setTrnstPsgCnt(aggregate.getTrnstPsgCnt() + slot.getTrnstPsgCnt());
+				aggregate.setWtngHr(Math.max(aggregate.getWtngHr(), slot.getWtngHr()));
+				aggregate.setPrcsHr(Math.max(aggregate.getPrcsHr(), slot.getPrcsHr()));
 			}
-
-			SmltRsltRawDto merged = result.get(unitCd);
-
-			if (merged == null) {
-				rslt.setUnitCd(unitCd);
-				result.put(unitCd, rslt);
-				continue;
-			}
-
-			// 대기인원은 순간값이라 최댓값, 처리인원은 누계라 합이다
-			merged.setWtngPsgCnt(Math.max(merged.getWtngPsgCnt(), rslt.getWtngPsgCnt()));
-			merged.setTrnstPsgCnt(merged.getTrnstPsgCnt() + rslt.getTrnstPsgCnt());
-			merged.setWtngHr(Math.max(merged.getWtngHr(), rslt.getWtngHr()));
-			merged.setPrcsHr(Math.max(merged.getPrcsHr(), rslt.getPrcsHr()));
-		}
+			result.put(unitCd, aggregate);
+		});
 
 		return result;
 	}
 
-	// 하단 칩은 카드마다 같다 — 터미널의 모든 묶음 단위를 그린다
-	private List<FcltUnitDto> getUnitList(Map<String, FcltUnitRawDto> unitMap, Map<String, SmltRsltRawDto> rsltMap) {
+	private List<FcltUnitDto> getUnitList(
+			Map<String, FcltUnitRawDto> unitMap,
+			Map<String, SmltRsltRawDto> recommendRsltMap,
+			GradeScale gradeScale,
+			DsbdSearchDto searchDto,
+			String fcltGroupCd
+	) {
 		List<FcltUnitDto> result = new ArrayList<>();
 
 		for (FcltUnitRawDto unit : unitMap.values()) {
-			String unitCd = unit.getUnitCd() != null ? unit.getUnitCd().trim() : EMPTY;
+			String unitCd = normalizeUnitCd(unit.getUnitCd());
 
 			if (unitCd.isEmpty()) {
 				continue;
 			}
 
-			SmltRsltRawDto rslt = rsltMap.get(unitCd);
+			SmltRsltRawDto rslt = recommendRsltMap.get(unitCd);
 			int wtngPsgCnt = rslt != null ? rslt.getWtngPsgCnt() : 0;
 
 			result.add(new FcltUnitDto()
 					.withUnitCd(unitCd)
-					.withCgnStatus(CongestionStatus.ofWtngPsgCnt(wtngPsgCnt))
+					.withCgnStatus(gradeScale.statusOf(wtngPsgCnt, gradeContext(searchDto, fcltGroupCd, unitCd)))
 					.withUseYn(unit.getOprCnt() > 0 ? USE_YN_Y : USE_YN_N));
 		}
 
@@ -465,13 +573,17 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	private DsbdFcltCardDto getFcltCard(
 			FcltType fcltType,
-			SmltRsltRawDto rslt,
+			SmltRsltRawDto displayRslt,
+			SmltRsltRawDto recommendRslt,
 			FcltUnitRawDto unit,
 			List<FcltUnitDto> unitList,
-			String hhmm
+			String targetName,
+			FcltRecommendationCalculator.Result calculation,
+			GradeScale gradeScale,
+			RollingRange range
 	) {
 		boolean isChkn = fcltType != FcltType.DEP;
-		String unitCd = rslt.getUnitCd();
+		String unitCd = displayRslt.getUnitCd();
 
 		DsbdFcltCardDto result = new DsbdFcltCardDto();
 		result.setCardId(fcltType.getValue() + "-" + unitCd);
@@ -483,31 +595,507 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setFcltDesc(EMPTY);
 		result.setTotCnt(unit != null ? unit.getTotCnt() : 0);
 		result.setOprCnt(unit != null ? unit.getOprCnt() : 0);
-		result.setWtngPsgCnt(rslt.getWtngPsgCnt());
-		result.setHrlyPrcsPsgCnt(rslt.getTrnstPsgCnt());
-		result.setHrlyPrcsRate(getPrcsRate(rslt.getTrnstPsgCnt(), rslt.getWtngPsgCnt()));
-		// 혼잡해소 예측은 재계산이 필요하다. 예측 API 가 없어 기준 시각을 그대로 둔다 (D7)
-		result.setCgnClearTime(hhmm);
+		result.setWtngPsgCnt(displayRslt.getWtngPsgCnt());
+		result.setHrlyPrcsPsgCnt(toPaxPerMin(displayRslt.getTrnstPsgCnt(), range.getActualMinutes()));
+		result.setHrlyPrcsRate(getPrcsRate(displayRslt.getTrnstPsgCnt(), displayRslt.getWtngPsgCnt()));
+		result.setCgnClearTime(range.getBgnDt().plusMinutes(calculation.getClearMinutes()).format(DateTimeFormatter.ofPattern("HHmm")));
 		result.setCgnClearRate(0);
-		result.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt.getWtngPsgCnt()));
-		result.setRecommend(getEmptyRecommend());
+		result.setCgnStatus(gradeScale.statusOf(recommendRslt.getWtngPsgCnt(), "unitCd=" + unitCd));
+		result.setRecommend(getRecommend(fcltType, targetName, calculation.getRequiredTotal()));
 		result.setUnitList(unitList);
 
 		return result;
 	}
 
-	// 추천 조치 로직(어디에 몇 개를 더 열 것인가)이 정의되지 않았다 (D7)
-	private FcltRecommendDto getEmptyRecommend() {
+	private FcltRecommendDto getRecommend(FcltType fcltType, String targetName, int requiredTotal) {
 		FcltRecommendDto result = new FcltRecommendDto();
 
-		result.setTargetNm(EMPTY);
-		result.setAddCnt(0);
-		result.setNeedAssignYn(USE_YN_N);
+		result.setTargetNm(targetName);
+		result.setAddCnt(requiredTotal);
+		result.setNeedAssignYn(fcltType == FcltType.DEP ? USE_YN_N : USE_YN_Y);
 
 		return result;
 	}
 
-	/* ================= 시각 ================= */
+	private int toPaxPerMin(int processedPsgCnt, int actualMinutes) {
+		return BigDecimal.valueOf(processedPsgCnt)
+				.divide(BigDecimal.valueOf(actualMinutes), 0, RoundingMode.HALF_UP)
+				.intValueExact();
+	}
+
+	private RollingRange getRollingRange(String excnYmd, String hhmm) {
+		if (hhmm == null || !hhmm.matches("(?:[01][0-9]|2[0-3])[0-5][0-9]")) {
+			throw new IllegalArgumentException("조회 시각 형식이 올바르지 않습니다. hhmm=" + hhmm);
+		}
+
+		LocalDate baseDate = parseYmd(excnYmd);
+		LocalDateTime dayStart = baseDate.atStartOfDay();
+		LocalDateTime dayEnd = dayStart.plusDays(1);
+		LocalDateTime bgnDt = LocalDateTime.of(baseDate, LocalTime.parse(hhmm, DateTimeFormatter.ofPattern("HHmm")));
+		LocalDateTime endDt = bgnDt.plusMinutes(FCLT_ROLLING_MIN).isBefore(dayEnd)
+				? bgnDt.plusMinutes(FCLT_ROLLING_MIN)
+				: dayEnd;
+		int actualMinutes = Math.toIntExact(Duration.between(bgnDt, endDt).toMinutes());
+
+		if (actualMinutes <= 0) {
+			throw new IllegalArgumentException("시설 집계 구간이 올바르지 않습니다. excnYmd=" + excnYmd + ", hhmm=" + hhmm);
+		}
+
+		return new RollingRange(dayStart, dayEnd, bgnDt, endDt, actualMinutes);
+	}
+
+	private GradeScale getGradeScale(String fcltGroupCd, DsbdSearchDto searchDto) {
+		return new GradeScale(
+				fcltGroupCd,
+				castDsbdMapper.retrievePsgPrcsGradeList(fcltGroupCd),
+				baseContext(searchDto) + ", fcltGroupCd=" + fcltGroupCd);
+	}
+
+	private RecommendationResources getRecommendationResources(
+			FcltType fcltType,
+			SmltStngDto smltStng,
+			String fcltTmnlId,
+			LocalDateTime bgnDt
+	) {
+		if (fcltType == FcltType.DEP) {
+			String resourceId = smltStng.getFcltyOpngScrtyCntrlRsrcId();
+			requireResourceId(resourceId, "FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID", smltStng);
+			Map<String, Integer> openCountMap = new LinkedHashMap<>();
+			for (FcltUnitRawDto raw : castDsbdMapper.retrieveScrtyOpenCountList(fcltTmnlId, resourceId)) {
+				String unitCd = normalizeUnitCd(raw.getUnitCd());
+				if (raw.getTotCnt() != 1) {
+					throw new IllegalStateException(
+							"보안검색대 운영 snapshot에서 조회 시각의 행을 식별할 수 없습니다. "
+									+ "smltId=" + smltStng.getSmltId()
+									+ ", tmnlId=" + fcltTmnlId
+									+ ", resourceId=" + resourceId
+									+ ", unitCd=" + unitCd
+									+ ", rowCount=" + raw.getTotCnt());
+				}
+				openCountMap.put(unitCd, raw.getOprCnt());
+			}
+			return new RecommendationResources(openCountMap, Map.of(), "보안검색대");
+		}
+
+		String resourceId = smltStng.getCknctAlctnRsrcId();
+		requireResourceId(resourceId, "CKNCT_ALCTN_RSRC_ID", smltStng);
+		List<ChknAlnAssignmentRawDto> assignmentList = castDsbdMapper.retrieveChknAlnAssignmentList(
+				smltStng.getExcnYmd(), fcltTmnlId, bgnDt, resourceId);
+		Map<String, Integer> openCountMap = new LinkedHashMap<>();
+		Map<String, Integer> assignedCountMap = new LinkedHashMap<>();
+		Map<String, AssignmentSummary> targetMap = new LinkedHashMap<>();
+
+		for (ChknAlnAssignmentRawDto assignment : assignmentList) {
+			String unitCd = normalizeUnitCd(assignment.getUnitCd());
+			String alnCd = assignment.getAlnCd() != null ? assignment.getAlnCd().trim() : EMPTY;
+			String alnNm = assignment.getAlnNm() != null ? assignment.getAlnNm().trim() : EMPTY;
+
+			if (unitCd.isEmpty() || alnCd.isEmpty() || assignment.getAssignedCnt() <= 0) {
+				continue;
+			}
+
+			Integer previousOpenCount = openCountMap.putIfAbsent(unitCd, assignment.getOpenCnt());
+			if (previousOpenCount != null && previousOpenCount != assignment.getOpenCnt()) {
+				throw new IllegalStateException(
+						"체크인 운영 카운터 수가 일치하지 않습니다. "
+								+ "smltId=" + smltStng.getSmltId()
+								+ ", tmnlId=" + fcltTmnlId
+								+ ", resourceId=" + resourceId
+								+ ", unitCd=" + unitCd);
+			}
+			assignedCountMap.merge(unitCd, assignment.getAssignedCnt(), Integer::sum);
+			AssignmentSummary current = targetMap.get(unitCd);
+			if (current == null
+					|| assignment.getAssignedCnt() > current.getAssignedCount()
+					|| assignment.getAssignedCnt() == current.getAssignedCount() && alnCd.compareTo(current.getAlnCd()) < 0) {
+				targetMap.put(unitCd, new AssignmentSummary(alnCd, alnNm, assignment.getAssignedCnt()));
+			}
+		}
+
+		assignedCountMap.forEach((unitCd, assignedCount) -> {
+			int openCount = openCountMap.getOrDefault(unitCd, 0);
+			if (assignedCount > openCount) {
+				throw new IllegalStateException(
+						"하나의 체크인카운터에 여러 항공사가 중복 배정되었습니다. "
+								+ "smltId=" + smltStng.getSmltId()
+								+ ", tmnlId=" + fcltTmnlId
+								+ ", resourceId=" + resourceId
+								+ ", unitCd=" + unitCd
+								+ ", openCount=" + openCount
+								+ ", assignedCount=" + assignedCount);
+			}
+		});
+
+		return new RecommendationResources(openCountMap, targetMap, null);
+	}
+
+	private void requireResourceId(String resourceId, String columnName, SmltStngDto smltStng) {
+		if (resourceId == null || resourceId.trim().isEmpty()) {
+			throw new IllegalStateException(
+					"실행 리소스 정보를 찾을 수 없습니다. smltId=" + smltStng.getSmltId() + ", column=" + columnName);
+		}
+	}
+
+	private SmltRsltRawDto requireRecommendationRslt(
+			SmltRsltRawDto rslt,
+			DsbdSearchDto searchDto,
+			FcltType fcltType,
+			String fcltGroupCd,
+			String unitCd
+	) {
+		if (rslt == null) {
+			throw new IllegalStateException(
+					"추천 시설 결과를 찾을 수 없습니다. "
+							+ baseContext(searchDto)
+							+ ", fcltType=" + fcltType.getValue()
+							+ ", fcltGroupCd=" + fcltGroupCd
+							+ ", unitCd=" + unitCd);
+		}
+
+		return rslt;
+	}
+
+	private BigDecimal getForecastArrivals(
+			List<SmltRsltRawDto> slotList,
+			RollingRange range,
+			DsbdSearchDto searchDto,
+			FcltType fcltType,
+			String unitCd
+	) {
+		String context = baseContext(searchDto) + ", fcltType=" + fcltType.getValue() + ", unitCd=" + unitCd;
+
+		if (slotList == null || slotList.isEmpty() || !range.getBgnDt().equals(slotList.get(0).getSmltActlDt())) {
+			throw new IllegalStateException("유입량 산정용 시작 스냅샷을 찾을 수 없습니다. " + context);
+		}
+
+		SmltRsltRawDto last = slotList.get(slotList.size() - 1);
+		if (!range.getEndDt().equals(last.getSmltActlDt())) {
+			throw new IllegalStateException(
+					"유입량 산정용 종료 스냅샷을 찾을 수 없습니다. "
+							+ context
+							+ ", endDt=" + range.getEndDt());
+		}
+
+		BigDecimal result = BigDecimal.ZERO;
+		for (int index = 0; index < slotList.size() - 1; index++) {
+			SmltRsltRawDto current = slotList.get(index);
+			SmltRsltRawDto next = slotList.get(index + 1);
+			long intervalMinutes = Duration.between(current.getSmltActlDt(), next.getSmltActlDt()).toMinutes();
+
+			if (intervalMinutes != CAST_SLOT_MIN) {
+				throw new IllegalStateException(
+						"CAST 결과 슬롯 간격이 올바르지 않습니다. "
+								+ context
+								+ ", currentDt=" + current.getSmltActlDt()
+								+ ", nextDt=" + next.getSmltActlDt());
+			}
+
+			int arrival = Math.max(0, next.getWtngPsgCnt() - current.getWtngPsgCnt() + current.getTrnstPsgCnt());
+			result = result.add(BigDecimal.valueOf(arrival));
+		}
+
+		return result;
+	}
+
+	private BigDecimal getServiceRate(
+			DsbdSearchDto searchDto,
+			SmltStngDto smltStng,
+			FcltType fcltType,
+			String fcltTmnlId,
+			String unitCd,
+			Set<String> recommendFcltCdSet,
+			RollingRange range,
+			int processedPsgCnt,
+			int currentOpenCount
+	) {
+		if (currentOpenCount > 0 && processedPsgCnt > 0) {
+			return calculateServiceRate(processedPsgCnt, currentOpenCount, range.getActualMinutes());
+		}
+
+		List<SmltRsltRawDto> priorRawList = castDsbdMapper.retrieveRsltByUnitList(
+				searchDto.getSmltId(),
+				fcltTmnlId,
+				range.getDayStart(),
+				range.getBgnDt(),
+				new ArrayList<>(recommendFcltCdSet));
+		List<SmltRsltRawDto> priorSlotList = mergeSlotsByUnit(priorRawList, recommendFcltCdSet)
+				.getOrDefault(unitCd, List.of());
+
+		for (int index = priorSlotList.size() - 1; index >= 0; index--) {
+			SmltRsltRawDto slot = priorSlotList.get(index);
+			if (slot.getTrnstPsgCnt() <= 0) {
+				continue;
+			}
+
+			RecommendationResources resources = getRecommendationResources(
+					fcltType, smltStng, fcltTmnlId, slot.getSmltActlDt());
+			int priorOpenCount = resources.getOpenCountValue(unitCd);
+			if (priorOpenCount > 0) {
+				return calculateServiceRate(slot.getTrnstPsgCnt(), priorOpenCount, CAST_SLOT_MIN);
+			}
+		}
+
+		throw new IllegalStateException(
+				"시설당 처리능력을 산정할 수 없습니다. "
+						+ baseContext(searchDto)
+						+ ", fcltType=" + fcltType.getValue()
+						+ ", unitCd=" + unitCd
+						+ ", currentOpenCount=" + currentOpenCount
+						+ ", processedPsgCnt=" + processedPsgCnt);
+	}
+
+	private BigDecimal calculateServiceRate(int processedPsgCnt, int openCount, int minutes) {
+		return BigDecimal.valueOf(processedPsgCnt)
+				.divide(BigDecimal.valueOf(openCount), MATH_CONTEXT)
+				.divide(BigDecimal.valueOf(minutes), MATH_CONTEXT);
+	}
+
+	private FcltRecommendationCalculator.Result calculateRecommendation(
+			SmltRsltRawDto recommendRslt,
+			List<SmltRsltRawDto> slotList,
+			BigDecimal forecastArrivals,
+			BigDecimal serviceRate,
+			GradeScale gradeScale,
+			RollingRange range,
+			DsbdSearchDto searchDto,
+			FcltType fcltType,
+			String unitCd
+	) {
+		int initialQueue = slotList.get(0).getWtngPsgCnt();
+		try {
+			return FcltRecommendationCalculator.calculate(
+					BigDecimal.valueOf(initialQueue),
+					forecastArrivals,
+					BigDecimal.valueOf(range.getActualMinutes()),
+					serviceRate,
+					gradeScale.getNormalMax());
+		} catch (IllegalArgumentException | IllegalStateException exception) {
+			throw new IllegalStateException(
+					"시설 추천 계산에 실패했습니다. "
+							+ baseContext(searchDto)
+							+ ", fcltType=" + fcltType.getValue()
+							+ ", unitCd=" + unitCd
+							+ ", initialQueue=" + initialQueue
+							+ ", peakQueue=" + recommendRslt.getWtngPsgCnt()
+							+ ", forecastArrivals=" + forecastArrivals
+							+ ", serviceRate=" + serviceRate
+							+ ", targetQueue=" + gradeScale.getNormalMax(),
+					exception);
+		}
+	}
+
+	private String normalizeUnitCd(String unitCd) {
+		return unitCd != null ? unitCd.trim() : EMPTY;
+	}
+
+	private String baseContext(DsbdSearchDto searchDto) {
+		return "smltId=" + searchDto.getSmltId()
+				+ ", tmnlId=" + (searchDto.getTmnlId() != null ? searchDto.getTmnlId().getValue() : null)
+				+ ", hhmm=" + searchDto.getHhmm();
+	}
+
+	private String gradeContext(DsbdSearchDto searchDto, String fcltGroupCd, String unitCd) {
+		return baseContext(searchDto) + ", fcltGroupCd=" + fcltGroupCd + ", unitCd=" + unitCd;
+	}
+
+	private static final class RollingRange {
+		private final LocalDateTime dayStart;
+		private final LocalDateTime dayEnd;
+		private final LocalDateTime bgnDt;
+		private final LocalDateTime endDt;
+		private final int actualMinutes;
+
+		private RollingRange(
+				LocalDateTime dayStart,
+				LocalDateTime dayEnd,
+				LocalDateTime bgnDt,
+				LocalDateTime endDt,
+				int actualMinutes
+		) {
+			this.dayStart = dayStart;
+			this.dayEnd = dayEnd;
+			this.bgnDt = bgnDt;
+			this.endDt = endDt;
+			this.actualMinutes = actualMinutes;
+		}
+
+		private LocalDateTime getDayStart() {
+			return dayStart;
+		}
+
+		private LocalDateTime getBgnDt() {
+			return bgnDt;
+		}
+
+		private LocalDateTime getEndDt() {
+			return endDt;
+		}
+
+		private int getActualMinutes() {
+			return actualMinutes;
+		}
+
+		private boolean hasEndSnapshot() {
+			return endDt.isBefore(dayEnd);
+		}
+	}
+
+	private static final class AssignmentSummary {
+		private final String alnCd;
+		private final String alnNm;
+		private final int assignedCount;
+
+		private AssignmentSummary(String alnCd, String alnNm, int assignedCount) {
+			this.alnCd = alnCd;
+			this.alnNm = alnNm;
+			this.assignedCount = assignedCount;
+		}
+
+		private String getAlnCd() {
+			return alnCd;
+		}
+
+		private String getAlnNm() {
+			return alnNm;
+		}
+
+		private int getAssignedCount() {
+			return assignedCount;
+		}
+	}
+
+	private final class RecommendationResources {
+		private final Map<String, Integer> openCountMap;
+		private final Map<String, AssignmentSummary> targetMap;
+		private final String fixedTargetName;
+
+		private RecommendationResources(
+				Map<String, Integer> openCountMap,
+				Map<String, AssignmentSummary> targetMap,
+				String fixedTargetName
+		) {
+			this.openCountMap = openCountMap;
+			this.targetMap = targetMap;
+			this.fixedTargetName = fixedTargetName;
+		}
+
+		private int getOpenCountValue(String unitCd) {
+			return openCountMap.getOrDefault(unitCd, 0);
+		}
+
+		private String getTargetName(String unitCd, DsbdSearchDto searchDto, FcltType fcltType) {
+			if (fixedTargetName != null) {
+				return fixedTargetName;
+			}
+
+			AssignmentSummary target = targetMap.get(unitCd);
+			if (target == null || target.getAlnCd().isEmpty()) {
+				throw new IllegalStateException(
+						"체크인 항공사 배정정보를 찾을 수 없습니다. "
+								+ baseContext(searchDto)
+								+ ", fcltType=" + fcltType.getValue()
+								+ ", unitCd=" + unitCd);
+			}
+
+			if (target.getAlnNm().isEmpty()) {
+				throw new IllegalStateException(
+						"체크인 항공사명을 찾을 수 없습니다. "
+								+ baseContext(searchDto)
+								+ ", fcltType=" + fcltType.getValue()
+								+ ", unitCd=" + unitCd
+								+ ", alnCd=" + target.getAlnCd());
+			}
+
+			return target.getAlnNm();
+		}
+	}
+
+	private static final class GradeScale {
+		private final List<PsgPrcsGradeRawDto> gradeList;
+		private final BigDecimal normalMax;
+
+		private GradeScale(String fcltGroupCd, List<PsgPrcsGradeRawDto> rawList, String context) {
+			if (rawList == null || rawList.isEmpty()) {
+				throw new IllegalStateException("혼잡등급 기준정보를 찾을 수 없습니다. " + context);
+			}
+
+			Map<String, PsgPrcsGradeRawDto> gradeMap = new LinkedHashMap<>();
+			for (PsgPrcsGradeRawDto grade : rawList) {
+				String gradeCode = grade.getPsgPrcsGrdCd();
+				if (!fcltGroupCd.equals(grade.getFcltGroupCd())) {
+					throw new IllegalStateException("혼잡등급 시설 그룹이 일치하지 않습니다. " + context);
+				}
+				if (gradeMap.putIfAbsent(gradeCode, grade) != null) {
+					throw new IllegalStateException(
+							"혼잡등급 기준정보가 중복되었습니다. " + context + ", psgPrcsGrdCd=" + gradeCode);
+				}
+				try {
+					CongestionStatus.ofGradeCode(gradeCode);
+				} catch (RuntimeException exception) {
+					throw new IllegalStateException(
+							"혼잡등급 코드가 올바르지 않습니다. " + context + ", psgPrcsGrdCd=" + gradeCode,
+							exception);
+				}
+				validateRange(grade, context);
+			}
+
+			PsgPrcsGradeRawDto normal = gradeMap.get(NORMAL_GRADE_CD);
+			if (normal == null) {
+				throw new IllegalStateException(
+						"NORMAL 혼잡등급 기준정보를 찾을 수 없습니다. "
+								+ context
+								+ ", psgPrcsGrdCd=" + NORMAL_GRADE_CD);
+			}
+
+			this.gradeList = new ArrayList<>(rawList);
+			this.gradeList.sort(Comparator.comparing(PsgPrcsGradeRawDto::getMinVl));
+			for (int index = 1; index < gradeList.size(); index++) {
+				PsgPrcsGradeRawDto previous = gradeList.get(index - 1);
+				PsgPrcsGradeRawDto current = gradeList.get(index);
+				if (current.getMinVl().compareTo(previous.getMaxVl()) <= 0) {
+					throw new IllegalStateException(
+							"혼잡등급 기준 구간이 겹칩니다. "
+									+ context
+									+ ", previousGrade=" + previous.getPsgPrcsGrdCd()
+									+ ", currentGrade=" + current.getPsgPrcsGrdCd());
+				}
+			}
+			this.normalMax = normal.getMaxVl();
+		}
+
+		private static void validateRange(PsgPrcsGradeRawDto grade, String context) {
+			if (grade.getMinVl() == null
+					|| grade.getMaxVl() == null
+					|| grade.getMinVl().signum() < 0
+					|| grade.getMaxVl().signum() < 0
+					|| grade.getMinVl().compareTo(grade.getMaxVl()) > 0) {
+				throw new IllegalStateException(
+						"혼잡등급 기준 구간이 올바르지 않습니다. "
+								+ context
+								+ ", psgPrcsGrdCd=" + grade.getPsgPrcsGrdCd()
+								+ ", minVl=" + grade.getMinVl()
+								+ ", maxVl=" + grade.getMaxVl());
+			}
+		}
+
+		private CongestionStatus statusOf(int waitingCount, String context) {
+			BigDecimal value = BigDecimal.valueOf(waitingCount);
+			for (PsgPrcsGradeRawDto grade : gradeList) {
+				if (value.compareTo(grade.getMinVl()) >= 0 && value.compareTo(grade.getMaxVl()) <= 0) {
+					return CongestionStatus.ofGradeCode(grade.getPsgPrcsGrdCd());
+				}
+			}
+
+			throw new IllegalStateException(
+					"대기인원에 해당하는 혼잡등급 기준정보를 찾을 수 없습니다. "
+							+ context
+							+ ", waitingCount=" + waitingCount);
+		}
+
+		private BigDecimal getNormalMax() {
+			return normalMax;
+		}
+	}
 
 	// 재계산 주기가 확인되지 않아 다음 정시를 예정 시각으로 본다
 	private String getNextCalcDt(String lastCalcDt) {

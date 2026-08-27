@@ -1,15 +1,15 @@
 package aoms.pm.cast.dto;
 
+import java.time.LocalDateTime;
+
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- * TN_PM_SMLT_RSLT_DTL 집계 1행
- */
 @Getter
 @Setter
 public class SmltRsltRawDto {
 	private String time; // 결과 시각 HHmm
+	private LocalDateTime smltActlDt;
 	private String upPsgFcltCd; // 상위시설코드
 	private String psgFcltCd; // 여객시설코드
 	private String psgFcltNm; // 여객시설명

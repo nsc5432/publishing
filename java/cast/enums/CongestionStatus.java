@@ -10,9 +10,7 @@ public enum CongestionStatus {
 	BUSY("BUSY"),
 	VERY_BUSY("VERY_BUSY");
 
-	// 대기인원 기준 경계값.
-	// 정식 기준표는 PMOWN.TN_PM_PSG_PRCS_GRD (FCLT_GROUP_CD 별 MIN_VL/MAX_VL) 가 갖고 있으나
-	// 시설 그룹 코드 매핑이 확정되지 않아 우선 공통 경계값을 쓴다.
+	// 아직 DB 등급표로 전환하지 않은 화면의 호환 경계값이다.
 	private static final int FREE_MAX_WTNG_PSG_CNT = 80;
 	private static final int NORMAL_MAX_WTNG_PSG_CNT = 220;
 	private static final int BUSY_MAX_WTNG_PSG_CNT = 420;
@@ -28,7 +26,6 @@ public enum CongestionStatus {
 		return value;
 	}
 
-	/** 대기인원으로 혼잡 단계를 정한다. Mock · DB 구현이 같은 기준을 쓰도록 여기 한 곳에 둔다 */
 	public static CongestionStatus ofWtngPsgCnt(int wtngPsgCnt) {
 		if (wtngPsgCnt <= FREE_MAX_WTNG_PSG_CNT) {
 			return FREE;
@@ -39,6 +36,21 @@ public enum CongestionStatus {
 		}
 
 		return wtngPsgCnt <= BUSY_MAX_WTNG_PSG_CNT ? BUSY : VERY_BUSY;
+	}
+
+	public static CongestionStatus ofGradeCode(String gradeCode) {
+		switch (gradeCode) {
+			case "01":
+				return FREE;
+			case "02":
+				return NORMAL;
+			case "03":
+				return BUSY;
+			case "04":
+				return VERY_BUSY;
+			default:
+				throw new IllegalArgumentException("지원하지 않는 혼잡등급 코드입니다. psgPrcsGrdCd=" + gradeCode);
+		}
 	}
 
 	public static List<CongestionStatus> getList() {

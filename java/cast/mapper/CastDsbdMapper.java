@@ -1,35 +1,22 @@
 package aoms.pm.cast.mapper;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
 import aoms.pm.cast.dto.BdpsgAnceRawDto;
+import aoms.pm.cast.dto.ChknAlnAssignmentRawDto;
 import aoms.pm.cast.dto.FcltUnitRawDto;
 import aoms.pm.cast.dto.FltPsgRawDto;
 import aoms.pm.cast.dto.FltSmryRawDto;
 import aoms.pm.cast.dto.PsgDptcnyTrnsPrfmncRawDto;
+import aoms.pm.cast.dto.PsgPrcsGradeRawDto;
 import aoms.pm.cast.dto.PsgWtngRawDto;
 import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.dto.WeatherDto;
 
-/**
- * @Classname   : CastDsbdMapper.java
- * @Description :  일일 시뮬레이션 요약보기(대시보드) Mapper
- *
- * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
- * <pre>
- *------------------------------------------------------------------------------
- * Modification Information
- *------------------------------------------------------------------------------
- * 수정일 / 수정자 /수정내용
- * ----------  ------  ---------------------------------------------------------
- * 2026. 08. 09 / 노세찬 / 최초작성
- *------------------------------------------------------------------------------
- *
- * </pre>
- */
 @Mapper
 public interface CastDsbdMapper {
 	String retrieveSmltIdByYmd(@Param("ymd") String ymd, @Param("smltType") String smltType);
@@ -77,8 +64,30 @@ public interface CastDsbdMapper {
 	List<SmltRsltRawDto> retrieveRsltByUnitList(
 			@Param("smltId") String smltId,
 			@Param("tmnlId") String tmnlId,
-			@Param("hhmm") String hhmm,
+			@Param("bgnDt") LocalDateTime bgnDt,
+			@Param("endDt") LocalDateTime endDt,
 			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
+	);
+
+	List<SmltRsltRawDto> retrieveRsltAtTimeList(
+			@Param("smltId") String smltId,
+			@Param("tmnlId") String tmnlId,
+			@Param("smltActlDt") LocalDateTime smltActlDt,
+			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
+	);
+
+	List<PsgPrcsGradeRawDto> retrievePsgPrcsGradeList(@Param("fcltGroupCd") String fcltGroupCd);
+
+	List<ChknAlnAssignmentRawDto> retrieveChknAlnAssignmentList(
+			@Param("excnYmd") String excnYmd,
+			@Param("tmnlId") String tmnlId,
+			@Param("bgnDt") LocalDateTime bgnDt,
+			@Param("cknctAlctnRsrcId") String cknctAlctnRsrcId
+	);
+
+	List<FcltUnitRawDto> retrieveScrtyOpenCountList(
+			@Param("tmnlId") String tmnlId,
+			@Param("scrtyCntrlRsrcId") String scrtyCntrlRsrcId
 	);
 
 	List<FcltUnitRawDto> retrieveFcltUnitList(

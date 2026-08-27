@@ -179,16 +179,20 @@
         ORDER BY TIME
     </select>
 
+    <sql id="rsltSlotCols">
+        TO_CHAR(A.SMLT_ACTL_DT, 'HH24MI') AS TIME,
+        A.SMLT_ACTL_DT,
+        B.UP_PSG_FCLT_CD,
+        <include refid="unitCdExpr" /> AS UNIT_CD,
+        NVL(SUM(A.WTNG_PSG_CNT), 0) AS WTNG_PSG_CNT,
+        NVL(SUM(A.TRNST_PSG_CNT), 0) AS TRNST_PSG_CNT,
+        NVL(ROUND(MAX(A.AVG_WTNG_HR)), 0) AS WTNG_HR,
+        NVL(ROUND(MAX(A.AVG_PRCS_HR)), 0) AS PRCS_HR
+    </sql>
+
     <select id="retrieveRsltByUnitList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
         /* CastDsbdMapper.retrieveRsltByUnitList */
-        SELECT
-            #{hhmm} AS TIME,
-            B.UP_PSG_FCLT_CD,
-            <include refid="unitCdExpr" /> AS UNIT_CD,
-            NVL(MAX(A.WTNG_PSG_CNT), 0) AS WTNG_PSG_CNT,
-            NVL(SUM(A.TRNST_PSG_CNT), 0) AS TRNST_PSG_CNT,
-            NVL(ROUND(AVG(A.AVG_WTNG_HR)), 0) AS WTNG_HR,
-            NVL(ROUND(AVG(A.AVG_PRCS_HR)), 0) AS PRCS_HR
+        SELECT <include refid="rsltSlotCols" />
         FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
             INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
             ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
@@ -197,9 +201,169 @@
         AND B.TMNL_ID = #{tmnlId}
         AND B.USE_YN = 'Y'
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
-        AND TO_CHAR(A.SMLT_ACTL_DT, 'HH24') = SUBSTR(#{hhmm}, 1, 2)
-        GROUP BY B.UP_PSG_FCLT_CD, <include refid="unitCdExpr" />
+        AND A.SMLT_ACTL_DT &gt;= #{bgnDt}
+        AND A.SMLT_ACTL_DT &lt; #{endDt}
+        GROUP BY A.SMLT_ACTL_DT, B.UP_PSG_FCLT_CD, <include refid="unitCdExpr" />
+        ORDER BY A.SMLT_ACTL_DT, B.UP_PSG_FCLT_CD, UNIT_CD
+    </select>
+
+    <select id="retrieveRsltAtTimeList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
+        /* CastDsbdMapper.retrieveRsltAtTimeList */
+        SELECT <include refid="rsltSlotCols" />
+        FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+            INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
+            ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND B.TMNL_ID = #{tmnlId}
+        AND B.USE_YN = 'Y'
+        AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
+        AND A.SMLT_ACTL_DT = #{smltActlDt}
+        GROUP BY A.SMLT_ACTL_DT, B.UP_PSG_FCLT_CD, <include refid="unitCdExpr" />
         ORDER BY B.UP_PSG_FCLT_CD, UNIT_CD
+    </select>
+
+    <select id="retrievePsgPrcsGradeList" resultType="aoms.pm.cast.dto.PsgPrcsGradeRawDto">
+        /* CastDsbdMapper.retrievePsgPrcsGradeList */
+        SELECT
+            A.FCLT_GROUP_CD,
+            A.PSG_PRCS_GRD_CD,
+            A.MIN_VL,
+            A.MAX_VL
+        FROM PMOWN.TN_PM_PSG_PRCS_GRD A
+        WHERE A.FCLT_GROUP_CD = #{fcltGroupCd}
+        ORDER BY A.PSG_PRCS_GRD_CD
+    </select>
+
+    <select id="retrieveChknAlnAssignmentList" resultType="aoms.pm.cast.dto.ChknAlnAssignmentRawDto">
+        /* CastDsbdMapper.retrieveChknAlnAssignmentList */
+        <choose>
+            <when test="cknctAlctnRsrcId == 'CA001'">
+                WITH VALID_ASSIGNMENT AS (
+                    SELECT X.CKNCT_ID, X.ALN_CD
+                    FROM (
+                        SELECT
+                            A.CKNCT_ID,
+                            A.ALN_CD,
+                            TO_DATE(
+                                A.OPER_YMD || CASE
+                                    WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_BGNG_HM
+                                    ELSE A.EST_BGNG_HM
+                                END,
+                                'YYYYMMDDHH24MI'
+                            ) AS BGN_DT,
+                            TO_DATE(
+                                CASE
+                                    WHEN CASE
+                                        WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_RON_YN
+                                        ELSE A.EST_RON_YN
+                                    END = 'Y'
+                                    THEN TO_CHAR(TO_DATE(A.OPER_YMD, 'YYYYMMDD') + 1, 'YYYYMMDD')
+                                    ELSE A.OPER_YMD
+                                END || CASE
+                                    WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_END_HM
+                                    ELSE A.EST_END_HM
+                                END,
+                                'YYYYMMDDHH24MI'
+                            ) AS END_DT
+                        FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
+                            INNER JOIN CAOWN.TN_CA_CKNCT B
+                            ON A.CKNCT_ID = B.CKNCT_ID
+                            AND A.TMNL_ID = B.TMNL_ID
+                        WHERE A.USE_YN = 'Y'
+                        AND B.USE_YN = 'Y'
+                        AND B.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
+                        AND A.TMNL_ID = #{tmnlId}
+                        AND A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{excnYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND #{excnYmd}
+                        AND A.CKNCT_ID NOT LIKE 'X%'
+                        AND A.CKNCT_ID NOT LIKE 'Y%'
+                        AND A.CKNCT_ID NOT LIKE 'R%'
+                        AND A.CKNCT_ID NOT LIKE 'S%'
+                        AND CASE
+                            WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_BGNG_HM
+                            ELSE A.EST_BGNG_HM
+                        END IS NOT NULL
+                        AND CASE
+                            WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_END_HM
+                            ELSE A.EST_END_HM
+                        END IS NOT NULL
+                    ) X
+                    WHERE X.BGN_DT &lt;= #{bgnDt}
+                    AND X.END_DT &gt; #{bgnDt}
+                )
+                SELECT
+                    SUBSTR(V.CKNCT_ID, 1, 1) AS UNIT_CD,
+                    V.ALN_CD,
+                    N.ALN_NM,
+                    COUNT(DISTINCT V.CKNCT_ID) AS ASSIGNED_CNT,
+                    O.OPEN_CNT
+                FROM VALID_ASSIGNMENT V
+                    INNER JOIN (
+                        SELECT SUBSTR(CKNCT_ID, 1, 1) AS UNIT_CD, COUNT(DISTINCT CKNCT_ID) AS OPEN_CNT
+                        FROM VALID_ASSIGNMENT
+                        GROUP BY SUBSTR(CKNCT_ID, 1, 1)
+                    ) O
+                    ON SUBSTR(V.CKNCT_ID, 1, 1) = O.UNIT_CD
+                    LEFT JOIN (
+                        SELECT ALN_CD, MAX(ALN_NM) AS ALN_NM
+                        FROM CAOWN.TN_CA_ALN
+                        GROUP BY ALN_CD
+                    ) N
+                    ON V.ALN_CD = N.ALN_CD
+                GROUP BY SUBSTR(V.CKNCT_ID, 1, 1), V.ALN_CD, N.ALN_NM, O.OPEN_CNT
+                ORDER BY UNIT_CD, ASSIGNED_CNT DESC, V.ALN_CD
+            </when>
+            <otherwise>
+                WITH VALID_ASSIGNMENT AS (
+                    SELECT A.CKNCT_ID, A.ALN_CD
+                    FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
+                    WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{cknctAlctnRsrcId}, '^CA', '')
+                    AND A.TMNL_ID = #{tmnlId}
+                    AND A.CHKN_OPEN_PRNMNT_DT IS NOT NULL
+                    AND A.CHKN_CLOSE_PRNMNT_DT IS NOT NULL
+                    AND TO_DATE(A.CHKN_OPEN_PRNMNT_DT, 'YYYYMMDDHH24MI') &lt;= #{bgnDt}
+                    AND TO_DATE(A.CHKN_CLOSE_PRNMNT_DT, 'YYYYMMDDHH24MI') &gt; #{bgnDt}
+                )
+                SELECT
+                    SUBSTR(V.CKNCT_ID, 1, 1) AS UNIT_CD,
+                    V.ALN_CD,
+                    N.ALN_NM,
+                    COUNT(DISTINCT V.CKNCT_ID) AS ASSIGNED_CNT,
+                    O.OPEN_CNT
+                FROM VALID_ASSIGNMENT V
+                    INNER JOIN (
+                        SELECT SUBSTR(CKNCT_ID, 1, 1) AS UNIT_CD, COUNT(DISTINCT CKNCT_ID) AS OPEN_CNT
+                        FROM VALID_ASSIGNMENT
+                        GROUP BY SUBSTR(CKNCT_ID, 1, 1)
+                    ) O
+                    ON SUBSTR(V.CKNCT_ID, 1, 1) = O.UNIT_CD
+                    LEFT JOIN (
+                        SELECT ALN_CD, MAX(ALN_NM) AS ALN_NM
+                        FROM CAOWN.TN_CA_ALN
+                        GROUP BY ALN_CD
+                    ) N
+                    ON V.ALN_CD = N.ALN_CD
+                GROUP BY SUBSTR(V.CKNCT_ID, 1, 1), V.ALN_CD, N.ALN_NM, O.OPEN_CNT
+                ORDER BY UNIT_CD, ASSIGNED_CNT DESC, V.ALN_CD
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="retrieveScrtyOpenCountList" resultType="aoms.pm.cast.dto.FcltUnitRawDto">
+        /* CastDsbdMapper.retrieveScrtyOpenCountList */
+        SELECT
+            A.GATE_NO AS UNIT_CD,
+            COUNT(*) AS TOT_CNT,
+            MAX(A.FCLTY_CNT) AS OPR_CNT
+        FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB A
+        WHERE A.SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(
+            #{scrtyCntrlRsrcId},
+            'FOTSC|FacilityOpeningTable_SecurityControl',
+            ''
+        )
+        AND A.TMNL_ID = #{tmnlId}
+        GROUP BY A.GATE_NO
+        ORDER BY UNIT_CD
     </select>
 
     <select id="retrieveFcltUnitList" resultType="aoms.pm.cast.dto.FcltUnitRawDto">

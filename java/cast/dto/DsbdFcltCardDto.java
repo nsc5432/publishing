@@ -8,7 +8,6 @@ import aoms.pm.cast.enums.FcltType;
 import lombok.Getter;
 import lombok.Setter;
 
-/** 게이트 카드 1장 = 캐러셀 1페이지 */
 @Getter
 @Setter
 public class DsbdFcltCardDto {
@@ -21,7 +20,7 @@ public class DsbdFcltCardDto {
 	private int totCnt; // 전체 (개)
 	private int oprCnt; // 운영 (개)
 	private int wtngPsgCnt; // 대기인원 (명)
-	private int hrlyPrcsPsgCnt; // 시간당 처리인원 (Pax/Min)
+	private int hrlyPrcsPsgCnt; // 분당 처리인원 (Pax/Min)
 	private int hrlyPrcsRate; // 시간당 처리율 게이지 0~100
 	private String cgnClearTime; // 혼잡해소 예상 시각 HHmm
 	private int cgnClearRate; // 혼잡해소 게이지 0~100

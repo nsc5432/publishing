@@ -155,7 +155,7 @@ export interface DsbdRsltDto {
 /** 게이트 카드의 추천 조치 */
 export interface FcltRecommendDto {
     targetNm: string; // 추천 대상 (예: 대한항공 / 보안검색대)
-    addCnt: number; // 추가 필요 수량 (개)
+    addCnt: number; // SLA 충족에 필요한 총 소요 수량 (개)
     needAssignYn: YnFlag; // Y=배정 필요 / N=소요 표기
 }
 
@@ -177,7 +177,7 @@ export interface DsbdFcltCardDto {
     totCnt: number; // 전체 (개)
     oprCnt: number; // 운영 (개)
     wtngPsgCnt: number; // 대기열 / 예상인원 (명)
-    hrlyPrcsPsgCnt: number; // 시간당 처리인원 (Pax/Min)
+    hrlyPrcsPsgCnt: number; // 분당 처리인원 (Pax/Min)
     hrlyPrcsRate: number; // 시간당 처리율 게이지 (0~100)
     cgnClearTime: string; // 혼잡해소 예상 시각 (HHmm)
     cgnClearRate: number; // 혼잡해소 게이지 (0~100)
@@ -523,7 +523,9 @@ export interface UserSmltChknDto extends JsonResponse {
 export interface UserSmltChknSaveReq {
     smltId: string;
     tmnlId: TmnlId;
-    islandList: Array<Pick<ChknIslandDto, 'island' | 'oprTimeList' | 'boothList' | 'kioskCnt' | 'bagDropCnt'>>;
+    islandList: Array<
+        Pick<ChknIslandDto, 'island' | 'oprTimeList' | 'boothList' | 'kioskCnt' | 'bagDropCnt'>
+    >;
 }
 
 /* --------- 출국장 탭 (보안 검색대 흡수) --------- */

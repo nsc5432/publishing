@@ -438,6 +438,111 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
     ],
 };
 
+const FCLT_NORMAL_MAX: Record<'CHKN' | 'DEP', number> = {
+    CHKN: 420,
+    DEP: 320,
+};
+
+const FCLT_GRADE_MAX: Record<'CHKN' | 'DEP', [number, number, number]> = {
+    CHKN: [180, 420, 650],
+    DEP: [140, 320, 520],
+};
+
+function toMinuteOfDay(hhmm: string): number {
+    return Number(hhmm.slice(0, 2)) * MIN_PER_HOUR + Number(hhmm.slice(2, 4));
+}
+
+function toHhmm(minuteOfDay: number): string {
+    const normalized = minuteOfDay % MIN_PER_DAY;
+    return `${String(Math.floor(normalized / MIN_PER_HOUR)).padStart(2, '0')}${String(normalized % MIN_PER_HOUR).padStart(2, '0')}`;
+}
+
+function toFcltStatus(fcltType: 'CHKN' | 'DEP', waitingCount: number): CongestionStatus {
+    const [freeMax, normalMax, busyMax] = FCLT_GRADE_MAX[fcltType];
+    if (waitingCount <= freeMax) return 'FREE';
+    if (waitingCount <= normalMax) return 'NORMAL';
+    return waitingCount <= busyMax ? 'BUSY' : 'VERY_BUSY';
+}
+
+function buildRollingCard(
+    card: DsbdFcltCardDto,
+    hhmm: string,
+    fcltType: 'CHKN' | 'DEP',
+    index: number,
+): DsbdFcltCardDto {
+    const bgnMinute = toMinuteOfDay(hhmm);
+    const endMinute = Math.min(bgnMinute + MIN_PER_HOUR, MIN_PER_DAY);
+    const actualMinutes = endMinute - bgnMinute;
+    const seed = index + (card.cardId.charCodeAt(card.cardId.length - 1) % 7);
+    const queueAt = (minute: number) =>
+        Math.max(
+            0,
+            Math.round(
+                card.wtngPsgCnt * (0.78 + 0.2 * Math.sin((minute + seed * 31) / 95) + seed * 0.012),
+            ),
+        );
+    const rateAt = (minute: number) =>
+        Math.max(1, card.hrlyPrcsPsgCnt * (0.88 + 0.16 * Math.cos((minute + seed * 17) / 80)));
+    const slotMinutes: number[] = [];
+
+    for (let minute = bgnMinute; minute < endMinute; minute += 10) {
+        slotMinutes.push(minute);
+    }
+
+    const queues = [...slotMinutes, endMinute].map(queueAt);
+    const processedBySlot = slotMinutes.map(
+        (minute) => rateAt(minute) * Math.min(10, endMinute - minute),
+    );
+    const processedPsgCnt = sum(processedBySlot);
+    const forecastArrivals = processedBySlot.reduce(
+        (total, processed, slotIndex) =>
+            total + Math.max(0, queues[slotIndex + 1] - queues[slotIndex] + processed),
+        0,
+    );
+    const paxPerMin = Math.round(processedPsgCnt / actualMinutes);
+    const serviceRate = processedPsgCnt / Math.max(1, card.oprCnt) / actualMinutes;
+    const targetQueue = FCLT_NORMAL_MAX[fcltType];
+    const requiredTotal = Math.max(
+        0,
+        Math.ceil((queues[0] + forecastArrivals - targetQueue) / (serviceRate * actualMinutes)),
+    );
+    const arrivalRate = forecastArrivals / actualMinutes;
+    const netDrainRate = requiredTotal * serviceRate - arrivalRate;
+    const clearMinutes =
+        queues[0] <= targetQueue
+            ? 0
+            : Math.min(
+                  actualMinutes,
+                  Math.ceil((queues[0] - targetQueue) / Math.max(Number.EPSILON, netDrainRate)),
+              );
+    const peakQueue = Math.max(...queues.slice(0, -1));
+
+    return {
+        ...card,
+        wtngPsgCnt: peakQueue,
+        hrlyPrcsPsgCnt: paxPerMin,
+        hrlyPrcsRate: Math.round((processedPsgCnt * 100) / (processedPsgCnt + peakQueue)),
+        cgnClearTime: toHhmm(bgnMinute + clearMinutes),
+        cgnClearRate: 0,
+        cgnStatus: toFcltStatus(fcltType, peakQueue),
+        recommend: {
+            ...card.recommend,
+            addCnt: requiredTotal,
+            needAssignYn: fcltType === 'CHKN' ? 'Y' : 'N',
+        },
+        unitList: card.unitList.map((unit) => ({ ...unit })),
+    };
+}
+
+function buildFcltCardList(
+    tmnlId: TmnlId,
+    hhmm: string,
+    fcltType: 'CHKN' | 'DEP',
+): DsbdFcltCardDto[] {
+    const cards = fcltType === 'CHKN' ? CHKN_CARDS[tmnlId] : DPTGT_CARDS[tmnlId];
+    return cards.map((card, index) => buildRollingCard(card, hhmm, fcltType, index));
+}
+
 export const dashboardMock = {
     /**
      * 조회 조건 기준 정보.
@@ -459,6 +564,6 @@ export const dashboardMock = {
     getTmnlRsltByTime: (tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] =>
         buildRsltList(tmnlId, category),
 
-    getFcltCardList: (tmnlId: TmnlId, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto[] =>
-        fcltType === 'CHKN' ? CHKN_CARDS[tmnlId] : DPTGT_CARDS[tmnlId],
+    getFcltCardList: (tmnlId: TmnlId, hhmm: string, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto[] =>
+        buildFcltCardList(tmnlId, hhmm, fcltType),
 };
