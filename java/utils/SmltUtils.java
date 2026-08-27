@@ -28,16 +28,18 @@ public class SmltUtils {
 	public static <T extends AggData> List<T> aggregate(List<T> src, int interval, Supplier<T> factory) {
 		Map<String, AggBuffer<T>> bufferMap = new LinkedHashMap<>();
 		
-		for (T item : src) {
-			String key = SmltUtils.groupKey(item.getTime(), interval);
-			AggBuffer<T> buffer = bufferMap.get(key);
-			
-			if (buffer == null) {
-				bufferMap.put(key, new AggBuffer<>(item, factory));
-			} else {
-				buffer.merge(item);
-			}
-		}
+        if (src != null && !src.isEmpty()) {
+            for (T item : src) {
+                String key = SmltUtils.groupKey(item.getTime(), interval);
+                AggBuffer<T> buffer = bufferMap.get(key);
+                
+                if (buffer == null) {
+                    bufferMap.put(key, new AggBuffer<>(item, factory));
+                } else {
+                    buffer.merge(item);
+                }
+            }
+        }
 		
 		return bufferMap.entrySet().stream().map(x -> x.getValue().toData(x.getKey())).collect(toList());
 	}
@@ -56,11 +58,13 @@ public class SmltUtils {
 	
 	public static CongestionStatus getCongestionStatus(Map<CongestionStatus, PsgPrcsGrd> prcsGrdMap, int cnt) {
 		for (CongestionStatus congestion : CONGESTION_LIST) {
-			PsgPrcsGrd target = prcsGrdMap.get(congestion);
-			
-			if (target.getMinVl() <= cnt && cnt <= target.getMaxVl()) {
-				return target.getCgnStatus();
-			}
+            if (prcsGrdMap != null) {
+                PsgPrcsGrd target = prcsGrdMap.get(congestion);
+                
+                if (target.getMinVl() <= cnt && cnt <= target.getMaxVl()) {
+                    return target.getCgnStatus();
+                }
+            }
 		}
 		
 		return CongestionStatus.FREE;

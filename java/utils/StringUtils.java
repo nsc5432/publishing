@@ -37,6 +37,10 @@ public class StringUtils {
 	}
 	
 	public static boolean isMatchPatternLike(String pattern, String target) { 
+        if (pattern == null) {
+            return false;
+        }
+        
 		// SQL 문의 Like 와 같은 역할
 		String regex = "^" + pattern.replace("_", ".").replace("%", ".*");
 		Predicate<String> pred = s -> Pattern.compile(regex).matcher(s).find();

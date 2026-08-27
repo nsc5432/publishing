@@ -45,6 +45,10 @@ public class HwpxUtils {
      * ID 는 목록 개수 기준으로 채번하므로 템플릿의 글자모양이 늘어나도 충돌하지 않는다.
      */
     private static CharPr createBlueCharPr(HWPXFile hwpxFile) {
+        if (hwpxFile == null) {
+            throw new NullPointerException("hwpxFile 파라미터 NULL 입니다.");
+        }
+
     	ObjectList<CharPr> charProperties = hwpxFile.headerXMLFile().refList().charProperties();
     	int baseIndex = charProperties.count() > BASE_CHAR_PR_INDEX ? BASE_CHAR_PR_INDEX : 0;
 

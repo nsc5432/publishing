@@ -62,13 +62,16 @@ public class TimeBucketUtils {
 	// 집계 결과를 30분 버킷 48개에 채운다. 해당 버킷에 데이터가 없으면 빈 목록이 들어간다
 	public static <T extends AggData> Map<String, List<T>> groupByBucket(List<T> datas) {
 		Map<String, List<T>> result = new TreeMap<>();
-		Map<String, List<T>> groupedByTime = datas.stream()
-				.filter(x -> x.getTime() != null)
-				.collect(Collectors.groupingBy(AggData::getTime));
 
-		for (String bucket : bucketList()) {
-			result.put(bucket, groupedByTime.getOrDefault(bucket, new ArrayList<>()));
-		}
+        if (datas != null) {
+            Map<String, List<T>> groupedByTime = datas.stream()
+                    .filter(x -> x.getTime() != null)
+                    .collect(Collectors.groupingBy(AggData::getTime));
+
+            for (String bucket : bucketList()) {
+                result.put(bucket, groupedByTime.getOrDefault(bucket, new ArrayList<>()));
+            }
+        }
 
 		return result;
 	}
