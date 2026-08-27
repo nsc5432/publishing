@@ -49,10 +49,10 @@ public class CastSmltServiceImpl implements CastSmltService {
 		stngSearchDto.setSmltId(smltId);
 		return castSmltMapper.retrieveSmltStng(stngSearchDto).get(0);
 	}
-	
+
 	@Override
 	public List<WaitPsgDto> retrieveWaitPsgList(String smltId, String tmnlId, List<String> upPsgFcltCdList) {
-		Map<Integer, WaitPsgDto> retrieved = castSmltMapper.retrieveWaitPsgList(smltId, tmnlId, upPsgFcltCdList)
+		Map<Integer, WaitPsgDto> waitPsgMap = castSmltMapper.retrieveWaitPsgList(smltId, tmnlId, upPsgFcltCdList)
 				.stream().collect(Collectors.toMap(WaitPsgDto::getHour, Function.identity(), (first, ignored) -> first));
 
 		List<WaitPsgDto> result = new ArrayList<>();
@@ -60,8 +60,8 @@ public class CastSmltServiceImpl implements CastSmltService {
 		// 결과가 없는 시간대(WTNG_PSG_CNT = 0)는 행이 없다. 24시간 축은 애플리케이션이 채운다
 		for (String hour : TimeBucketUtils.hourList()) {
 			int hourValue = Integer.parseInt(hour);
-			WaitPsgDto item = retrieved.get(hourValue);
-			result.add(item != null ? item : new WaitPsgDto().withHour(hourValue).withWaitPsgCnt(0));
+			WaitPsgDto waitPsg = waitPsgMap.get(hourValue);
+			result.add(waitPsg != null ? waitPsg : new WaitPsgDto().withHour(hourValue).withWaitPsgCnt(0));
 		}
 
 		return result;

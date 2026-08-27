@@ -1,6 +1,5 @@
 package aoms.pm.cast.mapper;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Param;
@@ -30,23 +29,11 @@ public interface CastConfigMapper {
 			@Param("fcltySeCdList") List<String> fcltySeCdList
 	);
 
-	int updateAtrbTextValue(
+	/** value 는 대상 컬럼 타입에 맞춰 String 또는 BigDecimal 로 넘긴다. */
+	int updateAtrbValue(
 			@Param("tableNm") String tableNm,
 			@Param("columnNm") String columnNm,
-			@Param("value") String value,
-			@Param("fixAtrbGroupId") String fixAtrbGroupId,
-			@Param("keyCd") String keyCd,
-			@Param("dtlSeCd") String dtlSeCd,
-			@Param("keyColumnNm") String keyColumnNm,
-			@Param("dtlColumnNm") String dtlColumnNm,
-			@Param("loginUserId") String loginUserId,
-			@Param("loginIpAddr") String loginIpAddr
-	);
-
-	int updateAtrbNumberValue(
-			@Param("tableNm") String tableNm,
-			@Param("columnNm") String columnNm,
-			@Param("value") BigDecimal value,
+			@Param("value") Object value,
 			@Param("fixAtrbGroupId") String fixAtrbGroupId,
 			@Param("keyCd") String keyCd,
 			@Param("dtlSeCd") String dtlSeCd,

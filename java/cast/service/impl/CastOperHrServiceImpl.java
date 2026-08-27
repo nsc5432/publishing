@@ -86,12 +86,12 @@ public class CastOperHrServiceImpl implements CastOperHrService {
 			return;
 		}
 
-		DepOperHrRawDto item = new DepOperHrRawDto();
-		item.setDptgtNo(dptgtNo);
-		item.setBgnHm(bgn);
-		item.setEndHm(end);
+		DepOperHrRawDto operHr = new DepOperHrRawDto();
+		operHr.setDptgtNo(dptgtNo);
+		operHr.setBgnHm(bgn);
+		operHr.setEndHm(end);
 
-		operHrList.add(item);
+		operHrList.add(operHr);
 	}
 
 	private String toHm(String hhmm) {

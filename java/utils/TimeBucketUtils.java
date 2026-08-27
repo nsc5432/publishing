@@ -26,7 +26,11 @@ import aoms.pm.cast.domains.AggData;
  */
 public class TimeBucketUtils {
 	private static final int HOUR_PER_DAY = 24;
+	private static final int MINUTE_PER_HOUR = 60;
+	private static final int MINUTE_PER_DAY = HOUR_PER_DAY * MINUTE_PER_HOUR;
+	private static final int SLOT_STEP_MIN = 30;
 	private static final String HOUR_FORMAT = "%02d";
+	private static final String HM_FORMAT = "%02d%02d";
 	private static final List<String> BUCKET_MINUTE_LIST = List.of("00", "30"); // 30분 버킷
 
 	private TimeBucketUtils() {
@@ -59,19 +63,35 @@ public class TimeBucketUtils {
 		return BUCKET_MINUTE_LIST.stream().map(minute -> hour + minute).collect(Collectors.toList());
 	}
 
+	/**
+	 * bgnHour 시부터 24:00 까지를 30분으로 나눈 눈금 — 화면 하단 타임라인과 같은 구간이다.
+	 * 마지막 2400 은 하루의 끝을 닫는 눈금이라 대응하는 결과 버킷(…2330)이 없어 항상 0 이다.
+	 */
+	public static List<String> slotTimeList(int bgnHour) {
+		List<String> result = new ArrayList<>();
+
+		for (int minutes = bgnHour * MINUTE_PER_HOUR; minutes <= MINUTE_PER_DAY; minutes += SLOT_STEP_MIN) {
+			result.add(String.format(HM_FORMAT, minutes / MINUTE_PER_HOUR, minutes % MINUTE_PER_HOUR));
+		}
+
+		return result;
+	}
+
 	// 집계 결과를 30분 버킷 48개에 채운다. 해당 버킷에 데이터가 없으면 빈 목록이 들어간다
-	public static <T extends AggData> Map<String, List<T>> groupByBucket(List<T> datas) {
+	public static <T extends AggData> Map<String, List<T>> groupByBucket(List<T> dataList) {
 		Map<String, List<T>> result = new TreeMap<>();
 
-        if (datas != null) {
-            Map<String, List<T>> groupedByTime = datas.stream()
-                    .filter(x -> x.getTime() != null)
-                    .collect(Collectors.groupingBy(AggData::getTime));
+		if (dataList == null) {
+			return result;
+		}
 
-            for (String bucket : bucketList()) {
-                result.put(bucket, groupedByTime.getOrDefault(bucket, new ArrayList<>()));
-            }
-        }
+		Map<String, List<T>> groupedByTime = dataList.stream()
+				.filter(data -> data.getTime() != null)
+				.collect(Collectors.groupingBy(AggData::getTime));
+
+		for (String bucket : bucketList()) {
+			result.put(bucket, groupedByTime.getOrDefault(bucket, new ArrayList<>()));
+		}
 
 		return result;
 	}

@@ -11,7 +11,7 @@
         FROM PMOWN.TN_PM_SMLT_PSG_FCLT B
         WHERE 1 = 1
         AND B.TMNL_ID = #{tmnlId}
-        -- 미운영 출국장도 화면 하단 칩으로 내려가므로 USE_YN 으로 거르지 않는다
+        <!-- 미운영 출국장도 화면 하단 칩으로 내려가므로 USE_YN 으로 거르지 않는다 -->
         AND B.UP_PSG_FCLT_CD IN ('LGT')
         ORDER BY DPTGT_NO
     </select>

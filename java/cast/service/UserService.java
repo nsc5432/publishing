@@ -12,10 +12,10 @@ import aoms.pm.cast.dto.UserDto;
  * Modification Information
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
- * 2026. 03. 12. / 노세찬 / 최초작성 
+ * 2026. 03. 12. / 노세찬 / 최초작성
  * -----------------------------------------------------------------------------------
- * 
- * </pre> 
+ *
+ * </pre>
  */
 public interface UserService {
 	UserDto retrieveUserInfoByKey(String userId);

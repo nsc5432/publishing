@@ -9,15 +9,7 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-    DialogContext,
-    setDialogRef,
-    type AlertOptions,
-    type ConfirmOptions,
-    type DialogContextValue,
-} from '@/lib/dialog';
-
-// ─── Internal state ────────────────────────────────────────────────────────
+import { DialogContext, setDialogRef, type AlertOptions, type ConfirmOptions, type DialogContextValue } from '@/lib/dialog';
 
 interface DialogState {
     open: boolean;
@@ -26,8 +18,7 @@ interface DialogState {
     description?: string;
     confirmText: string;
     cancelText: string;
-    // React treats setState(fn) as an updater call, so the resolve function
-    // must be wrapped in an object to prevent premature invocation.
+    // setState가 resolve를 updater로 실행하지 않도록 객체로 감싼다.
     resolve: { fn: (value: boolean) => void } | null;
 }
 
@@ -40,8 +31,6 @@ const INITIAL_STATE: DialogState = {
     cancelText: '취소',
     resolve: null,
 };
-
-// ─── Provider ──────────────────────────────────────────────────────────────
 
 export function DialogProvider({ children }: { children: React.ReactNode }) {
     const [state, setState] = React.useState<DialogState>(INITIAL_STATE);
@@ -74,37 +63,29 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
         });
     }, []);
 
-    // Register this instance in the module-level singleton on mount
     React.useEffect(() => {
         setDialogRef({ alert, confirm } satisfies DialogContextValue);
         return () => setDialogRef(null);
     }, [alert, confirm]);
 
-    const handleConfirm = React.useCallback(() => {
+    const handleConfirm = () => {
         state.resolve?.fn(true);
         setState(INITIAL_STATE);
-    }, [state.resolve]);
+    };
 
-    const handleCancel = React.useCallback(() => {
+    const handleCancel = () => {
         state.resolve?.fn(false);
         setState(INITIAL_STATE);
-    }, [state.resolve]);
+    };
 
-    // Fired when Radix closes the dialog (ESC key)
-    const handleOpenChange = React.useCallback(
-        (open: boolean) => {
-            if (!open && state.open) {
-                state.resolve?.fn(false);
-                setState(INITIAL_STATE);
-            }
-        },
-        [state.open, state.resolve],
-    );
+    const handleOpenChange = (open: boolean) => {
+        if (!open && state.open) {
+            state.resolve?.fn(false);
+            setState(INITIAL_STATE);
+        }
+    };
 
-    const contextValue = React.useMemo<DialogContextValue>(
-        () => ({ alert, confirm }),
-        [alert, confirm],
-    );
+    const contextValue = React.useMemo<DialogContextValue>(() => ({ alert, confirm }), [alert, confirm]);
 
     return (
         <DialogContext.Provider value={contextValue}>
@@ -114,19 +95,11 @@ export function DialogProvider({ children }: { children: React.ReactNode }) {
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>{state.title}</AlertDialogTitle>
-                        {state.description && (
-                            <AlertDialogDescription>{state.description}</AlertDialogDescription>
-                        )}
+                        {state.description && <AlertDialogDescription>{state.description}</AlertDialogDescription>}
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        {state.variant === 'confirm' && (
-                            <AlertDialogCancel onClick={handleCancel}>
-                                {state.cancelText}
-                            </AlertDialogCancel>
-                        )}
-                        <AlertDialogAction onClick={handleConfirm}>
-                            {state.confirmText}
-                        </AlertDialogAction>
+                        {state.variant === 'confirm' && <AlertDialogCancel onClick={handleCancel}>{state.cancelText}</AlertDialogCancel>}
+                        <AlertDialogAction onClick={handleConfirm}>{state.confirmText}</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
             </AlertDialog>

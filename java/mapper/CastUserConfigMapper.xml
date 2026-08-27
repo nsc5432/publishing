@@ -4,16 +4,17 @@
 <mapper namespace="aoms.pm.cast.mapper.CastUserConfigMapper">
     <select id="retrieveChknList" resultType="aoms.pm.cast.dto.ChknRawDto">
         /* CastUserConfigMapper.retrieveChknList */
-        SELECT 
-		    SUBSTR(CKNCT_ID, 0, 1) as ISLAND, 
-		    PMOWN.FN_PM_SAFE_TO_NUMBER(SUBSTR(A.CKNCT_ID, 2, 2)) as COUNTER_NUM,
-		    A.ALN_CD,  
-		    PMOWN.FN_PM_SAFE_TO_NUMBER(SUBSTR(A.EST_BGNG_HM, 0, 2)) as "START",
-		    CEIL((A.EST_END_HM) / 100) as "END"
-		FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
-		WHERE OPER_YMD = #{ymd}
-		AND TMNL_ID = #{tmnlId}
-		AND USE_YN = 'Y'
-		ORDER BY ISLAND, COUNTER_NUM, ALN_CD
+        SELECT
+            SUBSTR(A.CKNCT_ID, 0, 1) AS ISLAND,
+            PMOWN.FN_PM_SAFE_TO_NUMBER(SUBSTR(A.CKNCT_ID, 2, 2)) AS COUNTER_NUM,
+            A.ALN_CD,
+            PMOWN.FN_PM_SAFE_TO_NUMBER(SUBSTR(A.EST_BGNG_HM, 0, 2)) AS "START",
+            CEIL((A.EST_END_HM) / 100) AS "END"
+        FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
+        WHERE 1 = 1
+        AND A.OPER_YMD = #{ymd}
+        AND A.TMNL_ID = #{tmnlId}
+        AND A.USE_YN = 'Y'
+        ORDER BY ISLAND, COUNTER_NUM, A.ALN_CD
     </select>
 </mapper>

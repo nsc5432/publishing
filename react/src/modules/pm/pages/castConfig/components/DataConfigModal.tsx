@@ -66,13 +66,22 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
     const categoryQuery = useMemo(() => ({ terminal }), [terminal]);
     const fetchedCategories = useCastConfigCategories(categoryQuery);
     const categories = fetchedCategories.data;
-    const current: Category | null = categories.find((category) => category.code === categoryCode) ?? categories[0] ?? null;
-    const readOnly = current?.isBase ?? true;
+    const currentCategory: Category | null = categories.find((category) => category.code === categoryCode) ?? categories[0] ?? null;
+    const readOnly = currentCategory?.isBase ?? true;
 
     const activeSheet = group.datasets[activeTab]?.sheetName ?? '';
     const datasetQuery = useMemo(
-        () => (activeSheet && current ? { terminal, categoryCode: current.code, groupId: group.id, sheetName: activeSheet, reloadToken } : null),
-        [activeSheet, current, group.id, reloadToken, terminal],
+        () =>
+            activeSheet && currentCategory
+                ? {
+                      terminal,
+                      categoryCode: currentCategory.code,
+                      groupId: group.id,
+                      sheetName: activeSheet,
+                      reloadToken,
+                  }
+                : null,
+        [activeSheet, currentCategory, group.id, reloadToken, terminal],
     );
     const fetched = useCastConfigDataset(datasetQuery);
     const dataset = fetched.data;
@@ -87,7 +96,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
     const pageRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
     const totalChangeCount = Object.keys(drafts).length;
-    const sheetChangeCount = useMemo(() => Object.keys(drafts).filter((key) => key.startsWith(`${activeSheet}::`)).length, [drafts, activeSheet]);
+    const sheetChangeCount = Object.keys(drafts).filter((key) => key.startsWith(`${activeSheet}::`)).length;
 
     useErrorAlert(fetchedCategories.error, fetchedCategories.token);
     useErrorAlert(fetched.error, fetched.token);
@@ -139,7 +148,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
     };
 
     const handleCategorySelect = (code: string) => {
-        if (code === current?.code) return;
+        if (code === currentCategory?.code) return;
 
         confirmDiscard()
             .then((ok) => {
@@ -173,7 +182,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
         }
 
         downloadCsv(
-            `${dataset.sheetName}_${terminal}_${current?.code ?? ''}.csv`,
+            `${dataset.sheetName}_${terminal}_${currentCategory?.code ?? ''}.csv`,
             dataset.columns.map((column) => column.label),
             filteredRows.map((row) => dataset.columns.map((column) => readCellValue(dataset.sheetName, row, column.key, drafts))),
         );
@@ -195,15 +204,17 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
     };
 
     const handleUpload = (file: File) => {
-        if (!current) return;
+        if (!currentCategory) return;
 
         runAndReload('엑셀업로드', () =>
-            castConfigService.uploadExcel(terminal, group.id, current.code, dataset.sheetName, file).then((dto) => unwrap(dto, '엑셀을 반영하지 못했습니다.')),
+            castConfigService
+                .uploadExcel(terminal, group.id, currentCategory.code, dataset.sheetName, file)
+                .then((dto) => unwrap(dto, '엑셀을 반영하지 못했습니다.')),
         );
     };
 
     const handleApplyDefault = () => {
-        if (!current) return;
+        if (!currentCategory) return;
 
         const rowNoList = [...draft.selected];
         const scope = rowNoList.length > 0 ? `선택한 ${formatCount(rowNoList.length)}개 행` : '이 시트 전체';
@@ -215,7 +226,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
 
                 runAndReload('디폴트속성적용', () =>
                     castConfigService
-                        .applyDefault(terminal, group.id, current.code, dataset.sheetName, rowNoList)
+                        .applyDefault(terminal, group.id, currentCategory.code, dataset.sheetName, rowNoList)
                         .then((dto) => unwrap(dto, '기준정보를 적용하지 못했습니다.')),
                 );
             })
@@ -257,7 +268,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
     };
 
     const handleSave = () => {
-        if (totalChangeCount === 0 || saving || !current) return;
+        if (totalChangeCount === 0 || saving || !currentCategory) return;
 
         const messages = validateDataset(dataset, drafts);
         if (messages.length > 0) {
@@ -265,7 +276,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
             return;
         }
 
-        const itemList = toSaveItems(current.code, drafts);
+        const itemList = toSaveItems(currentCategory.code, drafts);
         setSaving(true);
         castConfigService
             .saveDataset(terminal, group.id, itemList)
@@ -318,7 +329,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
 
                 <CategoryBar
                     categories={categories}
-                    current={current}
+                    current={currentCategory}
                     onSelect={handleCategorySelect}
                     onRegister={() => setLayer('register')}
                     onManage={() => setLayer('manage')}
@@ -411,7 +422,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
             {layer === 'manage' && (
                 <CategoryManagerModal
                     categories={categories}
-                    currentCode={current?.code ?? ''}
+                    currentCode={currentCategory?.code ?? ''}
                     onSelect={handleCategorySelect}
                     onClose={() => setLayer('none')}
                 />

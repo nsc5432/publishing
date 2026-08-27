@@ -8,23 +8,14 @@ interface TimeRangeSelectorProps {
     onChange: (ranges: TimeRange[]) => void;
     disabled?: boolean;
     totalSlots?: number;
-    /** 선택 범위 안내 문구의 라벨 */
     label?: string;
-    /** 변형 스타일용 추가 클래스 (예: timebar--valued) */
     className?: string;
-    /** 슬롯 안에 넣을 내용 — 표시할 것이 없으면 null 을 돌려준다 */
     renderSlot?: (index: number) => ReactNode;
 }
 
-/** 하단 스케일 라벨 (00:00 ~ 24:00 을 6등분한 7개) */
 function buildScale(totalSlots: number): string[] {
-    return Array.from({ length: 7 }, (_, tickIndex) =>
-        formatHour(Math.round((totalSlots / 6) * tickIndex)),
-    );
+    return Array.from({ length: 7 }, (_, tickIndex) => formatHour(Math.round((totalSlots / 6) * tickIndex)));
 }
-
-// 범위 계산은 인자에만 의존하므로 컴포넌트 밖에 둔다.
-// (안에 두면 렌더마다 새로 만들어져 아래 useCallback 의 의존성이 매번 바뀐다)
 
 function mergeRanges(newRange: TimeRange, existingRanges: TimeRange[]): TimeRange[] {
     const nonOverlapping = existingRanges.filter((range) => {
@@ -38,7 +29,6 @@ function mergeRanges(newRange: TimeRange, existingRanges: TimeRange[]): TimeRang
     for (const range of sorted) {
         const last = merged[merged.length - 1];
 
-        // 넘겨받은 객체를 그대로 담으면 아래 병합에서 호출자의 상태를 고쳐버린다. 복제해서 담는다.
         if (!last || range.start > last.end) {
             merged.push({ ...range });
             continue;
@@ -71,15 +61,7 @@ function removeRange(toRemove: TimeRange, existingRanges: TimeRange[]): TimeRang
     return result;
 }
 
-export function TimeRangeSelector({
-    ranges,
-    onChange,
-    disabled = false,
-    totalSlots = 24,
-    label = '선택 범위',
-    className,
-    renderSlot,
-}: TimeRangeSelectorProps) {
+export function TimeRangeSelector({ ranges, onChange, disabled = false, totalSlots = 24, label = '선택 범위', className, renderSlot }: TimeRangeSelectorProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState<number | null>(null);
     const [dragEnd, setDragEnd] = useState<number | null>(null);
@@ -105,13 +87,10 @@ export function TimeRangeSelector({
         if (!isDragging || dragStart === null || dragEnd === null || disabled) return;
 
         const start = Math.min(dragStart, dragEnd);
-        const end = Math.max(dragStart, dragEnd) + 1; // end는 exclusive
+        const end = Math.max(dragStart, dragEnd) + 1;
 
         const targetRange: TimeRange = { start, end };
-        const mergedRanges =
-            dragMode === 'deselect'
-                ? removeRange(targetRange, ranges)
-                : mergeRanges(targetRange, ranges);
+        const mergedRanges = dragMode === 'deselect' ? removeRange(targetRange, ranges) : mergeRanges(targetRange, ranges);
 
         onChange(mergedRanges);
 
@@ -120,7 +99,6 @@ export function TimeRangeSelector({
         setDragEnd(null);
     }, [isDragging, dragStart, dragEnd, disabled, dragMode, ranges, onChange]);
 
-    // 전역 마우스 업 이벤트 처리 (드래그 중 마우스가 컴포넌트 밖으로 나갈 경우)
     useEffect(() => {
         if (!isDragging) return;
 
@@ -147,17 +125,13 @@ export function TimeRangeSelector({
 
     const slotClass = (index: number): string => {
         if (isSlotInDragRange(index)) {
-            return dragMode === 'deselect'
-                ? 'timebar__slot is-preview-remove'
-                : 'timebar__slot is-preview-add';
+            return dragMode === 'deselect' ? 'timebar__slot is-preview-remove' : 'timebar__slot is-preview-add';
         }
         return isSlotSelected(index) ? 'timebar__slot is-on' : 'timebar__slot';
     };
 
     return (
-        <div
-            className={`timebar${disabled ? ' is-disabled' : ''}${className ? ` ${className}` : ''}`}
-        >
+        <div className={`timebar${disabled ? ' is-disabled' : ''}${className ? ` ${className}` : ''}`}>
             <p className="timebar__head">
                 <span className="timebar__label">{label}</span>
                 <strong className="timebar__value">{formatRangesText()}</strong>
@@ -170,14 +144,14 @@ export function TimeRangeSelector({
                 role="group"
                 aria-label={`${label} 선택`}
             >
-                {Array.from({ length: totalSlots }, (_, i) => (
+                {Array.from({ length: totalSlots }, (_, index) => (
                     <span
-                        key={i}
-                        className={slotClass(i)}
-                        onMouseDown={() => handleSlotMouseDown(i)}
-                        onMouseEnter={() => handleSlotMouseEnter(i)}
+                        key={index}
+                        className={slotClass(index)}
+                        onMouseDown={() => handleSlotMouseDown(index)}
+                        onMouseEnter={() => handleSlotMouseEnter(index)}
                     >
-                        {renderSlot?.(i)}
+                        {renderSlot?.(index)}
                     </span>
                 ))}
             </div>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Category } from '../types';
 import { Pagination } from './Pagination';
@@ -24,9 +24,7 @@ function filterCategories(categories: Category[], filter: Filter): Category[] {
     const name = filter.name.trim().toLocaleLowerCase('ko-KR');
 
     return categories.filter(
-        (category) =>
-            (!code || category.code.toLocaleLowerCase('ko-KR').includes(code)) &&
-            (!name || category.name.toLocaleLowerCase('ko-KR').includes(name)),
+        (category) => (!code || category.code.toLocaleLowerCase('ko-KR').includes(code)) && (!name || category.name.toLocaleLowerCase('ko-KR').includes(name)),
     );
 }
 
@@ -35,7 +33,7 @@ export function CategoryManagerModal({ categories, currentCode, onSelect, onClos
     const [filter, setFilter] = useState<Filter>(EMPTY_FILTER);
     const [page, setPage] = useState(1);
 
-    const filtered = useMemo(() => filterCategories(categories, filter), [categories, filter]);
+    const filtered = filterCategories(categories, filter);
     const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
     const currentPage = Math.min(page, totalPages);
     const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);

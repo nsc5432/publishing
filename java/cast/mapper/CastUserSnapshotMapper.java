@@ -25,45 +25,34 @@ import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto;
 public interface CastUserSnapshotMapper {
 	String retrieveNextRsrcNo();
 
-	void deleteSchdlAtrb(@Param("rsrcNo") String rsrcNo);
+	void deleteRsrcAtrb(
+			@Param("atrbTableNm") String atrbTableNm,
+			@Param("atrbIdColumnNm") String atrbIdColumnNm,
+			@Param("rsrcNo") String rsrcNo
+	);
 
-	void deleteSchdlMstr(@Param("rsrcNo") String rsrcNo);
+	void deleteRsrcMstr(
+			@Param("mstrTableNm") String mstrTableNm,
+			@Param("mstrIdColumnNm") String mstrIdColumnNm,
+			@Param("rsrcNo") String rsrcNo
+	);
 
-	void insertSchdlMstr(UserSmltRsrcSnapshotDto dto);
+	void insertRsrcMstr(
+			@Param("mstrTableNm") String mstrTableNm,
+			@Param("mstrIdColumnNm") String mstrIdColumnNm,
+			@Param("mstrNmColumnNm") String mstrNmColumnNm,
+			@Param("snapshot") UserSmltRsrcSnapshotDto snapshot
+	);
 
 	void insertSchdlAtrbFromDaily(UserSmltRsrcSnapshotDto dto);
 
 	void insertSchdlAtrbFromSrc(UserSmltRsrcSnapshotDto dto);
 
-	void deleteCknctAtrb(@Param("rsrcNo") String rsrcNo);
-
-	void deleteCknctMstr(@Param("rsrcNo") String rsrcNo);
-
-	void insertCknctMstr(UserSmltRsrcSnapshotDto dto);
-
 	void insertCknctAtrb(UserSmltRsrcSnapshotDto dto);
-
-	void deleteSbdAtrb(@Param("rsrcNo") String rsrcNo);
-
-	void deleteSbdMstr(@Param("rsrcNo") String rsrcNo);
-
-	void insertSbdMstr(UserSmltRsrcSnapshotDto dto);
 
 	void insertSbdAtrb(UserSmltRsrcSnapshotDto dto);
 
-	void deleteDptgtAtrb(@Param("rsrcNo") String rsrcNo);
-
-	void deleteDptgtMstr(@Param("rsrcNo") String rsrcNo);
-
-	void insertDptgtMstr(UserSmltRsrcSnapshotDto dto);
-
 	void insertDptgtAtrb(UserSmltRsrcSnapshotDto dto);
-
-	void deleteScrtyCntrlAtrb(@Param("rsrcNo") String rsrcNo);
-
-	void deleteScrtyCntrlMstr(@Param("rsrcNo") String rsrcNo);
-
-	void insertScrtyCntrlMstr(UserSmltRsrcSnapshotDto dto);
 
 	void insertScrtyCntrlAtrb(UserSmltRsrcSnapshotDto dto);
 }

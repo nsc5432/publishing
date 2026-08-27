@@ -45,6 +45,10 @@ public enum UserSmltReqStatus {
 		return null;
 	}
 
+	public static List<UserSmltReqStatus> getList() {
+		return List.of(NEW, EXECUTING, FINISHED, FAILED);
+	}
+
 	public boolean canTransitTo(UserSmltReqStatus next) {
 		if (next == null) {
 			return false;
@@ -67,10 +71,6 @@ public enum UserSmltReqStatus {
 			default:
 				return SmltExecStatus.RUNNING;
 		}
-	}
-
-	public static List<UserSmltReqStatus> getList() {
-		return List.of(NEW, EXECUTING, FINISHED, FAILED);
 	}
 
 	private Set<UserSmltReqStatus> allowedNext() {

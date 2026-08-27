@@ -19,19 +19,19 @@ import lombok.RequiredArgsConstructor;
 public class UserController {
 	private final UserService userService;
 	private final SessionService sessionService;
-	
+
 	@PostMapping(value = "/retrieveUserInfoBySession")
 	public ResponseEntity<UserDto> retrieveUserInfoBySession() {
 		UserDto dto = new UserDto();
 		SessionUtils.setUserContext(dto, sessionService);
-		
+
 		if (dto.getLoginUserId() == null) {
 			UserDto result = new UserDto();
 			result.setError(true);
 			result.setErrorMessage("로그인을 진행해주세요.");
 			return ResponseUtils.res(result);
-		}		
-		
+		}
+
 		return ResponseUtils.res(userService.retrieveUserInfoByKey(dto.getLoginUserId()));
 	}
 }

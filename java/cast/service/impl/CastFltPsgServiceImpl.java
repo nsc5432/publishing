@@ -1,6 +1,7 @@
 package aoms.pm.cast.service.impl;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -77,7 +78,7 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 				.retrieveUserFltPsgHourList(searchDto.getSmltId(), tmnlId.getFcltTmnlId())
 				.stream().collect(Collectors.toMap(FltPsgHourDto::getBgnTime, Function.identity(), (first, ignored) -> first));
 
-		List<FltPsgHourDto> hourList = getHourDatas(rawMap, savedHourMap);
+		List<FltPsgHourDto> hourList = toHourList(rawMap, savedHourMap);
 
 		result.setTmnlId(tmnlId.getValue());
 		result.setFltCnt(rawList.stream().mapToInt(FltPsgRawDto::getFltCnt).sum());
@@ -97,16 +98,16 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 	 *
 	 * 저장하는 것은 조정 "비율"뿐이다. 곱해진 편별 여객수를 TN_PM_SMLT_SCHDL_ATRB 에 물리
 	 * 저장하면 원본 복원이 불가능해지므로 채택하지 않았다. 비율은 CAST 리소스 발행 시점에
-	 * 운항 스케줄에 곱한다 (CastUserSnapshotServiceImpl.publishFltSchdl).
+	 * 운항 스케줄에 곱한다 (CastUserSnapshotServiceImpl.insertSchdlAtrb).
 	 */
 	@Override
 	public JsonResponse saveFltPsgInfo(UserSmltFltPsgSaveDto saveDto) {
 		SessionUtils.setUserContext(saveDto, sessionService);
 
-		JsonResponse invalid = validate(saveDto);
+		JsonResponse validationError = validate(saveDto);
 
-		if (invalid != null) {
-			return invalid;
+		if (validationError != null) {
+			return validationError;
 		}
 
 		saveDto.setFcltTmnlId(saveDto.getTmnlId().getFcltTmnlId());
@@ -129,7 +130,88 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 		return new JsonResponse();
 	}
 
-	// 검증은 서비스 안에서 명시적으로 한다. 통과하면 null
+	private String getExcnYmd(UserSmltFltPsgSearchDto searchDto) {
+		String ymd = searchDto.getYmd();
+
+		return ymd != null && !ymd.isEmpty()
+				? ymd
+				: castSmltService.retrieveSmltStngByKey(searchDto.getSmltId()).getExcnYmd();
+	}
+
+	private FltPsgChartDto getChart(Map<String, FltPsgRawDto> rawMap, ToIntFunction<FltPsgRawDto> valueGetter) {
+		FltPsgChartDto result = new FltPsgChartDto();
+		List<FltPsgChartItemDto> itemList = new ArrayList<>();
+
+		for (String chartHour : CHART_HOUR_LIST) {
+			int bucketCnt = 0;
+
+			for (int hourOffset = 0; hourOffset < CHART_HOUR_STEP; hourOffset++) {
+				String hour = String.format("%02d", Integer.parseInt(chartHour) + hourOffset);
+				bucketCnt += getCnt(rawMap, hour, valueGetter);
+			}
+
+			itemList.add(new FltPsgChartItemDto().withTime(chartHour).withCnt(bucketCnt));
+		}
+
+		result.setTotCnt(itemList.stream().mapToInt(FltPsgChartItemDto::getCnt).sum());
+		result.setMaxCnt(itemList.stream().mapToInt(FltPsgChartItemDto::getCnt).max().orElse(0));
+		result.setItemList(itemList);
+
+		return result;
+	}
+
+	private List<FltPsgHourDto> toHourList(
+			Map<String, FltPsgRawDto> rawMap,
+			Map<String, FltPsgHourDto> savedHourMap
+	) {
+		List<FltPsgHourDto> result = new ArrayList<>();
+		List<String> hourList = TimeBucketUtils.hourList();
+
+		for (int index = 0; index < hourList.size(); index++) {
+			String hour = hourList.get(index);
+			boolean isLastHour = index + 1 == hourList.size();
+
+			FltPsgHourDto hourItem = new FltPsgHourDto();
+			hourItem.setBgnTime(hour + ZERO_MIN);
+			hourItem.setEndTime(isLastHour ? END_OF_DAY : hourList.get(index + 1) + ZERO_MIN);
+
+			FltPsgHourDto saved = savedHourMap.get(hourItem.getBgnTime());
+
+			if (saved != null) {
+				hourItem.setEndTime(saved.getEndTime());
+				hourItem.setAjmtRt(saved.getAjmtRt());
+			}
+
+			hourItem.setPsgCnt(getCnt(rawMap, hour, FltPsgRawDto::getPsgCnt));
+
+			result.add(hourItem);
+		}
+
+		return result;
+	}
+
+	private AdjType toAjmtTypeCd(UserFltPsgRawDto saved) {
+		if (saved != null && AdjType.HOURLY.getValue().equals(saved.getAjmtTypeCd())) {
+			return AdjType.HOURLY;
+		}
+
+		return AdjType.RATIO;
+	}
+
+	// 피크 시간 = 여객수가 가장 많은 시간대. 같은 값이면 이른 시간대가 이긴다
+	private String getPeakTime(List<FltPsgHourDto> hourList) {
+		return hourList.stream()
+				.max(Comparator.comparingInt(FltPsgHourDto::getPsgCnt))
+				.map(FltPsgHourDto::getBgnTime)
+				.orElse(DEFAULT_PEAK_TIME);
+	}
+
+	private int getCnt(Map<String, FltPsgRawDto> rawMap, String hour, ToIntFunction<FltPsgRawDto> valueGetter) {
+		FltPsgRawDto raw = rawMap.get(hour);
+		return raw != null ? valueGetter.applyAsInt(raw) : 0;
+	}
+
+	// 통과하면 null
 	private JsonResponse validate(UserSmltFltPsgSaveDto saveDto) {
 		if (saveDto.getLoginUserId() == null) {
 			return new JsonResponse().error("로그인을 진행해주세요.");
@@ -143,7 +225,8 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 			return new JsonResponse().error("수정 비율은 -100 ~ 100 사이여야 합니다.");
 		}
 
-		if (saveDto.getHourList() != null && saveDto.getHourList().stream().anyMatch(x -> isOutOfRange(x.getAjmtRt()))) {
+		if (saveDto.getHourList() != null
+				&& saveDto.getHourList().stream().anyMatch(hour -> isOutOfRange(hour.getAjmtRt()))) {
 			return new JsonResponse().error("시간대별 수정 비율은 -100 ~ 100 사이여야 합니다.");
 		}
 
@@ -161,7 +244,7 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 		}
 
 		List<FltPsgHourDto> result = hourList.stream()
-				.filter(x -> x.getBgnTime() != null && !x.getBgnTime().isEmpty())
+				.filter(hour -> hour.getBgnTime() != null && !hour.getBgnTime().isEmpty())
 				.collect(Collectors.toList());
 
 		for (FltPsgHourDto hour : result) {
@@ -169,83 +252,5 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 		}
 
 		return result;
-	}
-
-	// 기준일자는 요청에 있으면 그대로, 없으면 시뮬레이션 설정의 실행일자를 쓴다
-	private String getExcnYmd(UserSmltFltPsgSearchDto searchDto) {
-		String ymd = searchDto.getYmd();
-		return ymd != null && !ymd.isEmpty() ? ymd : castSmltService.retrieveSmltStngByKey(searchDto.getSmltId()).getExcnYmd();
-	}
-
-	private FltPsgChartDto getChart(Map<String, FltPsgRawDto> rawMap, ToIntFunction<FltPsgRawDto> valueGetter) {
-		FltPsgChartDto result = new FltPsgChartDto();
-		List<FltPsgChartItemDto> itemList = new ArrayList<>();
-
-		for (String chartHour : CHART_HOUR_LIST) {
-			int bucketCnt = 0;
-
-			for (int i = 0; i < CHART_HOUR_STEP; i++) {
-				bucketCnt += getCnt(rawMap, String.format("%02d", Integer.parseInt(chartHour) + i), valueGetter);
-			}
-
-			itemList.add(new FltPsgChartItemDto().withTime(chartHour).withCnt(bucketCnt));
-		}
-
-		result.setTotCnt(itemList.stream().mapToInt(FltPsgChartItemDto::getCnt).sum());
-		result.setMaxCnt(itemList.stream().mapToInt(FltPsgChartItemDto::getCnt).max().orElse(0));
-		result.setItemList(itemList);
-
-		return result;
-	}
-
-	private List<FltPsgHourDto> getHourDatas(
-			Map<String, FltPsgRawDto> rawMap,
-			Map<String, FltPsgHourDto> savedHourMap
-	) {
-		List<FltPsgHourDto> result = new ArrayList<>();
-		List<String> hourList = TimeBucketUtils.hourList();
-
-		for (int i = 0; i < hourList.size(); i++) {
-			String hour = hourList.get(i);
-			boolean isLast = i + 1 == hourList.size();
-
-			FltPsgHourDto item = new FltPsgHourDto();
-			item.setBgnTime(hour + ZERO_MIN);
-			item.setEndTime(isLast ? END_OF_DAY : hourList.get(i + 1) + ZERO_MIN);
-			FltPsgHourDto saved = savedHourMap.get(item.getBgnTime());
-
-			if (saved != null) {
-				item.setEndTime(saved.getEndTime());
-				item.setAjmtRt(saved.getAjmtRt());
-			}
-
-			item.setPsgCnt(getCnt(rawMap, hour, FltPsgRawDto::getPsgCnt));
-
-			result.add(item);
-		}
-
-		return result;
-	}
-
-	private AdjType toAjmtTypeCd(UserFltPsgRawDto saved) {
-		if (saved != null && AdjType.HOURLY.getValue().equals(saved.getAjmtTypeCd())) {
-			return AdjType.HOURLY;
-		}
-
-		return AdjType.RATIO;
-	}
-
-	// 피크 시간 = 여객수가 가장 많은 시간대
-	private String getPeakTime(List<FltPsgHourDto> hourList) {
-		return hourList.stream()
-				.sorted((a, b) -> b.getPsgCnt() - a.getPsgCnt())
-				.map(FltPsgHourDto::getBgnTime)
-				.findFirst()
-				.orElse(DEFAULT_PEAK_TIME);
-	}
-
-	private int getCnt(Map<String, FltPsgRawDto> rawMap, String hour, ToIntFunction<FltPsgRawDto> valueGetter) {
-		FltPsgRawDto raw = rawMap.get(hour);
-		return raw != null ? valueGetter.applyAsInt(raw) : 0;
 	}
 }

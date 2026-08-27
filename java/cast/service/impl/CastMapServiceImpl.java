@@ -1,9 +1,7 @@
 package aoms.pm.cast.service.impl;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -15,7 +13,6 @@ import aoms.pm.cast.domains.MapLayout;
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
 import aoms.pm.cast.dto.FltSmryRawDto;
-import aoms.pm.cast.dto.MapCgnStatDto;
 import aoms.pm.cast.dto.MapChknInfoDto;
 import aoms.pm.cast.dto.MapChknRsltDto;
 import aoms.pm.cast.dto.MapFcltItemDto;
@@ -40,6 +37,8 @@ import aoms.pm.cast.mapper.CastMapMapper;
 import aoms.pm.cast.service.CastMapService;
 import aoms.pm.cast.service.CastOperHrService;
 import aoms.pm.cast.service.CastSmltService;
+import aoms.pm.utils.SmltUtils;
+import aoms.pm.utils.TimeBucketUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -69,16 +68,12 @@ public class CastMapServiceImpl implements CastMapService {
 	private static final String YN_Y = "Y";
 	private static final String YN_N = "N";
 	private static final String DEFAULT_HM = "0000";
-	private static final String ZERO_MIN = "00";
 	private static final String CHKN_FCLT_NM = "체크인카운터";
 	private static final String DPTGT_FCLT_NM = "출국장";
 
-	/** 타임라인 구간 : 00:00 ~ 24:00 을 30분으로 나눈다 (49칸) */
-	private static final int SLOT_BGN_MIN = 0;
-	private static final int SLOT_END_MIN = 24 * 60;
-	private static final int SLOT_STEP_MIN = 30;
+	/** 타임라인 시작 시각 — 00:00 부터 24:00 까지 30분 눈금 49칸 */
+	private static final int SLOT_BGN_HOUR = 0;
 
-	private static final int MINUTE_PER_HOUR = 60;
 	private static final int HOUR_PER_DAY = 24;
 	private static final int PERCENT = 100;
 	private static final int NOTICE_ITEM_LIMIT = 6; // 알림 목록이 도면을 덮지 않는 상한
@@ -100,7 +95,7 @@ public class CastMapServiceImpl implements CastMapService {
 		Map<String, Map<String, SmltRsltRawDto>> chknDayMap = retrieveUnitRsltDayMap(searchDto, CHKN_FCLT_CD_LIST);
 		Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap = retrieveUnitRsltDayMap(searchDto, DPTGT_FCLT_CD_LIST);
 
-		FltSmryRawDto fltSmry = castDsbdMapper.retrieveFltSmry(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList());
+		FltSmryRawDto fltSmry = castDsbdMapper.retrieveFltSmry(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList(), null, null);
 
 		result.setSmltId(searchDto.getSmltId());
 		result.setTmnlId(tmnlId.getValue());
@@ -117,50 +112,10 @@ public class CastMapServiceImpl implements CastMapService {
 
 	/* ================= 결과 조회 ================= */
 
-	// 하루치를 시각별로 나누고, 상위시설코드가 여러 개 걸린 묶음 단위는 한 건으로 접는다
 	private Map<String, Map<String, SmltRsltRawDto>> retrieveUnitRsltDayMap(
 			MapSearchDto searchDto, List<String> upPsgFcltCdList) {
-		List<SmltRsltRawDto> rsltList = castMapMapper.retrieveMapRsltDayList(
-				searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId(), upPsgFcltCdList);
-
-		Map<String, List<SmltRsltRawDto>> timeMap = rsltList.stream()
-				.collect(Collectors.groupingBy(SmltRsltRawDto::getTime, LinkedHashMap::new, Collectors.toList()));
-
-		Map<String, Map<String, SmltRsltRawDto>> result = new LinkedHashMap<>();
-
-		for (Map.Entry<String, List<SmltRsltRawDto>> entry : timeMap.entrySet()) {
-			result.put(entry.getKey(), foldByUnitCd(entry.getValue()));
-		}
-
-		return result;
-	}
-
-	// 대기는 가장 나쁜 값(최댓값), 처리인원은 합산
-	private Map<String, SmltRsltRawDto> foldByUnitCd(List<SmltRsltRawDto> rsltList) {
-		Map<String, SmltRsltRawDto> result = new LinkedHashMap<>();
-
-		for (SmltRsltRawDto rslt : rsltList) {
-			String unitCd = rslt.getUnitCd() != null ? rslt.getUnitCd().trim() : EMPTY;
-
-			if (unitCd.isEmpty()) {
-				continue;
-			}
-
-			SmltRsltRawDto merged = result.get(unitCd);
-
-			if (merged == null) {
-				rslt.setUnitCd(unitCd);
-				result.put(unitCd, rslt);
-				continue;
-			}
-
-			merged.setWtngPsgCnt(Math.max(merged.getWtngPsgCnt(), rslt.getWtngPsgCnt()));
-			merged.setTrnstPsgCnt(merged.getTrnstPsgCnt() + rslt.getTrnstPsgCnt());
-			merged.setWtngHr(Math.max(merged.getWtngHr(), rslt.getWtngHr()));
-			merged.setPrcsHr(Math.max(merged.getPrcsHr(), rslt.getPrcsHr()));
-		}
-
-		return result;
+		return SmltUtils.foldByTimeAndUnitCd(castMapMapper.retrieveMapRsltDayList(
+				searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId(), upPsgFcltCdList));
 	}
 
 	/* ================= 헤더 ================= */
@@ -204,9 +159,15 @@ public class CastMapServiceImpl implements CastMapService {
 			return result;
 		}
 
-		String bgnHm = operHrList.stream().map(x -> defaultHm(x.getBgnHm())).min(Comparator.naturalOrder()).orElse(DEFAULT_HM);
-		String endHm = operHrList.stream().map(x -> defaultHm(x.getEndHm())).max(Comparator.naturalOrder()).orElse(DEFAULT_HM);
-		int oprHr = toEndHour(bgnHm, endHm) - toBgnHour(bgnHm);
+		String bgnHm = operHrList.stream()
+				.map(operHr -> SmltUtils.defaultHm(operHr.getBgnHm()))
+				.min(Comparator.naturalOrder())
+				.orElse(DEFAULT_HM);
+		String endHm = operHrList.stream()
+				.map(operHr -> SmltUtils.defaultHm(operHr.getEndHm()))
+				.max(Comparator.naturalOrder())
+				.orElse(DEFAULT_HM);
+		int oprHr = SmltUtils.toEndHour(bgnHm, endHm) - SmltUtils.toBgnHour(bgnHm);
 
 		result.setOprBgnTime(bgnHm);
 		result.setOprEndTime(endHm);
@@ -232,8 +193,8 @@ public class CastMapServiceImpl implements CastMapService {
 	private List<MapMarkerDto> getChknMarkerList(TerminalKind tmnlId) {
 		List<MapMarkerDto> result = new ArrayList<>();
 
-		for (String island : MapLayout.islandCdList(tmnlId)) {
-			result.add(MapLayout.chknMarker(tmnlId, island));
+		for (String islandCd : MapLayout.islandCdList(tmnlId)) {
+			result.add(MapLayout.chknMarker(tmnlId, islandCd));
 		}
 
 		return result;
@@ -244,14 +205,15 @@ public class CastMapServiceImpl implements CastMapService {
 	private List<MapChknInfoDto> getChknInfoList(TerminalKind tmnlId) {
 		List<MapChknInfoDto> result = new ArrayList<>();
 
-		for (String island : MapLayout.islandCdList(tmnlId)) {
-			MapChknInfoDto info = new MapChknInfoDto();
-			info.setIsland(island);
-			info.setFcltCd(tmnlId.getValue() + "-3RD-" + island + "01-01");
-			info.setFcltList(getIslandFcltList());
+		for (String islandCd : MapLayout.islandCdList(tmnlId)) {
 			// 상업시설 매출 원천은 아직 없지만 문자열 필드는 API 계약대로 null 없이 내린다
 			MapSalesDto sales = new MapSalesDto();
 			sales.setCmprYear(EMPTY);
+
+			MapChknInfoDto info = new MapChknInfoDto();
+			info.setIsland(islandCd);
+			info.setFcltCd(tmnlId.getValue() + "-3RD-" + islandCd + "01-01");
+			info.setFcltList(getIslandFcltList());
 			info.setSales(sales);
 
 			result.add(info);
@@ -280,9 +242,9 @@ public class CastMapServiceImpl implements CastMapService {
 			Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap) {
 		List<SmltMapSlotDto> result = new ArrayList<>();
 
-		for (String hhmm : getTimeList()) {
-			Map<String, SmltRsltRawDto> chknMap = defaultMap(chknDayMap.get(hhmm));
-			Map<String, SmltRsltRawDto> dptgtMap = defaultMap(dptgtDayMap.get(hhmm));
+		for (String hhmm : TimeBucketUtils.slotTimeList(SLOT_BGN_HOUR)) {
+			Map<String, SmltRsltRawDto> chknMap = chknDayMap.getOrDefault(hhmm, Map.of());
+			Map<String, SmltRsltRawDto> dptgtMap = dptgtDayMap.getOrDefault(hhmm, Map.of());
 
 			SmltMapSlotDto slot = new SmltMapSlotDto();
 			slot.setHhmm(hhmm);
@@ -296,34 +258,19 @@ public class CastMapServiceImpl implements CastMapService {
 		return result;
 	}
 
-	/**
-	 * 00:00 ~ 24:00 을 30분으로 나눈 눈금 — 하단 타임라인과 같은 구간이다.
-	 * 결과가 없는 구간도 자리를 비워 두지 않는다 (마지막 2400 은 하루의 끝을 닫는 눈금이라
-	 * 결과 버킷(…2330)이 없어 항상 0 이다).
-	 */
-	private List<String> getTimeList() {
-		List<String> result = new ArrayList<>();
-
-		for (int minutes = SLOT_BGN_MIN; minutes <= SLOT_END_MIN; minutes += SLOT_STEP_MIN) {
-			result.add(toHhmm(minutes));
-		}
-
-		return result;
-	}
-
 	private List<MapChknRsltDto> getChknRsltList(TerminalKind tmnlId, Map<String, SmltRsltRawDto> chknMap) {
 		List<MapChknRsltDto> result = new ArrayList<>();
 
-		for (String island : MapLayout.islandCdList(tmnlId)) {
-			SmltRsltRawDto rslt = chknMap.get(island);
+		for (String islandCd : MapLayout.islandCdList(tmnlId)) {
+			SmltRsltRawDto rslt = chknMap.get(islandCd);
 
-			MapChknRsltDto item = new MapChknRsltDto();
-			item.setUnitCd(island);
-			item.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0));
-			item.setStat(getStat(rslt));
-			item.setPrcsRate(rslt != null ? getPrcsRate(rslt.getTrnstPsgCnt(), rslt.getWtngPsgCnt()) : 0);
+			MapChknRsltDto chknRslt = new MapChknRsltDto();
+			chknRslt.setUnitCd(islandCd);
+			chknRslt.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0));
+			chknRslt.setStat(SmltUtils.toCgnStat(rslt));
+			chknRslt.setPrcsRate(rslt != null ? SmltUtils.toPrcsRate(rslt.getTrnstPsgCnt(), rslt.getWtngPsgCnt()) : 0);
 
-			result.add(item);
+			result.add(chknRslt);
 		}
 
 		return result;
@@ -335,50 +282,28 @@ public class CastMapServiceImpl implements CastMapService {
 		for (String dptgtNo : MapLayout.dptgtNoList(tmnlId)) {
 			SmltRsltRawDto rslt = dptgtMap.get(dptgtNo);
 
-			MapUnitRsltDto item = new MapUnitRsltDto();
-			item.setUnitCd(dptgtNo);
-			item.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0));
-			item.setStat(getStat(rslt));
+			MapUnitRsltDto dptgtRslt = new MapUnitRsltDto();
+			dptgtRslt.setUnitCd(dptgtNo);
+			dptgtRslt.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0));
+			dptgtRslt.setStat(SmltUtils.toCgnStat(rslt));
 
-			result.add(item);
+			result.add(dptgtRslt);
 		}
 
 		return result;
-	}
-
-	// 이 화면의 시간 지표는 초 단위다 (대시보드 KPI 는 분이라 환산하지 않는다)
-	private MapCgnStatDto getStat(SmltRsltRawDto rslt) {
-		MapCgnStatDto result = new MapCgnStatDto();
-
-		if (rslt == null) {
-			return result;
-		}
-
-		result.setWtngPsgCnt(rslt.getWtngPsgCnt());
-		result.setWtngHr(rslt.getWtngHr());
-		result.setPrcsPsgCnt(rslt.getTrnstPsgCnt());
-		result.setPrcsHr(rslt.getPrcsHr());
-
-		return result;
-	}
-
-	private int getPrcsRate(int prcsPsgCnt, int wtngPsgCnt) {
-		int total = prcsPsgCnt + wtngPsgCnt;
-
-		return total == 0 ? 0 : prcsPsgCnt * PERCENT / total;
 	}
 
 	/* ================= 혼잡 알림 ================= */
 
 	// 알림은 혼잡(BUSY) 이상인 곳만, 혼잡한 순으로 보여준다
 	private MapNoticeDto getNotice(Map<String, SmltRsltRawDto> chknMap, Map<String, SmltRsltRawDto> dptgtMap) {
-		List<SmltRsltRawDto> candidates = new ArrayList<>(chknMap.values());
-		candidates.addAll(dptgtMap.values());
+		List<SmltRsltRawDto> candidateList = new ArrayList<>(chknMap.values());
+		candidateList.addAll(dptgtMap.values());
 
 		List<MapNoticeItemDto> itemList = new ArrayList<>();
 		int maxWtngPsgCnt = 0;
 
-		for (SmltRsltRawDto rslt : candidates.stream()
+		for (SmltRsltRawDto rslt : candidateList.stream()
 				.sorted(Comparator.comparingInt(SmltRsltRawDto::getWtngPsgCnt).reversed())
 				.collect(Collectors.toList())) {
 			CongestionStatus cgnStatus = CongestionStatus.ofWtngPsgCnt(rslt.getWtngPsgCnt());
@@ -409,34 +334,4 @@ public class CastMapServiceImpl implements CastMapService {
 				.withBoothCnt(Math.max(1, rslt.getWtngPsgCnt() / BOOTH_PER_STEP));
 	}
 
-	/* ================= 시각 ================= */
-
-	private Map<String, SmltRsltRawDto> defaultMap(Map<String, SmltRsltRawDto> rsltMap) {
-		return rsltMap != null ? rsltMap : Collections.emptyMap();
-	}
-
-	// 24:00 은 다음 날 00:00 이 아니라 마지막 눈금이라 2400 그대로 둔다
-	private String toHhmm(int minutes) {
-		return String.format("%02d%02d", minutes / MINUTE_PER_HOUR, minutes % MINUTE_PER_HOUR);
-	}
-
-	private int toBgnHour(String hhmm) {
-		return Integer.parseInt(defaultHm(hhmm).substring(0, 2));
-	}
-
-	// 종료 시각은 분이 남으면 다음 시로 올린다. 자정 넘김(RON)은 당일 24시로 자른다
-	private int toEndHour(String bgnHm, String endHm) {
-		String value = defaultHm(endHm);
-		int hour = Integer.parseInt(value.substring(0, 2));
-
-		if (!ZERO_MIN.equals(value.substring(2, 4))) {
-			hour++;
-		}
-
-		return hour <= toBgnHour(bgnHm) ? HOUR_PER_DAY : hour;
-	}
-
-	private String defaultHm(String hhmm) {
-		return hhmm != null && hhmm.length() >= 4 ? hhmm : DEFAULT_HM;
-	}
 }

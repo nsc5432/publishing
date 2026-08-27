@@ -22,6 +22,7 @@ import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastFcltMapper;
 import aoms.pm.cast.service.CastFcltService;
+import aoms.pm.utils.StringUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -85,30 +86,32 @@ public class CastFcltServiceImpl implements CastFcltService {
 		result.setTmnlId(tmnlId);
 
 		List<FcltMapItemDto> itemList = castFcltMapper.retrieveFcltMapList(tmnlId.getFcltTmnlId());
+
 		for (FcltMapItemDto item : itemList) {
-			fill(item, tmnlId);
+			fillDerived(item, tmnlId);
 		}
 
 		result.setItemList(itemList);
-		result.setMarkerList(markerList(tmnlId, itemList));
+		result.setMarkerList(getMarkerList(tmnlId, itemList));
 
 		return result;
 	}
 
 	@Override
 	public JsonResponse saveFcltMapList(FcltMapSaveDto saveDto) {
-		JsonResponse invalid = validate(saveDto);
-		if (invalid != null) {
-			return invalid;
+		JsonResponse validationError = validate(saveDto);
+
+		if (validationError != null) {
+			return validationError;
 		}
 
 		saveDto.setFcltTmnlId(saveDto.getTmnlId().getFcltTmnlId());
 
-		List<FcltMapSaveItemDto> itemList = normalize(saveDto.getItemList());
+		List<FcltMapSaveItemDto> itemList = normalizeItemList(saveDto.getItemList());
+		JsonResponse duplicateError = checkDuplicate(itemList);
 
-		JsonResponse duplicated = checkDuplicate(itemList);
-		if (duplicated != null) {
-			return duplicated;
+		if (duplicateError != null) {
+			return duplicateError;
 		}
 
 		for (FcltMapSaveItemDto item : itemList) {
@@ -125,7 +128,76 @@ public class CastFcltServiceImpl implements CastFcltService {
 		return new JsonResponse();
 	}
 
-	// 검증은 서비스 안에서 명시적으로 한다. 통과하면 null
+	// SQL 이 NVL 로 채운 공백을 빈 문자열로 되돌리고, 코드에서 알 수 있는 값을 채운다
+	private void fillDerived(FcltMapItemDto item, TerminalKind tmnlId) {
+		item.setTmnlId(tmnlId);
+		item.setUpPsgFcltCd(StringUtils.trimToEmpty(item.getUpPsgFcltCd()));
+		item.setPsgFcltNm(StringUtils.trimToEmpty(item.getPsgFcltNm()));
+		item.setPsgFcltExpln(StringUtils.trimToEmpty(item.getPsgFcltExpln()));
+		item.setSmltFcltNm(StringUtils.trimToEmpty(item.getSmltFcltNm()));
+		item.setLastMdfrId(StringUtils.trimToEmpty(item.getLastMdfrId()));
+		item.setLastMdfcnDt(StringUtils.trimToEmpty(item.getLastMdfcnDt()));
+
+		FcltType fcltType = FCLT_TYPE_BY_UP_CD.getOrDefault(item.getUpPsgFcltCd(), FcltType.CMRC);
+		item.setFcltType(fcltType);
+
+		if (StringUtils.trimToEmpty(item.getUpPsgFcltNm()).isEmpty()) {
+			item.setUpPsgFcltNm(FCLT_TYPE_NM.get(fcltType));
+		}
+
+		item.setIsland(toMarkerId(fcltType, StringUtils.trimToEmpty(item.getIsland())));
+	}
+
+	/**
+	 * 시설이 걸리는 도면 마커 id.
+	 * 체크인 계열은 아일랜드 문자, 출국장·보안검색대는 출국장 마커(dgN)에 함께 붙는다
+	 * (검색대는 출국장 바로 앞이라 도면에서 같은 자리다).
+	 */
+	private String toMarkerId(FcltType fcltType, String unitCd) {
+		if (unitCd.isEmpty()) {
+			return EMPTY;
+		}
+
+		switch (fcltType) {
+			case CHKN:
+			case SLFCHKN:
+				return unitCd;
+			case DEP:
+			case SC:
+				return DPTGT_MARKER_PREFIX + unitCd;
+			default:
+				return EMPTY;
+		}
+	}
+
+	// 목록에 실제로 걸린 구역만 도면에 그린다 — 시설이 하나도 없는 마커는 누를 이유가 없다
+	private List<MapMarkerDto> getMarkerList(TerminalKind tmnlId, List<FcltMapItemDto> itemList) {
+		Set<String> usedMarkerIdSet = new LinkedHashSet<>();
+
+		for (FcltMapItemDto item : itemList) {
+			if (!item.getIsland().isEmpty()) {
+				usedMarkerIdSet.add(item.getIsland());
+			}
+		}
+
+		List<MapMarkerDto> result = new ArrayList<>();
+
+		for (String islandCd : FcltMapLayout.islandCdList(tmnlId)) {
+			if (usedMarkerIdSet.contains(islandCd)) {
+				result.add(FcltMapLayout.chknMarker(tmnlId, islandCd));
+			}
+		}
+
+		for (String dptgtNo : FcltMapLayout.dptgtNoList(tmnlId)) {
+			if (usedMarkerIdSet.contains(DPTGT_MARKER_PREFIX + dptgtNo)) {
+				result.add(FcltMapLayout.dptgtMarker(tmnlId, dptgtNo));
+			}
+		}
+
+		return result;
+	}
+
+	// 통과하면 null
 	private JsonResponse validate(FcltMapSaveDto saveDto) {
 		if (saveDto.getLoginUserId() == null) {
 			return new JsonResponse().error("로그인을 진행해주세요.");
@@ -155,21 +227,19 @@ public class CastFcltServiceImpl implements CastFcltService {
 	 */
 	private JsonResponse checkDuplicate(List<FcltMapSaveItemDto> itemList) {
 		// 같은 요청 안에서 겹치는 경우 (DB 에는 아직 없으니 조회로는 못 잡는다)
-		Set<String> names = new LinkedHashSet<>();
+		Set<String> smltFcltNmSet = new LinkedHashSet<>();
+		List<FcltMapSaveItemDto> namedList = new ArrayList<>();
+
 		for (FcltMapSaveItemDto item : itemList) {
 			if (item.getSmltFcltNm().isEmpty()) {
 				continue;
 			}
-			if (!names.add(item.getSmltFcltNm())) {
+
+			if (!smltFcltNmSet.add(item.getSmltFcltNm())) {
 				return new JsonResponse().error("같은 시뮬레이션시설명을 두 시설에 지정할 수 없습니다 : " + item.getSmltFcltNm());
 			}
-		}
 
-		List<FcltMapSaveItemDto> namedList = new ArrayList<>();
-		for (FcltMapSaveItemDto item : itemList) {
-			if (!item.getSmltFcltNm().isEmpty()) {
-				namedList.add(item);
-			}
+			namedList.add(item);
 		}
 
 		if (namedList.isEmpty()) {
@@ -177,97 +247,28 @@ public class CastFcltServiceImpl implements CastFcltService {
 		}
 
 		// 다른 시설이 이미 쓰고 있는 경우
-		List<String> duplicated = castFcltMapper.retrieveDuplicateSmltFcltNmList(namedList);
-		if (duplicated != null && !duplicated.isEmpty()) {
-			return new JsonResponse().error("다른 시설이 이미 쓰고 있는 이름입니다 : " + String.join(", ", duplicated));
+		List<String> duplicatedNmList = castFcltMapper.retrieveDuplicateSmltFcltNmList(namedList);
+
+		if (duplicatedNmList != null && !duplicatedNmList.isEmpty()) {
+			return new JsonResponse().error(
+					"다른 시설이 이미 쓰고 있는 이름입니다 : " + String.join(", ", duplicatedNmList));
 		}
 
 		return null;
 	}
 
 	// 앞뒤 공백은 매핑을 어긋나게 하는 흔한 원인이라 저장 전에 턴다
-	private List<FcltMapSaveItemDto> normalize(List<FcltMapSaveItemDto> itemList) {
+	private List<FcltMapSaveItemDto> normalizeItemList(List<FcltMapSaveItemDto> itemList) {
 		List<FcltMapSaveItemDto> result = new ArrayList<>();
 
 		for (FcltMapSaveItemDto item : itemList) {
 			FcltMapSaveItemDto normalized = new FcltMapSaveItemDto();
 			normalized.setPsgFcltCd(item.getPsgFcltCd().trim());
-			normalized.setSmltFcltNm(item.getSmltFcltNm() == null ? EMPTY : item.getSmltFcltNm().trim());
+			normalized.setSmltFcltNm(StringUtils.trimToEmpty(item.getSmltFcltNm()));
 			result.add(normalized);
 		}
 
 		return result;
 	}
 
-	// SQL 이 NVL 로 채운 공백을 빈 문자열로 되돌리고, 코드에서 알 수 있는 값을 채운다
-	private void fill(FcltMapItemDto item, TerminalKind tmnlId) {
-		item.setTmnlId(tmnlId);
-		item.setUpPsgFcltCd(unblank(item.getUpPsgFcltCd()));
-		item.setPsgFcltNm(unblank(item.getPsgFcltNm()));
-		item.setPsgFcltExpln(unblank(item.getPsgFcltExpln()));
-		item.setSmltFcltNm(unblank(item.getSmltFcltNm()));
-		item.setLastMdfrId(unblank(item.getLastMdfrId()));
-		item.setLastMdfcnDt(unblank(item.getLastMdfcnDt()));
-
-		FcltType fcltType = FCLT_TYPE_BY_UP_CD.getOrDefault(item.getUpPsgFcltCd(), FcltType.CMRC);
-		item.setFcltType(fcltType);
-
-		if (unblank(item.getUpPsgFcltNm()).isEmpty()) {
-			item.setUpPsgFcltNm(FCLT_TYPE_NM.get(fcltType));
-		}
-
-		item.setIsland(markerId(fcltType, unblank(item.getIsland())));
-	}
-
-	/**
-	 * 시설이 걸리는 도면 마커 id.
-	 * 체크인 계열은 아일랜드 문자, 출국장·보안검색대는 출국장 마커(dgN)에 함께 붙는다
-	 * (검색대는 출국장 바로 앞이라 도면에서 같은 자리다).
-	 */
-	private String markerId(FcltType fcltType, String unitCd) {
-		if (unitCd.isEmpty()) {
-			return EMPTY;
-		}
-
-		switch (fcltType) {
-			case CHKN:
-			case SLFCHKN:
-				return unitCd;
-			case DEP:
-			case SC:
-				return DPTGT_MARKER_PREFIX + unitCd;
-			default:
-				return EMPTY;
-		}
-	}
-
-	// 목록에 실제로 걸린 구역만 도면에 그린다 — 시설이 하나도 없는 마커는 누를 이유가 없다
-	private List<MapMarkerDto> markerList(TerminalKind tmnlId, List<FcltMapItemDto> itemList) {
-		Set<String> used = new LinkedHashSet<>();
-		for (FcltMapItemDto item : itemList) {
-			if (!item.getIsland().isEmpty()) {
-				used.add(item.getIsland());
-			}
-		}
-
-		List<MapMarkerDto> result = new ArrayList<>();
-
-		for (String island : FcltMapLayout.islandCdList(tmnlId)) {
-			if (used.contains(island)) {
-				result.add(FcltMapLayout.chknMarker(tmnlId, island));
-			}
-		}
-
-		for (String dptgtNo : FcltMapLayout.dptgtNoList(tmnlId)) {
-			if (used.contains(DPTGT_MARKER_PREFIX + dptgtNo)) {
-				result.add(FcltMapLayout.dptgtMarker(tmnlId, dptgtNo));
-			}
-		}
-
-		return result;
-	}
-
-	private String unblank(String value) {
-		return value == null || value.trim().isEmpty() ? EMPTY : value.trim();
-	}
 }

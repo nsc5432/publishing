@@ -2,27 +2,23 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="aoms.pm.cast.mapper.CastFcltMapper">
-    <sql id="unitCdExpr">
-        CASE
-            WHEN A.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(A.PSG_FCLT_CD, -3, 1)
-            WHEN A.UP_PSG_FCLT_CD IN ('LGT') THEN SUBSTR(A.PSG_FCLT_CD, 4, 1)
-            WHEN A.UP_PSG_FCLT_CD IN ('SC', 'SR') THEN SUBSTR(A.PSG_FCLT_CD, 5, 1)
-            ELSE ' '
-        END
-    </sql>
-
     <select id="retrieveFcltMapList" resultType="aoms.pm.cast.dto.FcltMapItemDto">
         /* CastFcltMapper.retrieveFcltMapList */
         SELECT
             A.PSG_FCLT_CD AS PSG_FCLT_CD,
             NVL(A.UP_PSG_FCLT_CD, ' ') AS UP_PSG_FCLT_CD,
-            /* 상위 행이 없는 코드가 있어 이름은 비워 둔다 — 서비스가 시설구분 이름으로 채운다 */
+            <!-- 상위 행이 없는 코드가 있어 이름은 비워 둔다 — 서비스가 시설구분 이름으로 채운다 -->
             NVL(P.PSG_FCLT_NM, ' ') AS UP_PSG_FCLT_NM,
             NVL(A.PSG_FCLT_NM, ' ') AS PSG_FCLT_NM,
             NVL(A.PSG_FCLT_EXPLN, ' ') AS PSG_FCLT_EXPLN,
-            /* 미매핑은 빈 문자열로 내린다 — 화면이 null 과 '' 를 나눠 다루지 않게 한다 */
+            <!-- 미매핑은 빈 문자열로 내린다 — 화면이 null 과 '' 를 나눠 다루지 않게 한다 -->
             NVL(A.SMLT_FCLT_NM, ' ') AS SMLT_FCLT_NM,
-            <include refid="unitCdExpr" /> AS ISLAND,
+            CASE
+                WHEN A.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(A.PSG_FCLT_CD, -3, 1)
+                WHEN A.UP_PSG_FCLT_CD IN ('LGT') THEN SUBSTR(A.PSG_FCLT_CD, 4, 1)
+                WHEN A.UP_PSG_FCLT_CD IN ('SC', 'SR') THEN SUBSTR(A.PSG_FCLT_CD, 5, 1)
+                ELSE ' '
+            END AS ISLAND,
             NVL(A.SORT_SEQ, 0) AS SORT_SEQ,
             NVL(A.USE_YN, 'Y') AS USE_YN,
             NVL(A.LAST_MDFR_ID, ' ') AS LAST_MDFR_ID,
@@ -32,7 +28,7 @@
             ON A.UP_PSG_FCLT_CD = P.PSG_FCLT_CD
         WHERE 1 = 1
         AND A.TMNL_ID = #{fcltTmnlId}
-        /* 상위코드가 곧 자기 자신인 그룹 행은 매핑 대상이 아니다 */
+        <!-- 상위코드가 곧 자기 자신인 그룹 행은 매핑 대상이 아니다 -->
         AND A.PSG_FCLT_CD != NVL(A.UP_PSG_FCLT_CD, ' ')
         ORDER BY A.UP_PSG_FCLT_CD, NVL(A.SORT_SEQ, 0), A.PSG_FCLT_CD
     </select>
@@ -59,7 +55,7 @@
             LAST_MDFCN_DT = CURRENT_TIMESTAMP
         WHERE 1 = 1
         AND PSG_FCLT_CD = #{psgFcltCd}
-        /* 화면이 보고 있던 터미널의 시설만 고친다 (엉뚱한 터미널 코드가 섞여 오면 0건) */
+        <!-- 화면이 보고 있던 터미널의 시설만 고친다 (엉뚱한 터미널 코드가 섞여 오면 0건) -->
         AND TMNL_ID = #{fcltTmnlId}
     </update>
 </mapper>

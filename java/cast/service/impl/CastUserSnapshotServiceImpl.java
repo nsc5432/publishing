@@ -1,5 +1,7 @@
 package aoms.pm.cast.service.impl;
 
+import java.util.function.Consumer;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,18 +56,21 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 		SmltStngDto dailyStng = castSmltService.retrieveSmltStngByKey(smltId);
 		UserSmltRsrcSnapshotDto snapshot = getSnapshot(smltId, tmnlId, excnYmd, dailyStng);
 
-		publishFltSchdl(snapshot);
-		publishCknct(snapshot);
-		publishSbd(snapshot);
-		publishDptgt(snapshot);
-		publishScrtyCntrl(snapshot);
+		publishRsrc(RsrcTable.FLT_SCHDL, snapshot, this::insertSchdlAtrb);
+		publishRsrc(RsrcTable.CKNCT, snapshot, castUserSnapshotMapper::insertCknctAtrb);
+		publishRsrc(RsrcTable.SBD, snapshot, castUserSnapshotMapper::insertSbdAtrb);
+		publishRsrc(RsrcTable.DPTGT, snapshot, castUserSnapshotMapper::insertDptgtAtrb);
+		publishRsrc(RsrcTable.SCRTY_CNTRL, snapshot, castUserSnapshotMapper::insertScrtyCntrlAtrb);
 
 		return snapshot;
 	}
 
-	/* ================= 내부 ================= */
-
-	private UserSmltRsrcSnapshotDto getSnapshot(String smltId, TerminalKind tmnlId, String excnYmd, SmltStngDto dailyStng) {
+	private UserSmltRsrcSnapshotDto getSnapshot(
+			String smltId,
+			TerminalKind tmnlId,
+			String excnYmd,
+			SmltStngDto dailyStng
+	) {
 		UserSmltRsrcSnapshotDto result = new UserSmltRsrcSnapshotDto();
 		SessionUtils.setUserContext(result, sessionService);
 
@@ -100,11 +105,21 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 		return result;
 	}
 
-	private void publishFltSchdl(UserSmltRsrcSnapshotDto snapshot) {
-		castUserSnapshotMapper.deleteSchdlAtrb(snapshot.getRsrcNo());
-		castUserSnapshotMapper.deleteSchdlMstr(snapshot.getRsrcNo());
-		castUserSnapshotMapper.insertSchdlMstr(snapshot);
+	private void publishRsrc(
+			RsrcTable table,
+			UserSmltRsrcSnapshotDto snapshot,
+			Consumer<UserSmltRsrcSnapshotDto> insertAtrb
+	) {
+		String rsrcNo = snapshot.getRsrcNo();
 
+		castUserSnapshotMapper.deleteRsrcAtrb(table.atrbTableNm, table.atrbIdColumnNm, rsrcNo);
+		castUserSnapshotMapper.deleteRsrcMstr(table.mstrTableNm, table.mstrIdColumnNm, rsrcNo);
+		castUserSnapshotMapper.insertRsrcMstr(
+				table.mstrTableNm, table.mstrIdColumnNm, table.mstrNmColumnNm, snapshot);
+		insertAtrb.accept(snapshot);
+	}
+
+	private void insertSchdlAtrb(UserSmltRsrcSnapshotDto snapshot) {
 		// 일일이 운영계를 직접 읽는 FS001 이면 운영계에서, 이미 스케줄 리소스면 그걸 복사한다
 		if (isDailyOperative(snapshot.getSrcFltSchdlRsrcId())) {
 			castUserSnapshotMapper.insertSchdlAtrbFromDaily(snapshot);
@@ -114,36 +129,50 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 		castUserSnapshotMapper.insertSchdlAtrbFromSrc(snapshot);
 	}
 
-	private void publishCknct(UserSmltRsrcSnapshotDto snapshot) {
-		castUserSnapshotMapper.deleteCknctAtrb(snapshot.getRsrcNo());
-		castUserSnapshotMapper.deleteCknctMstr(snapshot.getRsrcNo());
-		castUserSnapshotMapper.insertCknctMstr(snapshot);
-		castUserSnapshotMapper.insertCknctAtrb(snapshot);
-	}
-
-	private void publishSbd(UserSmltRsrcSnapshotDto snapshot) {
-		castUserSnapshotMapper.deleteSbdAtrb(snapshot.getRsrcNo());
-		castUserSnapshotMapper.deleteSbdMstr(snapshot.getRsrcNo());
-		castUserSnapshotMapper.insertSbdMstr(snapshot);
-		castUserSnapshotMapper.insertSbdAtrb(snapshot);
-	}
-
-	private void publishDptgt(UserSmltRsrcSnapshotDto snapshot) {
-		castUserSnapshotMapper.deleteDptgtAtrb(snapshot.getRsrcNo());
-		castUserSnapshotMapper.deleteDptgtMstr(snapshot.getRsrcNo());
-		castUserSnapshotMapper.insertDptgtMstr(snapshot);
-		castUserSnapshotMapper.insertDptgtAtrb(snapshot);
-	}
-
-	private void publishScrtyCntrl(UserSmltRsrcSnapshotDto snapshot) {
-		castUserSnapshotMapper.deleteScrtyCntrlAtrb(snapshot.getRsrcNo());
-		castUserSnapshotMapper.deleteScrtyCntrlMstr(snapshot.getRsrcNo());
-		castUserSnapshotMapper.insertScrtyCntrlMstr(snapshot);
-		castUserSnapshotMapper.insertScrtyCntrlAtrb(snapshot);
-	}
-
 	private boolean isDailyOperative(String srcFltSchdlRsrcId) {
 		return srcFltSchdlRsrcId == null || srcFltSchdlRsrcId.isEmpty()
 				|| DAILY_FLT_SCHDL_RSRC_ID.equals(srcFltSchdlRsrcId);
+	}
+
+	/**
+	 * 리소스별 마스터·속성 테이블. 다섯 리소스가 같은 삭제·마스터 INSERT 문장을 쓰므로
+	 * 달라지는 테이블·컬럼명만 여기 모은다.
+	 */
+	private enum RsrcTable {
+		FLT_SCHDL(
+				"TN_PM_SMLT_SCHDL_MSTR", "SCHDL_ATRB_ID", "SCHDL_ATRB_NM",
+				"TN_PM_SMLT_SCHDL_ATRB", "SCHDL_ATRB_GROUP_ID"),
+		CKNCT(
+				"TN_PM_SMLT_CKNCT_MSTR", "CKNCT_ATRB_ID", "CKNCT_ATRB_NM",
+				"TN_PM_SMLT_CKNCT_ATRB", "SCHDL_ATRB_GROUP_ID"),
+		SBD(
+				"TN_PM_SMLT_SBD_MSTR", "SBD_ATRB_ID", "SBD_ATRB_NM",
+				"TN_PM_SMLT_SBD_ATRB", "SCHDL_ATRB_GROUP_ID"),
+		DPTGT(
+				"TN_PM_SMLT_FCLTY_OPNG_DPTGT_MSTR", "DPTGT_ATRB_ID", "DPTGT_ATRB_NM",
+				"TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB", "DPTGT_ATRB_ID"),
+		SCRTY_CNTRL(
+				"TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_MSTR", "SCRTY_CNTRL_ATRB_ID", "SCRTY_CNTRL_ATRB_NM",
+				"TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB", "SCRTY_CNTRL_ATRB_ID");
+
+		private final String mstrTableNm;
+		private final String mstrIdColumnNm;
+		private final String mstrNmColumnNm;
+		private final String atrbTableNm;
+		private final String atrbIdColumnNm;
+
+		RsrcTable(
+				String mstrTableNm,
+				String mstrIdColumnNm,
+				String mstrNmColumnNm,
+				String atrbTableNm,
+				String atrbIdColumnNm
+		) {
+			this.mstrTableNm = mstrTableNm;
+			this.mstrIdColumnNm = mstrIdColumnNm;
+			this.mstrNmColumnNm = mstrNmColumnNm;
+			this.atrbTableNm = atrbTableNm;
+			this.atrbIdColumnNm = atrbIdColumnNm;
+		}
 	}
 }

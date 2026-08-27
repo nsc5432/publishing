@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { ECElementEvent } from 'echarts/core';
 import type { TimeRange } from '@/components/ui/time-range-selector';
 import type {
@@ -161,11 +161,7 @@ function wholeBlock(box: BlockBox, paint: BlockPaint): CustomSeriesRenderItemRet
     };
 }
 
-function splitBlock(
-    box: BlockBox,
-    operatingSide: 'L' | 'R',
-    paint: BlockPaint,
-): CustomSeriesRenderItemReturn {
+function splitBlock(box: BlockBox, operatingSide: 'L' | 'R', paint: BlockPaint): CustomSeriesRenderItemReturn {
     const half = box.height / 2;
     const r = Math.min(paint.radius, half);
     const topCorners = [r, r, 0, 0];
@@ -283,11 +279,7 @@ function levelAxis(levels: number): YAXisComponentOption {
         axisLabel: { ...AXIS_FONT, color: '#9aa0ac', margin: 8 },
         splitLine: {
             lineStyle: {
-                color: [
-                    '#ccd0dd',
-                    ...Array<string>(Math.max(levels - 1, 0)).fill('#e9ebf2'),
-                    'transparent',
-                ],
+                color: ['#ccd0dd', ...Array<string>(Math.max(levels - 1, 0)).fill('#e9ebf2'), 'transparent'],
                 width: 1,
             },
         },
@@ -355,8 +347,7 @@ function waitLineSeries(line: WaitLineData, wait: WaitLine): LineSeriesOption {
         z: 5,
         silent: true,
         symbol: 'circle',
-        symbolSize: (_: unknown, params: { dataIndex: number }) =>
-            params.dataIndex % 2 === 0 || params.dataIndex === wait.peakIndex ? 7 : 0,
+        symbolSize: (_: unknown, params: { dataIndex: number }) => (params.dataIndex % 2 === 0 || params.dataIndex === wait.peakIndex ? 7 : 0),
         itemStyle: { color: '#fff', borderColor: WAIT_COLOR, borderWidth: 2 },
         lineStyle: { color: WAIT_COLOR, width: 2, cap: 'round', join: 'round' },
         data: wait.data.map((value, hour) => [hour + 0.5, value]),
@@ -379,10 +370,7 @@ function waitLineSeries(line: WaitLineData, wait: WaitLine): LineSeriesOption {
                 fontWeight: 'bold',
                 fontFamily: CHART_FONT_FAMILY,
             },
-            data:
-                wait.peakIndex < 0
-                    ? []
-                    : [{ name: 'peak', coord: [wait.peakIndex + 0.5, wait.peak] }],
+            data: wait.peakIndex < 0 ? [] : [{ name: 'peak', coord: [wait.peakIndex + 0.5, wait.peak] }],
         },
     };
 }
@@ -416,8 +404,7 @@ export function BlockChart({
         const cellList: Cell[] = [];
 
         items.forEach((item, index) => {
-            const blockCount =
-                stackMode === 'fixed' ? 1 : Math.max(1, Math.ceil((item.size || 1) / unitSize));
+            const blockCount = stackMode === 'fixed' ? 1 : Math.max(1, Math.ceil((item.size || 1) / unitSize));
 
             toHourList(item.ranges).forEach((hour) => {
                 const baseLevel = stackMode === 'fixed' ? index : (levelsByHour[hour] ?? 0);
@@ -447,10 +434,7 @@ export function BlockChart({
     const height = levels * rowH + PAD_TOP + PAD_BOTTOM;
 
     const selectedLabelKey = (selected ?? []).join('|');
-    const selectedLabels = useMemo(
-        () => new Set(selectedLabelKey ? selectedLabelKey.split('|') : []),
-        [selectedLabelKey],
-    );
+    const selectedLabels = useMemo(() => new Set(selectedLabelKey ? selectedLabelKey.split('|') : []), [selectedLabelKey]);
 
     const option = useMemo<EChartsOption>(() => {
         const wait = toWaitLine(line);
@@ -478,10 +462,7 @@ export function BlockChart({
             tooltip: TOOLTIP,
             xAxis: HOUR_AXIS,
             yAxis: [levelAxis(levels), waitAxis(wait.axisMax, Boolean(line))],
-            series: [
-                blockSeries(cells, view, disabled),
-                ...(line ? [waitLineSeries(line, wait)] : []),
-            ],
+            series: [blockSeries(cells, view, disabled), ...(line ? [waitLineSeries(line, wait)] : [])],
         };
     }, [cells, levels, rowH, compact, blockFontSize, selectedLabels, gridLeft, line, disabled]);
 
@@ -493,25 +474,18 @@ export function BlockChart({
         syncLegend();
     }, [syncLegend, legend, line]);
 
-    const handleClick = useCallback(
-        (params: ECElementEvent) => {
-            if (disabled || !onBlockSelect) return;
-            if (params.seriesName !== BLOCK_SERIES) return;
+    const handleClick = (params: ECElementEvent) => {
+        if (disabled || !onBlockSelect) return;
+        if (params.seriesName !== BLOCK_SERIES) return;
 
-            const label = Array.isArray(params.value) ? params.value[VALUE_LABEL] : undefined;
-            if (typeof label !== 'string' || !label) return;
+        const label = Array.isArray(params.value) ? params.value[VALUE_LABEL] : undefined;
+        if (typeof label !== 'string' || !label) return;
 
-            onBlockSelect(label);
-        },
-        [disabled, onBlockSelect],
-    );
+        onBlockSelect(label);
+    };
 
     return (
-        <div
-            className={`bchart${compact ? ' bchart--compact' : ''}${
-                selectedLabels.size > 0 ? ' is-picking' : ''
-            }`}
-        >
+        <div className={`bchart${compact ? ' bchart--compact' : ''}${selectedLabels.size > 0 ? ' is-picking' : ''}`}>
             <div className="bchart__head">
                 <p className="bchart__title">{title}</p>
                 {unit && <span className="bchart__unit">{unit}</span>}
@@ -531,10 +505,7 @@ export function BlockChart({
                         >
                             {legend?.map((chip) => (
                                 <span key={chip.label} className="legend__chip">
-                                    <i
-                                        className="legend__dot"
-                                        style={{ background: `var(--${chip.color})` }}
-                                    />
+                                    <i className="legend__dot" style={{ background: `var(--${chip.color})` }} />
                                     <b>{chip.label}</b>
                                     {chip.note ? ` ${chip.note}` : ''}
                                 </span>
@@ -563,10 +534,7 @@ export function BlockChart({
             </div>
 
             {showScale && (
-                <div
-                    className="bchart__scale"
-                    style={{ marginLeft: gridLeft, ...(line ? { marginRight: Y_RIGHT } : {}) }}
-                >
+                <div className="bchart__scale" style={{ marginLeft: gridLeft, ...(line ? { marginRight: Y_RIGHT } : {}) }}>
                     {Array.from({ length: SCALE_TICK_COUNT }, (_, tickIndex) => (
                         <span key={tickIndex}>{pad2(tickIndex * SCALE_TICK_STEP_HOUR)}</span>
                     ))}

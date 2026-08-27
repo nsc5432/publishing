@@ -7,10 +7,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.dto.MntrSearchDto;
+import aoms.pm.cast.dto.SmltCastExecDto;
 import aoms.pm.cast.dto.SmltExcnCntRawDto;
 import aoms.pm.cast.dto.SmltExcnDto;
 import aoms.pm.cast.dto.SmltExecDetailDto;
-import aoms.pm.cast.dto.SmltCastExecDto;
 import aoms.pm.cast.dto.SmltExecListDto;
 import aoms.pm.cast.dto.SmltExecSmryDto;
 import aoms.pm.cast.enums.SmltExecStatus;
@@ -74,9 +74,9 @@ public class CastMntrServiceImpl implements CastMntrService {
 		// 목록 No 는 각 표에서 1부터 다시 매긴다 — 매퍼의 ROW_NUM 은 전체 기준이라 쓸 수 없다
 		for (SmltExcnDto flfmt : castSmltMapper.retrieveSmltFlfmtList(searchDto.getBgnDt(), searchDto.getEndDt())) {
 			SmltType smltType = SmltType.ofDbCode(flfmt.getSmltType());
-			List<SmltCastExecDto> target = smltType == SmltType.USER ? userList : stdList;
+			List<SmltCastExecDto> targetList = smltType == SmltType.USER ? userList : stdList;
 
-			target.add(toExecDto(flfmt, smltType, target.size() + 1));
+			targetList.add(toExecDto(flfmt, smltType, targetList.size() + 1));
 		}
 
 		result.setStdList(stdList);
@@ -88,7 +88,7 @@ public class CastMntrServiceImpl implements CastMntrService {
 	@Override
 	public SmltExecDetailDto retrieveSmltExecDetail(MntrSearchDto searchDto) {
 		SmltExecDetailDto result = new SmltExecDetailDto();
-		SmltExcnDto flfmt = castSmltMapper.retrieveSmltFlfmtDetail(searchDto.getSmltId());
+		SmltExcnDto flfmt = castSmltMapper.retrieveSmltFlfmt(searchDto.getSmltId(), null);
 
 		if (flfmt == null) {
 			result.error("수행 이력을 찾을 수 없습니다.");
@@ -97,12 +97,12 @@ public class CastMntrServiceImpl implements CastMntrService {
 
 		result.setSmltId(flfmt.getSmltId());
 		result.setSmltType(SmltType.ofDbCode(flfmt.getSmltType()));
-		result.setYmd(nvl(flfmt.getExcnYmd()));
+		result.setYmd(emptyIfNull(flfmt.getExcnYmd()));
 		result.setTmnlId(toTerminalKind(flfmt.getTmnlId()).getValue());
-		result.setDeptNm(nvl(flfmt.getDeptNm()));
-		result.setUserNm(nvl(flfmt.getUserNm()));
-		result.setSmltFlfmtBgngDt(nvl(flfmt.getSmltFlfmtBgngDt()));
-		result.setSmltFlfmtEndDt(nvl(flfmt.getSmltFlfmtEndDt()));
+		result.setDeptNm(emptyIfNull(flfmt.getDeptNm()));
+		result.setUserNm(emptyIfNull(flfmt.getUserNm()));
+		result.setSmltFlfmtBgngDt(emptyIfNull(flfmt.getSmltFlfmtBgngDt()));
+		result.setSmltFlfmtEndDt(emptyIfNull(flfmt.getSmltFlfmtEndDt()));
 		result.setExecMin(flfmt.getExecMin());
 		result.setSmltFlfmtSttsCd(toExecStatus(flfmt.getSmltFlfmtSttsCd()));
 
@@ -115,18 +115,17 @@ public class CastMntrServiceImpl implements CastMntrService {
 		result.setRowNum(rowNum);
 		result.setSmltId(flfmt.getSmltId());
 		result.setSmltType(smltType);
-		result.setRgtrId(nvl(flfmt.getRgtrId()));
-		result.setDeptNm(nvl(flfmt.getDeptNm()));
-		result.setUserNm(nvl(flfmt.getUserNm()));
-		result.setSmltFlfmtBgngDt(nvl(flfmt.getSmltFlfmtBgngDt()));
-		result.setSmltFlfmtEndDt(nvl(flfmt.getSmltFlfmtEndDt()));
+		result.setRgtrId(emptyIfNull(flfmt.getRgtrId()));
+		result.setDeptNm(emptyIfNull(flfmt.getDeptNm()));
+		result.setUserNm(emptyIfNull(flfmt.getUserNm()));
+		result.setSmltFlfmtBgngDt(emptyIfNull(flfmt.getSmltFlfmtBgngDt()));
+		result.setSmltFlfmtEndDt(emptyIfNull(flfmt.getSmltFlfmtEndDt()));
 		result.setExecMin(flfmt.getExecMin());
 		result.setSmltFlfmtSttsCd(toExecStatus(flfmt.getSmltFlfmtSttsCd()));
 
 		return result;
 	}
 
-	// 종료일시가 없으면 아직 도는 중이다
 	private SmltExecStatus toExecStatus(String smltFlfmtSttsCd) {
 		return SmltExecStatus.DONE.getValue().equals(smltFlfmtSttsCd) ? SmltExecStatus.DONE : SmltExecStatus.RUNNING;
 	}
@@ -136,7 +135,7 @@ public class CastMntrServiceImpl implements CastMntrService {
 		return TMNL_ID_P03.equals(tmnlId) ? TerminalKind.T2 : TerminalKind.T1;
 	}
 
-	private String nvl(String value) {
+	private String emptyIfNull(String value) {
 		return value != null ? value : EMPTY;
 	}
 }

@@ -3,7 +3,7 @@ package aoms.pm.cast.service.impl;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,33 +28,46 @@ import lombok.RequiredArgsConstructor;
  * 수정일 / 수정자 / 수정내용
  * 2026. 03. 12. / 노세찬 / 최초작성
  * -----------------------------------------------------------------------------------
- * 
- * </pre> 
+ *
+ * </pre>
  */
 @Service
 @RequiredArgsConstructor
 public class CastUserConfigServiceImpl implements CastUserConfigService {
+	// I 는 숫자 1 과 헷갈려 아일랜드 기호로 쓰지 않는다
+	private static final List<String> ISLAND_CD_LIST =
+			List.of("A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N");
+
 	private final CastUserConfigMapper castUserConfigMapper;
-	private static final List<String> IS_LANDS = List.of("A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N"); 
 
 	@Override
 	public Map<String, List<UserConfigChknDto>> retrieveChknMapGroupByIsland(String ymd, String tmnlId) {
-		Map<String, List<UserConfigChknDto>> result = new HashMap<>();
-		List<ChknRawDto> list = castUserConfigMapper.retrieveChknList(ymd, tmnlId);
-		
-		for (String island :IS_LANDS) {
-			List<ChknRawDto> filteredIsland = list.stream().filter(x -> island.equals(x.getIsland())).collect(toList());
-			List<Integer> counterNums = filteredIsland.stream().map(ChknRawDto::getCounterNum).distinct().sorted().collect(toList());
-			List<UserConfigChknDto> subResultList = new ArrayList<>();
-		
-			for (Integer counterNum : counterNums) {
-				List<ChknRawDto> filteredCounterNum = filteredIsland.stream().filter(x -> x.getCounterNum() == counterNum).collect(toList());
-				subResultList.add(new UserConfigChknDto().factory(filteredCounterNum));
+		List<ChknRawDto> chknList = castUserConfigMapper.retrieveChknList(ymd, tmnlId);
+		Map<String, List<UserConfigChknDto>> result = new LinkedHashMap<>();
+
+		for (String islandCd : ISLAND_CD_LIST) {
+			List<ChknRawDto> islandChknList = chknList.stream()
+					.filter(chkn -> islandCd.equals(chkn.getIsland()))
+					.collect(toList());
+			List<Integer> counterNumList = islandChknList.stream()
+					.map(ChknRawDto::getCounterNum)
+					.distinct()
+					.sorted()
+					.collect(toList());
+			List<UserConfigChknDto> boothList = new ArrayList<>();
+
+			// 한 카운터에 여러 배정 구간이 붙으므로 카운터 번호로 묶어 1건으로 접는다
+			for (Integer counterNum : counterNumList) {
+				List<ChknRawDto> counterChknList = islandChknList.stream()
+						.filter(chkn -> chkn.getCounterNum() == counterNum)
+						.collect(toList());
+				boothList.add(new UserConfigChknDto().factory(counterChknList));
 			}
-			
-			result.put(island, subResultList);
+
+			result.put(islandCd, boothList);
 		}
-		
+
 		return result;
 	}
 }
+

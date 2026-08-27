@@ -3,6 +3,7 @@ package aoms.pm.cast.service.impl;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,20 +85,18 @@ public class CastChknServiceImpl implements CastChknService {
 		String excnYmd = getExcnYmd(searchDto);
 
 		List<CknctCntRawDto> cknctCntList = castChknMapper.retrieveCknctCntList(fcltTmnlId, BOOTH_USE_CRG_TYPE_CD_LIST);
-
 		List<String> islandCdList = cknctCntList.stream().map(CknctCntRawDto::getIsland).collect(toList());
 		List<ChknIslandDto> islandList = getIslandList(searchDto, excnYmd, fcltTmnlId, islandCdList);
-		List<Integer> oprBoothCntList = getOprBoothCntList(islandList);
+		List<Integer> hourlyOprBoothCntList = getHourlyOprBoothCntList(islandList);
 		List<WaitPsgDto> waitList = castSmltService.retrieveWaitPsgList(searchDto.getSmltId(), fcltTmnlId, UP_PSG_FCLT_CD_LIST);
-
 		int totCnt = cknctCntList.stream().mapToInt(CknctCntRawDto::getCknctCnt).sum();
 
 		SmltKpiDto kpi = castSmltService.retrieveSmltKpi(searchDto.getSmltId(), fcltTmnlId, UP_PSG_FCLT_CD_LIST);
-		kpi.setUtilRate(getUtilRate(oprBoothCntList, totCnt));
+		kpi.setUtilRate(getUtilRate(hourlyOprBoothCntList, totCnt));
 
 		result.setTmnlId(tmnlId.getValue());
 		result.setTotCnt(totCnt);
-		result.setPeakCounterCnt(oprBoothCntList.stream().mapToInt(Integer::intValue).max().orElse(0));
+		result.setPeakCounterCnt(hourlyOprBoothCntList.stream().mapToInt(Integer::intValue).max().orElse(0));
 		result.setTotKioskCnt(islandList.stream().mapToInt(ChknIslandDto::getKioskCnt).sum());
 		result.setTotBagDropCnt(islandList.stream().mapToInt(ChknIslandDto::getBagDropCnt).sum());
 		result.setWaitMaxCnt(waitList.stream().mapToInt(WaitPsgDto::getWaitPsgCnt).max().orElse(0));
@@ -120,10 +119,10 @@ public class CastChknServiceImpl implements CastChknService {
 	public JsonResponse saveChknCounterInfo(UserSmltChknSaveDto saveDto) {
 		SessionUtils.setUserContext(saveDto, sessionService);
 
-		JsonResponse invalid = validate(saveDto);
+		JsonResponse validationError = validate(saveDto);
 
-		if (invalid != null) {
-			return invalid;
+		if (validationError != null) {
+			return validationError;
 		}
 
 		saveDto.setFcltTmnlId(saveDto.getTmnlId().getFcltTmnlId());
@@ -141,75 +140,23 @@ public class CastChknServiceImpl implements CastChknService {
 		castChknMapper.insertUserChknIslandList(saveDto);
 
 		// INSERT ALL 은 INTO 절이 0개면 문법 오류다. 비어 있으면 호출하지 않는다
-		if (saveDto.getIslandList().stream().anyMatch(x -> !x.getOprTimeList().isEmpty())) {
+		if (saveDto.getIslandList().stream().anyMatch(island -> !island.getOprTimeList().isEmpty())) {
 			castChknMapper.insertUserChknOperHrList(saveDto);
 		}
 
-		if (saveDto.getIslandList().stream().anyMatch(x -> !x.getBoothList().isEmpty())) {
+		if (saveDto.getIslandList().stream().anyMatch(island -> !island.getBoothList().isEmpty())) {
 			castChknMapper.insertUserChknBoothList(saveDto);
 		}
 
 		return new JsonResponse();
 	}
 
-	// 검증은 서비스 안에서 명시적으로 한다. 통과하면 null
-	private JsonResponse validate(UserSmltChknSaveDto saveDto) {
-		if (saveDto.getLoginUserId() == null) {
-			return new JsonResponse().error("로그인을 진행해주세요.");
-		}
-
-		if (saveDto.getSmltId() == null || saveDto.getSmltId().isEmpty() || saveDto.getTmnlId() == null) {
-			return new JsonResponse().error("저장 대상 시뮬레이션이 지정되지 않았습니다.");
-		}
-
-		return null;
-	}
-
-	// null 을 그대로 바인딩하면 Oracle 이 JdbcType 을 못 정한다. 빈 목록·기본값으로 채워 넘긴다
-	private List<ChknIslandDto> normalizeIslandList(List<ChknIslandDto> islandList) {
-		if (islandList == null) {
-			return new ArrayList<>();
-		}
-
-		List<ChknIslandDto> result = islandList.stream()
-				.filter(x -> x.getIsland() != null && !x.getIsland().isEmpty())
-				.collect(toList());
-
-		for (ChknIslandDto island : result) {
-			island.setOprTimeList(island.getOprTimeList() != null ? island.getOprTimeList() : new ArrayList<>());
-			island.setBoothList(normalizeBoothList(island.getBoothList()));
-			// 부스 수는 화면 계산식과 같게 배정 목록 길이를 쓴다 (DELTA 2.1)
-			island.setBoothCnt(island.getBoothList().size());
-		}
-
-		return result;
-	}
-
-	/*
-	 * 화면은 아일랜드 36석 골격을 통째로 보낸다. 골격은 표현이지 데이터가 아니므로
-	 * 배정이 있는 자리만 저장한다 — 미배정 자리까지 넣으면 터미널 1개 저장이 468행이 되어
-	 * INSERT ALL 한 문장이 지나치게 길어진다. 조회할 때 다시 36석으로 펴진다 (toBoothList).
-	 */
-	private List<ChknBoothDto> normalizeBoothList(List<ChknBoothDto> boothList) {
-		if (boothList == null) {
-			return new ArrayList<>();
-		}
-
-		List<ChknBoothDto> result = boothList.stream()
-				.filter(x -> x.getAlnCd() != null && !x.getAlnCd().isEmpty())
-				.collect(toList());
-
-		for (ChknBoothDto booth : result) {
-			booth.setCstmAltmntYn(toCustomYn(booth.getCstmAltmntYn()));
-		}
-
-		return result;
-	}
-
-	// 기준일자는 요청에 있으면 그대로, 없으면 시뮬레이션 설정의 실행일자를 쓴다
 	private String getExcnYmd(UserSmltChknSearchDto searchDto) {
 		String ymd = searchDto.getYmd();
-		return ymd != null && !ymd.isEmpty() ? ymd : castSmltService.retrieveSmltStngByKey(searchDto.getSmltId()).getExcnYmd();
+
+		return ymd != null && !ymd.isEmpty()
+				? ymd
+				: castSmltService.retrieveSmltStngByKey(searchDto.getSmltId()).getExcnYmd();
 	}
 
 	/*
@@ -218,21 +165,26 @@ public class CastChknServiceImpl implements CastChknService {
 	 *   2. 없으면 그날의 배정정보 (TI_GO_CKNCT_DALY_ALOT)
 	 * 저장분이 있으면 배정정보는 읽지 않는다 — 사용자가 지운 아일랜드가 되살아나면 안 된다.
 	 */
-	private List<ChknIslandDto> getIslandList(UserSmltChknSearchDto searchDto, String excnYmd, String fcltTmnlId, List<String> islandCdList) {
-		List<ChknIslandDto> savedList = getSavedIslandList(searchDto.getSmltId(), fcltTmnlId);
+	private List<ChknIslandDto> getIslandList(
+			UserSmltChknSearchDto searchDto,
+			String excnYmd,
+			String fcltTmnlId,
+			List<String> islandCdList
+	) {
+		List<ChknIslandDto> savedIslandList = getSavedIslandList(searchDto.getSmltId(), fcltTmnlId);
 
-		if (!savedList.isEmpty()) {
-			return savedList;
+		if (!savedIslandList.isEmpty()) {
+			return savedIslandList;
 		}
 
-		Map<String, List<UserConfigChknDto>> boothMap = castUserConfigService.retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
-		Map<String, List<SlfDeviceCntRawDto>> slfMap = castSlfchknService.retrieveSlfDeviceCntList(fcltTmnlId)
+		Map<String, List<UserConfigChknDto>> allotBoothMap =
+				castUserConfigService.retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
+		Map<String, List<SlfDeviceCntRawDto>> slfDeviceMap = castSlfchknService.retrieveSlfDeviceCntList(fcltTmnlId)
 				.stream().collect(Collectors.groupingBy(SlfDeviceCntRawDto::getIsland));
 
-		return getIslandDatas(islandCdList, boothMap, slfMap);
+		return getAllotIslandList(islandCdList, allotBoothMap, slfDeviceMap);
 	}
 
-	// 저장분 재조회 — 부모 1건에 자식 2종을 아일랜드 문자로 붙인다
 	private List<ChknIslandDto> getSavedIslandList(String smltId, String fcltTmnlId) {
 		List<ChknIslandDto> result = castChknMapper.retrieveUserChknIslandList(smltId, fcltTmnlId);
 
@@ -246,17 +198,19 @@ public class CastChknServiceImpl implements CastChknService {
 				.stream().collect(Collectors.groupingBy(UserChknBoothRawDto::getIsland));
 
 		for (ChknIslandDto island : result) {
-			List<UserChknBoothRawDto> booths = boothMap.getOrDefault(island.getIsland(), new ArrayList<>());
+			List<UserChknBoothRawDto> savedBoothList = boothMap.getOrDefault(island.getIsland(), new ArrayList<>());
 			Map<Integer, String> alnCdMap = new LinkedHashMap<>();
 			Map<Integer, String> customYnMap = new LinkedHashMap<>();
 
-			for (UserChknBoothRawDto booth : booths) {
-				alnCdMap.put(booth.getBoothNo(), nvl(booth.getAlnCd()));
+			for (UserChknBoothRawDto booth : savedBoothList) {
+				alnCdMap.put(booth.getBoothNo(), emptyIfNull(booth.getAlnCd()));
 				customYnMap.put(booth.getBoothNo(), toCustomYn(booth.getCstmAltmntYn()));
 			}
 
 			island.setOprTimeList(operHrMap.getOrDefault(island.getIsland(), new ArrayList<>()).stream()
-					.map(x -> new OprTimeDto().withOperBgngHour(x.getOperBgngHour()).withOperEndHour(x.getOperEndHour()))
+					.map(operHr -> new OprTimeDto()
+							.withOperBgngHour(operHr.getOperBgngHour())
+							.withOperEndHour(operHr.getOperEndHour()))
 					.collect(toList()));
 			island.setBoothList(toBoothList(alnCdMap, customYnMap));
 		}
@@ -265,45 +219,47 @@ public class CastChknServiceImpl implements CastChknService {
 	}
 
 	// 배정이 있는 아일랜드만 차트에 올린다. 배정이 없는 아일랜드는 islandCdList 로만 내려간다
-	private List<ChknIslandDto> getIslandDatas(
+	private List<ChknIslandDto> getAllotIslandList(
 			List<String> islandCdList,
-			Map<String, List<UserConfigChknDto>> boothMap,
-			Map<String, List<SlfDeviceCntRawDto>> slfMap
+			Map<String, List<UserConfigChknDto>> allotBoothMap,
+			Map<String, List<SlfDeviceCntRawDto>> slfDeviceMap
 	) {
 		List<ChknIslandDto> result = new ArrayList<>();
 
-		for (String island : islandCdList) {
-			List<UserConfigChknDto> booths = boothMap.getOrDefault(island, new ArrayList<>());
+		for (String islandCd : islandCdList) {
+			List<UserConfigChknDto> allotBoothList = allotBoothMap.getOrDefault(islandCd, new ArrayList<>());
 
-			if (booths.isEmpty()) {
+			if (allotBoothList.isEmpty()) {
 				continue;
 			}
 
-			List<TimeRange> boothRanges = booths.stream().flatMap(x -> x.getTimeRanges().stream()).collect(toList());
-			List<SlfDeviceCntRawDto> slfDevices = slfMap.getOrDefault(island, new ArrayList<>());
-			Map<Integer, String> alnCdMap = toAlnCdMap(booths);
+			List<TimeRange> boothTimeRangeList = allotBoothList.stream()
+					.flatMap(booth -> booth.getTimeRanges().stream())
+					.collect(toList());
+			List<SlfDeviceCntRawDto> slfDeviceList = slfDeviceMap.getOrDefault(islandCd, new ArrayList<>());
+			Map<Integer, String> alnCdMap = toAlnCdMap(allotBoothList);
 
-			ChknIslandDto item = new ChknIslandDto();
-			item.setIsland(island);
+			ChknIslandDto island = new ChknIslandDto();
+			island.setIsland(islandCd);
 			// BOOTH_CNT 는 골격 크기가 아니라 "배정된 부스 수"다 — 피크 카운터·가동률이 이 값을 쓴다
-			item.setBoothCnt(alnCdMap.size());
-			item.setKioskCnt(getDeviceCnt(slfDevices, SlfType.KIOSK));
-			item.setBagDropCnt(getDeviceCnt(slfDevices, SlfType.SBD));
-			item.setOprTimeList(toOprTimeList(SmltUtils.mergeTimeRanges(boothRanges)));
-			item.setBoothList(toBoothList(alnCdMap, new LinkedHashMap<>()));
+			island.setBoothCnt(alnCdMap.size());
+			island.setKioskCnt(getDeviceCnt(slfDeviceList, SlfType.KIOSK));
+			island.setBagDropCnt(getDeviceCnt(slfDeviceList, SlfType.SBD));
+			island.setOprTimeList(toOprTimeList(SmltUtils.mergeTimeRanges(boothTimeRangeList)));
+			island.setBoothList(toBoothList(alnCdMap, new LinkedHashMap<>()));
 
-			result.add(item);
+			result.add(island);
 		}
 
 		return result;
 	}
 
-	private Map<Integer, String> toAlnCdMap(List<UserConfigChknDto> booths) {
+	private Map<Integer, String> toAlnCdMap(List<UserConfigChknDto> allotBoothList) {
 		Map<Integer, String> result = new LinkedHashMap<>();
 
-		booths.stream()
-				.sorted((a, b) -> a.getCounterNum() - b.getCounterNum())
-				.forEach(x -> result.put(x.getCounterNum(), nvl(x.getAlnCd())));
+		allotBoothList.stream()
+				.sorted(Comparator.comparingInt(UserConfigChknDto::getCounterNum))
+				.forEach(booth -> result.put(booth.getCounterNum(), emptyIfNull(booth.getAlnCd())));
 
 		return result;
 	}
@@ -329,47 +285,109 @@ public class CastChknServiceImpl implements CastChknService {
 		return result;
 	}
 
-	private String nvl(String value) {
-		return value != null ? value : EMPTY_ALN_CD;
-	}
-
-	private String toCustomYn(String value) {
-		return CUSTOM_YN_Y.equals(value) ? CUSTOM_YN_Y : CUSTOM_YN_N;
-	}
-
-	private List<OprTimeDto> toOprTimeList(List<TimeRange> timeRanges) {
-		return timeRanges.stream()
-				.map(x -> new OprTimeDto().withOperBgngHour(x.getStart()).withOperEndHour(x.getEnd()))
+	private List<OprTimeDto> toOprTimeList(List<TimeRange> timeRangeList) {
+		return timeRangeList.stream()
+				.map(range -> new OprTimeDto().withOperBgngHour(range.getStart()).withOperEndHour(range.getEnd()))
 				.collect(toList());
 	}
 
-	private int getDeviceCnt(List<SlfDeviceCntRawDto> slfDevices, SlfType slfType) {
-		return slfDevices.stream().filter(x -> slfType == x.getSlfType()).mapToInt(SlfDeviceCntRawDto::getDeviceCnt).sum();
+	private int getDeviceCnt(List<SlfDeviceCntRawDto> slfDeviceList, SlfType slfType) {
+		return slfDeviceList.stream()
+				.filter(device -> slfType == device.getSlfType())
+				.mapToInt(SlfDeviceCntRawDto::getDeviceCnt)
+				.sum();
 	}
 
 	// 시간대별 운영 부스 수 — 아일랜드 운영시간 구간을 시간축으로 펼쳐 계산한다 (G7)
-	private List<Integer> getOprBoothCntList(List<ChknIslandDto> islandList) {
+	private List<Integer> getHourlyOprBoothCntList(List<ChknIslandDto> islandList) {
 		List<Integer> result = new ArrayList<>();
 
 		for (String hour : TimeBucketUtils.hourList()) {
 			int hourValue = Integer.parseInt(hour);
-			result.add(islandList.stream().filter(x -> isOpr(x.getOprTimeList(), hourValue)).mapToInt(ChknIslandDto::getBoothCnt).sum());
+			result.add(islandList.stream()
+					.filter(island -> isOpr(island.getOprTimeList(), hourValue))
+					.mapToInt(ChknIslandDto::getBoothCnt)
+					.sum());
 		}
 
 		return result;
 	}
 
 	private boolean isOpr(List<OprTimeDto> oprTimeList, int hour) {
-		return oprTimeList.stream().anyMatch(x -> x.getOperBgngHour() <= hour && hour < x.getOperEndHour());
+		return oprTimeList.stream()
+				.anyMatch(oprTime -> oprTime.getOperBgngHour() <= hour && hour < oprTime.getOperEndHour());
 	}
 
 	// 가동률 = 운영 부스·시간 합 / (전체 카운터 수 × 24시간)
-	private int getUtilRate(List<Integer> oprBoothCntList, int totCnt) {
+	private int getUtilRate(List<Integer> hourlyOprBoothCntList, int totCnt) {
 		if (totCnt == 0) {
 			return 0;
 		}
 
-		int oprBoothHour = oprBoothCntList.stream().mapToInt(Integer::intValue).sum();
-		return oprBoothHour * PERCENT / (totCnt * oprBoothCntList.size());
+		int oprBoothHour = hourlyOprBoothCntList.stream().mapToInt(Integer::intValue).sum();
+
+		return oprBoothHour * PERCENT / (totCnt * hourlyOprBoothCntList.size());
+	}
+
+	// 통과하면 null
+	private JsonResponse validate(UserSmltChknSaveDto saveDto) {
+		if (saveDto.getLoginUserId() == null) {
+			return new JsonResponse().error("로그인을 진행해주세요.");
+		}
+
+		if (saveDto.getSmltId() == null || saveDto.getSmltId().isEmpty() || saveDto.getTmnlId() == null) {
+			return new JsonResponse().error("저장 대상 시뮬레이션이 지정되지 않았습니다.");
+		}
+
+		return null;
+	}
+
+	// null 을 그대로 바인딩하면 Oracle 이 JdbcType 을 못 정한다. 빈 목록·기본값으로 채워 넘긴다
+	private List<ChknIslandDto> normalizeIslandList(List<ChknIslandDto> islandList) {
+		if (islandList == null) {
+			return new ArrayList<>();
+		}
+
+		List<ChknIslandDto> result = islandList.stream()
+				.filter(island -> island.getIsland() != null && !island.getIsland().isEmpty())
+				.collect(toList());
+
+		for (ChknIslandDto island : result) {
+			island.setOprTimeList(island.getOprTimeList() != null ? island.getOprTimeList() : new ArrayList<>());
+			island.setBoothList(normalizeBoothList(island.getBoothList()));
+			// 부스 수는 화면 계산식과 같게 배정 목록 길이를 쓴다 (DELTA 2.1)
+			island.setBoothCnt(island.getBoothList().size());
+		}
+
+		return result;
+	}
+
+	/*
+	 * 화면은 아일랜드 36석 골격을 통째로 보낸다. 골격은 표현이지 데이터가 아니므로
+	 * 배정이 있는 자리만 저장한다 — 미배정 자리까지 넣으면 터미널 1개 저장이 468행이 되어
+	 * INSERT ALL 한 문장이 지나치게 길어진다. 조회할 때 다시 36석으로 펴진다 (toBoothList).
+	 */
+	private List<ChknBoothDto> normalizeBoothList(List<ChknBoothDto> boothList) {
+		if (boothList == null) {
+			return new ArrayList<>();
+		}
+
+		List<ChknBoothDto> result = boothList.stream()
+				.filter(booth -> booth.getAlnCd() != null && !booth.getAlnCd().isEmpty())
+				.collect(toList());
+
+		for (ChknBoothDto booth : result) {
+			booth.setCstmAltmntYn(toCustomYn(booth.getCstmAltmntYn()));
+		}
+
+		return result;
+	}
+
+	private String emptyIfNull(String value) {
+		return value != null ? value : EMPTY_ALN_CD;
+	}
+
+	private String toCustomYn(String value) {
+		return CUSTOM_YN_Y.equals(value) ? CUSTOM_YN_Y : CUSTOM_YN_N;
 	}
 }

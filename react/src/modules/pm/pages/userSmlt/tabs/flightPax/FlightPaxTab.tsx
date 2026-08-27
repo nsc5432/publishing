@@ -10,7 +10,6 @@ import { BarChart } from './components/BarChart';
 import { FlightEditor } from './components/FlightEditor';
 import { EMPTY_FLIGHT_PAX, toFlightPax, toSaveReq } from './view';
 
-/** 터미널별 전체 비율 (%) */
 type RatioState = Record<TerminalKind, number>;
 
 const EMPTY_RATIO: RatioState = { T1: 0, T2: 0 };
@@ -18,63 +17,41 @@ const EMPTY_RATIO: RatioState = { T1: 0, T2: 0 };
 const FETCH_FAIL = '운항편/여객수 정보를 불러오지 못했습니다.';
 const SAVE_FAIL = '운항편/여객수 저장에 실패했습니다.';
 
-/** 조회·매핑 함수는 렌더마다 새로 만들지 않도록 컴포넌트 밖에 둔다 */
-const fetchFltPsg = (smltId: string, tmnlId: TerminalKind) =>
-    userSmltService.getFltPsgInfo(smltId, tmnlId);
+const fetchFltPsg = (smltId: string, tmnlId: TerminalKind) => userSmltService.getFltPsgInfo(smltId, tmnlId);
 
-/**
- * 뷰 변환에 화면 상태(전체 비율)가 필요해 조회 훅에서는 DTO 를 그대로 받는다.
- * 실제 매핑은 비율까지 아는 아래 useMemo 에서 한다.
- */
 const keepDto = (dto: UserSmltFltPsgDto) => dto;
 
-export function FlightPaxTab({
-    smltIds,
-    reloadKey,
-    enabled,
-    onToggleTerminal,
-    focusTerminal,
-    onFocusChange,
-    readOnly,
-}: SmltTabProps) {
-    const { raw, error, token } = useTerminalData(
-        smltIds,
-        reloadKey,
-        fetchFltPsg,
-        keepDto,
-        FETCH_FAIL,
-    );
+export function FlightPaxTab({ smltIds, reloadKey, enabled, onToggleTerminal, focusTerminal, onFocusChange, readOnly }: SmltTabProps) {
+    const { raw: dtoByTerminal, error, token } = useTerminalData(smltIds, reloadKey, fetchFltPsg, keepDto, FETCH_FAIL);
     const [ratios, setRatios] = useState<RatioState>(EMPTY_RATIO);
 
-    // 비율이 바뀌면 차트·표를 조회값 기준으로 다시 계산한다.
-    const panels = useMemo(
+    const panelDataByTerminal = useMemo(
         () => ({
-            T1: raw.T1 ? toFlightPax(raw.T1, ratios.T1) : EMPTY_FLIGHT_PAX,
-            T2: raw.T2 ? toFlightPax(raw.T2, ratios.T2) : EMPTY_FLIGHT_PAX,
+            T1: dtoByTerminal.T1 ? toFlightPax(dtoByTerminal.T1, ratios.T1) : EMPTY_FLIGHT_PAX,
+            T2: dtoByTerminal.T2 ? toFlightPax(dtoByTerminal.T2, ratios.T2) : EMPTY_FLIGHT_PAX,
         }),
-        [raw, ratios],
+        [dtoByTerminal, ratios],
     );
 
     useErrorAlert(error, token);
 
-    // 조회 결과가 들어오면 비율을 조회한 값으로 되돌린다.
     useEffect(() => {
-        setRatios({ T1: raw.T1?.ajmtRt ?? 0, T2: raw.T2?.ajmtRt ?? 0 });
-    }, [raw]);
+        setRatios({
+            T1: dtoByTerminal.T1?.ajmtRt ?? 0,
+            T2: dtoByTerminal.T2?.ajmtRt ?? 0,
+        });
+    }, [dtoByTerminal]);
 
     const handleRatioChange = (terminal: TerminalKind, ratio: number) => {
-        setRatios((prev) => ({ ...prev, [terminal]: ratio }));
+        setRatios((previousRatios) => ({ ...previousRatios, [terminal]: ratio }));
     };
 
     const handleSave = (terminal: TerminalKind) => {
-        const dto = raw[terminal];
+        const dto = dtoByTerminal[terminal];
         const smltId = smltIds[terminal];
         if (!dto || !smltId) return;
 
-        runSave(
-            userSmltService.saveFltPsgInfo(toSaveReq(smltId, terminal, dto, ratios[terminal])),
-            SAVE_FAIL,
-        );
+        runSave(userSmltService.saveFltPsgInfo(toSaveReq(smltId, terminal, dto, ratios[terminal])), SAVE_FAIL);
     };
 
     const enabledCount = enabledTerminals(enabled).length;
@@ -82,14 +59,14 @@ export function FlightPaxTab({
     return (
         <>
             {TERMINALS.map((terminal) => {
-                const panelData = panels[terminal];
-                const on = enabled[terminal];
+                const panelData = panelDataByTerminal[terminal];
+                const terminalEnabled = enabled[terminal];
 
                 return (
                     <TerminalPanel
                         key={terminal}
                         terminal={terminal}
-                        enabled={on}
+                        enabled={terminalEnabled}
                         focused={terminal === focusTerminal}
                         canDisable={enabledCount > 1}
                         onToggle={() => onToggleTerminal(terminal)}
@@ -107,18 +84,12 @@ export function FlightPaxTab({
                                 </div>
                                 <div className="summary__group">
                                     <span className="summary__label">피크</span>
-                                    <strong className="summary__value summary__value--accent">
-                                        {panelData.peak}
-                                    </strong>
+                                    <strong className="summary__value summary__value--accent">{panelData.peak}</strong>
                                 </div>
                             </>
                         }
                         footer={
-                            <button
-                                type="button"
-                                className="btn btn--save"
-                                onClick={() => handleSave(terminal)}
-                            >
+                            <button type="button" className="btn btn--save" onClick={() => handleSave(terminal)}>
                                 현재상태 저장
                             </button>
                         }
@@ -130,7 +101,7 @@ export function FlightPaxTab({
                             ratio={ratios[terminal]}
                             onRatioChange={(ratio) => handleRatioChange(terminal, ratio)}
                             rows={panelData.rows}
-                            disabled={!on || Boolean(readOnly)}
+                            disabled={!terminalEnabled || Boolean(readOnly)}
                         />
                     </TerminalPanel>
                 );

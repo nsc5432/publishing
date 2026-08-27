@@ -45,6 +45,7 @@ import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastConfigMapper;
 import aoms.pm.cast.service.CastConfigService;
 import aoms.pm.utils.SessionUtils;
+import aoms.pm.utils.StringUtils;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -54,7 +55,17 @@ import lombok.RequiredArgsConstructor;
 @Transactional(rollbackFor = Exception.class)
 public class CastConfigServiceImpl implements CastConfigService {
 	private static final String BASE_FIX_ATRB_GROUP_ID = "001";
+	private static final String INPT_VL_COLUMN = "INPT_VL";
+	private static final String VL_TYPE_INTEGER = "Integer";
+	private static final String VL_TYPE_FLOAT = "Float";
+	private static final String YN_Y = "Y";
+	private static final String YN_N = "N";
+	private static final String FRST_REG_DT_PATTERN = "\\d{14}";
+	private static final Set<String> NUMBER_COLUMN_SET = Set.of("MIN_VL", "MAX_VL", "DSTB_MAX_VL");
+
+	/** 격자 첫 데이터 행 번호 — 1행은 머리글이다 */
 	private static final int FIRST_DATA_ROW_NO = 2;
+	private static final int FIX_ATRB_GROUP_ID_MAX_LENGTH = 8;
 
 	private final CastConfigMapper castConfigMapper;
 	private final SessionService sessionService;
@@ -62,41 +73,27 @@ public class CastConfigServiceImpl implements CastConfigService {
 	@Override
 	public CastConfigGroupListDto retrieveGroupList(CastConfigSearchDto searchDto) {
 		CastConfigGroupListDto result = new CastConfigGroupListDto();
+
 		if (searchDto.getTmnlId() == null) {
 			return (CastConfigGroupListDto) result.error("터미널이 지정되지 않았습니다.");
 		}
 
-		result.setTmnlId(searchDto.getTmnlId());
 		List<CastConfigGroupDto> groupList = new ArrayList<>();
+
 		for (CastConfigGroup group : CastConfigGroup.values()) {
 			CastConfigGroupDto groupDto = new CastConfigGroupDto();
 			groupDto.setGroupId(group.getGroupId());
 			groupDto.setGroupNm(group.getGroupNm());
 			groupDto.setGroupNmEn(group.getGroupNmEn());
 			groupDto.setGroupDesc(group.getGroupDesc());
+			groupDto.setDatasetList(getDatasetList(group, searchDto.getTmnlId()));
 
-			List<CastConfigDatasetSummaryDto> datasetList = new ArrayList<>();
-			for (CastConfigSheet sheet : CastConfigSheet.values()) {
-				if (!group.supports(sheet)) {
-					continue;
-				}
-
-				int rowCnt = retrieveRows(sheet, group, searchDto.getTmnlId(), BASE_FIX_ATRB_GROUP_ID).size();
-				if (rowCnt == 0) {
-					continue;
-				}
-
-				CastConfigDatasetSummaryDto summary = new CastConfigDatasetSummaryDto();
-				summary.setSheetNm(sheet.getSheetNm());
-				summary.setRowCnt(rowCnt);
-				datasetList.add(summary);
-			}
-
-			groupDto.setDatasetList(datasetList);
 			groupList.add(groupDto);
 		}
 
+		result.setTmnlId(searchDto.getTmnlId());
 		result.setGroupList(groupList);
+
 		return result;
 	}
 
@@ -104,13 +101,16 @@ public class CastConfigServiceImpl implements CastConfigService {
 	public CastConfigCategoryListDto retrieveCategoryList(CastConfigSearchDto searchDto) {
 		CastConfigCategoryListDto result = new CastConfigCategoryListDto();
 		List<CastConfigCategoryDto> categoryList = castConfigMapper.retrieveCategoryList();
+
 		for (CastConfigCategoryDto category : categoryList) {
-			category.setAtrbGroupNm(unblank(category.getAtrbGroupNm()));
-			category.setGroupPrcsSttsCd(unblank(category.getGroupPrcsSttsCd()));
-			category.setFrstRegDt(unblank(category.getFrstRegDt()));
+			category.setAtrbGroupNm(StringUtils.trimToEmpty(category.getAtrbGroupNm()));
+			category.setGroupPrcsSttsCd(StringUtils.trimToEmpty(category.getGroupPrcsSttsCd()));
+			category.setFrstRegDt(StringUtils.trimToEmpty(category.getFrstRegDt()));
 		}
+
 		result.setTotalCnt(categoryList.size());
 		result.setCategoryList(categoryList);
+
 		return result;
 	}
 
@@ -118,18 +118,22 @@ public class CastConfigServiceImpl implements CastConfigService {
 	public CastConfigDatasetDto retrieveDataset(CastConfigSearchDto searchDto) {
 		CastConfigDatasetDto result = new CastConfigDatasetDto();
 		CastConfigSheet sheet = CastConfigSheet.fromSheetNm(searchDto.getSheetNm());
+
 		if (sheet == null) {
 			return datasetError(result, searchDto.getSheetNm(), "등록되지 않은 시트입니다.");
 		}
 
 		CastConfigGroup group = CastConfigGroup.fromGroupId(searchDto.getGroupId());
+
 		if (group == null || !group.supports(sheet)) {
 			return datasetError(result, sheet.getSheetNm(), "시설그룹에 연결되지 않은 원본 시트입니다.");
 		}
+
 		if (searchDto.getTmnlId() == null) {
 			return datasetError(result, sheet.getSheetNm(), "터미널이 지정되지 않았습니다.");
 		}
-		if (isBlank(searchDto.getFixAtrbGroupId())) {
+
+		if (StringUtils.isBlank(searchDto.getFixAtrbGroupId())) {
 			return datasetError(result, sheet.getSheetNm(), "카테고리가 지정되지 않았습니다.");
 		}
 
@@ -139,51 +143,61 @@ public class CastConfigServiceImpl implements CastConfigService {
 				searchDto.getTmnlId(),
 				searchDto.getFixAtrbGroupId()
 		);
+		boolean isBaseGroup = BASE_FIX_ATRB_GROUP_ID.equals(searchDto.getFixAtrbGroupId());
 
 		result.setSheetNm(sheet.getSheetNm());
 		result.setDimension("");
 		result.setColumnList(toColumnList(sheet));
-		result.setRowList(toRowList(sheet, rawList, BASE_FIX_ATRB_GROUP_ID.equals(searchDto.getFixAtrbGroupId())));
+		result.setRowList(toRowList(sheet, rawList, isBaseGroup));
 		result.setShapeColumn(sheet.getShapeColumn());
 		result.setValidation(sheet.getValidation());
+
 		return result;
 	}
 
 	@Override
 	public JsonResponse saveDataset(CastConfigSaveDto saveDto) {
 		SessionUtils.setUserContext(saveDto, sessionService);
-		if (isBlank(saveDto.getLoginUserId())) {
+
+		if (StringUtils.isBlank(saveDto.getLoginUserId())) {
 			return new JsonResponse().error("로그인을 진행해주세요.");
 		}
+
 		if (saveDto.getTmnlId() == null) {
 			return new JsonResponse().error("터미널이 지정되지 않았습니다.");
 		}
 
 		CastConfigGroup group = CastConfigGroup.fromGroupId(saveDto.getGroupId());
+
 		if (group == null) {
 			return new JsonResponse().error("시설그룹이 지정되지 않았습니다.");
 		}
+
 		if (saveDto.getItemList() == null || saveDto.getItemList().isEmpty()) {
 			return new JsonResponse().error("저장할 변경 내용이 없습니다.");
 		}
 
+		// 카테고리 · 시트가 같은 항목끼리 묶어야 행 목록을 한 번만 읽고 행 번호를 맞출 수 있다
 		Map<String, List<CastConfigSaveItemDto>> itemMap = new LinkedHashMap<>();
+
 		for (CastConfigSaveItemDto item : saveDto.getItemList()) {
 			String key = item.getFixAtrbGroupId() + "::" + item.getSheetNm();
 			itemMap.computeIfAbsent(key, ignored -> new ArrayList<>()).add(item);
 		}
 
-		List<UpdateTarget> targets = new ArrayList<>();
+		List<UpdateTarget> updateTargetList = new ArrayList<>();
+
 		for (List<CastConfigSaveItemDto> itemList : itemMap.values()) {
-			JsonResponse invalid = appendUpdateTargets(targets, group, saveDto.getTmnlId(), itemList);
-			if (invalid != null) {
-				return invalid;
+			JsonResponse validationError =
+					appendUpdateTargets(updateTargetList, group, saveDto.getTmnlId(), itemList);
+
+			if (validationError != null) {
+				return validationError;
 			}
 		}
 
-		for (UpdateTarget target : targets) {
-			int updated = update(target, saveDto.getLoginUserId(), saveDto.getLoginIpAddr());
-			if (updated != 1) {
+		for (UpdateTarget target : updateTargetList) {
+			if (update(target, saveDto.getLoginUserId(), saveDto.getLoginIpAddr()) != 1) {
 				return rollbackError("다른 사용자가 데이터를 변경했습니다. 다시 조회해 주세요.");
 			}
 		}
@@ -194,21 +208,27 @@ public class CastConfigServiceImpl implements CastConfigService {
 	@Override
 	public JsonResponse applyDefaultAttribute(CastConfigDefaultApplyDto applyDto) {
 		SessionUtils.setUserContext(applyDto, sessionService);
-		if (isBlank(applyDto.getLoginUserId())) {
+
+		if (StringUtils.isBlank(applyDto.getLoginUserId())) {
 			return new JsonResponse().error("로그인을 진행해주세요.");
 		}
+
 		CastConfigSheet sheet = CastConfigSheet.fromSheetNm(applyDto.getSheetNm());
 		CastConfigGroup group = CastConfigGroup.fromGroupId(applyDto.getGroupId());
+
 		if (sheet == null || group == null || !group.supports(sheet)) {
 			return new JsonResponse().error("시설그룹에 연결되지 않은 원본 시트입니다.");
 		}
+
 		if (applyDto.getTmnlId() == null) {
 			return new JsonResponse().error("터미널이 지정되지 않았습니다.");
 		}
+
 		if (BASE_FIX_ATRB_GROUP_ID.equals(applyDto.getFixAtrbGroupId())) {
 			return new JsonResponse().error("기준정보는 수정할 수 없습니다.");
 		}
-		if (isBlank(applyDto.getFixAtrbGroupId())) {
+
+		if (StringUtils.isBlank(applyDto.getFixAtrbGroupId())) {
 			return new JsonResponse().error("카테고리가 지정되지 않았습니다.");
 		}
 
@@ -218,28 +238,30 @@ public class CastConfigServiceImpl implements CastConfigService {
 				applyDto.getTmnlId(),
 				applyDto.getFixAtrbGroupId()
 		);
-		Set<Integer> selected = applyDto.getRowNoList() == null
+		// 선택 행이 없으면 시트 전체를 되돌린다
+		Set<Integer> selectedRowNoSet = applyDto.getRowNoList() == null
 				? Set.of()
 				: new LinkedHashSet<>(applyDto.getRowNoList());
-		if (!selected.isEmpty()) {
-			for (Integer rowNo : selected) {
-				if (rowNo == null || rowNo < FIRST_DATA_ROW_NO || rowNo >= FIRST_DATA_ROW_NO + rowList.size()) {
-					return new JsonResponse().error("적용할 행을 찾지 못했습니다.");
-				}
+
+		for (Integer rowNo : selectedRowNoSet) {
+			if (rowNo == null || rowNo < FIRST_DATA_ROW_NO || rowNo >= FIRST_DATA_ROW_NO + rowList.size()) {
+				return new JsonResponse().error("적용할 행을 찾지 못했습니다.");
 			}
 		}
 
-		List<String> valueColumns = valueColumns(sheet);
+		List<String> valueColumnList = getValueColumnList(sheet);
+
 		for (int index = 0; index < rowList.size(); index++) {
 			int rowNo = index + FIRST_DATA_ROW_NO;
-			if (!selected.isEmpty() && !selected.contains(rowNo)) {
+
+			if (!selectedRowNoSet.isEmpty() && !selectedRowNoSet.contains(rowNo)) {
 				continue;
 			}
 
 			CastConfigAtrbRawDto row = rowList.get(index);
 			int updated = castConfigMapper.copyFromBaseGroup(
 					sheet.getTableNm(),
-					valueColumns,
+					valueColumnList,
 					applyDto.getFixAtrbGroupId(),
 					row.getAtrbCd(),
 					row.getDtlSeCd(),
@@ -248,6 +270,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 					applyDto.getLoginUserId(),
 					applyDto.getLoginIpAddr()
 			);
+
 			if (updated != 1) {
 				return rollbackError("기준정보와 일치하는 행을 찾지 못했습니다.");
 			}
@@ -259,47 +282,59 @@ public class CastConfigServiceImpl implements CastConfigService {
 	@Override
 	public JsonResponse saveCategory(CastConfigCategorySaveDto saveDto) {
 		SessionUtils.setUserContext(saveDto, sessionService);
-		if (isBlank(saveDto.getLoginUserId())) {
+
+		if (StringUtils.isBlank(saveDto.getLoginUserId())) {
 			return new JsonResponse().error("로그인을 진행해주세요.");
 		}
-		if (isBlank(saveDto.getFixAtrbGroupId()) || saveDto.getFixAtrbGroupId().length() > 8) {
+
+		if (StringUtils.isBlank(saveDto.getFixAtrbGroupId())
+				|| saveDto.getFixAtrbGroupId().length() > FIX_ATRB_GROUP_ID_MAX_LENGTH) {
 			return new JsonResponse().error("카테고리 코드를 확인해 주세요.");
 		}
-		if (isBlank(saveDto.getAtrbGroupNm())) {
+
+		if (StringUtils.isBlank(saveDto.getAtrbGroupNm())) {
 			return new JsonResponse().error("카테고리명을 입력해 주세요.");
 		}
-		if (saveDto.getFrstRegDt() == null || !saveDto.getFrstRegDt().matches("\\d{14}")) {
+
+		if (saveDto.getFrstRegDt() == null || !saveDto.getFrstRegDt().matches(FRST_REG_DT_PATTERN)) {
 			return new JsonResponse().error("최초등록일시 형식을 확인해 주세요.");
 		}
+
 		if (castConfigMapper.retrieveCategoryCnt(saveDto.getFixAtrbGroupId()) > 0) {
 			return new JsonResponse().error("이미 등록된 카테고리 코드입니다.");
 		}
 
 		Set<CastConfigSheet> sheetSet = new LinkedHashSet<>();
+
 		if (saveDto.getSheetNmList() != null) {
 			for (String sheetNm : saveDto.getSheetNmList()) {
 				CastConfigSheet sheet = CastConfigSheet.fromSheetNm(sheetNm);
+
 				if (sheet == null) {
 					return new JsonResponse().error("등록되지 않은 시트가 포함되어 있습니다.");
 				}
+
 				sheetSet.add(sheet);
 			}
 		}
+
 		if (sheetSet.isEmpty()) {
 			return new JsonResponse().error("복사할 시트를 선택해 주세요.");
 		}
 
 		castConfigMapper.insertCategory(saveDto);
+
 		for (CastConfigSheet sheet : sheetSet) {
 			int inserted = castConfigMapper.insertFromBaseGroup(
 					sheet.getTableNm(),
-					valueColumns(sheet),
+					getValueColumnList(sheet),
 					saveDto.getFixAtrbGroupId(),
 					sheet.getKeyColumnNm(),
 					sheet.getDtlColumnNm(),
 					saveDto.getLoginUserId(),
 					saveDto.getLoginIpAddr()
 			);
+
 			if (inserted == 0) {
 				return rollbackError("기준정보에 복사할 시트 데이터가 없습니다.");
 			}
@@ -316,76 +351,118 @@ public class CastConfigServiceImpl implements CastConfigService {
 			String sheetNm,
 			MultipartFile file
 	) {
-		TerminalKind terminal;
+		TerminalKind terminalKind;
+
 		try {
-			terminal = TerminalKind.valueOf(tmnlId);
+			terminalKind = TerminalKind.valueOf(tmnlId);
 		} catch (RuntimeException exception) {
 			return new JsonResponse().error("터미널을 확인해 주세요.");
 		}
 
 		CastConfigSheet sheet = CastConfigSheet.fromSheetNm(sheetNm);
 		CastConfigGroup group = CastConfigGroup.fromGroupId(groupId);
+
 		if (sheet == null || group == null || !group.supports(sheet)) {
 			return new JsonResponse().error("시설그룹에 연결되지 않은 원본 시트입니다.");
 		}
+
 		if (file == null || file.isEmpty()) {
 			return new JsonResponse().error("업로드할 파일이 없습니다.");
 		}
 
 		CastConfigSaveDto saveDto = new CastConfigSaveDto();
-		saveDto.setTmnlId(terminal);
+		saveDto.setTmnlId(terminalKind);
 		saveDto.setGroupId(groupId);
-		try (InputStream input = file.getInputStream(); Workbook workbook = WorkbookFactory.create(input)) {
-			saveDto.setItemList(toExcelItems(workbook, sheet, fixAtrbGroupId));
+
+		try (InputStream inputStream = file.getInputStream();
+				Workbook workbook = WorkbookFactory.create(inputStream)) {
+			saveDto.setItemList(toExcelItemList(workbook, sheet, fixAtrbGroupId));
 		} catch (Exception exception) {
 			return new JsonResponse().error("엑셀 파일을 읽지 못했습니다.");
 		}
+
 		if (saveDto.getItemList().isEmpty()) {
 			return new JsonResponse().error("엑셀에 반영할 값이 없습니다.");
 		}
 
+		// 엑셀은 입력 경로만 다를 뿐 저장 규칙은 격자 저장과 같아야 한다
 		return saveDataset(saveDto);
 	}
 
+	// 행이 하나도 없는 시트는 화면에 걸지 않는다
+	private List<CastConfigDatasetSummaryDto> getDatasetList(CastConfigGroup group, TerminalKind tmnlId) {
+		List<CastConfigDatasetSummaryDto> result = new ArrayList<>();
+
+		for (CastConfigSheet sheet : CastConfigSheet.values()) {
+			if (!group.supports(sheet)) {
+				continue;
+			}
+
+			int rowCnt = retrieveRows(sheet, group, tmnlId, BASE_FIX_ATRB_GROUP_ID).size();
+
+			if (rowCnt == 0) {
+				continue;
+			}
+
+			CastConfigDatasetSummaryDto summary = new CastConfigDatasetSummaryDto();
+			summary.setSheetNm(sheet.getSheetNm());
+			summary.setRowCnt(rowCnt);
+
+			result.add(summary);
+		}
+
+		return result;
+	}
+
+	// 통과하면 null. 검사를 통과한 항목만 targetList 에 쌓는다
 	private JsonResponse appendUpdateTargets(
-			List<UpdateTarget> targets,
+			List<UpdateTarget> targetList,
 			CastConfigGroup group,
 			TerminalKind tmnlId,
 			List<CastConfigSaveItemDto> itemList
 	) {
-		CastConfigSaveItemDto first = itemList.get(0);
-		if (BASE_FIX_ATRB_GROUP_ID.equals(first.getFixAtrbGroupId())) {
+		// 같은 (카테고리, 시트) 로 묶여 온 항목이라 첫 건의 조건이 목록 전체의 조건이다
+		CastConfigSaveItemDto firstItem = itemList.get(0);
+
+		if (BASE_FIX_ATRB_GROUP_ID.equals(firstItem.getFixAtrbGroupId())) {
 			return new JsonResponse().error("기준정보는 수정할 수 없습니다.");
 		}
 
-		CastConfigSheet sheet = CastConfigSheet.fromSheetNm(first.getSheetNm());
+		CastConfigSheet sheet = CastConfigSheet.fromSheetNm(firstItem.getSheetNm());
+
 		if (sheet == null || !group.supports(sheet)) {
 			return new JsonResponse().error("시설그룹에 연결되지 않은 원본 시트입니다.");
 		}
 
-		List<CastConfigAtrbRawDto> rowList = retrieveRows(sheet, group, tmnlId, first.getFixAtrbGroupId());
+		List<CastConfigAtrbRawDto> rowList = retrieveRows(sheet, group, tmnlId, firstItem.getFixAtrbGroupId());
+
 		for (CastConfigSaveItemDto item : itemList) {
 			if (item.getRowNo() < FIRST_DATA_ROW_NO || item.getRowNo() >= FIRST_DATA_ROW_NO + rowList.size()) {
 				return new JsonResponse().error("다른 사용자가 데이터를 변경했습니다. 다시 조회해 주세요.");
 			}
+
 			CastConfigColumnDef column = sheet.getColumn(item.getColumn());
+
 			if (column == null || !column.isEditable()) {
 				return new JsonResponse().error("수정할 수 없는 원본 셀이 포함되어 있습니다.");
 			}
 
 			CastConfigAtrbRawDto row = rowList.get(item.getRowNo() - FIRST_DATA_ROW_NO);
-			JsonResponse invalid = validateValue(column, row, item.getValue());
-			if (invalid != null) {
-				return invalid;
+			JsonResponse validationError = validateValue(column, row, item.getValue());
+
+			if (validationError != null) {
+				return validationError;
 			}
-			targets.add(new UpdateTarget(sheet, column, first.getFixAtrbGroupId(), row, item.getValue()));
+
+			targetList.add(new UpdateTarget(sheet, column, firstItem.getFixAtrbGroupId(), row, item.getValue()));
 		}
 
 		return null;
 	}
 
+	// 통과하면 null
 	private JsonResponse validateValue(CastConfigColumnDef column, CastConfigAtrbRawDto row, String value) {
-		if (column.getType() == CastConfigColumnType.NUMBER && !isBlank(value)) {
+		if (column.getType() == CastConfigColumnType.NUMBER && !StringUtils.isBlank(value)) {
 			try {
 				new BigDecimal(value.trim());
 			} catch (NumberFormatException exception) {
@@ -393,10 +470,12 @@ public class CastConfigServiceImpl implements CastConfigService {
 			}
 		}
 
-		if (!"INPT_VL".equals(column.getPhysicalColumn()) || isBlank(value)) {
+		// 입력값 컬럼만 카탈로그가 정한 자료형(Integer / Float)을 추가로 지킨다
+		if (!INPT_VL_COLUMN.equals(column.getPhysicalColumn()) || StringUtils.isBlank(value)) {
 			return null;
 		}
-		if ("Integer".equalsIgnoreCase(row.getCatalogVlType())) {
+
+		if (VL_TYPE_INTEGER.equalsIgnoreCase(row.getCatalogVlType())) {
 			try {
 				if (new BigDecimal(value.trim()).stripTrailingZeros().scale() > 0) {
 					return new JsonResponse().error(column.getLabel() + " 값은 정수여야 합니다.");
@@ -405,13 +484,15 @@ public class CastConfigServiceImpl implements CastConfigService {
 				return new JsonResponse().error(column.getLabel() + " 값은 정수여야 합니다.");
 			}
 		}
-		if ("Float".equalsIgnoreCase(row.getCatalogVlType())) {
+
+		if (VL_TYPE_FLOAT.equalsIgnoreCase(row.getCatalogVlType())) {
 			try {
 				new BigDecimal(value.trim());
 			} catch (NumberFormatException exception) {
 				return new JsonResponse().error(column.getLabel() + " 값은 숫자여야 합니다.");
 			}
 		}
+
 		return null;
 	}
 
@@ -419,26 +500,11 @@ public class CastConfigServiceImpl implements CastConfigService {
 		CastConfigSheet sheet = target.getSheet();
 		CastConfigColumnDef column = target.getColumn();
 		CastConfigAtrbRawDto row = target.getRow();
-		if (isPhysicalNumberColumn(column.getPhysicalColumn())) {
-			BigDecimal value = isBlank(target.getValue()) ? null : new BigDecimal(target.getValue().trim());
-			return castConfigMapper.updateAtrbNumberValue(
-					sheet.getTableNm(),
-					column.getPhysicalColumn(),
-					value,
-					target.getFixAtrbGroupId(),
-					row.getAtrbCd(),
-					row.getDtlSeCd(),
-					sheet.getKeyColumnNm(),
-					sheet.getDtlColumnNm(),
-					loginUserId,
-					loginIpAddr
-			);
-		}
 
-		return castConfigMapper.updateAtrbTextValue(
+		return castConfigMapper.updateAtrbValue(
 				sheet.getTableNm(),
 				column.getPhysicalColumn(),
-				target.getValue(),
+				toColumnValue(column.getPhysicalColumn(), target.getValue()),
 				target.getFixAtrbGroupId(),
 				row.getAtrbCd(),
 				row.getDtlSeCd(),
@@ -449,6 +515,14 @@ public class CastConfigServiceImpl implements CastConfigService {
 		);
 	}
 
+	private Object toColumnValue(String physicalColumn, String value) {
+		if (!NUMBER_COLUMN_SET.contains(physicalColumn)) {
+			return value;
+		}
+
+		return StringUtils.isBlank(value) ? null : new BigDecimal(value.trim());
+	}
+
 	private List<CastConfigAtrbRawDto> retrieveRows(
 			CastConfigSheet sheet,
 			CastConfigGroup group,
@@ -456,6 +530,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 			String fixAtrbGroupId
 	) {
 		List<String> filterList = new ArrayList<>(group.getRootCdSet(sheet));
+
 		if (sheet.getCatalogKind() == CastConfigCatalogKind.PSG_FIX) {
 			return castConfigMapper.retrievePsgAtrbList(
 					sheet.getTableNm(),
@@ -464,52 +539,65 @@ public class CastConfigServiceImpl implements CastConfigService {
 					filterList
 			);
 		}
+
 		if (filterList.isEmpty()) {
 			return List.of();
 		}
+
 		return castConfigMapper.retrieveSrvcAtrbList(fixAtrbGroupId, filterList);
 	}
 
 	private List<CastConfigColumnDto> toColumnList(CastConfigSheet sheet) {
 		List<CastConfigColumnDto> result = new ArrayList<>();
+
 		for (CastConfigColumnDef definition : sheet.getColumnList()) {
 			CastConfigColumnDto column = new CastConfigColumnDto();
 			column.setColumn(definition.getColumn());
 			column.setLabel(definition.getLabel());
 			column.setType(definition.getType().name());
 			column.setOptionList(new ArrayList<>(definition.getOptionList()));
-			column.setMergeYn(definition.isMerge() ? "Y" : "N");
+			column.setMergeYn(definition.isMerge() ? YN_Y : YN_N);
+
 			result.add(column);
 		}
+
 		return result;
 	}
 
+	// 기준정보(001) 는 어떤 셀도 고칠 수 없다
 	private List<CastConfigGridRowDto> toRowList(
 			CastConfigSheet sheet,
 			List<CastConfigAtrbRawDto> rawList,
-			boolean base
+			boolean isBaseGroup
 	) {
 		List<CastConfigGridRowDto> result = new ArrayList<>();
+
 		for (int index = 0; index < rawList.size(); index++) {
 			CastConfigAtrbRawDto raw = rawList.get(index);
-			CastConfigGridRowDto row = new CastConfigGridRowDto();
-			row.setRowNo(index + FIRST_DATA_ROW_NO);
 			List<CastConfigGridCellDto> cellList = new ArrayList<>();
+
 			for (CastConfigColumnDef definition : sheet.getColumnList()) {
 				CastConfigGridCellDto cell = new CastConfigGridCellDto();
 				cell.setColumn(definition.getColumn());
-				cell.setValue(rawValue(raw, definition.getPhysicalColumn()));
+				cell.setValue(toCellValue(raw, definition.getPhysicalColumn()));
 				cell.setFormula("");
-				cell.setEditableYn(!base && definition.isEditable() ? "Y" : "N");
+				cell.setEditableYn(!isBaseGroup && definition.isEditable() ? YN_Y : YN_N);
+
 				cellList.add(cell);
 			}
+
+			CastConfigGridRowDto row = new CastConfigGridRowDto();
+			row.setRowNo(index + FIRST_DATA_ROW_NO);
 			row.setCellList(cellList);
+
 			result.add(row);
 		}
+
 		return result;
 	}
 
-	private List<CastConfigSaveItemDto> toExcelItems(
+	// 첫 시트만 읽는다. 머리글로 열을 찾으므로 열 순서가 달라도 되지만 이름은 격자와 같아야 한다
+	private List<CastConfigSaveItemDto> toExcelItemList(
 			Workbook workbook,
 			CastConfigSheet sheet,
 			String fixAtrbGroupId
@@ -517,72 +605,84 @@ public class CastConfigServiceImpl implements CastConfigService {
 		if (workbook.getNumberOfSheets() == 0) {
 			return List.of();
 		}
+
 		org.apache.poi.ss.usermodel.Sheet excelSheet = workbook.getSheetAt(0);
-		Row header = excelSheet.getRow(0);
-		if (header == null) {
+		Row headerRow = excelSheet.getRow(0);
+
+		if (headerRow == null) {
 			return List.of();
 		}
 
 		DataFormatter formatter = new DataFormatter();
-		Map<Integer, CastConfigColumnDef> columnMap = new LinkedHashMap<>();
-		for (int index = 0; index < header.getLastCellNum(); index++) {
-			CastConfigColumnDef column = sheet.getColumn(formatter.formatCellValue(header.getCell(index)).trim());
+		Map<Integer, CastConfigColumnDef> columnByCellIndex = new LinkedHashMap<>();
+
+		for (int cellIndex = 0; cellIndex < headerRow.getLastCellNum(); cellIndex++) {
+			String label = formatter.formatCellValue(headerRow.getCell(cellIndex)).trim();
+			CastConfigColumnDef column = sheet.getColumn(label);
+
 			if (column != null && column.isEditable()) {
-				columnMap.put(index, column);
+				columnByCellIndex.put(cellIndex, column);
 			}
 		}
 
 		List<CastConfigSaveItemDto> result = new ArrayList<>();
+
 		for (int rowIndex = 1; rowIndex <= excelSheet.getLastRowNum(); rowIndex++) {
 			Row row = excelSheet.getRow(rowIndex);
+
 			if (row == null) {
 				continue;
 			}
-			for (Map.Entry<Integer, CastConfigColumnDef> entry : columnMap.entrySet()) {
+
+			for (Map.Entry<Integer, CastConfigColumnDef> entry : columnByCellIndex.entrySet()) {
 				CastConfigSaveItemDto item = new CastConfigSaveItemDto();
 				item.setFixAtrbGroupId(fixAtrbGroupId);
 				item.setSheetNm(sheet.getSheetNm());
+				// 엑셀 행 번호(0 기준)를 격자 행 번호(머리글 다음이 2)로 옮긴다
 				item.setRowNo(rowIndex + 1);
 				item.setColumn(entry.getValue().getColumn());
 				item.setValue(formatter.formatCellValue(row.getCell(entry.getKey())).trim());
+
 				result.add(item);
 			}
 		}
+
 		return result;
 	}
 
-	private String rawValue(CastConfigAtrbRawDto raw, String physicalColumn) {
+	private String toCellValue(CastConfigAtrbRawDto raw, String physicalColumn) {
 		switch (physicalColumn) {
 			case "PSG_ATRB_CD":
 			case "FCLTY_SE_CD":
-				return unblank(raw.getAtrbCdNm());
+				return StringUtils.trimToEmpty(raw.getAtrbCdNm());
 			case "PSG_DTL_SE_CD":
 			case "FCLTY_DTL_CD":
-				return unblank(raw.getDtlSeCdNm());
+				return StringUtils.trimToEmpty(raw.getDtlSeCdNm());
 			case "INPT_VL":
-				return unblank(raw.getInptVl());
+				return StringUtils.trimToEmpty(raw.getInptVl());
 			case "USER_DEF_1_VL":
-				return unblank(raw.getUserDef1Vl());
+				return StringUtils.trimToEmpty(raw.getUserDef1Vl());
 			case "USER_DEF_2_VL":
-				return unblank(raw.getUserDef2Vl());
+				return StringUtils.trimToEmpty(raw.getUserDef2Vl());
 			case "MIN_VL":
-				return decimal(raw.getMinVl());
+				return formatDecimal(raw.getMinVl());
 			case "MAX_VL":
-				return decimal(raw.getMaxVl());
+				return formatDecimal(raw.getMaxVl());
 			case "DSTB_MAX_VL":
-				return decimal(raw.getDstbMaxVl());
+				return formatDecimal(raw.getDstbMaxVl());
 			case "VL_TYPE":
-				return unblank(raw.getVlType());
+				return StringUtils.trimToEmpty(raw.getVlType());
 			case "SWTC_FNC_ID":
-				return unblank(raw.getSwtcFncId());
+				return StringUtils.trimToEmpty(raw.getSwtcFncId());
 			case "VRFC_FNC_ID":
-				return unblank(raw.getVrfcFncId());
+				return StringUtils.trimToEmpty(raw.getVrfcFncId());
 			default:
 				return "";
 		}
 	}
 
-	private List<String> valueColumns(CastConfigSheet sheet) {
+	// 되돌리기·복사가 다루는 것은 사용자가 고칠 수 있는 열뿐이다
+	private List<String> getValueColumnList(CastConfigSheet sheet) {
 		return sheet.getColumnList().stream()
 				.filter(CastConfigColumnDef::isEditable)
 				.map(CastConfigColumnDef::getPhysicalColumn)
@@ -600,21 +700,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 		return new JsonResponse().error(message);
 	}
 
-	private boolean isPhysicalNumberColumn(String physicalColumn) {
-		return "MIN_VL".equals(physicalColumn)
-				|| "MAX_VL".equals(physicalColumn)
-				|| "DSTB_MAX_VL".equals(physicalColumn);
-	}
-
-	private boolean isBlank(String value) {
-		return value == null || value.trim().isEmpty();
-	}
-
-	private String unblank(String value) {
-		return value == null || value.trim().isEmpty() ? "" : value.trim();
-	}
-
-	private String decimal(BigDecimal value) {
+	private String formatDecimal(BigDecimal value) {
 		return value == null ? "" : value.stripTrailingZeros().toPlainString();
 	}
 

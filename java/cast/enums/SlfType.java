@@ -7,15 +7,13 @@ public enum SlfType {
 	SBD("SBD");
 
 	private final String value;
-	
+
 	SlfType(String value) {
 		this.value = value;
 	}
-	
+
 	@JsonValue
 	public String getValue() {
 		return value;
 	}
 }
-
-

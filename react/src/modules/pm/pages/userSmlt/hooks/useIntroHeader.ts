@@ -6,16 +6,10 @@ import type { DsbdHeaderDto } from '@/types/api.types';
 
 const FAIL_MESSAGE = '상단 요약 정보를 불러오지 못했습니다.';
 
-/** 도입 화면에는 시각 선택 UI가 없어 고정값으로 조회한다. */
 const FIXED_HHMM = '0000';
 
 export function useIntroHeader(ymd: string): Fetched<DsbdHeaderDto> {
     const query = useMemo(() => (ymd ? { ymd, hhmm: FIXED_HHMM } : null), [ymd]);
 
-    return useFetched(
-        query,
-        ({ ymd: queryYmd, hhmm }) =>
-            dashboardService.getHeader(queryYmd, hhmm).then((dto) => unwrap(dto, FAIL_MESSAGE)),
-        FAIL_MESSAGE,
-    );
+    return useFetched(query, ({ ymd: queryYmd, hhmm }) => dashboardService.getHeader(queryYmd, hhmm).then((dto) => unwrap(dto, FAIL_MESSAGE)), FAIL_MESSAGE);
 }

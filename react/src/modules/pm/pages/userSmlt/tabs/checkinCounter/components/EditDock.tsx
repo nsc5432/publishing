@@ -30,12 +30,6 @@ interface PopoverPos {
     y: number;
 }
 
-/**
- * 체크인 카운터 편집 도크 — 우측 드로어를 대신해 차트 아래에서 올라온다.
- *
- * 아일랜드 1개는 좌우 18석씩 36석이라 380px 드로어에 들어가지 않는다.
- * 가로로 펴고, 하루 종일 닫혀 화면(차트)에 없는 아일랜드는 맨 윗줄 칩이 붙잡는다.
- */
 export function EditDock({
     terminal,
     codes,
@@ -53,20 +47,18 @@ export function EditDock({
     const boothsRef = useRef<HTMLDivElement>(null);
     const [popover, setPopover] = useState<PopoverPos | null>(null);
 
-    // 범위의 가운데 칸에 매단다 — 팝오버가 -50% 로 밀리므로 선택 전체 위에 대칭으로 놓인다
-    const anchorBooth =
-        selectedBooths.length > 0 ? selectedBooths[Math.floor(selectedBooths.length / 2)] : null;
+    const anchorBooth = selectedBooths.length > 0 ? selectedBooths[Math.floor(selectedBooths.length / 2)] : null;
 
     useLayoutEffect(() => {
-        const wrap = boothsRef.current;
-        const cell =
-            anchorBooth === null
-                ? null
-                : wrap?.querySelector<HTMLElement>(`[data-booth-no="${anchorBooth}"]`);
+        const boothContainer = boothsRef.current;
+        const anchorCell = anchorBooth === null ? null : boothContainer?.querySelector<HTMLElement>(`[data-booth-no="${anchorBooth}"]`);
 
         setPopover(
-            cell
-                ? { x: cell.offsetLeft + cell.offsetWidth / 2, y: cell.offsetTop + cell.offsetHeight }
+            anchorCell
+                ? {
+                      x: anchorCell.offsetLeft + anchorCell.offsetWidth / 2,
+                      y: anchorCell.offsetTop + anchorCell.offsetHeight,
+                  }
                 : null,
         );
     }, [anchorBooth]);
@@ -74,31 +66,30 @@ export function EditDock({
     useEffect(() => {
         if (selectedBooths.length === 0) return;
 
-        const close = (e: Event) => {
-            const target = e.target as Node | null;
+        const handleOutsidePointerDown = (event: Event) => {
+            const target = event.target as Node | null;
             if (target && boothsRef.current?.contains(target)) return;
 
             onSelectBooths([]);
         };
-        const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onSelectBooths([]);
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') onSelectBooths([]);
         };
 
-        document.addEventListener('pointerdown', close);
-        document.addEventListener('keydown', onKeyDown);
+        document.addEventListener('pointerdown', handleOutsidePointerDown);
+        document.addEventListener('keydown', handleKeyDown);
         return () => {
-            document.removeEventListener('pointerdown', close);
-            document.removeEventListener('keydown', onKeyDown);
+            document.removeEventListener('pointerdown', handleOutsidePointerDown);
+            document.removeEventListener('keydown', handleKeyDown);
         };
     }, [selectedBooths, onSelectBooths]);
 
-    /** 선택한 부스 전부에 항공사를 배정한다 — 배정이 끝나면 선택도 함께 푼다 */
-    const assign = (airline: string) => {
+    const assignAirline = (airline: string) => {
         if (!draft || selectedBooths.length === 0) return;
 
-        const target = new Set(selectedBooths);
+        const selectedBoothNos = new Set(selectedBooths);
         onPatch({
-            booths: draft.booths.map((booth) => (target.has(booth.no) ? { ...booth, airline } : booth)),
+            booths: draft.booths.map((booth) => (selectedBoothNos.has(booth.no) ? { ...booth, airline } : booth)),
         });
         onSelectBooths([]);
     };
@@ -135,41 +126,23 @@ export function EditDock({
                     <div className="dock__cols">
                         <section className="dock__col">
                             <p className="dsec__title">
-                                {draft.label} 아일랜드 {assignedBoothCount(draft)}석
-                                <span className="dsec__hint">끌어서 여러 석 선택</span>
+                                {draft.label} 아일랜드 {assignedBoothCount(draft)}석<span className="dsec__hint">끌어서 여러 석 선택</span>
                             </p>
 
                             <div className="booths" ref={boothsRef}>
                                 <div className="booths__row">
                                     <span className="booths__side">L</span>
-                                    <BoothGrid
-                                        booths={draft.booths}
-                                        side="L"
-                                        selected={selectedBooths}
-                                        onSelect={onSelectBooths}
-                                    />
+                                    <BoothGrid booths={draft.booths} side="L" selected={selectedBooths} onSelect={onSelectBooths} />
                                 </div>
 
                                 <span className="booths__spine" aria-hidden="true" />
 
                                 <div className="booths__row">
                                     <span className="booths__side">R</span>
-                                    <BoothGrid
-                                        booths={draft.booths}
-                                        side="R"
-                                        selected={selectedBooths}
-                                        onSelect={onSelectBooths}
-                                    />
+                                    <BoothGrid booths={draft.booths} side="R" selected={selectedBooths} onSelect={onSelectBooths} />
                                 </div>
 
-                                {popover && (
-                                    <AirlinePopover
-                                        airlines={airlines}
-                                        count={selectedBooths.length}
-                                        pos={popover}
-                                        onPick={assign}
-                                    />
-                                )}
+                                {popover && <AirlinePopover airlines={airlines} count={selectedBooths.length} pos={popover} onPick={assignAirline} />}
                             </div>
                         </section>
 

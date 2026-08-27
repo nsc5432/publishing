@@ -10,17 +10,19 @@ public class DataSetUtils {
 		throw new UnsupportedOperationException("DataSetUtils Class is Utility class.");
 	}
 
-	public static <T> List<T>  getList(DataSetObject dsObj) {
-		List<T> res = new ArrayList<>();
-		
-		if (dsObj != null) {
-			for (int i = 0; i < dsObj.size(); i++) {
-				@SuppressWarnings("unchecked") // 클라이언트에서 제네릭을 명시하기에 문제없음
-				T item = (T) dsObj.get(i);
-				res.add(item);
-			}
+	public static <T> List<T> getList(DataSetObject dsObj) {
+		List<T> result = new ArrayList<>();
+
+		if (dsObj == null) {
+			return result;
 		}
-		
-		return res;
+
+		for (int index = 0; index < dsObj.size(); index++) {
+			@SuppressWarnings("unchecked") // 클라이언트에서 제네릭을 명시하기에 문제없음
+			T item = (T) dsObj.get(index);
+			result.add(item);
+		}
+
+		return result;
 	}
 }

@@ -28,8 +28,9 @@ import aoms.pm.cast.dto.UserSmltFltPsgSaveDto;
  */
 @Mapper
 public interface CastFltPsgMapper {
+	/** tmnlIdList 가 비면 공항 전체를 집계한다. */
 	List<FltPsgRawDto> retrieveFltPsgHourList(
-		@Param("ymd") String ymd, @Param("tmnlIdList") List<String> tmnlIdList
+			@Param("ymd") String ymd, @Param("tmnlIdList") List<String> tmnlIdList
 	);
 
 	UserFltPsgRawDto retrieveUserFltPsg(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
@@ -38,9 +39,9 @@ public interface CastFltPsgMapper {
 			@Param("smltId") String smltId, @Param("tmnlId") String tmnlId
 	);
 
-	int updateUserFltPsg(UserSmltFltPsgSaveDto saveDto);
-
 	void insertUserFltPsg(UserSmltFltPsgSaveDto saveDto);
+
+	int updateUserFltPsg(UserSmltFltPsgSaveDto saveDto);
 
 	void deleteUserFltPsgHrList(UserSmltFltPsgSaveDto saveDto);
 

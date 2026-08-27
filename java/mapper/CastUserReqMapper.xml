@@ -60,7 +60,7 @@
 
     <select id="retrieveActiveReqCnt" resultType="int">
         /* CastUserReqMapper.retrieveActiveReqCnt */
-        -- 친절한 메시지를 만들기 위한 사전 검사다. 실제 방어는 TN_PM_SMLT_USER_MSTR_UX_ACTIVE 가 한다
+        <!-- 친절한 메시지를 만들기 위한 사전 검사다. 실제 방어는 TN_PM_SMLT_USER_MSTR_UX_ACTIVE 가 한다 -->
         SELECT COUNT(*) AS CNT
         FROM PMOWN.TN_PM_SMLT_USER_MSTR
         WHERE SMLT_ID = #{smltId}

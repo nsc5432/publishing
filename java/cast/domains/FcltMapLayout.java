@@ -96,12 +96,12 @@ public final class FcltMapLayout {
 
 	/** 출국장 마커 1개 */
 	public static MapMarkerDto dptgtMarker(TerminalKind tmnlId, String dptgtNo) {
-		return marker(DPTGT_MARKER_PREFIX + dptgtNo, dptgtNo, dptgtPointMap(tmnlId).get(dptgtNo));
+		return toMarker(DPTGT_MARKER_PREFIX + dptgtNo, dptgtNo, dptgtPointMap(tmnlId).get(dptgtNo));
 	}
 
 	/** 아일랜드 마커 1개 */
-	public static MapMarkerDto chknMarker(TerminalKind tmnlId, String island) {
-		return marker(island, island, islandPointMap(tmnlId).get(island));
+	public static MapMarkerDto chknMarker(TerminalKind tmnlId, String islandCd) {
+		return toMarker(islandCd, islandCd, islandPointMap(tmnlId).get(islandCd));
 	}
 
 	private static Map<String, double[]> dptgtPointMap(TerminalKind tmnlId) {
@@ -113,7 +113,7 @@ public final class FcltMapLayout {
 	}
 
 	// 배치에 없는 식별자는 도면 밖(0,0)이 아니라 좌표 없는 마커로 내려 화면이 걸러내게 둔다
-	private static MapMarkerDto marker(String markerId, String label, double[] point) {
+	private static MapMarkerDto toMarker(String markerId, String label, double[] point) {
 		MapMarkerDto result = new MapMarkerDto().withMarkerId(markerId).withLabel(label);
 
 		if (point != null) {

@@ -67,18 +67,15 @@ export function ScGrid({ gates, value, onChange, selected, onSelect, onLabelClic
     const rowsRef = useRef(rows);
     const onSelectRef = useRef(onSelect);
 
-    const dragRect = useMemo(
-        () =>
-            dragAnchor && dragCursor
-                ? {
-                      firstRow: Math.min(dragAnchor.row, dragCursor.row),
-                      lastRow: Math.max(dragAnchor.row, dragCursor.row),
-                      firstHour: Math.min(dragAnchor.hour, dragCursor.hour),
-                      lastHour: Math.max(dragAnchor.hour, dragCursor.hour),
-                  }
-                : null,
-        [dragAnchor, dragCursor],
-    );
+    const dragRect =
+        dragAnchor && dragCursor
+            ? {
+                  firstRow: Math.min(dragAnchor.row, dragCursor.row),
+                  lastRow: Math.max(dragAnchor.row, dragCursor.row),
+                  firstHour: Math.min(dragAnchor.hour, dragCursor.hour),
+                  lastHour: Math.max(dragAnchor.hour, dragCursor.hour),
+              }
+            : null;
 
     useEffect(() => {
         rowsRef.current = rows;

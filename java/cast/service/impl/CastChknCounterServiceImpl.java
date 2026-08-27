@@ -3,9 +3,7 @@ package aoms.pm.cast.service.impl;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +18,6 @@ import aoms.pm.cast.dto.ChknCounterRsrcDto;
 import aoms.pm.cast.dto.ChknCounterSearchDto;
 import aoms.pm.cast.dto.ChknCounterSlotDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
-import aoms.pm.cast.dto.MapCgnStatDto;
 import aoms.pm.cast.dto.MapChknRsltDto;
 import aoms.pm.cast.dto.MapNoticeDto;
 import aoms.pm.cast.dto.MapNoticeItemDto;
@@ -70,18 +67,14 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 	/** 보유 카운터 집계 대상 : A, B 유인 체크인카운터 */
 	private static final List<String> BOOTH_USE_CRG_TYPE_CD_LIST = List.of("A", "B");
 
-	private static final String EMPTY = "";
 	private static final String USE_YN_Y = "Y";
 	private static final String USE_YN_N = "N";
 	private static final String ISLAND_NM_PREFIX = "아일랜드 ";
 
-	/** 타임라인 구간 : 00:00 ~ 24:00 을 30분으로 나눈다 (새벽 출발편 때문에 이른 시각도 연다) */
-	private static final int SLOT_BGN_MIN = 0;
-	private static final int SLOT_END_MIN = 24 * 60;
-	private static final int SLOT_STEP_MIN = 30;
+	/** 타임라인 시작 시각 — 새벽 출발편 때문에 이른 시각도 연다 */
+	private static final int SLOT_BGN_HOUR = 0;
 
 	private static final int PERCENT = 100;
-	private static final int MINUTE_PER_HOUR = 60;
 	private static final int NOTICE_ITEM_LIMIT = 6; // 알림 목록이 요약 바를 밀어내지 않는 상한
 
 	private final CastChknMapper castChknMapper;
@@ -113,7 +106,9 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		result.setSmltId(searchDto.getSmltId());
 		result.setTmnlId(tmnlId.getValue());
 		result.setTotCnt(totCnt);
-		result.setOprIslandCnt((int) islandList.stream().filter(x -> USE_YN_Y.equals(x.getUseYn())).count());
+		result.setOprIslandCnt((int) islandList.stream()
+				.filter(island -> USE_YN_Y.equals(island.getUseYn()))
+				.count());
 		result.setPeakCounterCnt(rsrcList.stream().mapToInt(ChknCounterRsrcDto::getCounterCnt).max().orElse(0));
 		result.setTotKioskCnt(islandList.stream().mapToInt(ChknCounterIslandDto::getKioskCnt).sum());
 		result.setTotBagDropCnt(islandList.stream().mapToInt(ChknCounterIslandDto::getBagDropCnt).sum());
@@ -128,49 +123,9 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 
 	/* ================= 결과 조회 ================= */
 
-	// 하루치를 시각별로 나누고, 아일랜드 하나에 걸린 여러 시설(유인 · 키오스크 · 백드롭)은 한 건으로 접는다
 	private Map<String, Map<String, SmltRsltRawDto>> retrieveUnitRsltDayMap(ChknCounterSearchDto searchDto) {
-		List<SmltRsltRawDto> rsltList = castMapMapper.retrieveMapRsltDayList(
-				searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId(), CHKN_FCLT_CD_LIST);
-
-		Map<String, List<SmltRsltRawDto>> timeMap = rsltList.stream()
-				.collect(Collectors.groupingBy(SmltRsltRawDto::getTime, LinkedHashMap::new, Collectors.toList()));
-
-		Map<String, Map<String, SmltRsltRawDto>> result = new LinkedHashMap<>();
-
-		for (Map.Entry<String, List<SmltRsltRawDto>> entry : timeMap.entrySet()) {
-			result.put(entry.getKey(), foldByUnitCd(entry.getValue()));
-		}
-
-		return result;
-	}
-
-	// 대기는 가장 나쁜 값(최댓값), 처리인원은 합산 — 맵형태보기 · 출국장과 같은 규칙이다
-	private Map<String, SmltRsltRawDto> foldByUnitCd(List<SmltRsltRawDto> rsltList) {
-		Map<String, SmltRsltRawDto> result = new LinkedHashMap<>();
-
-		for (SmltRsltRawDto rslt : rsltList) {
-			String unitCd = rslt.getUnitCd() != null ? rslt.getUnitCd().trim() : EMPTY;
-
-			if (unitCd.isEmpty()) {
-				continue;
-			}
-
-			SmltRsltRawDto merged = result.get(unitCd);
-
-			if (merged == null) {
-				rslt.setUnitCd(unitCd);
-				result.put(unitCd, rslt);
-				continue;
-			}
-
-			merged.setWtngPsgCnt(Math.max(merged.getWtngPsgCnt(), rslt.getWtngPsgCnt()));
-			merged.setTrnstPsgCnt(merged.getTrnstPsgCnt() + rslt.getTrnstPsgCnt());
-			merged.setWtngHr(Math.max(merged.getWtngHr(), rslt.getWtngHr()));
-			merged.setPrcsHr(Math.max(merged.getPrcsHr(), rslt.getPrcsHr()));
-		}
-
-		return result;
+		return SmltUtils.foldByTimeAndUnitCd(castMapMapper.retrieveMapRsltDayList(
+				searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId(), CHKN_FCLT_CD_LIST));
 	}
 
 	/* ================= 아일랜드 ================= */
@@ -183,63 +138,67 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 			String fcltTmnlId, SmltStngDto smltStng, List<CknctCntRawDto> cknctCntList) {
 		Map<String, List<UserConfigChknDto>> boothMap = castUserConfigService
 				.retrieveChknMapGroupByIsland(smltStng.getExcnYmd(), fcltTmnlId);
-		Map<String, List<SlfDeviceCntRawDto>> slfMap = castSlfchknService.retrieveSlfDeviceCntList(fcltTmnlId)
+		Map<String, List<SlfDeviceCntRawDto>> slfDeviceMap = castSlfchknService.retrieveSlfDeviceCntList(fcltTmnlId)
 				.stream().collect(Collectors.groupingBy(SlfDeviceCntRawDto::getIsland));
 
 		List<ChknCounterIslandDto> result = new ArrayList<>();
 
 		for (CknctCntRawDto cknctCnt : cknctCntList) {
-			String island = cknctCnt.getIsland();
-			List<UserConfigChknDto> booths = boothMap.getOrDefault(island, new ArrayList<>());
+			String islandCd = cknctCnt.getIsland();
 
-			result.add(toIsland(cknctCnt, booths, slfMap.getOrDefault(island, new ArrayList<>())));
+			result.add(toIsland(
+					cknctCnt,
+					boothMap.getOrDefault(islandCd, new ArrayList<>()),
+					slfDeviceMap.getOrDefault(islandCd, new ArrayList<>())));
 		}
 
 		return result;
 	}
 
 	private ChknCounterIslandDto toIsland(
-			CknctCntRawDto cknctCnt, List<UserConfigChknDto> booths, List<SlfDeviceCntRawDto> slfDevices) {
+			CknctCntRawDto cknctCnt, List<UserConfigChknDto> boothList, List<SlfDeviceCntRawDto> slfDeviceList) {
 		ChknCounterIslandDto result = new ChknCounterIslandDto();
-		boolean opr = !booths.isEmpty();
+		boolean opr = !boothList.isEmpty();
 
 		result.setIsland(cknctCnt.getIsland());
 		result.setFcltNm(ISLAND_NM_PREFIX + cknctCnt.getIsland());
 		result.setTotCnt(cknctCnt.getCknctCnt());
 		// 운영 카운터는 보유 대수가 아니라 그날 배정된 부스 수다 (사용자 시뮬레이션 탭과 같은 기준)
-		result.setCounterCnt(booths.size());
-		result.setKioskCnt(opr ? getDeviceCnt(slfDevices, SlfType.KIOSK) : 0);
-		result.setBagDropCnt(opr ? getDeviceCnt(slfDevices, SlfType.SBD) : 0);
-		result.setAlnCdList(getAlnCdList(booths));
-		result.setOprTimeList(getOprTimeList(booths));
+		result.setCounterCnt(boothList.size());
+		result.setKioskCnt(opr ? getDeviceCnt(slfDeviceList, SlfType.KIOSK) : 0);
+		result.setBagDropCnt(opr ? getDeviceCnt(slfDeviceList, SlfType.SBD) : 0);
+		result.setAlnCdList(getAlnCdList(boothList));
+		result.setOprTimeList(getOprTimeList(boothList));
 		result.setUseYn(opr ? USE_YN_Y : USE_YN_N);
 
 		return result;
 	}
 
 	// 배정 항공사 — 부스마다 되풀이되므로 중복을 접고 코드 순으로 둔다
-	private List<String> getAlnCdList(List<UserConfigChknDto> booths) {
-		return new ArrayList<>(booths.stream()
+	private List<String> getAlnCdList(List<UserConfigChknDto> boothList) {
+		return new ArrayList<>(boothList.stream()
 				.map(UserConfigChknDto::getAlnCd)
-				.filter(x -> x != null && !x.isEmpty())
+				.filter(alnCd -> alnCd != null && !alnCd.isEmpty())
 				.sorted()
 				.collect(Collectors.toCollection(LinkedHashSet::new)));
 	}
 
 	// 아일랜드 운영시간 = 부스별 배정 구간을 합친 것 (붙어 있는 구간은 하나로 이어진다)
-	private List<OprTimeDto> getOprTimeList(List<UserConfigChknDto> booths) {
-		List<TimeRange> boothRanges = booths.stream()
-				.flatMap(x -> x.getTimeRanges().stream())
+	private List<OprTimeDto> getOprTimeList(List<UserConfigChknDto> boothList) {
+		List<TimeRange> boothTimeRangeList = boothList.stream()
+				.flatMap(booth -> booth.getTimeRanges().stream())
 				.collect(toList());
 
-		return SmltUtils.mergeTimeRanges(boothRanges).stream()
-				.map(x -> new OprTimeDto().withOperBgngHour(x.getStart()).withOperEndHour(x.getEnd()))
+		return SmltUtils.mergeTimeRanges(boothTimeRangeList).stream()
+				.map(range -> new OprTimeDto().withOperBgngHour(range.getStart()).withOperEndHour(range.getEnd()))
 				.collect(toList());
 	}
 
-	private int getDeviceCnt(List<SlfDeviceCntRawDto> slfDevices, SlfType slfType) {
-		return slfDevices.stream().filter(x -> slfType == x.getSlfType())
-				.mapToInt(SlfDeviceCntRawDto::getDeviceCnt).sum();
+	private int getDeviceCnt(List<SlfDeviceCntRawDto> slfDeviceList, SlfType slfType) {
+		return slfDeviceList.stream()
+				.filter(device -> slfType == device.getSlfType())
+				.mapToInt(SlfDeviceCntRawDto::getDeviceCnt)
+				.sum();
 	}
 
 	/* ================= 시간대별 자원 ================= */
@@ -261,19 +220,20 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 
 		for (String hour : TimeBucketUtils.hourList()) {
 			int hourValue = Integer.parseInt(hour);
-			List<ChknCounterIslandDto> openList = islandList.stream()
-					.filter(x -> isOpr(x.getOprTimeList(), hourValue)).collect(toList());
-			int counterCnt = openList.stream().mapToInt(ChknCounterIslandDto::getCounterCnt).sum();
+			List<ChknCounterIslandDto> oprIslandList = islandList.stream()
+					.filter(island -> isOpr(island.getOprTimeList(), hourValue))
+					.collect(toList());
+			int counterCnt = oprIslandList.stream().mapToInt(ChknCounterIslandDto::getCounterCnt).sum();
 
-			ChknCounterRsrcDto item = new ChknCounterRsrcDto().withHour(hourValue);
-			item.setCounterCnt(counterCnt);
-			item.setKioskCnt(openList.stream().mapToInt(ChknCounterIslandDto::getKioskCnt).sum());
-			item.setBagDropCnt(openList.stream().mapToInt(ChknCounterIslandDto::getBagDropCnt).sum());
-			item.setWtngPsgCnt(waitMap.getOrDefault(hourValue, 0));
-			item.setPrcsPsgCnt(getPrcsPsgCnt(chknDayMap, hour));
-			item.setUtilRate(totCnt == 0 ? 0 : counterCnt * PERCENT / totCnt);
+			ChknCounterRsrcDto rsrc = new ChknCounterRsrcDto().withHour(hourValue);
+			rsrc.setCounterCnt(counterCnt);
+			rsrc.setKioskCnt(oprIslandList.stream().mapToInt(ChknCounterIslandDto::getKioskCnt).sum());
+			rsrc.setBagDropCnt(oprIslandList.stream().mapToInt(ChknCounterIslandDto::getBagDropCnt).sum());
+			rsrc.setWtngPsgCnt(waitMap.getOrDefault(hourValue, 0));
+			rsrc.setPrcsPsgCnt(getPrcsPsgCnt(chknDayMap, hour));
+			rsrc.setUtilRate(totCnt == 0 ? 0 : counterCnt * PERCENT / totCnt);
 
-			result.add(item);
+			result.add(rsrc);
 		}
 
 		return result;
@@ -284,15 +244,17 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		int result = 0;
 
 		for (String bucket : TimeBucketUtils.bucketList(hour)) {
-			result += defaultMap(chknDayMap.get(bucket)).values().stream()
-					.mapToInt(SmltRsltRawDto::getTrnstPsgCnt).sum();
+			result += chknDayMap.getOrDefault(bucket, Map.of()).values().stream()
+					.mapToInt(SmltRsltRawDto::getTrnstPsgCnt)
+					.sum();
 		}
 
 		return result;
 	}
 
 	private boolean isOpr(List<OprTimeDto> oprTimeList, int hour) {
-		return oprTimeList.stream().anyMatch(x -> x.getOperBgngHour() <= hour && hour < x.getOperEndHour());
+		return oprTimeList.stream()
+				.anyMatch(oprTime -> oprTime.getOperBgngHour() <= hour && hour < oprTime.getOperEndHour());
 	}
 
 	// 가동률 = 운영 카운터·시간 합 / (전체 카운터 수 × 24시간) — 사용자 시뮬레이션 탭과 같은 식이다
@@ -312,8 +274,9 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 			List<ChknCounterIslandDto> islandList, Map<String, Map<String, SmltRsltRawDto>> chknDayMap) {
 		List<ChknCounterSlotDto> result = new ArrayList<>();
 
-		for (String hhmm : getTimeList()) {
-			List<MapChknRsltDto> chknRsltList = getChknRsltList(islandList, defaultMap(chknDayMap.get(hhmm)));
+		for (String hhmm : TimeBucketUtils.slotTimeList(SLOT_BGN_HOUR)) {
+			List<MapChknRsltDto> chknRsltList =
+					getChknRsltList(islandList, chknDayMap.getOrDefault(hhmm, Map.of()));
 
 			ChknCounterSlotDto slot = new ChknCounterSlotDto();
 			slot.setHhmm(hhmm);
@@ -326,21 +289,6 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		return result;
 	}
 
-	/**
-	 * 00:00 ~ 24:00 을 30분으로 나눈 눈금 — 하단 타임라인과 같은 구간이다.
-	 * 결과가 없는 구간도 자리를 비워 두지 않는다 (마지막 2400 은 하루의 끝을 닫는 눈금이라
-	 * 결과 버킷(…2330)이 없어 항상 0 이다).
-	 */
-	private List<String> getTimeList() {
-		List<String> result = new ArrayList<>();
-
-		for (int minutes = SLOT_BGN_MIN; minutes <= SLOT_END_MIN; minutes += SLOT_STEP_MIN) {
-			result.add(toHhmm(minutes));
-		}
-
-		return result;
-	}
-
 	private List<MapChknRsltDto> getChknRsltList(
 			List<ChknCounterIslandDto> islandList, Map<String, SmltRsltRawDto> chknMap) {
 		List<MapChknRsltDto> result = new ArrayList<>();
@@ -348,38 +296,16 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		for (ChknCounterIslandDto island : islandList) {
 			SmltRsltRawDto rslt = chknMap.get(island.getIsland());
 
-			MapChknRsltDto item = new MapChknRsltDto();
-			item.setUnitCd(island.getIsland());
-			item.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0));
-			item.setStat(getStat(rslt));
-			item.setPrcsRate(rslt != null ? getPrcsRate(rslt.getTrnstPsgCnt(), rslt.getWtngPsgCnt()) : 0);
+			MapChknRsltDto chknRslt = new MapChknRsltDto();
+			chknRslt.setUnitCd(island.getIsland());
+			chknRslt.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0));
+			chknRslt.setStat(SmltUtils.toCgnStat(rslt));
+			chknRslt.setPrcsRate(rslt != null ? SmltUtils.toPrcsRate(rslt.getTrnstPsgCnt(), rslt.getWtngPsgCnt()) : 0);
 
-			result.add(item);
+			result.add(chknRslt);
 		}
 
 		return result;
-	}
-
-	// 이 화면의 시간 지표는 초 단위다 (대시보드 KPI 는 분이라 환산하지 않는다)
-	private MapCgnStatDto getStat(SmltRsltRawDto rslt) {
-		MapCgnStatDto result = new MapCgnStatDto();
-
-		if (rslt == null) {
-			return result;
-		}
-
-		result.setWtngPsgCnt(rslt.getWtngPsgCnt());
-		result.setWtngHr(rslt.getWtngHr());
-		result.setPrcsPsgCnt(rslt.getTrnstPsgCnt());
-		result.setPrcsHr(rslt.getPrcsHr());
-
-		return result;
-	}
-
-	private int getPrcsRate(int prcsPsgCnt, int wtngPsgCnt) {
-		int total = prcsPsgCnt + wtngPsgCnt;
-
-		return total == 0 ? 0 : prcsPsgCnt * PERCENT / total;
 	}
 
 	/* ================= 혼잡 알림 ================= */
@@ -420,14 +346,4 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		return result;
 	}
 
-	/* ================= 시각 ================= */
-
-	private Map<String, SmltRsltRawDto> defaultMap(Map<String, SmltRsltRawDto> rsltMap) {
-		return rsltMap != null ? rsltMap : Collections.emptyMap();
-	}
-
-	// 24:00 은 다음 날 00:00 이 아니라 마지막 눈금이라 2400 그대로 둔다
-	private String toHhmm(int minutes) {
-		return String.format("%02d%02d", minutes / MINUTE_PER_HOUR, minutes % MINUTE_PER_HOUR);
-	}
 }

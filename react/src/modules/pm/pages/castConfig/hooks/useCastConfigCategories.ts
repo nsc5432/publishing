@@ -1,11 +1,9 @@
-import { useMemo } from 'react';
 import { castConfigService } from '@/api/pm/services/castConfig.service';
 import { unwrap } from '@/api/pm/result';
 import { useFetched } from '@/hooks/useFetched';
 import type { Category, TerminalKind } from '../types';
 import { EMPTY_CAST_CONFIG_CATEGORIES, toCastConfigCategories } from '../view';
 
-/** 조회 전·실패에도 빈 목록으로 내려주므로 화면은 null 을 다루지 않는다 */
 export interface FetchedCategories {
     data: Category[];
     error: string;
@@ -25,12 +23,9 @@ export function useCastConfigCategories(query: CastConfigCategoryQuery | null): 
         CATEGORY_LIST_FAIL,
     );
 
-    return useMemo(
-        () => ({
-            data: categories.data ? toCastConfigCategories(categories.data) : EMPTY_CAST_CONFIG_CATEGORIES,
-            error: categories.error,
-            token: categories.token,
-        }),
-        [categories],
-    );
+    return {
+        data: categories.data ? toCastConfigCategories(categories.data) : EMPTY_CAST_CONFIG_CATEGORIES,
+        error: categories.error,
+        token: categories.token,
+    };
 }

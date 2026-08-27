@@ -4,26 +4,26 @@
 <mapper namespace="aoms.pm.cast.mapper.CastSmltMapper">
     <select id="retrieveSmltStng" parameterType="aoms.pm.cast.dto.SmltStngSearchDto" resultType="aoms.pm.cast.dto.SmltStngDto">
         /* CastSmltMapper.retrieveSmltStng */
-        SELECT 
-		    SMLT_ID, SMLT_MDL_SN, SMLT_NM, SMLT_TYPE, CRTR_DT, EXCN_YMD, TMNL_ID, SLF_ID, PRNT_ID, 
-		    FLT_SCHDL_RSRC_ID, BAG_ALCTN_RSRC_ID, CKNCT_ALCTN_RSRC_ID, PRPT_SET_RSRC_ID, MDL_RSRC_ID, 
-		    EXCN_ID, CKNCT_SRVC_HR_RSRC_ID, CHKN_TYPE_RSRC_ID, FCLTY_OPNG_DPTCNY_SRNG_RSRC_ID,
-		    FCLTY_OPNG_EMI_RSRC_ID, FCLTY_OPNG_IMMI_RSRC_ID,
-		    FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID, FCLTY_OPNG_TR_SCRTY_CNTRL_RSRC_ID,
-		    SBD_CNTRL_ALCTN_ID, PLAN_BGNG_DT, PLAN_END_DT, SMLT_BGNG_DT, SMLT_END_DT, BDPSG_ANCE_YN
-		FROM PMOWN.TN_PM_SMLT_STNG
-		WHERE 1 = 1
-		<if test="smltId != null and smltId != ''">
-    		AND SMLT_ID = #{smltId} 
-		</if>
-		<if test="excnYmd != null and excnYmd != ''"> 
-	       	AND EXCN_YMD = #{excnYmd}
-		</if>
-		<if test="smltType != null and smltType != ''"> 
-            AND SMLT_TYPE = #{smltType}
-		</if>
+        SELECT
+            SMLT_ID, SMLT_MDL_SN, SMLT_NM, SMLT_TYPE, CRTR_DT, EXCN_YMD, TMNL_ID, SLF_ID, PRNT_ID,
+            FLT_SCHDL_RSRC_ID, BAG_ALCTN_RSRC_ID, CKNCT_ALCTN_RSRC_ID, PRPT_SET_RSRC_ID, MDL_RSRC_ID,
+            EXCN_ID, CKNCT_SRVC_HR_RSRC_ID, CHKN_TYPE_RSRC_ID, FCLTY_OPNG_DPTCNY_SRNG_RSRC_ID,
+            FCLTY_OPNG_EMI_RSRC_ID, FCLTY_OPNG_IMMI_RSRC_ID,
+            FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID, FCLTY_OPNG_TR_SCRTY_CNTRL_RSRC_ID,
+            SBD_CNTRL_ALCTN_ID, PLAN_BGNG_DT, PLAN_END_DT, SMLT_BGNG_DT, SMLT_END_DT, BDPSG_ANCE_YN
+        FROM PMOWN.TN_PM_SMLT_STNG
+        WHERE 1 = 1
+        <if test="smltId != null and smltId != ''">
+        AND SMLT_ID = #{smltId}
+        </if>
+        <if test="excnYmd != null and excnYmd != ''">
+        AND EXCN_YMD = #{excnYmd}
+        </if>
+        <if test="smltType != null and smltType != ''">
+        AND SMLT_TYPE = #{smltType}
+        </if>
     </select>
-    
+
     <select id="retrieveWaitPsgList" resultType="aoms.pm.cast.dto.WaitPsgDto">
         /* CastSmltMapper.retrieveWaitPsgList */
         SELECT
@@ -37,7 +37,6 @@
         AND B.TMNL_ID = #{tmnlId}
         AND B.USE_YN = 'Y'
         AND A.WTNG_PSG_CNT > 0
-        -- LS 랜드사이드 좌석, CC 체크인카운터, CK 셀프체크인, SBD 셀프백드랍, LGT 출국장, LC 출국심사, SC 보안검색대, SR 보안검색대RED
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
         GROUP BY TO_NUMBER(TO_CHAR(A.SMLT_ACTL_DT, 'HH24'))
         ORDER BY HOUR
@@ -62,8 +61,8 @@
 
     <select id="retrieveUserSmltCondFilledCnt" resultType="int">
         /* CastSmltMapper.retrieveUserSmltCondFilledCnt */
-        -- CAST 리소스는 운항·체크인·출국장 세 영역이 모두 있어야 완결된다.
-        -- 합계로 세면 한 영역만 저장돼도 통과하므로 각각을 본다
+        <!-- CAST 리소스는 운항·체크인·출국장 세 영역이 모두 있어야 완결된다.
+             합계로 세면 한 영역만 저장돼도 통과하므로 각각을 본다 -->
         SELECT COUNT(*) AS CNT
         FROM (
             SELECT 1 FROM DUAL
@@ -82,23 +81,32 @@
         )
     </select>
 
-    <update id="updateSmltFlfmtClosed">
-        /* CastSmltMapper.updateSmltFlfmtClosed */
-        -- 종료 처리는 진행중 건에만 건다. 재수신으로 다시 들어와도 종료일시가 덮이지 않는다
-        UPDATE PMOWN.TH_PM_SMLT_FLFMT_HSTRY
-        SET SMLT_FLFMT_STTS_CD = #{smltFlfmtSttsCd},
-            SMLT_FLFMT_END_DT = CURRENT_TIMESTAMP,
-            LAST_MDFR_ID = 'CAST',
-            LAST_MDFCN_DT = CURRENT_TIMESTAMP
-        WHERE SMLT_ID = #{smltId}
-        AND SMLT_FLFMT_SN = #{smltFlfmtSn}
-        AND SMLT_FLFMT_STTS_CD = 'RUNNING'
-    </update>
+    <select id="retrieveUserSmltSaveDt" resultType="java.lang.String">
+        /* CastSmltMapper.retrieveUserSmltSaveDt */
+        <!-- 저장은 3개 탭이 각자 테이블에 넣는다. 화면이 보여주는 것은 "마지막으로 저장한 시각" 하나다 -->
+        SELECT NVL(TO_CHAR(MAX(A.SAVE_DT), 'YYYYMMDDHH24MISS'), '') AS SAVE_DT
+        FROM (
+            SELECT MAX(NVL(LAST_MDFCN_DT, FRST_REG_DT)) AS SAVE_DT
+            FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT
+            WHERE SMLT_ID = #{smltId}
+            AND TMNL_ID = #{tmnlId}
+            UNION ALL
+            SELECT MAX(NVL(LAST_MDFCN_DT, FRST_REG_DT)) AS SAVE_DT
+            FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL
+            WHERE SMLT_ID = #{smltId}
+            AND TMNL_ID = #{tmnlId}
+            UNION ALL
+            SELECT MAX(NVL(LAST_MDFCN_DT, FRST_REG_DT)) AS SAVE_DT
+            FROM PMOWN.TN_PM_SMLT_USER_DPTGT
+            WHERE SMLT_ID = #{smltId}
+            AND TMNL_ID = #{tmnlId}
+        ) A
+    </select>
 
     <select id="retrieveNextSmltFlfmtSn" resultType="int">
         /* CastSmltMapper.retrieveNextSmltFlfmtSn */
-        -- 시퀀스가 없어 SMLT_ID 스코프의 MAX + 1 로 채번한다.
-        -- 트랜잭션 격리 수준에 의존하므로 동시 수행 시 PK 충돌로 드러난다 (지시서 5.2 관행 ②)
+        <!-- 시퀀스가 없어 SMLT_ID 스코프의 MAX + 1 로 채번한다.
+             트랜잭션 격리 수준에 의존하므로 동시 수행 시 PK 충돌로 드러난다 -->
         SELECT NVL(MAX(A.SMLT_FLFMT_SN), 0) + 1 AS SMLT_FLFMT_SN
         FROM PMOWN.TH_PM_SMLT_FLFMT_HSTRY A
         WHERE A.SMLT_ID = #{smltId}
@@ -129,20 +137,52 @@
         )
     </insert>
 
-    <select id="retrieveSmltFlfmtByKey" resultType="aoms.pm.cast.dto.SmltExcnDto">
-        /* CastSmltMapper.retrieveSmltFlfmtByKey */
-        SELECT
-            A.SMLT_ID,
-            A.SMLT_FLFMT_SN,
-            A.TMNL_ID,
-            A.SMLT_TYPE,
-            A.SMLT_FLFMT_STTS_CD,
-            TO_CHAR(A.SMLT_FLFMT_BGNG_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_BGNG_DT,
-            NVL(TO_CHAR(A.SMLT_FLFMT_END_DT, 'YYYYMMDDHH24MISS'), '') AS SMLT_FLFMT_END_DT
-        FROM PMOWN.TH_PM_SMLT_FLFMT_HSTRY A
-        WHERE 1 = 1
-        AND A.SMLT_ID = #{smltId}
-        AND A.SMLT_FLFMT_SN = #{smltFlfmtSn}
+    <update id="updateSmltFlfmtClosed">
+        /* CastSmltMapper.updateSmltFlfmtClosed */
+        <!-- 종료 처리는 진행중 건에만 건다. 재수신으로 다시 들어와도 종료일시가 덮이지 않는다 -->
+        UPDATE PMOWN.TH_PM_SMLT_FLFMT_HSTRY
+        SET SMLT_FLFMT_STTS_CD = #{smltFlfmtSttsCd},
+            SMLT_FLFMT_END_DT = CURRENT_TIMESTAMP,
+            LAST_MDFR_ID = 'CAST',
+            LAST_MDFCN_DT = CURRENT_TIMESTAMP
+        WHERE SMLT_ID = #{smltId}
+        AND SMLT_FLFMT_SN = #{smltFlfmtSn}
+        AND SMLT_FLFMT_STTS_CD = 'RUNNING'
+    </update>
+
+    <select id="retrieveSmltFlfmt" resultType="aoms.pm.cast.dto.SmltExcnDto">
+        /* CastSmltMapper.retrieveSmltFlfmt */
+        <!-- smltFlfmtSn 을 주면 그 회차를, 주지 않으면 가장 최근 회차 1건을 준다 -->
+        SELECT *
+        FROM (
+            SELECT
+                A.SMLT_ID,
+                A.SMLT_FLFMT_SN,
+                A.TMNL_ID,
+                A.SMLT_TYPE,
+                A.SMLT_FLFMT_STTS_CD,
+                TO_CHAR(A.SMLT_FLFMT_BGNG_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_BGNG_DT,
+                NVL(TO_CHAR(A.SMLT_FLFMT_END_DT, 'YYYYMMDDHH24MISS'), '') AS SMLT_FLFMT_END_DT,
+                NVL(ROUND((CAST(A.SMLT_FLFMT_END_DT AS DATE) - CAST(A.SMLT_FLFMT_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
+                A.FRST_RGTR_ID AS RGTR_ID,
+                NVL(B.EXCN_YMD, '') AS EXCN_YMD,
+                NVL(D.DEPT_NM, '') AS DEPT_NM,
+                NVL(C.USER_NM, '') AS USER_NM
+            FROM PMOWN.TH_PM_SMLT_FLFMT_HSTRY A
+                LEFT OUTER JOIN PMOWN.TN_PM_SMLT_STNG B
+                ON A.SMLT_ID = B.SMLT_ID
+                LEFT OUTER JOIN CAOWN.TN_CA_USER C
+                ON A.FRST_RGTR_ID = C.USER_ID
+                LEFT OUTER JOIN CAOWN.TN_CA_DEPT D
+                ON C.DEPT_CD = D.DEPT_CD
+            WHERE 1 = 1
+            AND A.SMLT_ID = #{smltId}
+            <if test="smltFlfmtSn != null">
+            AND A.SMLT_FLFMT_SN = #{smltFlfmtSn}
+            </if>
+            ORDER BY A.SMLT_FLFMT_SN DESC
+        )
+        WHERE ROWNUM = 1
     </select>
 
     <select id="retrieveSmltFlfmtList" resultType="aoms.pm.cast.dto.SmltExcnDto">
@@ -172,8 +212,8 @@
 
     <select id="retrieveSmltFlfmtSmry" resultType="aoms.pm.cast.dto.SmltExcnCntRawDto">
         /* CastSmltMapper.retrieveSmltFlfmtSmry */
-        -- 평균 수행시간은 완료 건만 센다. 진행중 건을 섞으면 종료일시가 없어 평균이 0 쪽으로 끌린다.
-        -- 실패 건은 TOT_CNT 에만 들어가므로 전체 = 완료 + 진행중 이 아닐 수 있다
+        <!-- 평균 수행시간은 완료 건만 센다. 진행중 건을 섞으면 종료일시가 없어 평균이 0 쪽으로 끌린다.
+             실패 건은 TOT_CNT 에만 들어가므로 전체 = 완료 + 진행중 이 아닐 수 있다 -->
         SELECT
             COUNT(*) AS TOT_CNT,
             NVL(SUM(CASE WHEN A.SMLT_FLFMT_STTS_CD = 'DONE' THEN 1 ELSE 0 END), 0) AS DONE_CNT,
@@ -187,79 +227,5 @@
         FROM PMOWN.TH_PM_SMLT_FLFMT_HSTRY A
         WHERE 1 = 1
         AND TO_CHAR(A.SMLT_FLFMT_BGNG_DT, 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
-    </select>
-
-    <select id="retrieveSmltFlfmtDetail" resultType="aoms.pm.cast.dto.SmltExcnDto">
-        /* CastSmltMapper.retrieveSmltFlfmtDetail */
-        -- 한 시뮬레이션이 여러 번 수행됐으면 가장 최근 수행 1건을 보여준다
-        SELECT *
-        FROM (
-            SELECT
-                A.SMLT_ID,
-                A.SMLT_FLFMT_SN,
-                A.TMNL_ID,
-                A.SMLT_TYPE,
-                A.SMLT_FLFMT_STTS_CD,
-                TO_CHAR(A.SMLT_FLFMT_BGNG_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_BGNG_DT,
-                NVL(TO_CHAR(A.SMLT_FLFMT_END_DT, 'YYYYMMDDHH24MISS'), '') AS SMLT_FLFMT_END_DT,
-                NVL(ROUND((CAST(A.SMLT_FLFMT_END_DT AS DATE) - CAST(A.SMLT_FLFMT_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
-                A.FRST_RGTR_ID AS RGTR_ID,
-                NVL(B.EXCN_YMD, '') AS EXCN_YMD,
-                NVL(D.DEPT_NM, '') AS DEPT_NM,
-                NVL(C.USER_NM, '') AS USER_NM
-            FROM PMOWN.TH_PM_SMLT_FLFMT_HSTRY A
-                LEFT OUTER JOIN PMOWN.TN_PM_SMLT_STNG B
-                ON A.SMLT_ID = B.SMLT_ID
-                LEFT OUTER JOIN CAOWN.TN_CA_USER C
-                ON A.FRST_RGTR_ID = C.USER_ID
-                LEFT OUTER JOIN CAOWN.TN_CA_DEPT D
-                ON C.DEPT_CD = D.DEPT_CD
-            WHERE 1 = 1
-            AND A.SMLT_ID = #{smltId}
-            ORDER BY A.SMLT_FLFMT_SN DESC
-        )
-        WHERE ROWNUM = 1
-    </select>
-
-    <select id="retrieveUserSmltSaveDt" resultType="java.lang.String">
-        /* CastSmltMapper.retrieveUserSmltSaveDt */
-        -- 저장은 3개 탭이 각자 테이블에 넣는다. 화면이 보여주는 것은 "마지막으로 저장한 시각" 하나다
-        SELECT NVL(TO_CHAR(MAX(A.SAVE_DT), 'YYYYMMDDHH24MISS'), '') AS SAVE_DT
-        FROM (
-            SELECT MAX(NVL(LAST_MDFCN_DT, FRST_REG_DT)) AS SAVE_DT
-            FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT
-            WHERE SMLT_ID = #{smltId}
-            AND TMNL_ID = #{tmnlId}
-            UNION ALL
-            SELECT MAX(NVL(LAST_MDFCN_DT, FRST_REG_DT)) AS SAVE_DT
-            FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL
-            WHERE SMLT_ID = #{smltId}
-            AND TMNL_ID = #{tmnlId}
-            UNION ALL
-            SELECT MAX(NVL(LAST_MDFCN_DT, FRST_REG_DT)) AS SAVE_DT
-            FROM PMOWN.TN_PM_SMLT_USER_DPTGT
-            WHERE SMLT_ID = #{smltId}
-            AND TMNL_ID = #{tmnlId}
-        ) A
-    </select>
-
-    <select id="retrieveLastSmltFlfmt" resultType="aoms.pm.cast.dto.SmltExcnDto">
-        /* CastSmltMapper.retrieveLastSmltFlfmt */
-        SELECT *
-        FROM (
-            SELECT
-                A.SMLT_ID,
-                A.SMLT_FLFMT_SN,
-                A.TMNL_ID,
-                A.SMLT_TYPE,
-                A.SMLT_FLFMT_STTS_CD,
-                TO_CHAR(A.SMLT_FLFMT_BGNG_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_BGNG_DT,
-                NVL(TO_CHAR(A.SMLT_FLFMT_END_DT, 'YYYYMMDDHH24MISS'), '') AS SMLT_FLFMT_END_DT
-            FROM PMOWN.TH_PM_SMLT_FLFMT_HSTRY A
-            WHERE 1 = 1
-            AND A.SMLT_ID = #{smltId}
-            ORDER BY A.SMLT_FLFMT_SN DESC
-        )
-        WHERE ROWNUM = 1
     </select>
 </mapper>

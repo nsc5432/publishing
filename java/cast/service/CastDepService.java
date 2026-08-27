@@ -17,8 +17,8 @@ import aoms.pm.cast.dto.UserSmltDepSearchDto;
  * 수정일 / 수정자 / 수정내용
  * 2026. 03. 12. / 노세찬 / 최초작성
  * -----------------------------------------------------------------------------------
- * 
- * </pre> 
+ *
+ * </pre>
  */
 public interface CastDepService {
 	UserSmltDepDto retrieveDepInfo(UserSmltDepSearchDto searchDto);

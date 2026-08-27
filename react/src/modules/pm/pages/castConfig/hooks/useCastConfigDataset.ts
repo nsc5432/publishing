@@ -5,7 +5,6 @@ import { useFetched } from '@/hooks/useFetched';
 import type { Dataset, FacilityGroupId, TerminalKind } from '../types';
 import { EMPTY_CAST_CONFIG_DATASET, toCastConfigDataset } from '../view';
 
-/** 조회 전·실패에도 빈 데이터셋으로 내려주므로 화면은 null 을 다루지 않는다 */
 export interface FetchedDataset {
     data: Dataset;
     error: string;
@@ -17,7 +16,6 @@ export interface CastConfigDatasetQuery {
     categoryCode: string;
     groupId: FacilityGroupId;
     sheetName: string;
-    /** 조건이 같아도 다시 조회해야 할 때 올린다 (저장·초기화·업로드 직후) */
     reloadToken: number;
 }
 

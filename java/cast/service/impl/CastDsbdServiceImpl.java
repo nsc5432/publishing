@@ -55,9 +55,11 @@ import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.SmltType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDsbdMapper;
+import aoms.pm.cast.mapper.CastFltPsgMapper;
 import aoms.pm.cast.service.CastDsbdService;
 import aoms.pm.cast.service.FcltRecommendationCalculator;
 import aoms.pm.cast.service.CastSmltService;
+import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -82,7 +84,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private static final int MIN_PER_DAY = 24 * MIN_PER_HOUR;
 	private static final int HHMM_LENGTH = 4;
 	private static final int NOON_HOUR = 12;
-	private static final int PERCENT = 100;
 	private static final int DAYS_A_WEEK = 7;
 	private static final int DEFAULT_ITVL_MIN = 60; // 요약 블록의 구간 집계 기본 길이(분)
 	private static final int FCLT_ROLLING_MIN = 60;
@@ -100,6 +101,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private static final Set<String> SCRTY_RECOMMEND_FCLT_CD_SET = Set.of("SC", "SR");
 
 	private final CastDsbdMapper castDsbdMapper;
+	private final CastFltPsgMapper castFltPsgMapper;
 	private final CastSmltService castSmltService;
 
 	@Override
@@ -134,7 +136,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		String ymd = searchDto.getYmd();
 
 		// 운항계획 카드는 공항 전체다. 터미널 목록을 주지 않으면 매퍼가 터미널 조건을 걸지 않는다
-		FltSmryRawDto fltSmry = castDsbdMapper.retrieveFltSmry(ymd, null);
+		FltSmryRawDto fltSmry = castDsbdMapper.retrieveFltSmry(ymd, null, null, null);
 		List<HourlyPsgDto> hourlyPsgList = new ArrayList<>();
 
 		for (TerminalKind tmnlId : TerminalKind.getList()) {
@@ -159,9 +161,9 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(searchDto.getSmltId());
 		LocalDate baseDate = parseYmd(smltStng.getExcnYmd());
 
-		FltSmryRawDto baseFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList);
-		FltSmryRawDto befFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList);
-		FltSmryRawDto lastWeekFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(DAYS_A_WEEK)), fltTmnlIdList);
+		FltSmryRawDto baseFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList, null, null);
+		FltSmryRawDto befFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, null, null);
+		FltSmryRawDto lastWeekFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(DAYS_A_WEEK)), fltTmnlIdList, null, null);
 
 		result.setTmnlId(tmnlId.getValue());
 		result.setFltCnt(baseFltSmry.getDepFltCnt());
@@ -193,8 +195,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				.stream().collect(Collectors.toMap(SmltRsltRawDto::getTime, Function.identity(), (first, ignored) -> first));
 
 		// 여객수 축은 결과 상세가 아니라 운항 원본에서 온다. 운항편 타일이면 편수를 그 자리에 쓴다
-		Map<String, FltPsgRawDto> fltPsgMap = castDsbdMapper
-				.retrieveHourlyFltPsgList(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList())
+		Map<String, FltPsgRawDto> fltPsgMap = castFltPsgMapper
+				.retrieveFltPsgHourList(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList())
 				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
 		// 실적선은 시뮬레이션이 아니라 실측(Xovis)이다. 아직 지나지 않은 시간대는 원천에 행이 없다
@@ -234,15 +236,15 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(searchDto.getSmltId());
 		RollingRange range = getRollingRange(smltStng.getExcnYmd(), searchDto.getHhmm());
 		List<SmltRsltRawDto> rawSlotList = castDsbdMapper.retrieveRsltByUnitList(
-				searchDto.getSmltId(), fcltTmnlId, range.getBgnDt(), range.getEndDt(), cardFcltCdList);
+				searchDto.getSmltId(), fcltTmnlId, range.getBgnDt(), range.getEndDt(), null, cardFcltCdList);
 		Map<String, List<SmltRsltRawDto>> displaySlotMap = mergeSlotsByUnit(rawSlotList, Set.copyOf(cardFcltCdList));
 		Map<String, List<SmltRsltRawDto>> recommendSlotMap = mergeSlotsByUnit(rawSlotList, recommendFcltCdSet);
 		Map<String, SmltRsltRawDto> displayRsltMap = aggregateByUnit(displaySlotMap);
 		Map<String, SmltRsltRawDto> recommendRsltMap = aggregateByUnit(recommendSlotMap);
 
 		if (range.hasEndSnapshot()) {
-			List<SmltRsltRawDto> endSnapshotList = castDsbdMapper.retrieveRsltAtTimeList(
-					searchDto.getSmltId(), fcltTmnlId, range.getEndDt(), new ArrayList<>(recommendFcltCdSet));
+			List<SmltRsltRawDto> endSnapshotList = castDsbdMapper.retrieveRsltByUnitList(
+					searchDto.getSmltId(), fcltTmnlId, null, null, range.getEndDt(), new ArrayList<>(recommendFcltCdSet));
 			appendSlots(recommendSlotMap, mergeSlotsByUnit(endSnapshotList, recommendFcltCdSet));
 		}
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, cardFcltCdList)
@@ -252,12 +254,13 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		List<FcltUnitDto> unitList = getUnitList(unitMap, recommendRsltMap, gradeScale, searchDto, fcltGroupCd);
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
-		List<SmltRsltRawDto> ordered = displayRsltMap.values().stream()
+		// 카드는 대기인원이 많은 순으로 상한만큼만 만든다
+		List<SmltRsltRawDto> topRsltList = displayRsltMap.values().stream()
 				.sorted(Comparator.comparingInt(SmltRsltRawDto::getWtngPsgCnt).reversed())
 				.limit(CARD_CNT_LIMIT)
 				.collect(toList());
 
-		for (SmltRsltRawDto rslt : ordered) {
+		for (SmltRsltRawDto rslt : topRsltList) {
 			String unitCd = rslt.getUnitCd();
 			SmltRsltRawDto recommendRslt = requireRecommendationRslt(
 					recommendRsltMap.get(unitCd), searchDto, fcltType, fcltGroupCd, unitCd);
@@ -375,8 +378,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		}
 
 		String endHhmm = getEndHhmm(bgnHhmm, itvlMin);
-		FltSmryRawDto baseItvl = castDsbdMapper.retrieveFltSmryByTime(formatYmd(baseDate), fltTmnlIdList, bgnHhmm, endHhmm);
-		FltSmryRawDto befItvl = castDsbdMapper.retrieveFltSmryByTime(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, bgnHhmm, endHhmm);
+		FltSmryRawDto baseItvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList, bgnHhmm, endHhmm);
+		FltSmryRawDto befItvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, bgnHhmm, endHhmm);
 
 		result.setItvlFltCnt(baseItvl.getDepFltCnt());
 		result.setItvlPsgCnt(baseItvl.getDepPsgCnt());
@@ -429,7 +432,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			result.setWtngHr(rslt.getWtngHr() / SEC_PER_MIN);
 			result.setPrcsPsgCnt(rslt.getTrnstPsgCnt());
 			result.setPrcsHr(rslt.getPrcsHr() / SEC_PER_MIN);
-			result.setPrcsRate(getPrcsRate(rslt.getTrnstPsgCnt(), rslt.getWtngPsgCnt()));
+			result.setPrcsRate(SmltUtils.toPrcsRate(rslt.getTrnstPsgCnt(), rslt.getWtngPsgCnt()));
 		}
 
 		// 측정값이 없는 시간대는 0 이 아니라 null 이다 — 실적선을 끊어 그린다
@@ -438,12 +441,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setLastWeekWtngPsgCnt(lastWeekPsgWtng == null ? 0 : lastWeekPsgWtng.getWtngPsgCnt());
 
 		return result;
-	}
-
-	private int getPrcsRate(int prcsPsgCnt, int wtngPsgCnt) {
-		int total = prcsPsgCnt + wtngPsgCnt;
-
-		return total == 0 ? 0 : prcsPsgCnt * PERCENT / total;
 	}
 
 	private List<String> getCardFcltCdList(FcltType fcltType) {
@@ -597,7 +594,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setOprCnt(unit != null ? unit.getOprCnt() : 0);
 		result.setWtngPsgCnt(displayRslt.getWtngPsgCnt());
 		result.setHrlyPrcsPsgCnt(toPaxPerMin(displayRslt.getTrnstPsgCnt(), range.getActualMinutes()));
-		result.setHrlyPrcsRate(getPrcsRate(displayRslt.getTrnstPsgCnt(), displayRslt.getWtngPsgCnt()));
+		result.setHrlyPrcsRate(SmltUtils.toPrcsRate(displayRslt.getTrnstPsgCnt(), displayRslt.getWtngPsgCnt()));
 		result.setCgnClearTime(range.getBgnDt().plusMinutes(calculation.getClearMinutes()).format(DateTimeFormatter.ofPattern("HHmm")));
 		result.setCgnClearRate(0);
 		result.setCgnStatus(gradeScale.statusOf(recommendRslt.getWtngPsgCnt(), "unitCd=" + unitCd));
@@ -817,6 +814,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				fcltTmnlId,
 				range.getDayStart(),
 				range.getBgnDt(),
+				null,
 				new ArrayList<>(recommendFcltCdSet));
 		List<SmltRsltRawDto> priorSlotList = mergeSlotsByUnit(priorRawList, recommendFcltCdSet)
 				.getOrDefault(unitCd, List.of());
@@ -896,6 +894,35 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	private String gradeContext(DsbdSearchDto searchDto, String fcltGroupCd, String unitCd) {
 		return baseContext(searchDto) + ", fcltGroupCd=" + fcltGroupCd + ", unitCd=" + unitCd;
+	}
+
+	// 재계산 주기가 확인되지 않아 다음 정시를 예정 시각으로 본다
+	private String getNextCalcDt(String lastCalcDt) {
+		if (lastCalcDt == null || lastCalcDt.length() != DT_FORMAT.length()) {
+			return EMPTY;
+		}
+
+		LocalDateTime lastCalc = LocalDateTime.parse(lastCalcDt, DateTimeFormatter.ofPattern(DT_FORMAT));
+
+		return lastCalc.plusHours(1).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern(DT_FORMAT));
+	}
+
+	// 예측시분(PREDC_HM)에 날짜가 없어 자정을 넘는 구간은 그날 끝까지로 자른다
+	private String getEndHhmm(String bgnHhmm, int itvlMin) {
+		int endMin = Integer.parseInt(bgnHhmm.substring(0, 2)) * MIN_PER_HOUR
+				+ Integer.parseInt(bgnHhmm.substring(2, HHMM_LENGTH)) + itvlMin;
+
+		return endMin >= MIN_PER_DAY
+				? DAY_END_HHMM
+				: String.format("%02d%02d", endMin / MIN_PER_HOUR, endMin % MIN_PER_HOUR);
+	}
+
+	private LocalDate parseYmd(String ymd) {
+		return LocalDate.parse(ymd, DateTimeFormatter.ofPattern(YMD_FORMAT));
+	}
+
+	private String formatYmd(LocalDate date) {
+		return date.format(DateTimeFormatter.ofPattern(YMD_FORMAT));
 	}
 
 	private static final class RollingRange {
@@ -1095,34 +1122,5 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		private BigDecimal getNormalMax() {
 			return normalMax;
 		}
-	}
-
-	// 재계산 주기가 확인되지 않아 다음 정시를 예정 시각으로 본다
-	private String getNextCalcDt(String lastCalcDt) {
-		if (lastCalcDt == null || lastCalcDt.length() != DT_FORMAT.length()) {
-			return EMPTY;
-		}
-
-		LocalDateTime lastCalc = LocalDateTime.parse(lastCalcDt, DateTimeFormatter.ofPattern(DT_FORMAT));
-
-		return lastCalc.plusHours(1).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern(DT_FORMAT));
-	}
-
-	// 예측시분(PREDC_HM)에 날짜가 없어 자정을 넘는 구간은 그날 끝까지로 자른다
-	private String getEndHhmm(String bgnHhmm, int itvlMin) {
-		int endMin = Integer.parseInt(bgnHhmm.substring(0, 2)) * MIN_PER_HOUR
-				+ Integer.parseInt(bgnHhmm.substring(2, HHMM_LENGTH)) + itvlMin;
-
-		return endMin >= MIN_PER_DAY
-				? DAY_END_HHMM
-				: String.format("%02d%02d", endMin / MIN_PER_HOUR, endMin % MIN_PER_HOUR);
-	}
-
-	private LocalDate parseYmd(String ymd) {
-		return LocalDate.parse(ymd, DateTimeFormatter.ofPattern(YMD_FORMAT));
-	}
-
-	private String formatYmd(LocalDate date) {
-		return date.format(DateTimeFormatter.ofPattern(YMD_FORMAT));
 	}
 }

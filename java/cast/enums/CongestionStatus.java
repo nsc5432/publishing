@@ -57,5 +57,3 @@ public enum CongestionStatus {
 		return List.of(CongestionStatus.FREE, CongestionStatus.NORMAL, CongestionStatus.BUSY, CongestionStatus.VERY_BUSY);
 	}
 }
-
-

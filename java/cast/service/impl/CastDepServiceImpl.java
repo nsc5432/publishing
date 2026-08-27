@@ -3,6 +3,7 @@ package aoms.pm.cast.service.impl;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import aoms.pm.cast.service.CastDepService;
 import aoms.pm.cast.service.CastOperHrService;
 import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.utils.SessionUtils;
+import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -59,8 +61,6 @@ public class CastDepServiceImpl implements CastDepService {
 	private static final List<String> UP_PSG_FCLT_CD_LIST = List.of("LGT"); // 출국장
 	private static final String OPR_YN_Y = "Y";
 	private static final String OPR_YN_N = "N";
-	private static final String DEFAULT_HM = "0000";
-	private static final String ZERO_MIN = "00";
 	private static final int HOUR_PER_DAY = 24;
 	private static final int PERCENT = 100;
 	private static final int FIRST_PLAN_SN = 1;
@@ -93,17 +93,15 @@ public class CastDepServiceImpl implements CastDepService {
 		return result;
 	}
 
-	/*
-	 * 저장 전략 — 전체 교체(delete-then-insert).
-	 */
+	// 저장 전략 — 전체 교체(delete-then-insert)
 	@Override
 	public JsonResponse saveDepInfo(UserSmltDepSaveDto saveDto) {
 		SessionUtils.setUserContext(saveDto, sessionService);
 
-		JsonResponse invalid = validate(saveDto);
+		JsonResponse validationError = validate(saveDto);
 
-		if (invalid != null) {
-			return invalid;
+		if (validationError != null) {
+			return validationError;
 		}
 
 		saveDto.setFcltTmnlId(saveDto.getTmnlId().getFcltTmnlId());
@@ -121,47 +119,15 @@ public class CastDepServiceImpl implements CastDepService {
 		castDepMapper.insertUserDepList(saveDto);
 
 		// INSERT ALL 은 INTO 절이 0개면 문법 오류다. 비어 있으면 호출하지 않는다
-		if (saveDto.getDptgtList().stream().anyMatch(x -> !x.getOprTimeList().isEmpty())) {
+		if (saveDto.getDptgtList().stream().anyMatch(gate -> !gate.getOprTimeList().isEmpty())) {
 			castDepMapper.insertUserDepOperHrList(saveDto);
 		}
 
-		if (saveDto.getDptgtList().stream().anyMatch(x -> !x.getPlanList().isEmpty())) {
+		if (saveDto.getDptgtList().stream().anyMatch(gate -> !gate.getPlanList().isEmpty())) {
 			castDepMapper.insertUserScPlanList(saveDto);
 		}
 
 		return new JsonResponse();
-	}
-
-	// 검증은 서비스 안에서 명시적으로 한다. 통과하면 null
-	private JsonResponse validate(UserSmltDepSaveDto saveDto) {
-		if (saveDto.getLoginUserId() == null) {
-			return new JsonResponse().error("로그인을 진행해주세요.");
-		}
-
-		if (saveDto.getSmltId() == null || saveDto.getSmltId().isEmpty() || saveDto.getTmnlId() == null) {
-			return new JsonResponse().error("저장 대상 시뮬레이션이 지정되지 않았습니다.");
-		}
-
-		return null;
-	}
-
-	// null 을 그대로 바인딩하면 Oracle 이 JdbcType 을 못 정한다. 빈 목록·기본값으로 채워 넘긴다
-	private List<DepGateDto> normalizeDepList(List<DepGateDto> dptgtList) {
-		if (dptgtList == null) {
-			return new ArrayList<>();
-		}
-
-		List<DepGateDto> result = dptgtList.stream()
-				.filter(x -> x.getDptgtNo() != null && !x.getDptgtNo().isEmpty())
-				.collect(toList());
-
-		for (DepGateDto dep : result) {
-			dep.setOprYn(OPR_YN_Y.equals(dep.getOprYn()) ? OPR_YN_Y : OPR_YN_N);
-			dep.setOprTimeList(dep.getOprTimeList() != null ? dep.getOprTimeList() : new ArrayList<>());
-			dep.setPlanList(dep.getPlanList() != null ? dep.getPlanList() : new ArrayList<>());
-		}
-
-		return result;
 	}
 
 	/*
@@ -208,10 +174,10 @@ public class CastDepServiceImpl implements CastDepService {
 				.retrieveScCntList(fcltTmnlId, smltStng.getFcltyOpngScrtyCntrlRsrcId())
 				.stream().collect(Collectors.toMap(ScCntRawDto::getDptgtNo, ScCntRawDto::getScshCntom, (first, ignored) -> first));
 
-		return getGateDatas(fcltList, operHrMap, scCntMap);
+		return toGateList(fcltList, operHrMap, scCntMap);
 	}
 
-	// 저장분 재조회 — 부모 1건에 자식 2종을 출국장 번호로 붙인다. 키 순서는 DPTGT_NO 오름차순이다
+	// 키 순서는 조회 SQL 의 DPTGT_NO 오름차순을 그대로 따른다
 	private Map<String, DepGateDto> getSavedGateMap(String smltId, String fcltTmnlId) {
 		Map<String, DepGateDto> result = new LinkedHashMap<>();
 		List<DepGateDto> savedList = castDepMapper.retrieveUserDepList(smltId, fcltTmnlId);
@@ -228,14 +194,16 @@ public class CastDepServiceImpl implements CastDepService {
 		for (DepGateDto saved : savedList) {
 			saved.setDptgtNm(saved.getDptgtNo());
 			saved.setOprTimeList(operHrMap.getOrDefault(saved.getDptgtNo(), new ArrayList<>()).stream()
-					.map(x -> new OprTimeDto().withOperBgngHour(x.getOperBgngHour()).withOperEndHour(x.getOperEndHour()))
+					.map(operHr -> new OprTimeDto()
+							.withOperBgngHour(operHr.getOperBgngHour())
+							.withOperEndHour(operHr.getOperEndHour()))
 					.collect(toList()));
 			saved.setPlanList(planMap.getOrDefault(saved.getDptgtNo(), new ArrayList<>()).stream()
-					.map(x -> new ScPlanDto()
-							.withPlanSn(x.getPlanSn())
-							.withOperBgngHour(x.getOperBgngHour())
-							.withOperEndHour(x.getOperEndHour())
-							.withScshCntom(x.getScshCntom()))
+					.map(plan -> new ScPlanDto()
+							.withPlanSn(plan.getPlanSn())
+							.withOperBgngHour(plan.getOperBgngHour())
+							.withOperEndHour(plan.getOperEndHour())
+							.withScshCntom(plan.getScshCntom()))
 					.collect(toList()));
 
 			result.put(saved.getDptgtNo(), saved);
@@ -244,7 +212,7 @@ public class CastDepServiceImpl implements CastDepService {
 		return result;
 	}
 
-	private List<DepGateDto> getGateDatas(
+	private List<DepGateDto> toGateList(
 			List<DepFcltRawDto> fcltList,
 			Map<String, List<DepOperHrRawDto>> operHrMap,
 			Map<String, Integer> scCntMap
@@ -256,18 +224,18 @@ public class CastDepServiceImpl implements CastDepService {
 			List<OprTimeDto> oprTimeList = toOprTimeList(operHrMap.getOrDefault(dptgtNo, new ArrayList<>()));
 			int scshCntom = scCntMap.getOrDefault(dptgtNo, 0);
 
-			DepGateDto item = new DepGateDto();
-			item.setDptgtNo(dptgtNo);
-			item.setDptgtNm(fclt.getDptgtNm());
-			item.setOprYn(fclt.getUseYn());
-			item.setScshCntom(scshCntom);
+			DepGateDto gate = new DepGateDto();
+			gate.setDptgtNo(dptgtNo);
+			gate.setDptgtNm(fclt.getDptgtNm());
+			gate.setOprYn(fclt.getUseYn());
+			gate.setScshCntom(scshCntom);
 			// 일반/스마트패스 구분 컬럼이 없다 — 4단계에서 컬럼 신설 후 채운다
-			item.setGnrlSrchCntom(0);
-			item.setSmartPassSrchCntom(0);
-			item.setOprTimeList(oprTimeList);
-			item.setPlanList(toPlanList(oprTimeList, scshCntom));
+			gate.setGnrlSrchCntom(0);
+			gate.setSmartPassSrchCntom(0);
+			gate.setOprTimeList(oprTimeList);
+			gate.setPlanList(toPlanList(oprTimeList, scshCntom));
 
-			result.add(item);
+			result.add(gate);
 		}
 
 		return result;
@@ -275,8 +243,10 @@ public class CastDepServiceImpl implements CastDepService {
 
 	private List<OprTimeDto> toOprTimeList(List<DepOperHrRawDto> operHrList) {
 		return operHrList.stream()
-				.map(x -> new OprTimeDto().withOperBgngHour(toBgnHour(x.getBgnHm())).withOperEndHour(toEndHour(x.getBgnHm(), x.getEndHm())))
-				.sorted((a, b) -> a.getOperBgngHour() - b.getOperBgngHour())
+				.map(operHr -> new OprTimeDto()
+						.withOperBgngHour(SmltUtils.toBgnHour(operHr.getBgnHm()))
+						.withOperEndHour(SmltUtils.toEndHour(operHr.getBgnHm(), operHr.getEndHm())))
+				.sorted(Comparator.comparingInt(OprTimeDto::getOperBgngHour))
 				.collect(toList());
 	}
 
@@ -295,29 +265,13 @@ public class CastDepServiceImpl implements CastDepService {
 		int operBgngHour = oprTimeList.stream().mapToInt(OprTimeDto::getOperBgngHour).min().orElse(0);
 		int operEndHour = oprTimeList.stream().mapToInt(OprTimeDto::getOperEndHour).max().orElse(0);
 
-		result.add(new ScPlanDto().withPlanSn(FIRST_PLAN_SN).withScshCntom(scshCntom).withOperBgngHour(operBgngHour).withOperEndHour(operEndHour));
+		result.add(new ScPlanDto()
+				.withPlanSn(FIRST_PLAN_SN)
+				.withScshCntom(scshCntom)
+				.withOperBgngHour(operBgngHour)
+				.withOperEndHour(operEndHour));
 
 		return result;
-	}
-
-	private int toBgnHour(String hhmm) {
-		return Integer.parseInt(defaultHm(hhmm).substring(0, 2));
-	}
-
-	// 종료 시각은 분이 남으면 다음 시로 올린다. 자정 넘김(RON)은 당일 24시로 자른다
-	private int toEndHour(String bgnHm, String endHm) {
-		String value = defaultHm(endHm);
-		int hour = Integer.parseInt(value.substring(0, 2));
-
-		if (!ZERO_MIN.equals(value.substring(2, 4))) {
-			hour++;
-		}
-
-		return hour <= toBgnHour(bgnHm) ? HOUR_PER_DAY : hour;
-	}
-
-	private String defaultHm(String hhmm) {
-		return hhmm != null && hhmm.length() >= 4 ? hhmm : DEFAULT_HM;
 	}
 
 	/*
@@ -330,7 +284,10 @@ public class CastDepServiceImpl implements CastDepService {
 
 		for (String hour : TimeBucketUtils.hourList()) {
 			int hourValue = Integer.parseInt(hour);
-			result.add(dptgtList.stream().filter(x -> isOpr(x, hourValue)).mapToInt(x -> getScshCntom(x, hourValue)).sum());
+			result.add(dptgtList.stream()
+					.filter(gate -> isOpr(gate, hourValue))
+					.mapToInt(gate -> getScshCntom(gate, hourValue))
+					.sum());
 		}
 
 		return result;
@@ -339,7 +296,7 @@ public class CastDepServiceImpl implements CastDepService {
 	// 운영시간 안인데 운영계획이 없는 시간은 0 대다 — 화면은 이것을 붉은 0 으로 그린다
 	private int getScshCntom(DepGateDto gate, int hour) {
 		return gate.getPlanList().stream()
-				.filter(x -> x.getOperBgngHour() <= hour && hour < x.getOperEndHour())
+				.filter(plan -> plan.getOperBgngHour() <= hour && hour < plan.getOperEndHour())
 				.mapToInt(ScPlanDto::getScshCntom)
 				.findFirst()
 				.orElse(0);
@@ -347,7 +304,8 @@ public class CastDepServiceImpl implements CastDepService {
 
 	private boolean isOpr(DepGateDto gate, int hour) {
 		return OPR_YN_Y.equals(gate.getOprYn())
-				&& gate.getOprTimeList().stream().anyMatch(x -> x.getOperBgngHour() <= hour && hour < x.getOperEndHour());
+				&& gate.getOprTimeList().stream()
+						.anyMatch(oprTime -> oprTime.getOperBgngHour() <= hour && hour < oprTime.getOperEndHour());
 	}
 
 	// 가동률 = 운영 출국장·시간 합 / (전체 출국장 수 × 24시간)
@@ -360,9 +318,41 @@ public class CastDepServiceImpl implements CastDepService {
 
 		for (String hour : TimeBucketUtils.hourList()) {
 			int hourValue = Integer.parseInt(hour);
-			oprGateHour += (int) dptgtList.stream().filter(x -> isOpr(x, hourValue)).count();
+			oprGateHour += (int) dptgtList.stream().filter(gate -> isOpr(gate, hourValue)).count();
 		}
 
 		return oprGateHour * PERCENT / (dptgtList.size() * HOUR_PER_DAY);
+	}
+
+	// 통과하면 null
+	private JsonResponse validate(UserSmltDepSaveDto saveDto) {
+		if (saveDto.getLoginUserId() == null) {
+			return new JsonResponse().error("로그인을 진행해주세요.");
+		}
+
+		if (saveDto.getSmltId() == null || saveDto.getSmltId().isEmpty() || saveDto.getTmnlId() == null) {
+			return new JsonResponse().error("저장 대상 시뮬레이션이 지정되지 않았습니다.");
+		}
+
+		return null;
+	}
+
+	// null 을 그대로 바인딩하면 Oracle 이 JdbcType 을 못 정한다. 빈 목록·기본값으로 채워 넘긴다
+	private List<DepGateDto> normalizeDepList(List<DepGateDto> dptgtList) {
+		if (dptgtList == null) {
+			return new ArrayList<>();
+		}
+
+		List<DepGateDto> result = dptgtList.stream()
+				.filter(gate -> gate.getDptgtNo() != null && !gate.getDptgtNo().isEmpty())
+				.collect(toList());
+
+		for (DepGateDto gate : result) {
+			gate.setOprYn(OPR_YN_Y.equals(gate.getOprYn()) ? OPR_YN_Y : OPR_YN_N);
+			gate.setOprTimeList(gate.getOprTimeList() != null ? gate.getOprTimeList() : new ArrayList<>());
+			gate.setPlanList(gate.getPlanList() != null ? gate.getPlanList() : new ArrayList<>());
+		}
+
+		return result;
 	}
 }

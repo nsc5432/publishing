@@ -7,7 +7,7 @@ public class ResponseUtils {
 	private ResponseUtils() {
 		throw new UnsupportedOperationException("ResponseUtils Class is Utility class.");
 	}
-	
+
 	public static <T> ResponseEntity<T> res(T body) {
 		return ResponseEntity.status(HttpStatus.OK).body(body);
 	}

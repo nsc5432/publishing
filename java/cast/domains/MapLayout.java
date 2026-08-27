@@ -119,12 +119,12 @@ public final class MapLayout {
 	public static MapMarkerDto dptgtMarker(TerminalKind tmnlId, String dptgtNo) {
 		double[] point = dptgtPointMap(tmnlId).get(dptgtNo);
 
-		return marker(DPTGT_MARKER_PREFIX + dptgtNo, dptgtNo, point);
+		return toMarker(DPTGT_MARKER_PREFIX + dptgtNo, dptgtNo, point);
 	}
 
 	/** 아일랜드 마커 1개. 자리·표시 문구만 준다 (혼잡도는 슬롯이 갖는다) */
-	public static MapMarkerDto chknMarker(TerminalKind tmnlId, String island) {
-		return marker(island, island, islandPointMap(tmnlId).get(island));
+	public static MapMarkerDto chknMarker(TerminalKind tmnlId, String islandCd) {
+		return toMarker(islandCd, islandCd, islandPointMap(tmnlId).get(islandCd));
 	}
 
 	/** 출입구 게이트 마커 전체. 게이트는 혼잡도를 내려주지 않는다 */
@@ -132,7 +132,7 @@ public final class MapLayout {
 		List<MapMarkerDto> result = new ArrayList<>();
 
 		for (Map.Entry<String, double[]> entry : GATE_POINT_MAP.entrySet()) {
-			result.add(marker(GATE_MARKER_PREFIX + entry.getKey(), entry.getKey(), entry.getValue()));
+			result.add(toMarker(GATE_MARKER_PREFIX + entry.getKey(), entry.getKey(), entry.getValue()));
 		}
 
 		return result;
@@ -147,7 +147,7 @@ public final class MapLayout {
 	}
 
 	// 배치에 없는 식별자는 도면 밖(0,0)이 아니라 좌표 없는 마커로 내려 화면이 걸러내게 둔다
-	private static MapMarkerDto marker(String markerId, String label, double[] point) {
+	private static MapMarkerDto toMarker(String markerId, String label, double[] point) {
 		MapMarkerDto result = new MapMarkerDto().withMarkerId(markerId).withLabel(label);
 
 		if (point != null) {

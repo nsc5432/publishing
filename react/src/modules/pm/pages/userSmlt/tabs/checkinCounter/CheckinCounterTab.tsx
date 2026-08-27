@@ -12,20 +12,11 @@ import { ISLAND_BOOTHS, SIDE_BOOTHS } from './constants';
 import type { CheckinIsland, TerminalCheckinCounter } from './types';
 import { EMPTY_CHECKIN_COUNTER, assignedBoothCount, toBooths, toCheckinCounter, toSaveReq } from './view';
 
-/** 터미널별 편집 상태 — 아일랜드 목록 전체가 편집 대상이다 */
 type EditState = Record<TerminalKind, CheckinIsland[]>;
 
-/**
- * 도크 편집값 — 변경을 눌러야 목록(EditState)에 반영된다.
- *
- * 도크는 화면에 하나뿐이라 편집 중인 터미널을 함께 들고 있다. 초점이 옮겨 가도
- * 편집값을 버리지 않고, 그 터미널로 돌아오면 편집하던 상태가 그대로 다시 보인다.
- */
 interface DockState {
     terminal: TerminalKind;
-    /** 편집 대상. null 이면 칩 줄만 띄운 상태(아직 아일랜드를 고르지 않았다) */
     draft: CheckinIsland | null;
-    /** 편집 중인 아일랜드 문자. null 이면 신규(목록에 아직 없다) */
     target: string | null;
     selectedBooths: number[];
 }
@@ -35,15 +26,11 @@ const EMPTY_DOCK: DockState = { terminal: 'T1', draft: null, target: null, selec
 const FETCH_FAIL = '체크인 카운터 정보를 불러오지 못했습니다.';
 const SAVE_FAIL = '체크인 카운터 저장에 실패했습니다.';
 
-/** 차트 세로 층수 — 아일랜드 13개(A~N, I 제외) */
 const CHART_LEVELS = 13;
-/** 층 높이 */
 const CHART_ROW_H = 18;
 
-/** 조회 함수는 렌더마다 새로 만들지 않도록 컴포넌트 밖에 둔다 */
 const fetchChkn = (smltId: string, tmnlId: TerminalKind) => userSmltService.getChknCounterInfo(smltId, tmnlId);
 
-/** 블럭 차트 항목 — 블럭 1개가 아일랜드 1개다 */
 function toBlockItems(islands: CheckinIsland[]): BlockItem[] {
     return islands.map((island) => ({
         label: island.label,
@@ -54,7 +41,6 @@ function toBlockItems(islands: CheckinIsland[]): BlockItem[] {
     }));
 }
 
-/** 요약: 피크 카운터 = 시간대별 열린 부스 수의 최댓값 */
 function peakBooths(islands: CheckinIsland[]): number {
     const boothsByHour: number[] = Array(24).fill(0);
     islands.forEach((island) => {
@@ -67,13 +53,11 @@ function peakBooths(islands: CheckinIsland[]): number {
     return Math.max(0, ...boothsByHour);
 }
 
-/** 미운영 칩을 눌렀을 때 — 그 아일랜드 문자로 빈 값을 만든다 */
 function newIsland(terminalData: TerminalCheckinCounter, label: string): CheckinIsland {
     return {
         label,
         color: BLOCK_COLORS[terminalData.islandCodes.indexOf(label) % BLOCK_COLORS.length],
         ranges: [],
-        // 부스 수는 배정정보에서 오지만 신규는 기준이 없으므로 36석 골격을 미배정으로 연다
         booths: toBooths([]),
         kiosk: 0,
         bagdrop: 0,
@@ -81,30 +65,34 @@ function newIsland(terminalData: TerminalCheckinCounter, label: string): Checkin
 }
 
 export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTerminal, focusTerminal, onFocusChange, readOnly }: SmltTabProps) {
-    const { data: fetched, error, token } = useTerminalData(smltIds, reloadKey, fetchChkn, toCheckinCounter, FETCH_FAIL);
-    const [edit, setEdit] = useState<EditState>(EMPTY_EDIT);
+    const { data: terminalData, error, token } = useTerminalData(smltIds, reloadKey, fetchChkn, toCheckinCounter, FETCH_FAIL);
+    const [islandsByTerminal, setIslandsByTerminal] = useState<EditState>(EMPTY_EDIT);
     const [dock, setDock] = useState<DockState>(EMPTY_DOCK);
 
     useErrorAlert(error, token);
 
     useEffect(() => {
-        setEdit({ T1: fetched.T1?.islands ?? [], T2: fetched.T2?.islands ?? [] });
+        setIslandsByTerminal({
+            T1: terminalData.T1?.islands ?? [],
+            T2: terminalData.T2?.islands ?? [],
+        });
         setDock(EMPTY_DOCK);
-    }, [fetched]);
+    }, [terminalData]);
 
     const enabledCount = enabledTerminals(enabled).length;
-    const focusData = fetched[focusTerminal] ?? EMPTY_CHECKIN_COUNTER;
-    const focusIslands = edit[focusTerminal];
+    const focusData = terminalData[focusTerminal] ?? EMPTY_CHECKIN_COUNTER;
+    const focusIslands = islandsByTerminal[focusTerminal];
     const draft = dock.terminal === focusTerminal ? dock.draft : null;
 
     const openIsland = (terminal: TerminalKind, label: string) => {
         onFocusChange(terminal);
-        setDock((prev) => {
-            // 이미 편집 중이면 값을 지킨다
-            if (prev.terminal === terminal && prev.draft?.label === label) return prev;
+        setDock((previousDock) => {
+            if (previousDock.terminal === terminal && previousDock.draft?.label === label) {
+                return previousDock;
+            }
 
-            const island = edit[terminal].find((it) => it.label === label);
-            const source = fetched[terminal] ?? EMPTY_CHECKIN_COUNTER;
+            const island = islandsByTerminal[terminal].find((candidate) => candidate.label === label);
+            const source = terminalData[terminal] ?? EMPTY_CHECKIN_COUNTER;
 
             return {
                 terminal,
@@ -115,18 +103,20 @@ export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTermina
         });
     };
 
-    const patchDraft = (next: Partial<CheckinIsland>) => {
-        setDock((prev) => (prev.draft ? { ...prev, draft: { ...prev.draft, ...next } } : prev));
+    const patchDraft = (patch: Partial<CheckinIsland>) => {
+        setDock((previousDock) => (previousDock.draft ? { ...previousDock, draft: { ...previousDock.draft, ...patch } } : previousDock));
     };
 
-    /** 도크 `변경` — 신규면 목록에 더하고, 기존이면 그 자리를 갈아 끼운다 */
     const handleConfirm = () => {
         const { terminal, draft: edited, target } = dock;
         if (!edited) return;
 
-        setEdit((prev) => ({
-            ...prev,
-            [terminal]: target === null ? [...prev[terminal], edited] : prev[terminal].map((it) => (it.label === target ? edited : it)),
+        setIslandsByTerminal((previousIslands) => ({
+            ...previousIslands,
+            [terminal]:
+                target === null
+                    ? [...previousIslands[terminal], edited]
+                    : previousIslands[terminal].map((island) => (island.label === target ? edited : island)),
         }));
         setDock({ ...EMPTY_DOCK, terminal });
     };
@@ -135,10 +125,9 @@ export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTermina
         const smltId = smltIds[terminal];
         if (!smltId) return;
 
-        runSave(userSmltService.saveChknCounterInfo(toSaveReq(smltId, terminal, edit[terminal])), SAVE_FAIL);
+        runSave(userSmltService.saveChknCounterInfo(toSaveReq(smltId, terminal, islandsByTerminal[terminal])), SAVE_FAIL);
     };
 
-    /** 지도 보기 — 배치 마커를 받아 둔다 (도면 UI 는 아직 붙지 않았다) */
     const handleMapClick = (terminal: TerminalKind) => {
         const smltId = smltIds[terminal];
         if (!smltId) return;
@@ -146,23 +135,21 @@ export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTermina
         userSmltService
             .getFcltMap(smltId, terminal, 'CHKN')
             .then((dto) => console.log('[지도 보기]', dto.markerList))
-            .catch(() => {
-                // 지도는 보조 기능이라 실패해도 편집 흐름을 끊지 않는다 (콘솔에 이미 남는다).
-            });
+            .catch(() => {});
     };
 
     return (
         <>
             {TERMINALS.map((terminal) => {
-                const panelData = fetched[terminal] ?? EMPTY_CHECKIN_COUNTER;
-                const panelIslands = edit[terminal];
-                const on = enabled[terminal];
+                const panelData = terminalData[terminal] ?? EMPTY_CHECKIN_COUNTER;
+                const panelIslands = islandsByTerminal[terminal];
+                const terminalEnabled = enabled[terminal];
 
                 return (
                     <TerminalPanel
                         key={terminal}
                         terminal={terminal}
-                        enabled={on}
+                        enabled={terminalEnabled}
                         focused={terminal === focusTerminal}
                         canDisable={enabledCount > 1}
                         onToggle={() => onToggleTerminal(terminal)}
@@ -215,7 +202,7 @@ export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTermina
 
                                 return `아일랜드 ${item.label} · ${detail} · ${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
                             }}
-                            disabled={!on || readOnly}
+                            disabled={!terminalEnabled || readOnly}
                         />
                     </TerminalPanel>
                 );
@@ -233,7 +220,12 @@ export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTermina
                     onPatch={patchDraft}
                     airlines={focusData.airlines}
                     selectedBooths={draft ? dock.selectedBooths : []}
-                    onSelectBooths={(nos) => setDock((prev) => ({ ...prev, selectedBooths: nos }))}
+                    onSelectBooths={(boothNos) =>
+                        setDock((previousDock) => ({
+                            ...previousDock,
+                            selectedBooths: boothNos,
+                        }))
+                    }
                     onConfirm={handleConfirm}
                     onCancel={() => setDock({ ...EMPTY_DOCK, terminal: focusTerminal })}
                 />

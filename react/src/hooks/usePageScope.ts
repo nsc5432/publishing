@@ -1,15 +1,12 @@
 import { useLayoutEffect } from 'react';
 
-/**
- * 화면 전용 CSS 를 그 화면에만 적용시키는 스코프 스위치.
- */
 export function usePageScope(page: string) {
     useLayoutEffect(() => {
-        const root = document.documentElement;
-        root.dataset.page = page;
+        const documentRoot = document.documentElement;
+        documentRoot.dataset.page = page;
 
         return () => {
-            if (root.dataset.page === page) delete root.dataset.page;
+            if (documentRoot.dataset.page === page) delete documentRoot.dataset.page;
         };
     }, [page]);
 }

@@ -1,9 +1,7 @@
 package aoms.pm.cast.service.impl;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,7 +16,6 @@ import aoms.pm.cast.dto.DepHallGateDto;
 import aoms.pm.cast.dto.DepHallSearchDto;
 import aoms.pm.cast.dto.DepHallSlotDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
-import aoms.pm.cast.dto.MapCgnStatDto;
 import aoms.pm.cast.dto.MapMarkerDto;
 import aoms.pm.cast.dto.MapNoticeDto;
 import aoms.pm.cast.dto.MapNoticeItemDto;
@@ -33,6 +30,8 @@ import aoms.pm.cast.mapper.CastMapMapper;
 import aoms.pm.cast.service.CastDepHallService;
 import aoms.pm.cast.service.CastOperHrService;
 import aoms.pm.cast.service.CastSmltService;
+import aoms.pm.utils.SmltUtils;
+import aoms.pm.utils.TimeBucketUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -68,12 +67,9 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 	private static final String DPTGT_NM_PREFIX = "출국장 ";
 	private static final String FCLT_NM = "출국장";
 
-	/** 타임라인 구간 : 04:00 ~ 24:00 을 30분으로 나눈다 (출국장은 04시 전에 열지 않는다) */
-	private static final int SLOT_BGN_MIN = 4 * 60;
-	private static final int SLOT_END_MIN = 24 * 60;
-	private static final int SLOT_STEP_MIN = 30;
+	/** 타임라인 시작 시각 — 출국장은 04시 전에 열지 않는다 */
+	private static final int SLOT_BGN_HOUR = 4;
 
-	private static final int MINUTE_PER_HOUR = 60;
 	private static final int NOTICE_ITEM_LIMIT = 6; // 알림 목록이 도면을 덮지 않는 상한
 
 	private final CastMapMapper castMapMapper;
@@ -107,50 +103,10 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 
 	/* ================= 결과 조회 ================= */
 
-	// 하루치를 시각별로 나누고, 출국장 하나에 걸린 여러 시설(게이트 · 보안검색대)은 한 건으로 접는다
 	private Map<String, Map<String, SmltRsltRawDto>> retrieveUnitRsltDayMap(
 			DepHallSearchDto searchDto, List<String> upPsgFcltCdList) {
-		List<SmltRsltRawDto> rsltList = castMapMapper.retrieveMapRsltDayList(
-				searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId(), upPsgFcltCdList);
-
-		Map<String, List<SmltRsltRawDto>> timeMap = rsltList.stream()
-				.collect(Collectors.groupingBy(SmltRsltRawDto::getTime, LinkedHashMap::new, Collectors.toList()));
-
-		Map<String, Map<String, SmltRsltRawDto>> result = new LinkedHashMap<>();
-
-		for (Map.Entry<String, List<SmltRsltRawDto>> entry : timeMap.entrySet()) {
-			result.put(entry.getKey(), foldByUnitCd(entry.getValue()));
-		}
-
-		return result;
-	}
-
-	// 대기는 가장 나쁜 값(최댓값), 처리인원은 합산 — 맵형태보기와 같은 규칙이다
-	private Map<String, SmltRsltRawDto> foldByUnitCd(List<SmltRsltRawDto> rsltList) {
-		Map<String, SmltRsltRawDto> result = new LinkedHashMap<>();
-
-		for (SmltRsltRawDto rslt : rsltList) {
-			String unitCd = rslt.getUnitCd() != null ? rslt.getUnitCd().trim() : EMPTY;
-
-			if (unitCd.isEmpty()) {
-				continue;
-			}
-
-			SmltRsltRawDto merged = result.get(unitCd);
-
-			if (merged == null) {
-				rslt.setUnitCd(unitCd);
-				result.put(unitCd, rslt);
-				continue;
-			}
-
-			merged.setWtngPsgCnt(Math.max(merged.getWtngPsgCnt(), rslt.getWtngPsgCnt()));
-			merged.setTrnstPsgCnt(merged.getTrnstPsgCnt() + rslt.getTrnstPsgCnt());
-			merged.setWtngHr(Math.max(merged.getWtngHr(), rslt.getWtngHr()));
-			merged.setPrcsHr(Math.max(merged.getPrcsHr(), rslt.getPrcsHr()));
-		}
-
-		return result;
+		return SmltUtils.foldByTimeAndUnitCd(castMapMapper.retrieveMapRsltDayList(
+				searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId(), upPsgFcltCdList));
 	}
 
 	/* ================= 출국장 카드 ================= */
@@ -195,10 +151,14 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 		}
 
 		if (operHrList != null && !operHrList.isEmpty()) {
-			result.setOprBgnTime(operHrList.stream().map(x -> defaultHm(x.getBgnHm()))
-					.min(Comparator.naturalOrder()).orElse(DEFAULT_HM));
-			result.setOprEndTime(operHrList.stream().map(x -> defaultHm(x.getEndHm()))
-					.max(Comparator.naturalOrder()).orElse(DEFAULT_HM));
+			result.setOprBgnTime(operHrList.stream()
+					.map(operHr -> SmltUtils.defaultHm(operHr.getBgnHm()))
+					.min(Comparator.naturalOrder())
+					.orElse(DEFAULT_HM));
+			result.setOprEndTime(operHrList.stream()
+					.map(operHr -> SmltUtils.defaultHm(operHr.getEndHm()))
+					.max(Comparator.naturalOrder())
+					.orElse(DEFAULT_HM));
 		}
 
 		return result;
@@ -225,31 +185,17 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 			Map<String, Map<String, SmltRsltRawDto>> chknDayMap) {
 		List<DepHallSlotDto> result = new ArrayList<>();
 
-		for (String hhmm : getTimeList()) {
-			List<MapUnitRsltDto> dptgtRsltList = getDptgtRsltList(gateList, defaultMap(dptgtDayMap.get(hhmm)));
+		for (String hhmm : TimeBucketUtils.slotTimeList(SLOT_BGN_HOUR)) {
+			List<MapUnitRsltDto> dptgtRsltList =
+					getDptgtRsltList(gateList, dptgtDayMap.getOrDefault(hhmm, Map.of()));
 
 			DepHallSlotDto slot = new DepHallSlotDto();
 			slot.setHhmm(hhmm);
 			slot.setNotice(getNotice(gateList, dptgtRsltList));
 			slot.setDptgtRsltList(dptgtRsltList);
-			slot.setChknRsltList(getChknRsltList(chknMarkerList, defaultMap(chknDayMap.get(hhmm))));
+			slot.setChknRsltList(getChknRsltList(chknMarkerList, chknDayMap.getOrDefault(hhmm, Map.of())));
 
 			result.add(slot);
-		}
-
-		return result;
-	}
-
-	/**
-	 * 04:00 ~ 24:00 을 30분으로 나눈 눈금 — 하단 타임라인과 같은 구간이라 차트 x 축이 슬라이더와 맞는다.
-	 * 결과가 없는 구간도 자리를 비워 두지 않는다 (마지막 2400 은 하루의 끝을 닫는 눈금이라
-	 * 결과 버킷(…2330)이 없어 항상 0 이다).
-	 */
-	private List<String> getTimeList() {
-		List<String> result = new ArrayList<>();
-
-		for (int minutes = SLOT_BGN_MIN; minutes <= SLOT_END_MIN; minutes += SLOT_STEP_MIN) {
-			result.add(toHhmm(minutes));
 		}
 
 		return result;
@@ -285,23 +231,7 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 
 		result.setUnitCd(unitCd);
 		result.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0));
-		result.setStat(getStat(rslt));
-
-		return result;
-	}
-
-	// 이 화면의 시간 지표는 초 단위다 (대시보드 KPI 는 분이라 환산하지 않는다)
-	private MapCgnStatDto getStat(SmltRsltRawDto rslt) {
-		MapCgnStatDto result = new MapCgnStatDto();
-
-		if (rslt == null) {
-			return result;
-		}
-
-		result.setWtngPsgCnt(rslt.getWtngPsgCnt());
-		result.setWtngHr(rslt.getWtngHr());
-		result.setPrcsPsgCnt(rslt.getTrnstPsgCnt());
-		result.setPrcsHr(rslt.getPrcsHr());
+		result.setStat(SmltUtils.toCgnStat(rslt));
 
 		return result;
 	}
@@ -343,18 +273,4 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 		return result;
 	}
 
-	/* ================= 시각 ================= */
-
-	private Map<String, SmltRsltRawDto> defaultMap(Map<String, SmltRsltRawDto> rsltMap) {
-		return rsltMap != null ? rsltMap : Collections.emptyMap();
-	}
-
-	// 24:00 은 다음 날 00:00 이 아니라 마지막 눈금이라 2400 그대로 둔다
-	private String toHhmm(int minutes) {
-		return String.format("%02d%02d", minutes / MINUTE_PER_HOUR, minutes % MINUTE_PER_HOUR);
-	}
-
-	private String defaultHm(String hhmm) {
-		return hhmm != null && hhmm.length() >= 4 ? hhmm : DEFAULT_HM;
-	}
 }

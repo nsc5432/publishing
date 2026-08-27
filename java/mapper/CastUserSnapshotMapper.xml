@@ -11,6 +11,9 @@
     retrieveFcltyOpngTblDptg 가 출국장 번호로 TN_PM_SMLT_SCHDL_ATRB 를 뒤지기 때문에
     FS 와 출국장 번호가 반드시 같아야 한다.
 
+    마스터 행 생성과 삭제는 다섯 리소스가 같은 문장을 쓴다 (deleteRsrcAtrb / deleteRsrcMstr /
+    insertRsrcMstr). 테이블·컬럼명은 CastUserSnapshotServiceImpl 의 RsrcTable 이 넘긴다.
+
     TODO(실 스키마 확인) — GOOWN/CAOWN 원본 컬럼을 확인하지 못해 NULL 로 두는 것들.
       TN_PM_SMLT_SCHDL_ATRB : ALN_CTGRY, DALY_FLTSH_ID, GATE_TYPE, CKNCT_RANGE_CN,
                               SLF_CHKN_PSBLTY_YN, BUS_NEED_YN, WAYO_ID,
@@ -27,36 +30,39 @@
         FROM DUAL
     </select>
 
-    <!-- ================= FlightSchedule ================= -->
-
-    <delete id="deleteSchdlAtrb">
-        /* CastUserSnapshotMapper.deleteSchdlAtrb */
-        DELETE FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB
-        WHERE SCHDL_ATRB_GROUP_ID = #{rsrcNo}
+    <delete id="deleteRsrcAtrb">
+        /* CastUserSnapshotMapper.deleteRsrcAtrb */
+        DELETE FROM PMOWN.${atrbTableNm}
+        WHERE ${atrbIdColumnNm} = #{rsrcNo}
     </delete>
 
-    <delete id="deleteSchdlMstr">
-        /* CastUserSnapshotMapper.deleteSchdlMstr */
-        DELETE FROM PMOWN.TN_PM_SMLT_SCHDL_MSTR
-        WHERE SCHDL_ATRB_ID = #{rsrcNo}
+    <delete id="deleteRsrcMstr">
+        /* CastUserSnapshotMapper.deleteRsrcMstr */
+        DELETE FROM PMOWN.${mstrTableNm}
+        WHERE ${mstrIdColumnNm} = #{rsrcNo}
     </delete>
 
-    <insert id="insertSchdlMstr" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertSchdlMstr */
-        INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_MSTR (
-            SCHDL_ATRB_ID, SCHDL_ATRB_NM, PRCS_STTS_CD, CFMTN_YN, USE_YN,
+    <insert id="insertRsrcMstr">
+        /* CastUserSnapshotMapper.insertRsrcMstr */
+        INSERT INTO PMOWN.${mstrTableNm} (
+            ${mstrIdColumnNm}, ${mstrNmColumnNm}, PRCS_STTS_CD, CFMTN_YN, USE_YN,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         ) VALUES (
-            #{rsrcNo},
-            '사용자 시뮬레이션 ' || #{smltId} || ' ' || #{tmnlId},
+            #{snapshot.rsrcNo},
+            '사용자 시뮬레이션 ' || #{snapshot.smltId} || ' ' || #{snapshot.tmnlId},
             '99', 'Y', 'Y',
-            #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
+            #{snapshot.loginUserId}, #{snapshot.loginIpAddr}, CURRENT_TIMESTAMP
         )
     </insert>
 
+    <!-- ================= FlightSchedule ================= -->
+
     <insert id="insertSchdlAtrbFromDaily" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSchdlAtrbFromDaily */
-        -- 일일 리소스가 FS001(운영계 직접 조회)일 때. 편별 여객수에 증감률을 곱해 넣는다.
+        <!-- 일일 리소스가 FS001(운영계 직접 조회)일 때. 편별 여객수에 증감률을 곱해 넣는다.
+             AJMT_RT 는 -100 ~ 100 의 증감률이라 곱셈 계수는 (100 + AJMT_RT) / 100 이다.
+             HOURLY 면 예측시각이 속한 시간대 구간의 값을, RATIO 면 헤더 한 건의 값을 쓴다.
+             조정은 사용자가 편집한 터미널의 편에만 건다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB (
             SCHDL_ATRB_GROUP_ID, DOM_INTL_SE_CD, ARR_DEP_SE_CD, TMNL_ID, ALN_CD,
             FLTNM, DEP_ARR_YMD, DEP_ARR_HM, PREDC_HM, ACTL_HM,
@@ -81,8 +87,20 @@
                 A.ARCFT_STGCP, A.RSVT_BDPSG_CNT AS BDPSG_CNT,
                 A.RSVT_TRNS_BDPSG_CNT AS TRNS_BDPSG_CNT,
                 A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.GD_IRR_YN AS IRR_FLT_YN, A.TDFLT_YN,
-                <include refid="ajmtRt"/> AS AJMT_RT,
-                -- PK 는 (그룹, 출도착, 편명, 일자, 시분) 이다. 운영계 중복행을 여기서 접는다
+                CASE
+                    WHEN A.TMNL_ID NOT IN (<foreach collection="fltTmnlIdList" item="item" separator=",">#{item}</foreach>) THEN 0
+                    WHEN #{ajmtTypeCd} = 'HOURLY' THEN NVL((
+                        SELECT T.AJMT_RT
+                        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
+                        WHERE T.SMLT_ID = #{smltId}
+                        AND T.TMNL_ID = #{tmnlId}
+                        AND NVL(A.PREDC_HM, A.SCHDL_HM) >= T.BGNG_HM
+                        AND NVL(A.PREDC_HM, A.SCHDL_HM) &lt; NVL(T.END_HM, '2400')
+                        AND ROWNUM = 1
+                    ), 0)
+                    ELSE #{ajmtRt}
+                END AS AJMT_RT,
+                <!-- PK 는 (그룹, 출도착, 편명, 일자, 시분) 이다. 운영계 중복행을 여기서 접는다 -->
                 ROW_NUMBER() OVER (
                     PARTITION BY A.ARR_DEP_SE_CD, A.FLTNM, A.GD_SE_YMD, A.SCHDL_HM
                     ORDER BY A.RSVT_BDPSG_CNT DESC NULLS LAST
@@ -104,7 +122,9 @@
 
     <insert id="insertSchdlAtrbFromSrc" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSchdlAtrbFromSrc */
-        -- 일일 리소스가 이미 스케줄 리소스(FSxxx)일 때. 전 컬럼을 복사하고 여객수만 조정한다.
+        <!-- 일일 리소스가 이미 스케줄 리소스(FSxxx)일 때. 전 컬럼을 복사하고 여객수만 조정한다.
+             증감률 규칙은 insertSchdlAtrbFromDaily 와 같다. 다만 이 테이블에는 SCHDL_HM 이
+             없고 같은 뜻의 컬럼이 DEP_ARR_HM(출발도착시분) 이라 그쪽을 본다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB (
             SCHDL_ATRB_GROUP_ID, DOM_INTL_SE_CD, ARR_DEP_SE_CD, TMNL_ID, ALN_CD, ALN_CTGRY,
             FLTNM, DALY_FLTSH_ID, DEP_ARR_YMD, DEP_ARR_HM, PREDC_HM, ACTL_HM,
@@ -118,7 +138,21 @@
             #{rsrcNo}, A.DOM_INTL_SE_CD, A.ARR_DEP_SE_CD, A.TMNL_ID, A.ALN_CD, A.ALN_CTGRY,
             A.FLTNM, A.DALY_FLTSH_ID, A.DEP_ARR_YMD, A.DEP_ARR_HM, A.PREDC_HM, A.ACTL_HM,
             A.ARR_DEP_ARPT_CD, A.ACST_NO, A.GATE_NO, A.GATE_TYPE, A.ARCFT_STGCP,
-            ROUND(NVL(A.BDPSG_CNT, 0) * (100 + <include refid="ajmtRt"/>) / 100),
+            ROUND(NVL(A.BDPSG_CNT, 0) * (100 +
+                CASE
+                    WHEN A.TMNL_ID NOT IN (<foreach collection="fltTmnlIdList" item="item" separator=",">#{item}</foreach>) THEN 0
+                    WHEN #{ajmtTypeCd} = 'HOURLY' THEN NVL((
+                        SELECT T.AJMT_RT
+                        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
+                        WHERE T.SMLT_ID = #{smltId}
+                        AND T.TMNL_ID = #{tmnlId}
+                        AND NVL(A.PREDC_HM, A.DEP_ARR_HM) >= T.BGNG_HM
+                        AND NVL(A.PREDC_HM, A.DEP_ARR_HM) &lt; NVL(T.END_HM, '2400')
+                        AND ROWNUM = 1
+                    ), 0)
+                    ELSE #{ajmtRt}
+                END
+            ) / 100),
             A.TRNS_BDPSG_CNT, A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.CKNCT_RANGE_CN,
             A.SLF_CHKN_PSBLTY_YN, A.IRR_FLT_YN, A.TDFLT_YN, A.BUS_NEED_YN, A.WAYO_ID,
             A.FRST_BAG_INPUT_DT, A.LAST_BAG_INPUT_DT,
@@ -127,58 +161,12 @@
         WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{srcFltSchdlRsrcId}, 'FS', '')
     </insert>
 
-    <!--
-        AJMT_RT 는 -100 ~ 100 의 증감률이다 (0 = 변화 없음). 곱셈 계수는 (100 + AJMT_RT) / 100.
-        HOURLY 면 예측시각이 속한 시간대 구간의 값을, RATIO 면 헤더 한 건의 값을 쓴다.
-        조정은 사용자가 편집한 터미널의 편에만 건다.
-    -->
-    <sql id="ajmtRt">
-        CASE
-            WHEN A.TMNL_ID NOT IN (<foreach collection="fltTmnlIdList" item="item" separator=",">#{item}</foreach>) THEN 0
-            WHEN #{ajmtTypeCd} = 'HOURLY' THEN NVL((
-                SELECT T.AJMT_RT
-                FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
-                WHERE T.SMLT_ID = #{smltId}
-                AND T.TMNL_ID = #{tmnlId}
-                AND NVL(A.PREDC_HM, A.SCHDL_HM) >= T.BGNG_HM
-                AND NVL(A.PREDC_HM, A.SCHDL_HM) &lt; NVL(T.END_HM, '2400')
-                AND ROWNUM = 1
-            ), 0)
-            ELSE #{ajmtRt}
-        END
-    </sql>
-
     <!-- ================= CounterAllocation ================= -->
-
-    <delete id="deleteCknctAtrb">
-        /* CastUserSnapshotMapper.deleteCknctAtrb */
-        DELETE FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB
-        WHERE SCHDL_ATRB_GROUP_ID = #{rsrcNo}
-    </delete>
-
-    <delete id="deleteCknctMstr">
-        /* CastUserSnapshotMapper.deleteCknctMstr */
-        DELETE FROM PMOWN.TN_PM_SMLT_CKNCT_MSTR
-        WHERE CKNCT_ATRB_ID = #{rsrcNo}
-    </delete>
-
-    <insert id="insertCknctMstr" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertCknctMstr */
-        INSERT INTO PMOWN.TN_PM_SMLT_CKNCT_MSTR (
-            CKNCT_ATRB_ID, CKNCT_ATRB_NM, PRCS_STTS_CD, CFMTN_YN, USE_YN,
-            FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
-        ) VALUES (
-            #{rsrcNo},
-            '사용자 시뮬레이션 ' || #{smltId} || ' ' || #{tmnlId},
-            '99', 'Y', 'Y',
-            #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        )
-    </insert>
 
     <insert id="insertCknctAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertCknctAtrb */
-        -- 부스 × 아일랜드 운영시간 구간. 부스 번호는 아일랜드 안의 순번이라
-        -- CAOWN.TN_CA_CKNCT 의 n 번째 실제 카운터로 옮긴다.
+        <!-- 부스 × 아일랜드 운영시간 구간. 부스 번호는 아일랜드 안의 순번이라
+             CAOWN.TN_CA_CKNCT 의 n 번째 실제 카운터로 옮긴다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_CKNCT_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, CHKN_OPEN_PRNMNT_DT, CHKN_CLOSE_PRNMNT_DT, CHKN_TYPE_CD,
@@ -221,35 +209,10 @@
 
     <!-- ================= SelfCheckIn / BagDrop ================= -->
 
-    <delete id="deleteSbdAtrb">
-        /* CastUserSnapshotMapper.deleteSbdAtrb */
-        DELETE FROM PMOWN.TN_PM_SMLT_SBD_ATRB
-        WHERE SCHDL_ATRB_GROUP_ID = #{rsrcNo}
-    </delete>
-
-    <delete id="deleteSbdMstr">
-        /* CastUserSnapshotMapper.deleteSbdMstr */
-        DELETE FROM PMOWN.TN_PM_SMLT_SBD_MSTR
-        WHERE SBD_ATRB_ID = #{rsrcNo}
-    </delete>
-
-    <insert id="insertSbdMstr" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertSbdMstr */
-        INSERT INTO PMOWN.TN_PM_SMLT_SBD_MSTR (
-            SBD_ATRB_ID, SBD_ATRB_NM, PRCS_STTS_CD, CFMTN_YN, USE_YN,
-            FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
-        ) VALUES (
-            #{rsrcNo},
-            '사용자 시뮬레이션 ' || #{smltId} || ' ' || #{tmnlId},
-            '99', 'Y', 'Y',
-            #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        )
-    </insert>
-
     <insert id="insertSbdAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSbdAtrb */
-        -- 아일랜드가 정한 백드롭 대수만큼 실제 장비를 앞에서부터 켠다.
-        -- 항공사 배정은 아일랜드에 붙은 부스 항공사를 그대로 따른다.
+        <!-- 아일랜드가 정한 백드롭 대수만큼 실제 장비를 앞에서부터 켠다.
+             항공사 배정은 아일랜드에 붙은 부스 항공사를 그대로 따른다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_SBD_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD,
@@ -300,34 +263,9 @@
 
     <!-- ================= FacilityOpeningTable_DepartureGate ================= -->
 
-    <delete id="deleteDptgtAtrb">
-        /* CastUserSnapshotMapper.deleteDptgtAtrb */
-        DELETE FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB
-        WHERE DPTGT_ATRB_ID = #{rsrcNo}
-    </delete>
-
-    <delete id="deleteDptgtMstr">
-        /* CastUserSnapshotMapper.deleteDptgtMstr */
-        DELETE FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_MSTR
-        WHERE DPTGT_ATRB_ID = #{rsrcNo}
-    </delete>
-
-    <insert id="insertDptgtMstr" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertDptgtMstr */
-        INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_MSTR (
-            DPTGT_ATRB_ID, DPTGT_ATRB_NM, PRCS_STTS_CD, CFMTN_YN, USE_YN,
-            FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
-        ) VALUES (
-            #{rsrcNo},
-            '사용자 시뮬레이션 ' || #{smltId} || ' ' || #{tmnlId},
-            '99', 'Y', 'Y',
-            #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        )
-    </insert>
-
     <insert id="insertDptgtAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertDptgtAtrb */
-        -- 운영하는 출국장만 넣는다. FCLTY_CNT 는 일반 + 스마트패스 검색대 합이다.
+        <!-- 운영하는 출국장만 넣는다. FCLTY_CNT 는 일반 + 스마트패스 검색대 합이다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB (
             DPTGT_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, FCLTY_CNT,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
@@ -348,34 +286,9 @@
 
     <!-- ================= FacilityOpeningTable_SecurityControl ================= -->
 
-    <delete id="deleteScrtyCntrlAtrb">
-        /* CastUserSnapshotMapper.deleteScrtyCntrlAtrb */
-        DELETE FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB
-        WHERE SCRTY_CNTRL_ATRB_ID = #{rsrcNo}
-    </delete>
-
-    <delete id="deleteScrtyCntrlMstr">
-        /* CastUserSnapshotMapper.deleteScrtyCntrlMstr */
-        DELETE FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_MSTR
-        WHERE SCRTY_CNTRL_ATRB_ID = #{rsrcNo}
-    </delete>
-
-    <insert id="insertScrtyCntrlMstr" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertScrtyCntrlMstr */
-        INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_MSTR (
-            SCRTY_CNTRL_ATRB_ID, SCRTY_CNTRL_ATRB_NM, PRCS_STTS_CD, CFMTN_YN, USE_YN,
-            FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
-        ) VALUES (
-            #{rsrcNo},
-            '사용자 시뮬레이션 ' || #{smltId} || ' ' || #{tmnlId},
-            '99', 'Y', 'Y',
-            #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        )
-    </insert>
-
     <insert id="insertScrtyCntrlAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertScrtyCntrlAtrb */
-        -- 시간대별 운영계획이 있으면 그것을, 없으면 출국장 기본 검색대 수를 쓴다.
+        <!-- 시간대별 운영계획이 있으면 그것을, 없으면 출국장 기본 검색대 수를 쓴다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB (
             SCRTY_CNTRL_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, FCLTY_CNT,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT

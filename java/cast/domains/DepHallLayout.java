@@ -136,7 +136,7 @@ public final class DepHallLayout {
 
 	/** 출국장 마커 1개. 자리·표시 문구만 준다 (혼잡도는 슬롯이 갖는다) */
 	public static MapMarkerDto dptgtMarker(TerminalKind tmnlId, String dptgtNo) {
-		return marker(DPTGT_MARKER_PREFIX + dptgtNo, dptgtNo, dptgtPointMap(tmnlId).get(dptgtNo));
+		return toMarker(DPTGT_MARKER_PREFIX + dptgtNo, dptgtNo, dptgtPointMap(tmnlId).get(dptgtNo));
 	}
 
 	/** 출국장 카드 자리 {x, y}. 배치에 없으면 null */
@@ -163,14 +163,14 @@ public final class DepHallLayout {
 		List<MapMarkerDto> result = new ArrayList<>();
 
 		for (Map.Entry<String, double[]> entry : pointMap.entrySet()) {
-			result.add(marker(prefix + entry.getKey(), entry.getKey(), entry.getValue()));
+			result.add(toMarker(prefix + entry.getKey(), entry.getKey(), entry.getValue()));
 		}
 
 		return result;
 	}
 
 	// 배치에 없는 식별자는 도면 밖(0,0)이 아니라 좌표 없는 마커로 내려 화면이 걸러내게 둔다
-	private static MapMarkerDto marker(String markerId, String label, double[] point) {
+	private static MapMarkerDto toMarker(String markerId, String label, double[] point) {
 		MapMarkerDto result = new MapMarkerDto().withMarkerId(markerId).withLabel(label);
 
 		if (point != null) {

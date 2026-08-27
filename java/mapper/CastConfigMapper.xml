@@ -117,21 +117,9 @@
         ORDER BY A.FCLTY_SE_CD, A.FCLTY_DTL_CD
     </select>
 
-    <update id="updateAtrbTextValue">
-        /* CastConfigMapper.updateAtrbTextValue */
-        UPDATE PMOWN.${tableNm}
-        SET ${columnNm} = #{value},
-            LAST_MDFR_ID = #{loginUserId},
-            LAST_MDFR_IP_ADDR = #{loginIpAddr},
-            LAST_MDFCN_DT = CURRENT_TIMESTAMP
-        WHERE 1 = 1
-        AND FIX_ATRB_GROUP_ID = #{fixAtrbGroupId}
-        AND ${keyColumnNm} = #{keyCd}
-        AND ${dtlColumnNm} = #{dtlSeCd}
-    </update>
-
-    <update id="updateAtrbNumberValue">
-        /* CastConfigMapper.updateAtrbNumberValue */
+    <update id="updateAtrbValue">
+        /* CastConfigMapper.updateAtrbValue */
+        <!-- 문자·숫자 컬럼이 같은 문장을 쓴다. 바인딩 타입은 호출하는 쪽이 정한다 -->
         UPDATE PMOWN.${tableNm}
         SET ${columnNm} = #{value},
             LAST_MDFR_ID = #{loginUserId},

@@ -2,25 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="aoms.pm.cast.mapper.CastDsbdMapper">
-    <sql id="unitCdExpr">
-        CASE
-            WHEN B.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(B.PSG_FCLT_CD, -3, 1)
-            WHEN B.UP_PSG_FCLT_CD IN ('LGT') THEN SUBSTR(B.PSG_FCLT_CD, 4, 1)
-            WHEN B.UP_PSG_FCLT_CD IN ('SC', 'SR') THEN SUBSTR(B.PSG_FCLT_CD, 5, 1)
-            ELSE ' '
-        END
-    </sql>
-
-    <sql id="validFltCond">
-        AND A.CSHR_STTS_CD != 'SL'
-        AND A.PSG_CGO_SE_CD = 'Y'
-        AND A.ARCFT_USE_SE_CD IN ('0', '1')
-        AND A.GD_FLT_PRPS_CD IN ('00', '05')
-        AND A.FRY_YN NOT IN ('Y')
-        AND A.DOM_INTL_SE_CD NOT IN ('D')
-        AND A.DLY_RSN_CD NOT IN ('2', '3')
-    </sql>
-
     <select id="retrieveSmltIdByYmd" resultType="java.lang.String">
         /* CastDsbdMapper.retrieveSmltIdByYmd */
         SELECT MAX(A.SMLT_ID) AS SMLT_ID
@@ -47,63 +28,38 @@
         ORDER BY AVL_TIME
     </select>
 
-    <sql id="fltSmryCols">
-        NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN 1 ELSE 0 END), 0) AS DEP_FLT_CNT,
-        NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN 1 ELSE 0 END), 0) AS ARR_FLT_CNT,
-        NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS DEP_PSG_CNT,
-        NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS ARR_PSG_CNT
-    </sql>
-
     <select id="retrieveFltSmry" resultType="aoms.pm.cast.dto.FltSmryRawDto">
         /* CastDsbdMapper.retrieveFltSmry */
-        SELECT <include refid="fltSmryCols" />
+        SELECT
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN 1 ELSE 0 END), 0) AS DEP_FLT_CNT,
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN 1 ELSE 0 END), 0) AS ARR_FLT_CNT,
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS DEP_PSG_CNT,
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS ARR_PSG_CNT
         FROM GOOWN.TN_GO_GD_DATA A
         WHERE 1 = 1
         AND A.GD_SE_YMD = #{ymd}
         <if test="tmnlIdList != null and tmnlIdList.size() > 0">
-        -- T1 은 제1여객터미널(P01) + 탑승동(P02), T2 는 제2여객터미널(P03)
         AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
         </if>
-        <include refid="validFltCond" />
-    </select>
-
-    <select id="retrieveFltSmryByTime" resultType="aoms.pm.cast.dto.FltSmryRawDto">
-        /* CastDsbdMapper.retrieveFltSmryByTime */
-        SELECT <include refid="fltSmryCols" />
-        FROM GOOWN.TN_GO_GD_DATA A
-        WHERE 1 = 1
-        AND A.GD_SE_YMD = #{ymd}
-        AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
-        -- 예측시분은 날짜 없는 HHmm 문자열이라 사전순 비교로 구간을 자른다.
-        -- 자정을 넘는 구간은 호출하는 쪽이 끝을 '2400' 으로 잘라 넘긴다
+        <if test="bgnHhmm != null and endHhmm != null">
+        <!-- 예측시분은 날짜 없는 HHmm 문자열이라 사전순 비교로 구간을 자른다.
+             자정을 넘는 구간은 호출하는 쪽이 끝을 '2400' 으로 잘라 넘긴다 -->
         AND A.PREDC_HM &gt;= #{bgnHhmm}
         AND A.PREDC_HM &lt; #{endHhmm}
-        <include refid="validFltCond" />
-    </select>
-
-    <select id="retrieveHourlyFltPsgList" resultType="aoms.pm.cast.dto.FltPsgRawDto">
-        /* CastDsbdMapper.retrieveHourlyFltPsgList */
-        SELECT
-            SUBSTR(A.PREDC_HM, 1, 2) AS HOUR,
-            COUNT(*) AS FLT_CNT,
-            NVL(SUM(A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT), 0) AS PSG_CNT
-        FROM GOOWN.TN_GO_GD_DATA A
-        WHERE 1 = 1
-        AND A.GD_SE_YMD = #{ymd}
-        AND A.ARR_DEP_SE_CD = 'D'
-        <if test="tmnlIdList != null and tmnlIdList.size() > 0">
-        AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
         </if>
-        <include refid="validFltCond" />
-        AND A.PREDC_HM IS NOT NULL
-        GROUP BY SUBSTR(A.PREDC_HM, 1, 2)
-        ORDER BY HOUR
+        AND A.CSHR_STTS_CD != 'SL'
+        AND A.PSG_CGO_SE_CD = 'Y'
+        AND A.ARCFT_USE_SE_CD IN ('0', '1')
+        AND A.GD_FLT_PRPS_CD IN ('00', '05')
+        AND A.FRY_YN NOT IN ('Y')
+        AND A.DOM_INTL_SE_CD NOT IN ('D')
+        AND A.DLY_RSN_CD NOT IN ('2', '3')
     </select>
 
     <select id="retrieveHourlyBdpsgAnceList" resultType="aoms.pm.cast.dto.BdpsgAnceRawDto">
         /* CastDsbdMapper.retrieveHourlyBdpsgAnceList */
-        -- 승객예고는 10분 간격이다. 화면 축이 1시간이라 시 단위로 합산한다
-        -- BDPSG_ANCE_SE_CD='DE' 는 출발 탑승객예고다 (도착은 화면에서 아직 안 쓴다)
+        <!-- 승객예고는 10분 간격이다. 화면 축이 1시간이라 시 단위로 합산한다.
+             BDPSG_ANCE_SE_CD='DE' 는 출발 탑승객예고다 (도착은 화면에서 아직 안 쓴다) -->
         SELECT
             A.BDPSG_ANCE_HOUR AS HOUR,
             NVL(SUM(A.EST_BRDG_TNOPE), 0) AS EST_BRDG_TNOPE
@@ -129,8 +85,8 @@
         <if test="tmnlIdList != null and tmnlIdList.size() > 0">
         AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
         </if>
-        -- 이 테이블은 구코드(T1LG3 등)로 넣는 다른 프로세스와 같이 쓴다.
-        -- 같은 출국장이 신/구 코드로 중복 집계되지 않도록 신코드(D1~D6) 행만 센다
+        <!-- 이 테이블은 구코드(T1LG3 등)로 넣는 다른 프로세스와 같이 쓴다.
+             같은 출국장이 신/구 코드로 중복 집계되지 않도록 신코드(D1~D6) 행만 센다 -->
         AND REGEXP_LIKE(A.PSG_FCLT_CD, '^D[1-6]$')
         GROUP BY TO_CHAR(A.TOT_DT, 'HH24')
         ORDER BY HOUR
@@ -138,8 +94,8 @@
 
     <select id="retrieveRsltByHourList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
         /* CastDsbdMapper.retrieveRsltByHourList */
-        -- 결과 상세는 10분 간격이다. 화면 축이 1시간이라 시 단위로 접는다.
-        -- 대기인원은 순간값이라 합이 아니라 MAX, 시간 지표는 평균이다
+        <!-- 결과 상세는 10분 간격이다. 화면 축이 1시간이라 시 단위로 접는다.
+             대기인원은 순간값이라 합이 아니라 MAX, 시간 지표는 평균이다 -->
         SELECT
             TO_CHAR(A.SMLT_ACTL_DT, 'HH24') || '00' AS TIME,
             NVL(MAX(A.WTNG_PSG_CNT), 0) AS WTNG_PSG_CNT,
@@ -153,7 +109,6 @@
         AND A.SMLT_ID = #{smltId}
         AND B.TMNL_ID = #{tmnlId}
         AND B.USE_YN = 'Y'
-        -- LS 랜드사이드 좌석, CC 체크인카운터, CK 셀프체크인, SBD 셀프백드랍, LGT 출국장, LC 출국심사, SC 보안검색대, SR 보안검색대RED
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
         GROUP BY TO_CHAR(A.SMLT_ACTL_DT, 'HH24')
         ORDER BY TIME
@@ -161,38 +116,40 @@
 
     <select id="retrievePsgWtngByHourList" resultType="aoms.pm.cast.dto.PsgWtngRawDto">
         /* CastDsbdMapper.retrievePsgWtngByHourList */
-        -- 여객대기정보(Xovis 실측)도 10분 간격이다. 접는 방식은 retrieveRsltByHourList 와 맞춘다
-        -- (예측선과 실적선을 같은 축에 겹쳐 그리므로 대기인원은 합이 아니라 MAX 로 통일한다)
+        <!-- 여객대기정보(Xovis 실측)도 10분 간격이다. 예측선과 실적선을 같은 축에 겹쳐 그리므로
+             접는 방식을 retrieveRsltByHourList 와 맞춘다 (대기인원은 합이 아니라 MAX) -->
         SELECT
             SUBSTR(A.PSG_FLOW_DATA_CRT_DT, 9, 2) || '00' AS TIME,
             NVL(MAX(A.WTNG_LINE_LEN), 0) AS WTNG_PSG_CNT
         FROM PMOWN.TN_PM_PSG_WTNG_INFO A
         WHERE 1 = 1
-        -- 여객흐름자료생성일시는 yyyyMMddHHmm 문자열이자 PK 선두라 앞자리 범위로 자른다
+        <!-- 여객흐름자료생성일시는 yyyyMMddHHmm 문자열이자 PK 선두라 앞자리 범위로 자른다 -->
         AND A.PSG_FLOW_DATA_CRT_DT BETWEEN #{ymd} || '0000' AND #{ymd} || '2359'
         AND A.TMNL_ID = #{tmnlId}
         <if test="fcltTypeCdList != null and fcltTypeCdList.size() > 0">
-        -- Queue 체크인 대기열, DG 출국장, SC 보안검색대
         AND A.FCLT_TYPE_CD IN (<foreach collection="fcltTypeCdList" item="item" separator=",">#{item}</foreach>)
         </if>
         GROUP BY SUBSTR(A.PSG_FLOW_DATA_CRT_DT, 9, 2)
         ORDER BY TIME
     </select>
 
-    <sql id="rsltSlotCols">
-        TO_CHAR(A.SMLT_ACTL_DT, 'HH24MI') AS TIME,
-        A.SMLT_ACTL_DT,
-        B.UP_PSG_FCLT_CD,
-        <include refid="unitCdExpr" /> AS UNIT_CD,
-        NVL(SUM(A.WTNG_PSG_CNT), 0) AS WTNG_PSG_CNT,
-        NVL(SUM(A.TRNST_PSG_CNT), 0) AS TRNST_PSG_CNT,
-        NVL(ROUND(MAX(A.AVG_WTNG_HR)), 0) AS WTNG_HR,
-        NVL(ROUND(MAX(A.AVG_PRCS_HR)), 0) AS PRCS_HR
-    </sql>
-
     <select id="retrieveRsltByUnitList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
         /* CastDsbdMapper.retrieveRsltByUnitList */
-        SELECT <include refid="rsltSlotCols" />
+        <!-- smltActlDt 를 주면 그 시각 한 칸만, 주지 않으면 [bgnDt, endDt) 구간을 읽는다 -->
+        SELECT
+            TO_CHAR(A.SMLT_ACTL_DT, 'HH24MI') AS TIME,
+            A.SMLT_ACTL_DT,
+            B.UP_PSG_FCLT_CD,
+            CASE
+                WHEN B.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(B.PSG_FCLT_CD, -3, 1)
+                WHEN B.UP_PSG_FCLT_CD IN ('LGT') THEN SUBSTR(B.PSG_FCLT_CD, 4, 1)
+                WHEN B.UP_PSG_FCLT_CD IN ('SC', 'SR') THEN SUBSTR(B.PSG_FCLT_CD, 5, 1)
+                ELSE ' '
+            END AS UNIT_CD,
+            NVL(SUM(A.WTNG_PSG_CNT), 0) AS WTNG_PSG_CNT,
+            NVL(SUM(A.TRNST_PSG_CNT), 0) AS TRNST_PSG_CNT,
+            NVL(ROUND(MAX(A.AVG_WTNG_HR)), 0) AS WTNG_HR,
+            NVL(ROUND(MAX(A.AVG_PRCS_HR)), 0) AS PRCS_HR
         FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
             INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
             ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
@@ -201,26 +158,25 @@
         AND B.TMNL_ID = #{tmnlId}
         AND B.USE_YN = 'Y'
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
+        <choose>
+            <when test="smltActlDt != null">
+        AND A.SMLT_ACTL_DT = #{smltActlDt}
+            </when>
+            <otherwise>
         AND A.SMLT_ACTL_DT &gt;= #{bgnDt}
         AND A.SMLT_ACTL_DT &lt; #{endDt}
-        GROUP BY A.SMLT_ACTL_DT, B.UP_PSG_FCLT_CD, <include refid="unitCdExpr" />
+            </otherwise>
+        </choose>
+        GROUP BY
+            A.SMLT_ACTL_DT,
+            B.UP_PSG_FCLT_CD,
+            CASE
+                WHEN B.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(B.PSG_FCLT_CD, -3, 1)
+                WHEN B.UP_PSG_FCLT_CD IN ('LGT') THEN SUBSTR(B.PSG_FCLT_CD, 4, 1)
+                WHEN B.UP_PSG_FCLT_CD IN ('SC', 'SR') THEN SUBSTR(B.PSG_FCLT_CD, 5, 1)
+                ELSE ' '
+            END
         ORDER BY A.SMLT_ACTL_DT, B.UP_PSG_FCLT_CD, UNIT_CD
-    </select>
-
-    <select id="retrieveRsltAtTimeList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
-        /* CastDsbdMapper.retrieveRsltAtTimeList */
-        SELECT <include refid="rsltSlotCols" />
-        FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
-            INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
-            ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
-        WHERE 1 = 1
-        AND A.SMLT_ID = #{smltId}
-        AND B.TMNL_ID = #{tmnlId}
-        AND B.USE_YN = 'Y'
-        AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
-        AND A.SMLT_ACTL_DT = #{smltActlDt}
-        GROUP BY A.SMLT_ACTL_DT, B.UP_PSG_FCLT_CD, <include refid="unitCdExpr" />
-        ORDER BY B.UP_PSG_FCLT_CD, UNIT_CD
     </select>
 
     <select id="retrievePsgPrcsGradeList" resultType="aoms.pm.cast.dto.PsgPrcsGradeRawDto">
@@ -237,116 +193,95 @@
 
     <select id="retrieveChknAlnAssignmentList" resultType="aoms.pm.cast.dto.ChknAlnAssignmentRawDto">
         /* CastDsbdMapper.retrieveChknAlnAssignmentList */
+        <!-- CA001 은 운영계 일일 배정을, 그 외는 발행된 CAST 배정 snapshot 을 원천으로 삼는다.
+             원천만 갈리고 집계 방식은 같아 CTE 안에서만 나눈다 -->
+        WITH VALID_ASSIGNMENT AS (
         <choose>
             <when test="cknctAlctnRsrcId == 'CA001'">
-                WITH VALID_ASSIGNMENT AS (
-                    SELECT X.CKNCT_ID, X.ALN_CD
-                    FROM (
-                        SELECT
-                            A.CKNCT_ID,
-                            A.ALN_CD,
-                            TO_DATE(
-                                A.OPER_YMD || CASE
-                                    WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_BGNG_HM
-                                    ELSE A.EST_BGNG_HM
-                                END,
-                                'YYYYMMDDHH24MI'
-                            ) AS BGN_DT,
-                            TO_DATE(
-                                CASE
-                                    WHEN CASE
-                                        WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_RON_YN
-                                        ELSE A.EST_RON_YN
-                                    END = 'Y'
-                                    THEN TO_CHAR(TO_DATE(A.OPER_YMD, 'YYYYMMDD') + 1, 'YYYYMMDD')
-                                    ELSE A.OPER_YMD
-                                END || CASE
-                                    WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_END_HM
-                                    ELSE A.EST_END_HM
-                                END,
-                                'YYYYMMDDHH24MI'
-                            ) AS END_DT
-                        FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
-                            INNER JOIN CAOWN.TN_CA_CKNCT B
-                            ON A.CKNCT_ID = B.CKNCT_ID
-                            AND A.TMNL_ID = B.TMNL_ID
-                        WHERE A.USE_YN = 'Y'
-                        AND B.USE_YN = 'Y'
-                        AND B.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
-                        AND A.TMNL_ID = #{tmnlId}
-                        AND A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{excnYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND #{excnYmd}
-                        AND A.CKNCT_ID NOT LIKE 'X%'
-                        AND A.CKNCT_ID NOT LIKE 'Y%'
-                        AND A.CKNCT_ID NOT LIKE 'R%'
-                        AND A.CKNCT_ID NOT LIKE 'S%'
-                        AND CASE
+            SELECT X.CKNCT_ID, X.ALN_CD
+            FROM (
+                SELECT
+                    A.CKNCT_ID,
+                    A.ALN_CD,
+                    TO_DATE(
+                        A.OPER_YMD || CASE
                             WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_BGNG_HM
                             ELSE A.EST_BGNG_HM
-                        END IS NOT NULL
-                        AND CASE
+                        END,
+                        'YYYYMMDDHH24MI'
+                    ) AS BGN_DT,
+                    TO_DATE(
+                        CASE
+                            WHEN CASE
+                                WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_RON_YN
+                                ELSE A.EST_RON_YN
+                            END = 'Y'
+                            THEN TO_CHAR(TO_DATE(A.OPER_YMD, 'YYYYMMDD') + 1, 'YYYYMMDD')
+                            ELSE A.OPER_YMD
+                        END || CASE
                             WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_END_HM
                             ELSE A.EST_END_HM
-                        END IS NOT NULL
-                    ) X
-                    WHERE X.BGN_DT &lt;= #{bgnDt}
-                    AND X.END_DT &gt; #{bgnDt}
-                )
-                SELECT
-                    SUBSTR(V.CKNCT_ID, 1, 1) AS UNIT_CD,
-                    V.ALN_CD,
-                    N.ALN_NM,
-                    COUNT(DISTINCT V.CKNCT_ID) AS ASSIGNED_CNT,
-                    O.OPEN_CNT
-                FROM VALID_ASSIGNMENT V
-                    INNER JOIN (
-                        SELECT SUBSTR(CKNCT_ID, 1, 1) AS UNIT_CD, COUNT(DISTINCT CKNCT_ID) AS OPEN_CNT
-                        FROM VALID_ASSIGNMENT
-                        GROUP BY SUBSTR(CKNCT_ID, 1, 1)
-                    ) O
-                    ON SUBSTR(V.CKNCT_ID, 1, 1) = O.UNIT_CD
-                    LEFT JOIN (
-                        SELECT ALN_CD, MAX(ALN_NM) AS ALN_NM
-                        FROM CAOWN.TN_CA_ALN
-                        GROUP BY ALN_CD
-                    ) N
-                    ON V.ALN_CD = N.ALN_CD
-                GROUP BY SUBSTR(V.CKNCT_ID, 1, 1), V.ALN_CD, N.ALN_NM, O.OPEN_CNT
-                ORDER BY UNIT_CD, ASSIGNED_CNT DESC, V.ALN_CD
+                        END,
+                        'YYYYMMDDHH24MI'
+                    ) AS END_DT
+                FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
+                    INNER JOIN CAOWN.TN_CA_CKNCT B
+                    ON A.CKNCT_ID = B.CKNCT_ID
+                    AND A.TMNL_ID = B.TMNL_ID
+                WHERE A.USE_YN = 'Y'
+                AND B.USE_YN = 'Y'
+                AND B.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
+                AND A.TMNL_ID = #{tmnlId}
+                AND A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{excnYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND #{excnYmd}
+                AND A.CKNCT_ID NOT LIKE 'X%'
+                AND A.CKNCT_ID NOT LIKE 'Y%'
+                AND A.CKNCT_ID NOT LIKE 'R%'
+                AND A.CKNCT_ID NOT LIKE 'S%'
+                AND CASE
+                    WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_BGNG_HM
+                    ELSE A.EST_BGNG_HM
+                END IS NOT NULL
+                AND CASE
+                    WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_END_HM
+                    ELSE A.EST_END_HM
+                END IS NOT NULL
+            ) X
+            WHERE X.BGN_DT &lt;= #{bgnDt}
+            AND X.END_DT &gt; #{bgnDt}
             </when>
             <otherwise>
-                WITH VALID_ASSIGNMENT AS (
-                    SELECT A.CKNCT_ID, A.ALN_CD
-                    FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
-                    WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{cknctAlctnRsrcId}, '^CA', '')
-                    AND A.TMNL_ID = #{tmnlId}
-                    AND A.CHKN_OPEN_PRNMNT_DT IS NOT NULL
-                    AND A.CHKN_CLOSE_PRNMNT_DT IS NOT NULL
-                    AND TO_DATE(A.CHKN_OPEN_PRNMNT_DT, 'YYYYMMDDHH24MI') &lt;= #{bgnDt}
-                    AND TO_DATE(A.CHKN_CLOSE_PRNMNT_DT, 'YYYYMMDDHH24MI') &gt; #{bgnDt}
-                )
-                SELECT
-                    SUBSTR(V.CKNCT_ID, 1, 1) AS UNIT_CD,
-                    V.ALN_CD,
-                    N.ALN_NM,
-                    COUNT(DISTINCT V.CKNCT_ID) AS ASSIGNED_CNT,
-                    O.OPEN_CNT
-                FROM VALID_ASSIGNMENT V
-                    INNER JOIN (
-                        SELECT SUBSTR(CKNCT_ID, 1, 1) AS UNIT_CD, COUNT(DISTINCT CKNCT_ID) AS OPEN_CNT
-                        FROM VALID_ASSIGNMENT
-                        GROUP BY SUBSTR(CKNCT_ID, 1, 1)
-                    ) O
-                    ON SUBSTR(V.CKNCT_ID, 1, 1) = O.UNIT_CD
-                    LEFT JOIN (
-                        SELECT ALN_CD, MAX(ALN_NM) AS ALN_NM
-                        FROM CAOWN.TN_CA_ALN
-                        GROUP BY ALN_CD
-                    ) N
-                    ON V.ALN_CD = N.ALN_CD
-                GROUP BY SUBSTR(V.CKNCT_ID, 1, 1), V.ALN_CD, N.ALN_NM, O.OPEN_CNT
-                ORDER BY UNIT_CD, ASSIGNED_CNT DESC, V.ALN_CD
+            SELECT A.CKNCT_ID, A.ALN_CD
+            FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
+            WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{cknctAlctnRsrcId}, '^CA', '')
+            AND A.TMNL_ID = #{tmnlId}
+            AND A.CHKN_OPEN_PRNMNT_DT IS NOT NULL
+            AND A.CHKN_CLOSE_PRNMNT_DT IS NOT NULL
+            AND TO_DATE(A.CHKN_OPEN_PRNMNT_DT, 'YYYYMMDDHH24MI') &lt;= #{bgnDt}
+            AND TO_DATE(A.CHKN_CLOSE_PRNMNT_DT, 'YYYYMMDDHH24MI') &gt; #{bgnDt}
             </otherwise>
         </choose>
+        )
+        SELECT
+            SUBSTR(V.CKNCT_ID, 1, 1) AS UNIT_CD,
+            V.ALN_CD,
+            N.ALN_NM,
+            COUNT(DISTINCT V.CKNCT_ID) AS ASSIGNED_CNT,
+            O.OPEN_CNT
+        FROM VALID_ASSIGNMENT V
+            INNER JOIN (
+                SELECT SUBSTR(CKNCT_ID, 1, 1) AS UNIT_CD, COUNT(DISTINCT CKNCT_ID) AS OPEN_CNT
+                FROM VALID_ASSIGNMENT
+                GROUP BY SUBSTR(CKNCT_ID, 1, 1)
+            ) O
+            ON SUBSTR(V.CKNCT_ID, 1, 1) = O.UNIT_CD
+            LEFT JOIN (
+                SELECT ALN_CD, MAX(ALN_NM) AS ALN_NM
+                FROM CAOWN.TN_CA_ALN
+                GROUP BY ALN_CD
+            ) N
+            ON V.ALN_CD = N.ALN_CD
+        GROUP BY SUBSTR(V.CKNCT_ID, 1, 1), V.ALN_CD, N.ALN_NM, O.OPEN_CNT
+        ORDER BY UNIT_CD, ASSIGNED_CNT DESC, V.ALN_CD
     </select>
 
     <select id="retrieveScrtyOpenCountList" resultType="aoms.pm.cast.dto.FcltUnitRawDto">
@@ -368,23 +303,34 @@
 
     <select id="retrieveFcltUnitList" resultType="aoms.pm.cast.dto.FcltUnitRawDto">
         /* CastDsbdMapper.retrieveFcltUnitList */
-        -- 미운영 시설도 카드의 "전체" 에는 들어가야 하므로 USE_YN 으로 거르지 않고 나눠 센다
+        <!-- 미운영 시설도 카드의 "전체" 에는 들어가야 하므로 USE_YN 으로 거르지 않고 나눠 센다 -->
         SELECT
-            <include refid="unitCdExpr" /> AS UNIT_CD,
+            CASE
+                WHEN B.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(B.PSG_FCLT_CD, -3, 1)
+                WHEN B.UP_PSG_FCLT_CD IN ('LGT') THEN SUBSTR(B.PSG_FCLT_CD, 4, 1)
+                WHEN B.UP_PSG_FCLT_CD IN ('SC', 'SR') THEN SUBSTR(B.PSG_FCLT_CD, 5, 1)
+                ELSE ' '
+            END AS UNIT_CD,
             COUNT(*) AS TOT_CNT,
             NVL(SUM(CASE WHEN B.USE_YN = 'Y' THEN 1 ELSE 0 END), 0) AS OPR_CNT
         FROM PMOWN.TN_PM_SMLT_PSG_FCLT B
         WHERE 1 = 1
         AND B.TMNL_ID = #{tmnlId}
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
-        GROUP BY <include refid="unitCdExpr" />
+        GROUP BY
+            CASE
+                WHEN B.UP_PSG_FCLT_CD IN ('CC', 'CK', 'SBD') THEN SUBSTR(B.PSG_FCLT_CD, -3, 1)
+                WHEN B.UP_PSG_FCLT_CD IN ('LGT') THEN SUBSTR(B.PSG_FCLT_CD, 4, 1)
+                WHEN B.UP_PSG_FCLT_CD IN ('SC', 'SR') THEN SUBSTR(B.PSG_FCLT_CD, 5, 1)
+                ELSE ' '
+            END
         ORDER BY UNIT_CD
     </select>
 
     <select id="retrieveWeather" resultType="aoms.pm.cast.dto.WeatherDto">
         /* CastDsbdMapper.retrieveWeather */
-        -- 기상정보는 하루 최대 2회(07/09시) 발표된다. 가장 최근 발표를 그날의 대표값으로 쓴다.
-        -- 집계라 대상 일자에 발표가 없어도 NULL 채운 행 1개가 온다 (NVL 로 기본값 처리)
+        <!-- 기상정보는 하루 최대 2회(07/09시) 발표된다. 가장 최근 발표를 그날의 대표값으로 쓴다.
+             집계라 대상 일자에 발표가 없어도 NULL 채운 행 1개가 온다 (NVL 로 기본값 처리) -->
         SELECT
             NVL(MAX(A.WTHR_CN) KEEP (DENSE_RANK FIRST ORDER BY A.CRT_HM DESC), '') AS WTHR_CN,
             TO_NUMBER(NVL(MAX(A.MAX_TP) KEEP (DENSE_RANK FIRST ORDER BY A.CRT_HM DESC), '0')) AS MAX_TP,

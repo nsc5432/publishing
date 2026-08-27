@@ -1,5 +1,5 @@
 import './userSmlt.css';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { unwrap } from '@/api/pm/result';
@@ -39,23 +39,21 @@ function UserSmltConfig() {
     usePageScope('userSmlt');
     const navigate = useNavigate();
 
-    const [params] = useSearchParams();
-    const readOnly = params.get('mode') === 'view';
-    const viewSmltId = params.get('smltId') ?? '';
-    const viewTmnlId = params.get('tmnlId') as TerminalKind | null;
+    const [searchParams] = useSearchParams();
+    const readOnly = searchParams.get('mode') === 'view';
+    const viewSmltId = searchParams.get('smltId') ?? '';
+    const viewTmnlId = searchParams.get('tmnlId') as TerminalKind | null;
 
-    const [ymd, setYmd] = useState(() => params.get('ymd') || todayYmd());
+    const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
     const [reloadKey, setReloadKey] = useState(0);
     const { smltIds: editSmltIds, ymd: baseYmd, error, token } = useSmltInfo(readOnly ? '' : ymd, reloadKey);
 
-    const smltIds = useMemo(() => {
-        if (!readOnly) return editSmltIds;
-
-        return {
-            T1: !viewTmnlId || viewTmnlId === 'T1' ? viewSmltId : '',
-            T2: !viewTmnlId || viewTmnlId === 'T2' ? viewSmltId : '',
-        };
-    }, [readOnly, editSmltIds, viewTmnlId, viewSmltId]);
+    const smltIds = readOnly
+        ? {
+              T1: !viewTmnlId || viewTmnlId === 'T1' ? viewSmltId : '',
+              T2: !viewTmnlId || viewTmnlId === 'T2' ? viewSmltId : '',
+          }
+        : editSmltIds;
 
     const [activeTab, setActiveTab] = useState<SmltTabKey>('flightPax');
     const [enabled, setEnabled] = useState<TerminalEnabled>(() => (readOnly ? viewEnabled(viewTmnlId) : NO_TERMINAL));
@@ -68,32 +66,37 @@ function UserSmltConfig() {
 
     const handleSearch = () => setReloadKey((key) => key + 1);
 
-    const handleStart = (next: TerminalEnabled) => {
-        setEnabled(next);
-        setFocusTerminal(enabledTerminals(next)[0]);
+    const handleStart = (nextEnabled: TerminalEnabled) => {
+        setEnabled(nextEnabled);
+        setFocusTerminal(enabledTerminals(nextEnabled)[0]);
     };
 
     const handleToggleTerminal = (terminal: TerminalKind) => {
-        const next = { ...enabled, [terminal]: !enabled[terminal] };
-        if (!next.T1 && !next.T2) return;
+        const nextEnabled = { ...enabled, [terminal]: !enabled[terminal] };
+        if (!nextEnabled.T1 && !nextEnabled.T2) return;
 
-        setEnabled(next);
-        setFocusTerminal(next[terminal] ? terminal : otherTerminal(terminal));
+        setEnabled(nextEnabled);
+        setFocusTerminal(nextEnabled[terminal] ? terminal : otherTerminal(terminal));
     };
 
     const handleRun = () => {
-        const runnable = targets.filter((terminal) => smltIds[terminal]);
-        if (runnable.length === 0) return;
+        const runnableTerminals = targets.filter((terminal) => smltIds[terminal]);
+        if (runnableTerminals.length === 0) return;
 
         dialog
             .confirm({ title: '시뮬레이션 실행', description: EXEC_CONFIRM })
             .then((confirmed) => {
                 if (!confirmed) return;
 
-                Promise.all(runnable.map((terminal) => userSmltService.execute(smltIds[terminal], terminal).then((dto) => unwrap(dto, EXEC_FAIL))))
+                Promise.all(runnableTerminals.map((terminal) => userSmltService.execute(smltIds[terminal], terminal).then((dto) => unwrap(dto, EXEC_FAIL))))
                     .then(() => navigate(MONITORING_PATH))
-                    .catch((err: ApiError) => {
-                        dialog.alert({ title: '실행 실패', description: err?.message || EXEC_FAIL }).catch(() => {});
+                    .catch((error: ApiError) => {
+                        dialog
+                            .alert({
+                                title: '실행 실패',
+                                description: error?.message || EXEC_FAIL,
+                            })
+                            .catch(() => {});
                     });
             })
             .catch(() => {});
