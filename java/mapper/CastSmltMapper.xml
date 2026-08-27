@@ -7,8 +7,9 @@
         SELECT 
 		    SMLT_ID, SMLT_MDL_SN, SMLT_NM, SMLT_TYPE, CRTR_DT, EXCN_YMD, TMNL_ID, SLF_ID, PRNT_ID, 
 		    FLT_SCHDL_RSRC_ID, BAG_ALCTN_RSRC_ID, CKNCT_ALCTN_RSRC_ID, PRPT_SET_RSRC_ID, MDL_RSRC_ID, 
-		    EXCN_ID, CKNCT_SRVC_HR_RSRC_ID, CHKN_TYPE_RSRC_ID, FCLTY_OPNG_EMI_RSRC_ID,
-		    FCLTY_OPNG_IMMI_RSRC_ID, FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID, FCLTY_OPNG_TR_SCRTY_CNTRL_RSRC_ID, 
+		    EXCN_ID, CKNCT_SRVC_HR_RSRC_ID, CHKN_TYPE_RSRC_ID, FCLTY_OPNG_DPTCNY_SRNG_RSRC_ID,
+		    FCLTY_OPNG_EMI_RSRC_ID, FCLTY_OPNG_IMMI_RSRC_ID,
+		    FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID, FCLTY_OPNG_TR_SCRTY_CNTRL_RSRC_ID,
 		    SBD_CNTRL_ALCTN_ID, PLAN_BGNG_DT, PLAN_END_DT, SMLT_BGNG_DT, SMLT_END_DT, BDPSG_ANCE_YN
 		FROM PMOWN.TN_PM_SMLT_STNG
 		WHERE 1 = 1
@@ -59,26 +60,40 @@
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
     </select>
 
-    <select id="retrieveUserSmltCondCnt" resultType="int">
-        /* CastSmltMapper.retrieveUserSmltCondCnt */
-        SELECT SUM(A.CNT) AS CNT
+    <select id="retrieveUserSmltCondFilledCnt" resultType="int">
+        /* CastSmltMapper.retrieveUserSmltCondFilledCnt */
+        -- CAST 리소스는 운항·체크인·출국장 세 영역이 모두 있어야 완결된다.
+        -- 합계로 세면 한 영역만 저장돼도 통과하므로 각각을 본다
+        SELECT COUNT(*) AS CNT
         FROM (
-            SELECT COUNT(*) AS CNT
-            FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL
-            WHERE SMLT_ID = #{smltId}
-            AND TMNL_ID = #{tmnlId}
-            UNION ALL
-            SELECT COUNT(*) AS CNT
-            FROM PMOWN.TN_PM_SMLT_USER_DPTGT
-            WHERE SMLT_ID = #{smltId}
-            AND TMNL_ID = #{tmnlId}
-            UNION ALL
-            SELECT COUNT(*) AS CNT
-            FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT
-            WHERE SMLT_ID = #{smltId}
-            AND TMNL_ID = #{tmnlId}
-        ) A
+            SELECT 1 FROM DUAL
+            WHERE EXISTS (
+                SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT
+                WHERE SMLT_ID = #{smltId} AND TMNL_ID = #{tmnlId}
+            )
+            AND EXISTS (
+                SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL
+                WHERE SMLT_ID = #{smltId} AND TMNL_ID = #{tmnlId}
+            )
+            AND EXISTS (
+                SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_DPTGT
+                WHERE SMLT_ID = #{smltId} AND TMNL_ID = #{tmnlId}
+            )
+        )
     </select>
+
+    <update id="updateSmltFlfmtClosed">
+        /* CastSmltMapper.updateSmltFlfmtClosed */
+        -- 종료 처리는 진행중 건에만 건다. 재수신으로 다시 들어와도 종료일시가 덮이지 않는다
+        UPDATE PMOWN.TH_PM_SMLT_FLFMT_HSTRY
+        SET SMLT_FLFMT_STTS_CD = #{smltFlfmtSttsCd},
+            SMLT_FLFMT_END_DT = CURRENT_TIMESTAMP,
+            LAST_MDFR_ID = 'CAST',
+            LAST_MDFCN_DT = CURRENT_TIMESTAMP
+        WHERE SMLT_ID = #{smltId}
+        AND SMLT_FLFMT_SN = #{smltFlfmtSn}
+        AND SMLT_FLFMT_STTS_CD = 'RUNNING'
+    </update>
 
     <select id="retrieveNextSmltFlfmtSn" resultType="int">
         /* CastSmltMapper.retrieveNextSmltFlfmtSn */
@@ -157,7 +172,8 @@
 
     <select id="retrieveSmltFlfmtSmry" resultType="aoms.pm.cast.dto.SmltExcnCntRawDto">
         /* CastSmltMapper.retrieveSmltFlfmtSmry */
-        -- 평균 수행시간은 완료 건만 센다. 진행중 건을 섞으면 종료일시가 없어 평균이 0 쪽으로 끌린다
+        -- 평균 수행시간은 완료 건만 센다. 진행중 건을 섞으면 종료일시가 없어 평균이 0 쪽으로 끌린다.
+        -- 실패 건은 TOT_CNT 에만 들어가므로 전체 = 완료 + 진행중 이 아닐 수 있다
         SELECT
             COUNT(*) AS TOT_CNT,
             NVL(SUM(CASE WHEN A.SMLT_FLFMT_STTS_CD = 'DONE' THEN 1 ELSE 0 END), 0) AS DONE_CNT,

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="aoms.pm.cast.mapper.CastUserReqMapper">
+
+    <insert id="insertUserReq" parameterType="aoms.pm.cast.dto.UserSmltReqDto">
+        /* CastUserReqMapper.insertUserReq */
+        INSERT INTO PMOWN.TN_PM_SMLT_USER_MSTR (
+            SMLT_REQ_ID,
+            SMLT_ID,
+            TMNL_ID,
+            EXCN_YMD,
+            SMLT_FLFMT_SN,
+            MDL_RSRC_ID,
+            FLT_SCHDL_RSRC_ID,
+            CKNCT_ALCTN_RSRC_ID,
+            SBD_CNTRL_ALCTN_ID,
+            PRPT_STNG_RSRC_ID,
+            FCLTY_OPNG_DPTCNY_SRNG_RSRC_ID,
+            FCLTY_OPNG_DPTCNY_RSRC_ID,
+            FCLTY_OPNG_ENTCNY_RSRC_ID,
+            FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID,
+            FCLTY_OPNG_TR_SCRTY_CNTRL_RSRC_ID,
+            CKNCT_SRVC_HR_RSRC_ID,
+            CHKN_TYPE_RSRC_ID,
+            RPT_STNG_ATRB_ID,
+            SMLT_RSLT_SFX,
+            SMLT_STTS,
+            QUEUE_DT,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        ) VALUES (
+            #{smltReqId},
+            #{smltId},
+            #{tmnlId},
+            #{excnYmd},
+            #{smltFlfmtSn},
+            #{mdlRsrcId},
+            #{fltSchdlRsrcId},
+            #{cknctAlctnRsrcId},
+            #{sbdCntrlAlctnId},
+            #{prptStngRsrcId},
+            #{fcltyOpngDptcnySrngRsrcId},
+            #{fcltyOpngDptcnyRsrcId},
+            #{fcltyOpngEntcnyRsrcId},
+            #{fcltyOpngScrtyCntrlRsrcId},
+            #{fcltyOpngTrScrtyCntrlRsrcId},
+            #{cknctSrvcHrRsrcId},
+            #{chknTypeRsrcId},
+            #{rptStngAtrbId},
+            #{smltRsltSfx},
+            'New',
+            CURRENT_TIMESTAMP,
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <select id="retrieveActiveReqCnt" resultType="int">
+        /* CastUserReqMapper.retrieveActiveReqCnt */
+        -- 친절한 메시지를 만들기 위한 사전 검사다. 실제 방어는 TN_PM_SMLT_USER_MSTR_UX_ACTIVE 가 한다
+        SELECT COUNT(*) AS CNT
+        FROM PMOWN.TN_PM_SMLT_USER_MSTR
+        WHERE SMLT_ID = #{smltId}
+        AND TMNL_ID = #{tmnlId}
+        AND SMLT_STTS IN ('New', 'Executing')
+    </select>
+
+    <select id="retrieveUserReqByKey" resultType="aoms.pm.cast.dto.UserSmltReqDto">
+        /* CastUserReqMapper.retrieveUserReqByKey */
+        SELECT
+            SMLT_REQ_ID,
+            SMLT_ID,
+            TMNL_ID,
+            EXCN_YMD,
+            SMLT_FLFMT_SN,
+            NVL(RSLT_SMLT_ID, '') AS RSLT_SMLT_ID,
+            SMLT_STTS,
+            NVL(ERR_MSG, '') AS ERR_MSG
+        FROM PMOWN.TN_PM_SMLT_USER_MSTR
+        WHERE SMLT_REQ_ID = #{smltReqId}
+    </select>
+</mapper>

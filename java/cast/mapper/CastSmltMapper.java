@@ -44,11 +44,18 @@ public interface CastSmltMapper {
 			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
 	);
 
-	int retrieveUserSmltCondCnt(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
+	// 운항·체크인·출국장 세 영역이 각각 저장돼 있는지 본다. 하나라도 비면 0
+	int retrieveUserSmltCondFilledCnt(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
 
 	int retrieveNextSmltFlfmtSn(@Param("smltId") String smltId);
 
 	void insertSmltFlfmtHstry(SmltExcnDto dto);
+
+	int updateSmltFlfmtClosed(
+			@Param("smltId") String smltId,
+			@Param("smltFlfmtSn") int smltFlfmtSn,
+			@Param("smltFlfmtSttsCd") String smltFlfmtSttsCd
+	);
 
 	SmltExcnDto retrieveSmltFlfmtByKey(@Param("smltId") String smltId, @Param("smltFlfmtSn") int smltFlfmtSn);
 

@@ -1608,7 +1608,8 @@ ORDER BY
               , #{smltType}
               , CURRENT_TIMESTAMP
               , substr(replace(replace(#{startTime},'T',' '),'-',''),1,8)
-              , 'P01'
+              -- 사용자 실행이면 요청의 터미널을 따른다. 일일은 예전대로 P01
+              , NVL(#{tmnlId}, 'P01')
               , #{selfID}
               , #{parentID}              
               , #{flightScheduleResourceID}
@@ -2205,49 +2206,98 @@ ORDER BY
     </select>
     <select id="retrieveWhatIfCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
         /* CastRestTestMapper.retrieveWhatIfCntrl(CastReqGetResourceDto dto) */
-    SELECT LISTAGG(SMLT_ID,',')     WITHIN GROUP (ORDER BY SMLT_ID) AS whatIfRunId
-         , LISTAGG(MDL_RSRC_ID,',')         WITHIN GROUP (ORDER BY SMLT_ID) AS model
-         , LISTAGG(FLT_SCHDL_RSRC_ID,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS fs
-         , LISTAGG(CKNCT_ALCTN_RSRC_ID,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS ca
-         , LISTAGG(SBD_CNTRL_ALCTN_ID,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS sbd
-         , LISTAGG(PRPT_STNG_RSRC_ID,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS ps
-         , LISTAGG(FCLTY_OPNG_DPTCNY_SRNG_RSRC_ID,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS facilityOpeningTableDepartureGate
-         , LISTAGG(FCLTY_OPNG_DPTCNY_RSRC_ID,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS facilityOpeningTableEmigration
-         , LISTAGG(FCLTY_OPNG_ENTCNY_RSRC_ID,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS facilityOpeningTableImmigration
-         , LISTAGG(FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS facilityOpeningTableSecurityControl
-         , LISTAGG(FCLTY_OPNG_TR_SCRTY_CNTRL_RSRC_ID,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS facilityOpeningTableTransferSecurityControl
-         , LISTAGG(CKNCT_SRVC_HR_RSRC_ID,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS checkinCounterServiceTime
-         , LISTAGG(CHKN_TYPE_RSRC_ID,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS checkinType
-         , LISTAGG(RPT_STNG_ATRB_ID,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS rptStngId
-         , LISTAGG(SMLT_RSLT_SFX,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS simulationResultSuffix
-         , LISTAGG(SMLT_STTS,',')   WITHIN GROUP (ORDER BY SMLT_ID) AS status
-         , LISTAGG(TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'HH24:MI:SS'),',')   WITHIN GROUP (ORDER BY NVL(LAST_MDFCN_DT,FRST_REG_DT)) AS lastChange
+    -- 대기(New) 건만 내보낸다. 필터가 없으면 완료·실패 건까지 매번 다시 실행 대상이 된다.
+    -- LISTAGG 는 NULL 셀을 배열에서 통째로 빼 뒤 값을 한 칸 당긴다. NVL 로 자리를 채우고
+    -- 정렬 기준도 전부 SMLT_REQ_ID 로 통일해야 컬럼 간 행 대응이 유지된다.
+    SELECT LISTAGG(NVL(SMLT_REQ_ID,' '),',')     WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS whatIfRunId
+         , LISTAGG(NVL(MDL_RSRC_ID,' '),',')         WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS model
+         , LISTAGG(NVL(FLT_SCHDL_RSRC_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS fs
+         , LISTAGG(NVL(CKNCT_ALCTN_RSRC_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS ca
+         , LISTAGG(NVL(SBD_CNTRL_ALCTN_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS sbd
+         , LISTAGG(NVL(PRPT_STNG_RSRC_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS ps
+         , LISTAGG(NVL(FCLTY_OPNG_DPTCNY_SRNG_RSRC_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS facilityOpeningTableDepartureGate
+         , LISTAGG(NVL(FCLTY_OPNG_DPTCNY_RSRC_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS facilityOpeningTableEmigration
+         , LISTAGG(NVL(FCLTY_OPNG_ENTCNY_RSRC_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS facilityOpeningTableImmigration
+         , LISTAGG(NVL(FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS facilityOpeningTableSecurityControl
+         , LISTAGG(NVL(FCLTY_OPNG_TR_SCRTY_CNTRL_RSRC_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS facilityOpeningTableTransferSecurityControl
+         , LISTAGG(NVL(CKNCT_SRVC_HR_RSRC_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS checkinCounterServiceTime
+         , LISTAGG(NVL(CHKN_TYPE_RSRC_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS checkinType
+         , LISTAGG(NVL(RPT_STNG_ATRB_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS rptStngId
+         , LISTAGG(NVL(SMLT_RSLT_SFX,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS simulationResultSuffix
+         , LISTAGG(NVL(SMLT_STTS,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS status
+         , LISTAGG(NVL(TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'YYYY-MM-DD"T"HH24:MI:SS'),' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS lastChange
          , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
-      FROM PMOWN.TN_PM_SMLT_USER_MSTR ORDER BY SMLT_ID
+      FROM PMOWN.TN_PM_SMLT_USER_MSTR
+     WHERE SMLT_STTS = 'New'
     </select>
     <update id="updateWhatIfDefinitionTableStts" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
         /* CastRestMapper.updateWhatIfDefinitionTable(CastWhatIfCntrlDto dto) */
+        -- 이전 상태를 조건에 걸어 전이 방향을 강제한다. 영향 0행은 이미 다른 경로가
+        -- 전이시킨 것이므로 호출자가 무시한다 (New → Executing → Finished/Failed)
         UPDATE PMOWN.TN_PM_SMLT_USER_MSTR
         SET    SMLT_STTS = #{status}
              , EXCT_DT = CASE
                            WHEN #{status} = 'Executing' THEN CURRENT_TIMESTAMP
                             ELSE EXCT_DT
                          END
+             , END_DT = CASE
+                          WHEN #{status} IN ('Finished', 'Failed') THEN CURRENT_TIMESTAMP
+                           ELSE END_DT
+                        END
              , LAST_MDFR_ID = 'SYSTEM'
              , LAST_MDFR_IP_ADDR = #{loginIpAddr}
              , LAST_MDFCN_DT = CURRENT_TIMESTAMP
-        WHERE SMLT_ID = #{whatIfRunId}
-        AND SMLT_STTS != #{status}
+        WHERE SMLT_REQ_ID = #{whatIfRunId}
+        AND SMLT_STTS = #{fromStatus}
     </update>
     <select id="checkWhatIfIdList" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto" resultType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
         /* CastRestMapper.checkWhatIfIdList(CastWhatIfCntrlDto dto) */
-    SELECT SMLT_ID AS whatIfRunId
+    SELECT SMLT_REQ_ID AS whatIfRunId
          , SMLT_STTS AS status
       FROM PMOWN.TN_PM_SMLT_USER_MSTR
     </select>
     <delete  id="deleteWhatIfDefinitionTable" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto" >
         /* CastRestMapper.deleteWhatIfDefinitionTable(CastWhatIfCntrlDto dto) */
        DELETE FROM PMOWN.TN_PM_SMLT_USER_MSTR
-       WHERE SMLT_ID = #{whatIfRunId}
+       WHERE SMLT_REQ_ID = #{whatIfRunId}
     </delete>
+
+    <select id="retrieveUserReqByFsRsrcId" resultType="aoms.pm.cast.dto.UserSmltReqDto">
+        /* CastRestMapper.retrieveUserReqByFsRsrcId */
+        -- CAST 는 결과 XML 의 Run 섹션에 자기가 쓴 입력 리소스 ID 를 그대로 실어 보낸다.
+        -- 요청마다 새 FS 번호를 발행하므로 그 번호가 곧 요청 식별자가 된다.
+        SELECT SMLT_REQ_ID AS smltReqId
+             , SMLT_ID AS smltId
+             , TMNL_ID AS tmnlId
+             , SMLT_FLFMT_SN AS smltFlfmtSn
+             , NVL(RSLT_SMLT_ID, '') AS rsltSmltId
+             , SMLT_STTS AS smltStts
+        FROM PMOWN.TN_PM_SMLT_USER_MSTR
+        WHERE FLT_SCHDL_RSRC_ID = #{fltSchdlRsrcId}
+    </select>
+
+    <select id="retrieveUserReqByKey" resultType="aoms.pm.cast.dto.UserSmltReqDto">
+        /* CastRestMapper.retrieveUserReqByKey */
+        SELECT SMLT_REQ_ID AS smltReqId
+             , SMLT_ID AS smltId
+             , TMNL_ID AS tmnlId
+             , SMLT_FLFMT_SN AS smltFlfmtSn
+             , NVL(RSLT_SMLT_ID, '') AS rsltSmltId
+             , SMLT_STTS AS smltStts
+        FROM PMOWN.TN_PM_SMLT_USER_MSTR
+        WHERE SMLT_REQ_ID = #{smltReqId}
+    </select>
+
+    <update id="updateUserReqFinished" parameterType="aoms.pm.cast.dto.UserSmltReqDto">
+        /* CastRestMapper.updateUserReqFinished */
+        UPDATE PMOWN.TN_PM_SMLT_USER_MSTR
+        SET    SMLT_STTS = 'Finished'
+             , RSLT_SMLT_ID = #{rsltSmltId}
+             , END_DT = CURRENT_TIMESTAMP
+             , LAST_MDFR_ID = 'CAST'
+             , LAST_MDFR_IP_ADDR = #{loginIpAddr}
+             , LAST_MDFCN_DT = CURRENT_TIMESTAMP
+        WHERE SMLT_REQ_ID = #{smltReqId}
+        AND SMLT_STTS IN ('New', 'Executing')
+    </update>
 </mapper>

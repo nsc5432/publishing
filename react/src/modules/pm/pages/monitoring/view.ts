@@ -14,6 +14,7 @@ const EMPTY = '-';
 const EXEC_STATUS_TO_RUN_STATUS: Record<SmltExecStatus, RunStatus> = {
     DONE: 'done',
     RUNNING: 'running',
+    FAILED: 'failed',
 };
 
 /** yyyyMMddHHmmss → yyyy.MM.dd HH:mm (진행중이라 종료일시가 없으면 '-') */

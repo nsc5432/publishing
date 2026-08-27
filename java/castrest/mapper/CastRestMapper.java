@@ -3,8 +3,10 @@ package aoms.pm.castrest.mapper;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
+import aoms.pm.cast.dto.UserSmltReqDto;
 import aoms.pm.cmmn.dto.CastCheckInCounterServiceTimeDto;
 import aoms.pm.cmmn.dto.CastCheckinTypeDto;
 import aoms.pm.cmmn.dto.CastCounterAllocationDto;
@@ -28,6 +30,7 @@ import aoms.pm.cmmn.dto.DwDelKeyValHstDto;
 import aoms.pm.cmmn.dto.PmAtchFileDto;
 import aoms.pm.cmmn.dto.SimRunStatDto;
 import aoms.pm.cmmn.dto.SmltMdlDto;
+import aoms.pm.cmmn.dto.SmltRsltDtlDto;
 
 /**
  * @Classname   : UserSmltInfoMapper.java
@@ -65,6 +68,8 @@ public interface CastRestMapper {
 	int insertCASTModel(SmltMdlDto dto);
 	int updateCASTModel(CastModelDto dto);
 	int insertResult(CastResReqDto dto);
+	// XML 에는 있었으나 선언이 없어 호출되지 않던 문장. 매핑 실패 시설을 여기에 남긴다
+	int insertSimResultDtlRegExcl(SmltRsltDtlDto dto);
 	int deleteCASTModel(CastResReqDto dto);
 	SmltMdlDto retrieveModelInfo(CastResReqDto dto);
 	String retrieveSimId(CastResReqDto dto);
@@ -91,4 +96,7 @@ public interface CastRestMapper {
 	int updateWhatIfDefinitionTableStts(CastWhatIfCntrlDto wDto);
 	List<CastWhatIfCntrlDto> checkWhatIfIdList(CastWhatIfCntrlDto dto);
 	int deleteWhatIfDefinitionTable(CastWhatIfCntrlDto whatIf);
+	UserSmltReqDto retrieveUserReqByFsRsrcId(@Param("fltSchdlRsrcId") String fltSchdlRsrcId);
+	UserSmltReqDto retrieveUserReqByKey(@Param("smltReqId") String smltReqId);
+	int updateUserReqFinished(UserSmltReqDto dto);
 }

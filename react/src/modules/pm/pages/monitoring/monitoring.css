@@ -385,6 +385,11 @@ html[data-page='monitoring'] .tbl__state.is-running {
     color: var(--text-sub);
 }
 
+html[data-page='monitoring'] .tbl__state.is-failed {
+    color: #d64545;
+    font-weight: 700;
+}
+
 html[data-page='monitoring'] .btn-view {
     width: 100%;
     height: 28px;

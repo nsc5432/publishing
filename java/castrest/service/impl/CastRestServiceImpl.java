@@ -15,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.parsers.DocumentBuilder;
@@ -67,6 +68,10 @@ import aoms.pm.cmmn.dto.PmAtchFileDto;
 import aoms.pm.cmmn.dto.SimRsltDto;
 import aoms.pm.cmmn.dto.SimRunStatDto;
 import aoms.pm.cmmn.dto.SmltMdlDto;
+import aoms.pm.cast.dto.UserSmltReqDto;
+import aoms.pm.cast.enums.SmltExecStatus;
+import aoms.pm.cast.enums.UserSmltReqStatus;
+import aoms.pm.cast.mapper.CastSmltMapper;
 import aoms.pm.cmmn.dto.SmltRsltDtlDto;
 import aoms.pm.utils.SessionUtils;
 import aoms.pm.utils.StringUtils;
@@ -95,6 +100,9 @@ import lombok.RequiredArgsConstructor;
 public class CastRestServiceImpl extends EgovAbstractServiceImpl implements CastRestService {
     private static final String CAST_MODEL = "CASTModel";
     private static final String CAST_EXPRESS_MODEL = "CASTExpressModel";
+    // 결과 ResourceID 의 일일/사용자 구분자. TN_PM_SMLT_USER_MSTR 의 상태 문자열과는 별개다
+    private static final String AUTO = "Auto";
+    private static final String WHAT_IF = "WhatIf";
     private static final String FLIGHT_SCHEDULE = "FlightSchedule";
     private static final String COUNTER_ALLOCATION = "CounterAllocation";
     private static final String CHECK_IN_TYPE = "CheckinType";
@@ -349,6 +357,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     private static final String WHAT_IF_RUN_ID = "WhatIfRunID";
     
     private final CastRestMapper castRestMapper;
+    private final CastSmltMapper castSmltMapper;
     private final SessionService sessionService;
     
     private static class FsFieldInfo {
@@ -2532,41 +2541,80 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 	private int insertResult(CastResReqDto dto){
 		saveSimLog("19", "1");
 		int relatedEventCd = setupMasterDto(dto);
+
+		// 사용자 실행이면 CAST 가 실어 보낸 FS 번호로 요청을 되찾는다
+		UserSmltReqDto userReq = retrieveUserReq(dto);
+
+		if (userReq != null) {
+			// 같은 결과를 다시 받아도 결과 상세가 중복되지 않게 여기서 끊는다
+			if (!userReq.getRsltSmltId().isEmpty()) {
+				saveSimLog("19", "2");
+				return 1;
+			}
+
+			dto.setTmnlId(userReq.getTmnlId());
+		}
+
 		String simId = castRestMapper.retrieveSimId(dto);
 		dto.setSimId(simId);
-		
-		SmltMdlDto modelDto = castRestMapper.retrieveModelInfo(dto);		
+
+		SmltMdlDto modelDto = castRestMapper.retrieveModelInfo(dto);
 		String sno = (modelDto != null) ? modelDto.getSmltMdlSn() : "";
 		dto.setSmltMdlSn(sno);
 		if(sno.equals("")) {
 			return 0;
 		}
 		List<SmltRsltDtlDto> datailList = processDetailList(dto, simId, sno, relatedEventCd);
-		
+
 		int rRslt = castRestMapper.insertSimSet(dto);
 		if (!datailList.isEmpty()) {
 			executeBatchInsert(datailList);
 		}
-		
-		//executeDeleteLogic();
+
+		closeUserReq(userReq, simId, dto.getLoginIpAddr());
+
 		saveSimLog("19", "2");
 		return rRslt;
+	}
+
+	// WhatIf 결과가 아니거나 요청을 못 찾으면 null. 그때는 일일 결과처럼 그대로 저장한다
+	private UserSmltReqDto retrieveUserReq(CastResReqDto dto) {
+		String fltSchdlRsrcId = dto.getFlightScheduleResourceID();
+
+		if (!WHAT_IF.equals(dto.getSmltType()) || fltSchdlRsrcId == null || fltSchdlRsrcId.isBlank()) {
+			return null;
+		}
+
+		return castRestMapper.retrieveUserReqByFsRsrcId(fltSchdlRsrcId.trim());
+	}
+
+	// 요청과 수행이력을 함께 닫는다. 결과 저장과 같은 트랜잭션이라 하나라도 실패하면 전부 롤백된다
+	private void closeUserReq(UserSmltReqDto userReq, String simId, String loginIpAddr) {
+		if (userReq == null) {
+			return;
+		}
+
+		userReq.setRsltSmltId(simId);
+		userReq.setLoginIpAddr(loginIpAddr);
+		castRestMapper.updateUserReqFinished(userReq);
+		castSmltMapper.updateSmltFlfmtClosed(
+				userReq.getSmltId(), userReq.getSmltFlfmtSn(), SmltExecStatus.DONE.getValue());
 	}
 	
 	private int setupMasterDto(CastResReqDto dto) {
 		int eventCd = 1;
-		
+
 		if (dto.getResourceID().contains(" Auto")) {
-			dto.setSmltType("Auto");
+			dto.setSmltType(AUTO);
 			eventCd = 2;
-		} else if (dto.getResourceID().contains("WhatIf")) {
-			dto.setSmltType("WhatIf");
+		} else if (dto.getResourceID().contains(WHAT_IF)) {
+			dto.setSmltType(WHAT_IF);
 			eventCd = 0;
 		}else {
 			dto.setSmltType("Manual");
 			eventCd = 1;
-		} 
-		
+		}
+
 		return eventCd;
 	}
 	
@@ -2641,7 +2689,12 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 				dtl.setAvgWtngLen(Float.parseFloat(avgWtngLen[j]));
 				dtl.setMaxWtngLen(Float.parseFloat(maxWtngLen[j]));
 				collector.add(dtl);
-			} 
+			} else {
+				// 매핑되는 시설코드가 없으면 결과가 조용히 사라진다. 어느 시설이었는지 남긴다
+				dtl.setSmltId(simId);
+				dtl.setPsgFcltDesc(fcltCd);
+				castRestMapper.insertSimResultDtlRegExcl(dtl);
+			}
 		}
 	}
 	
@@ -3195,37 +3248,68 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 			}
 		}	
 	}
+    /*
+     * CAST 가 통보한 상태를 요청에 반영한다.
+     *
+     * 응답에 없는 행을 지우던 동기화 루프는 제거했다. CAST 상태 응답이 full snapshot 이라는
+     * 계약이 확인되지 않았고, 확인되더라도 방금 등록된 New 요청이 다음 응답에 못 들어가면
+     * 그대로 사라진다. 완료분 정리는 보존기간 배치가 맡는다.
+     */
     private int updateWhatIf(CastWhatIfCntrlDto dto){
     	saveSimLog("22", "1");
     	String[] sIDs = dto.getWhatIfRunId().split(",");
     	String[] sStts = dto.getStatus().split(",");
-    	
-    	List<CastWhatIfCntrlDto> whatIfIdList = castRestMapper.checkWhatIfIdList(dto);
+
+    	Map<String, String> currentSttsMap = castRestMapper.checkWhatIfIdList(dto).stream()
+    			.collect(Collectors.toMap(CastWhatIfCntrlDto::getWhatIfRunId, CastWhatIfCntrlDto::getStatus,
+    					(first, ignored) -> first));
+
     	int rRslt = 0;
-    	for (int j = 0; j < sIDs.length; j++) {
-			if (sIDs[j] == null || sIDs[j].isBlank() ) {
+    	for (int j = 0; j < sIDs.length && j < sStts.length; j++) {
+			String runId = sIDs[j] != null ? sIDs[j].trim() : "";
+
+			if (runId.isBlank()) {
 				continue;
 			}
+
+			UserSmltReqStatus from = UserSmltReqStatus.ofValue(currentSttsMap.get(runId));
+			UserSmltReqStatus to = UserSmltReqStatus.ofValue(sStts[j] != null ? sStts[j].trim() : null);
+
+			// 허용되지 않는 전이는 조용히 건너뛴다. 되돌리기·중복 통보가 여기서 걸린다
+			if (from == null || !from.canTransitTo(to)) {
+				continue;
+			}
+
 			CastWhatIfCntrlDto wDto = new CastWhatIfCntrlDto();
 			ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 	        if (attributes != null) {
 	        	HttpServletRequest request = attributes.getRequest();
 	        	wDto.setLoginIpAddr(request.getRemoteAddr());
 	        }
-			wDto.setWhatIfRunId(sIDs[j]);
-			wDto.setStatus(sStts[j]);
-			
-			rRslt += castRestMapper.updateWhatIfDefinitionTableStts(wDto);
-			whatIfIdList.removeIf(vo -> vo.getWhatIfRunId().equals(wDto.getWhatIfRunId()));
-    	}
-    	if(!whatIfIdList.isEmpty()) {
-    		for(int i=0; i < whatIfIdList.size(); i++) {
-    			CastWhatIfCntrlDto whatIf = new CastWhatIfCntrlDto();
-    			whatIf.setWhatIfRunId(whatIfIdList.get(i).getWhatIfRunId());
-    			rRslt += castRestMapper.deleteWhatIfDefinitionTable(whatIf);
-    		}
+			wDto.setWhatIfRunId(runId);
+			wDto.setFromStatus(from.getValue());
+			wDto.setStatus(to.getValue());
+
+			int updated = castRestMapper.updateWhatIfDefinitionTableStts(wDto);
+			rRslt += updated;
+
+			if (updated > 0 && to.isClosed()) {
+				closeFlfmtHstry(runId, to);
+			}
     	}
 		saveSimLog("22", "2");
 		return rRslt;
+    }
+
+    // 결과 없이 상태만 끝났을 때(주로 Failed)도 화면의 진행중 표시를 닫아 준다
+    private void closeFlfmtHstry(String smltReqId, UserSmltReqStatus status) {
+		UserSmltReqDto userReq = castRestMapper.retrieveUserReqByKey(smltReqId);
+
+		if (userReq == null) {
+			return;
+		}
+
+		castSmltMapper.updateSmltFlfmtClosed(
+				userReq.getSmltId(), userReq.getSmltFlfmtSn(), status.toExecStatus().getValue());
     }
 }

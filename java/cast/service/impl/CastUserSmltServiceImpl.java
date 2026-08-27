@@ -4,11 +4,13 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.domains.MapLayout;
+import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.MapMarkerDto;
 import aoms.pm.cast.dto.SmltExcnDto;
 import aoms.pm.cast.dto.SmltStngDto;
@@ -19,12 +21,17 @@ import aoms.pm.cast.dto.UserSmltFcltMapDto;
 import aoms.pm.cast.dto.UserSmltFcltMapSearchDto;
 import aoms.pm.cast.dto.UserSmltInfoDto;
 import aoms.pm.cast.dto.UserSmltInfoSearchDto;
+import aoms.pm.cast.dto.UserSmltReqDto;
+import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto;
 import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.SmltExecStatus;
 import aoms.pm.cast.enums.SmltType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastSmltMapper;
+import aoms.pm.cast.mapper.CastUserReqMapper;
+import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.cast.service.CastUserSmltService;
+import aoms.pm.cast.service.CastUserSnapshotService;
 import aoms.pm.utils.SessionUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -49,8 +56,14 @@ import lombok.RequiredArgsConstructor;
 @Transactional(rollbackFor = Exception.class)
 public class CastUserSmltServiceImpl implements CastUserSmltService {
 	private static final String EMPTY = "";
+	// CAST 가 WhatIfRunID 로 읽어 간다. (SMLT_ID, TMNL_ID, SMLT_FLFMT_SN) 에서 결정론적으로 나온다
+	private static final String REQ_ID_PREFIX = "WI";
+	private static final int REQ_ID_SN_WIDTH = 4;
 
 	private final CastSmltMapper castSmltMapper;
+	private final CastUserReqMapper castUserReqMapper;
+	private final CastSmltService castSmltService;
+	private final CastUserSnapshotService castUserSnapshotService;
 	private final SessionService sessionService;
 
 	@Override
@@ -65,8 +78,7 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 		String smltId = retrieveSmltId(searchDto.getYmd(), SmltType.USER, fcltTmnlId);
 
 		if (smltId == null) {
-			// 사용자 시뮬레이션이 없으면 그날의 일일 시뮬레이션을 편집 기준으로 잡는다.
-			// TN_PM_SMLT_STNG 신규 채번은 CAST 리소스 발행 순서가 확정되지 않아 보류했다 (D19)
+			// 사용자 시뮬레이션이 없으면 그날의 일일 시뮬레이션을 편집 기준으로 잡는다
 			smltId = retrieveSmltId(searchDto.getYmd(), SmltType.DAILY, fcltTmnlId);
 		}
 
@@ -104,34 +116,37 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 		UserSmltExecDto result = new UserSmltExecDto();
 		SessionUtils.setUserContext(searchDto, sessionService);
 
-		if (searchDto.getLoginUserId() == null) {
-			result.error("로그인을 진행해주세요.");
+		JsonResponse invalid = validateExec(searchDto);
+
+		if (invalid != null) {
+			result.error(invalid.getErrorMessage());
 			return result;
 		}
 
-		if (searchDto.getSmltId() == null || searchDto.getSmltId().isEmpty() || searchDto.getTmnlId() == null) {
-			result.error("수행 대상 시뮬레이션이 지정되지 않았습니다.");
+		String smltId = searchDto.getSmltId();
+		String fcltTmnlId = searchDto.getFcltTmnlId();
+		String excnYmd = castSmltService.retrieveSmltStngByKey(smltId).getExcnYmd();
+
+		int smltFlfmtSn = castSmltMapper.retrieveNextSmltFlfmtSn(smltId);
+		String smltReqId = toSmltReqId(smltId, fcltTmnlId, smltFlfmtSn);
+
+		UserSmltRsrcSnapshotDto snapshot = castUserSnapshotService.publish(smltId, searchDto.getTmnlId(), excnYmd);
+
+		try {
+			// 요청이 이력을 참조하므로 이력 먼저 넣는다
+			castSmltMapper.insertSmltFlfmtHstry(getFlfmtHstry(searchDto, smltFlfmtSn));
+			castUserReqMapper.insertUserReq(getUserReq(searchDto, smltReqId, smltFlfmtSn, excnYmd, snapshot));
+		} catch (DuplicateKeyException e) {
+			// 사전 검사를 통과했어도 동시 클릭이면 UX_ACTIVE 나 이력 PK 에서 여기로 떨어진다
+			result.error("이미 수행 중인 시뮬레이션이 있습니다. 잠시 후 다시 시도해주세요.");
 			return result;
 		}
 
-		searchDto.setFcltTmnlId(searchDto.getTmnlId().getFcltTmnlId());
+		// 시작 일시는 DB 의 CURRENT_TIMESTAMP 로 찍고 다시 읽어 온다
+		SmltExcnDto flfmt = castSmltMapper.retrieveSmltFlfmtByKey(smltId, smltFlfmtSn);
 
-		// 1. 저장된 조건 존재 확인
-		if (castSmltMapper.retrieveUserSmltCondCnt(searchDto.getSmltId(), searchDto.getFcltTmnlId()) == 0) {
-			result.error("저장된 조건이 없습니다. 조건을 먼저 저장해주세요.");
-			return result;
-		}
-
-		// 2. 수행 이력 행 생성 (상태 RUNNING)
-		int smltFlfmtSn = castSmltMapper.retrieveNextSmltFlfmtSn(searchDto.getSmltId());
-		castSmltMapper.insertSmltFlfmtHstry(getFlfmtHstry(searchDto, smltFlfmtSn));
-
-		// 3~4. CAST 리소스 발행 · 수행 시작 트리거 — 연동 DTO 부재로 보류 (G8 / D19)
-
-		// 5. 시작 일시는 DB 의 CURRENT_TIMESTAMP 로 찍고 다시 읽어 온다
-		SmltExcnDto flfmt = castSmltMapper.retrieveSmltFlfmtByKey(searchDto.getSmltId(), smltFlfmtSn);
-
-		result.setSmltId(searchDto.getSmltId());
+		result.setSmltId(smltId);
+		result.setSmltReqId(smltReqId);
 		result.setSmltFlfmtSn(smltFlfmtSn);
 		result.setSmltFlfmtSttsCd(SmltExecStatus.RUNNING);
 		result.setSmltFlfmtBgngDt(flfmt != null ? nvl(flfmt.getSmltFlfmtBgngDt()) : EMPTY);
@@ -140,6 +155,69 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 	}
 
 	/* ================= 내부 ================= */
+
+	// 검증은 서비스 안에서 명시적으로 한다. 통과하면 null
+	private JsonResponse validateExec(UserSmltExecSearchDto searchDto) {
+		if (searchDto.getLoginUserId() == null) {
+			return new JsonResponse().error("로그인을 진행해주세요.");
+		}
+
+		if (searchDto.getSmltId() == null || searchDto.getSmltId().isEmpty() || searchDto.getTmnlId() == null) {
+			return new JsonResponse().error("수행 대상 시뮬레이션이 지정되지 않았습니다.");
+		}
+
+		searchDto.setFcltTmnlId(searchDto.getTmnlId().getFcltTmnlId());
+
+		// CAST 리소스는 세 영역이 다 있어야 완결된다. 하나라도 비면 실행하지 않는다
+		if (castSmltMapper.retrieveUserSmltCondFilledCnt(searchDto.getSmltId(), searchDto.getFcltTmnlId()) == 0) {
+			return new JsonResponse().error("운항·체크인카운터·출국장 조건을 모두 저장해주세요.");
+		}
+
+		if (castUserReqMapper.retrieveActiveReqCnt(searchDto.getSmltId(), searchDto.getFcltTmnlId()) > 0) {
+			return new JsonResponse().error("이미 수행 중인 시뮬레이션이 있습니다.");
+		}
+
+		return null;
+	}
+
+	private String toSmltReqId(String smltId, String fcltTmnlId, int smltFlfmtSn) {
+		return REQ_ID_PREFIX + smltId + fcltTmnlId
+				+ String.format("%0" + REQ_ID_SN_WIDTH + "d", smltFlfmtSn);
+	}
+
+	private UserSmltReqDto getUserReq(
+			UserSmltExecSearchDto searchDto,
+			String smltReqId,
+			int smltFlfmtSn,
+			String excnYmd,
+			UserSmltRsrcSnapshotDto snapshot
+	) {
+		UserSmltReqDto result = new UserSmltReqDto();
+		SessionUtils.setUserContext(result, sessionService);
+
+		result.setSmltReqId(smltReqId);
+		result.setSmltId(searchDto.getSmltId());
+		result.setTmnlId(searchDto.getFcltTmnlId());
+		result.setExcnYmd(excnYmd);
+		result.setSmltFlfmtSn(smltFlfmtSn);
+
+		result.setMdlRsrcId(snapshot.getMdlRsrcId());
+		result.setFltSchdlRsrcId(snapshot.getFltSchdlRsrcId());
+		result.setCknctAlctnRsrcId(snapshot.getCknctAlctnRsrcId());
+		result.setSbdCntrlAlctnId(snapshot.getSbdCntrlAlctnId());
+		result.setPrptStngRsrcId(snapshot.getPrptStngRsrcId());
+		result.setFcltyOpngDptcnySrngRsrcId(snapshot.getFcltyOpngDptcnySrngRsrcId());
+		result.setFcltyOpngDptcnyRsrcId(snapshot.getFcltyOpngDptcnyRsrcId());
+		result.setFcltyOpngEntcnyRsrcId(snapshot.getFcltyOpngEntcnyRsrcId());
+		result.setFcltyOpngScrtyCntrlRsrcId(snapshot.getFcltyOpngScrtyCntrlRsrcId());
+		result.setFcltyOpngTrScrtyCntrlRsrcId(snapshot.getFcltyOpngTrScrtyCntrlRsrcId());
+		result.setCknctSrvcHrRsrcId(snapshot.getCknctSrvcHrRsrcId());
+		result.setChknTypeRsrcId(snapshot.getChknTypeRsrcId());
+		result.setRptStngAtrbId(snapshot.getRptStngAtrbId());
+		result.setSmltRsltSfx(smltReqId);
+
+		return result;
+	}
 
 	// 같은 일자·터미널에 여러 건이면 가장 최근 것을 편집 대상으로 잡는다
 	private String retrieveSmltId(String ymd, SmltType smltType, String fcltTmnlId) {
@@ -160,9 +238,13 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 			return EMPTY;
 		}
 
-		return SmltExecStatus.DONE.getValue().equals(lastFlfmt.getSmltFlfmtSttsCd())
-				? SmltExecStatus.DONE.getValue()
-				: SmltExecStatus.RUNNING.getValue();
+		for (SmltExecStatus status : SmltExecStatus.getList()) {
+			if (status.getValue().equals(lastFlfmt.getSmltFlfmtSttsCd())) {
+				return status.getValue();
+			}
+		}
+
+		return SmltExecStatus.RUNNING.getValue();
 	}
 
 	private SmltExcnDto getFlfmtHstry(UserSmltExecSearchDto searchDto, int smltFlfmtSn) {

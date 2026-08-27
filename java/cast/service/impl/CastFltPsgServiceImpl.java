@@ -97,7 +97,7 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
 	 *
 	 * 저장하는 것은 조정 "비율"뿐이다. 곱해진 편별 여객수를 TN_PM_SMLT_SCHDL_ATRB 에 물리
 	 * 저장하면 원본 복원이 불가능해지므로 채택하지 않았다. 비율은 CAST 리소스 발행 시점에
-	 * 운항 스케줄에 곱한다 (CastRsrcServiceImpl.publishUserSmltRsrc 1단계).
+	 * 운항 스케줄에 곱한다 (CastUserSnapshotServiceImpl.publishFltSchdl).
 	 */
 	@Override
 	public JsonResponse saveFltPsgInfo(UserSmltFltPsgSaveDto saveDto) {

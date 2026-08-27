@@ -37,7 +37,7 @@ export function HistoryTable({ kind, rows, onView }: HistoryTableProps) {
 
                 <div className="tbl__body scroll-area">
                     {rows.map((row) => {
-                        const isRunning = row.status === 'running';
+                        const hasResult = row.status === 'done';
 
                         return (
                             <div className="tbl__row" key={row.rowNo}>
@@ -51,11 +51,11 @@ export function HistoryTable({ kind, rows, onView }: HistoryTableProps) {
                                     {RUN_STATUS_LABEL[row.status]}
                                 </div>
                                 <div>
-                                    {/* 아직 끝나지 않은 시뮬레이션은 볼 결과가 없다 */}
+                                    {/* 진행중이거나 실패한 시뮬레이션은 볼 결과가 없다 */}
                                     <button
                                         type="button"
                                         className="btn-view"
-                                        disabled={isRunning}
+                                        disabled={!hasResult}
                                         onClick={() => onView?.(row)}
                                     >
                                         보기

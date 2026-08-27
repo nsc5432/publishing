@@ -205,7 +205,7 @@ public class CastDepServiceImpl implements CastDepService {
 		Map<String, List<DepOperHrRawDto>> operHrMap = castOperHrService
 				.retrieveDepOperHrMap(fcltTmnlId, smltStng.getExcnYmd());
 		Map<String, Integer> scCntMap = castDepMapper
-				.retrieveScCntList(fcltTmnlId, smltStng.getFcltyOpngTblScrtyCntrlRsrcId())
+				.retrieveScCntList(fcltTmnlId, smltStng.getFcltyOpngScrtyCntrlRsrcId())
 				.stream().collect(Collectors.toMap(ScCntRawDto::getDptgtNo, ScCntRawDto::getScshCntom, (first, ignored) -> first));
 
 		return getGateDatas(fcltList, operHrMap, scCntMap);

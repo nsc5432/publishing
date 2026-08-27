@@ -6,7 +6,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum SmltExecStatus {
 	RUNNING("RUNNING"),	// 진행중
-	DONE("DONE");		// 완료
+	DONE("DONE"),		// 완료
+	FAILED("FAILED");	// 실패
 
 	private final String value;
 
@@ -20,6 +21,6 @@ public enum SmltExecStatus {
 	}
 
 	public static List<SmltExecStatus> getList() {
-		return List.of(SmltExecStatus.RUNNING, SmltExecStatus.DONE);
+		return List.of(SmltExecStatus.RUNNING, SmltExecStatus.DONE, SmltExecStatus.FAILED);
 	}
 }

@@ -164,7 +164,7 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 		Map<String, List<DepOperHrRawDto>> operHrMap = castOperHrService
 				.retrieveDepOperHrMap(fcltTmnlId, smltStng.getExcnYmd());
 		Map<String, Integer> scCntMap = castDepMapper
-				.retrieveScCntList(fcltTmnlId, smltStng.getFcltyOpngTblScrtyCntrlRsrcId()).stream()
+				.retrieveScCntList(fcltTmnlId, smltStng.getFcltyOpngScrtyCntrlRsrcId()).stream()
 				.collect(Collectors.toMap(ScCntRawDto::getDptgtNo, ScCntRawDto::getScshCntom, (first, ignored) -> first));
 
 		List<DepHallGateDto> result = new ArrayList<>();

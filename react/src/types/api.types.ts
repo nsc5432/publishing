@@ -592,6 +592,7 @@ export interface UserSmltFcltMapDto extends JsonResponse {
 /** 시뮬레이션 실행 결과 */
 export interface UserSmltExecDto extends JsonResponse {
     smltId: string;
+    smltReqId: string; // CAST 가 WhatIfRunID 로 읽어 가는 실행 요청 ID
     smltFlfmtSn: number; // 수행 일련번호
     smltFlfmtSttsCd: SmltExecStatus;
     smltFlfmtBgngDt: string; // 시작일시 (yyyyMMddHHmmss)
@@ -600,7 +601,7 @@ export interface UserSmltExecDto extends JsonResponse {
 /* ================= 시뮬레이션 모니터링 ================= */
 
 /** 수행 상태 */
-export type SmltExecStatus = 'DONE' | 'RUNNING';
+export type SmltExecStatus = 'DONE' | 'RUNNING' | 'FAILED';
 
 /** 상단 KPI 카드 4종 */
 export interface SmltExecSmryDto extends JsonResponse {

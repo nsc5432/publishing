@@ -25,10 +25,12 @@ public class SmltStngDto {
 	private String excnId;
 	private String cknctSrvcHrRsrcId;
 	private String chknTypeRsrcId;
-	private String fcltyOpngTblEmiRsrcId;
-	private String fcltyOpngTblImmiRsrcId;
-	private String fcltyOpngTblScrtyCntrlRsrcId;
-	private String fcltyOpngTblTrScrtyCntrlRsrcId;
+	// 컬럼명과 어긋나면 mapUnderscoreToCamelCase 가 못 채워 조용히 null 이 된다
+	private String fcltyOpngDptcnySrngRsrcId;
+	private String fcltyOpngEmiRsrcId;
+	private String fcltyOpngImmiRsrcId;
+	private String fcltyOpngScrtyCntrlRsrcId;
+	private String fcltyOpngTrScrtyCntrlRsrcId;
 	private String sbdCntrlAlctnId;
 	private LocalDateTime planBgngDt;
 	private LocalDateTime planEndDt;

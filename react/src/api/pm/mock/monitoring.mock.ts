@@ -3,6 +3,7 @@ import type {
     SmltExecDetailDto,
     SmltExecListDto,
     SmltExecSmryDto,
+    SmltExecStatus,
     SmltType,
 } from '@/types/api.types';
 
@@ -20,6 +21,12 @@ const ROW_COUNT = 30;
 const RUNNING_NOS: Record<SmltType, number[]> = {
     DAILY: [3, 4, 19, 20],
     USER: [3, 4, 22],
+};
+
+/** 실패로 둘 행 번호 */
+const FAILED_NOS: Record<SmltType, number[]> = {
+    DAILY: [12],
+    USER: [7, 25],
 };
 
 /** 소요시간 (분) */
@@ -43,6 +50,7 @@ function buildRows(smltType: SmltType, ymd: string): SmltCastExecDto[] {
     return Array.from({ length: ROW_COUNT }, (_, i) => {
         const rowNum = i + 1;
         const running = RUNNING_NOS[smltType].includes(rowNum);
+        const failed = FAILED_NOS[smltType].includes(rowNum);
         const smltFlfmtBgngDt = toDateTime(ymd, i);
 
         return {
@@ -55,9 +63,15 @@ function buildRows(smltType: SmltType, ymd: string): SmltCastExecDto[] {
             smltFlfmtBgngDt,
             smltFlfmtEndDt: running ? '' : toDateTime(ymd, i + EXEC_MIN),
             execMin: running ? 0 : EXEC_MIN,
-            smltFlfmtSttsCd: running ? 'RUNNING' : 'DONE',
+            smltFlfmtSttsCd: toSttsCd(running, failed),
         };
     });
+}
+
+function toSttsCd(running: boolean, failed: boolean): SmltExecStatus {
+    if (running) return 'RUNNING';
+
+    return failed ? 'FAILED' : 'DONE';
 }
 
 export const monitoringMock = {
@@ -88,6 +102,7 @@ export const monitoringMock = {
         const smltType: SmltType = prefix === 'USR' ? 'USER' : 'DAILY';
         const rowNum = Number(no) || 1;
         const running = RUNNING_NOS[smltType].includes(rowNum);
+        const failed = FAILED_NOS[smltType].includes(rowNum);
 
         return {
             error: false,
@@ -101,7 +116,7 @@ export const monitoringMock = {
             smltFlfmtBgngDt: toDateTime(ymd, rowNum - 1),
             smltFlfmtEndDt: running ? '' : toDateTime(ymd, rowNum - 1 + EXEC_MIN),
             execMin: running ? 0 : EXEC_MIN,
-            smltFlfmtSttsCd: running ? 'RUNNING' : 'DONE',
+            smltFlfmtSttsCd: toSttsCd(running, failed),
         };
     },
 };
