@@ -59,6 +59,9 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
 
 1. **API DTO 필드명** — `src/types/api.types.ts` 에 정의된 모든 인터페이스 필드
    (`psgCnt`, `smltId`, `wtngPsgCnt`, `fcltTmnlId`, `oprBgnTime`, `planSn` …)
+   - 예외 1건: `FcltRecommendDto.addCnt` → `reqCnt` (2026-08-28 결정). 값이 "추가 수량" 이
+     아니라 "총 소요 수량" 이라 이름이 반대 의미였고, 같은 카드의 `totCnt`(보유 대수) 와
+     헷갈리지 않는 이름을 골랐다. **`reqCnt` 는 이제 다시 고정이다.**
 2. **enum 문자열 값**
    `'T1'|'T2'` · `'Y'|'N'` · `'FREE'|'NORMAL'|'BUSY'|'VERY_BUSY'` ·
    `'CHKN'|'SLFCHKN'|'DEP'|'SC'|'CMRC'` · `'PSG'|'FLT'` · `'DAILY'|'USER'` ·

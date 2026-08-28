@@ -155,7 +155,7 @@ export interface DsbdRsltDto {
 /** 게이트 카드의 추천 조치 */
 export interface FcltRecommendDto {
     targetNm: string; // 추천 대상 (예: 대한항공 / 보안검색대)
-    addCnt: number; // SLA 충족에 필요한 총 소요 수량 (개)
+    reqCnt: number; // 피크를 NORMAL 이하로 만드는 총 소요 수량 (개)
     needAssignYn: YnFlag; // Y=배정 필요 / N=소요 표기
 }
 

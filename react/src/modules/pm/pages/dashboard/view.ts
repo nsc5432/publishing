@@ -90,7 +90,7 @@ function toGateVariant(card: DsbdFcltCardDto): GateVariant {
         recommend: {
             tag: '추천',
             name: card.recommend.targetNm,
-            count: String(card.recommend.addCnt),
+            count: String(card.recommend.reqCnt),
             countNote: card.recommend.needAssignYn === 'Y' ? '배정 필요' : '소요',
             countNoteAccent: card.recommend.needAssignYn === 'N',
         },

@@ -297,7 +297,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearTime: '1100',
             cgnClearRate: 62,
             cgnStatus: 'BUSY',
-            recommend: { targetNm: '대한항공', addCnt: 5, needAssignYn: 'Y' },
+            recommend: { targetNm: '대한항공', reqCnt: 5, needAssignYn: 'Y' },
             unitList: buildUnits(CHKN_LABELS, ['N', 'H', 'C', 'B'], []),
         },
         {
@@ -315,7 +315,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearTime: '1120',
             cgnClearRate: 50,
             cgnStatus: 'NORMAL',
-            recommend: { targetNm: '아시아나항공', addCnt: 3, needAssignYn: 'Y' },
+            recommend: { targetNm: '아시아나항공', reqCnt: 3, needAssignYn: 'Y' },
             unitList: buildUnits(CHKN_LABELS, ['L', 'K', 'F'], ['A']),
         },
     ],
@@ -335,7 +335,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearTime: '1050',
             cgnClearRate: 58,
             cgnStatus: 'BUSY',
-            recommend: { targetNm: '대한항공', addCnt: 4, needAssignYn: 'Y' },
+            recommend: { targetNm: '대한항공', reqCnt: 4, needAssignYn: 'Y' },
             unitList: buildUnits(CHKN_LABELS, ['M', 'C'], []),
         },
         {
@@ -353,7 +353,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearTime: '1110',
             cgnClearRate: 47,
             cgnStatus: 'NORMAL',
-            recommend: { targetNm: '진에어', addCnt: 2, needAssignYn: 'N' },
+            recommend: { targetNm: '진에어', reqCnt: 2, needAssignYn: 'N' },
             unitList: buildUnits(CHKN_LABELS, ['J'], ['A']),
         },
     ],
@@ -376,7 +376,7 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearTime: '1100',
             cgnClearRate: 62,
             cgnStatus: 'BUSY',
-            recommend: { targetNm: '보안검색대', addCnt: 6, needAssignYn: 'N' },
+            recommend: { targetNm: '보안검색대', reqCnt: 6, needAssignYn: 'N' },
             unitList: buildUnits(['6', '5', '4', '3', '2', '1'], ['4'], ['6']),
         },
         {
@@ -394,7 +394,7 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearTime: '1130',
             cgnClearRate: 40,
             cgnStatus: 'NORMAL',
-            recommend: { targetNm: '보안검색대', addCnt: 4, needAssignYn: 'N' },
+            recommend: { targetNm: '보안검색대', reqCnt: 4, needAssignYn: 'N' },
             unitList: buildUnits(['6', '5', '4', '3', '2', '1'], ['3'], []),
         },
     ],
@@ -414,7 +414,7 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearTime: '1100',
             cgnClearRate: 62,
             cgnStatus: 'BUSY',
-            recommend: { targetNm: '보안검색대', addCnt: 6, needAssignYn: 'N' },
+            recommend: { targetNm: '보안검색대', reqCnt: 6, needAssignYn: 'N' },
             unitList: buildUnits(['2', '1'], ['1'], []),
         },
         {
@@ -432,11 +432,13 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearTime: '1130',
             cgnClearRate: 40,
             cgnStatus: 'NORMAL',
-            recommend: { targetNm: '보안검색대', addCnt: 4, needAssignYn: 'N' },
+            recommend: { targetNm: '보안검색대', reqCnt: 4, needAssignYn: 'N' },
             unitList: buildUnits(['2', '1'], [], ['2']),
         },
     ],
 };
+
+const RECOMMEND_LEAD_MIN = 10;
 
 const FCLT_NORMAL_MAX: Record<'CHKN' | 'DEP', number> = {
     CHKN: 420,
@@ -489,45 +491,46 @@ function buildRollingCard(
         slotMinutes.push(minute);
     }
 
-    const queues = [...slotMinutes, endMinute].map(queueAt);
-    const processedBySlot = slotMinutes.map(
-        (minute) => rateAt(minute) * Math.min(10, endMinute - minute),
+    // 종료 시각 한 칸은 피크 탐색 상한이다. 자정에서는 그 칸이 없다 (서버와 같은 규칙)
+    const hasEndSnapshot = endMinute < MIN_PER_DAY;
+    const trajectory = (hasEndSnapshot ? [...slotMinutes, endMinute] : slotMinutes).map(
+        (minute) => ({ minute, queue: queueAt(minute) }),
     );
-    const processedPsgCnt = sum(processedBySlot);
-    const forecastArrivals = processedBySlot.reduce(
-        (total, processed, slotIndex) =>
-            total + Math.max(0, queues[slotIndex + 1] - queues[slotIndex] + processed),
-        0,
+    const processedPsgCnt = sum(
+        slotMinutes.map((minute) => rateAt(minute) * Math.min(10, endMinute - minute)),
     );
     const paxPerMin = Math.round(processedPsgCnt / actualMinutes);
-    const serviceRate = processedPsgCnt / Math.max(1, card.oprCnt) / actualMinutes;
+    const openCount = Math.max(1, card.oprCnt);
+    const serviceRate = processedPsgCnt / openCount / actualMinutes;
     const targetQueue = FCLT_NORMAL_MAX[fcltType];
-    const requiredTotal = Math.max(
-        0,
-        Math.ceil((queues[0] + forecastArrivals - targetQueue) / (serviceRate * actualMinutes)),
+
+    const window = trajectory.filter((point) => point.minute >= bgnMinute + RECOMMEND_LEAD_MIN);
+    const peak = window.reduce(
+        (best, point) => (point.queue > best.queue ? point : best),
+        window[0] ?? trajectory[trajectory.length - 1],
     );
-    const arrivalRate = forecastArrivals / actualMinutes;
-    const netDrainRate = requiredTotal * serviceRate - arrivalRate;
-    const clearMinutes =
-        queues[0] <= targetQueue
-            ? 0
-            : Math.min(
-                  actualMinutes,
-                  Math.ceil((queues[0] - targetQueue) / Math.max(Number.EPSILON, netDrainRate)),
-              );
-    const peakQueue = Math.max(...queues.slice(0, -1));
+    const leadMinutes = Math.max(RECOMMEND_LEAD_MIN, peak.minute - bgnMinute);
+    const extraCnt = Math.max(
+        0,
+        Math.ceil((peak.queue - targetQueue) / (serviceRate * leadMinutes)),
+    );
+    const clearPoint = trajectory.find(
+        (point) => point.queue - extraCnt * serviceRate * (point.minute - bgnMinute) <= targetQueue,
+    );
+    const clearMinutes = clearPoint ? clearPoint.minute - bgnMinute : leadMinutes;
+    const displayPeak = Math.max(...slotMinutes.map(queueAt));
 
     return {
         ...card,
-        wtngPsgCnt: peakQueue,
+        wtngPsgCnt: displayPeak,
         hrlyPrcsPsgCnt: paxPerMin,
-        hrlyPrcsRate: Math.round((processedPsgCnt * 100) / (processedPsgCnt + peakQueue)),
+        hrlyPrcsRate: Math.round((processedPsgCnt * 100) / (processedPsgCnt + displayPeak)),
         cgnClearTime: toHhmm(bgnMinute + clearMinutes),
         cgnClearRate: 0,
-        cgnStatus: toFcltStatus(fcltType, peakQueue),
+        cgnStatus: toFcltStatus(fcltType, displayPeak),
         recommend: {
             ...card.recommend,
-            addCnt: requiredTotal,
+            reqCnt: openCount + extraCnt,
             needAssignYn: fcltType === 'CHKN' ? 'Y' : 'N',
         },
         unitList: card.unitList.map((unit) => ({ ...unit })),

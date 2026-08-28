@@ -88,6 +88,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private static final int DEFAULT_ITVL_MIN = 60; // 요약 블록의 구간 집계 기본 길이(분)
 	private static final int FCLT_ROLLING_MIN = 60;
 	private static final int CAST_SLOT_MIN = 10;
+	// 지금 배정해도 효과는 한 슬롯 뒤부터 나타난다. 그 앞은 추천 근거로 보지 않는다
+	private static final int RECOMMEND_LEAD_MIN = 10;
 	private static final int CARD_CNT_LIMIT = 12; // 캐러셀이 감당하는 카드 수 상한
 	private static final MathContext MATH_CONTEXT = MathContext.DECIMAL128;
 	private static final String NORMAL_GRADE_CD = "02";
@@ -242,6 +244,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		Map<String, SmltRsltRawDto> displayRsltMap = aggregateByUnit(displaySlotMap);
 		Map<String, SmltRsltRawDto> recommendRsltMap = aggregateByUnit(recommendSlotMap);
 
+		// 종료 시각은 피크 탐색 구간의 상한이다. 자정에서는 그 칸이 없고, 없어도 그대로 진행한다
 		if (range.hasEndSnapshot()) {
 			List<SmltRsltRawDto> endSnapshotList = castDsbdMapper.retrieveRsltByUnitList(
 					searchDto.getSmltId(), fcltTmnlId, null, null, range.getEndDt(), new ArrayList<>(recommendFcltCdSet));
@@ -265,7 +268,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			SmltRsltRawDto recommendRslt = requireRecommendationRslt(
 					recommendRsltMap.get(unitCd), searchDto, fcltType, fcltGroupCd, unitCd);
 			List<SmltRsltRawDto> unitSlotList = recommendSlotMap.get(unitCd);
-			BigDecimal forecastArrivals = getForecastArrivals(unitSlotList, range, searchDto, fcltType, unitCd);
+			PeakSlot peak = getPeakSlot(unitSlotList, range, searchDto, fcltType, unitCd);
 			int currentOpenCount = resources.getOpenCountValue(unitCd);
 			BigDecimal serviceRate = getServiceRate(
 					searchDto,
@@ -278,12 +281,12 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 					recommendRslt.getTrnstPsgCnt(),
 					currentOpenCount);
 			FcltRecommendationCalculator.Result calculation = calculateRecommendation(
-					recommendRslt,
 					unitSlotList,
-					forecastArrivals,
+					peak,
 					serviceRate,
 					gradeScale,
 					range,
+					currentOpenCount,
 					searchDto,
 					fcltType,
 					unitCd);
@@ -598,17 +601,17 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setCgnClearTime(range.getBgnDt().plusMinutes(calculation.getClearMinutes()).format(DateTimeFormatter.ofPattern("HHmm")));
 		result.setCgnClearRate(0);
 		result.setCgnStatus(gradeScale.statusOf(recommendRslt.getWtngPsgCnt(), "unitCd=" + unitCd));
-		result.setRecommend(getRecommend(fcltType, targetName, calculation.getRequiredTotal()));
+		result.setRecommend(getRecommend(fcltType, targetName, calculation.getReqCnt()));
 		result.setUnitList(unitList);
 
 		return result;
 	}
 
-	private FcltRecommendDto getRecommend(FcltType fcltType, String targetName, int requiredTotal) {
+	private FcltRecommendDto getRecommend(FcltType fcltType, String targetName, int reqCnt) {
 		FcltRecommendDto result = new FcltRecommendDto();
 
 		result.setTargetNm(targetName);
-		result.setAddCnt(requiredTotal);
+		result.setReqCnt(reqCnt);
 		result.setNeedAssignYn(fcltType == FcltType.DEP ? USE_YN_N : USE_YN_Y);
 
 		return result;
@@ -752,43 +755,60 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return rslt;
 	}
 
-	private BigDecimal getForecastArrivals(
+	private PeakSlot getPeakSlot(
 			List<SmltRsltRawDto> slotList,
 			RollingRange range,
 			DsbdSearchDto searchDto,
 			FcltType fcltType,
 			String unitCd
 	) {
-		String context = baseContext(searchDto) + ", fcltType=" + fcltType.getValue() + ", unitCd=" + unitCd;
+		LocalDateTime windowBgn = range.getBgnDt().plusMinutes(RECOMMEND_LEAD_MIN);
+		SmltRsltRawDto peak = null;
 
-		if (slotList == null || slotList.isEmpty() || !range.getBgnDt().equals(slotList.get(0).getSmltActlDt())) {
-			throw new IllegalStateException("유입량 산정용 시작 스냅샷을 찾을 수 없습니다. " + context);
+		if (slotList != null) {
+			for (SmltRsltRawDto slot : slotList) {
+				LocalDateTime slotDt = slot.getSmltActlDt();
+
+				if (slotDt.isBefore(windowBgn) || slotDt.isAfter(range.getEndDt())) {
+					continue;
+				}
+
+				// 동률이면 이른 시각을 택한다 — 리드타임이 짧아져 안전측으로 산정된다
+				if (peak == null || slot.getWtngPsgCnt() > peak.getWtngPsgCnt()) {
+					peak = slot;
+				}
+			}
 		}
 
-		SmltRsltRawDto last = slotList.get(slotList.size() - 1);
-		if (!range.getEndDt().equals(last.getSmltActlDt())) {
+		if (peak == null) {
 			throw new IllegalStateException(
-					"유입량 산정용 종료 스냅샷을 찾을 수 없습니다. "
-							+ context
+					"추천 리드타임 이후의 결과가 없습니다. "
+							+ baseContext(searchDto)
+							+ ", fcltType=" + fcltType.getValue()
+							+ ", unitCd=" + unitCd
+							+ ", windowBgn=" + windowBgn
 							+ ", endDt=" + range.getEndDt());
 		}
 
-		BigDecimal result = BigDecimal.ZERO;
-		for (int index = 0; index < slotList.size() - 1; index++) {
-			SmltRsltRawDto current = slotList.get(index);
-			SmltRsltRawDto next = slotList.get(index + 1);
-			long intervalMinutes = Duration.between(current.getSmltActlDt(), next.getSmltActlDt()).toMinutes();
+		return new PeakSlot(
+				peak.getWtngPsgCnt(),
+				Math.toIntExact(Duration.between(range.getBgnDt(), peak.getSmltActlDt()).toMinutes()));
+	}
 
-			if (intervalMinutes != CAST_SLOT_MIN) {
-				throw new IllegalStateException(
-						"CAST 결과 슬롯 간격이 올바르지 않습니다. "
-								+ context
-								+ ", currentDt=" + current.getSmltActlDt()
-								+ ", nextDt=" + next.getSmltActlDt());
+	private List<FcltRecommendationCalculator.QueuePoint> getTrajectory(
+			List<SmltRsltRawDto> slotList,
+			RollingRange range
+	) {
+		List<FcltRecommendationCalculator.QueuePoint> result = new ArrayList<>();
+
+		for (SmltRsltRawDto slot : slotList) {
+			if (slot.getSmltActlDt().isAfter(range.getEndDt())) {
+				continue;
 			}
 
-			int arrival = Math.max(0, next.getWtngPsgCnt() - current.getWtngPsgCnt() + current.getTrnstPsgCnt());
-			result = result.add(BigDecimal.valueOf(arrival));
+			result.add(new FcltRecommendationCalculator.QueuePoint(
+					Math.toIntExact(Duration.between(range.getBgnDt(), slot.getSmltActlDt()).toMinutes()),
+					slot.getWtngPsgCnt()));
 		}
 
 		return result;
@@ -849,34 +869,34 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	private FcltRecommendationCalculator.Result calculateRecommendation(
-			SmltRsltRawDto recommendRslt,
 			List<SmltRsltRawDto> slotList,
-			BigDecimal forecastArrivals,
+			PeakSlot peak,
 			BigDecimal serviceRate,
 			GradeScale gradeScale,
 			RollingRange range,
+			int currentOpenCount,
 			DsbdSearchDto searchDto,
 			FcltType fcltType,
 			String unitCd
 	) {
-		int initialQueue = slotList.get(0).getWtngPsgCnt();
 		try {
 			return FcltRecommendationCalculator.calculate(
-					BigDecimal.valueOf(initialQueue),
-					forecastArrivals,
-					BigDecimal.valueOf(range.getActualMinutes()),
+					BigDecimal.valueOf(peak.getQueue()),
+					BigDecimal.valueOf(peak.getLeadMinutes()),
 					serviceRate,
-					gradeScale.getNormalMax());
+					gradeScale.getNormalMax(),
+					currentOpenCount,
+					getTrajectory(slotList, range));
 		} catch (IllegalArgumentException | IllegalStateException exception) {
 			throw new IllegalStateException(
 					"시설 추천 계산에 실패했습니다. "
 							+ baseContext(searchDto)
 							+ ", fcltType=" + fcltType.getValue()
 							+ ", unitCd=" + unitCd
-							+ ", initialQueue=" + initialQueue
-							+ ", peakQueue=" + recommendRslt.getWtngPsgCnt()
-							+ ", forecastArrivals=" + forecastArrivals
+							+ ", peakQueue=" + peak.getQueue()
+							+ ", leadMinutes=" + peak.getLeadMinutes()
 							+ ", serviceRate=" + serviceRate
+							+ ", currentOpenCount=" + currentOpenCount
 							+ ", targetQueue=" + gradeScale.getNormalMax(),
 					exception);
 		}
@@ -964,6 +984,24 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		private boolean hasEndSnapshot() {
 			return endDt.isBefore(dayEnd);
+		}
+	}
+
+	private static final class PeakSlot {
+		private final int queue;
+		private final int leadMinutes;
+
+		private PeakSlot(int queue, int leadMinutes) {
+			this.queue = queue;
+			this.leadMinutes = leadMinutes;
+		}
+
+		private int getQueue() {
+			return queue;
+		}
+
+		private int getLeadMinutes() {
+			return leadMinutes;
 		}
 	}
 
