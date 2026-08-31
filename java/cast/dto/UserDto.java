@@ -1,5 +1,7 @@
 package aoms.pm.cast.dto;
 
+import java.util.List;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,4 +14,5 @@ public class UserDto extends JsonResponse {
 	private String deptCd;
     private String userNm;
     private String deptNm;
+    private List<String> roleIdList;
 }

@@ -7,6 +7,7 @@ import type {
     MapMarkerDto,
     MapNoticeDto,
     MapOperCardDto,
+    MapSalesDto,
     MapSmryDto,
     MapUnitRsltDto,
     SmltMapDto,
@@ -22,6 +23,7 @@ import type {
     HeaderSummary,
     IslandDetail,
     IslandMarker,
+    IslandSales,
     IslandStat,
     MapDay,
     MapSlot,
@@ -197,15 +199,19 @@ function toIslandDetail(info: MapChknInfoDto, rslt: MapChknRsltDto | undefined):
             rate: fclt.prcsRateYn === 'N' ? undefined : `처리율 ${rslt?.prcsRate ?? 0}%`,
         })),
         stats: toStats(rslt?.stat ?? EMPTY_STAT),
-        sales: {
-            total: `${formatCount(info.sales.totAmt)}원`,
-            storeCount: `${info.sales.storeCnt}개`,
-            perPax: `${formatCount(info.sales.amtPerPsg)}원`,
-            paxDelta: `${formatCount(info.sales.psgDiffCnt)}명`,
-            rate: `${info.sales.diffRate >= 0 ? '+' : '-'}${Math.abs(info.sales.diffRate)}%`,
-            rateUp: info.sales.diffRate >= 0,
-            rateBase: `vs ${info.sales.cmprYear}`,
-        },
+        sales: info.sales ? toIslandSales(info.sales) : undefined,
+    };
+}
+
+function toIslandSales(sales: MapSalesDto): IslandSales {
+    return {
+        total: `${formatCount(sales.totAmt)}원`,
+        storeCount: `${sales.storeCnt}개`,
+        perPax: `${formatCount(sales.amtPerPsg)}원`,
+        paxDelta: `${formatCount(sales.psgDiffCnt)}명`,
+        rate: `${sales.diffRate >= 0 ? '+' : '-'}${Math.abs(sales.diffRate)}%`,
+        rateUp: sales.diffRate >= 0,
+        rateBase: `vs ${sales.cmprYear}`,
     };
 }
 

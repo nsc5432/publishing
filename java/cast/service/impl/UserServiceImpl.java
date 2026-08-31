@@ -1,5 +1,7 @@
 package aoms.pm.cast.service.impl;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,7 +33,20 @@ public class UserServiceImpl implements UserService {
 	private final UserMapper userMapper;
 
 	@Override
+	@Transactional(readOnly = true)
 	public UserDto retrieveUserInfoByKey(String userId) {
-		return userMapper.retrieveUserInfoByKey(userId);
+		UserDto result = userMapper.retrieveUserInfoByKey(userId);
+
+		if (result != null) {
+			result.setRoleIdList(retrieveRoleIdList(userId));
+		}
+
+		return result;
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<String> retrieveRoleIdList(String userId) {
+		return userMapper.retrieveRoleIdList(userId);
 	}
 }

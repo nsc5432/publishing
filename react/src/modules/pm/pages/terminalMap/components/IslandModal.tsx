@@ -1,6 +1,11 @@
 import { CounterConIcon, PlusIcon, SelfCheckinIcon } from '@/components/icons';
 import { useModalDismiss } from '../hooks/useModalDismiss';
-import { CONGESTION_LABEL, type FacilityKind, type IslandDetail } from '../types';
+import {
+    CONGESTION_LABEL,
+    type FacilityKind,
+    type IslandDetail,
+    type IslandSales,
+} from '../types';
 
 interface IslandModalProps {
     detail: IslandDetail;
@@ -35,7 +40,6 @@ export function IslandModal({ detail, onClose, onDetailClick }: IslandModalProps
                 </div>
 
                 <div className="modal__body">
-                    {/* 시설 유형 */}
                     <ul className="facility">
                         {detail.facilities.map((facility) => (
                             <li className="facility__item" key={facility.kind}>
@@ -48,7 +52,6 @@ export function IslandModal({ detail, onClose, onDetailClick }: IslandModalProps
                         ))}
                     </ul>
 
-                    {/* 시설 혼잡 현황 */}
                     <div className={`sec-head sec-head--${detail.level}`}>
                         <h3 className="sec-head__title">시설 혼잡 현황</h3>
                         <span className={`state-badge state-badge--${detail.level}`}>
@@ -69,40 +72,7 @@ export function IslandModal({ detail, onClose, onDetailClick }: IslandModalProps
                         ))}
                     </ul>
 
-                    {/* 매출 정보 */}
-                    <table className="tbl-sales">
-                        <caption className="blind">상업시설 매출 정보</caption>
-                        <colgroup>
-                            <col style={{ width: 112 }} />
-                            <col />
-                            <col style={{ width: 112 }} />
-                            <col style={{ width: 86 }} />
-                        </colgroup>
-                        <tbody>
-                            <tr>
-                                <th scope="row">총 매출</th>
-                                <td>{detail.sales.total}</td>
-                                <th scope="row">상업시설 수</th>
-                                <td>{detail.sales.storeCount}</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">인원대비 매출</th>
-                                <td colSpan={3}>{detail.sales.perPax}</td>
-                            </tr>
-                            <tr>
-                                <th scope="row">매출 인원 증감</th>
-                                <td colSpan={3}>
-                                    {detail.sales.paxDelta}
-                                    <span
-                                        className={`rate rate--${detail.sales.rateUp ? 'up' : 'down'}`}
-                                    >
-                                        {detail.sales.rate}
-                                    </span>
-                                    <span className="rate__base">{detail.sales.rateBase}</span>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    {detail.sales && <SalesTable sales={detail.sales} />}
                 </div>
 
                 <div className="modal__foot">
@@ -113,5 +83,41 @@ export function IslandModal({ detail, onClose, onDetailClick }: IslandModalProps
                 </div>
             </div>
         </div>
+    );
+}
+
+function SalesTable({ sales }: { sales: IslandSales }) {
+    return (
+        <table className="tbl-sales">
+            <caption className="blind">상업시설 매출 정보</caption>
+            <colgroup>
+                <col style={{ width: 112 }} />
+                <col />
+                <col style={{ width: 112 }} />
+                <col style={{ width: 86 }} />
+            </colgroup>
+            <tbody>
+                <tr>
+                    <th scope="row">총 매출</th>
+                    <td>{sales.total}</td>
+                    <th scope="row">상업시설 수</th>
+                    <td>{sales.storeCount}</td>
+                </tr>
+                <tr>
+                    <th scope="row">인원대비 매출</th>
+                    <td colSpan={3}>{sales.perPax}</td>
+                </tr>
+                <tr>
+                    <th scope="row">매출 인원 증감</th>
+                    <td colSpan={3}>
+                        {sales.paxDelta}
+                        <span className={`rate rate--${sales.rateUp ? 'up' : 'down'}`}>
+                            {sales.rate}
+                        </span>
+                        <span className="rate__base">{sales.rateBase}</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
     );
 }

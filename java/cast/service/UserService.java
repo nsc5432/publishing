@@ -1,5 +1,7 @@
 package aoms.pm.cast.service;
 
+import java.util.List;
+
 import aoms.pm.cast.dto.UserDto;
 
 /**
@@ -19,4 +21,6 @@ import aoms.pm.cast.dto.UserDto;
  */
 public interface UserService {
 	UserDto retrieveUserInfoByKey(String userId);
+
+	List<String> retrieveRoleIdList(String userId);
 }

@@ -1,5 +1,7 @@
 package aoms.pm.cast.mapper;
 
+import java.util.List;
+
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
 import aoms.pm.cast.dto.UserDto;
@@ -23,4 +25,6 @@ import aoms.pm.cast.dto.UserDto;
 @Mapper
 public interface UserMapper {
 	UserDto retrieveUserInfoByKey(String userId);
+
+	List<String> retrieveRoleIdList(String userId);
 }

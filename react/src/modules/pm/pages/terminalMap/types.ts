@@ -108,7 +108,8 @@ export interface IslandDetail {
     level: CongestionLevel;
     facilities: FacilityItem[];
     stats: IslandStat[];
-    sales: IslandSales;
+    /** 매출조회 권한이 없으면 서버가 내려주지 않는다 */
+    sales?: IslandSales;
 }
 
 /* ================= 시설 미니 팝업 ================= */

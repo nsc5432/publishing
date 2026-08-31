@@ -44,6 +44,7 @@ export interface UserInfo extends JsonResponse {
     userId: string; // 유저 key
     userNm: string; // 성명
     deptNm: string; // 부서
+    roleIdList: string[]; // PM 롤 (PMR0001 ~ PMR0006)
 }
 
 /* ================= 일일 시뮬레이션 - 요약보기(대시보드) ================= */
@@ -281,7 +282,7 @@ export interface MapChknInfoDto {
     island: string; // 아일랜드 (예: M)
     fcltCd: string; // 시설 코드 (예: T1-3RD-M01-01)
     fcltList: MapFcltItemDto[];
-    sales: MapSalesDto;
+    sales: MapSalesDto | null; // 매출조회 권한(PMR0004) 이 없으면 서버가 비워서 내려준다
 }
 
 /**

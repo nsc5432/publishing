@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.domains.MapLayout;
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
@@ -30,6 +31,7 @@ import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.enums.CongestionStatus;
 import aoms.pm.cast.enums.FcltType;
+import aoms.pm.cast.enums.PmRole;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDepMapper;
 import aoms.pm.cast.mapper.CastDsbdMapper;
@@ -37,6 +39,7 @@ import aoms.pm.cast.mapper.CastMapMapper;
 import aoms.pm.cast.service.CastMapService;
 import aoms.pm.cast.service.CastOperHrService;
 import aoms.pm.cast.service.CastSmltService;
+import aoms.pm.cast.service.UserService;
 import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
 
@@ -84,6 +87,8 @@ public class CastMapServiceImpl implements CastMapService {
 	private final CastDepMapper castDepMapper;
 	private final CastSmltService castSmltService;
 	private final CastOperHrService castOperHrService;
+	private final UserService userService;
+	private final SessionService sessionService;
 
 	@Override
 	public SmltMapDto retrieveSmltMap(MapSearchDto searchDto) {
@@ -204,20 +209,36 @@ public class CastMapServiceImpl implements CastMapService {
 
 	private List<MapChknInfoDto> getChknInfoList(TerminalKind tmnlId) {
 		List<MapChknInfoDto> result = new ArrayList<>();
+		boolean canViewSales = canViewSales();
 
 		for (String islandCd : MapLayout.islandCdList(tmnlId)) {
-			// 상업시설 매출 원천은 아직 없지만 문자열 필드는 API 계약대로 null 없이 내린다
-			MapSalesDto sales = new MapSalesDto();
-			sales.setCmprYear(EMPTY);
-
 			MapChknInfoDto info = new MapChknInfoDto();
 			info.setIsland(islandCd);
 			info.setFcltCd(tmnlId.getValue() + "-3RD-" + islandCd + "01-01");
 			info.setFcltList(getIslandFcltList());
-			info.setSales(sales);
+			info.setSales(canViewSales ? getIslandSales() : null);
 
 			result.add(info);
 		}
+
+		return result;
+	}
+
+	// 매출은 민감정보라 권한 없는 사용자에게는 화면에서 감추는 데 그치지 않고 응답에서 뺀다
+	private boolean canViewSales() {
+		String loginUserId = sessionService.getLoginUserInfo().getLoginUserId();
+
+		if (loginUserId == null) {
+			return false;
+		}
+
+		return userService.retrieveRoleIdList(loginUserId).contains(PmRole.SALES.getValue());
+	}
+
+	private MapSalesDto getIslandSales() {
+		// 상업시설 매출 원천은 아직 없지만 문자열 필드는 API 계약대로 null 없이 내린다
+		MapSalesDto result = new MapSalesDto();
+		result.setCmprYear(EMPTY);
 
 		return result;
 	}

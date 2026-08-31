@@ -12,6 +12,7 @@ import type {
     SmltMapSlotDto,
     TmnlId,
 } from '@/types/api.types';
+import { MOCK_ROLE_ID_LIST } from './common.mock';
 
 /**
  * 맵형태보기 목업 응답 (VITE_ENABLE_MOCK=true 일 때 사용).
@@ -23,6 +24,8 @@ import type {
  */
 
 const SMLT_ID = 'SMLT-20260710-0001';
+
+const SALES_ROLE_ID = 'PMR0004';
 
 /* ================= 시각 ================= */
 
@@ -275,14 +278,17 @@ function toChknInfo(tmnlId: TmnlId, island: string): MapChknInfoDto {
             // 상업시설은 처리율 개념이 없다
             { fcltType: 'CMRC', fcltNm: '상업시설', prcsRateYn: 'N' },
         ],
-        sales: {
-            totAmt: 33063915 + seed * 121500,
-            storeCnt: 9 - (seed % 4),
-            amtPerPsg: 1742 + seed * 37,
-            psgDiffCnt: 8,
-            diffRate: 15,
-            cmprYear: '2023',
-        },
+        // 실서버와 같게 매출조회 권한이 없으면 비운다
+        sales: MOCK_ROLE_ID_LIST.includes(SALES_ROLE_ID)
+            ? {
+                  totAmt: 33063915 + seed * 121500,
+                  storeCnt: 9 - (seed % 4),
+                  amtPerPsg: 1742 + seed * 37,
+                  psgDiffCnt: 8,
+                  diffRate: 15,
+                  cmprYear: '2023',
+              }
+            : null,
     };
 }
 

@@ -19,8 +19,11 @@
 | 출국장 | `/rui/pm/daily-smlt/departureHall` | `modules/pm/pages/departureHall` |
 | 사용자 시뮬레이션 조건설정 | `/rui/pm/user-smlt/config` | `modules/pm/pages/userSmlt` |
 | 시뮬레이션 모니터링 | `/rui/pm/smlt-monitoring` | `modules/pm/pages/monitoring` |
+| 시설물 매핑 | `/rui/pm/fclt-map` | `modules/pm/pages/facilityMap` |
+| Cast 설정 | `/rui/pm/cast-config` | `modules/pm/pages/castConfig` |
 
 앱 base 는 `/rui/`. 라우팅·프리로드는 `src/App.tsx`.
+화면 접근은 롤로 갈린다 — §12.
 
 ---
 
@@ -503,3 +506,39 @@ Failed    → (종착)
 **DTO 필드명이 컬럼명과 어긋나면 `mapUnderscoreToCamelCase` 가 못 채워 조용히 null 이 된다.**
 `SmltStngDto` 의 `fcltyOpngTbl*` 4종이 그랬고 출국장 검색대 수가 안 나왔다. 새 DTO를 만들 때
 컬럼 별칭과 필드명을 반드시 대조한다.
+
+---
+
+## 12. 화면 접근 권한
+
+권한은 `CAOWN.TN_CA_ROLE` · `CAOWN.TN_CA_USER_ROLE` 의 PM 롤 6종(`PMR0001`~`PMR0006`)으로
+가른다. **롤 ID 값은 운영 계정 체계가 정한 것이라 바꾸지 않는다.**
+
+| 화면 / 정보 | `PMR0001`<br>기본 | `PMR0002`<br>통합운영센터 | `PMR0003`<br>운영기획 | `PMR0004`<br>매출조회 | `PMR0005`<br>예측관련 | `PMR0006`<br>시스템 관리 |
+|---|:--:|:--:|:--:|:--:|:--:|:--:|
+| 일일 시뮬레이션 4화면 | – | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 사용자 시뮬레이션 | – | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 시뮬레이션 모니터링 | – | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 시설물 매핑 | – | ✓ | ✓ | – | – | ✓ |
+| Cast 설정 | – | – | – | – | – | ✓ |
+| 아일랜드 매출 정보 | – | – | – | ✓ | – | – |
+
+- **롤은 합집합**이다. 한 사용자가 여러 롤을 갖는다(운영의 `PM001` = `PMR0001`+`PMR0005`+`PMR0006`).
+  `PMR0001` 은 아무 화면도 더하지 않아 단독으로는 접근 가능한 화면이 0개다.
+- 접근 가능한 화면 안에서는 **저장·실행을 포함한 모든 기능을 쓴다.** 읽기전용 롤은 없다.
+- 매출은 `PMR0006` 도 못 본다 — `PMR0004` 단독 조건이다.
+
+**정책의 단일 원본은 `react/src/modules/pm/auth/access.ts`** 다. 경로 → 허용 롤 맵(`PATH_ROLES`)
+하나를 LNB 필터(`filterNavItems`)와 라우트 가드(`AccessGuard`)가 같이 읽는다. `PATH_ROLES` 에
+없는 경로는 **기본 거부**이므로 라우트를 추가하면 여기에도 넣어야 한다.
+
+- 서버는 `UserDto.roleIdList` 로 **롤 ID 원본만** 내려준다. 메뉴·경로는 화면 개념이라 서버가 모른다.
+- 롤이 하나도 없는 사용자는 오류가 아니다. `roleIdList: []` 를 정상 응답으로 받고 화면이
+  `NoAccess` 를 그린다.
+- **매출은 화면에서 감추는 게 아니라 서버가 응답에서 뺀다.** `CastMapServiceImpl.getChknInfoList()`
+  가 `PmRole.SALES` 를 확인해 `MapChknInfoDto.sales` 를 null 로 내리고, 화면은 `sales == null`
+  만 본다 — 같은 규칙이 두 곳에 중복되지 않는다.
+- 매출 외 다른 API 에는 서버 권한 검사가 없다. 프론트 차단은 URL 직접 입력으로 우회된다.
+  전 컨트롤러 강제가 필요해지면 `PmRole` + `UserService.retrieveRoleIdList` 를 재사용한다.
+- 목업에서 롤별 화면을 보려면 `api/pm/mock/common.mock.ts` 의 `MOCK_ROLE_ID_LIST` 를 바꾼다.
+  `map.mock.ts` 도 같은 상수를 읽어 매출을 비운다.

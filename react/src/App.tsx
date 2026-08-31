@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect } from 'react';
 import { BrowserRouter, Outlet, Route, Routes } from 'react-router-dom';
 import { LoadingBar } from './components/ui/loading-bar';
 import { DialogProvider } from './components/ui/dialog-provider';
+import { AccessGuard } from './modules/pm/auth/AccessGuard';
 
 const loadDashboard = () => import('./modules/pm/pages/dashboard/Dashboard');
 const loadTerminalMap = () => import('./modules/pm/pages/terminalMap/TerminalMap');
@@ -47,7 +48,9 @@ const PmLayout = () => {
     return (
         <div className="pm-shell">
             <div className="pm-shell__body">
-                <Outlet />
+                <AccessGuard>
+                    <Outlet />
+                </AccessGuard>
             </div>
         </div>
     );

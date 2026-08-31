@@ -1,7 +1,8 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon, type IconName } from '@/components/icons/InlineIcon';
 import { useUserInfo } from '@/hooks/useUserInfo';
+import { filterNavItems } from '@/modules/pm/auth/access';
 import { LNB_HOME_PATH, LNB_TOP, LNB_USER, type NavItem } from './navItems';
 
 interface NavButtonProps {
@@ -62,12 +63,17 @@ function toActiveId(items: NavItem[], pathname: string): string | undefined {
 
 export function Lnb({ topItems = LNB_TOP, onSelect, user = LNB_USER }: LnbProps) {
     const { pathname } = useLocation();
-    const activeTop = toActiveId(topItems, pathname);
     const [open, setOpen] = useState(false);
     const navigate = useNavigate();
     const navRef = useRef<HTMLElement>(null);
+    const { userInfo, isLoaded } = useUserInfo();
 
-    const userInfo = useUserInfo();
+    // 권한 없는 메뉴가 한 프레임 보였다 사라지지 않게, 롤을 알기 전에는 비운다
+    const allowedItems = useMemo(
+        () => (isLoaded ? filterNavItems(userInfo?.roleIdList ?? [], topItems) : []),
+        [isLoaded, userInfo, topItems],
+    );
+    const activeTop = toActiveId(allowedItems, pathname);
     const displayUser = userInfo ? { dept: userInfo.deptNm, name: userInfo.userNm } : user;
 
     useEffect(() => {
@@ -97,7 +103,7 @@ export function Lnb({ topItems = LNB_TOP, onSelect, user = LNB_USER }: LnbProps)
         <nav ref={navRef} className={`sidebar${open ? ' is-open' : ''}`}>
             <div className="sidebar-inner">
                 <div className="nav-list">
-                    {topItems.map((item) => {
+                    {allowedItems.map((item) => {
                         const button = (
                             <NavButton
                                 icon={item.icon}
