@@ -8,7 +8,9 @@
         USING (
             <foreach collection="list" item="item" separator="UNION ALL">
             SELECT
-                #{item.totDt} AS TOT_DT,
+                #{item.totYmd} AS TOT_YMD,
+                #{item.totTm} AS TOT_TM,
+                #{item.totMnt} AS TOT_MNT,
                 #{item.tmnlId} AS TMNL_ID,
                 #{item.psgFcltCd} AS PSG_FCLT_CD,
                 #{item.fltnm} AS FLTNM,
@@ -17,7 +19,9 @@
             </foreach>
         ) B
         ON (
-            A.TOT_DT = B.TOT_DT
+            A.TOT_YMD = B.TOT_YMD
+            AND A.TOT_TM = B.TOT_TM
+            AND A.TOT_MNT = B.TOT_MNT
             AND A.TMNL_ID = B.TMNL_ID
             AND A.PSG_FCLT_CD = B.PSG_FCLT_CD
             AND A.FLTNM = B.FLTNM
@@ -29,7 +33,9 @@
                 A.LAST_MDFR_IP_ADDR = #{regIp},
                 A.LAST_MDFCN_DT = SYSTIMESTAMP
         WHEN NOT MATCHED THEN
-            INSERT (TOT_DT, TMNL_ID, PSG_FCLT_CD, FLTNM, BDPSG_PRCS_CNT, FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT)
-            VALUES (B.TOT_DT, B.TMNL_ID, B.PSG_FCLT_CD, B.FLTNM, B.BDPSG_PRCS_CNT, #{regId}, #{regIp}, SYSTIMESTAMP)
+            INSERT (TOT_YMD, TOT_TM, TOT_MNT, TMNL_ID, PSG_FCLT_CD, FLTNM, BDPSG_PRCS_CNT,
+                    FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT)
+            VALUES (B.TOT_YMD, B.TOT_TM, B.TOT_MNT, B.TMNL_ID, B.PSG_FCLT_CD, B.FLTNM,
+                    B.BDPSG_PRCS_CNT, #{regId}, #{regIp}, SYSTIMESTAMP)
     </update>
 </mapper>
