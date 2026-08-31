@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="batch.ScshOperPlcyMapper">
+    <select id="retrieveScshWtngList" resultType="batch.ScshWtngRawDto">
+        /* ScshOperPlcyMapper.retrieveScshWtngList */
+        SELECT
+            A.PSG_FLOW_DATA_CRT_DT,
+            A.TMNL_ID,
+            A.CHKN_ISL_CD,
+            A.FCLT_NM,
+            A.FCLT_TYPE_CD,
+            A.FCLT_ALOT_YN
+        FROM PMOWN.TN_PM_PSG_WTNG_INFO A
+        WHERE A.PSG_FLOW_DATA_CRT_DT BETWEEN #{ymd} || '0000' AND #{ymd} || '2359'
+        AND A.FCLT_TYPE_CD = 'SC'
+    </select>
+
+    <update id="upsertList">
+        /* ScshOperPlcyMapper.upsertList */
+        MERGE INTO PMOWN.TN_PM_SCSH_OPER_PLCY A
+        USING (
+            <foreach collection="list" item="item" separator="UNION ALL">
+            SELECT
+                #{item.operYmd} AS OPER_YMD,
+                #{item.operHour} AS OPER_HOUR,
+                #{item.tmnlId} AS TMNL_ID,
+                #{item.dptgtNo} AS DPTGT_NO,
+                #{item.scshOperCntom} AS SCSH_OPER_CNTOM
+            FROM DUAL
+            </foreach>
+        ) B
+        ON (
+            A.OPER_YMD = B.OPER_YMD
+            AND A.OPER_HOUR = B.OPER_HOUR
+            AND A.TMNL_ID = B.TMNL_ID
+            AND A.DPTGT_NO = B.DPTGT_NO
+        )
+        WHEN MATCHED THEN
+            UPDATE SET
+                A.SCSH_OPER_CNTOM = B.SCSH_OPER_CNTOM,
+                A.LAST_MDFR_ID = #{regId},
+                A.LAST_MDFR_IP_ADDR = #{regIp},
+                A.LAST_MDFCN_DT = SYSTIMESTAMP
+        WHEN NOT MATCHED THEN
+            INSERT (
+                OPER_YMD,
+                OPER_HOUR,
+                TMNL_ID,
+                DPTGT_NO,
+                SCSH_OPER_CNTOM,
+                FRST_RGTR_ID,
+                FRST_RGTR_IP_ADDR,
+                FRST_REG_DT
+            )
+            VALUES (
+                B.OPER_YMD,
+                B.OPER_HOUR,
+                B.TMNL_ID,
+                B.DPTGT_NO,
+                B.SCSH_OPER_CNTOM,
+                #{regId},
+                #{regIp},
+                SYSTIMESTAMP
+            )
+    </update>
+</mapper>
