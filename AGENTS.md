@@ -351,6 +351,12 @@ CAST 진입점 prefix 는 `/castrest/rest/json` 이다.
 | `CA` | GO 일일 체크인 배정 | `TN_PM_SMLT_CKNCT_MSTR/ATRB` |
 | `SBD` | 셀프체크인·백드롭 운영자료 | `TN_PM_SMLT_SBD_MSTR/ATRB` |
 
+**`CA` · `SBD` 는 리소스 안에서 `BLCK_ID` 로 CAST 블록이 갈린다.** `CA` 는
+`DOM_INTL_SE_CD` 에 따라 `P01CKINInt` / `P01CKINDom` / `P03CKIN`, `SBD` 는 백드롭이
+`P01SBD` / `P03SBD` 이고 키오스크가 `P01Self` / `P03Self` 다. 발행(`CastUserSnapshotMapper.xml`)과
+조회(`CastRestMapper.xml`)가 같은 값을 써야 하며, 한쪽만 고치면 블록이 통째로 비거나 뒤바뀐다.
+`SBD` 의 `AirlineCode` 는 `ALN_CD` 가 아니라 **`CHKN_TYPE_DTL_INFO`** 에서 나온다.
+
 PropertySet은 `TN_PM_SMLT_FIX_ATRB_GROUP`과 `TN_PM_SMLT_{PSG,SHOW_UP,SRVC}_ATRB`를 사용하고,
 시설운영 GenericTable은 각 시설운영 `MSTR/ATRB`를 사용한다. 결과의 일일/사용자 구분은 `001`이
 아니라 CAST 결과 ResourceID의 `Auto` / `WhatIf` 문자열로 판단하는 기존 코드가 있으므로 두 규칙을
@@ -428,8 +434,10 @@ CAST에 요구하지 않는다.
 3. FS snapshot 의 `GOOWN.TN_GO_GD_DATA` 원천에서 **부속 컬럼 9종**(`ALN_CTGRY`, `GATE_TYPE`,
    `SLF_CHKN_PSBLTY_YN` 등)을 확인하지 못해 NULL 로 둔다. `CastUserSnapshotMapper.xml` 상단
    TODO 에 나열돼 있다. 일일 리소스가 `FSxxx` 면 전 컬럼 복사라 해당 없다.
-4. SBD snapshot 은 백드롭(`SBD_CNT`)만 발행한다. 키오스크(`KOS_CNT`) 장비의
-   `CKNCT_USE_CRG_APLCN_TYPE_CD` 를 몰라 제외했다.
+4. SBD snapshot 의 키오스크(`KOS_CNT`)는 `TN_PM_SLF_CHKN_OPER_PLCY` 에서 발행하지만,
+   그 테이블에 아일랜드 컬럼이 없어 `SLF_CHKN_ISTR_ID` 앞 한 자를 아일랜드로 가정한다.
+   실 기기 ID 체계가 다르면 키오스크가 0건으로 발행된다. `TN_PM_SMLT_SBD_ATRB.CKNCT_ID` 가
+   `VARCHAR2(4)` 라 기기 ID 가 4자를 넘어도 깨진다.
 5. WhatIf 설정이 없으면 사용자 화면이 일일 `SMLT_ID` 를 fallback 으로 쓴다.
    사용자 실행용 `TN_PM_SMLT_STNG` 신규 채번은 아직 없다.
 6. `Executing` 상태로 멈춘 요청을 회수하는 경로가 없다 (§11.6 마지막 항목).

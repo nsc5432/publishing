@@ -1198,13 +1198,9 @@ ORDER BY
              ]]>
         </if>
         <if test="resourceID != 'SBD001'">
-              SELECT CASE 
-                   WHEN TMNL_ID = 'P01'
-                   THEN 'P01SBD'
-                   WHEN TMNL_ID = 'P03'
-                   THEN 'P03SBD'
-                   ELSE 'P03Self'
-                   END AS BlockID
+              <!-- 백드롭(P01SBD/P03SBD)과 키오스크(P01Self/P03Self)를 BLCK_ID 가 가른다.
+                   터미널에서 파생하면 키오스크를 표현할 수 없다 -->
+              SELECT Y.BLCK_ID AS BlockID
                  , Y.TMNL_ID AS DepArrTerminal
                  , Y.CKNCT_ID AS resourceID
                  , '"' || Y.CHKN_TYPE_DTL_INFO || '"' AS AirlineCode
@@ -1224,7 +1220,8 @@ ORDER BY
                  , Y.NONFUNC_STAT AS NonFunctionalStatus
                  , Y.CHKN_TYPE_CD AS CheckInAllocType
                  , '"' || Y.CHKN_TYPE_DTL_INFO || '"' AS CheckInAllocDescryption
-              FROM (SELECT A.TMNL_ID
+              FROM (SELECT A.BLCK_ID
+                         , A.TMNL_ID
                          , A.CKNCT_ID
                          , A.ALN_CD
                          , A.DOM_INTL_SE_CD

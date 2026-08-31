@@ -52,6 +52,8 @@ public interface CastUserSnapshotMapper {
 
 	void insertSbdAtrb(UserSmltRsrcSnapshotDto dto);
 
+	void insertSbdAtrbKiosk(UserSmltRsrcSnapshotDto dto);
+
 	void insertDptgtAtrb(UserSmltRsrcSnapshotDto dto);
 
 	void insertScrtyCntrlAtrb(UserSmltRsrcSnapshotDto dto);

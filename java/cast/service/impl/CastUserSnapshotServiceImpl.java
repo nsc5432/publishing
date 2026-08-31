@@ -58,7 +58,7 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 
 		publishRsrc(RsrcTable.FLT_SCHDL, snapshot, this::insertSchdlAtrb);
 		publishRsrc(RsrcTable.CKNCT, snapshot, castUserSnapshotMapper::insertCknctAtrb);
-		publishRsrc(RsrcTable.SBD, snapshot, castUserSnapshotMapper::insertSbdAtrb);
+		publishRsrc(RsrcTable.SBD, snapshot, this::insertSbdAtrb);
 		publishRsrc(RsrcTable.DPTGT, snapshot, castUserSnapshotMapper::insertDptgtAtrb);
 		publishRsrc(RsrcTable.SCRTY_CNTRL, snapshot, castUserSnapshotMapper::insertScrtyCntrlAtrb);
 
@@ -127,6 +127,12 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 		}
 
 		castUserSnapshotMapper.insertSchdlAtrbFromSrc(snapshot);
+	}
+
+	private void insertSbdAtrb(UserSmltRsrcSnapshotDto snapshot) {
+		// 한 리소스 안에 백드롭과 키오스크가 BLCK_ID 로 나뉘어 들어간다
+		castUserSnapshotMapper.insertSbdAtrb(snapshot);
+		castUserSnapshotMapper.insertSbdAtrbKiosk(snapshot);
 	}
 
 	private boolean isDailyOperative(String srcFltSchdlRsrcId) {

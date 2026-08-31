@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 
 import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.domains.MapLayout;
@@ -130,14 +131,17 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 		int smltFlfmtSn = castSmltMapper.retrieveNextSmltFlfmtSn(smltId);
 		String smltReqId = toSmltReqId(smltId, fcltTmnlId, smltFlfmtSn);
 
-		UserSmltRsrcSnapshotDto snapshot = castUserSnapshotService.publish(smltId, searchDto.getTmnlId(), excnYmd);
-
 		try {
+			UserSmltRsrcSnapshotDto snapshot =
+					castUserSnapshotService.publish(smltId, searchDto.getTmnlId(), excnYmd);
+
 			// 요청이 이력을 참조하므로 이력 먼저 넣는다
 			castSmltMapper.insertSmltFlfmtHstry(getFlfmtHstry(searchDto, smltFlfmtSn));
 			castUserReqMapper.insertUserReq(getUserReq(searchDto, smltReqId, smltFlfmtSn, excnYmd, snapshot));
 		} catch (DuplicateKeyException exception) {
-			// 사전 검사를 통과했어도 동시 클릭이면 UX_ACTIVE 나 이력 PK 에서 여기로 떨어진다
+			// 사전 검사를 통과했어도 동시 클릭이면 UX_ACTIVE 나 이력 PK 에서 여기로 떨어진다.
+			// 예외를 삼켜 화면에 메시지를 돌려주므로, 발행된 리소스는 직접 롤백을 걸어야 지워진다
+			TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
 			result.error("이미 수행 중인 시뮬레이션이 있습니다. 잠시 후 다시 시도해주세요.");
 			return result;
 		}

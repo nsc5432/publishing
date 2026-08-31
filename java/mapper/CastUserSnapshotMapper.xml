@@ -14,13 +14,22 @@
     마스터 행 생성과 삭제는 다섯 리소스가 같은 문장을 쓴다 (deleteRsrcAtrb / deleteRsrcMstr /
     insertRsrcMstr). 테이블·컬럼명은 CastUserSnapshotServiceImpl 의 RsrcTable 이 넘긴다.
 
-    TODO(실 스키마 확인) — GOOWN/CAOWN 원본 컬럼을 확인하지 못해 NULL 로 두는 것들.
+    SBD 는 BLCK_ID 로 백드롭(P01SBD/P03SBD)과 키오스크(P01Self/P03Self)를 가른다.
+    CastRestMapper 의 retrieveSelfCheckInCountAndBagDrop 이 이 컬럼을 그대로 읽으므로
+    둘 중 하나만 고치면 블록이 어긋난다.
+
+    TODO(실 스키마 확인) — GOOWN 원본 컬럼을 확인하지 못해 NULL 로 두는 것들.
       TN_PM_SMLT_SCHDL_ATRB : ALN_CTGRY, DALY_FLTSH_ID, GATE_TYPE, CKNCT_RANGE_CN,
                               SLF_CHKN_PSBLTY_YN, BUS_NEED_YN, WAYO_ID,
                               FRST_BAG_INPUT_DT, LAST_BAG_INPUT_DT
-      SBD : 키오스크(KOS_CNT) 장비의 CKNCT_USE_CRG_APLCN_TYPE_CD 를 몰라 백드롭('H')만 발행한다
-      CKNCT_ATRB.DOM_INTL_SE_CD : 사용자 조건에 국내/국제 구분이 없어 'I' 고정
     일일 FLT_SCHDL_RSRC_ID 가 FS001 이 아니면 insertSchdlAtrbFromSrc 를 타므로 위 제약이 없다.
+
+    TODO(실 데이터 확인) — 키오스크 발행이 기대는 두 가지.
+      1. TN_PM_SMLT_SBD_ATRB.CKNCT_ID 는 VARCHAR2(4) 인데 SLF_CHKN_ISTR_ID 는 VARCHAR2(10) 이다.
+         실 기기 ID 가 4자를 넘으면 insertSbdAtrbKiosk 가 깨진다 — 컬럼 확장이 필요하다.
+      2. TN_PM_SLF_CHKN_OPER_PLCY 에 아일랜드 컬럼이 없어 SLF_CHKN_ISTR_ID 앞 한 자를 아일랜드로
+         본다(백드롭이 CKNCT_ID 에 쓰는 규칙과 같다). 기기 ID 체계가 다르면 아일랜드별 KOS_CNT 가
+         어떤 기기에도 붙지 않아 키오스크가 0건으로 발행된다.
 -->
 <mapper namespace="aoms.pm.cast.mapper.CastUserSnapshotMapper">
 
@@ -170,20 +179,26 @@
         INSERT INTO PMOWN.TN_PM_SMLT_CKNCT_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, CHKN_OPEN_PRNMNT_DT, CHKN_CLOSE_PRNMNT_DT, CHKN_TYPE_CD,
+            CHKN_TYPE_DTL_INFO,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         SELECT
             #{rsrcNo},
-            CASE WHEN #{tmnlId} = 'P03' THEN 'P03CKIN' ELSE 'P01CKINInt' END,
+            CASE
+                WHEN #{tmnlId} = 'P03' THEN 'P03CKIN'
+                WHEN NVL(C.DOM_INTL_SE_CD, 'I') = 'I' THEN 'P01CKINInt'
+                ELSE 'P01CKINDom'
+            END,
             #{tmnlId},
             C.CKNCT_ID,
             B.ALN_CD,
-            'I',
+            NVL(C.DOM_INTL_SE_CD, 'I'),
             #{excnYmd},
             #{excnYmd} || LPAD(H.OPER_BGNG_HOUR, 2, '0') || '00',
             #{excnYmd} || LPAD(DECODE(H.OPER_END_HOUR, 24, 23, H.OPER_END_HOUR), 2, '0')
                        || DECODE(H.OPER_END_HOUR, 24, '59', '00'),
             'M',
+            B.ALN_CD,
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH B
             INNER JOIN PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR H
@@ -194,6 +209,7 @@
                 SELECT
                     SUBSTR(K.CKNCT_ID, 1, 1) AS CHKN_ISL_CD,
                     K.CKNCT_ID,
+                    K.DOM_INTL_SE_CD,
                     ROW_NUMBER() OVER (PARTITION BY SUBSTR(K.CKNCT_ID, 1, 1) ORDER BY K.CKNCT_ID) AS BOOTH_NO
                 FROM CAOWN.TN_CA_CKNCT K
                 WHERE K.TMNL_ID = #{tmnlId}
@@ -212,24 +228,27 @@
     <insert id="insertSbdAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSbdAtrb */
         <!-- 아일랜드가 정한 백드롭 대수만큼 실제 장비를 앞에서부터 켠다.
-             항공사 배정은 아일랜드에 붙은 부스 항공사를 그대로 따른다 -->
+             항공사 배정은 아일랜드에 붙은 부스 항공사를 그대로 따른다.
+             비-001 SBD 조회는 AirlineCode 를 ALN_CD 가 아니라 CHKN_TYPE_DTL_INFO 에서 뽑으므로
+             항공사 목록을 그쪽에 넣어야 한다. 따옴표는 조회 SQL 이 붙인다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_SBD_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
-            CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD,
+            CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD, CHKN_TYPE_DTL_INFO,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         SELECT
             #{rsrcNo},
-            CASE WHEN #{tmnlId} = 'P03' THEN 'P03Self' ELSE 'P01Self' END,
+            CASE WHEN #{tmnlId} = 'P03' THEN 'P03SBD' ELSE 'P01SBD' END,
             #{tmnlId},
             C.CKNCT_ID,
             A.ALN_CD,
-            'I',
+            NVL(C.DOM_INTL_SE_CD, 'I'),
             #{excnYmd},
             #{excnYmd} || LPAD(H.OPER_BGNG_HOUR, 2, '0') || '00',
             #{excnYmd} || LPAD(DECODE(H.OPER_END_HOUR, 24, 23, H.OPER_END_HOUR), 2, '0')
                        || DECODE(H.OPER_END_HOUR, 24, '59', '00'),
-            'S',
+            'C',
+            SUBSTR(A.ALN_CD_LIST, 1, 200),
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL I
             INNER JOIN PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR H
@@ -240,6 +259,7 @@
                 SELECT
                     SUBSTR(K.CKNCT_ID, 1, 1) AS CHKN_ISL_CD,
                     K.CKNCT_ID,
+                    K.DOM_INTL_SE_CD,
                     ROW_NUMBER() OVER (PARTITION BY SUBSTR(K.CKNCT_ID, 1, 1) ORDER BY K.CKNCT_ID) AS DEVICE_NO
                 FROM CAOWN.TN_CA_CKNCT K
                 WHERE K.TMNL_ID = #{tmnlId}
@@ -249,14 +269,77 @@
                 ON  C.CHKN_ISL_CD = I.CHKN_ISL_CD
                 AND C.DEVICE_NO &lt;= NVL(I.SBD_CNT, 0)
             LEFT OUTER JOIN (
-                SELECT SMLT_ID, TMNL_ID, CHKN_ISL_CD, MIN(ALN_CD) AS ALN_CD
-                FROM PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH
-                WHERE ALN_CD IS NOT NULL
+                SELECT
+                    SMLT_ID, TMNL_ID, CHKN_ISL_CD,
+                    MIN(ALN_CD) AS ALN_CD,
+                    LISTAGG(ALN_CD, ',') WITHIN GROUP (ORDER BY ALN_CD) AS ALN_CD_LIST
+                FROM (
+                    SELECT DISTINCT SMLT_ID, TMNL_ID, CHKN_ISL_CD, ALN_CD
+                    FROM PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH
+                    WHERE ALN_CD IS NOT NULL
+                )
                 GROUP BY SMLT_ID, TMNL_ID, CHKN_ISL_CD
             ) A
                 ON  A.SMLT_ID = I.SMLT_ID
                 AND A.TMNL_ID = I.TMNL_ID
                 AND A.CHKN_ISL_CD = I.CHKN_ISL_CD
+        WHERE I.SMLT_ID = #{smltId}
+        AND I.TMNL_ID = #{tmnlId}
+    </insert>
+
+    <insert id="insertSbdAtrbKiosk" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
+        /* CastUserSnapshotMapper.insertSbdAtrbKiosk */
+        <!-- 키오스크는 CAOWN.TN_CA_CKNCT 가 아니라 셀프체크인 운영정책이 원천이다.
+             일일 SBD001 이 P01Self/P03Self 블록을 이 테이블에서 만든다.
+             정책일자는 실행일자 것이 있으면 그것을, 없으면 가장 최근 것을 쓴다 (일일과 동일) -->
+        INSERT INTO PMOWN.TN_PM_SMLT_SBD_ATRB (
+            SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
+            CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD, CHKN_TYPE_DTL_INFO,
+            FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
+        )
+        SELECT
+            #{rsrcNo},
+            CASE WHEN #{tmnlId} = 'P03' THEN 'P03Self' ELSE 'P01Self' END,
+            #{tmnlId},
+            C.SLF_CHKN_ISTR_ID,
+            C.ALN_CD,
+            'I',
+            #{excnYmd},
+            #{excnYmd} || LPAD(H.OPER_BGNG_HOUR, 2, '0') || '00',
+            #{excnYmd} || LPAD(DECODE(H.OPER_END_HOUR, 24, 23, H.OPER_END_HOUR), 2, '0')
+                       || DECODE(H.OPER_END_HOUR, 24, '59', '00'),
+            'C',
+            SUBSTR(C.ALN_CD_LIST, 1, 200),
+            #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
+        FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL I
+            INNER JOIN PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR H
+                ON  H.SMLT_ID = I.SMLT_ID
+                AND H.TMNL_ID = I.TMNL_ID
+                AND H.CHKN_ISL_CD = I.CHKN_ISL_CD
+            INNER JOIN (
+                SELECT
+                    SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1) AS CHKN_ISL_CD,
+                    P.SLF_CHKN_ISTR_ID,
+                    MIN(P.ALN_CD) AS ALN_CD,
+                    LISTAGG(P.ALN_CD, ',') WITHIN GROUP (ORDER BY P.ALN_CD) AS ALN_CD_LIST,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1)
+                        ORDER BY P.SLF_CHKN_ISTR_ID
+                    ) AS DEVICE_NO
+                FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY P
+                WHERE P.TMNL_ID = #{tmnlId}
+                AND P.PLCY_YMD = (
+                    SELECT NVL(
+                        MAX(CASE WHEN X.PLCY_YMD = #{excnYmd} THEN X.PLCY_YMD END),
+                        MAX(X.PLCY_YMD)
+                    )
+                    FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY X
+                    WHERE X.TMNL_ID = #{tmnlId}
+                )
+                GROUP BY SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1), P.SLF_CHKN_ISTR_ID
+            ) C
+                ON  C.CHKN_ISL_CD = I.CHKN_ISL_CD
+                AND C.DEVICE_NO &lt;= NVL(I.KOS_CNT, 0)
         WHERE I.SMLT_ID = #{smltId}
         AND I.TMNL_ID = #{tmnlId}
     </insert>
