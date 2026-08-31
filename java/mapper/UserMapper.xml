@@ -1,8 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<!-- 실 백엔드 레포에는 retrieveUserInfoByKey 가 든 UserMapper.xml 이 이미 있다. 이 파일은 아래 구문만 병합한다 -->
 <mapper namespace="aoms.pm.cast.mapper.UserMapper">
+    <select id="retrieveUserInfoByKey" parameterType="string" resultType="aoms.pm.cast.dto.UserDto">
+        /* UserMapper.retrieveUserInfoByKey */
+        SELECT 
+            A.USER_ID, 
+            A.DEPT_CD,
+            A.USER_NM,
+            B.DEPT_NM
+        FROM CAOWN.TN_CA_USER A
+            LEFT JOIN CAOWN.TN_CA_DEPT B
+            ON A.DEPT_CD = B.DEPT_CD
+        WHERE USER_ID = #{userId}
+    </select>
+
     <select id="retrieveRoleIdList" parameterType="string" resultType="string">
         /* UserMapper.retrieveRoleIdList */
         SELECT A.ROLE_ID
