@@ -1120,7 +1120,15 @@ ORDER BY
                 , 'C' AS CheckinAllocType -- 체크인유형코드
                 , '"' || LISTAGG(PLCY.ALN_CD, ',') WITHIN GROUP (ORDER BY PLCY.ALN_CD) || '"' AS CheckInAllocDescryption -- 체크인유형상세정보
             FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY PLCY
-            WHERE TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYYMMDD') BETWEEN PLCY.PLCY_BGNG_YMD AND PLCY.PLCY_END_YMD
+            WHERE PLCY.PLCY_YMD = (
+                SELECT NVL(
+                    MAX(CASE
+                        WHEN P.PLCY_YMD = TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYYMMDD') THEN P.PLCY_YMD
+                    END),
+                    MAX(P.PLCY_YMD)
+                )
+                FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY P
+            )
             GROUP BY PLCY.TMNL_ID, PLCY.SLF_CHKN_ISTR_ID
             UNION ALL
             SELECT 

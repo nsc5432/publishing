@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="batch.SlfChknOperPlcyMapper">
+    <select id="countOverlengthIstrId" resultType="int">
+        /* SlfChknOperPlcyMapper.countOverlengthIstrId */
+        SELECT COUNT(*)
+        FROM PMOWN.TN_PM_BDPS_ISSU_INFO A
+        WHERE A.PSG_TRNSP_YMD = #{ymd}
+        AND A.CHKN_SE_CD = 'SCI'
+        AND A.TMNL_SE_CD IN ('P01', 'P03')
+        AND A.CHKN_ISTR_NO IS NOT NULL
+        AND LENGTH(TRIM(A.CHKN_ISTR_NO)) > 10
+    </select>
+
+    <update id="upsert">
+        /* SlfChknOperPlcyMapper.upsert */
+        MERGE INTO PMOWN.TN_PM_SLF_CHKN_OPER_PLCY A
+        USING (
+            SELECT DISTINCT
+                B.TMNL_SE_CD AS TMNL_ID,
+                TRIM(B.CHKN_ISTR_NO) AS SLF_CHKN_ISTR_ID,
+                B.ALN_CD,
+                B.PSG_TRNSP_YMD AS PLCY_YMD
+            FROM PMOWN.TN_PM_BDPS_ISSU_INFO B
+            WHERE B.PSG_TRNSP_YMD = #{ymd}
+            AND B.CHKN_SE_CD = 'SCI'
+            AND B.TMNL_SE_CD IN ('P01', 'P03')
+            AND TRIM(B.CHKN_ISTR_NO) IS NOT NULL
+        ) B
+        ON (
+            A.TMNL_ID = B.TMNL_ID
+            AND A.SLF_CHKN_ISTR_ID = B.SLF_CHKN_ISTR_ID
+            AND A.ALN_CD = B.ALN_CD
+            AND A.PLCY_YMD = B.PLCY_YMD
+        )
+        WHEN MATCHED THEN
+            UPDATE SET
+                A.LAST_MDFR_ID = 'SYSTEM',
+                A.LAST_MDFR_IP_ADDR = '1.1.1.1',
+                A.LAST_MDFCN_DT = CURRENT_TIMESTAMP
+        WHEN NOT MATCHED THEN
+            INSERT (
+                TMNL_ID,
+                SLF_CHKN_ISTR_ID,
+                ALN_CD,
+                PLCY_YMD,
+                FRST_RGTR_ID,
+                FRST_RGTR_IP_ADDR,
+                FRST_REG_DT
+            )
+            VALUES (
+                B.TMNL_ID,
+                B.SLF_CHKN_ISTR_ID,
+                B.ALN_CD,
+                B.PLCY_YMD,
+                'SYSTEM',
+                '1.1.1.1',
+                CURRENT_TIMESTAMP
+            )
+    </update>
+
+    <delete id="deleteMissing">
+        /* SlfChknOperPlcyMapper.deleteMissing */
+        DELETE FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY A
+        WHERE A.PLCY_YMD = #{ymd}
+        AND NOT EXISTS (
+            SELECT 1
+            FROM PMOWN.TN_PM_BDPS_ISSU_INFO B
+            WHERE B.PSG_TRNSP_YMD = #{ymd}
+            AND B.CHKN_SE_CD = 'SCI'
+            AND B.TMNL_SE_CD IN ('P01', 'P03')
+            AND TRIM(B.CHKN_ISTR_NO) IS NOT NULL
+            AND B.TMNL_SE_CD = A.TMNL_ID
+            AND TRIM(B.CHKN_ISTR_NO) = A.SLF_CHKN_ISTR_ID
+            AND B.ALN_CD = A.ALN_CD
+        )
+    </delete>
+</mapper>
