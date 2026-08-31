@@ -23,7 +23,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * @Classname : CastMntrServiceImpl.java
- * @Description : 시뮬레이션 모니터링 ServiceImpl — DB 조회
+ * @Description : 시뮬레이션 모니터링 ServiceImpl
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>

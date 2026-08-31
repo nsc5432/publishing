@@ -39,7 +39,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * @Classname : CastUserSmltServiceImpl.java
- * @Description : 사용자 시뮬레이션 진입 · 지도 보기 · 수행 ServiceImpl — DB 조회
+ * @Description : 사용자 시뮬레이션 진입 · 지도 보기 · 수행 ServiceImpl
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>

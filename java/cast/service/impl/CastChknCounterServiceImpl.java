@@ -45,7 +45,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * @Classname : CastChknCounterServiceImpl.java
- * @Description : 일일 시뮬레이션 결과 조회 - 체크인카운터 ServiceImpl — DB 조회
+ * @Description : 일일 시뮬레이션 결과 조회 - 체크인카운터 ServiceImpl
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>

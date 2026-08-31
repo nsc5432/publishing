@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * @Classname : CastFcltServiceImpl.java
- * @Description : 시설물 매핑 ServiceImpl — DB 조회 · 저장
+ * @Description : 시설물 매핑 ServiceImpl · 저장
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>

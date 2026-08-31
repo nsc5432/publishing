@@ -47,7 +47,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * @Classname : CastMapServiceImpl.java
- * @Description : 맵형태보기 ServiceImpl — DB 조회
+ * @Description : 맵형태보기 ServiceImpl
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
