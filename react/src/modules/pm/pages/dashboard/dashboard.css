@@ -93,8 +93,7 @@ html[data-page='dashboard'] .app {
 html[data-page='dashboard'] .body {
     display: flex;
     flex: 1;
-    padding: calc(var(--pm-shell-top) / var(--scale, 1)) calc(var(--pm-shell-x) / var(--scale, 1))
-        calc(var(--pm-shell-bottom) / var(--scale, 1))
+    padding: calc(var(--pm-shell-top) / var(--scale, 1)) calc(var(--pm-shell-x) / var(--scale, 1)) calc(var(--pm-shell-bottom) / var(--scale, 1))
         calc((var(--pm-shell-x) + var(--pm-lnb-w) + var(--pm-shell-gap)) / var(--scale, 1));
     min-height: 0;
 }
@@ -510,11 +509,7 @@ html[data-page='dashboard'] .panel::after {
     position: absolute;
     inset: 0;
     pointer-events: none;
-    background: radial-gradient(
-        50% 36% at 60% 58%,
-        rgba(255, 255, 255, 0.8),
-        rgba(255, 255, 255, 0) 72%
-    );
+    background: radial-gradient(50% 36% at 60% 58%, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0) 72%);
 }
 
 html[data-page='dashboard'] .panel > * {
@@ -584,14 +579,7 @@ html[data-page='dashboard'] .panel-blue .p-iconbox {
 }
 
 html[data-page='dashboard'] .panel-green .p-iconbox {
-    background: linear-gradient(
-        180deg,
-        #ffff00 0%,
-        #ffff00 22%,
-        #c9e829 46%,
-        #60bb78 72%,
-        #0c98b7 100%
-    );
+    background: linear-gradient(180deg, #ffff00 0%, #ffff00 22%, #c9e829 46%, #60bb78 72%, #0c98b7 100%);
 }
 
 html[data-page='dashboard'] .panel-orange .p-iconbox {
@@ -734,7 +722,7 @@ html[data-page='dashboard'] .p-peak {
     background: var(--box-mint);
     border: 1px solid #9fdcd8;
     border-radius: 14px;
-    padding: 5px 11px 6px;
+    padding: 5px 5px 6px;
     display: flex;
     flex-direction: column;
 }
@@ -1056,36 +1044,15 @@ html[data-page='dashboard'] .panel-blue .p-bar {
 }
 
 html[data-page='dashboard'] .panel-green .p-bar {
-    background: linear-gradient(
-        90deg,
-        #ffff00 0%,
-        #ffff00 32%,
-        #8ecf56 66%,
-        #42af8e 86%,
-        #0294bf 100%
-    );
+    background: linear-gradient(90deg, #ffff00 0%, #ffff00 32%, #8ecf56 66%, #42af8e 86%, #0294bf 100%);
 }
 
 html[data-page='dashboard'] .panel-orange .p-bar {
-    background: linear-gradient(
-        90deg,
-        #ff8a00 0%,
-        #ff6a00 32%,
-        #f2461c 66%,
-        #e2401c 86%,
-        #c92f1c 100%
-    );
+    background: linear-gradient(90deg, #ff8a00 0%, #ff6a00 32%, #f2461c 66%, #e2401c 86%, #c92f1c 100%);
 }
 
 html[data-page='dashboard'] .panel-red .p-bar {
-    background: linear-gradient(
-        90deg,
-        #ff3b3b 0%,
-        #f2201c 32%,
-        #d81f1f 66%,
-        #b21212 86%,
-        #8f0e0e 100%
-    );
+    background: linear-gradient(90deg, #ff3b3b 0%, #f2201c 32%, #d81f1f 66%, #b21212 86%, #8f0e0e 100%);
 }
 
 html[data-page='dashboard'] .view {

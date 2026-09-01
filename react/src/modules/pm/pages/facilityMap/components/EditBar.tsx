@@ -20,7 +20,7 @@ export function EditBar({ dirtyCount, duplicateCount, onRevert, onSave }: EditBa
         <div className="editbar">
             <p className={`editbar__status${isDirty ? ' is-dirty' : ''}`}>
                 {duplicateCount > 0
-                    ? `CAST명이 겹칩니다 (${duplicateCount}건) — 한 시설에 하나씩만 물릴 수 있습니다`
+                    ? `CAST명이 겹칩니다 (${duplicateCount}건) — 한 시설에 하나씩만 매핑 할 수 있습니다`
                     : isDirty
                       ? `저장하지 않은 변경 ${dirtyCount}건`
                       : 'CAST 시뮬레이션명 칸을 눌러 바로 고칠 수 있습니다'}
@@ -30,12 +30,7 @@ export function EditBar({ dirtyCount, duplicateCount, onRevert, onSave }: EditBa
                 <button type="button" className="btn-revert" disabled={!isDirty} onClick={onRevert}>
                     되돌리기
                 </button>
-                <button
-                    type="button"
-                    className="btn-save"
-                    disabled={!isDirty || duplicateCount > 0}
-                    onClick={onSave}
-                >
+                <button type="button" className="btn-save" disabled={!isDirty || duplicateCount > 0} onClick={onSave}>
                     저장{isDirty ? ` (${dirtyCount})` : ''}
                 </button>
             </div>
