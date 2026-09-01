@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { castConfigService } from '@/api/pm/services/castConfig.service';
 import { unwrap } from '@/api/pm/result';
 import { useFetched } from '@/hooks/useFetched';
@@ -23,9 +24,12 @@ export function useCastConfigCategories(query: CastConfigCategoryQuery | null): 
         CATEGORY_LIST_FAIL,
     );
 
-    return {
-        data: categories.data ? toCastConfigCategories(categories.data) : EMPTY_CAST_CONFIG_CATEGORIES,
-        error: categories.error,
-        token: categories.token,
-    };
+    return useMemo(
+        () => ({
+            data: categories.data ? toCastConfigCategories(categories.data) : EMPTY_CAST_CONFIG_CATEGORIES,
+            error: categories.error,
+            token: categories.token,
+        }),
+        [categories],
+    );
 }
