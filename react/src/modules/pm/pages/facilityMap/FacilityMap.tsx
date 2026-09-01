@@ -27,6 +27,8 @@ interface RowFilter {
 
 const DEFAULT_FILTER: RowFilter = { status: 'all', groupCode: '', markerId: '', keyword: '' };
 
+const PAGE_SIZE = 25;
+
 const SAVE_FAIL = '매핑을 저장하지 못했습니다.';
 
 const LEAVE_WARNING = '저장하지 않은 변경이 있습니다. 조회하면 변경 내용이 사라집니다.';
@@ -66,6 +68,7 @@ function FacilityMap() {
     const [terminal, setTerminal] = useState<TerminalKind>('T1');
     const [query, setQuery] = useState<FacilityMapQuery>({ terminal: 'T1' });
     const [filter, setFilter] = useState<RowFilter>(DEFAULT_FILTER);
+    const [page, setPage] = useState(1);
     const [selectedCode, setSelectedCode] = useState('');
     const [drafts, setDrafts] = useState<CastDrafts>({});
 
@@ -82,7 +85,13 @@ function FacilityMap() {
     const originalStatus = useMemo(() => new Map((data?.rows ?? []).map((row) => [row.code, row.status])), [data]);
 
     const facetRows = useMemo(() => filterRows(editedRows, { ...filter, groupCode: '' }, originalStatus), [editedRows, filter, originalStatus]);
-    const rows = useMemo(() => (filter.groupCode ? facetRows.filter((row) => row.groupCode === filter.groupCode) : facetRows), [facetRows, filter.groupCode]);
+    const filteredRows = useMemo(
+        () => (filter.groupCode ? facetRows.filter((row) => row.groupCode === filter.groupCode) : facetRows),
+        [facetRows, filter.groupCode],
+    );
+    const totalPages = Math.max(1, Math.ceil(filteredRows.length / PAGE_SIZE));
+    const currentPage = Math.min(page, totalPages);
+    const pageRows = useMemo(() => filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE), [currentPage, filteredRows]);
     const groups = useMemo(
         () =>
             (data?.groups ?? []).map((group) => ({
@@ -92,7 +101,7 @@ function FacilityMap() {
         [data, facetRows],
     );
 
-    const selectedRow = rows.find((row) => row.code === selectedCode);
+    const selectedRow = filteredRows.find((row) => row.code === selectedCode);
     const activeMarker = markers.find((marker) => marker.id === filter.markerId);
     const markerName = activeMarker ? (activeMarker.kind === 'depGate' ? `출국장 ${activeMarker.label}` : `${activeMarker.label} 아일랜드`) : '';
     const markerNote = markerName ? `도면에서 고른 ${markerName}의 시설만 보고 있습니다.` : '';
@@ -107,9 +116,14 @@ function FacilityMap() {
         return () => window.removeEventListener('beforeunload', handleBeforeUnload);
     }, [dirtyCodes]);
 
+    useEffect(() => {
+        if (page > totalPages) setPage(totalPages);
+    }, [page, totalPages]);
+
     const runSearch = () => {
         setQuery({ terminal });
         setFilter(DEFAULT_FILTER);
+        setPage(1);
         setSelectedCode('');
         setDrafts({});
     };
@@ -176,25 +190,36 @@ function FacilityMap() {
             });
     };
 
-    const handleMarkerClick = (markerId: string) =>
+    const handleMarkerClick = (markerId: string) => {
+        setPage(1);
         setFilter((previousFilter) => ({
             ...previousFilter,
             markerId: previousFilter.markerId === markerId ? '' : markerId,
         }));
+    };
 
-    const handleStatusChange = (status: StatusFilter) => setFilter((previousFilter) => ({ ...previousFilter, status }));
+    const handleStatusChange = (status: StatusFilter) => {
+        setPage(1);
+        setFilter((previousFilter) => ({ ...previousFilter, status }));
+    };
 
-    const handleGroupChange = (groupCode: string) => setFilter((previousFilter) => ({ ...previousFilter, groupCode }));
+    const handleGroupChange = (groupCode: string) => {
+        setPage(1);
+        setFilter((previousFilter) => ({ ...previousFilter, groupCode }));
+    };
 
-    const handleKeywordChange = (keyword: string) => setFilter((previousFilter) => ({ ...previousFilter, keyword }));
+    const handleKeywordChange = (keyword: string) => {
+        setPage(1);
+        setFilter((previousFilter) => ({ ...previousFilter, keyword }));
+    };
 
     const handleExcel = () => {
-        if (rows.length === 0) {
+        if (filteredRows.length === 0) {
             dialog.alert({ title: '엑셀저장', description: '저장할 목록이 없습니다.' }).catch(() => {});
             return;
         }
 
-        downloadCsv(`시설물매핑_${query.terminal}.csv`, CSV_COLUMNS, toCsvRows(query.terminal, rows));
+        downloadCsv(`시설물매핑_${query.terminal}.csv`, CSV_COLUMNS, toCsvRows(query.terminal, filteredRows));
     };
 
     return (
@@ -208,7 +233,6 @@ function FacilityMap() {
                     <StatusSummary tiles={tiles} active={filter.status} onSelect={handleStatusChange} />
 
                     <div className="panels">
-                        {/* 왼쪽 열 : 도면(비율 고정) + 상세(남은 높이) */}
                         <div className="side">
                             <FcltMapStage
                                 terminal={query.terminal}
@@ -223,16 +247,20 @@ function FacilityMap() {
 
                         <div className="listcol">
                             <FcltMapTable
-                                rows={rows}
+                                rows={pageRows}
                                 groups={groups}
                                 groupCode={filter.groupCode}
                                 keyword={filter.keyword}
+                                page={currentPage}
+                                totalPages={totalPages}
+                                totalCount={filteredRows.length}
                                 selectedCode={selectedCode}
                                 markerNote={markerNote}
                                 dirtyCodes={dirtyCodes}
                                 duplicateNames={duplicateNames}
                                 onGroupChange={handleGroupChange}
                                 onKeywordChange={handleKeywordChange}
+                                onPageChange={setPage}
                                 onSelect={(row) => setSelectedCode(row.code)}
                                 onCastChange={handleCastChange}
                                 onExcel={handleExcel}

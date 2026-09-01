@@ -1,0 +1,46 @@
+html[data-page='facilityMap'] .list-pagination {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 30px;
+    padding-top: 10px;
+}
+
+html[data-page='facilityMap'] .list-pagination__count {
+    margin-right: 8px;
+    color: var(--c-text-sub);
+    font-size: 12px;
+}
+
+html[data-page='facilityMap'] .list-pagination__button {
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--c-line);
+    border-radius: 7px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 12px;
+    color: var(--c-text-sub);
+    cursor: pointer;
+}
+
+html[data-page='facilityMap'] .list-pagination__button:hover:not(:disabled),
+html[data-page='facilityMap'] .list-pagination__button:focus-visible {
+    border-color: var(--c-primary);
+    color: var(--c-primary);
+}
+
+html[data-page='facilityMap'] .list-pagination__button.is-current {
+    border-color: var(--c-primary);
+    background: var(--c-primary);
+    color: #fff;
+    font-weight: 700;
+}
+
+html[data-page='facilityMap'] .list-pagination__button:disabled {
+    opacity: 0.38;
+    cursor: not-allowed;
+}
