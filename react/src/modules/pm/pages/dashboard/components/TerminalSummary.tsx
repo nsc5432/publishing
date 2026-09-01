@@ -147,10 +147,7 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
                     </div>
                 </div>
                 <div className="chartbox">
-                    <div
-                        className="chart-bg"
-                        style={{ backgroundImage: `url("${images.watermark}")` }}
-                    />
+                    <div className="chart-bg" style={{ backgroundImage: `url("${images.watermark}")` }} />
                     <div className="legend">
                         <span>
                             <i style={{ background: '#f43f3f' }} />
@@ -165,22 +162,16 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
                 </div>
             </div>
 
-            {/* 제목 박스와 기준시각 바를 한 줄로 두고, 뷰 전환 스위치는 바 안에 넣는다 */}
-            {/* Prime Time 타일로 고른 게 아니면(Top Bar 검색) 제목을 비운다 — 요구사항 1.1 */}
             <div className="p-title-row">
-                {/* 비스듬한 파란 상자 위에 회색 상자를 한 겹 더 얹는다 */}
                 {titleCategory && (
                     <div className="p-title">
                         <span className="p-title-in">
-                            <span className="p-title-txt">
-                                {TITLE_LEAD[titleCategory]} 가장 많을 때
-                            </span>
+                            <span className="p-title-txt">{TITLE_LEAD[titleCategory]} 가장 많을 때</span>
                         </span>
                     </div>
                 )}
                 <div className="p-bar">
                     <span className="p-bar-txt">{view.barText}</span>
-                    {/* 켜짐=포인트 왼쪽 '요약' / 꺼짐=포인트 오른쪽 '상세' 로 손잡이가 옮겨간다 */}
                     <button
                         type="button"
                         className={`p-switch${viewKind === 'summary' ? ' on' : ''}`}
@@ -237,12 +228,7 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
 
                 <div className="gates">
                     {view.gates.map((gate) => (
-                        <Gate
-                            key={gate.fcltType}
-                            data={gate}
-                            gauge={theme.gauge}
-                            onDetail={() => navigate(GATE_DETAIL_PATH[gate.fcltType])}
-                        />
+                        <Gate key={gate.fcltType} data={gate} gauge={theme.gauge} onDetail={() => navigate(GATE_DETAIL_PATH[gate.fcltType])} />
                     ))}
                 </div>
             </div>
@@ -258,11 +244,7 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
                         <div>비율(%)</div>
                     </div>
                     {view.tableRows.map((row, rowIndex) => (
-                        <div
-                            key={row.time}
-                            className={`trow${rowIndex === selectedRow ? ' sel' : ''}`}
-                            onClick={() => setSelectedRow(rowIndex)}
-                        >
+                        <div key={row.time} className={`trow${rowIndex === selectedRow ? ' sel' : ''}`} onClick={() => setSelectedRow(rowIndex)}>
                             <div>{row.time}</div>
                             <div>{row.pax}</div>
                             <div className="w">{row.wait}</div>
@@ -290,19 +272,13 @@ function Multiline({ text }: { text: string }) {
     );
 }
 
-/** 체크인카운터 / 출국장 게이트 카드. 좌우 화살표로 아일랜드/게이트를 순환한다. */
 function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDetail: () => void }) {
     const [variantIndex, setVariantIndex] = useState(0);
-    // 하단 칩(카운터/게이트) 선택 상태 — 버튼으로 동작하도록 (요구사항 2)
     const [selectedChip, setSelectedChip] = useState<number | null>(null);
-
-    // 조회를 다시 하면 카드 수가 달라질 수 있어 현재 위치를 범위 안으로 눌러 둔다.
     const variant = data.variants[Math.min(variantIndex, data.variants.length - 1)];
 
     const cycleVariant = (direction: number) => {
-        setVariantIndex(
-            (prevIndex) => (prevIndex + direction + data.variants.length) % data.variants.length,
-        );
+        setVariantIndex((prevIndex) => (prevIndex + direction + data.variants.length) % data.variants.length);
         setSelectedChip(null);
     };
 
@@ -314,12 +290,7 @@ function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDeta
                 <b>{data.title}</b>
                 <div className="warn">
                     <span>{data.warn}</span>
-                    <button
-                        type="button"
-                        className="plus"
-                        aria-label={`${data.title} 상세`}
-                        onClick={onDetail}
-                    >
+                    <button type="button" className="plus" aria-label={`${data.title} 상세`} onClick={onDetail}>
                         <Icon name="plus" />
                     </button>
                 </div>
@@ -333,8 +304,7 @@ function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDeta
                 <div className="meta">
                     {variant.meta.map((metaCell) => (
                         <span key={metaCell.label}>
-                            {metaCell.label}{' '}
-                            <b className={metaCell.accent ? 'acc' : undefined}>{metaCell.value}</b>
+                            {metaCell.label} <b className={metaCell.accent ? 'acc' : undefined}>{metaCell.value}</b>
                         </span>
                     ))}
                 </div>
@@ -356,9 +326,7 @@ function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDeta
                         {variant.recommend.count}
                         <small>개</small>
                     </div>
-                    <div className={`cap${variant.recommend.countNoteAccent ? ' u' : ''}`}>
-                        {variant.recommend.countNote}
-                    </div>
+                    <div className={`cap${variant.recommend.countNoteAccent ? ' u' : ''}`}>{variant.recommend.countNote}</div>
                 </div>
                 <div className="gauge">
                     <div className="k">혼잡해소 예상</div>
@@ -377,11 +345,7 @@ function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDeta
                         key={chip.label}
                         className={`chip ${chip.kind}${chipIndex === selectedChip ? ' sel' : ''}`}
                         aria-pressed={chipIndex === selectedChip}
-                        onClick={() =>
-                            setSelectedChip((prevSelected) =>
-                                prevSelected === chipIndex ? null : chipIndex,
-                            )
-                        }
+                        onClick={() => setSelectedChip((prevSelected) => (prevSelected === chipIndex ? null : chipIndex))}
                     >
                         {chip.label}
                     </button>
