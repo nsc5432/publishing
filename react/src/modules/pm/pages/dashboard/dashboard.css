@@ -1577,6 +1577,9 @@ html[data-page='dashboard'] .trow {
 }
 
 html[data-page='dashboard'] .thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
     background: #e0e4f7;
     border-radius: 8px;
     font-size: 15px;

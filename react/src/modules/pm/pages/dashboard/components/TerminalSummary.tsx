@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import t1White from '@/assets/svg/t1-white.svg';
 import t2White from '@/assets/svg/t2-white.svg';
@@ -68,11 +68,17 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
 
     const [viewKind, setViewKind] = useState<ViewKind>('summary');
     const [selectedRow, setSelectedRow] = useState(view.defaultSelectedRow);
+    const selectedRowRef = useRef<HTMLDivElement>(null);
 
     // 조회 시각이 바뀌면 그 시각의 행으로 선택을 옮긴다.
     useEffect(() => {
         setSelectedRow(view.defaultSelectedRow);
     }, [view.defaultSelectedRow]);
+
+    // 표 보기는 행이 넘치면 스크롤된다 — 숨어 있는 동안은 no-op 이라 전환 시점에 다시 맞춘다.
+    useEffect(() => {
+        if (viewKind === 'table') selectedRowRef.current?.scrollIntoView({ block: 'nearest' });
+    }, [viewKind, selectedRow]);
 
     return (
         <section className={`panel ${theme.panelClass}`}>
@@ -184,7 +190,6 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
                 </div>
             </div>
 
-            {/* summary view */}
             <div className="view" hidden={viewKind !== 'summary'}>
                 <div className="sum-top">
                     <div className="sum-two">
@@ -233,9 +238,8 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
                 </div>
             </div>
 
-            {/* table view */}
             <div className="view" hidden={viewKind !== 'table'}>
-                <div className="table">
+                <div className="table scroll-area">
                     <div className="thead">
                         <div>시간대</div>
                         <div>승객수</div>
@@ -244,7 +248,12 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
                         <div>비율(%)</div>
                     </div>
                     {view.tableRows.map((row, rowIndex) => (
-                        <div key={row.time} className={`trow${rowIndex === selectedRow ? ' sel' : ''}`} onClick={() => setSelectedRow(rowIndex)}>
+                        <div
+                            key={row.time}
+                            ref={rowIndex === selectedRow ? selectedRowRef : undefined}
+                            className={`trow${rowIndex === selectedRow ? ' sel' : ''}`}
+                            onClick={() => setSelectedRow(rowIndex)}
+                        >
                             <div>{row.time}</div>
                             <div>{row.pax}</div>
                             <div className="w">{row.wait}</div>
@@ -258,7 +267,6 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
     );
 }
 
-/** '대기\n인원수' 처럼 \n 이 포함된 라벨을 <br/> 로 렌더. */
 function Multiline({ text }: { text: string }) {
     return (
         <>
