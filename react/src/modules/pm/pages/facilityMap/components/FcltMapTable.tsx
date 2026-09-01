@@ -77,13 +77,13 @@ export function FcltMapTable({
 
                 <div className="list__tools">
                     <label className="blind" htmlFor="fcltKeyword">
-                        시설명 · 코드 검색
+                        시설명/코드 검색
                     </label>
                     <input
                         type="search"
                         id="fcltKeyword"
                         className="list__search"
-                        placeholder="시설명 · 코드 검색"
+                        placeholder="시설명/코드 검색"
                         value={keyword}
                         onChange={(e) => onKeywordChange(e.target.value)}
                     />
@@ -108,32 +108,17 @@ export function FcltMapTable({
                         const isDuplicate = !!row.castName && duplicateNames.has(row.castName);
 
                         return (
-                            // 행 전체가 버튼이면 안쪽에 입력칸을 둘 수 없다(버튼 안 버튼).
-                            // 선택은 클릭과 입력칸 포커스 양쪽에서 걸어 준다.
-                            <div
-                                key={row.code}
-                                className={`tbl__row${row.code === selectedCode ? ' is-selected' : ''}`}
-                                onClick={() => onSelect(row)}
-                            >
+                            <div key={row.code} className={`tbl__row${row.code === selectedCode ? ' is-selected' : ''}`} onClick={() => onSelect(row)}>
                                 <div className="tbl__group">
-                                    <i
-                                        className={`dot dot--${row.fcltType.toLowerCase()}`}
-                                        aria-hidden="true"
-                                    />
-                                    <span title={FCLT_TYPE_LABEL[row.fcltType]}>
-                                        {row.groupName}
-                                    </span>
+                                    <i className={`dot dot--${row.fcltType.toLowerCase()}`} aria-hidden="true" />
+                                    <span title={FCLT_TYPE_LABEL[row.fcltType]}>{row.groupName}</span>
                                 </div>
                                 <div className="tbl__code">{row.code}</div>
                                 <div className="tbl__name" title={row.desc}>
                                     {row.name}
                                 </div>
 
-                                <div
-                                    className={`tbl__cast${isDirty ? ' is-dirty' : ''}${
-                                        isDuplicate ? ' is-duplicate' : ''
-                                    }`}
-                                >
+                                <div className={`tbl__cast${isDirty ? ' is-dirty' : ''}${isDuplicate ? ' is-duplicate' : ''}`}>
                                     <label className="blind" htmlFor={`cast-${row.code}`}>
                                         {row.name} CAST 시뮬레이션명
                                     </label>
@@ -144,11 +129,7 @@ export function FcltMapTable({
                                         value={row.castName}
                                         placeholder="매핑 없음"
                                         maxLength={100}
-                                        title={
-                                            isDuplicate
-                                                ? '다른 시설이 이미 쓰고 있는 이름입니다'
-                                                : undefined
-                                        }
+                                        title={isDuplicate ? '다른 시설이 이미 쓰고 있는 이름입니다' : undefined}
                                         onChange={(e) => onCastChange(row.code, e.target.value)}
                                         onFocus={() => onSelect(row)}
                                     />
@@ -160,17 +141,13 @@ export function FcltMapTable({
                                 </div>
 
                                 <div>
-                                    <span className={`state state--${row.status}`}>
-                                        {MAPPING_STATUS_LABEL[row.status]}
-                                    </span>
+                                    <span className={`state state--${row.status}`}>{MAPPING_STATUS_LABEL[row.status]}</span>
                                 </div>
                             </div>
                         );
                     })}
 
-                    {rows.length === 0 && (
-                        <p className="tbl__empty">조건에 해당하는 시설이 없습니다.</p>
-                    )}
+                    {rows.length === 0 && <p className="tbl__empty">조건에 해당하는 시설이 없습니다.</p>}
                 </div>
             </div>
         </section>
