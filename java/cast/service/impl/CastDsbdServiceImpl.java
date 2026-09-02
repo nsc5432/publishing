@@ -270,35 +270,40 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		for (SmltRsltRawDto rslt : topRsltList) {
 			String unitCd = rslt.getUnitCd();
-			SmltRsltRawDto recommendRslt = requireRecommendationRslt(recommendRsltMap.get(unitCd), searchDto, fcltType, fcltGroupCd, unitCd);
-			List<SmltRsltRawDto> unitSlotList = recommendSlotMap.get(unitCd);
-			PeakSlot peak = getPeakSlot(unitSlotList, range, searchDto, fcltType, unitCd);
-			int currentOpenCount = resources.getOpenCountValue(unitCd);
+			// 추천 대상 시설(CC / SC·SR) 행이 없는 유닛은 카드만 내리고 추천은 비운다
+			SmltRsltRawDto recommendRslt = recommendRsltMap.get(unitCd);
+			FcltRecommendationCalculator.Result calculation = null;
 
-			BigDecimal serviceRate = getServiceRate(
-					context,
-					unitCd,
-					recommendRslt.getTrnstPsgCnt(),
-					currentOpenCount,
-					peerServiceRate);
+			if (recommendRslt != null) {
+				List<SmltRsltRawDto> unitSlotList = recommendSlotMap.get(unitCd);
+				PeakSlot peak = getPeakSlot(unitSlotList, range, searchDto, fcltType, unitCd);
+				int currentOpenCount = resources.getOpenCountValue(unitCd);
 
-			FcltRecommendationCalculator.Result calculation = calculateRecommendation(
-					unitSlotList,
-					peak,
-					serviceRate,
-					gradeScale,
-					range,
-					currentOpenCount,
-					searchDto,
-					fcltType,
-					unitCd);
+				BigDecimal serviceRate = getServiceRate(
+						context,
+						unitCd,
+						recommendRslt.getTrnstPsgCnt(),
+						currentOpenCount,
+						peerServiceRate);
+
+				calculation = calculateRecommendation(
+						unitSlotList,
+						peak,
+						serviceRate,
+						gradeScale,
+						range,
+						currentOpenCount,
+						searchDto,
+						fcltType,
+						unitCd);
+			}
 
 			String targetName = calculation == null ? EMPTY : resources.getTargetName(unitCd, searchDto, fcltType);
 
 			result.add(getFcltCard(
 					fcltType,
 					rslt,
-					recommendRslt,
+					recommendRslt != null ? recommendRslt.getWtngPsgCnt() : 0,
 					unitMap.get(unitCd),
 					unitList,
 					targetName,
@@ -576,7 +581,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private DsbdFcltCardDto getFcltCard(
 			FcltType fcltType,
 			SmltRsltRawDto displayRslt,
-			SmltRsltRawDto recommendRslt,
+			int cgnWtngPsgCnt,
 			FcltUnitRawDto unit,
 			List<FcltUnitDto> unitList,
 			String targetName,
@@ -604,7 +609,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				? EMPTY
 				: range.getBgnDt().plusMinutes(calculation.getClearMinutes()).format(DateTimeFormatter.ofPattern("HHmm")));
 		result.setCgnClearRate(0);
-		result.setCgnStatus(gradeScale.statusOf(recommendRslt.getWtngPsgCnt(), "unitCd=" + unitCd));
+		result.setCgnStatus(gradeScale.statusOf(cgnWtngPsgCnt, "unitCd=" + unitCd));
 		result.setRecommend(getRecommend(fcltType, targetName, calculation == null ? 0 : calculation.getReqCnt()));
 		result.setUnitList(unitList);
 
@@ -739,20 +744,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			throw new IllegalStateException(
 					"실행 리소스 정보를 찾을 수 없습니다. smltId=" + smltStng.getSmltId() + ", column=" + columnName);
 		}
-	}
-
-	private SmltRsltRawDto requireRecommendationRslt(
-			SmltRsltRawDto rslt,
-			DsbdSearchDto searchDto,
-			FcltType fcltType,
-			String fcltGroupCd,
-			String unitCd
-	) {
-		if (rslt == null) {
-			throw new IllegalStateException("추천 시설 결과를 찾을 수 없습니다. " + baseContext(searchDto) + ", fcltType=" + fcltType.getValue() + ", fcltGroupCd=" + fcltGroupCd + ", unitCd=" + unitCd);
-		}
-
-		return rslt;
 	}
 
 	private PeakSlot getPeakSlot(
