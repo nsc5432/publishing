@@ -715,9 +715,11 @@ export interface CastConfigCategoryDto {
     fixAtrbGroupId: string; // 고정속성그룹아이디 (PK, 카테고리 코드)
     atrbGroupNm: string; // 속성그룹명
     baseYn: YnFlag; // Y = 기준정보 (편집 불가)
+    prePrcsYn: YnFlag; // Y = 전처리 결과 (파이프라인이 주단위로 갈아 끼운다, 편집 불가)
     cfmtnYn: YnFlag; // 확정여부
     groupPrcsSttsCd: string; // 그룹처리상태코드
     frstRegDt: string; // 최초등록일시 (yyyyMMddHHmmss)
+    lastMdfcnDt: string; // 최종수정일시 (yyyyMMddHHmmss)
 }
 
 export interface CastConfigCategoryListDto extends JsonResponse {
@@ -780,4 +782,46 @@ export interface CastConfigSaveItemDto {
     rowNo: number;
     column: string;
     value: string;
+}
+
+/** 전처리 결과(999) ↔ 기준정보(001) 비교 한 행 */
+export interface CastConfigPreProcessRowDto {
+    rowNo: number; // 격자와 같은 행 번호 — applyPreProcess 의 rowNoList 가 이 값을 쓴다
+    atrbCd: string;
+    dtlSeCd: string;
+    atrbCdNm: string;
+    dtlSeCdNm: string;
+    baseVl: string; // 기준정보(001) 현재 값
+    preVl: string; // 전처리 결과(999) 값
+    changedYn: YnFlag;
+    matchedYn: YnFlag; // N = 전처리 결과에 대응 행이 없다
+}
+
+export interface CastConfigPreProcessDiffDto extends JsonResponse {
+    sheetNm: string;
+    valueColumn: string;
+    valueLabel: string;
+    changedCnt: number;
+    rowList: CastConfigPreProcessRowDto[];
+    preProcessNm: string; // '전처리 결과 (260212-260218)'
+    preProcessDt: string; // 최종수정일시 (yyyyMMddHHmmss)
+}
+
+/** 전처리 결과 → 기준정보 반영 이력 */
+export interface CastConfigAplyHstryDto {
+    aplySn: number;
+    srcFixAtrbGroupId: string;
+    tgtFixAtrbGroupId: string;
+    tmnlId: string;
+    tblNm: string;
+    sheetNm: string;
+    aplyRowCnt: number;
+    cnclYn: YnFlag; // Y = 되돌림
+    frstRegDt: string;
+    frstRgtrId: string;
+}
+
+export interface CastConfigAplyHstryListDto extends JsonResponse {
+    totalCnt: number;
+    hstryList: CastConfigAplyHstryDto[];
 }

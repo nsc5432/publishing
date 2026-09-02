@@ -7,14 +7,22 @@
         SELECT
             A.FIX_ATRB_GROUP_ID AS FIX_ATRB_GROUP_ID,
             NVL(A.ATRB_GROUP_NM, ' ') AS ATRB_GROUP_NM,
-            CASE WHEN A.FIX_ATRB_GROUP_ID = '001' THEN 'Y' ELSE 'N' END AS BASE_YN,
+            CASE WHEN A.FIX_ATRB_GROUP_ID = #{baseFixAtrbGroupId} THEN 'Y' ELSE 'N' END AS BASE_YN,
+            CASE WHEN A.FIX_ATRB_GROUP_ID = #{prePrcsFixAtrbGroupId} THEN 'Y' ELSE 'N' END AS PRE_PRCS_YN,
             NVL(A.CFMTN_YN, 'N') AS CFMTN_YN,
             NVL(A.GROUP_PRCS_STTS_CD, ' ') AS GROUP_PRCS_STTS_CD,
-            NVL(TO_CHAR(A.FRST_REG_DT, 'YYYYMMDDHH24MISS'), ' ') AS FRST_REG_DT
+            NVL(TO_CHAR(A.FRST_REG_DT, 'YYYYMMDDHH24MISS'), ' ') AS FRST_REG_DT,
+            NVL(TO_CHAR(A.LAST_MDFCN_DT, 'YYYYMMDDHH24MISS'), ' ') AS LAST_MDFCN_DT
         FROM PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP A
         WHERE 1 = 1
         AND NVL(A.DEL_YN, 'N') = 'N'
-        ORDER BY CASE WHEN A.FIX_ATRB_GROUP_ID = '001' THEN 0 ELSE 1 END, A.FIX_ATRB_GROUP_ID
+        ORDER BY
+            CASE A.FIX_ATRB_GROUP_ID
+                WHEN #{baseFixAtrbGroupId} THEN 0
+                WHEN #{prePrcsFixAtrbGroupId} THEN 1
+                ELSE 2
+            END,
+            A.FIX_ATRB_GROUP_ID
     </select>
 
     <select id="retrieveCategoryCnt" resultType="int">
@@ -131,15 +139,15 @@
         AND ${dtlColumnNm} = #{dtlSeCd}
     </update>
 
-    <update id="copyFromBaseGroup">
-        /* CastConfigMapper.copyFromBaseGroup */
+    <update id="copyFromGroup">
+        /* CastConfigMapper.copyFromGroup */
         UPDATE PMOWN.${tableNm} A
         SET
         <foreach collection="valueColumnList" item="columnNm" separator=",">
             A.${columnNm} = (
                 SELECT B.${columnNm}
                 FROM PMOWN.${tableNm} B
-                WHERE B.FIX_ATRB_GROUP_ID = '001'
+                WHERE B.FIX_ATRB_GROUP_ID = #{srcFixAtrbGroupId}
                 AND B.${keyColumnNm} = A.${keyColumnNm}
                 AND B.${dtlColumnNm} = A.${dtlColumnNm}
             )
@@ -154,7 +162,7 @@
         AND EXISTS (
             SELECT 1
             FROM PMOWN.${tableNm} B
-            WHERE B.FIX_ATRB_GROUP_ID = '001'
+            WHERE B.FIX_ATRB_GROUP_ID = #{srcFixAtrbGroupId}
             AND B.${keyColumnNm} = A.${keyColumnNm}
             AND B.${dtlColumnNm} = A.${dtlColumnNm}
         )
@@ -187,4 +195,130 @@
         WHERE 1 = 1
         AND A.FIX_ATRB_GROUP_ID = '001'
     </insert>
+
+    <select id="retrieveAplyHstrySn" resultType="long">
+        /* CastConfigMapper.retrieveAplyHstrySn */
+        SELECT PMOWN.SQ1_TN_PM_SMLT_ATRB_APLY.NEXTVAL FROM DUAL
+    </select>
+
+    <insert id="insertAplyHstry" parameterType="aoms.pm.cast.dto.CastConfigAplyHstryDto">
+        /* CastConfigMapper.insertAplyHstry */
+        INSERT INTO PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY (
+            APLY_SN,
+            SRC_FIX_ATRB_GROUP_ID,
+            TGT_FIX_ATRB_GROUP_ID,
+            TMNL_ID,
+            TBL_NM,
+            SHEET_NM,
+            APLY_ROW_CNT,
+            CNCL_YN,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        ) VALUES (
+            #{aplySn},
+            #{srcFixAtrbGroupId},
+            #{tgtFixAtrbGroupId},
+            #{tmnlId},
+            #{tblNm},
+            #{sheetNm},
+            #{aplyRowCnt},
+            'N',
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <insert id="insertAplyHstryDtl">
+        /* CastConfigMapper.insertAplyHstryDtl */
+        <!-- 값 컬럼이 시트마다 달라 컬럼명을 행으로 눕힌다. 되돌릴 때 그대로 ${columnNm} 이 된다 -->
+        INSERT INTO PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY_DTL (
+            APLY_SN, ATRB_CD, DTL_SE_CD, COLUMN_NM, BEF_VL, AFT_VL
+        )
+        <foreach collection="valueColumnList" item="columnNm" separator=" UNION ALL ">
+            SELECT
+                #{aplySn},
+                #{keyCd},
+                #{dtlSeCd},
+                #{columnNm},
+                TO_CHAR(T.${columnNm}),
+                TO_CHAR(S.${columnNm})
+            FROM PMOWN.${tableNm} T, PMOWN.${tableNm} S
+            WHERE T.FIX_ATRB_GROUP_ID = #{tgtFixAtrbGroupId}
+            AND T.${keyColumnNm} = #{keyCd}
+            AND T.${dtlColumnNm} = #{dtlSeCd}
+            AND S.FIX_ATRB_GROUP_ID = #{srcFixAtrbGroupId}
+            AND S.${keyColumnNm} = #{keyCd}
+            AND S.${dtlColumnNm} = #{dtlSeCd}
+        </foreach>
+    </insert>
+
+    <select id="retrieveAplyHstryList" resultType="aoms.pm.cast.dto.CastConfigAplyHstryDto">
+        /* CastConfigMapper.retrieveAplyHstryList */
+        SELECT
+            A.APLY_SN AS APLY_SN,
+            A.SRC_FIX_ATRB_GROUP_ID AS SRC_FIX_ATRB_GROUP_ID,
+            A.TGT_FIX_ATRB_GROUP_ID AS TGT_FIX_ATRB_GROUP_ID,
+            NVL(A.TMNL_ID, ' ') AS TMNL_ID,
+            NVL(A.TBL_NM, ' ') AS TBL_NM,
+            NVL(A.SHEET_NM, ' ') AS SHEET_NM,
+            NVL(A.APLY_ROW_CNT, 0) AS APLY_ROW_CNT,
+            NVL(A.CNCL_YN, 'N') AS CNCL_YN,
+            NVL(TO_CHAR(A.FRST_REG_DT, 'YYYYMMDDHH24MISS'), ' ') AS FRST_REG_DT,
+            NVL(A.FRST_RGTR_ID, ' ') AS FRST_RGTR_ID
+        FROM PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY A
+        WHERE 1 = 1
+        AND A.TGT_FIX_ATRB_GROUP_ID = #{tgtFixAtrbGroupId}
+        <if test="tmnlId != null and tmnlId != ''">
+            AND A.TMNL_ID = #{tmnlId}
+        </if>
+        <if test="sheetNm != null and sheetNm != ''">
+            AND A.SHEET_NM = #{sheetNm}
+        </if>
+        ORDER BY A.APLY_SN DESC
+    </select>
+
+    <select id="retrieveAplyHstryDtlList" resultType="aoms.pm.cast.dto.CastConfigAplyHstryDtlDto">
+        /* CastConfigMapper.retrieveAplyHstryDtlList */
+        SELECT
+            A.APLY_SN AS APLY_SN,
+            A.ATRB_CD AS ATRB_CD,
+            A.DTL_SE_CD AS DTL_SE_CD,
+            A.COLUMN_NM AS COLUMN_NM,
+            A.BEF_VL AS BEF_VL,
+            A.AFT_VL AS AFT_VL
+        FROM PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY_DTL A
+        WHERE 1 = 1
+        AND A.APLY_SN = #{aplySn}
+        ORDER BY A.ATRB_CD, A.DTL_SE_CD, A.COLUMN_NM
+    </select>
+
+    <select id="retrieveAplyHstry" resultType="aoms.pm.cast.dto.CastConfigAplyHstryDto">
+        /* CastConfigMapper.retrieveAplyHstry */
+        SELECT
+            A.APLY_SN AS APLY_SN,
+            A.SRC_FIX_ATRB_GROUP_ID AS SRC_FIX_ATRB_GROUP_ID,
+            A.TGT_FIX_ATRB_GROUP_ID AS TGT_FIX_ATRB_GROUP_ID,
+            NVL(A.TMNL_ID, ' ') AS TMNL_ID,
+            NVL(A.TBL_NM, ' ') AS TBL_NM,
+            NVL(A.SHEET_NM, ' ') AS SHEET_NM,
+            NVL(A.APLY_ROW_CNT, 0) AS APLY_ROW_CNT,
+            NVL(A.CNCL_YN, 'N') AS CNCL_YN,
+            NVL(TO_CHAR(A.FRST_REG_DT, 'YYYYMMDDHH24MISS'), ' ') AS FRST_REG_DT,
+            NVL(A.FRST_RGTR_ID, ' ') AS FRST_RGTR_ID
+        FROM PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY A
+        WHERE A.APLY_SN = #{aplySn}
+    </select>
+
+    <update id="updateAplyHstryCancel">
+        /* CastConfigMapper.updateAplyHstryCancel */
+        <!-- 이전 상태를 조건에 걸어 두 경로가 겹쳐도 한 번만 취소된다 -->
+        UPDATE PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY
+        SET CNCL_YN = 'Y',
+            CNCL_DT = CURRENT_TIMESTAMP,
+            CNCL_RGTR_ID = #{loginUserId}
+        WHERE APLY_SN = #{aplySn}
+        AND CNCL_YN = 'N'
+    </update>
 </mapper>

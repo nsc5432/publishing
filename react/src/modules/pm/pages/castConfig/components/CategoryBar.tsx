@@ -22,13 +22,17 @@ export function CategoryBar({ categories, current, onSelect, onRegister, onManag
                 </select>
             </label>
 
-            {current?.isBase ? (
+            {current?.isPreProcess ? (
+                <span className="cast-config-category-badge is-pre-prcs">전처리 결과</span>
+            ) : current?.isBase ? (
                 <span className="cast-config-category-badge is-base">읽기전용</span>
             ) : (
                 current && <span className="cast-config-category-badge">{current.confirmed ? '확정' : '미확정'}</span>
             )}
 
-            <span className="cast-config-category-meta">{current ? `등록 ${current.registeredAt}` : ''}</span>
+            <span className="cast-config-category-meta">
+                {current ? (current.isPreProcess ? `갱신 ${current.modifiedAt}` : `등록 ${current.registeredAt}`) : ''}
+            </span>
 
             <button type="button" className="cast-config-ghost-button" onClick={onRegister}>
                 카테고리 등록

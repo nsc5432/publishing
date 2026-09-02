@@ -29,12 +29,13 @@
     </select>
 
     <select id="retrieveFltSmry" resultType="aoms.pm.cast.dto.FltSmryRawDto">
-        /* CastDsbdMapper.retrieveFltSmry */
         SELECT
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN 1 ELSE 0 END), 0) AS DEP_FLT_CNT,
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN 1 ELSE 0 END), 0) AS ARR_FLT_CNT,
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS DEP_PSG_CNT,
-            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS ARR_PSG_CNT
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT ELSE 0 END), 0) AS ARR_PSG_CNT,
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN NVL(A.PFR_BRDG_TNOPE, 0) + NVL(A.TRNS_BRDG_TNOPE, 0) ELSE 0 END), 0) AS ACTL_BRDG_PSG_CNT,
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN NVL(A.RSVT_BDPSG_CNT, 0) ELSE 0 END), 0) AS RSVT_BRDG_PSG_CNT
         FROM GOOWN.TN_GO_GD_DATA A
         WHERE 1 = 1
         AND A.GD_SE_YMD = #{ymd}
@@ -85,8 +86,6 @@
         <if test="tmnlIdList != null and tmnlIdList.size() > 0">
         AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
         </if>
-        <!-- 이 테이블은 구코드(T1LG3 등)로 넣는 다른 프로세스와 같이 쓴다.
-             같은 출국장이 신/구 코드로 중복 집계되지 않도록 신코드(D1~D6) 행만 센다 -->
         AND REGEXP_LIKE(A.PSG_FCLT_CD, '^D[1-6]$')
         GROUP BY A.TOT_HOUR
         ORDER BY HOUR
@@ -94,8 +93,6 @@
 
     <select id="retrieveRsltByHourList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
         /* CastDsbdMapper.retrieveRsltByHourList */
-        <!-- 결과 상세는 10분 간격이다. 화면 축이 1시간이라 시 단위로 접는다.
-             대기인원은 순간값이라 합이 아니라 MAX, 시간 지표는 평균이다 -->
         SELECT
             TO_CHAR(A.SMLT_ACTL_DT, 'HH24') || '00' AS TIME,
             NVL(MAX(A.WTNG_PSG_CNT), 0) AS WTNG_PSG_CNT,
@@ -116,8 +113,6 @@
 
     <select id="retrievePsgWtngByHourList" resultType="aoms.pm.cast.dto.PsgWtngRawDto">
         /* CastDsbdMapper.retrievePsgWtngByHourList */
-        <!-- 여객대기정보(Xovis 실측)도 10분 간격이다. 예측선과 실적선을 같은 축에 겹쳐 그리므로
-             접는 방식을 retrieveRsltByHourList 와 맞춘다 (대기인원은 합이 아니라 MAX) -->
         SELECT
             SUBSTR(A.PSG_FLOW_DATA_CRT_DT, 9, 2) || '00' AS TIME,
             NVL(MAX(A.WTNG_LINE_LEN), 0) AS WTNG_PSG_CNT

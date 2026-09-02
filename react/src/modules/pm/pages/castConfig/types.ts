@@ -29,9 +29,39 @@ export interface Category {
     code: string;
     name: string;
     isBase: boolean;
+    isPreProcess: boolean;
     confirmed: boolean;
     status: string;
     registeredAt: string;
+    modifiedAt: string;
+}
+
+export interface PreProcessRow {
+    rowNo: number;
+    attribute: string;
+    detail: string;
+    baseValue: string;
+    preValue: string;
+    changed: boolean;
+    matched: boolean;
+}
+
+export interface PreProcessDiff {
+    sheetName: string;
+    valueLabel: string;
+    changedCount: number;
+    rows: PreProcessRow[];
+    preProcessName: string;
+    preProcessAt: string;
+}
+
+export interface ApplyHistory {
+    sn: number;
+    sheetName: string;
+    rowCount: number;
+    canceled: boolean;
+    appliedAt: string;
+    appliedBy: string;
 }
 
 export interface SelectOption {

@@ -811,6 +811,11 @@ html[data-page='castConfig'] .cast-config-category-badge.is-base {
     background: #fdefcd;
 }
 
+html[data-page='castConfig'] .cast-config-category-badge.is-pre-prcs {
+    color: #2a4d8f;
+    background: #dbe6fb;
+}
+
 html[data-page='castConfig'] .cast-config-category-meta {
     margin-right: auto;
     color: #647c8c;
@@ -1179,11 +1184,42 @@ html[data-page='castConfig'] .cast-config-category-table__row:last-child {
     border-bottom: 0;
 }
 
+html[data-page='castConfig'] .cast-config-category-table__row.is-changed {
+    background: #f3f8ff;
+}
+
 html[data-page='castConfig'] .cast-config-category-table__empty {
     padding: 26px 12px;
     background: #fff;
     color: #607789;
     text-align: center;
+}
+
+/* ---- 전처리 반영 ---- */
+
+html[data-page='castConfig'] .cast-config-pre-prcs-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 8px;
+    color: #45607a;
+    font-size: 11px;
+    font-weight: 750;
+}
+
+html[data-page='castConfig'] .cast-config-pre-prcs-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: #52697a;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+html[data-page='castConfig'] .cast-config-pre-prcs-delta {
+    color: #2a4d8f;
+    font-weight: 850;
 }
 
 /* ---- 페이지 번호 ---- */

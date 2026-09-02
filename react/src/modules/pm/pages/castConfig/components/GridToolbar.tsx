@@ -10,14 +10,19 @@ interface GridToolbarProps {
     sheetChangeCount: number;
     totalChangeCount: number;
     readOnly: boolean;
+    isBase: boolean;
+    isPreProcess: boolean;
     onQueryChange: (query: string) => void;
     onDownload: () => void;
     onUpload: (file: File) => void;
     onApplyDefault: () => void;
+    onApplyPreProcess: () => void;
+    onOpenHistory: () => void;
     onReset: () => void;
 }
 
-const BASE_HINT = '> 기준정보는 기본값이므로 변경할 수 없습니다.';
+const BASE_HINT = '> 기준정보는 기본값이므로 변경할 수 없습니다. 전처리 결과만 반영할 수 있습니다.';
+const PRE_PRCS_HINT = '> 전처리 결과는 매주 파이프라인이 갱신하므로 변경할 수 없습니다.';
 
 export function GridToolbar({
     sheetName,
@@ -27,10 +32,14 @@ export function GridToolbar({
     sheetChangeCount,
     totalChangeCount,
     readOnly,
+    isBase,
+    isPreProcess,
     onQueryChange,
     onDownload,
     onUpload,
     onApplyDefault,
+    onApplyPreProcess,
+    onOpenHistory,
     onReset,
 }: GridToolbarProps) {
     const fileRef = useRef<HTMLInputElement>(null);
@@ -39,7 +48,7 @@ export function GridToolbar({
         <div className="cast-config-grid-head">
             <div className="cast-config-grid-title">
                 <h3>• {sheetName || '시트 없음'} 상세</h3>
-                {readOnly && <span className="cast-config-grid-hint">{BASE_HINT}</span>}
+                {readOnly && <span className="cast-config-grid-hint">{isPreProcess ? PRE_PRCS_HINT : BASE_HINT}</span>}
             </div>
 
             <div className="cast-config-grid-toolbar">
@@ -73,6 +82,12 @@ export function GridToolbar({
                     </button>
                     <button type="button" className="cast-config-ghost-button" disabled={readOnly} onClick={onApplyDefault}>
                         디폴트속성적용
+                    </button>
+                    <button type="button" className="cast-config-ghost-button" disabled={!isBase} onClick={onApplyPreProcess}>
+                        전처리 반영
+                    </button>
+                    <button type="button" className="cast-config-ghost-button" disabled={!isBase} onClick={onOpenHistory}>
+                        반영 이력
                     </button>
                     <button type="button" className="cast-config-ghost-button" disabled={readOnly} onClick={onReset}>
                         초기화

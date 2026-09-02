@@ -5,13 +5,18 @@ import java.util.List;
 import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
+import aoms.pm.cast.dto.CastConfigAplyHstryDtlDto;
+import aoms.pm.cast.dto.CastConfigAplyHstryDto;
 import aoms.pm.cast.dto.CastConfigAtrbRawDto;
 import aoms.pm.cast.dto.CastConfigCategoryDto;
 import aoms.pm.cast.dto.CastConfigCategorySaveDto;
 
 @Mapper
 public interface CastConfigMapper {
-	List<CastConfigCategoryDto> retrieveCategoryList();
+	List<CastConfigCategoryDto> retrieveCategoryList(
+			@Param("baseFixAtrbGroupId") String baseFixAtrbGroupId,
+			@Param("prePrcsFixAtrbGroupId") String prePrcsFixAtrbGroupId
+	);
 
 	int retrieveCategoryCnt(@Param("fixAtrbGroupId") String fixAtrbGroupId);
 
@@ -43,9 +48,11 @@ public interface CastConfigMapper {
 			@Param("loginIpAddr") String loginIpAddr
 	);
 
-	int copyFromBaseGroup(
+	/** srcFixAtrbGroupId 의 같은 코드 행 값을 fixAtrbGroupId 로 덮는다. */
+	int copyFromGroup(
 			@Param("tableNm") String tableNm,
 			@Param("valueColumnList") List<String> valueColumnList,
+			@Param("srcFixAtrbGroupId") String srcFixAtrbGroupId,
 			@Param("fixAtrbGroupId") String fixAtrbGroupId,
 			@Param("keyCd") String keyCd,
 			@Param("dtlSeCd") String dtlSeCd,
@@ -63,5 +70,37 @@ public interface CastConfigMapper {
 			@Param("dtlColumnNm") String dtlColumnNm,
 			@Param("loginUserId") String loginUserId,
 			@Param("loginIpAddr") String loginIpAddr
+	);
+
+	long retrieveAplyHstrySn();
+
+	int insertAplyHstry(CastConfigAplyHstryDto hstryDto);
+
+	/** 적용 직전 대상 값과 적용될 원본 값을 값 컬럼마다 한 행씩 남긴다. */
+	int insertAplyHstryDtl(
+			@Param("aplySn") long aplySn,
+			@Param("tableNm") String tableNm,
+			@Param("valueColumnList") List<String> valueColumnList,
+			@Param("srcFixAtrbGroupId") String srcFixAtrbGroupId,
+			@Param("tgtFixAtrbGroupId") String tgtFixAtrbGroupId,
+			@Param("keyCd") String keyCd,
+			@Param("dtlSeCd") String dtlSeCd,
+			@Param("keyColumnNm") String keyColumnNm,
+			@Param("dtlColumnNm") String dtlColumnNm
+	);
+
+	List<CastConfigAplyHstryDto> retrieveAplyHstryList(
+			@Param("tgtFixAtrbGroupId") String tgtFixAtrbGroupId,
+			@Param("tmnlId") String tmnlId,
+			@Param("sheetNm") String sheetNm
+	);
+
+	CastConfigAplyHstryDto retrieveAplyHstry(@Param("aplySn") long aplySn);
+
+	List<CastConfigAplyHstryDtlDto> retrieveAplyHstryDtlList(@Param("aplySn") long aplySn);
+
+	int updateAplyHstryCancel(
+			@Param("aplySn") long aplySn,
+			@Param("loginUserId") String loginUserId
 	);
 }

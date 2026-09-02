@@ -3,10 +3,12 @@ import { API_ENDPOINTS } from '../endpoints';
 import { USE_MOCK, mockResponse } from '../mock';
 import { castConfigMock } from '../mock/castConfig.mock';
 import type {
+    CastConfigAplyHstryListDto,
     CastConfigCategoryListDto,
     CastConfigCategorySaveDto,
     CastConfigDatasetDto,
     CastConfigGroupListDto,
+    CastConfigPreProcessDiffDto,
     CastConfigSaveItemDto,
     JsonResponse,
     TmnlId,
@@ -58,6 +60,34 @@ export const castConfigService = {
             { tmnlId, groupId, fixAtrbGroupId, sheetNm, rowNoList },
             LOADING,
         );
+        return response.data;
+    },
+
+    getPreProcessDiff: async (tmnlId: TmnlId, groupId: string, sheetNm: string): Promise<CastConfigPreProcessDiffDto> => {
+        if (USE_MOCK) return mockResponse(castConfigMock.getPreProcessDiff(tmnlId, groupId, sheetNm), { loading: true });
+
+        const response = await apiClient.post<CastConfigPreProcessDiffDto>(API_ENDPOINTS.CAST_CONFIG_PRE_PRCS_DIFF, { tmnlId, groupId, sheetNm }, LOADING);
+        return response.data;
+    },
+
+    applyPreProcess: async (tmnlId: TmnlId, groupId: string, sheetNm: string, rowNoList: number[]): Promise<JsonResponse> => {
+        if (USE_MOCK) return mockResponse(castConfigMock.applyPreProcess(tmnlId, groupId, sheetNm, rowNoList), { loading: true });
+
+        const response = await apiClient.post<JsonResponse>(API_ENDPOINTS.CAST_CONFIG_PRE_PRCS_APPLY, { tmnlId, groupId, sheetNm, rowNoList }, LOADING);
+        return response.data;
+    },
+
+    getPreProcessHistory: async (tmnlId: TmnlId, sheetNm: string): Promise<CastConfigAplyHstryListDto> => {
+        if (USE_MOCK) return mockResponse(castConfigMock.getPreProcessHistory(tmnlId, sheetNm), { loading: true });
+
+        const response = await apiClient.post<CastConfigAplyHstryListDto>(API_ENDPOINTS.CAST_CONFIG_PRE_PRCS_HSTRY, { tmnlId, sheetNm }, LOADING);
+        return response.data;
+    },
+
+    revertPreProcess: async (aplySn: number): Promise<JsonResponse> => {
+        if (USE_MOCK) return mockResponse(castConfigMock.revertPreProcess(aplySn), { loading: true });
+
+        const response = await apiClient.post<JsonResponse>(API_ENDPOINTS.CAST_CONFIG_PRE_PRCS_REVERT, { aplySn }, LOADING);
         return response.data;
     },
 

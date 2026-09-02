@@ -8,11 +8,15 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import aoms.pm.cast.dto.CastConfigAplyHstryListDto;
 import aoms.pm.cast.dto.CastConfigCategoryListDto;
 import aoms.pm.cast.dto.CastConfigCategorySaveDto;
 import aoms.pm.cast.dto.CastConfigDatasetDto;
 import aoms.pm.cast.dto.CastConfigDefaultApplyDto;
 import aoms.pm.cast.dto.CastConfigGroupListDto;
+import aoms.pm.cast.dto.CastConfigPreProcessApplyDto;
+import aoms.pm.cast.dto.CastConfigPreProcessDiffDto;
+import aoms.pm.cast.dto.CastConfigPreProcessRevertDto;
 import aoms.pm.cast.dto.CastConfigSaveDto;
 import aoms.pm.cast.dto.CastConfigSearchDto;
 import aoms.pm.cast.dto.JsonResponse;
@@ -55,6 +59,26 @@ public class CastConfigController {
 	@PostMapping(value = "/applyDefaultAttribute")
 	public ResponseEntity<JsonResponse> applyDefaultAttribute(@RequestBody CastConfigDefaultApplyDto applyDto) {
 		return ResponseUtils.res(castConfigService.applyDefaultAttribute(applyDto));
+	}
+
+	@PostMapping(value = "/retrievePreProcessDiff")
+	public ResponseEntity<CastConfigPreProcessDiffDto> retrievePreProcessDiff(@RequestBody CastConfigSearchDto searchDto) {
+		return ResponseUtils.res(castConfigService.retrievePreProcessDiff(searchDto));
+	}
+
+	@PostMapping(value = "/applyPreProcess")
+	public ResponseEntity<JsonResponse> applyPreProcess(@RequestBody CastConfigPreProcessApplyDto applyDto) {
+		return ResponseUtils.res(castConfigService.applyPreProcess(applyDto));
+	}
+
+	@PostMapping(value = "/retrievePreProcessHistory")
+	public ResponseEntity<CastConfigAplyHstryListDto> retrievePreProcessHistory(@RequestBody CastConfigSearchDto searchDto) {
+		return ResponseUtils.res(castConfigService.retrievePreProcessHistory(searchDto));
+	}
+
+	@PostMapping(value = "/revertPreProcess")
+	public ResponseEntity<JsonResponse> revertPreProcess(@RequestBody CastConfigPreProcessRevertDto revertDto) {
+		return ResponseUtils.res(castConfigService.revertPreProcess(revertDto));
 	}
 
 	@PostMapping(value = "/uploadExcel")

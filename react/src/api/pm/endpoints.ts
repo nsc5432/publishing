@@ -51,4 +51,8 @@ export const API_ENDPOINTS = {
     CAST_CONFIG_CATEGORY_SAVE: prefix + '/cast-config/saveCategory',
     CAST_CONFIG_DEFAULT_APPLY: prefix + '/cast-config/applyDefaultAttribute',
     CAST_CONFIG_EXCEL_UPLOAD: prefix + '/cast-config/uploadExcel',
+    CAST_CONFIG_PRE_PRCS_DIFF: prefix + '/cast-config/retrievePreProcessDiff',
+    CAST_CONFIG_PRE_PRCS_APPLY: prefix + '/cast-config/applyPreProcess',
+    CAST_CONFIG_PRE_PRCS_HSTRY: prefix + '/cast-config/retrievePreProcessHistory',
+    CAST_CONFIG_PRE_PRCS_REVERT: prefix + '/cast-config/revertPreProcess',
 };

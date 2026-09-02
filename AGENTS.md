@@ -230,11 +230,33 @@ npm run build:prd  # 운영 빌드
 | 〃 | `CAST_CONFIG_CATEGORY_SAVE` | `/cast-config/saveCategory` |
 | 〃 | `CAST_CONFIG_DEFAULT_APPLY` | `/cast-config/applyDefaultAttribute` |
 | 〃 | `CAST_CONFIG_EXCEL_UPLOAD` | `/cast-config/uploadExcel` (multipart) |
+| 〃 | `CAST_CONFIG_PRE_PRCS_DIFF` | `/cast-config/retrievePreProcessDiff` |
+| 〃 | `CAST_CONFIG_PRE_PRCS_APPLY` | `/cast-config/applyPreProcess` |
+| 〃 | `CAST_CONFIG_PRE_PRCS_HSTRY` | `/cast-config/retrievePreProcessHistory` |
+| 〃 | `CAST_CONFIG_PRE_PRCS_REVERT` | `/cast-config/revertPreProcess` |
 
-**Cast 설정은 아직 백엔드가 없다** (`java/` 에 `cast-config` 컨트롤러 없음). 목업으로만 돈다.
+Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `CastConfigMapper.xml` 에 있다.
 데이터 모델은 `java/ddl/cast-ddl.sql` 의 `TN_PM_SMLT_FIX_ATRB_GROUP`(속성그룹=화면의 '카테고리')과
 `TN_PM_SMLT_{PSG,SHOW_UP,SRVC}_ATRB` 를 따른다 — 이 세 테이블은 `FIX_ATRB_GROUP_ID` 가 PK 선두라
 **카테고리가 데이터의 1차 축**이고, '기준정보'와 '테스트정보'는 서로 다른 그룹 ID 일 뿐이다.
+
+**속성그룹 ID 중 두 개는 예약값이다.**
+
+| ID | 뜻 | 누가 쓰나 |
+|---|---|---|
+| `001` | 기준정보. CAST 가 `PS001` 로 읽어 가는 **일일 시뮬레이션의 실제 입력** | 화면에서 셀 직접 편집 불가. 전처리 반영으로만 바뀐다 |
+| `999` | 전처리 결과. `data-processing/run_pipeline.py` 가 주단위로 전량 교체 | 읽기전용. 화면은 비교·반영에만 쓴다 |
+
+- `TN_PM_SMLT_STNG.PRPT_SET_RSRC_ID` 는 CAST 가 결과에 실어 보내는 값을 서버가 **기록만** 하는 칸이다
+  (`CastRestMapper.xml#insertSimSet`). 앱에서 일일 시뮬레이션이 쓸 PropertySet 을 바꿔 지정할 수 없고,
+  **`001` 의 내용을 바꾸는 길뿐이다.**
+- 반영 대상 행은 카탈로그 `TN_PM_SMLT_PSG_FIX_PARA_CD.PRE_PRCS_YN = 'Y'` 로 가른다.
+  파이프라인에 태스크를 더하면 `java/ddl/2026-09-02-atrb-pre-process.sql` (2) 의 코드 목록도 함께 늘린다.
+- 반영은 `TN_PM_SMLT_ATRB_APLY_HSTRY(_DTL)` 에 **적용 직전 값을 먼저 스냅샷**한 뒤 복사한다.
+  되돌리기는 그 스냅샷을 `updateAtrbValue` 로 되쓴다. 스냅샷을 복사 뒤에 찍으면 되돌릴 값이 이미 덮인다.
+- 디폴트속성적용(001→카테고리)과 전처리 반영(999→001)은 **같은 SQL `copyFromGroup`** 을 방향만 바꿔 쓴다.
+- **터미널은 그룹이 아니라 속성코드가 가른다.** 전처리 결과가 `999` 하나에 모이므로 T1/T2 가 같은
+  `PSG_ATRB_CD` 를 쓰면 뒤엣것이 앞엣것을 지운다. `step5_save.assert_unique_keys` 가 이걸 막는다.
 
 **서버는 처리 실패도 HTTP 200 으로 내려보내고 본문의 `error` 플래그로 알린다.**
 그래서 모든 조회는 `unwrap(dto, fallback)` 을 거쳐 통신 실패와 같은 catch 경로로 흘려보낸다.

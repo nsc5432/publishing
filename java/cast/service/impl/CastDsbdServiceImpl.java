@@ -70,28 +70,27 @@ import lombok.RequiredArgsConstructor;
 public class CastDsbdServiceImpl implements CastDsbdService {
 	private static final String YMD_FORMAT = "yyyyMMdd";
 	private static final String DT_FORMAT = "yyyyMMddHHmmss";
-	private static final String HOUR_SUFFIX = "00"; // 시간대별 결과는 정시 행이다
+	private static final String HOUR_SUFFIX = "00";
 	private static final String EMPTY = "";
 	private static final String USE_YN_Y = "Y";
 	private static final String USE_YN_N = "N";
 	private static final String AM = "AM";
 	private static final String PM = "PM";
 
-	private static final String DAY_END_HHMM = "2400"; // 자정을 넘는 구간을 잘라 붙이는 상한
+	private static final String DAY_END_HHMM = "2400";
 
-	private static final int SEC_PER_MIN = 60; // _HR 컬럼(초) → 화면 표시 단위(분)
+	private static final int SEC_PER_MIN = 60;
 	private static final int MIN_PER_HOUR = 60;
 	private static final int MIN_PER_DAY = 24 * MIN_PER_HOUR;
 	private static final int HHMM_LENGTH = 4;
 	private static final int NOON_HOUR = 12;
 	private static final int DAYS_A_WEEK = 7;
-	private static final int DEFAULT_ITVL_MIN = 60; // 요약 블록의 구간 집계 기본 길이(분)
+	private static final int DEFAULT_ITVL_MIN = 60;
 	private static final int FCLT_ROLLING_MIN = 60;
 	private static final int CAST_SLOT_MIN = 10;
 	private static final int SERVICE_RATE_LOOKBACK_MIN = 60;
-	// 지금 배정해도 효과는 한 슬롯 뒤부터 나타난다. 그 앞은 추천 근거로 보지 않는다
 	private static final int RECOMMEND_LEAD_MIN = 10;
-	private static final int CARD_CNT_LIMIT = 12; // 캐러셀이 감당하는 카드 수 상한
+	private static final int CARD_CNT_LIMIT = 12;
 	private static final MathContext MATH_CONTEXT = MathContext.DECIMAL128;
 	private static final String NORMAL_GRADE_CD = "02";
 	private static final Map<String, String> FCLT_GROUP_CD_MAP = Map.of(
@@ -175,8 +174,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setPsgDiffCnt(baseFltSmry.getDepPsgCnt() - lastWeekFltSmry.getDepPsgCnt());
 		result.setBefFltDiffCnt(baseFltSmry.getDepFltCnt() - befFltSmry.getDepFltCnt());
 		result.setBefPsgDiffCnt(baseFltSmry.getDepPsgCnt() - befFltSmry.getDepPsgCnt());
-		// 탑승률의 원천 컬럼이 확인되지 않았다 (D7)
-		result.setBrdgRate(0);
+		result.setBrdgRate(getBrdgRate(baseFltSmry));
 		PeakDto peak = getPeak(searchDto.getSmltId(), tmnlId);
 		result.setCgnStatus(CongestionStatus.ofWtngPsgCnt(peak.getWtngPsgCnt()));
 		result.setPeak(peak);
@@ -392,17 +390,16 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		String endHhmm = getEndHhmm(bgnHhmm, itvlMin);
 		FltSmryRawDto baseItvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList, bgnHhmm, endHhmm);
-		FltSmryRawDto befItvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, bgnHhmm, endHhmm);
+		FltSmryRawDto beforeItvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, bgnHhmm, endHhmm);
 
 		result.setItvlFltCnt(baseItvl.getDepFltCnt());
 		result.setItvlPsgCnt(baseItvl.getDepPsgCnt());
-		result.setItvlBefFltDiffCnt(baseItvl.getDepFltCnt() - befItvl.getDepFltCnt());
-		result.setItvlBefPsgDiffCnt(baseItvl.getDepPsgCnt() - befItvl.getDepPsgCnt());
+		result.setItvlBefFltDiffCnt(baseItvl.getDepFltCnt() - beforeItvl.getDepFltCnt());
+		result.setItvlBefPsgDiffCnt(baseItvl.getDepPsgCnt() - beforeItvl.getDepPsgCnt());
 	}
 
 	private PeakDto getPeak(String smltId, TerminalKind tmnlId) {
-		List<SmltRsltRawDto> rsltList = castDsbdMapper.retrieveRsltByHourList(
-				smltId, tmnlId.getFcltTmnlId(), DsbdCategory.PSG.getUpPsgFcltCdList());
+		List<SmltRsltRawDto> rsltList = castDsbdMapper.retrieveRsltByHourList(smltId, tmnlId.getFcltTmnlId(), DsbdCategory.PSG.getUpPsgFcltCdList());
 
 		PeakDto result = new PeakDto();
 		result.setAmpm(AM);
@@ -630,6 +627,17 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private int toPaxPerMin(int processedPsgCnt, int actualMinutes) {
 		return BigDecimal.valueOf(processedPsgCnt)
 				.divide(BigDecimal.valueOf(actualMinutes), 0, RoundingMode.HALF_UP)
+				.intValueExact();
+	}
+
+	private int getBrdgRate(FltSmryRawDto fltSmry) {
+		if (fltSmry.getRsvtBrdgPsgCnt() == 0) {
+			return 0;
+		}
+
+		return BigDecimal.valueOf(fltSmry.getActlBrdgPsgCnt())
+				.multiply(BigDecimal.valueOf(100))
+				.divide(BigDecimal.valueOf(fltSmry.getRsvtBrdgPsgCnt()), 0, RoundingMode.HALF_UP)
 				.intValueExact();
 	}
 
@@ -932,14 +940,21 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return lastCalc.plusHours(1).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern(DT_FORMAT));
 	}
 
-	// 예측시분(PREDC_HM)에 날짜가 없어 자정을 넘는 구간은 그날 끝까지로 자른다
 	private String getEndHhmm(String bgnHhmm, int itvlMin) {
-		int endMin = Integer.parseInt(bgnHhmm.substring(0, 2)) * MIN_PER_HOUR
-				+ Integer.parseInt(bgnHhmm.substring(2, HHMM_LENGTH)) + itvlMin;
+		int endMin = toMinutes(bgnHhmm) + itvlMin;
 
 		return endMin >= MIN_PER_DAY
 				? DAY_END_HHMM
-				: String.format("%02d%02d", endMin / MIN_PER_HOUR, endMin % MIN_PER_HOUR);
+				: toHhmm(endMin);
+	}
+
+	private int toMinutes(String hhmm) {
+		return Integer.parseInt(hhmm.substring(0, 2)) * MIN_PER_HOUR
+				+ Integer.parseInt(hhmm.substring(2, HHMM_LENGTH));
+	}
+
+	private String toHhmm(int minutes) {
+		return String.format("%02d%02d", minutes / MIN_PER_HOUR, minutes % MIN_PER_HOUR);
 	}
 
 	private LocalDate parseYmd(String ymd) {

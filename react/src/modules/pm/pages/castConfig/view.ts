@@ -1,15 +1,29 @@
 import { formatCount, formatDateTime } from '@/lib/format';
 import type {
+    CastConfigAplyHstryListDto,
     CastConfigCategoryDto,
     CastConfigCategoryListDto,
     CastConfigColumnType,
     CastConfigDatasetDto,
     CastConfigGroupDto,
     CastConfigGroupListDto,
+    CastConfigPreProcessDiffDto,
     CastConfigValidationKind,
 } from '@/types/api.types';
 import { toCellKey } from './cell';
-import type { Category, ColumnType, Dataset, DraftChanges, FacilityGroup, FacilityGroupId, GridRow, GroupDefinition, ValidationKind } from './types';
+import type {
+    ApplyHistory,
+    Category,
+    ColumnType,
+    Dataset,
+    DraftChanges,
+    FacilityGroup,
+    FacilityGroupId,
+    GridRow,
+    GroupDefinition,
+    PreProcessDiff,
+    ValidationKind,
+} from './types';
 
 const GROUP_IDS: FacilityGroupId[] = ['checkin', 'departure', 'security', 'border', 'gate'];
 
@@ -96,14 +110,46 @@ function toCategory(dto: CastConfigCategoryDto): Category {
         code: dto.fixAtrbGroupId,
         name: dto.atrbGroupNm,
         isBase: dto.baseYn === 'Y',
+        isPreProcess: dto.prePrcsYn === 'Y',
         confirmed: dto.cfmtnYn === 'Y',
         status: PRCS_STTS_LABEL[dto.groupPrcsSttsCd] ?? dto.groupPrcsSttsCd,
         registeredAt: formatDateTime(dto.frstRegDt),
+        modifiedAt: formatDateTime(dto.lastMdfcnDt),
     };
 }
 
 export function toCastConfigCategories(dto: CastConfigCategoryListDto): Category[] {
     return dto.categoryList.map(toCategory);
+}
+
+export function toPreProcessDiff(dto: CastConfigPreProcessDiffDto): PreProcessDiff {
+    return {
+        sheetName: dto.sheetNm,
+        valueLabel: dto.valueLabel,
+        changedCount: dto.changedCnt,
+        rows: dto.rowList.map((row) => ({
+            rowNo: row.rowNo,
+            attribute: row.atrbCdNm || row.atrbCd,
+            detail: row.dtlSeCdNm || row.dtlSeCd,
+            baseValue: row.baseVl,
+            preValue: row.preVl,
+            changed: row.changedYn === 'Y',
+            matched: row.matchedYn === 'Y',
+        })),
+        preProcessName: dto.preProcessNm,
+        preProcessAt: formatDateTime(dto.preProcessDt),
+    };
+}
+
+export function toApplyHistories(dto: CastConfigAplyHstryListDto): ApplyHistory[] {
+    return dto.hstryList.map((hstry) => ({
+        sn: hstry.aplySn,
+        sheetName: hstry.sheetNm,
+        rowCount: hstry.aplyRowCnt,
+        canceled: hstry.cnclYn === 'Y',
+        appliedAt: formatDateTime(hstry.frstRegDt),
+        appliedBy: hstry.frstRgtrId,
+    }));
 }
 
 export function toCastConfigDataset(dto: CastConfigDatasetDto): Dataset {
@@ -216,6 +262,17 @@ export const EMPTY_CAST_CONFIG_GROUPS: FacilityGroup[] = GROUP_IDS.map((id) => (
 }));
 
 export const EMPTY_CAST_CONFIG_CATEGORIES: Category[] = [];
+
+export const EMPTY_PRE_PROCESS_DIFF: PreProcessDiff = {
+    sheetName: '',
+    valueLabel: '',
+    changedCount: 0,
+    rows: [],
+    preProcessName: '',
+    preProcessAt: '',
+};
+
+export const EMPTY_APPLY_HISTORIES: ApplyHistory[] = [];
 
 export const EMPTY_CAST_CONFIG_DATASET: Dataset = {
     sheetName: '',

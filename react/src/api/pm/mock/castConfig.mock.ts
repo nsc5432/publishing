@@ -1,4 +1,6 @@
 import type {
+    CastConfigAplyHstryDto,
+    CastConfigAplyHstryListDto,
     CastConfigCategoryDto,
     CastConfigCategoryListDto,
     CastConfigCategorySaveDto,
@@ -8,6 +10,8 @@ import type {
     CastConfigGridRowDto,
     CastConfigGroupListDto,
     CastConfigOptionDto,
+    CastConfigPreProcessDiffDto,
+    CastConfigPreProcessRowDto,
     CastConfigSaveItemDto,
     CastConfigValidationDto,
     JsonResponse,
@@ -31,22 +35,44 @@ interface MockGroupDefinition {
     sheets: string[];
 }
 
+interface MockSnapshot {
+    rowNo: number;
+    column: string;
+    value: string;
+}
+
+interface MockHistory {
+    hstry: CastConfigAplyHstryDto;
+    snapshot: MockSnapshot[];
+}
+
 type DatasetStore = Record<string, CastConfigDatasetDto>;
 
 const OK: JsonResponse = { error: false, errorMessage: '' };
 
 const BASE_CATEGORY_ID = '001';
+const PRE_PRCS_CATEGORY_ID = '999';
 
 const CATEGORIES: CastConfigCategoryDto[] = [
-    { fixAtrbGroupId: '001', atrbGroupNm: '기준정보', baseYn: 'Y', cfmtnYn: 'Y', groupPrcsSttsCd: '01', frstRegDt: '20250101090000' },
-    { fixAtrbGroupId: '002', atrbGroupNm: '추석명절 설정 정보', baseYn: 'N', cfmtnYn: 'Y', groupPrcsSttsCd: '01', frstRegDt: '20260925090000' },
-    { fixAtrbGroupId: '003', atrbGroupNm: '설 명절 설정 정보', baseYn: 'N', cfmtnYn: 'Y', groupPrcsSttsCd: '01', frstRegDt: '20260225092000' },
-    { fixAtrbGroupId: '004', atrbGroupNm: '하계 성수기 설정 정보', baseYn: 'N', cfmtnYn: 'N', groupPrcsSttsCd: '01', frstRegDt: '20260701093000' },
-    { fixAtrbGroupId: '005', atrbGroupNm: '동계 성수기 설정 정보', baseYn: 'N', cfmtnYn: 'N', groupPrcsSttsCd: '01', frstRegDt: '20251220091000' },
-    { fixAtrbGroupId: '006', atrbGroupNm: '보안검색 강화 설정 정보', baseYn: 'N', cfmtnYn: 'N', groupPrcsSttsCd: '01', frstRegDt: '20260315101500' },
-    { fixAtrbGroupId: '007', atrbGroupNm: '자동출입국 확대 설정 정보', baseYn: 'N', cfmtnYn: 'N', groupPrcsSttsCd: '01', frstRegDt: '20260510094000' },
-    { fixAtrbGroupId: '008', atrbGroupNm: '셀프체크인 확대 설정 정보', baseYn: 'N', cfmtnYn: 'N', groupPrcsSttsCd: '01', frstRegDt: '20260620090500' },
-    { fixAtrbGroupId: '009', atrbGroupNm: '설 명절 설정 정보(2025)', baseYn: 'N', cfmtnYn: 'Y', groupPrcsSttsCd: '01', frstRegDt: '20250225091000' },
+    { fixAtrbGroupId: '001', atrbGroupNm: '기준정보', baseYn: 'Y', prePrcsYn: 'N', cfmtnYn: 'Y', groupPrcsSttsCd: '01', frstRegDt: '20250101090000', lastMdfcnDt: '20250101090000' },
+    { fixAtrbGroupId: '002', atrbGroupNm: '추석명절 설정 정보', baseYn: 'N', prePrcsYn: 'N', cfmtnYn: 'Y', groupPrcsSttsCd: '01', frstRegDt: '20260925090000', lastMdfcnDt: '20260925090000' },
+    { fixAtrbGroupId: '003', atrbGroupNm: '설 명절 설정 정보', baseYn: 'N', prePrcsYn: 'N', cfmtnYn: 'Y', groupPrcsSttsCd: '01', frstRegDt: '20260225092000', lastMdfcnDt: '20260225092000' },
+    { fixAtrbGroupId: '004', atrbGroupNm: '하계 성수기 설정 정보', baseYn: 'N', prePrcsYn: 'N', cfmtnYn: 'N', groupPrcsSttsCd: '01', frstRegDt: '20260701093000', lastMdfcnDt: '20260701093000' },
+    { fixAtrbGroupId: '005', atrbGroupNm: '동계 성수기 설정 정보', baseYn: 'N', prePrcsYn: 'N', cfmtnYn: 'N', groupPrcsSttsCd: '01', frstRegDt: '20251220091000', lastMdfcnDt: '20251220091000' },
+    { fixAtrbGroupId: '006', atrbGroupNm: '보안검색 강화 설정 정보', baseYn: 'N', prePrcsYn: 'N', cfmtnYn: 'N', groupPrcsSttsCd: '01', frstRegDt: '20260315101500', lastMdfcnDt: '20260315101500' },
+    { fixAtrbGroupId: '007', atrbGroupNm: '자동출입국 확대 설정 정보', baseYn: 'N', prePrcsYn: 'N', cfmtnYn: 'N', groupPrcsSttsCd: '01', frstRegDt: '20260510094000', lastMdfcnDt: '20260510094000' },
+    { fixAtrbGroupId: '008', atrbGroupNm: '셀프체크인 확대 설정 정보', baseYn: 'N', prePrcsYn: 'N', cfmtnYn: 'N', groupPrcsSttsCd: '01', frstRegDt: '20260620090500', lastMdfcnDt: '20260620090500' },
+    { fixAtrbGroupId: '009', atrbGroupNm: '설 명절 설정 정보(2025)', baseYn: 'N', prePrcsYn: 'N', cfmtnYn: 'Y', groupPrcsSttsCd: '01', frstRegDt: '20250225091000', lastMdfcnDt: '20250225091000' },
+    {
+        fixAtrbGroupId: PRE_PRCS_CATEGORY_ID,
+        atrbGroupNm: '전처리 결과 (260212-260218)',
+        baseYn: 'N',
+        prePrcsYn: 'Y',
+        cfmtnYn: 'N',
+        groupPrcsSttsCd: '01',
+        frstRegDt: '20250101090000',
+        lastMdfcnDt: '20260219010712',
+    },
 ];
 
 const GROUPS: MockGroupDefinition[] = [
@@ -342,6 +368,15 @@ function createDatasetStore(tmnlId: TmnlId): DatasetStore {
     );
 }
 
+// 실제 서버는 카탈로그의 PRE_PRCS_YN 으로 가른다. 목업은 행 번호로 흉내만 낸다.
+function isPreProcessRow(rowNo: number): boolean {
+    return rowNo % 3 === 0;
+}
+
+function findValueColumn(dataset: CastConfigDatasetDto): string {
+    return (dataset.columnList.find((column) => column.type === 'NUMBER') ?? dataset.columnList.at(-1))?.column ?? '';
+}
+
 function toReadOnlyStore(store: DatasetStore): DatasetStore {
     const clone = structuredClone(store);
     for (const dataset of Object.values(clone)) {
@@ -352,12 +387,39 @@ function toReadOnlyStore(store: DatasetStore): DatasetStore {
     return clone;
 }
 
+// 전처리 결과는 파이프라인이 만든 값이라 화면에서 고칠 수 없다. 몇 칸을 흔들어 비교표에 변화가 보이게 한다.
+function toPreProcessStore(store: DatasetStore): DatasetStore {
+    const clone = toReadOnlyStore(store);
+
+    for (const dataset of Object.values(clone)) {
+        const valueColumn = findValueColumn(dataset);
+        if (!valueColumn) continue;
+
+        for (const row of dataset.rowList) {
+            if (!isPreProcessRow(row.rowNo)) continue;
+
+            const cell = row.cellList.find((candidate) => candidate.column === valueColumn);
+            const current = Number(cell?.value);
+            // Number('') 은 0 이라 빈 칸까지 숫자가 돼 버린다
+            if (!cell || cell.value.trim() === '' || !Number.isFinite(current)) continue;
+
+            cell.value = String(Math.max(0, current + ((row.rowNo % 5) - 2)));
+        }
+    }
+
+    return clone;
+}
+
 function createTerminalStore(tmnlId: TmnlId): Record<string, DatasetStore> {
     const editable = createDatasetStore(tmnlId);
-    const store: Record<string, DatasetStore> = { [BASE_CATEGORY_ID]: toReadOnlyStore(editable) };
+    const base = toReadOnlyStore(editable);
+    const store: Record<string, DatasetStore> = {
+        [BASE_CATEGORY_ID]: base,
+        [PRE_PRCS_CATEGORY_ID]: toPreProcessStore(base),
+    };
 
     for (const category of CATEGORIES) {
-        if (category.baseYn === 'Y') continue;
+        if (category.baseYn === 'Y' || category.prePrcsYn === 'Y') continue;
         store[category.fixAtrbGroupId] = structuredClone(editable);
     }
 
@@ -386,6 +448,60 @@ function findDataset(tmnlId: TmnlId, fixAtrbGroupId: string, sheetNm: string): C
     return DATASETS[tmnlId][fixAtrbGroupId]?.[sheetNm];
 }
 
+function readCell(dataset: CastConfigDatasetDto, rowNo: number, column: string): string {
+    return dataset.rowList.find((row) => row.rowNo === rowNo)?.cellList.find((cell) => cell.column === column)?.value ?? '';
+}
+
+function toPreProcessRow(
+    base: CastConfigDatasetDto,
+    pre: CastConfigDatasetDto,
+    row: CastConfigGridRowDto,
+    valueColumn: string,
+): CastConfigPreProcessRowDto {
+    const preVl = pre.rowList.some((candidate) => candidate.rowNo === row.rowNo) ? readCell(pre, row.rowNo, valueColumn) : '';
+    const baseVl = readCell(base, row.rowNo, valueColumn);
+    const matched = preVl !== '';
+
+    return {
+        rowNo: row.rowNo,
+        atrbCd: String(row.rowNo).padStart(8, '0'),
+        dtlSeCd: String(row.rowNo + 1).padStart(8, '0'),
+        atrbCdNm: row.cellList[0]?.value ?? '',
+        dtlSeCdNm: row.cellList[1]?.value ?? '',
+        baseVl,
+        preVl,
+        changedYn: matched && baseVl !== preVl ? 'Y' : 'N',
+        matchedYn: matched ? 'Y' : 'N',
+    };
+}
+
+function toCategoryOrder(category: CastConfigCategoryDto): number {
+    if (category.fixAtrbGroupId === BASE_CATEGORY_ID) return 0;
+    if (category.fixAtrbGroupId === PRE_PRCS_CATEGORY_ID) return 1;
+    return 2;
+}
+
+function toNowYmdHms(): string {
+    const now = new Date();
+    const pad = (value: number) => String(value).padStart(2, '0');
+
+    return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+}
+
+const EMPTY_DIFF: CastConfigPreProcessDiffDto = {
+    ...OK,
+    sheetNm: '',
+    valueColumn: '',
+    valueLabel: '',
+    changedCnt: 0,
+    rowList: [],
+    preProcessNm: '',
+    preProcessDt: '',
+};
+
+const HISTORIES: MockHistory[] = [];
+let aplySnSeq = 0;
+
 export const castConfigMock = {
     getGroupList: (tmnlId: TmnlId): CastConfigGroupListDto => ({
         ...OK,
@@ -405,7 +521,8 @@ export const castConfigMock = {
     getCategoryList: (): CastConfigCategoryListDto => ({
         ...OK,
         totalCnt: CATEGORIES.length,
-        categoryList: structuredClone(CATEGORIES),
+        // 서버 ORDER BY 와 같은 순서: 기준정보 → 전처리 결과 → 나머지
+        categoryList: structuredClone(CATEGORIES).sort((a, b) => toCategoryOrder(a) - toCategoryOrder(b) || a.fixAtrbGroupId.localeCompare(b.fixAtrbGroupId)),
     }),
 
     saveCategory: (dto: CastConfigCategorySaveDto): JsonResponse => {
@@ -417,9 +534,11 @@ export const castConfigMock = {
             fixAtrbGroupId: dto.fixAtrbGroupId,
             atrbGroupNm: dto.atrbGroupNm,
             baseYn: 'N',
+            prePrcsYn: 'N',
             cfmtnYn: 'N',
             groupPrcsSttsCd: '01',
             frstRegDt: dto.frstRegDt,
+            lastMdfcnDt: dto.frstRegDt,
         });
 
         for (const tmnlId of ['T1', 'T2'] as TmnlId[]) {
@@ -495,6 +614,105 @@ export const castConfigMock = {
                 if (sourceCell) cell.value = sourceCell.value;
             }
         }
+
+        return OK;
+    },
+
+    getPreProcessDiff: (tmnlId: TmnlId, groupId: string, sheetNm: string): CastConfigPreProcessDiffDto => {
+        const group = GROUPS.find((item) => item.groupId === groupId);
+        if (!group?.sheets.includes(sheetNm)) {
+            return { ...EMPTY_DIFF, error: true, errorMessage: '시설그룹에 연결되지 않은 원본 시트입니다.' };
+        }
+
+        const base = findDataset(tmnlId, BASE_CATEGORY_ID, sheetNm);
+        const pre = findDataset(tmnlId, PRE_PRCS_CATEGORY_ID, sheetNm);
+        if (!base || !pre) return { ...EMPTY_DIFF, error: true, errorMessage: '전처리 결과를 찾지 못했습니다.' };
+
+        const valueColumn = findValueColumn(base);
+        const rowList = base.rowList.filter((row) => isPreProcessRow(row.rowNo)).map((row) => toPreProcessRow(base, pre, row, valueColumn));
+        const category = CATEGORIES.find((item) => item.fixAtrbGroupId === PRE_PRCS_CATEGORY_ID);
+
+        return {
+            ...OK,
+            sheetNm,
+            valueColumn,
+            valueLabel: base.columnList.find((column) => column.column === valueColumn)?.label ?? valueColumn,
+            changedCnt: rowList.filter((row) => row.changedYn === 'Y').length,
+            rowList,
+            preProcessNm: category?.atrbGroupNm ?? '',
+            preProcessDt: category?.lastMdfcnDt ?? '',
+        };
+    },
+
+    applyPreProcess: (tmnlId: TmnlId, groupId: string, sheetNm: string, rowNoList: number[]): JsonResponse => {
+        const group = GROUPS.find((item) => item.groupId === groupId);
+        if (!group?.sheets.includes(sheetNm)) {
+            return { error: true, errorMessage: '시설그룹에 연결되지 않은 원본 시트입니다.' };
+        }
+
+        if (rowNoList.length === 0) return { error: true, errorMessage: '반영할 행을 선택해 주세요.' };
+
+        const base = findDataset(tmnlId, BASE_CATEGORY_ID, sheetNm);
+        const pre = findDataset(tmnlId, PRE_PRCS_CATEGORY_ID, sheetNm);
+        if (!base || !pre) return { error: true, errorMessage: '전처리 결과를 찾지 못했습니다.' };
+
+        const valueColumn = findValueColumn(base);
+        const snapshot: MockSnapshot[] = [];
+
+        for (const rowNo of rowNoList) {
+            const row = base.rowList.find((candidate) => candidate.rowNo === rowNo);
+            const source = pre.rowList.find((candidate) => candidate.rowNo === rowNo);
+            if (!row || !source || !isPreProcessRow(rowNo)) {
+                return { error: true, errorMessage: '전처리 대상이 아닌 행이 포함되어 있습니다.' };
+            }
+
+            const cell = row.cellList.find((candidate) => candidate.column === valueColumn);
+            const sourceCell = source.cellList.find((candidate) => candidate.column === valueColumn);
+            if (!cell || !sourceCell) continue;
+
+            snapshot.push({ rowNo, column: valueColumn, value: cell.value });
+            cell.value = sourceCell.value;
+        }
+
+        HISTORIES.unshift({
+            hstry: {
+                aplySn: ++aplySnSeq,
+                srcFixAtrbGroupId: PRE_PRCS_CATEGORY_ID,
+                tgtFixAtrbGroupId: BASE_CATEGORY_ID,
+                tmnlId,
+                tblNm: 'TN_PM_SMLT_PSG_ATRB',
+                sheetNm,
+                aplyRowCnt: snapshot.length,
+                cnclYn: 'N',
+                frstRegDt: toNowYmdHms(),
+                frstRgtrId: 'PM001',
+            },
+            snapshot,
+        });
+
+        return OK;
+    },
+
+    getPreProcessHistory: (tmnlId: TmnlId, sheetNm: string): CastConfigAplyHstryListDto => {
+        const hstryList = HISTORIES.filter((item) => item.hstry.tmnlId === tmnlId && (!sheetNm || item.hstry.sheetNm === sheetNm)).map((item) => item.hstry);
+
+        return { ...OK, totalCnt: hstryList.length, hstryList: structuredClone(hstryList) };
+    },
+
+    revertPreProcess: (aplySn: number): JsonResponse => {
+        const entry = HISTORIES.find((item) => item.hstry.aplySn === aplySn);
+        if (!entry) return { error: true, errorMessage: '반영 이력을 찾지 못했습니다.' };
+        if (entry.hstry.cnclYn === 'Y') return { error: true, errorMessage: '이미 되돌린 이력입니다.' };
+
+        const base = findDataset(entry.hstry.tmnlId as TmnlId, BASE_CATEGORY_ID, entry.hstry.sheetNm);
+        if (!base) return { error: true, errorMessage: '기준정보를 찾지 못했습니다.' };
+
+        for (const item of entry.snapshot) {
+            const cell = base.rowList.find((row) => row.rowNo === item.rowNo)?.cellList.find((candidate) => candidate.column === item.column);
+            if (cell) cell.value = item.value;
+        }
+
+        entry.hstry.cnclYn = 'Y';
 
         return OK;
     },

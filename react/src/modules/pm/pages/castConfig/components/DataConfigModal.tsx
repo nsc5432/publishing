@@ -9,8 +9,10 @@ import type { ApiError, CastConfigCategorySaveDto, CastConfigSaveItemDto } from 
 import { toCellKey } from '../cell';
 import type { Category, Dataset, DraftChanges, FacilityGroup, GridRow, TerminalKind } from '../types';
 import { readCellValue, toShapeColumns, validateDataset } from '../view';
+import { useCastConfigApplyHistory } from '../hooks/useCastConfigApplyHistory';
 import { useCastConfigCategories } from '../hooks/useCastConfigCategories';
 import { useCastConfigDataset } from '../hooks/useCastConfigDataset';
+import { useCastConfigPreProcessDiff } from '../hooks/useCastConfigPreProcessDiff';
 import { useDatasetDraft } from '../hooks/useDatasetDraft';
 import { CategoryBar } from './CategoryBar';
 import { CategoryManagerModal } from './CategoryManagerModal';
@@ -20,6 +22,8 @@ import { DataGrid } from './DataGrid';
 import { DatasetTabs } from './DatasetTabs';
 import { GridToolbar } from './GridToolbar';
 import { Pagination } from './Pagination';
+import { PreProcessApplyModal } from './PreProcessApplyModal';
+import { PreProcessHistoryModal } from './PreProcessHistoryModal';
 
 interface DataConfigModalProps {
     terminal: TerminalKind;
@@ -27,7 +31,7 @@ interface DataConfigModalProps {
     onClose: () => void;
 }
 
-type Layer = 'none' | 'register' | 'manage';
+type Layer = 'none' | 'register' | 'manage' | 'preProcess' | 'history';
 
 const PAGE_SIZE = 25;
 const SAVE_FAIL = '변경사항을 저장하지 못했습니다.';
@@ -67,7 +71,10 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
     const fetchedCategories = useCastConfigCategories(categoryQuery);
     const categories = fetchedCategories.data;
     const currentCategory: Category | null = categories.find((category) => category.code === categoryCode) ?? categories[0] ?? null;
-    const readOnly = currentCategory?.isBase ?? true;
+    const isBase = currentCategory?.isBase ?? false;
+    const isPreProcess = currentCategory?.isPreProcess ?? false;
+    // 기준정보와 전처리 결과는 셀을 직접 고칠 수 없다. 기준정보는 전처리 반영으로만 바뀐다.
+    const readOnly = isBase || isPreProcess || currentCategory === null;
 
     const activeSheet = group.datasets[activeTab]?.sheetName ?? '';
     const datasetQuery = useMemo(
@@ -86,6 +93,18 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
     const fetched = useCastConfigDataset(datasetQuery);
     const dataset = fetched.data;
 
+    const diffQuery = useMemo(
+        () => (layer === 'preProcess' && activeSheet && isBase ? { terminal, groupId: group.id, sheetName: activeSheet, reloadToken } : null),
+        [activeSheet, group.id, isBase, layer, reloadToken, terminal],
+    );
+    const fetchedDiff = useCastConfigPreProcessDiff(diffQuery);
+
+    const historyQuery = useMemo(
+        () => (layer === 'history' && isBase ? { terminal, sheetName: activeSheet, reloadToken } : null),
+        [activeSheet, isBase, layer, reloadToken, terminal],
+    );
+    const fetchedHistory = useCastConfigApplyHistory(historyQuery);
+
     const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR');
     const filteredRows = useMemo(
         () => (normalizedQuery ? dataset.rows.filter((row) => includesQuery(dataset, row, drafts, normalizedQuery)) : dataset.rows),
@@ -100,6 +119,8 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
 
     useErrorAlert(fetchedCategories.error, fetchedCategories.token);
     useErrorAlert(fetched.error, fetched.token);
+    useErrorAlert(fetchedDiff.error, fetchedDiff.token);
+    useErrorAlert(fetchedHistory.error, fetchedHistory.token);
 
     const confirmDiscard = useCallback(async () => {
         if (totalChangeCount === 0) return true;
@@ -233,6 +254,67 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
             .catch(() => {});
     };
 
+    const handleApplyPreProcess = (rowNoList: number[]) => {
+        const diff = fetchedDiff.data;
+        const preview: DraftChanges = {};
+        for (const row of diff.rows) {
+            if (rowNoList.includes(row.rowNo)) preview[toCellKey(dataset.sheetName, row.rowNo, diff.valueLabel)] = row.preValue;
+        }
+
+        const messages = validateDataset(dataset, preview);
+        if (messages.length > 0) {
+            dialog.alert({ title: '반영 전 확인', description: messages.join('\n') }).catch(() => {});
+            return;
+        }
+
+        dialog
+            .confirm({
+                title: '전처리 반영',
+                description: `선택한 ${formatCount(rowNoList.length)}개 행을 기준정보에 반영합니다. 일일 시뮬레이션에 그대로 쓰입니다. 계속하시겠습니까?`,
+            })
+            .then((ok) => {
+                if (!ok) return;
+
+                setSaving(true);
+                castConfigService
+                    .applyPreProcess(terminal, group.id, dataset.sheetName, rowNoList)
+                    .then((dto) => unwrap(dto, '전처리 결과를 반영하지 못했습니다.'))
+                    .then(() => {
+                        setSaving(false);
+                        setLayer('none');
+                        setReloadToken((token) => token + 1);
+                        dialog.alert({ title: '반영 완료', description: `${formatCount(rowNoList.length)}개 행을 기준정보에 반영했습니다.` }).catch(() => {});
+                    })
+                    .catch((error: ApiError) => {
+                        setSaving(false);
+                        dialog.alert({ title: '전처리 반영', description: error?.message || '전처리 결과를 반영하지 못했습니다.' }).catch(() => {});
+                    });
+            })
+            .catch(() => {});
+    };
+
+    const handleRevertPreProcess = (aplySn: number) => {
+        dialog
+            .confirm({ title: '되돌리기', description: '이 반영을 되돌려 직전 값으로 복원합니다. 계속하시겠습니까?' })
+            .then((ok) => {
+                if (!ok) return;
+
+                setSaving(true);
+                castConfigService
+                    .revertPreProcess(aplySn)
+                    .then((dto) => unwrap(dto, '반영을 되돌리지 못했습니다.'))
+                    .then(() => {
+                        setSaving(false);
+                        setReloadToken((token) => token + 1);
+                    })
+                    .catch((error: ApiError) => {
+                        setSaving(false);
+                        dialog.alert({ title: '되돌리기', description: error?.message || '반영을 되돌리지 못했습니다.' }).catch(() => {});
+                    });
+            })
+            .catch(() => {});
+    };
+
     const handleReset = () => {
         if (sheetChangeCount === 0) return;
 
@@ -345,6 +427,8 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                     sheetChangeCount={sheetChangeCount}
                     totalChangeCount={totalChangeCount}
                     readOnly={readOnly}
+                    isBase={isBase}
+                    isPreProcess={isPreProcess}
                     onQueryChange={(value) => {
                         setQuery(value);
                         setPage(1);
@@ -352,6 +436,8 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                     onDownload={handleDownload}
                     onUpload={handleUpload}
                     onApplyDefault={handleApplyDefault}
+                    onApplyPreProcess={() => setLayer('preProcess')}
+                    onOpenHistory={() => setLayer('history')}
                     onReset={handleReset}
                 />
 
@@ -424,6 +510,26 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                     categories={categories}
                     currentCode={currentCategory?.code ?? ''}
                     onSelect={handleCategorySelect}
+                    onClose={() => setLayer('none')}
+                />
+            )}
+
+            {layer === 'preProcess' && (
+                <PreProcessApplyModal
+                    // 조회가 끝난 뒤 다시 마운트돼야 변경 행 기본 선택이 걸린다
+                    key={`${dataset.sheetName}-${fetchedDiff.token}`}
+                    diff={fetchedDiff.data}
+                    applying={saving}
+                    onApply={handleApplyPreProcess}
+                    onClose={() => setLayer('none')}
+                />
+            )}
+
+            {layer === 'history' && (
+                <PreProcessHistoryModal
+                    histories={fetchedHistory.data}
+                    reverting={saving}
+                    onRevert={handleRevertPreProcess}
                     onClose={() => setLayer('none')}
                 />
             )}
