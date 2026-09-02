@@ -1988,7 +1988,7 @@ ORDER BY
                     ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
                 WHERE A.OPER_HR_STTS_CD = 'DPL'
             )
-            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_DepartureGate', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_DepartureGate', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD AND END_YMD
             AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
                 SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
                 FROM (
@@ -2003,7 +2003,7 @@ ORDER BY
                         ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
                     WHERE A.OPER_HR_STTS_CD = 'DPL'
                 )
-               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_DepartureGate', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_DepartureGate', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN OPER_BGNG_YMD AND OPER_END_YMD
                 GROUP BY TMNL_ID, FCLT_SE_CD
             )
           ) B
@@ -2067,7 +2067,7 @@ ORDER BY
                     ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
                 WHERE A.OPER_HR_STTS_CD = 'DPL'
             )
-            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_Immigration', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_Immigration', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD AND END_YMD
             AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
                 SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
                 FROM (
@@ -2082,7 +2082,7 @@ ORDER BY
                         ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
                     WHERE A.OPER_HR_STTS_CD = 'DPL'
                 )
-               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_Immigration', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_Immigration', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN OPER_BGNG_YMD AND OPER_END_YMD
                 GROUP BY TMNL_ID, FCLT_SE_CD
             )
       ) B
@@ -2143,7 +2143,7 @@ ORDER BY
                     ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
                 WHERE A.OPER_HR_STTS_CD = 'DPL'
             )
-            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD AND END_YMD
             AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
                 SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
                 FROM (
@@ -2158,7 +2158,7 @@ ORDER BY
                         ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
                     WHERE A.OPER_HR_STTS_CD = 'DPL'
                 )
-               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN OPER_BGNG_YMD AND OPER_END_YMD
                 GROUP BY TMNL_ID, FCLT_SE_CD
             )
             UNION ALL
@@ -2176,7 +2176,7 @@ ORDER BY
                 WHERE A.OPER_HR_STTS_CD = 'DPL'
                 AND B.TMNL_ID = 'P01'
             )
-            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD AND END_YMD
             AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
                 SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
                 FROM (
@@ -2192,7 +2192,7 @@ ORDER BY
                     WHERE A.OPER_HR_STTS_CD = 'DPL'
                     AND B.TMNL_ID = 'P01'
                 )
-               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD -1 AND END_YMD +1
+               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN OPER_BGNG_YMD AND OPER_END_YMD
                 GROUP BY TMNL_ID, FCLT_SE_CD
             )
             ) B
