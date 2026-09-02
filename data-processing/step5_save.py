@@ -297,13 +297,13 @@ def finish_pre_process_group(conn, period: str) -> None:
 
 def run(data_dir: str, transaction_id: str, mode: str) -> None:
     uploads = [(task, build_groups(task, data_dir)) for task in UPLOAD_TASKS]
-    assert_unique_keys(uploads)
 
     if mode == "csv":
         for task, groups in uploads:
             save_upload(None, task, groups, data_dir, transaction_id, mode)
         log("전체 CSV 저장 완료", transaction_id)
     else:
+        assert_unique_keys(uploads)
         conn = get_connection()
         try:
             prepare_pre_process_group(conn)

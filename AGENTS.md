@@ -65,6 +65,11 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
    - 예외 1건: `FcltRecommendDto.addCnt` → `reqCnt` (2026-08-28 결정). 값이 "추가 수량" 이
      아니라 "총 소요 수량" 이라 이름이 반대 의미였고, 같은 카드의 `totCnt`(보유 대수) 와
      헷갈리지 않는 이름을 골랐다. **`reqCnt` 는 이제 다시 고정이다.**
+   - 예외 2건: 전처리 비교 DTO 의 단수형 4개가 복수형이 됐다 (2026-09-03 결정).
+     `CastConfigPreProcessDiffDto.valueColumn`/`valueLabel` → `valueColumnList`/`valueLabelList`,
+     `CastConfigPreProcessRowDto.baseVl`/`preVl` → `baseVlList`/`preVlList`.
+     체크인유형 시트가 비율 3컬럼을 한 번에 비교·반영해 단수형 이름이 값을 담을 수 없었다.
+     서버·화면을 같이 바꾸는 구조 변경이라 예외로 뒀다. **이 4개는 이제 다시 고정이다.**
 2. **enum 문자열 값**
    `'T1'|'T2'` · `'Y'|'N'` · `'FREE'|'NORMAL'|'BUSY'|'VERY_BUSY'` ·
    `'CHKN'|'SLFCHKN'|'DEP'|'SC'|'CMRC'` · `'PSG'|'FLT'` · `'DAILY'|'USER'` ·

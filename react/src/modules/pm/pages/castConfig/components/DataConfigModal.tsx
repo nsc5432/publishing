@@ -257,7 +257,11 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
         const diff = fetchedDiff.data;
         const preview: DraftChanges = {};
         for (const row of diff.rows) {
-            if (rowNoList.includes(row.rowNo)) preview[toCellKey(dataset.sheetName, row.rowNo, diff.valueLabel)] = row.preValue;
+            if (!rowNoList.includes(row.rowNo)) continue;
+
+            diff.valueLabels.forEach((label, index) => {
+                preview[toCellKey(dataset.sheetName, row.rowNo, label)] = row.preValues[index] ?? '';
+            });
         }
 
         const messages = validateDataset(dataset, preview);

@@ -7,7 +7,10 @@
         SELECT
             SUBSTR(A.PREDC_HM, 1, 2) AS HOUR,
             COUNT(*) AS FLT_CNT,
-            NVL(SUM(A.RSVT_BDPSG_CNT - A.RSVT_TRNS_BDPSG_CNT), 0) AS PSG_CNT
+            NVL(SUM(
+                NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0)
+                - NVL(TO_NUMBER(TRIM(A.RSVT_TRNS_BDPSG_CNT)), 0)
+            ), 0) AS PSG_CNT
         FROM GOOWN.TN_GO_GD_DATA A
         WHERE 1 = 1
         AND A.GD_SE_YMD = #{ymd}

@@ -43,6 +43,8 @@ interface MockSnapshot {
 
 interface MockHistory {
     hstry: CastConfigAplyHstryDto;
+    // hstry.tmnlId 는 터미널 축이 없는 시트에서 비므로 되돌릴 데이터셋을 찾을 축을 따로 둔다
+    terminal: TmnlId;
     snapshot: MockSnapshot[];
 }
 
@@ -52,6 +54,10 @@ const OK: JsonResponse = { error: false, errorMessage: '' };
 
 const BASE_CATEGORY_ID = '001';
 const PRE_PRCS_CATEGORY_ID = '999';
+
+const CKNCT_TYPE_SHEET = '체크인유형';
+const CKNCT_TYPE_VALUE_COLUMNS = ['카운터비율', '키오스크비율', '모바일비율'];
+const TABLE_BY_SHEET: Record<string, string> = { [CKNCT_TYPE_SHEET]: 'TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC' };
 
 const CATEGORIES: CastConfigCategoryDto[] = [
     { fixAtrbGroupId: '001', atrbGroupNm: '기준정보', baseYn: 'Y', prePrcsYn: 'N', cfmtnYn: 'Y', groupPrcsSttsCd: '01', frstRegDt: '20250101090000', lastMdfcnDt: '20250101090000' },
@@ -81,7 +87,7 @@ const GROUPS: MockGroupDefinition[] = [
         groupNm: '체크인 영역',
         groupNmEn: 'Check-in Facility Group',
         groupDesc: '체크인 방식, 서비스타임, 카운터 및 셀프서비스 시설코드',
-        sheets: ['Check In Type', 'Check-in Counter', 'Check-in Facility Code', '서비스타임', '여객유형 분포'],
+        sheets: ['Check In Type', 'Check-in Counter', 'Check-in Facility Code', '서비스타임', '여객유형 분포', CKNCT_TYPE_SHEET],
     },
     {
         groupId: 'departure',
@@ -369,12 +375,16 @@ function createDatasetStore(tmnlId: TmnlId): DatasetStore {
 }
 
 // 실제 서버는 카탈로그의 PRE_PRCS_YN 으로 가른다. 목업은 행 번호로 흉내만 낸다.
-function isPreProcessRow(rowNo: number): boolean {
+function isPreProcessRow(sheetNm: string, rowNo: number): boolean {
+    if (sheetNm === CKNCT_TYPE_SHEET) return true;
     return rowNo % 3 === 0;
 }
 
-function findValueColumn(dataset: CastConfigDatasetDto): string {
-    return (dataset.columnList.find((column) => column.type === 'NUMBER') ?? dataset.columnList.at(-1))?.column ?? '';
+function findValueColumns(dataset: CastConfigDatasetDto): string[] {
+    if (dataset.sheetNm === CKNCT_TYPE_SHEET) return CKNCT_TYPE_VALUE_COLUMNS;
+
+    const column = (dataset.columnList.find((item) => item.type === 'NUMBER') ?? dataset.columnList.at(-1))?.column;
+    return column ? [column] : [];
 }
 
 function toReadOnlyStore(store: DatasetStore): DatasetStore {
@@ -392,23 +402,66 @@ function toPreProcessStore(store: DatasetStore): DatasetStore {
     const clone = toReadOnlyStore(store);
 
     for (const dataset of Object.values(clone)) {
-        const valueColumn = findValueColumn(dataset);
-        if (!valueColumn) continue;
+        const valueColumnList = findValueColumns(dataset);
 
         for (const row of dataset.rowList) {
-            if (!isPreProcessRow(row.rowNo)) continue;
+            if (!isPreProcessRow(dataset.sheetNm, row.rowNo)) continue;
 
-            const cell = row.cellList.find((candidate) => candidate.column === valueColumn);
-            const current = Number(cell?.value);
-            // Number('') 은 0 이라 빈 칸까지 숫자가 돼 버린다
-            if (!cell || cell.value.trim() === '' || !Number.isFinite(current)) continue;
+            valueColumnList.forEach((valueColumn, index) => {
+                const cell = row.cellList.find((candidate) => candidate.column === valueColumn);
+                const current = Number(cell?.value);
+                // Number('') 은 0 이라 빈 칸까지 숫자가 돼 버린다
+                if (!cell || cell.value.trim() === '' || !Number.isFinite(current)) return;
 
-            cell.value = String(Math.max(0, current + ((row.rowNo % 5) - 2)));
+                cell.value = String(Math.max(0, current + (((row.rowNo + index) % 5) - 2)));
+            });
         }
     }
 
     return clone;
 }
+
+// 항공사 단위라 T1/T2 구분이 없다. 두 터미널이 같은 객체를 공유해야
+// 한쪽에서 반영한 결과가 다른 탭에도 그대로 보인다.
+function createCknctTypeDatasets(): Record<string, CastConfigDatasetDto> {
+    const columns = [
+        column('항공사코드', 'READONLY', { mergeYn: 'Y' }),
+        column('카운터비율', 'NUMBER'),
+        column('키오스크비율', 'NUMBER'),
+        column('모바일비율', 'NUMBER'),
+        column('서비스시간', 'NUMBER'),
+    ];
+    const inputs: MockRowInput[] = [
+        { values: ['KE', '52', '31', '17', '78.5'] },
+        { values: ['OZ', '55', '28', '17', '81.2'] },
+        { values: ['7C', '38', '41', '21', '64.0'] },
+        { values: ['LJ', '41', '38', '21', '66.3'] },
+        { values: ['TW', '44', '36', '20', '69.1'] },
+        { values: ['ZE', '40', '39', '21', '65.4'] },
+        { values: ['BX', '47', '33', '20', '72.8'] },
+        { values: ['RS', '49', '32', '19', '74.6'] },
+        { values: ['JL', '58', '26', '16', '85.0'] },
+        { values: ['NH', '57', '27', '16', '84.2'] },
+        { values: ['CA', '63', '22', '15', '92.4'] },
+        { values: ['TG', '61', '24', '15', '89.7'] },
+    ];
+
+    const editable = { [CKNCT_TYPE_SHEET]: toDataset(CKNCT_TYPE_SHEET, columns, inputs) };
+    const base = toReadOnlyStore(editable);
+    const result: Record<string, CastConfigDatasetDto> = {
+        [BASE_CATEGORY_ID]: base[CKNCT_TYPE_SHEET],
+        [PRE_PRCS_CATEGORY_ID]: toPreProcessStore(base)[CKNCT_TYPE_SHEET],
+    };
+
+    for (const category of CATEGORIES) {
+        if (category.baseYn === 'Y' || category.prePrcsYn === 'Y') continue;
+        result[category.fixAtrbGroupId] = structuredClone(editable)[CKNCT_TYPE_SHEET];
+    }
+
+    return result;
+}
+
+const CKNCT_TYPE_DATASETS = createCknctTypeDatasets();
 
 function createTerminalStore(tmnlId: TmnlId): Record<string, DatasetStore> {
     const editable = createDatasetStore(tmnlId);
@@ -421,6 +474,10 @@ function createTerminalStore(tmnlId: TmnlId): Record<string, DatasetStore> {
     for (const category of CATEGORIES) {
         if (category.baseYn === 'Y' || category.prePrcsYn === 'Y') continue;
         store[category.fixAtrbGroupId] = structuredClone(editable);
+    }
+
+    for (const [categoryId, dataset] of Object.entries(CKNCT_TYPE_DATASETS)) {
+        store[categoryId][CKNCT_TYPE_SHEET] = dataset;
     }
 
     return store;
@@ -456,21 +513,22 @@ function toPreProcessRow(
     base: CastConfigDatasetDto,
     pre: CastConfigDatasetDto,
     row: CastConfigGridRowDto,
-    valueColumn: string,
+    valueColumnList: string[],
 ): CastConfigPreProcessRowDto {
-    const preVl = pre.rowList.some((candidate) => candidate.rowNo === row.rowNo) ? readCell(pre, row.rowNo, valueColumn) : '';
-    const baseVl = readCell(base, row.rowNo, valueColumn);
-    const matched = preVl !== '';
+    const matched = pre.rowList.some((candidate) => candidate.rowNo === row.rowNo);
+    const baseVlList = valueColumnList.map((column) => readCell(base, row.rowNo, column));
+    const preVlList = valueColumnList.map((column) => (matched ? readCell(pre, row.rowNo, column) : ''));
+    const changed = matched && valueColumnList.some((_, index) => baseVlList[index] !== preVlList[index]);
 
     return {
         rowNo: row.rowNo,
         atrbCd: String(row.rowNo).padStart(8, '0'),
         dtlSeCd: String(row.rowNo + 1).padStart(8, '0'),
         atrbCdNm: row.cellList[0]?.value ?? '',
-        dtlSeCdNm: row.cellList[1]?.value ?? '',
-        baseVl,
-        preVl,
-        changedYn: matched && baseVl !== preVl ? 'Y' : 'N',
+        dtlSeCdNm: base.sheetNm === CKNCT_TYPE_SHEET ? '' : (row.cellList[1]?.value ?? ''),
+        baseVlList,
+        preVlList,
+        changedYn: changed ? 'Y' : 'N',
         matchedYn: matched ? 'Y' : 'N',
     };
 }
@@ -491,8 +549,8 @@ function toNowYmdHms(): string {
 const EMPTY_DIFF: CastConfigPreProcessDiffDto = {
     ...OK,
     sheetNm: '',
-    valueColumn: '',
-    valueLabel: '',
+    valueColumnList: [],
+    valueLabelList: [],
     changedCnt: 0,
     rowList: [],
     preProcessNm: '',
@@ -636,15 +694,19 @@ export const castConfigMock = {
         const pre = findDataset(tmnlId, PRE_PRCS_CATEGORY_ID, sheetNm);
         if (!base || !pre) return { ...EMPTY_DIFF, error: true, errorMessage: '전처리 결과를 찾지 못했습니다.' };
 
-        const valueColumn = findValueColumn(base);
-        const rowList = base.rowList.filter((row) => isPreProcessRow(row.rowNo)).map((row) => toPreProcessRow(base, pre, row, valueColumn));
+        const valueColumnList = findValueColumns(base);
+        const rowList = base.rowList
+            .filter((row) => isPreProcessRow(sheetNm, row.rowNo))
+            .map((row) => toPreProcessRow(base, pre, row, valueColumnList));
         const category = CATEGORIES.find((item) => item.fixAtrbGroupId === PRE_PRCS_CATEGORY_ID);
 
         return {
             ...OK,
             sheetNm,
-            valueColumn,
-            valueLabel: base.columnList.find((column) => column.column === valueColumn)?.label ?? valueColumn,
+            valueColumnList,
+            valueLabelList: valueColumnList.map(
+                (valueColumn) => base.columnList.find((item) => item.column === valueColumn)?.label ?? valueColumn,
+            ),
             changedCnt: rowList.filter((row) => row.changedYn === 'Y').length,
             rowList,
             preProcessNm: category?.atrbGroupNm ?? '',
@@ -675,22 +737,27 @@ export const castConfigMock = {
             return { error: true, errorMessage: '전처리 결과가 갱신되었습니다. 다시 조회해 주세요.' };
         }
 
-        const valueColumn = findValueColumn(base);
+        const valueColumnList = findValueColumns(base);
         const snapshot: MockSnapshot[] = [];
+        let aplyRowCnt = 0;
 
         for (const rowNo of rowNoList) {
             const row = base.rowList.find((candidate) => candidate.rowNo === rowNo);
             const source = pre.rowList.find((candidate) => candidate.rowNo === rowNo);
-            if (!row || !source || !isPreProcessRow(rowNo)) {
+            if (!row || !source || !isPreProcessRow(sheetNm, rowNo)) {
                 return { error: true, errorMessage: '전처리 대상이 아닌 행이 포함되어 있습니다.' };
             }
 
-            const cell = row.cellList.find((candidate) => candidate.column === valueColumn);
-            const sourceCell = source.cellList.find((candidate) => candidate.column === valueColumn);
-            if (!cell || !sourceCell) continue;
+            aplyRowCnt += 1;
 
-            snapshot.push({ rowNo, column: valueColumn, value: cell.value });
-            cell.value = sourceCell.value;
+            for (const valueColumn of valueColumnList) {
+                const cell = row.cellList.find((candidate) => candidate.column === valueColumn);
+                const sourceCell = source.cellList.find((candidate) => candidate.column === valueColumn);
+                if (!cell || !sourceCell) continue;
+
+                snapshot.push({ rowNo, column: valueColumn, value: cell.value });
+                cell.value = sourceCell.value;
+            }
         }
 
         HISTORIES.unshift({
@@ -698,15 +765,17 @@ export const castConfigMock = {
                 aplySn: ++aplySnSeq,
                 srcFixAtrbGroupId: PRE_PRCS_CATEGORY_ID,
                 tgtFixAtrbGroupId: BASE_CATEGORY_ID,
-                tmnlId,
-                tblNm: 'TN_PM_SMLT_PSG_ATRB',
+                // 터미널 축이 없는 시트는 서버도 TMNL_ID 를 비워 T1/T2 를 한 순서열로 묶는다
+                tmnlId: sheetNm === CKNCT_TYPE_SHEET ? '' : tmnlId,
+                tblNm: TABLE_BY_SHEET[sheetNm] ?? 'TN_PM_SMLT_PSG_ATRB',
                 sheetNm,
-                aplyRowCnt: snapshot.length,
+                aplyRowCnt,
                 cnclYn: 'N',
                 revertableYn: 'Y',
                 frstRegDt: toNowYmdHms(),
                 frstRgtrId: 'PM001',
             },
+            terminal: tmnlId,
             snapshot,
         });
 
@@ -716,7 +785,9 @@ export const castConfigMock = {
     getPreProcessHistory: (tmnlId: TmnlId, sheetNm: string): CastConfigAplyHstryListDto => {
         const activeScopes = new Set<string>();
         const hstryList = HISTORIES.filter(
-            (item) => item.hstry.tmnlId === tmnlId && (!sheetNm || item.hstry.sheetNm === sheetNm),
+            (item) =>
+                (item.hstry.tmnlId === '' || item.hstry.tmnlId === tmnlId) &&
+                (!sheetNm || item.hstry.sheetNm === sheetNm),
         ).map((item) => {
             const scope = `${item.hstry.tmnlId}::${item.hstry.tblNm}`;
             const revertable = !activeScopes.has(scope) && item.hstry.cnclYn === 'N';
@@ -741,7 +812,7 @@ export const castConfigMock = {
         );
         if (newer) return { error: true, errorMessage: '최신 반영부터 되돌려 주세요.' };
 
-        const base = findDataset(entry.hstry.tmnlId as TmnlId, BASE_CATEGORY_ID, entry.hstry.sheetNm);
+        const base = findDataset(entry.terminal, BASE_CATEGORY_ID, entry.hstry.sheetNm);
         if (!base) return { error: true, errorMessage: '기준정보를 찾지 못했습니다.' };
 
         for (const item of entry.snapshot) {

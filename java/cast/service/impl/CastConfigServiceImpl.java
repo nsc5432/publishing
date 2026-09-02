@@ -14,6 +14,7 @@ import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.springframework.dao.CannotAcquireLockException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
@@ -64,12 +65,15 @@ public class CastConfigServiceImpl implements CastConfigService {
 	private static final String BASE_FIX_ATRB_GROUP_ID = "001";
 	private static final String PRE_PRCS_FIX_ATRB_GROUP_ID = "999";
 	private static final String INPT_VL_COLUMN = "INPT_VL";
+	private static final String PRE_PRCS_BUSY_MESSAGE =
+			"전처리 결과가 갱신 중입니다. 잠시 후 다시 시도해 주세요.";
 	private static final String VL_TYPE_INTEGER = "Integer";
 	private static final String VL_TYPE_FLOAT = "Float";
 	private static final String YN_Y = "Y";
 	private static final String YN_N = "N";
 	private static final String FRST_REG_DT_PATTERN = "\\d{14}";
-	private static final Set<String> NUMBER_COLUMN_SET = Set.of("MIN_VL", "MAX_VL", "DSTB_MAX_VL");
+	private static final Set<String> NUMBER_COLUMN_SET =
+			Set.of("MIN_VL", "MAX_VL", "DSTB_MAX_VL", "CKNCT_RT", "KOS_RT", "MOB_RT", "SRVC_HR");
 
 	/** 격자 첫 데이터 행 번호 — 1행은 머리글이다 */
 	private static final int FIRST_DATA_ROW_NO = 2;
@@ -244,6 +248,8 @@ public class CastConfigServiceImpl implements CastConfigService {
 			return new JsonResponse().error("카테고리가 지정되지 않았습니다.");
 		}
 
+		// 원본인 001 을 락 없이 읽는다. 전처리 반영이 행마다 커밋되는 중간 상태를 볼 여지가
+		// 남아 있다 — applyPreProcess 와 달리 아직 카테고리 락을 잡지 않는다.
 		List<CastConfigAtrbRawDto> rowList = retrieveRows(
 				sheet,
 				group,
@@ -274,6 +280,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 			int updated = castConfigMapper.copyFromGroup(
 					sheet.getTableNm(),
 					valueColumnList,
+					sheet.getGroupColumnNm(),
 					BASE_FIX_ATRB_GROUP_ID,
 					applyDto.getFixAtrbGroupId(),
 					row.getAtrbCd(),
@@ -321,6 +328,13 @@ public class CastConfigServiceImpl implements CastConfigService {
 				retrieveRows(sheet, group, searchDto.getTmnlId(), PRE_PRCS_FIX_ATRB_GROUP_ID)
 		);
 
+		List<String> valueColumnList = sheet.getPrePrcsValueColumnList();
+
+		if (valueColumnList.isEmpty()) {
+			result.setSheetNm(sheet.getSheetNm());
+			return (CastConfigPreProcessDiffDto) result.error("전처리 반영 대상이 아닌 시트입니다.");
+		}
+
 		List<CastConfigPreProcessRowDto> rowList = new ArrayList<>();
 		int changedCnt = 0;
 
@@ -334,8 +348,10 @@ public class CastConfigServiceImpl implements CastConfigService {
 			}
 
 			CastConfigAtrbRawDto pre = preMap.get(toRowKey(base));
-			String baseVl = StringUtils.trimToEmpty(base.getInptVl());
-			String preVl = pre == null ? "" : StringUtils.trimToEmpty(pre.getInptVl());
+			List<String> baseVlList = toValueList(base, valueColumnList);
+			List<String> preVlList = pre == null
+					? blankValueList(valueColumnList.size())
+					: toValueList(pre, valueColumnList);
 
 			CastConfigPreProcessRowDto row = new CastConfigPreProcessRowDto();
 			row.setRowNo(index + FIRST_DATA_ROW_NO);
@@ -343,10 +359,10 @@ public class CastConfigServiceImpl implements CastConfigService {
 			row.setDtlSeCd(StringUtils.trimToEmpty(base.getDtlSeCd()));
 			row.setAtrbCdNm(StringUtils.trimToEmpty(base.getAtrbCdNm()));
 			row.setDtlSeCdNm(StringUtils.trimToEmpty(base.getDtlSeCdNm()));
-			row.setBaseVl(baseVl);
-			row.setPreVl(preVl);
+			row.setBaseVlList(baseVlList);
+			row.setPreVlList(preVlList);
 			row.setMatchedYn(pre == null ? YN_N : YN_Y);
-			row.setChangedYn(pre != null && !baseVl.equals(preVl) ? YN_Y : YN_N);
+			row.setChangedYn(pre != null && !baseVlList.equals(preVlList) ? YN_Y : YN_N);
 
 			if (YN_Y.equals(row.getChangedYn())) {
 				changedCnt++;
@@ -355,7 +371,6 @@ public class CastConfigServiceImpl implements CastConfigService {
 			rowList.add(row);
 		}
 
-		CastConfigColumnDef valueColumn = findColumnByPhysical(sheet, INPT_VL_COLUMN);
 		CastConfigCategoryDto latestPreCategory = findPreProcessCategory();
 
 		if (latestPreCategory == null || !StringUtils.trimToEmpty(preCategory.getLastMdfcnDt())
@@ -365,8 +380,8 @@ public class CastConfigServiceImpl implements CastConfigService {
 		}
 
 		result.setSheetNm(sheet.getSheetNm());
-		result.setValueColumn(INPT_VL_COLUMN);
-		result.setValueLabel(valueColumn == null ? INPT_VL_COLUMN_LABEL : valueColumn.getLabel());
+		result.setValueColumnList(valueColumnList);
+		result.setValueLabelList(toValueLabelList(sheet, valueColumnList));
 		result.setChangedCnt(changedCnt);
 		result.setRowList(rowList);
 		result.setPreProcessNm(preCategory == null ? "" : preCategory.getAtrbGroupNm());
@@ -398,8 +413,21 @@ public class CastConfigServiceImpl implements CastConfigService {
 			return new JsonResponse().error("반영할 행을 선택해 주세요.");
 		}
 
-		CastConfigCategoryDto preCategory =
-				castConfigMapper.retrieveCategoryForUpdate(PRE_PRCS_FIX_ATRB_GROUP_ID);
+		// 파이프라인이 채우는 것은 전처리 산출 컬럼뿐이다. 사용자정의값까지 복사하면
+		// 999 의 NULL 이 기준정보를 비운다. 비교표가 보여 주는 열과도 이 목록이 같아야 한다.
+		List<String> valueColumnList = sheet.getPrePrcsValueColumnList();
+
+		if (valueColumnList.isEmpty()) {
+			return new JsonResponse().error("전처리 반영 대상이 아닌 시트입니다.");
+		}
+
+		PreProcessLock lock = lockPreProcessCategory();
+
+		if (lock.isBusy()) {
+			return new JsonResponse().error(PRE_PRCS_BUSY_MESSAGE);
+		}
+
+		CastConfigCategoryDto preCategory = lock.getCategory();
 
 		if (preCategory == null) {
 			return new JsonResponse().error("전처리 결과를 찾지 못했습니다.");
@@ -452,16 +480,13 @@ public class CastConfigServiceImpl implements CastConfigService {
 		hstry.setLoginIpAddr(applyDto.getLoginIpAddr());
 		castConfigMapper.insertAplyHstry(hstry);
 
-		// 파이프라인이 채우는 것은 INPT_VL 뿐이다. 사용자정의값까지 복사하면 999 의 NULL 이
-		// 기준정보를 비운다. 비교표가 보여 주는 열과도 이 목록이 같아야 한다.
-		List<String> valueColumnList = List.of(INPT_VL_COLUMN);
-
 		// 스냅샷을 먼저 남긴다. 복사 뒤에 찍으면 되돌릴 값이 이미 덮여 있다.
 		for (CastConfigAtrbRawDto row : targetList) {
 			castConfigMapper.insertAplyHstryDtl(
 					aplySn,
 					sheet.getTableNm(),
 					valueColumnList,
+					sheet.getGroupColumnNm(),
 					PRE_PRCS_FIX_ATRB_GROUP_ID,
 					BASE_FIX_ATRB_GROUP_ID,
 					row.getAtrbCd(),
@@ -475,6 +500,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 			int updated = castConfigMapper.copyFromGroup(
 					sheet.getTableNm(),
 					valueColumnList,
+					sheet.getGroupColumnNm(),
 					PRE_PRCS_FIX_ATRB_GROUP_ID,
 					BASE_FIX_ATRB_GROUP_ID,
 					row.getAtrbCd(),
@@ -516,7 +542,13 @@ public class CastConfigServiceImpl implements CastConfigService {
 			return new JsonResponse().error("로그인을 진행해주세요.");
 		}
 
-		if (castConfigMapper.retrieveCategoryForUpdate(PRE_PRCS_FIX_ATRB_GROUP_ID) == null) {
+		PreProcessLock lock = lockPreProcessCategory();
+
+		if (lock.isBusy()) {
+			return new JsonResponse().error(PRE_PRCS_BUSY_MESSAGE);
+		}
+
+		if (lock.getCategory() == null) {
 			return new JsonResponse().error("전처리 결과를 찾지 못했습니다.");
 		}
 
@@ -551,6 +583,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 					sheet.getTableNm(),
 					detail.getColumnNm(),
 					toColumnValue(detail.getColumnNm(), detail.getBefVl()),
+					sheet.getGroupColumnNm(),
 					hstry.getTgtFixAtrbGroupId(),
 					detail.getAtrbCd(),
 					detail.getDtlSeCd(),
@@ -621,6 +654,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 			int inserted = castConfigMapper.insertFromBaseGroup(
 					sheet.getTableNm(),
 					getValueColumnList(sheet),
+					sheet.getGroupColumnNm(),
 					saveDto.getFixAtrbGroupId(),
 					sheet.getKeyColumnNm(),
 					sheet.getDtlColumnNm(),
@@ -798,6 +832,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 				sheet.getTableNm(),
 				column.getPhysicalColumn(),
 				toColumnValue(column.getPhysicalColumn(), target.getValue()),
+				sheet.getGroupColumnNm(),
 				target.getFixAtrbGroupId(),
 				row.getAtrbCd(),
 				row.getDtlSeCd(),
@@ -822,6 +857,10 @@ public class CastConfigServiceImpl implements CastConfigService {
 			TerminalKind tmnlId,
 			String fixAtrbGroupId
 	) {
+		if (sheet.getCatalogKind() == CastConfigCatalogKind.CKNCT_TYPE) {
+			return castConfigMapper.retrieveCknctTypeAtrbList(fixAtrbGroupId);
+		}
+
 		List<String> filterList = new ArrayList<>(group.getRootCdSet(sheet));
 
 		if (sheet.getCatalogKind() == CastConfigCatalogKind.PSG_FIX) {
@@ -946,6 +985,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 		switch (physicalColumn) {
 			case "PSG_ATRB_CD":
 			case "FCLTY_SE_CD":
+			case "ALN_CD":
 				return StringUtils.trimToEmpty(raw.getAtrbCdNm());
 			case "PSG_DTL_SE_CD":
 			case "FCLTY_DTL_CD":
@@ -968,6 +1008,14 @@ public class CastConfigServiceImpl implements CastConfigService {
 				return StringUtils.trimToEmpty(raw.getSwtcFncId());
 			case "VRFC_FNC_ID":
 				return StringUtils.trimToEmpty(raw.getVrfcFncId());
+			case "CKNCT_RT":
+				return StringUtils.trimToEmpty(raw.getCknctRt());
+			case "KOS_RT":
+				return StringUtils.trimToEmpty(raw.getKosRt());
+			case "MOB_RT":
+				return StringUtils.trimToEmpty(raw.getMobRt());
+			case "SRVC_HR":
+				return StringUtils.trimToEmpty(raw.getSrvcHr());
 			default:
 				return "";
 		}
@@ -985,6 +1033,52 @@ public class CastConfigServiceImpl implements CastConfigService {
 		}
 
 		return result;
+	}
+
+	private List<String> toValueList(CastConfigAtrbRawDto row, List<String> valueColumnList) {
+		List<String> result = new ArrayList<>();
+
+		for (String physicalColumn : valueColumnList) {
+			result.add(StringUtils.trimToEmpty(toCellValue(row, physicalColumn)));
+		}
+
+		return result;
+	}
+
+	private List<String> blankValueList(int size) {
+		List<String> result = new ArrayList<>();
+
+		for (int index = 0; index < size; index++) {
+			result.add("");
+		}
+
+		return result;
+	}
+
+	private List<String> toValueLabelList(CastConfigSheet sheet, List<String> valueColumnList) {
+		List<String> result = new ArrayList<>();
+
+		for (String physicalColumn : valueColumnList) {
+			CastConfigColumnDef column = findColumnByPhysical(sheet, physicalColumn);
+			result.add(column == null ? physicalColumn : column.getLabel());
+		}
+
+		return result;
+	}
+
+	// 주간 파이프라인이 999 를 갈아 끼우는 동안 이 행을 잡고 있다. 무한 대기하면 요청
+	// 스레드가 그대로 묶여 FOR UPDATE WAIT 3 으로 끊는다.
+	// 대기 초과 예외 타입은 Tibero 드라이버 확정 전이다 — 안 걸리면 DataAccessException 으로 넓힌다.
+	private PreProcessLock lockPreProcessCategory() {
+		try {
+			return new PreProcessLock(
+					castConfigMapper.retrieveCategoryForUpdate(PRE_PRCS_FIX_ATRB_GROUP_ID),
+					false
+			);
+		} catch (CannotAcquireLockException e) {
+			// 락 획득 전이라 쓴 것이 없다. 롤백 표시 없이 안내로 돌려보낸다
+			return new PreProcessLock(null, true);
+		}
 	}
 
 	private CastConfigCategoryDto findPreProcessCategory() {
@@ -1030,6 +1124,17 @@ public class CastConfigServiceImpl implements CastConfigService {
 
 	private String formatDecimal(BigDecimal value) {
 		return value == null ? "" : value.stripTrailingZeros().toPlainString();
+	}
+
+	@Getter
+	private static class PreProcessLock {
+		private final CastConfigCategoryDto category;
+		private final boolean busy;
+
+		PreProcessLock(CastConfigCategoryDto category, boolean busy) {
+			this.category = category;
+			this.busy = busy;
+		}
 	}
 
 	@Getter

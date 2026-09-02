@@ -18,6 +18,22 @@
 --   3) TN_PM_DATA_PRCS_MSTR 의 실제 컬럼 (step5_save.py 가 실행 이력을 남긴다)
 --      SELECT COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS
 --       WHERE OWNER='PMOWN' AND TABLE_NAME='TN_PM_DATA_PRCS_MSTR' ORDER BY COLUMN_ID;
+--   4) 체크인유형 시트가 읽는 TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC 의 실재와 컬럼명
+--      SELECT COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS
+--       WHERE OWNER='PMOWN' AND TABLE_NAME='TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC' ORDER BY COLUMN_ID;
+--      cast-ddl.sql 에는 _PRC 접미 없는 TN_PM_SMLT_CKNCT_TYPE_ATRB 만 있다.
+--      비율 컬럼이 MOB_RT/MOB_VL 인지 MOBL_RT/MOBL_VL 인지도 여기서 갈린다 —
+--      cast-ddl.sql:1118 주석이 "원본은 MOB였음. 표준단어 '모바일'(MOBL)로 치환" 이라
+--      실 스키마는 파이프라인·화면이 쓰는 MOB_* 로 보이지만 확정이 필요하다.
+--      다르면 CastConfigMapper.retrieveCknctTypeAtrbList 와
+--      CastConfigSheet.CKNCT_TYPE_ATRB 의 컬럼명만 바꾼다.
+--      LAST_MDFR_ID/LAST_MDFR_IP_ADDR/LAST_MDFCN_DT 도 함께 본다 —
+--      copyFromGroup·updateAtrbValue 가 이 셋을 SET 한다. 파이프라인은 FRST_RGTR_* 만 쓴다.
+--   5) 위 테이블에 CKNCT_TYPE_ATRB_ID = '001' 행이 있는가
+--      SELECT CKNCT_TYPE_ATRB_ID, COUNT(*) FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC
+--       GROUP BY CKNCT_TYPE_ATRB_ID ORDER BY 1;
+--      001 이 없으면 copyFromGroup 이 갱신할 대상 행이 없어 반영이 0행으로 끝난다.
+--      999 가 이미 다른 용도로 쓰이고 있지도 않아야 한다 — 파이프라인이 매주 전량 교체한다.
 -- =====================================================================================
 
 -- -------------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { formatCount } from '@/lib/format';
 import type { PreProcessDiff, PreProcessRow } from '../types';
@@ -12,16 +12,21 @@ interface PreProcessApplyModalProps {
 }
 
 const PAGE_SIZE = 10;
-const TBL_COLS = '44px 2fr 2fr 1fr 1fr 1fr';
+const FIXED_COLS = '44px 2fr 2fr';
+const VALUE_COLS = '1fr 1fr';
 
-function toDelta(row: PreProcessRow): string {
-    const base = Number(row.baseValue);
-    const next = Number(row.preValue);
+function toColumnTemplate(columnCount: number): string {
+    return [FIXED_COLS, ...Array.from({ length: columnCount }, () => VALUE_COLS)].join(' ');
+}
 
-    if (!Number.isFinite(base) || !Number.isFinite(next)) return row.changed ? '변경' : '-';
+function toDelta(row: PreProcessRow, index: number): string {
+    const base = Number(row.baseValues[index]);
+    const next = Number(row.preValues[index]);
+
+    if (!Number.isFinite(base) || !Number.isFinite(next)) return row.changed ? '변경' : '';
 
     const delta = next - base;
-    if (delta === 0) return '-';
+    if (delta === 0) return '';
 
     return delta > 0 ? `+${delta}` : String(delta);
 }
@@ -33,6 +38,7 @@ export function PreProcessApplyModal({ diff, applying, onApply, onClose }: PrePr
 
     const visibleRows = useMemo(() => (showAll ? diff.rows : diff.rows.filter((row) => row.changed)), [diff.rows, showAll]);
     const applicableRows = useMemo(() => visibleRows.filter((row) => row.matched), [visibleRows]);
+    const columnTemplate = useMemo(() => toColumnTemplate(diff.valueLabels.length), [diff.valueLabels.length]);
 
     const totalPages = Math.max(1, Math.ceil(visibleRows.length / PAGE_SIZE));
     const currentPage = Math.min(page, totalPages);
@@ -90,16 +96,19 @@ export function PreProcessApplyModal({ diff, applying, onApply, onClose }: PrePr
                         </label>
                     </div>
 
-                    <div className="cast-config-category-table" style={{ '--cat-cols': TBL_COLS } as CSSProperties}>
+                    <div className="cast-config-category-table" style={{ '--cat-cols': columnTemplate } as CSSProperties}>
                         <div className="cast-config-category-table__head">
                             <div>
                                 <input type="checkbox" aria-label="전체 선택" checked={allSelected} disabled={applicableRows.length === 0} onChange={toggleAll} />
                             </div>
                             <div>속성</div>
                             <div>상세</div>
-                            <div>현재</div>
-                            <div>전처리</div>
-                            <div>변화</div>
+                            {diff.valueLabels.map((label) => (
+                                <Fragment key={label}>
+                                    <div>{label} 현재</div>
+                                    <div>{label} 전처리</div>
+                                </Fragment>
+                            ))}
                         </div>
 
                         {pageRows.map((row) => (
@@ -115,9 +124,15 @@ export function PreProcessApplyModal({ diff, applying, onApply, onClose }: PrePr
                                 </div>
                                 <div>{row.attribute}</div>
                                 <div>{row.detail}</div>
-                                <div>{row.baseValue}</div>
-                                <div>{row.matched ? row.preValue : '없음'}</div>
-                                <div className="cast-config-pre-prcs-delta">{row.matched ? toDelta(row) : '-'}</div>
+                                {diff.valueLabels.map((label, index) => (
+                                    <Fragment key={label}>
+                                        <div>{row.baseValues[index] ?? ''}</div>
+                                        <div>
+                                            {row.matched ? (row.preValues[index] ?? '') : '없음'}
+                                            {row.matched && <span className="cast-config-pre-prcs-delta"> {toDelta(row, index)}</span>}
+                                        </div>
+                                    </Fragment>
+                                ))}
                             </div>
                         ))}
 

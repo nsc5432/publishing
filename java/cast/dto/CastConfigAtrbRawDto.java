@@ -22,6 +22,10 @@ public class CastConfigAtrbRawDto {
 	private String atrbCdNm;
 	private String dtlSeCdNm;
 	private String catalogVlType;
+	private String cknctRt;
+	private String kosRt;
+	private String mobRt;
+	private String srvcHr;
 	private String cndTypeCd;
 	private String cndVl;
 	private String prePrcsYn;

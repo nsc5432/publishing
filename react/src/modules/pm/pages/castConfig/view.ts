@@ -125,14 +125,14 @@ export function toCastConfigCategories(dto: CastConfigCategoryListDto): Category
 export function toPreProcessDiff(dto: CastConfigPreProcessDiffDto): PreProcessDiff {
     return {
         sheetName: dto.sheetNm,
-        valueLabel: dto.valueLabel,
+        valueLabels: dto.valueLabelList,
         changedCount: dto.changedCnt,
         rows: dto.rowList.map((row) => ({
             rowNo: row.rowNo,
             attribute: row.atrbCdNm || row.atrbCd,
             detail: row.dtlSeCdNm || row.dtlSeCd,
-            baseValue: row.baseVl,
-            preValue: row.preVl,
+            baseValues: row.baseVlList,
+            preValues: row.preVlList,
             changed: row.changedYn === 'Y',
             matched: row.matchedYn === 'Y',
         })),
@@ -267,7 +267,7 @@ export const EMPTY_CAST_CONFIG_CATEGORIES: Category[] = [];
 
 export const EMPTY_PRE_PROCESS_DIFF: PreProcessDiff = {
     sheetName: '',
-    valueLabel: '',
+    valueLabels: [],
     changedCount: 0,
     rows: [],
     preProcessName: '',

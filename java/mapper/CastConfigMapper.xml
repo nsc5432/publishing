@@ -34,7 +34,7 @@
         FROM PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP A
         WHERE A.FIX_ATRB_GROUP_ID = #{fixAtrbGroupId}
         AND NVL(A.DEL_YN, 'N') = 'N'
-        FOR UPDATE
+        FOR UPDATE WAIT 3
     </select>
 
     <select id="retrieveCategoryCnt" resultType="int">
@@ -137,6 +137,25 @@
         ORDER BY A.FCLTY_SE_CD, A.FCLTY_DTL_CD
     </select>
 
+    <select id="retrieveCknctTypeAtrbList" resultType="aoms.pm.cast.dto.CastConfigAtrbRawDto">
+        /* CastConfigMapper.retrieveCknctTypeAtrbList */
+        <!-- 전 행이 파이프라인 산출물이라 카탈로그 조인도 PRE_PRCS_YN 플래그도 없다 -->
+        SELECT
+            A.ALN_CD AS ATRB_CD,
+            ' ' AS DTL_SE_CD,
+            NVL(TO_CHAR(A.CKNCT_RT), ' ') AS CKNCT_RT,
+            NVL(TO_CHAR(A.KOS_RT), ' ')   AS KOS_RT,
+            NVL(TO_CHAR(A.MOB_RT), ' ')   AS MOB_RT,
+            NVL(TO_CHAR(A.SRVC_HR), ' ')  AS SRVC_HR,
+            A.ALN_CD AS ATRB_CD_NM,
+            ' ' AS DTL_SE_CD_NM,
+            'Number' AS CATALOG_VL_TYPE,
+            'Y' AS PRE_PRCS_YN
+        FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC A
+        WHERE A.CKNCT_TYPE_ATRB_ID = #{fixAtrbGroupId}
+        ORDER BY A.ALN_CD
+    </select>
+
     <update id="updateAtrbValue">
         /* CastConfigMapper.updateAtrbValue */
         <!-- 문자·숫자 컬럼이 같은 문장을 쓴다. 바인딩 타입은 호출하는 쪽이 정한다 -->
@@ -146,9 +165,11 @@
             LAST_MDFR_IP_ADDR = #{loginIpAddr},
             LAST_MDFCN_DT = CURRENT_TIMESTAMP
         WHERE 1 = 1
-        AND FIX_ATRB_GROUP_ID = #{fixAtrbGroupId}
+        AND ${groupColumnNm} = #{fixAtrbGroupId}
         AND ${keyColumnNm} = #{keyCd}
+        <if test="dtlColumnNm != null and dtlColumnNm != ''">
         AND ${dtlColumnNm} = #{dtlSeCd}
+        </if>
     </update>
 
     <update id="copyFromGroup">
@@ -159,33 +180,41 @@
             A.${columnNm} = (
                 SELECT B.${columnNm}
                 FROM PMOWN.${tableNm} B
-                WHERE B.FIX_ATRB_GROUP_ID = #{srcFixAtrbGroupId}
+                WHERE B.${groupColumnNm} = #{srcFixAtrbGroupId}
                 AND B.${keyColumnNm} = A.${keyColumnNm}
+                <if test="dtlColumnNm != null and dtlColumnNm != ''">
                 AND B.${dtlColumnNm} = A.${dtlColumnNm}
+                </if>
             )
         </foreach>,
             A.LAST_MDFR_ID = #{loginUserId},
             A.LAST_MDFR_IP_ADDR = #{loginIpAddr},
             A.LAST_MDFCN_DT = CURRENT_TIMESTAMP
         WHERE 1 = 1
-        AND A.FIX_ATRB_GROUP_ID = #{fixAtrbGroupId}
+        AND A.${groupColumnNm} = #{fixAtrbGroupId}
         AND A.${keyColumnNm} = #{keyCd}
+        <if test="dtlColumnNm != null and dtlColumnNm != ''">
         AND A.${dtlColumnNm} = #{dtlSeCd}
+        </if>
         AND EXISTS (
             SELECT 1
             FROM PMOWN.${tableNm} B
-            WHERE B.FIX_ATRB_GROUP_ID = #{srcFixAtrbGroupId}
+            WHERE B.${groupColumnNm} = #{srcFixAtrbGroupId}
             AND B.${keyColumnNm} = A.${keyColumnNm}
+            <if test="dtlColumnNm != null and dtlColumnNm != ''">
             AND B.${dtlColumnNm} = A.${dtlColumnNm}
+            </if>
         )
     </update>
 
     <insert id="insertFromBaseGroup">
         /* CastConfigMapper.insertFromBaseGroup */
         INSERT INTO PMOWN.${tableNm} (
-            FIX_ATRB_GROUP_ID,
+            ${groupColumnNm},
             ${keyColumnNm},
+            <if test="dtlColumnNm != null and dtlColumnNm != ''">
             ${dtlColumnNm},
+            </if>
             <foreach collection="valueColumnList" item="columnNm" separator=",">
                 ${columnNm}
             </foreach>,
@@ -196,7 +225,9 @@
         SELECT
             #{fixAtrbGroupId},
             A.${keyColumnNm},
+            <if test="dtlColumnNm != null and dtlColumnNm != ''">
             A.${dtlColumnNm},
+            </if>
             <foreach collection="valueColumnList" item="columnNm" separator=",">
                 A.${columnNm}
             </foreach>,
@@ -205,7 +236,7 @@
             CURRENT_TIMESTAMP
         FROM PMOWN.${tableNm} A
         WHERE 1 = 1
-        AND A.FIX_ATRB_GROUP_ID = '001'
+        AND A.${groupColumnNm} = '001'
     </insert>
 
     <select id="retrieveAplyHstrySn" resultType="long">
@@ -257,12 +288,16 @@
                 TO_CHAR(T.${columnNm}),
                 TO_CHAR(S.${columnNm})
             FROM PMOWN.${tableNm} T, PMOWN.${tableNm} S
-            WHERE T.FIX_ATRB_GROUP_ID = #{tgtFixAtrbGroupId}
+            WHERE T.${groupColumnNm} = #{tgtFixAtrbGroupId}
             AND T.${keyColumnNm} = #{keyCd}
+            <if test="dtlColumnNm != null and dtlColumnNm != ''">
             AND T.${dtlColumnNm} = #{dtlSeCd}
-            AND S.FIX_ATRB_GROUP_ID = #{srcFixAtrbGroupId}
+            </if>
+            AND S.${groupColumnNm} = #{srcFixAtrbGroupId}
             AND S.${keyColumnNm} = #{keyCd}
+            <if test="dtlColumnNm != null and dtlColumnNm != ''">
             AND S.${dtlColumnNm} = #{dtlSeCd}
+            </if>
         </foreach>
     </insert>
 

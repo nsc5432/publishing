@@ -40,15 +40,15 @@ export interface PreProcessRow {
     rowNo: number;
     attribute: string;
     detail: string;
-    baseValue: string;
-    preValue: string;
+    baseValues: string[];
+    preValues: string[];
     changed: boolean;
     matched: boolean;
 }
 
 export interface PreProcessDiff {
     sheetName: string;
-    valueLabel: string;
+    valueLabels: string[];
     changedCount: number;
     rows: PreProcessRow[];
     preProcessName: string;

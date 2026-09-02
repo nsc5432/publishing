@@ -14,39 +14,59 @@ public enum CastConfigSheet {
 	PSG_ATRB(
 			"여객유형속성",
 			"TN_PM_SMLT_PSG_ATRB",
+			"FIX_ATRB_GROUP_ID",
 			"PSG_ATRB_CD",
 			"PSG_DTL_SE_CD",
 			psgColumns(),
 			"",
 			validation("SUM", "입력값", "제출속성코드", 100),
 			CastConfigCatalogKind.PSG_FIX,
-			CastConfigTerminalRule.PSG_PARENT
+			CastConfigTerminalRule.PSG_PARENT,
+			List.of("INPT_VL")
 	),
 	SHOW_UP_ATRB(
 			"출현속성",
 			"TN_PM_SMLT_SHOW_UP_ATRB",
+			"FIX_ATRB_GROUP_ID",
 			"PSG_ATRB_CD",
 			"PSG_DTL_SE_CD",
 			psgColumns(),
 			"",
 			null,
 			CastConfigCatalogKind.PSG_FIX,
-			CastConfigTerminalRule.PSG_PARENT
+			CastConfigTerminalRule.PSG_PARENT,
+			List.of("INPT_VL")
 	),
 	SRVC_ATRB(
 			"서비스속성",
 			"TN_PM_SMLT_SRVC_ATRB",
+			"FIX_ATRB_GROUP_ID",
 			"FCLTY_SE_CD",
 			"FCLTY_DTL_CD",
 			srvcColumns(),
 			"전환함수아이디",
 			null,
 			CastConfigCatalogKind.PSG_SRVC,
-			CastConfigTerminalRule.SRVC
+			CastConfigTerminalRule.SRVC,
+			List.of()
+	),
+	CKNCT_TYPE_ATRB(
+			"체크인유형",
+			"TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC",
+			"CKNCT_TYPE_ATRB_ID",
+			"ALN_CD",
+			"",
+			cknctTypeColumns(),
+			"",
+			null,
+			CastConfigCatalogKind.CKNCT_TYPE,
+			CastConfigTerminalRule.NONE,
+			List.of("CKNCT_RT", "KOS_RT", "MOB_RT")
 	);
 
 	private final String sheetNm;
 	private final String tableNm;
+	private final String groupColumnNm;
 	private final String keyColumnNm;
 	private final String dtlColumnNm;
 	private final List<CastConfigColumnDef> columnList;
@@ -54,20 +74,25 @@ public enum CastConfigSheet {
 	private final CastConfigValidationDto validation;
 	private final CastConfigCatalogKind catalogKind;
 	private final CastConfigTerminalRule terminalRule;
+	/** 999→001 반영이 다루는 값 컬럼. 파이프라인이 채우지 않는 열을 넣으면 999 의 NULL 이 기준정보를 비운다 */
+	private final List<String> prePrcsValueColumnList;
 
 	CastConfigSheet(
 			String sheetNm,
 			String tableNm,
+			String groupColumnNm,
 			String keyColumnNm,
 			String dtlColumnNm,
 			List<CastConfigColumnDef> columnList,
 			String shapeColumn,
 			CastConfigValidationDto validation,
 			CastConfigCatalogKind catalogKind,
-			CastConfigTerminalRule terminalRule
+			CastConfigTerminalRule terminalRule,
+			List<String> prePrcsValueColumnList
 	) {
 		this.sheetNm = sheetNm;
 		this.tableNm = tableNm;
+		this.groupColumnNm = groupColumnNm;
 		this.keyColumnNm = keyColumnNm;
 		this.dtlColumnNm = dtlColumnNm;
 		this.columnList = Collections.unmodifiableList(columnList);
@@ -75,6 +100,7 @@ public enum CastConfigSheet {
 		this.validation = validation;
 		this.catalogKind = catalogKind;
 		this.terminalRule = terminalRule;
+		this.prePrcsValueColumnList = Collections.unmodifiableList(prePrcsValueColumnList);
 	}
 
 	public CastConfigColumnDef getColumn(String column) {
@@ -121,6 +147,17 @@ public enum CastConfigSheet {
 				column("분포최대값", CastConfigColumnType.NUMBER, "DSTB_MAX_VL", true, false),
 				column("값유형", CastConfigColumnType.SELECT, "VL_TYPE", true, false),
 				column("검증함수아이디", CastConfigColumnType.SELECT, "VRFC_FNC_ID", true, false)
+		);
+	}
+
+	private static List<CastConfigColumnDef> cknctTypeColumns() {
+		// CKNCT_VL/KOS_VL/MOB_VL 은 Counter/Kiosk/Mobile 고정 라벨이라 화면에 내지 않는다
+		return List.of(
+				column("항공사코드", CastConfigColumnType.READONLY, "ALN_CD", false, true),
+				column("카운터비율", CastConfigColumnType.NUMBER, "CKNCT_RT", true, false),
+				column("키오스크비율", CastConfigColumnType.NUMBER, "KOS_RT", true, false),
+				column("모바일비율", CastConfigColumnType.NUMBER, "MOB_RT", true, false),
+				column("서비스시간", CastConfigColumnType.NUMBER, "SRVC_HR", true, false)
 		);
 	}
 

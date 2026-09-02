@@ -791,16 +791,16 @@ export interface CastConfigPreProcessRowDto {
     dtlSeCd: string;
     atrbCdNm: string;
     dtlSeCdNm: string;
-    baseVl: string; // 기준정보(001) 현재 값
-    preVl: string; // 전처리 결과(999) 값
+    baseVlList: string[]; // 기준정보(001) 현재 값. diff 의 valueColumnList 와 같은 순서·길이
+    preVlList: string[]; // 전처리 결과(999) 값
     changedYn: YnFlag;
     matchedYn: YnFlag; // N = 전처리 결과에 대응 행이 없다
 }
 
 export interface CastConfigPreProcessDiffDto extends JsonResponse {
     sheetNm: string;
-    valueColumn: string;
-    valueLabel: string;
+    valueColumnList: string[]; // 시트마다 개수가 다르다 — 체크인유형은 비율 3열
+    valueLabelList: string[];
     changedCnt: number;
     rowList: CastConfigPreProcessRowDto[];
     preProcessNm: string; // '전처리 결과 (260212-260218)'

@@ -36,11 +36,14 @@ public interface CastConfigMapper {
 			@Param("fcltySeCdList") List<String> fcltySeCdList
 	);
 
+	List<CastConfigAtrbRawDto> retrieveCknctTypeAtrbList(@Param("fixAtrbGroupId") String fixAtrbGroupId);
+
 	/** value 는 대상 컬럼 타입에 맞춰 String 또는 BigDecimal 로 넘긴다. */
 	int updateAtrbValue(
 			@Param("tableNm") String tableNm,
 			@Param("columnNm") String columnNm,
 			@Param("value") Object value,
+			@Param("groupColumnNm") String groupColumnNm,
 			@Param("fixAtrbGroupId") String fixAtrbGroupId,
 			@Param("keyCd") String keyCd,
 			@Param("dtlSeCd") String dtlSeCd,
@@ -53,6 +56,7 @@ public interface CastConfigMapper {
 	int copyFromGroup(
 			@Param("tableNm") String tableNm,
 			@Param("valueColumnList") List<String> valueColumnList,
+			@Param("groupColumnNm") String groupColumnNm,
 			@Param("srcFixAtrbGroupId") String srcFixAtrbGroupId,
 			@Param("fixAtrbGroupId") String fixAtrbGroupId,
 			@Param("keyCd") String keyCd,
@@ -66,6 +70,7 @@ public interface CastConfigMapper {
 	int insertFromBaseGroup(
 			@Param("tableNm") String tableNm,
 			@Param("valueColumnList") List<String> valueColumnList,
+			@Param("groupColumnNm") String groupColumnNm,
 			@Param("fixAtrbGroupId") String fixAtrbGroupId,
 			@Param("keyColumnNm") String keyColumnNm,
 			@Param("dtlColumnNm") String dtlColumnNm,
@@ -81,6 +86,7 @@ public interface CastConfigMapper {
 			@Param("aplySn") long aplySn,
 			@Param("tableNm") String tableNm,
 			@Param("valueColumnList") List<String> valueColumnList,
+			@Param("groupColumnNm") String groupColumnNm,
 			@Param("srcFixAtrbGroupId") String srcFixAtrbGroupId,
 			@Param("tgtFixAtrbGroupId") String tgtFixAtrbGroupId,
 			@Param("keyCd") String keyCd,

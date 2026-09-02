@@ -2,5 +2,6 @@ package aoms.pm.cast.enums;
 
 public enum CastConfigCatalogKind {
 	PSG_FIX,
-	PSG_SRVC
+	PSG_SRVC,
+	CKNCT_TYPE
 }

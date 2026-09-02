@@ -1,5 +1,8 @@
 package aoms.pm.cast.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,8 +15,9 @@ public class CastConfigPreProcessRowDto {
 	private String dtlSeCd;
 	private String atrbCdNm;
 	private String dtlSeCdNm;
-	private String baseVl;
-	private String preVl;
+	/** 두 목록 모두 diff 의 valueColumnList 와 같은 순서·길이다 */
+	private List<String> baseVlList = new ArrayList<>();
+	private List<String> preVlList = new ArrayList<>();
 	private String changedYn;
 	/** N = 전처리 결과에 대응 행이 없다 (적용 대상에서 뺀다) */
 	private String matchedYn;
