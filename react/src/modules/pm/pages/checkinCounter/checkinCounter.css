@@ -621,6 +621,11 @@ html[data-page='checkinCounter'] .tbl td {
     white-space: nowrap;
 }
 
+html[data-page='checkinCounter'] .tbl tbody td:nth-child(10) {
+    white-space: normal;
+    text-wrap: pretty;
+}
+
 html[data-page='checkinCounter'] .tbl thead th {
     position: sticky;
     top: 0;
