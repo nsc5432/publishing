@@ -70,10 +70,24 @@ export const castConfigService = {
         return response.data;
     },
 
-    applyPreProcess: async (tmnlId: TmnlId, groupId: string, sheetNm: string, rowNoList: number[]): Promise<JsonResponse> => {
-        if (USE_MOCK) return mockResponse(castConfigMock.applyPreProcess(tmnlId, groupId, sheetNm, rowNoList), { loading: true });
+    applyPreProcess: async (
+        tmnlId: TmnlId,
+        groupId: string,
+        sheetNm: string,
+        preProcessDt: string,
+        rowNoList: number[],
+    ): Promise<JsonResponse> => {
+        if (USE_MOCK) {
+            return mockResponse(castConfigMock.applyPreProcess(tmnlId, groupId, sheetNm, preProcessDt, rowNoList), {
+                loading: true,
+            });
+        }
 
-        const response = await apiClient.post<JsonResponse>(API_ENDPOINTS.CAST_CONFIG_PRE_PRCS_APPLY, { tmnlId, groupId, sheetNm, rowNoList }, LOADING);
+        const response = await apiClient.post<JsonResponse>(
+            API_ENDPOINTS.CAST_CONFIG_PRE_PRCS_APPLY,
+            { tmnlId, groupId, sheetNm, preProcessDt, rowNoList },
+            LOADING,
+        );
         return response.data;
     },
 

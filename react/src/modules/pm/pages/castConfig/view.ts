@@ -138,6 +138,7 @@ export function toPreProcessDiff(dto: CastConfigPreProcessDiffDto): PreProcessDi
         })),
         preProcessName: dto.preProcessNm,
         preProcessAt: formatDateTime(dto.preProcessDt),
+        preProcessDt: dto.preProcessDt,
     };
 }
 
@@ -147,6 +148,7 @@ export function toApplyHistories(dto: CastConfigAplyHstryListDto): ApplyHistory[
         sheetName: hstry.sheetNm,
         rowCount: hstry.aplyRowCnt,
         canceled: hstry.cnclYn === 'Y',
+        revertable: hstry.revertableYn === 'Y',
         appliedAt: formatDateTime(hstry.frstRegDt),
         appliedBy: hstry.frstRgtrId,
     }));
@@ -270,6 +272,7 @@ export const EMPTY_PRE_PROCESS_DIFF: PreProcessDiff = {
     rows: [],
     preProcessName: '',
     preProcessAt: '',
+    preProcessDt: '',
 };
 
 export const EMPTY_APPLY_HISTORIES: ApplyHistory[] = [];

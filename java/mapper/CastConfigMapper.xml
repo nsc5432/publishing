@@ -25,6 +25,18 @@
             A.FIX_ATRB_GROUP_ID
     </select>
 
+    <select id="retrieveCategoryForUpdate" resultType="aoms.pm.cast.dto.CastConfigCategoryDto">
+        /* CastConfigMapper.retrieveCategoryForUpdate */
+        SELECT
+            A.FIX_ATRB_GROUP_ID AS FIX_ATRB_GROUP_ID,
+            NVL(A.ATRB_GROUP_NM, ' ') AS ATRB_GROUP_NM,
+            NVL(TO_CHAR(A.LAST_MDFCN_DT, 'YYYYMMDDHH24MISS'), ' ') AS LAST_MDFCN_DT
+        FROM PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP A
+        WHERE A.FIX_ATRB_GROUP_ID = #{fixAtrbGroupId}
+        AND NVL(A.DEL_YN, 'N') = 'N'
+        FOR UPDATE
+    </select>
+
     <select id="retrieveCategoryCnt" resultType="int">
         /* CastConfigMapper.retrieveCategoryCnt */
         SELECT COUNT(*)
@@ -265,6 +277,19 @@
             NVL(A.SHEET_NM, ' ') AS SHEET_NM,
             NVL(A.APLY_ROW_CNT, 0) AS APLY_ROW_CNT,
             NVL(A.CNCL_YN, 'N') AS CNCL_YN,
+            CASE
+                WHEN NVL(A.CNCL_YN, 'N') = 'N'
+                 AND NOT EXISTS (
+                    SELECT 1
+                    FROM PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY N
+                    WHERE N.TGT_FIX_ATRB_GROUP_ID = A.TGT_FIX_ATRB_GROUP_ID
+                    AND NVL(N.TMNL_ID, ' ') = NVL(A.TMNL_ID, ' ')
+                    AND N.TBL_NM = A.TBL_NM
+                    AND NVL(N.CNCL_YN, 'N') = 'N'
+                    AND N.APLY_SN > A.APLY_SN
+                 ) THEN 'Y'
+                ELSE 'N'
+            END AS REVERTABLE_YN,
             NVL(TO_CHAR(A.FRST_REG_DT, 'YYYYMMDDHH24MISS'), ' ') AS FRST_REG_DT,
             NVL(A.FRST_RGTR_ID, ' ') AS FRST_RGTR_ID
         FROM PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY A
@@ -313,12 +338,20 @@
 
     <update id="updateAplyHstryCancel">
         /* CastConfigMapper.updateAplyHstryCancel */
-        <!-- 이전 상태를 조건에 걸어 두 경로가 겹쳐도 한 번만 취소된다 -->
-        UPDATE PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY
+        UPDATE PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY A
         SET CNCL_YN = 'Y',
             CNCL_DT = CURRENT_TIMESTAMP,
             CNCL_RGTR_ID = #{loginUserId}
-        WHERE APLY_SN = #{aplySn}
-        AND CNCL_YN = 'N'
+        WHERE A.APLY_SN = #{aplySn}
+        AND A.CNCL_YN = 'N'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY N
+            WHERE N.TGT_FIX_ATRB_GROUP_ID = A.TGT_FIX_ATRB_GROUP_ID
+            AND NVL(N.TMNL_ID, ' ') = NVL(A.TMNL_ID, ' ')
+            AND N.TBL_NM = A.TBL_NM
+            AND NVL(N.CNCL_YN, 'N') = 'N'
+            AND N.APLY_SN > A.APLY_SN
+        )
     </update>
 </mapper>

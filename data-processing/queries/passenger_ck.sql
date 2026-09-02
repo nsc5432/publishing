@@ -1,0 +1,22 @@
+-- 체크인카운터 개별 승객 태깅 시간 조회
+SELECT
+    FLTSH_ID,
+    CHKN_SN,
+    ALN_CD || FLTNM AS DDLN_FLTNM,
+    BDPS_ISSU_YMD AS YMD,
+    BDPS_ISSU_HR AS HM,
+    CASE
+        WHEN TMNL_SE_CD IN ('P01', 'P02')
+        THEN 'T1'
+        ELSE 'T2'
+    END AS TMNL_ID,
+    CASE
+        WHEN CHKN_SE_CD = 'CK' THEN SUBSTR(CHKN_ISTR_NO, -4 , 1)
+        ELSE SUBSTR(CHKN_ISTR_NO, -3 , 1)
+    END AS 	CHECKED_ISLAND,
+    CHKN_ISTR_NO,
+    CHKN_SE_CD
+FROM PMOWN.TN_PM_BDPS_ISSU_INFO
+WHERE CHKN_SE_CD IN ('CK', 'SCI')
+AND FLTSH_ID IN ({placeholders})
+ORDER BY DDLN_FLTNM, HM

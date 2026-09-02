@@ -817,6 +817,7 @@ export interface CastConfigAplyHstryDto {
     sheetNm: string;
     aplyRowCnt: number;
     cnclYn: YnFlag; // Y = 되돌림
+    revertableYn: YnFlag;
     frstRegDt: string;
     frstRgtrId: string;
 }

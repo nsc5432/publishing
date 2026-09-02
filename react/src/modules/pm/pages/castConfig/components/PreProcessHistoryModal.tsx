@@ -56,7 +56,7 @@ export function PreProcessHistoryModal({ histories, reverting, onRevert, onClose
                                     <button
                                         type="button"
                                         className="cast-config-ghost-button is-compact"
-                                        disabled={history.canceled || reverting}
+                                        disabled={!history.revertable || reverting}
                                         onClick={() => onRevert(history.sn)}
                                     >
                                         되돌리기

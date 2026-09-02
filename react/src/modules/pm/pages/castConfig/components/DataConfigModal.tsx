@@ -73,7 +73,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
     const currentCategory: Category | null = categories.find((category) => category.code === categoryCode) ?? categories[0] ?? null;
     const isBase = currentCategory?.isBase ?? false;
     const isPreProcess = currentCategory?.isPreProcess ?? false;
-    // 기준정보와 전처리 결과는 셀을 직접 고칠 수 없다. 기준정보는 전처리 반영으로만 바뀐다.
     const readOnly = isBase || isPreProcess || currentCategory === null;
 
     const activeSheet = group.datasets[activeTab]?.sheetName ?? '';
@@ -277,7 +276,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
 
                 setSaving(true);
                 castConfigService
-                    .applyPreProcess(terminal, group.id, dataset.sheetName, rowNoList)
+                    .applyPreProcess(terminal, group.id, dataset.sheetName, diff.preProcessDt, rowNoList)
                     .then((dto) => unwrap(dto, '전처리 결과를 반영하지 못했습니다.'))
                     .then(() => {
                         setSaving(false);
@@ -516,7 +515,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
 
             {layer === 'preProcess' && (
                 <PreProcessApplyModal
-                    // 조회가 끝난 뒤 다시 마운트돼야 변경 행 기본 선택이 걸린다
                     key={`${dataset.sheetName}-${fetchedDiff.token}`}
                     diff={fetchedDiff.data}
                     applying={saving}

@@ -17,5 +17,6 @@ public class CastConfigPreProcessApplyDto extends AomsDefaultDto {
 	private TerminalKind tmnlId;
 	private String groupId;
 	private String sheetNm;
+	private String preProcessDt;
 	private List<Integer> rowNoList = new ArrayList<>();
 }

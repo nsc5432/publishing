@@ -53,6 +53,7 @@ export interface PreProcessDiff {
     rows: PreProcessRow[];
     preProcessName: string;
     preProcessAt: string;
+    preProcessDt: string;
 }
 
 export interface ApplyHistory {
@@ -60,6 +61,7 @@ export interface ApplyHistory {
     sheetName: string;
     rowCount: number;
     canceled: boolean;
+    revertable: boolean;
     appliedAt: string;
     appliedBy: string;
 }

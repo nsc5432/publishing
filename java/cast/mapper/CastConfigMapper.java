@@ -18,6 +18,8 @@ public interface CastConfigMapper {
 			@Param("prePrcsFixAtrbGroupId") String prePrcsFixAtrbGroupId
 	);
 
+	CastConfigCategoryDto retrieveCategoryForUpdate(@Param("fixAtrbGroupId") String fixAtrbGroupId);
+
 	int retrieveCategoryCnt(@Param("fixAtrbGroupId") String fixAtrbGroupId);
 
 	int insertCategory(CastConfigCategorySaveDto saveDto);
@@ -48,7 +50,6 @@ public interface CastConfigMapper {
 			@Param("loginIpAddr") String loginIpAddr
 	);
 
-	/** srcFixAtrbGroupId 의 같은 코드 행 값을 fixAtrbGroupId 로 덮는다. */
 	int copyFromGroup(
 			@Param("tableNm") String tableNm,
 			@Param("valueColumnList") List<String> valueColumnList,
@@ -76,7 +77,6 @@ public interface CastConfigMapper {
 
 	int insertAplyHstry(CastConfigAplyHstryDto hstryDto);
 
-	/** 적용 직전 대상 값과 적용될 원본 값을 값 컬럼마다 한 행씩 남긴다. */
 	int insertAplyHstryDtl(
 			@Param("aplySn") long aplySn,
 			@Param("tableNm") String tableNm,

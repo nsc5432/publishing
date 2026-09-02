@@ -10,7 +10,6 @@ public enum CongestionStatus {
 	BUSY("BUSY"),
 	VERY_BUSY("VERY_BUSY");
 
-    // TODO
 	// 아직 DB 등급표로 전환하지 않은 화면의 호환 경계값이다.
 	private static final int FREE_MAX_WTNG_PSG_CNT = 80;
 	private static final int NORMAL_MAX_WTNG_PSG_CNT = 220;

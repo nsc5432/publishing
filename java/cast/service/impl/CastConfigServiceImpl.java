@@ -62,7 +62,6 @@ import lombok.RequiredArgsConstructor;
 @Transactional(rollbackFor = Exception.class)
 public class CastConfigServiceImpl implements CastConfigService {
 	private static final String BASE_FIX_ATRB_GROUP_ID = "001";
-	/** 전처리 파이프라인(data-processing)이 주단위로 갈아 끼우는 속성그룹 */
 	private static final String PRE_PRCS_FIX_ATRB_GROUP_ID = "999";
 	private static final String INPT_VL_COLUMN = "INPT_VL";
 	private static final String VL_TYPE_INTEGER = "Integer";
@@ -156,12 +155,12 @@ public class CastConfigServiceImpl implements CastConfigService {
 				searchDto.getTmnlId(),
 				searchDto.getFixAtrbGroupId()
 		);
-		boolean isBaseGroup = BASE_FIX_ATRB_GROUP_ID.equals(searchDto.getFixAtrbGroupId());
+		boolean isReadOnlyGroup = isReservedGroup(searchDto.getFixAtrbGroupId());
 
 		result.setSheetNm(sheet.getSheetNm());
 		result.setDimension("");
 		result.setColumnList(toColumnList(sheet));
-		result.setRowList(toRowList(sheet, rawList, isBaseGroup));
+		result.setRowList(toRowList(sheet, rawList, isReadOnlyGroup));
 		result.setShapeColumn(sheet.getShapeColumn());
 		result.setValidation(sheet.getValidation());
 
@@ -237,8 +236,8 @@ public class CastConfigServiceImpl implements CastConfigService {
 			return new JsonResponse().error("터미널이 지정되지 않았습니다.");
 		}
 
-		if (BASE_FIX_ATRB_GROUP_ID.equals(applyDto.getFixAtrbGroupId())) {
-			return new JsonResponse().error("기준정보는 수정할 수 없습니다.");
+		if (isReservedGroup(applyDto.getFixAtrbGroupId())) {
+			return new JsonResponse().error("기준정보와 전처리 결과는 수정할 수 없습니다.");
 		}
 
 		if (StringUtils.isBlank(applyDto.getFixAtrbGroupId())) {
@@ -309,6 +308,13 @@ public class CastConfigServiceImpl implements CastConfigService {
 			return (CastConfigPreProcessDiffDto) result.error("터미널이 지정되지 않았습니다.");
 		}
 
+		CastConfigCategoryDto preCategory = findPreProcessCategory();
+
+		if (preCategory == null) {
+			result.setSheetNm(sheet.getSheetNm());
+			return (CastConfigPreProcessDiffDto) result.error("전처리 결과를 찾지 못했습니다.");
+		}
+
 		List<CastConfigAtrbRawDto> baseList =
 				retrieveRows(sheet, group, searchDto.getTmnlId(), BASE_FIX_ATRB_GROUP_ID);
 		Map<String, CastConfigAtrbRawDto> preMap = toRowMap(
@@ -350,7 +356,13 @@ public class CastConfigServiceImpl implements CastConfigService {
 		}
 
 		CastConfigColumnDef valueColumn = findColumnByPhysical(sheet, INPT_VL_COLUMN);
-		CastConfigCategoryDto preCategory = findPreProcessCategory();
+		CastConfigCategoryDto latestPreCategory = findPreProcessCategory();
+
+		if (latestPreCategory == null || !StringUtils.trimToEmpty(preCategory.getLastMdfcnDt())
+				.equals(StringUtils.trimToEmpty(latestPreCategory.getLastMdfcnDt()))) {
+			result.setSheetNm(sheet.getSheetNm());
+			return (CastConfigPreProcessDiffDto) result.error("전처리 결과가 갱신 중입니다. 다시 조회해 주세요.");
+		}
 
 		result.setSheetNm(sheet.getSheetNm());
 		result.setValueColumn(INPT_VL_COLUMN);
@@ -384,6 +396,18 @@ public class CastConfigServiceImpl implements CastConfigService {
 
 		if (applyDto.getRowNoList() == null || applyDto.getRowNoList().isEmpty()) {
 			return new JsonResponse().error("반영할 행을 선택해 주세요.");
+		}
+
+		CastConfigCategoryDto preCategory =
+				castConfigMapper.retrieveCategoryForUpdate(PRE_PRCS_FIX_ATRB_GROUP_ID);
+
+		if (preCategory == null) {
+			return new JsonResponse().error("전처리 결과를 찾지 못했습니다.");
+		}
+
+		if (!StringUtils.trimToEmpty(preCategory.getLastMdfcnDt())
+				.equals(StringUtils.trimToEmpty(applyDto.getPreProcessDt()))) {
+			return new JsonResponse().error("전처리 결과가 갱신되었습니다. 다시 조회해 주세요.");
 		}
 
 		List<CastConfigAtrbRawDto> baseList =
@@ -492,6 +516,10 @@ public class CastConfigServiceImpl implements CastConfigService {
 			return new JsonResponse().error("로그인을 진행해주세요.");
 		}
 
+		if (castConfigMapper.retrieveCategoryForUpdate(PRE_PRCS_FIX_ATRB_GROUP_ID) == null) {
+			return new JsonResponse().error("전처리 결과를 찾지 못했습니다.");
+		}
+
 		CastConfigAplyHstryDto hstry = castConfigMapper.retrieveAplyHstry(revertDto.getAplySn());
 
 		if (hstry == null) {
@@ -508,9 +536,8 @@ public class CastConfigServiceImpl implements CastConfigService {
 			return new JsonResponse().error("등록되지 않은 시트입니다.");
 		}
 
-		// 다른 경로가 먼저 되돌렸으면 여기서 0행이 되고, 값은 손대지 않는다.
 		if (castConfigMapper.updateAplyHstryCancel(revertDto.getAplySn(), revertDto.getLoginUserId()) != 1) {
-			return new JsonResponse().error("이미 되돌린 이력입니다.");
+			return new JsonResponse().error("최신 반영부터 되돌려 주세요.");
 		}
 
 		for (CastConfigAplyHstryDtlDto detail : castConfigMapper.retrieveAplyHstryDtlList(revertDto.getAplySn())) {
@@ -552,6 +579,10 @@ public class CastConfigServiceImpl implements CastConfigService {
 		if (StringUtils.isBlank(saveDto.getFixAtrbGroupId())
 				|| saveDto.getFixAtrbGroupId().length() > FIX_ATRB_GROUP_ID_MAX_LENGTH) {
 			return new JsonResponse().error("카테고리 코드를 확인해 주세요.");
+		}
+
+		if (isReservedGroup(saveDto.getFixAtrbGroupId())) {
+			return new JsonResponse().error("예약된 카테고리 코드입니다.");
 		}
 
 		if (StringUtils.isBlank(saveDto.getAtrbGroupNm())) {
@@ -686,8 +717,8 @@ public class CastConfigServiceImpl implements CastConfigService {
 		// 같은 (카테고리, 시트) 로 묶여 온 항목이라 첫 건의 조건이 목록 전체의 조건이다
 		CastConfigSaveItemDto firstItem = itemList.get(0);
 
-		if (BASE_FIX_ATRB_GROUP_ID.equals(firstItem.getFixAtrbGroupId())) {
-			return new JsonResponse().error("기준정보는 수정할 수 없습니다.");
+		if (isReservedGroup(firstItem.getFixAtrbGroupId())) {
+			return new JsonResponse().error("기준정보와 전처리 결과는 수정할 수 없습니다.");
 		}
 
 		CastConfigSheet sheet = CastConfigSheet.fromSheetNm(firstItem.getSheetNm());
@@ -826,11 +857,10 @@ public class CastConfigServiceImpl implements CastConfigService {
 		return result;
 	}
 
-	// 기준정보(001) 는 어떤 셀도 고칠 수 없다
 	private List<CastConfigGridRowDto> toRowList(
 			CastConfigSheet sheet,
 			List<CastConfigAtrbRawDto> rawList,
-			boolean isBaseGroup
+			boolean isReadOnlyGroup
 	) {
 		List<CastConfigGridRowDto> result = new ArrayList<>();
 
@@ -843,7 +873,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 				cell.setColumn(definition.getColumn());
 				cell.setValue(toCellValue(raw, definition.getPhysicalColumn()));
 				cell.setFormula("");
-				cell.setEditableYn(!isBaseGroup && definition.isEditable() ? YN_Y : YN_N);
+				cell.setEditableYn(!isReadOnlyGroup && definition.isEditable() ? YN_Y : YN_N);
 
 				cellList.add(cell);
 			}
@@ -964,6 +994,11 @@ public class CastConfigServiceImpl implements CastConfigService {
 				.filter(category -> PRE_PRCS_FIX_ATRB_GROUP_ID.equals(category.getFixAtrbGroupId()))
 				.findFirst()
 				.orElse(null);
+	}
+
+	private boolean isReservedGroup(String fixAtrbGroupId) {
+		return BASE_FIX_ATRB_GROUP_ID.equals(fixAtrbGroupId)
+				|| PRE_PRCS_FIX_ATRB_GROUP_ID.equals(fixAtrbGroupId);
 	}
 
 	private CastConfigColumnDef findColumnByPhysical(CastConfigSheet sheet, String physicalColumn) {

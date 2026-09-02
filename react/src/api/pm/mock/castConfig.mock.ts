@@ -526,6 +526,10 @@ export const castConfigMock = {
     }),
 
     saveCategory: (dto: CastConfigCategorySaveDto): JsonResponse => {
+        if ([BASE_CATEGORY_ID, PRE_PRCS_CATEGORY_ID].includes(dto.fixAtrbGroupId)) {
+            return { error: true, errorMessage: '예약된 카테고리 코드입니다.' };
+        }
+
         if (CATEGORIES.some((category) => category.fixAtrbGroupId === dto.fixAtrbGroupId)) {
             return { error: true, errorMessage: '이미 등록된 카테고리 코드입니다.' };
         }
@@ -575,8 +579,8 @@ export const castConfigMock = {
         if (!group || itemList.some((item) => !group.sheets.includes(item.sheetNm))) {
             return { error: true, errorMessage: '시설그룹에 연결되지 않은 원본 시트입니다.' };
         }
-        if (itemList.some((item) => item.fixAtrbGroupId === BASE_CATEGORY_ID)) {
-            return { error: true, errorMessage: '기준정보는 수정할 수 없습니다.' };
+        if (itemList.some((item) => [BASE_CATEGORY_ID, PRE_PRCS_CATEGORY_ID].includes(item.fixAtrbGroupId))) {
+            return { error: true, errorMessage: '기준정보와 전처리 결과는 수정할 수 없습니다.' };
         }
 
         for (const item of itemList) {
@@ -598,6 +602,10 @@ export const castConfigMock = {
         const group = GROUPS.find((item) => item.groupId === groupId);
         if (!group?.sheets.includes(sheetNm)) {
             return { error: true, errorMessage: '시설그룹에 연결되지 않은 원본 시트입니다.' };
+        }
+
+        if ([BASE_CATEGORY_ID, PRE_PRCS_CATEGORY_ID].includes(fixAtrbGroupId)) {
+            return { error: true, errorMessage: '기준정보와 전처리 결과는 수정할 수 없습니다.' };
         }
 
         const base = findDataset(tmnlId, BASE_CATEGORY_ID, sheetNm);
@@ -644,7 +652,13 @@ export const castConfigMock = {
         };
     },
 
-    applyPreProcess: (tmnlId: TmnlId, groupId: string, sheetNm: string, rowNoList: number[]): JsonResponse => {
+    applyPreProcess: (
+        tmnlId: TmnlId,
+        groupId: string,
+        sheetNm: string,
+        preProcessDt: string,
+        rowNoList: number[],
+    ): JsonResponse => {
         const group = GROUPS.find((item) => item.groupId === groupId);
         if (!group?.sheets.includes(sheetNm)) {
             return { error: true, errorMessage: '시설그룹에 연결되지 않은 원본 시트입니다.' };
@@ -655,6 +669,11 @@ export const castConfigMock = {
         const base = findDataset(tmnlId, BASE_CATEGORY_ID, sheetNm);
         const pre = findDataset(tmnlId, PRE_PRCS_CATEGORY_ID, sheetNm);
         if (!base || !pre) return { error: true, errorMessage: '전처리 결과를 찾지 못했습니다.' };
+
+        const category = CATEGORIES.find((item) => item.fixAtrbGroupId === PRE_PRCS_CATEGORY_ID);
+        if ((category?.lastMdfcnDt ?? '') !== preProcessDt) {
+            return { error: true, errorMessage: '전처리 결과가 갱신되었습니다. 다시 조회해 주세요.' };
+        }
 
         const valueColumn = findValueColumn(base);
         const snapshot: MockSnapshot[] = [];
@@ -684,6 +703,7 @@ export const castConfigMock = {
                 sheetNm,
                 aplyRowCnt: snapshot.length,
                 cnclYn: 'N',
+                revertableYn: 'Y',
                 frstRegDt: toNowYmdHms(),
                 frstRgtrId: 'PM001',
             },
@@ -694,7 +714,15 @@ export const castConfigMock = {
     },
 
     getPreProcessHistory: (tmnlId: TmnlId, sheetNm: string): CastConfigAplyHstryListDto => {
-        const hstryList = HISTORIES.filter((item) => item.hstry.tmnlId === tmnlId && (!sheetNm || item.hstry.sheetNm === sheetNm)).map((item) => item.hstry);
+        const activeScopes = new Set<string>();
+        const hstryList = HISTORIES.filter(
+            (item) => item.hstry.tmnlId === tmnlId && (!sheetNm || item.hstry.sheetNm === sheetNm),
+        ).map((item) => {
+            const scope = `${item.hstry.tmnlId}::${item.hstry.tblNm}`;
+            const revertable = !activeScopes.has(scope) && item.hstry.cnclYn === 'N';
+            if (revertable) activeScopes.add(scope);
+            return { ...item.hstry, revertableYn: revertable ? ('Y' as const) : ('N' as const) };
+        });
 
         return { ...OK, totalCnt: hstryList.length, hstryList: structuredClone(hstryList) };
     },
@@ -703,6 +731,15 @@ export const castConfigMock = {
         const entry = HISTORIES.find((item) => item.hstry.aplySn === aplySn);
         if (!entry) return { error: true, errorMessage: '반영 이력을 찾지 못했습니다.' };
         if (entry.hstry.cnclYn === 'Y') return { error: true, errorMessage: '이미 되돌린 이력입니다.' };
+
+        const newer = HISTORIES.find(
+            (item) =>
+                item.hstry.aplySn > aplySn &&
+                item.hstry.tmnlId === entry.hstry.tmnlId &&
+                item.hstry.sheetNm === entry.hstry.sheetNm &&
+                item.hstry.cnclYn === 'N',
+        );
+        if (newer) return { error: true, errorMessage: '최신 반영부터 되돌려 주세요.' };
 
         const base = findDataset(entry.hstry.tmnlId as TmnlId, BASE_CATEGORY_ID, entry.hstry.sheetNm);
         if (!base) return { error: true, errorMessage: '기준정보를 찾지 못했습니다.' };
@@ -713,6 +750,7 @@ export const castConfigMock = {
         }
 
         entry.hstry.cnclYn = 'Y';
+        entry.hstry.revertableYn = 'N';
 
         return OK;
     },
