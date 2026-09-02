@@ -48,10 +48,7 @@ html[data-page='terminalMap'] .wrap {
     height: 100%;
     color: var(--c-text);
     background:
-        radial-gradient(120% 80% at 50% 55%,
-            rgba(202, 219, 243, 0.55) 0%,
-            rgba(238, 241, 248, 0) 70%),
-        linear-gradient(180deg, #fafbfe 0%, #eaeef7 100%);
+        radial-gradient(120% 80% at 50% 55%, rgba(202, 219, 243, 0.55) 0%, rgba(238, 241, 248, 0) 70%), linear-gradient(180deg, #fafbfe 0%, #eaeef7 100%);
 }
 
 html[data-page='terminalMap'] .body {
@@ -197,16 +194,16 @@ html[data-page='terminalMap'] .radio label::before {
     box-sizing: border-box;
 }
 
-html[data-page='terminalMap'] .radio input:checked+label {
+html[data-page='terminalMap'] .radio input:checked + label {
     color: var(--c-text);
     font-weight: 600;
 }
 
-html[data-page='terminalMap'] .radio input:checked+label::before {
+html[data-page='terminalMap'] .radio input:checked + label::before {
     border-color: var(--c-primary);
 }
 
-html[data-page='terminalMap'] .radio input:checked+label::after {
+html[data-page='terminalMap'] .radio input:checked + label::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -218,7 +215,7 @@ html[data-page='terminalMap'] .radio input:checked+label::after {
     background: var(--c-primary);
 }
 
-html[data-page='terminalMap'] .radio input:focus-visible+label::before {
+html[data-page='terminalMap'] .radio input:focus-visible + label::before {
     outline: 2px solid var(--c-primary);
     outline-offset: 2px;
 }
@@ -323,11 +320,7 @@ html[data-page='terminalMap'] .map-area {
     padding: 14px 0;
     border: 1px solid rgba(255, 255, 255, 0.8);
     border-radius: 20px;
-    background:
-        radial-gradient(48% 42% at 50% 86%,
-            rgba(255, 255, 255, 0.95) 0%,
-            rgba(255, 255, 255, 0) 76%),
-        rgba(255, 255, 255, 0.5);
+    background: radial-gradient(48% 42% at 50% 86%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0) 76%), rgba(255, 255, 255, 0.5);
     box-shadow: var(--shadow-card);
     overflow: hidden;
 }
@@ -357,7 +350,7 @@ html[data-page='terminalMap'] .oper-cards {
 /* T2는 운영시간 카드가 2개라 도면 중앙 하단의 빈 공간에 둔다. */
 html[data-page='terminalMap'] .oper-cards:has(> .oper-card:nth-child(2):last-child) {
     position: absolute;
-    top: 62%;
+    bottom: 0;
     left: 50%;
     z-index: 2;
     padding: 0;
@@ -502,7 +495,6 @@ html[data-page='terminalMap'] .markers {
 }
 
 @supports (width: 1cqh) {
-
     html[data-page='terminalMap'] .map__bg,
     html[data-page='terminalMap'] .markers {
         width: min(45cqw, 150cqh);
@@ -670,11 +662,7 @@ html[data-page='terminalMap'] .range__input {
 html[data-page='terminalMap'] .range__input::-webkit-slider-runnable-track {
     height: 6px;
     border-radius: 3px;
-    background: linear-gradient(to right,
-            var(--c-primary) 0%,
-            var(--c-primary) var(--val, 0%),
-            #d6dbe6 var(--val, 0%),
-            #d6dbe6 100%);
+    background: linear-gradient(to right, var(--c-primary) 0%, var(--c-primary) var(--val, 0%), #d6dbe6 var(--val, 0%), #d6dbe6 100%);
 }
 
 html[data-page='terminalMap'] .range__input::-webkit-slider-thumb {
@@ -922,7 +910,7 @@ html[data-page='terminalMap'] .stat__item {
     padding: 14px 6px;
 }
 
-html[data-page='terminalMap'] .stat__item+.stat__item::before {
+html[data-page='terminalMap'] .stat__item + .stat__item::before {
     content: '';
     position: absolute;
     top: 18px;
@@ -1205,7 +1193,6 @@ html[data-page='terminalMap'] .ico-done-time {
    8. 해상도 대응
    ========================================================================== */
 @media screen and (max-height: 900px) {
-
     /* 헤더 높이는 공용 토큰(--pm-header-h)이 함께 줄어든다. common.css 참고 */
     html[data-page='terminalMap'] .notice {
         min-height: 72px;
