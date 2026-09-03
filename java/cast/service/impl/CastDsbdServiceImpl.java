@@ -25,6 +25,10 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import aoms.pm.cast.domains.dsbd.AssignmentSummary;
+import aoms.pm.cast.domains.dsbd.RecommendationContext;
+import aoms.pm.cast.domains.dsbd.RecommendationResources;
+import aoms.pm.cast.domains.dsbd.RollingRange;
 import aoms.pm.cast.dto.BdpsgAnceRawDto;
 import aoms.pm.cast.dto.ChknAlnAssignmentRawDto;
 import aoms.pm.cast.dto.DowAttrDto;
@@ -88,9 +92,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private static final int DEFAULT_ITVL_MIN = 60;
 	private static final int FCLT_ROLLING_MIN = 60;
 	private static final int CAST_SLOT_MIN = 10;
-	private static final int SERVICE_RATE_LOOKBACK_MIN = 60;
 	private static final int RECOMMEND_LEAD_MIN = 10;
-	private static final int CARD_CNT_LIMIT = 12;
 	private static final MathContext MATH_CONTEXT = MathContext.DECIMAL128;
 	private static final String NORMAL_GRADE_CD = "02";
 	private static final Map<String, String> FCLT_GROUP_CD_MAP = Map.of(
@@ -228,86 +230,60 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	@Override
 	public List<DsbdFcltCardDto> retrieveDailySmltFcltCard(DsbdSearchDto searchDto) {
-		FcltType fcltType = searchDto.getFcltType();
+		FcltType fcltType = searchDto.getFcltType(); // CHKN, SLFCHKN, DEP, SC, CMRC
 		TerminalKind tmnlId = searchDto.getTmnlId();
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
+		String smltId = searchDto.getSmltId();
 
 		List<String> cardFcltCdList = getCardFcltCdList(fcltType); // "LGT", "SC", "SR" / "CK", "CC", "SBD"
 		Set<String> recommendFcltCdSet = getRecommendFcltCdSet(fcltType); // "CC" / "SC", "SR";
 		String fcltGroupCd = getFcltGroupCd(fcltType);
-		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(searchDto.getSmltId());
+		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(smltId);
 		RollingRange range = getRollingRange(smltStng.getExcnYmd(), searchDto.getHhmm());
-		List<SmltRsltRawDto> rawSlotList = castDsbdMapper.retrieveRsltByUnitList(searchDto.getSmltId(), fcltTmnlId, range.getBgnDt(), range.getEndDt(), null, cardFcltCdList);
+		List<SmltRsltRawDto> unitTimeResultList = castDsbdMapper.retrieveRsltByUnitList(smltId, fcltTmnlId, range.getBgnDt(), range.getEndDt(), null, cardFcltCdList);
 
-		Map<String, List<SmltRsltRawDto>> displaySlotMap = mergeSlotsByUnit(rawSlotList, Set.copyOf(cardFcltCdList));
-		Map<String, List<SmltRsltRawDto>> recommendSlotMap = mergeSlotsByUnit(rawSlotList, recommendFcltCdSet);
-		Map<String, SmltRsltRawDto> displayRsltMap = aggregateByUnit(displaySlotMap);
-		Map<String, SmltRsltRawDto> recommendRsltMap = aggregateByUnit(recommendSlotMap);
-
-		// 종료 시각은 피크 탐색 구간의 상한이다. 자정에서는 그 칸이 없고, 없어도 그대로 진행한다
-		if (range.hasEndSnapshot()) {
-			List<SmltRsltRawDto> endSnapshotList = castDsbdMapper.retrieveRsltByUnitList(searchDto.getSmltId(), fcltTmnlId, null, null, range.getEndDt(), new ArrayList<>(recommendFcltCdSet));
-			appendSlots(recommendSlotMap, mergeSlotsByUnit(endSnapshotList, recommendFcltCdSet));
-		}
+		Map<String, List<SmltRsltRawDto>> displayUnitTimeMap = mergeUnitTimesByUnit(unitTimeResultList, Set.copyOf(cardFcltCdList));
+		Map<String, List<SmltRsltRawDto>> recommendUnitTimeMap = mergeUnitTimesByUnit(unitTimeResultList, recommendFcltCdSet);
+		Map<String, SmltRsltRawDto> displayRsltMap = aggregateByUnit(displayUnitTimeMap);
+		Map<String, SmltRsltRawDto> recommendRsltMap = aggregateByUnit(recommendUnitTimeMap);
 
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, cardFcltCdList)
 				.stream().collect(Collectors.toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
 
 		GradeScale gradeScale = getGradeScale(fcltGroupCd, searchDto);
-		RecommendationContext context = new RecommendationContext(searchDto, smltStng, fcltType, fcltTmnlId, recommendFcltCdSet, range);
-		RecommendationResources resources = context.resourcesAt(range.getBgnDt());
-		BigDecimal peerServiceRate = getPeerServiceRate(recommendRsltMap, resources, range);
+		RecommendationContext context = new RecommendationContext(
+				fcltType,
+				range,
+				dt -> getRecommendationResources(fcltType, smltStng, fcltTmnlId, dt),
+				() -> getPriorSlotMap(smltId, fcltTmnlId, recommendFcltCdSet, range));
+		RecommendationResources resources = context.getRecommendationResourcesAt(range.getBgnDt());
+		BigDecimal averageServiceRate = getAverageServiceRate(recommendRsltMap, resources, range);
 		List<FcltUnitDto> unitList = getUnitList(unitMap, recommendRsltMap, gradeScale, searchDto, fcltGroupCd);
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
-		// 카드는 대기인원이 많은 순으로 상한만큼만 만든다
-		List<SmltRsltRawDto> topRsltList = displayRsltMap.values().stream()
+		List<SmltRsltRawDto> sortedRsltList = displayRsltMap.values().stream()
 				.sorted(Comparator.comparingInt(SmltRsltRawDto::getWtngPsgCnt).reversed())
-				.limit(CARD_CNT_LIMIT)
 				.collect(toList());
 
-		for (SmltRsltRawDto rslt : topRsltList) {
+		for (SmltRsltRawDto rslt : sortedRsltList) {
 			String unitCd = rslt.getUnitCd();
-			// 추천 대상 시설(CC / SC·SR) 행이 없는 유닛은 카드만 내리고 추천은 비운다
 			SmltRsltRawDto recommendRslt = recommendRsltMap.get(unitCd);
 			FcltRecommendationCalculator.Result calculation = null;
 
 			if (recommendRslt != null) {
-				List<SmltRsltRawDto> unitSlotList = recommendSlotMap.get(unitCd);
-				PeakSlot peak = getPeakSlot(unitSlotList, range, searchDto, fcltType, unitCd);
+				List<SmltRsltRawDto> unitTimeList = recommendUnitTimeMap.get(unitCd);
+				PeakUnitTime peak = getPeakUnitTime(unitTimeList, range, searchDto, fcltType, unitCd);
 				int currentOpenCount = resources.getOpenCountValue(unitCd);
 
-				BigDecimal serviceRate = getServiceRate(
-						context,
-						unitCd,
-						recommendRslt.getTrnstPsgCnt(),
-						currentOpenCount,
-						peerServiceRate);
-
-				calculation = calculateRecommendation(
-						unitSlotList,
-						peak,
-						serviceRate,
-						gradeScale,
-						range,
-						currentOpenCount,
-						searchDto,
-						fcltType,
-						unitCd);
+				BigDecimal serviceRate = getServiceRate(context, unitCd, recommendRslt.getTrnstPsgCnt(), currentOpenCount, averageServiceRate);
+				calculation = calculateRecommendation(unitTimeList, peak, serviceRate, gradeScale, range, currentOpenCount, searchDto, fcltType, unitCd);
 			}
 
-			String targetName = calculation == null ? EMPTY : resources.getTargetName(unitCd, searchDto, fcltType);
+			String targetName = calculation == null
+					? EMPTY
+					: resources.getTargetName(unitCd, recommendContext(searchDto, fcltType, unitCd));
 
-			result.add(getFcltCard(
-					fcltType,
-					rslt,
-					recommendRslt != null ? recommendRslt.getWtngPsgCnt() : 0,
-					unitMap.get(unitCd),
-					unitList,
-					targetName,
-					calculation,
-					gradeScale,
-					range));
+			result.add(getFcltCard(fcltType, rslt, recommendRslt != null ? recommendRslt.getWtngPsgCnt() : 0, unitMap.get(unitCd), unitList, targetName, calculation, gradeScale, range));
 		}
 
 		return result;
@@ -476,7 +452,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return fcltGroupCd;
 	}
 
-	private Map<String, List<SmltRsltRawDto>> mergeSlotsByUnit(List<SmltRsltRawDto> rawSlotList, Set<String> upPsgFcltCdSet) {
+	private Map<String, List<SmltRsltRawDto>> mergeUnitTimesByUnit(List<SmltRsltRawDto> rawSlotList, Set<String> upPsgFcltCdSet) {
 		Map<String, Map<LocalDateTime, SmltRsltRawDto>> unitTimeMap = new LinkedHashMap<>();
 
 		for (SmltRsltRawDto raw : rawSlotList) {
@@ -519,14 +495,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setWtngHr(raw.getWtngHr());
 		result.setPrcsHr(raw.getPrcsHr());
 		return result;
-	}
-
-	private void appendSlots(
-			Map<String, List<SmltRsltRawDto>> target,
-			Map<String, List<SmltRsltRawDto>> additional
-	) {
-		additional.forEach((unitCd, slots) -> target.computeIfAbsent(unitCd, ignored -> new ArrayList<>()).addAll(slots));
-		target.values().forEach(slots -> slots.sort(Comparator.comparing(SmltRsltRawDto::getSmltActlDt)));
 	}
 
 	private Map<String, SmltRsltRawDto> aggregateByUnit(Map<String, List<SmltRsltRawDto>> slotMap) {
@@ -642,10 +610,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	private RollingRange getRollingRange(String excnYmd, String hhmm) {
-		if (hhmm == null || !hhmm.matches("(?:[01][0-9]|2[0-3])[0-5][0-9]")) {
-			throw new IllegalArgumentException("조회 시각 형식이 올바르지 않습니다. hhmm=" + hhmm);
-		}
-
 		LocalDate baseDate = parseYmd(excnYmd);
 		LocalDateTime dayStart = baseDate.atStartOfDay();
 		LocalDateTime dayEnd = dayStart.plusDays(1);
@@ -659,22 +623,14 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			throw new IllegalArgumentException("시설 집계 구간이 올바르지 않습니다. excnYmd=" + excnYmd + ", hhmm=" + hhmm);
 		}
 
-		return new RollingRange(dayStart, dayEnd, bgnDt, endDt, actualMinutes);
+		return new RollingRange(dayStart, bgnDt, endDt, actualMinutes);
 	}
 
 	private GradeScale getGradeScale(String fcltGroupCd, DsbdSearchDto searchDto) {
-		return new GradeScale(
-				fcltGroupCd,
-				castDsbdMapper.retrievePsgPrcsGradeList(fcltGroupCd),
-				baseContext(searchDto) + ", fcltGroupCd=" + fcltGroupCd);
+		return new GradeScale(fcltGroupCd, castDsbdMapper.retrievePsgPrcsGradeList(fcltGroupCd), baseContext(searchDto) + ", fcltGroupCd=" + fcltGroupCd);
 	}
 
-	private RecommendationResources getRecommendationResources(
-			FcltType fcltType,
-			SmltStngDto smltStng,
-			String fcltTmnlId,
-			LocalDateTime bgnDt
-	) {
+	private RecommendationResources getRecommendationResources(FcltType fcltType, SmltStngDto smltStng, String fcltTmnlId, LocalDateTime bgnDt) {
 		if (fcltType == FcltType.DEP) {
 			String resourceId = smltStng.getFcltyOpngScrtyCntrlRsrcId();
 			requireResourceId(resourceId, "FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID", smltStng);
@@ -747,14 +703,30 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return new RecommendationResources(openCountMap, targetMap, null);
 	}
 
+	private Map<String, List<SmltRsltRawDto>> getPriorSlotMap(
+			String smltId,
+			String fcltTmnlId,
+			Set<String> recommendFcltCdSet,
+			RollingRange range
+	) {
+		List<SmltRsltRawDto> priorRawList = castDsbdMapper.retrieveRsltByUnitList(
+				smltId,
+				fcltTmnlId,
+				range.getServiceRateLookbackBgn(),
+				range.getBgnDt(),
+				null,
+				new ArrayList<>(recommendFcltCdSet));
+
+		return mergeUnitTimesByUnit(priorRawList, recommendFcltCdSet);
+	}
+
 	private void requireResourceId(String resourceId, String columnName, SmltStngDto smltStng) {
 		if (resourceId == null || resourceId.trim().isEmpty()) {
-			throw new IllegalStateException(
-					"실행 리소스 정보를 찾을 수 없습니다. smltId=" + smltStng.getSmltId() + ", column=" + columnName);
+			throw new IllegalStateException("실행 리소스 정보를 찾을 수 없습니다. smltId=" + smltStng.getSmltId() + ", column=" + columnName);
 		}
 	}
 
-	private PeakSlot getPeakSlot(
+	private PeakUnitTime getPeakUnitTime(
 			List<SmltRsltRawDto> slotList,
 			RollingRange range,
 			DsbdSearchDto searchDto,
@@ -782,14 +754,12 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		if (peak == null) {
 			throw new IllegalStateException(
 					"추천 리드타임 이후의 결과가 없습니다. "
-							+ baseContext(searchDto)
-							+ ", fcltType=" + fcltType.getValue()
-							+ ", unitCd=" + unitCd
+							+ recommendContext(searchDto, fcltType, unitCd)
 							+ ", windowBgn=" + windowBgn
 							+ ", endDt=" + range.getEndDt());
 		}
 
-		return new PeakSlot(
+		return new PeakUnitTime(
 				peak.getWtngPsgCnt(),
 				Math.toIntExact(Duration.between(range.getBgnDt(), peak.getSmltActlDt()).toMinutes()));
 	}
@@ -818,7 +788,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			String unitCd,
 			int processedPsgCnt,
 			int currentOpenCount,
-			BigDecimal peerServiceRate
+			BigDecimal averageServiceRate
 	) {
 		if (currentOpenCount > 0 && processedPsgCnt > 0) {
 			return calculateServiceRate(processedPsgCnt, currentOpenCount, context.getRange().getActualMinutes());
@@ -832,17 +802,16 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				continue;
 			}
 
-			int priorOpenCount = context.resourcesAt(slot.getSmltActlDt()).getOpenCountValue(unitCd);
+			int priorOpenCount = context.getRecommendationResourcesAt(slot.getSmltActlDt()).getOpenCountValue(unitCd);
 			if (priorOpenCount > 0) {
 				return calculateServiceRate(slot.getTrnstPsgCnt(), priorOpenCount, CAST_SLOT_MIN);
 			}
 		}
 
-		return peerServiceRate;
+		return averageServiceRate;
 	}
 
-	// 자기 실적으로 처리능력을 못 구한 유닛은 같은 구간 같은 시설군의 다른 유닛 실적으로 대신한다
-	private BigDecimal getPeerServiceRate(
+	private BigDecimal getAverageServiceRate(
 			Map<String, SmltRsltRawDto> recommendRsltMap,
 			RecommendationResources resources,
 			RollingRange range
@@ -876,7 +845,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	private FcltRecommendationCalculator.Result calculateRecommendation(
 			List<SmltRsltRawDto> slotList,
-			PeakSlot peak,
+			PeakUnitTime peak,
 			BigDecimal serviceRate,
 			GradeScale gradeScale,
 			RollingRange range,
@@ -903,9 +872,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		} catch (IllegalArgumentException | IllegalStateException exception) {
 			throw new IllegalStateException(
 					"시설 추천 계산에 실패했습니다. "
-							+ baseContext(searchDto)
-							+ ", fcltType=" + fcltType.getValue()
-							+ ", unitCd=" + unitCd
+							+ recommendContext(searchDto, fcltType, unitCd)
 							+ ", peakQueue=" + peak.getQueue()
 							+ ", leadMinutes=" + peak.getLeadMinutes()
 							+ ", serviceRate=" + serviceRate
@@ -927,6 +894,10 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	private String gradeContext(DsbdSearchDto searchDto, String fcltGroupCd, String unitCd) {
 		return baseContext(searchDto) + ", fcltGroupCd=" + fcltGroupCd + ", unitCd=" + unitCd;
+	}
+
+	private String recommendContext(DsbdSearchDto searchDto, FcltType fcltType, String unitCd) {
+		return baseContext(searchDto) + ", fcltType=" + fcltType.getValue() + ", unitCd=" + unitCd;
 	}
 
 	// 재계산 주기가 확인되지 않아 다음 정시를 예정 시각으로 본다
@@ -965,55 +936,11 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return date.format(DateTimeFormatter.ofPattern(YMD_FORMAT));
 	}
 
-	private static final class RollingRange {
-		private final LocalDateTime dayStart;
-		private final LocalDateTime dayEnd;
-		private final LocalDateTime bgnDt;
-		private final LocalDateTime endDt;
-		private final int actualMinutes;
-
-		private RollingRange(
-				LocalDateTime dayStart,
-				LocalDateTime dayEnd,
-				LocalDateTime bgnDt,
-				LocalDateTime endDt,
-				int actualMinutes
-		) {
-			this.dayStart = dayStart;
-			this.dayEnd = dayEnd;
-			this.bgnDt = bgnDt;
-			this.endDt = endDt;
-			this.actualMinutes = actualMinutes;
-		}
-
-		private LocalDateTime getServiceRateLookbackBgn() {
-			LocalDateTime lookbackBgn = bgnDt.minusMinutes(SERVICE_RATE_LOOKBACK_MIN);
-
-			return lookbackBgn.isBefore(dayStart) ? dayStart : lookbackBgn;
-		}
-
-		private LocalDateTime getBgnDt() {
-			return bgnDt;
-		}
-
-		private LocalDateTime getEndDt() {
-			return endDt;
-		}
-
-		private int getActualMinutes() {
-			return actualMinutes;
-		}
-
-		private boolean hasEndSnapshot() {
-			return endDt.isBefore(dayEnd);
-		}
-	}
-
-	private static final class PeakSlot {
+	private static final class PeakUnitTime {
 		private final int queue;
 		private final int leadMinutes;
 
-		private PeakSlot(int queue, int leadMinutes) {
+		private PeakUnitTime(int queue, int leadMinutes) {
 			this.queue = queue;
 			this.leadMinutes = leadMinutes;
 		}
@@ -1024,129 +951,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		private int getLeadMinutes() {
 			return leadMinutes;
-		}
-	}
-
-	private static final class AssignmentSummary {
-		private final String alnCd;
-		private final String alnNm;
-		private final int assignedCount;
-
-		private AssignmentSummary(String alnCd, String alnNm, int assignedCount) {
-			this.alnCd = alnCd;
-			this.alnNm = alnNm;
-			this.assignedCount = assignedCount;
-		}
-
-		private String getAlnCd() {
-			return alnCd;
-		}
-
-		private String getAlnNm() {
-			return alnNm;
-		}
-
-		private int getAssignedCount() {
-			return assignedCount;
-		}
-	}
-
-	private final class RecommendationContext {
-		private final DsbdSearchDto searchDto;
-		private final SmltStngDto smltStng;
-		private final FcltType fcltType;
-		private final String fcltTmnlId;
-		private final Set<String> recommendFcltCdSet;
-		private final RollingRange range;
-		private final Map<LocalDateTime, RecommendationResources> resourceCache = new LinkedHashMap<>();
-		private RecommendationResources scrtyResources;
-		private Map<String, List<SmltRsltRawDto>> priorSlotMap;
-
-		private RecommendationContext(
-				DsbdSearchDto searchDto,
-				SmltStngDto smltStng,
-				FcltType fcltType,
-				String fcltTmnlId,
-				Set<String> recommendFcltCdSet,
-				RollingRange range
-		) {
-			this.searchDto = searchDto;
-			this.smltStng = smltStng;
-			this.fcltType = fcltType;
-			this.fcltTmnlId = fcltTmnlId;
-			this.recommendFcltCdSet = recommendFcltCdSet;
-			this.range = range;
-		}
-
-		private RollingRange getRange() {
-			return range;
-		}
-
-		private RecommendationResources resourcesAt(LocalDateTime dt) {
-			// 보안검색 운영 snapshot 테이블에는 시각 컬럼이 없어 어느 시각으로 조회해도 같은 행이 나온다
-			if (fcltType == FcltType.DEP) {
-				if (scrtyResources == null) {
-					scrtyResources = getRecommendationResources(fcltType, smltStng, fcltTmnlId, dt);
-				}
-
-				return scrtyResources;
-			}
-
-			return resourceCache.computeIfAbsent(
-					dt, key -> getRecommendationResources(fcltType, smltStng, fcltTmnlId, key));
-		}
-
-		// 결과 조회에 시설 조건이 없어 유닛마다 다시 부르면 같은 결과를 되풀이해 읽는다
-		private List<SmltRsltRawDto> priorSlotsOf(String unitCd) {
-			if (priorSlotMap == null) {
-				List<SmltRsltRawDto> priorRawList = castDsbdMapper.retrieveRsltByUnitList(
-						searchDto.getSmltId(),
-						fcltTmnlId,
-						range.getServiceRateLookbackBgn(),
-						range.getBgnDt(),
-						null,
-						new ArrayList<>(recommendFcltCdSet));
-				priorSlotMap = mergeSlotsByUnit(priorRawList, recommendFcltCdSet);
-			}
-
-			return priorSlotMap.getOrDefault(unitCd, List.of());
-		}
-	}
-
-	private final class RecommendationResources {
-		private final Map<String, Integer> openCountMap;
-		private final Map<String, AssignmentSummary> targetMap;
-		private final String fixedTargetName;
-
-		private RecommendationResources(
-				Map<String, Integer> openCountMap,
-				Map<String, AssignmentSummary> targetMap,
-				String fixedTargetName
-		) {
-			this.openCountMap = openCountMap;
-			this.targetMap = targetMap;
-			this.fixedTargetName = fixedTargetName;
-		}
-
-		private int getOpenCountValue(String unitCd) {
-			return openCountMap.getOrDefault(unitCd, 0);
-		}
-
-		private String getTargetName(String unitCd, DsbdSearchDto searchDto, FcltType fcltType) {
-			if (fixedTargetName != null) {
-				return fixedTargetName;
-			}
-
-			AssignmentSummary target = targetMap.get(unitCd);
-			if (target == null || target.getAlnCd().isEmpty()) {
-				throw new IllegalStateException("체크인 항공사 배정정보를 찾을 수 없습니다. " + baseContext(searchDto) + ", fcltType=" + fcltType.getValue() + ", unitCd=" + unitCd);
-			}
-
-			if (target.getAlnNm().isEmpty()) {
-				throw new IllegalStateException("체크인 항공사명을 찾을 수 없습니다. " + baseContext(searchDto) + ", fcltType=" + fcltType.getValue() + ", unitCd=" + unitCd + ", alnCd=" + target.getAlnCd());
-			}
-
-			return target.getAlnNm();
 		}
 	}
 
@@ -1165,8 +969,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				if (!fcltGroupCd.equals(grade.getFcltGroupCd())) {
 					throw new IllegalStateException("혼잡등급 시설 그룹이 일치하지 않습니다. " + context);
 				}
-				
-                if (gradeMap.putIfAbsent(gradeCode, grade) != null) {
+
+				if (gradeMap.putIfAbsent(gradeCode, grade) != null) {
 					throw new IllegalStateException("혼잡등급 기준정보가 중복되었습니다. " + context + ", psgPrcsGrdCd=" + gradeCode);
 				}
 
@@ -1198,7 +1002,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		private static void validateRange(PsgPrcsGradeRawDto grade, String context) {
 			if (grade.getMinVl() == null || grade.getMaxVl() == null || grade.getMinVl().signum() < 0 || grade.getMaxVl().signum() < 0 || grade.getMinVl().compareTo(grade.getMaxVl()) > 0) {
-            throw new IllegalStateException("혼잡등급 기준 구간이 올바르지 않습니다. " + context + ", psgPrcsGrdCd=" + grade.getPsgPrcsGrdCd() + ", minVl=" + grade.getMinVl() + ", maxVl=" + grade.getMaxVl());
+				throw new IllegalStateException("혼잡등급 기준 구간이 올바르지 않습니다. " + context + ", psgPrcsGrdCd=" + grade.getPsgPrcsGrdCd() + ", minVl=" + grade.getMinVl() + ", maxVl=" + grade.getMaxVl());
 			}
 		}
 
