@@ -2,11 +2,7 @@ package aoms.pm.utils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.stream.Collectors;
-
-import aoms.pm.cast.domains.AggData;
 
 /**
  * @Classname   : TimeBucketUtils.java
@@ -36,7 +32,6 @@ public class TimeBucketUtils {
 	private TimeBucketUtils() {
 	}
 
-	// 00 ~ 23 (24개)
 	public static List<String> hourList() {
 		List<String> result = new ArrayList<>();
 
@@ -47,7 +42,6 @@ public class TimeBucketUtils {
 		return result;
 	}
 
-	// 0000, 0030 ... 2330 (48개)
 	public static List<String> bucketList() {
 		List<String> result = new ArrayList<>();
 
@@ -58,7 +52,6 @@ public class TimeBucketUtils {
 		return result;
 	}
 
-	// 지정한 시(HH)의 버킷 2개 — HH00, HH30
 	public static List<String> bucketList(String hour) {
 		return BUCKET_MINUTE_LIST.stream().map(minute -> hour + minute).collect(Collectors.toList());
 	}
@@ -72,25 +65,6 @@ public class TimeBucketUtils {
 
 		for (int minutes = bgnHour * MINUTE_PER_HOUR; minutes <= MINUTE_PER_DAY; minutes += SLOT_STEP_MIN) {
 			result.add(String.format(HM_FORMAT, minutes / MINUTE_PER_HOUR, minutes % MINUTE_PER_HOUR));
-		}
-
-		return result;
-	}
-
-	// 집계 결과를 30분 버킷 48개에 채운다. 해당 버킷에 데이터가 없으면 빈 목록이 들어간다
-	public static <T extends AggData> Map<String, List<T>> groupByBucket(List<T> dataList) {
-		Map<String, List<T>> result = new TreeMap<>();
-
-		if (dataList == null) {
-			return result;
-		}
-
-		Map<String, List<T>> groupedByTime = dataList.stream()
-				.filter(data -> data.getTime() != null)
-				.collect(Collectors.groupingBy(AggData::getTime));
-
-		for (String bucket : bucketList()) {
-			result.put(bucket, groupedByTime.getOrDefault(bucket, new ArrayList<>()));
 		}
 
 		return result;

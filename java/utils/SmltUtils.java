@@ -1,19 +1,13 @@
 package aoms.pm.utils;
 
-import static java.util.stream.Collectors.toList;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import aoms.pm.cast.domains.AggBuffer;
-import aoms.pm.cast.domains.AggData;
 import aoms.pm.cast.dto.MapCgnStatDto;
 import aoms.pm.cast.dto.PsgPrcsGrd;
 import aoms.pm.cast.dto.SmltRsltRawDto;
@@ -21,7 +15,6 @@ import aoms.pm.cast.dto.TimeRange;
 import aoms.pm.cast.enums.CongestionStatus;
 
 public class SmltUtils {
-	private static final Set<Integer> VALID_INTERVALS = Set.of(1, 2, 3, 4, 5, 6, 10, 12, 15, 20, 30, 60);
 	private static final List<CongestionStatus> CONGESTION_LIST = CongestionStatus.getList();
 
 	private static final String EMPTY = "";
@@ -33,38 +26,6 @@ public class SmltUtils {
 
 	private SmltUtils() {
 		throw new UnsupportedOperationException("SmltUtils Class is Utility class.");
-	}
-
-	public static <T extends AggData> List<T> aggregate(List<T> src, int interval, Supplier<T> factory) {
-		Map<String, AggBuffer<T>> bufferMap = new LinkedHashMap<>();
-
-		if (src != null && !src.isEmpty()) {
-			for (T item : src) {
-				String key = groupKey(item.getTime(), interval);
-				AggBuffer<T> buffer = bufferMap.get(key);
-
-				if (buffer == null) {
-					bufferMap.put(key, new AggBuffer<>(item, factory));
-				} else {
-					buffer.merge(item);
-				}
-			}
-		}
-
-		return bufferMap.entrySet().stream()
-				.map(entry -> entry.getValue().toData(entry.getKey()))
-				.collect(toList());
-	}
-
-	public static String groupKey(String time, int interval) {
-		if (!VALID_INTERVALS.contains(interval)) {
-			throw new IllegalArgumentException("interval 값을 60의 약수로 입력하세요. interval :: " + interval);
-		}
-
-		int hour = Integer.parseInt(time.substring(0, 2));
-		int minute = Integer.parseInt(time.substring(2, HM_LENGTH));
-
-		return String.format("%02d%02d", hour, minute / interval * interval);
 	}
 
 	public static CongestionStatus getCongestionStatus(Map<CongestionStatus, PsgPrcsGrd> prcsGrdMap, int cnt) {
@@ -105,7 +66,6 @@ public class SmltUtils {
 	}
 
 	/**
-	 * 하루치 결과를 시각 → (묶음 단위 → 결과) 로 접는다.
 	 * 상위시설코드가 여러 개 걸린 묶음 단위(아일랜드 · 출국장)는 한 건이 된다.
 	 * 맵형태보기 · 출국장 · 체크인카운터가 같은 규칙을 써야 같은 시설의 값이 화면마다 달라지지 않는다.
 	 */
