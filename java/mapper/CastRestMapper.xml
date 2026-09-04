@@ -56,8 +56,8 @@
                   , TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'HH24:MI:SS')  LastModified
                   , 'cols_FlightSchedule1' tableID
           FROM GOOWN.TI_GO_DALY_ARR_DEP
-        WHERE SCHDL_YMD =  TO_CHAR(SYSDATE,'YYYYMMDD')
-             AND LAST_MDFCN_DT = (SELECT MAX(LAST_MDFCN_DT) FROM GOOWN.TI_GO_DALY_ARR_DEP WHERE SCHDL_YMD = TO_CHAR(SYSDATE,'YYYYMMDD'))
+        WHERE SCHDL_YMD =  #{baseYmd}
+             AND LAST_MDFCN_DT = (SELECT MAX(LAST_MDFCN_DT) FROM GOOWN.TI_GO_DALY_ARR_DEP WHERE SCHDL_YMD = #{baseYmd})
              AND ROWNUM =1
              AND #{flightYn} = 1
         UNION ALL
@@ -81,7 +81,7 @@
                   , TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'HH24:MI:SS')  LastModified
                   , 'cols_CounterAllocation' tableID
            FROM GOOWN.TI_GO_CKNCT_DALY_ALOT
-        WHERE  OPER_YMD =  TO_CHAR(SYSDATE,'YYYYMMDD')
+        WHERE  OPER_YMD =  #{baseYmd}
              AND ROWNUM =1
              AND #{counterYn} = 1
         UNION ALL
@@ -105,7 +105,7 @@
                   , TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'HH24:MI:SS')  LastModified
                   , 'cols_SBDCounterAllocation' tableID
            FROM GOOWN.TI_GO_CKNCT_DALY_ALOT
-        WHERE  OPER_YMD =  TO_CHAR(SYSDATE,'YYYYMMDD')
+        WHERE  OPER_YMD =  #{baseYmd}
              AND ROWNUM =1
              AND #{sbdYn} = 1
         UNION ALL
@@ -336,7 +336,7 @@ BASE_GD AS (
       AND A.PSG_CGO_SE_CD = 'Y'
       AND A.FRY_YN = 'N'
       AND A.LCRFT_YN = 'N'
-      AND A.GD_SE_YMD = TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYYMMDD')
+      AND A.GD_SE_YMD = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
 ),
 /* 3) 항공사 카테고리 */
 ALN_INFO AS (
@@ -376,7 +376,7 @@ CIC_ALLOC_ALN AS (
     SELECT DISTINCT
         A.ALN_CD
     FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
-    WHERE A.OPER_YMD BETWEEN TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) - 1, 'YYYYMMDD') AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYYMMDD')
+    WHERE A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
 ),
 /* 8) FP 원본 - 당일/익일 04시 이전 */
 FP_DAY AS (
@@ -388,8 +388,8 @@ FP_DAY AS (
     FROM GOOWN.TI_GO_DALY_ARR_DEP B
     WHERE 1 = 1
       AND (
-            B.SCHDL_YMD = TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYYMMDD')
-            OR (B.SCHDL_YMD = TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) + 1, 'YYYYMMDD') AND B.SCHDL_HM < '0400')
+            B.SCHDL_YMD = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
+            OR (B.SCHDL_YMD = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') + 1, 'YYYYMMDD') AND B.SCHDL_HM < '0400')
           )
       AND B.FLT_SRVC_TYPE_CD NOT IN ('A', 'F', 'H', 'M', 'V', 'Z', 'P', 'X', 'D')
     GROUP BY
@@ -446,7 +446,7 @@ PAST_GATE_RANK AS (
       AND A.PSG_CGO_SE_CD = 'Y'
       AND A.FRY_YN = 'N'
       AND A.LCRFT_YN = 'N'
-      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS((SELECT BASE_DT FROM PMOWN.DROP_TMP), - 3), 'YYYYMMDD') AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) - 1, 'YYYYMMDD')
+      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{baseYmd}, 'YYYYMMDD'), - 3), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
       AND A.TMNL_ID IS NOT NULL
       AND A.TMNL_ID != 'P'
       AND A.ACST_NO IS NOT NULL
@@ -477,7 +477,7 @@ ARR_CRS_HIST_RANK AS (
         ) AS RN
     FROM GOOWN.TN_GO_GD_DATA A
     WHERE 1 = 1
-      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS((SELECT BASE_DT FROM PMOWN.DROP_TMP), - 1), 'YYYYMMDD') AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) - 1, 'YYYYMMDD')
+      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{baseYmd}, 'YYYYMMDD'), - 1), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
       AND A.ARR_DEP_SE_CD = 'A'
       AND A.CSHR_STTS_CD != 'SL'
       AND A.DLY_RSN_CD NOT IN ('2', '3')
@@ -545,8 +545,8 @@ PAST_PAX_AVG AS (
       AND A.PSG_CGO_SE_CD = 'Y'
       AND A.FRY_YN = 'N'
       AND A.LCRFT_YN = 'N'
-      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS((SELECT BASE_DT FROM PMOWN.DROP_TMP), - 3), 'YYYYMMDD')
-                         AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) - 1, 'YYYYMMDD')
+      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{baseYmd}, 'YYYYMMDD'), - 3), 'YYYYMMDD')
+                         AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
     GROUP BY A.DDLN_FLTNM, A.ALN_CD
 ),
 /* 14) CA_CRS fallback - TER_ID(+P02->P01), CRS_GRP_CD별 1건 */
@@ -573,8 +573,8 @@ PAST_CIC_RANK AS (
         ) AS RN
     FROM GOOWN.TI_GO_DALY_ARR_DEP B
     WHERE B.CKNCT_RANGE_CN IS NOT NULL
-      AND B.SCHDL_YMD BETWEEN TO_CHAR(ADD_MONTHS((SELECT BASE_DT FROM PMOWN.DROP_TMP), - 6), 'YYYYMMDD')
-                        AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) - 1, 'YYYYMMDD')
+      AND B.SCHDL_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{baseYmd}, 'YYYYMMDD'), - 6), 'YYYYMMDD')
+                        AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
     GROUP BY B.ALN_CD, B.CKNCT_RANGE_CN
 ),
 PAST_CIC AS (
@@ -998,7 +998,7 @@ ORDER BY
                                         AND A.USE_YN = 'Y'
                                         AND CIC.USE_YN = 'Y'
                                         AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
-                                        AND A.OPER_YMD BETWEEN TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP)-1,'YYYYMMDD') AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP),'YYYYMMDD')
+                                        AND A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD')-1,'YYYYMMDD') AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'),'YYYYMMDD')
                                         AND A.CKNCT_ID NOT LIKE 'X%'
                                         AND A.CKNCT_ID NOT LIKE 'Y%'
                                         AND A.CKNCT_ID NOT LIKE 'R%'
@@ -1012,8 +1012,8 @@ ORDER BY
                                             AND B.USE_YN = 'Y'
                                         )
                                      ) X
-                            WHERE (X.OPR_DT = TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP)-1,'YYYYMMDD'))
-                                OR (X.OPR_DT = TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP),'YYYYMMDD'))
+                            WHERE (X.OPR_DT = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD')-1,'YYYYMMDD'))
+                                OR (X.OPR_DT = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'),'YYYYMMDD'))
                      ) Y
                     WHERE Y.STA_HM != Y.END_HM
             ) Z
@@ -1111,8 +1111,8 @@ ORDER BY
                 , PLCY.SLF_CHKN_ISTR_ID AS resourceID
                 , '"' || LISTAGG(PLCY.ALN_CD, ',') WITHIN GROUP (ORDER BY PLCY.ALN_CD) || '"' AS AirlineCode
                 , 'Int' AS DomStatus
-                , TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP)-1, 'YYYY-MM-DD')  || 'T12:00:00.000' AS t1
-                , TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYY-MM-DD')    || 'T23:59:59.000' AS t2
+                , TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD')-1, 'YYYY-MM-DD')  || 'T12:00:00.000' AS t1
+                , TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYY-MM-DD')    || 'T23:59:59.000' AS t2
                 , '' AS TravelClass          -- 체크인등급코드
                 , '' AS GroupStatus          -- 체크인그룹코드
                 , '' AS CheckinType          -- 체크인종류코드
@@ -1123,7 +1123,7 @@ ORDER BY
             WHERE PLCY.PLCY_YMD = (
                 SELECT NVL(
                     MAX(CASE
-                        WHEN P.PLCY_YMD = TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYYMMDD') THEN P.PLCY_YMD
+                        WHEN P.PLCY_YMD = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD') THEN P.PLCY_YMD
                     END),
                     MAX(P.PLCY_YMD)
                 )
@@ -1182,7 +1182,7 @@ ORDER BY
                                 AND A.ARR_DEP_SE_CD = 'D'
                                 AND A.FRY_YN = 'N'
                                 AND A.LCRFT_YN = 'N'
-                                AND A.GD_SE_YMD BETWEEN TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP) -1, 'YYYYMMDD') AND TO_CHAR((SELECT BASE_DT FROM PMOWN.DROP_TMP), 'YYYYMMDD')
+                                AND A.GD_SE_YMD BETWEEN TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') -1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
                                 GROUP BY A.GD_SE_YMD, A.TMNL_ID, A.ALN_CD
                     ) GD
                      ON PLCY.ALN_CD = GD.ALN_CD
@@ -1988,7 +1988,7 @@ ORDER BY
                     ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
                 WHERE A.OPER_HR_STTS_CD = 'DPL'
             )
-            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_DepartureGate', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD AND END_YMD
+            WHERE REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_DepartureGate', '')  GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '') BETWEEN BGNG_YMD AND END_YMD
             AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
                 SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
                 FROM (
@@ -2003,7 +2003,7 @@ ORDER BY
                         ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
                     WHERE A.OPER_HR_STTS_CD = 'DPL'
                 )
-               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_DepartureGate', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN OPER_BGNG_YMD AND OPER_END_YMD
+               WHERE REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_DepartureGate', '')  GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '') BETWEEN OPER_BGNG_YMD AND OPER_END_YMD
                 GROUP BY TMNL_ID, FCLT_SE_CD
             )
           ) B
@@ -2067,7 +2067,7 @@ ORDER BY
                     ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
                 WHERE A.OPER_HR_STTS_CD = 'DPL'
             )
-            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_Immigration', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD AND END_YMD
+            WHERE REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_Immigration', '')  GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '') BETWEEN BGNG_YMD AND END_YMD
             AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
                 SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
                 FROM (
@@ -2082,7 +2082,7 @@ ORDER BY
                         ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
                     WHERE A.OPER_HR_STTS_CD = 'DPL'
                 )
-               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_Immigration', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN OPER_BGNG_YMD AND OPER_END_YMD
+               WHERE REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_Immigration', '')  GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '') BETWEEN OPER_BGNG_YMD AND OPER_END_YMD
                 GROUP BY TMNL_ID, FCLT_SE_CD
             )
       ) B
@@ -2143,7 +2143,7 @@ ORDER BY
                     ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
                 WHERE A.OPER_HR_STTS_CD = 'DPL'
             )
-            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD AND END_YMD
+            WHERE REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '') BETWEEN BGNG_YMD AND END_YMD
             AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
                 SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
                 FROM (
@@ -2158,7 +2158,7 @@ ORDER BY
                         ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
                     WHERE A.OPER_HR_STTS_CD = 'DPL'
                 )
-               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN OPER_BGNG_YMD AND OPER_END_YMD
+               WHERE REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '') BETWEEN OPER_BGNG_YMD AND OPER_END_YMD
                 GROUP BY TMNL_ID, FCLT_SE_CD
             )
             UNION ALL
@@ -2176,7 +2176,7 @@ ORDER BY
                 WHERE A.OPER_HR_STTS_CD = 'DPL'
                 AND B.TMNL_ID = 'P01'
             )
-            WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN BGNG_YMD AND END_YMD
+            WHERE REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '') BETWEEN BGNG_YMD AND END_YMD
             AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
                 SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
                 FROM (
@@ -2192,7 +2192,7 @@ ORDER BY
                     WHERE A.OPER_HR_STTS_CD = 'DPL'
                     AND B.TMNL_ID = 'P01'
                 )
-               WHERE REPLACE((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), '/', '') BETWEEN OPER_BGNG_YMD AND OPER_END_YMD
+               WHERE REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FacilityOpeningTable_TransferSecurityControl', '')  GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '') BETWEEN OPER_BGNG_YMD AND OPER_END_YMD
                 GROUP BY TMNL_ID, FCLT_SE_CD
             )
             ) B

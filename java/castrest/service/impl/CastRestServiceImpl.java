@@ -7,6 +7,8 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -98,6 +100,9 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastRestServiceImpl extends EgovAbstractServiceImpl implements CastRestService {
+    // 테스트 데이터가 이 일자로만 적재돼 있어 일일 자료의 기준일자를 고정한다. 비우면 당일로 동작한다
+    private static final String FIXED_BASE_YMD = "20260212";
+
     private static final String CAST_MODEL = "CASTModel";
     private static final String CAST_EXPRESS_MODEL = "CASTExpressModel";
     // 결과 ResourceID 의 일일/사용자 구분자. TN_PM_SMLT_USER_MSTR 의 상태 문자열과는 별개다
@@ -719,7 +724,13 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 	String colName = "";
 	String pName = "";
 	String pValue = "";
-    
+
+	private static String resolveBaseYmd() {
+		return FIXED_BASE_YMD.isEmpty()
+				? LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
+				: FIXED_BASE_YMD;
+	}
+
 	@Override
 	public String retrieveResourceInformation(String param){
         // 1. 초기 로그 기록 (Step 2)
@@ -730,8 +741,9 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             Document doc = parseXmlSafely(param);
             Element node = doc.getDocumentElement();
             
-            CastReqGetResourceInformationDto infoDto = new CastReqGetResourceInformationDto();            
-            
+            CastReqGetResourceInformationDto infoDto = new CastReqGetResourceInformationDto();
+            infoDto.setBaseYmd(resolveBaseYmd());
+
         	// 3. 노드 정보 추출 및 DTO 변환
         	resourceInfoList(node, null, infoDto);
             mapResourceFlags(infoDto);
@@ -898,7 +910,8 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             Element node = doc.getDocumentElement();
             
             CastReqGetResourceDto resourceDto = new CastReqGetResourceDto();
-            
+            resourceDto.setBaseYmd(resolveBaseYmd());
+
         	// 3. 노드 정보 추출 및 DTO 변환
             resourceList(node, null, resourceDto);
 

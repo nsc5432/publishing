@@ -41,6 +41,8 @@ public class CastReqGetResourceInformationDto extends AomsDefaultDto {
 	private String handleYn = "";
 	private String rptYn = "";
 	private String ifYn = "";
+	// CAST 는 요청에 날짜를 싣지 않아 서버가 채운다
+	private String baseYmd = "";
 
 	@Override
 	public String toString() {

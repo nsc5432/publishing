@@ -34,6 +34,8 @@ public class CastReqGetResourceDto extends AomsDefaultDto {
 	private String smltMdlExpln = "";
 	private String fixAtrbGroupId = "";
 	private String schdlAtrbGroupId = "";
+	// CAST 는 요청에 날짜를 싣지 않아 서버가 채운다
+	private String baseYmd = "";
 	private ArrayList<CastReqGetResourceRowFilterDto> rowFilters = new ArrayList<>();
 
 	@Override

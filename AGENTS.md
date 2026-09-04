@@ -286,6 +286,19 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
 구 메뉴의 `셀프체크인/백드롭` 은 별도 화면·API 가 아니라 이 응답의 아일랜드 자원(`kioskCnt`,
 `bagDropCnt`)으로 흡수됐다 (사용자 시뮬레이션 탭이 합쳐진 것과 같은 이유다).
 
+**CAST 가 가져가는 일일 자료(`001`)의 기준일자는 서버가 정해 `#{baseYmd}` 로 바인딩한다.**
+CAST 는 `REQ_GetResource` 요청에 날짜를 싣지 않는다 — 본문이 `@RequestBody String` 으로 들어와
+`resourceType` · `resourceID` 두 개만 파싱되므로 서버가 채우는 수밖에 없다. 결정 지점은
+`CastRestServiceImpl.resolveBaseYmd()` 하나뿐이고, **mapper 에 `SYSDATE` 를 기준일자로 다시 쓰지
+않는다** (`LastModified` 표기·ID 채번용은 예외). 테스트 중에는 `FIXED_BASE_YMD` 상수로 고정하고,
+비우면 당일로 떨어진다. 사용자 자료(`002~999`)는 발행 시점에 `#{excnYmd}` 로 행에 굳으므로
+이 값과 무관하다 (§11.2).
+
+시설 운영시간 3종(`retrieveFcltyOpngTblDptg` · `..Immig` · `..TrnstScrtyCntrl`)은 날짜를
+`TN_PM_SMLT_SCHDL_ATRB` 의 그룹 행에서 꺼내는데, **일일(`001`) 그룹을 채우는 주체가 없어**
+`NVL(…, #{baseYmd})` 로 받는다. NVL 을 걷어내면 서브쿼리가 NULL → `BETWEEN` 이 false 라
+운영시간표가 **에러 없이 빈 채로** 발행된다.
+
 ---
 
 ## 9. 알아 두면 좋은 것
@@ -464,21 +477,18 @@ CAST에 요구하지 않는다.
 
 **아직 아닌 것 — 구현된 것으로 가정하지 말 것.**
 
-1. **`aoms.pm.cmmn.dto` 는 이 참조 사본에 없다.** 실 백엔드에서
-   `CastResReqDto.tmnlId` 와 `CastWhatIfCntrlDto.fromStatus` 를 추가해야
-   `CastRestMapper.xml` 의 `#{tmnlId}` · `#{fromStatus}` 바인딩이 동작한다.
-2. **`ddl/2026-08-27-user-smlt-alter.sql` 은 적용 전이다.** mapper 를 기준으로 썼으므로
+1. **`ddl/2026-08-27-user-smlt-alter.sql` 은 적용 전이다.** mapper 를 기준으로 썼으므로
    실 스키마를 `ALL_TAB_COLUMNS` 로 조회해 §11.7 의 불일치를 먼저 확정해야 한다.
-3. FS snapshot 의 `GOOWN.TN_GO_GD_DATA` 원천에서 **부속 컬럼 9종**(`ALN_CTGRY`, `GATE_TYPE`,
+2. FS snapshot 의 `GOOWN.TN_GO_GD_DATA` 원천에서 **부속 컬럼 9종**(`ALN_CTGRY`, `GATE_TYPE`,
    `SLF_CHKN_PSBLTY_YN` 등)을 확인하지 못해 NULL 로 둔다. `CastUserSnapshotMapper.xml` 상단
    TODO 에 나열돼 있다. 일일 리소스가 `FSxxx` 면 전 컬럼 복사라 해당 없다.
-4. SBD snapshot 의 키오스크(`KOS_CNT`)는 `TN_PM_SLF_CHKN_OPER_PLCY` 에서 발행하지만,
+3. SBD snapshot 의 키오스크(`KOS_CNT`)는 `TN_PM_SLF_CHKN_OPER_PLCY` 에서 발행하지만,
    그 테이블에 아일랜드 컬럼이 없어 `SLF_CHKN_ISTR_ID` 앞 한 자를 아일랜드로 가정한다.
    실 기기 ID 체계가 다르면 키오스크가 0건으로 발행된다. `TN_PM_SMLT_SBD_ATRB.CKNCT_ID` 가
    `VARCHAR2(4)` 라 기기 ID 가 4자를 넘어도 깨진다.
-5. WhatIf 설정이 없으면 사용자 화면이 일일 `SMLT_ID` 를 fallback 으로 쓴다.
+4. WhatIf 설정이 없으면 사용자 화면이 일일 `SMLT_ID` 를 fallback 으로 쓴다.
    사용자 실행용 `TN_PM_SMLT_STNG` 신규 채번은 아직 없다.
-6. `Executing` 상태로 멈춘 요청을 회수하는 경로가 없다 (§11.6 마지막 항목).
+5. `Executing` 상태로 멈춘 요청을 회수하는 경로가 없다 (§11.6 마지막 항목).
 
 ### 11.6 상태 모델과 Polling 규칙
 
