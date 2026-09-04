@@ -178,7 +178,21 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setCgnStatus(CongestionStatus.ofWtngPsgCnt(peak.getWtngPsgCnt()));
 		result.setPeak(peak);
 
-		setItvlSmry(result, searchDto, baseDate, fltTmnlIdList);
+		int itvlMin = searchDto.getItvlMin() != null ? searchDto.getItvlMin() : DEFAULT_ITVL_MIN;
+		String bgnHhmm = searchDto.getHhmm();
+
+		result.setItvlMin(itvlMin);
+
+		if (bgnHhmm != null && bgnHhmm.length() == HHMM_LENGTH) {
+			String endHhmm = getEndHhmm(bgnHhmm, itvlMin);
+			FltSmryRawDto baseItvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList, bgnHhmm, endHhmm);
+			FltSmryRawDto beforeItvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, bgnHhmm, endHhmm);
+
+			result.setItvlFltCnt(baseItvl.getDepFltCnt());
+			result.setItvlPsgCnt(baseItvl.getDepPsgCnt());
+			result.setItvlBefFltDiffCnt(baseItvl.getDepFltCnt() - beforeItvl.getDepFltCnt());
+			result.setItvlBefPsgDiffCnt(baseItvl.getDepPsgCnt() - beforeItvl.getDepPsgCnt());
+		}
 
 		return result;
 	}
@@ -190,19 +204,20 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(searchDto.getSmltId());
 
+        // Cast
 		Map<String, SmltRsltRawDto> rsltMap = castDsbdMapper
 				.retrieveRsltByHourList(searchDto.getSmltId(), tmnlId.getFcltTmnlId(), category.getUpPsgFcltCdList())
 				.stream().collect(Collectors.toMap(SmltRsltRawDto::getTime, Function.identity(), (first, ignored) -> first));
 
-		// 여객수 축은 결과 상세가 아니라 운항 원본에서 온다. 운항편 타일이면 편수를 그 자리에 쓴다
 		Map<String, FltPsgRawDto> fltPsgMap = castFltPsgMapper
 				.retrieveFltPsgHourList(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList())
 				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
-		// 실적선은 시뮬레이션이 아니라 실측(Xovis)이다. 아직 지나지 않은 시간대는 원천에 행이 없다
+		// Xovis
 		Map<String, PsgWtngRawDto> psgWtngMap = castDsbdMapper
 				.retrievePsgWtngByHourList(smltStng.getExcnYmd(), tmnlId.getFcltTmnlId(), category.getPsgWtngFcltTypeCdList())
 				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+
 		String lastWeekYmd = formatYmd(parseYmd(smltStng.getExcnYmd()).minusDays(DAYS_A_WEEK));
 		Map<String, PsgWtngRawDto> lastWeekPsgWtngMap = castDsbdMapper
 				.retrievePsgWtngByHourList(lastWeekYmd, tmnlId.getFcltTmnlId(), category.getPsgWtngFcltTypeCdList())
@@ -263,6 +278,20 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		List<SmltRsltRawDto> sortedRsltList = displayRsltMap.values().stream().sorted(Comparator.comparingInt(SmltRsltRawDto::getWtngPsgCnt).reversed()).collect(toList());
 
+		/*
+		 * 60분 구간 계산
+		 * - 대기열/예상인원 = MAX
+		 * - 처리인원(Pax/Min) = 구간 통과인원 합 / 실제 집계 분
+		 * - 처리율(%) = 구간 통과인원 합 / (구간 통과인원 합 + 최대 대기인원) * 100
+         */
+        /*
+         * 추천 대상은 각각 CC, SC/SR
+		 * - 추천 피크 = 시작 10분 후부터 구간 종료까지 추천 대상 시설의 최대 대기인원
+		 * - 시설당 분당 처리량 = 구간 통과인원 합 / 현재 운영 수량 / 실제 집계 분
+		 * - 추가 수량 = (추천 피크 - NORMAL 등급 상한) / (시설당 분당 처리량 * 피크까지 분)
+		 * - 혼잡해소 예상시간 = 대기인원 - (시설당 분당 처리량 * 추가 수량 * 경과 분)이 NORMAL 등급 상한 이하가 되는 첫 슬롯 시각
+		 * - 혼잡해소율(%) = (실제 집계 분 - 해소까지 분) / 실제 집계 분 * 100
+		 */
 		for (SmltRsltRawDto rslt : sortedRsltList) {
 			String unitCd = rslt.getUnitCd();
 			String unitContext = recommendContext(baseContext, fcltType, unitCd);
@@ -275,7 +304,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				int currentOpenCount = resources.getOpenCountValue(unitCd);
 
 				BigDecimal serviceRate = getServiceRate(recommendationContext, unitCd, recommendRslt.getTrnstPsgCnt(), currentOpenCount, averageServiceRate);
-                // 유닛 하나의 추천 계산 (ex. B아일랜드 or 3번 출국장)
 				calculation = calculateRecommendation(unitTimeList, peak, serviceRate, gradeScale, range, currentOpenCount, unitContext);
 			}
 
@@ -350,26 +378,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		}
 
 		return dowType == DowType.WEEKEND ? "주말(" + dowNm + ")" : "평일(" + dowNm + ")";
-	}
-
-	private void setItvlSmry(TmnlSmryDto result, DsbdSearchDto searchDto, LocalDate baseDate, List<String> fltTmnlIdList) {
-		int itvlMin = searchDto.getItvlMin() != null ? searchDto.getItvlMin() : DEFAULT_ITVL_MIN;
-		String bgnHhmm = searchDto.getHhmm();
-
-		result.setItvlMin(itvlMin);
-
-		if (bgnHhmm == null || bgnHhmm.length() != HHMM_LENGTH) {
-			return;
-		}
-
-		String endHhmm = getEndHhmm(bgnHhmm, itvlMin);
-		FltSmryRawDto baseItvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList, bgnHhmm, endHhmm);
-		FltSmryRawDto beforeItvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, bgnHhmm, endHhmm);
-
-		result.setItvlFltCnt(baseItvl.getDepFltCnt());
-		result.setItvlPsgCnt(baseItvl.getDepPsgCnt());
-		result.setItvlBefFltDiffCnt(baseItvl.getDepFltCnt() - beforeItvl.getDepFltCnt());
-		result.setItvlBefPsgDiffCnt(baseItvl.getDepPsgCnt() - beforeItvl.getDepPsgCnt());
 	}
 
 	private PeakDto getPeak(String smltId, TerminalKind tmnlId) {

@@ -115,7 +115,7 @@ export interface PeakDto {
     peakTime: string; // HHmm
     wtngPsgCnt: number; // 총 대기인원 (명)
     maxWtngHr: number; // 최대 대기시간 (분)
-    hrlyPrcsPsgCnt: number; // 시간당 처리인원 (명)
+    hrlyPrcsPsgCnt: number; // 시간당 처리인원 (명) — 시설군별 합 중 최대치
 }
 
 /** 터미널 패널 요약 */
@@ -146,7 +146,7 @@ export interface DsbdRsltDto {
     psgCnt: number; // 여객수
     wtngPsgCnt: number | null; // Xovis 실측 대기인원 (차트 실적선) — 측정값이 없는 시간대는 null
     wtngHr: number; // 대기시간 (분)
-    prcsPsgCnt: number; // 처리인원 (명)
+    prcsPsgCnt: number; // 처리인원 (명) — 시설군별 합 중 최대치
     prcsHr: number; // 처리시간 (분)
     prcsRate: number; // 처리율 (%)
     fcstWtngPsgCnt: number; // Cast 예측 대기인원 (차트 예측선)

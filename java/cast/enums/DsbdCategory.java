@@ -15,7 +15,7 @@ public enum DsbdCategory {
 	private static final List<String> CHKN_FCLT_CD_LIST = List.of("CC", "CK", "SBD");
 	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT", "LC", "SC", "SR");
 
-	// 여객대기정보(Xovis)는 시설 구분이 시뮬레이션과 다르다 — Queue 체크인 대기열, DG 출국장, SC 보안검색대
+	// 여객대기정보(Xovis)는 시설 구분: Queue 체크인 대기열, DG 출국장, SC 보안검색대
 	private static final List<String> CHKN_WTNG_TYPE_CD_LIST = List.of("Queue");
 	private static final List<String> DEP_WTNG_TYPE_CD_LIST = List.of("DG", "SC");
 
