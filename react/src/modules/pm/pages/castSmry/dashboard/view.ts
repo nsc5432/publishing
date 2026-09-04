@@ -2,6 +2,7 @@ import type {
     CongestionStatus,
     DsbdFcltCardDto,
     DsbdRsltDto,
+    FcltUnitDto,
     SmltType,
     TmnlSmryDto,
 } from '@/types/api.types';
@@ -15,6 +16,7 @@ import {
     pad2,
 } from '@/lib/format';
 import type {
+    GateChip,
     GateData,
     GateFcltType,
     GateVariant,
@@ -67,6 +69,7 @@ function toGateVariant(card: DsbdFcltCardDto): GateVariant {
     const isCheckin = card.fcltType === 'CHKN';
 
     return {
+        unitCd: isCheckin ? card.island : card.dptgtNo,
         island: isCheckin ? '아일랜드' : undefined,
         num: card.fcltNm,
         meta: isCheckin
@@ -93,11 +96,14 @@ function toGateVariant(card: DsbdFcltCardDto): GateVariant {
             countNote: card.recommend.needAssignYn === 'Y' ? '배정 필요' : '소요',
             countNoteAccent: card.recommend.needAssignYn === 'N',
         },
-        // 미운영 칩은 혼잡도와 무관하게 회색으로 눕힌다.
-        chips: card.unitList.map((unit) => ({
-            label: unit.unitCd,
-            kind: unit.useYn === 'N' ? 'gray' : CONGESTION_CHIP_CLASS[unit.cgnStatus],
-        })),
+    };
+}
+
+// 미운영 칩은 혼잡도와 무관하게 회색으로 눕힌다.
+function toGateChip(unit: FcltUnitDto): GateChip {
+    return {
+        label: unit.unitCd,
+        kind: unit.useYn === 'N' ? 'gray' : CONGESTION_CHIP_CLASS[unit.cgnStatus],
     };
 }
 
@@ -109,6 +115,7 @@ function toGateData(fcltType: GateFcltType, cards: DsbdFcltCardDto[]): GateData 
         title: GATE_TITLE[fcltType],
         warn: busyCount > 0 ? `혼잡 ${busyCount}개` : '원활',
         variants: cards.map(toGateVariant),
+        chips: (cards[0]?.unitList ?? []).map(toGateChip),
     };
 }
 

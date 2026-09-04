@@ -62,13 +62,14 @@ export interface GateRecommend {
 
 /** 게이트 캐러셀의 한 페이지(아일랜드/출국장 1개 상태) */
 export interface GateVariant {
+    /** 하단 칩(FcltUnitDto.unitCd)과 카드를 잇는 키 — 아일랜드 문자 / 출국장 번호 */
+    unitCd: string;
     island?: string;
     num: string;
     meta: GateMeta[];
     processRate: GaugeData;
     clearTime: GaugeData;
     recommend: GateRecommend;
-    chips: GateChip[];
 }
 
 /** 대시보드 게이트 카드로 올라오는 시설 (상세 화면이 따로 있는 둘) */
@@ -80,6 +81,8 @@ export interface GateData {
     title: string;
     warn: string;
     variants: GateVariant[];
+    /** 카드가 아니라 시설 전체의 유닛 목록 — 카드를 넘겨도 바뀌지 않는다 */
+    chips: GateChip[];
 }
 
 export interface SummaryStat {

@@ -1485,13 +1485,18 @@ html[data-page='dashboard'] .chip {
     outline-offset: 2px;
 }
 
-html[data-page='dashboard'] .chip:hover {
+html[data-page='dashboard'] .chip:not(:disabled):hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(46, 50, 94, 0.22);
 }
 
-html[data-page='dashboard'] .chip:active {
+html[data-page='dashboard'] .chip:not(:disabled):active {
     transform: translateY(0);
+}
+
+html[data-page='dashboard'] .chip:disabled {
+    cursor: default;
+    opacity: 0.45;
 }
 
 html[data-page='dashboard'] .chip.sel {

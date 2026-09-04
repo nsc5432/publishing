@@ -281,13 +281,16 @@ function Multiline({ text }: { text: string }) {
 }
 
 function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDetail: () => void }) {
-    const [variantIndex, setVariantIndex] = useState(0);
-    const [selectedChip, setSelectedChip] = useState<number | null>(null);
-    const variant = data.variants[Math.min(variantIndex, data.variants.length - 1)];
+    const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
+    const variantIndex = Math.max(
+        0,
+        data.variants.findIndex((gateVariant) => gateVariant.unitCd === selectedUnit),
+    );
+    const variant = data.variants[variantIndex];
 
     const cycleVariant = (direction: number) => {
-        setVariantIndex((prevIndex) => (prevIndex + direction + data.variants.length) % data.variants.length);
-        setSelectedChip(null);
+        const nextIndex = (variantIndex + direction + data.variants.length) % data.variants.length;
+        setSelectedUnit(data.variants[nextIndex].unitCd);
     };
 
     if (!variant) return null;
@@ -344,13 +347,14 @@ function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDeta
                 </div>
             </div>
             <div className="chips">
-                {variant.chips.map((chip, chipIndex) => (
+                {data.chips.map((chip) => (
                     <button
                         type="button"
                         key={chip.label}
-                        className={`chip ${chip.kind}${chipIndex === selectedChip ? ' sel' : ''}`}
-                        aria-pressed={chipIndex === selectedChip}
-                        onClick={() => setSelectedChip((prevSelected) => (prevSelected === chipIndex ? null : chipIndex))}
+                        className={`chip ${chip.kind}${chip.label === variant.unitCd ? ' sel' : ''}`}
+                        aria-pressed={chip.label === variant.unitCd}
+                        disabled={!data.variants.some((gateVariant) => gateVariant.unitCd === chip.label)}
+                        onClick={() => setSelectedUnit(chip.label)}
                     >
                         {chip.label}
                     </button>

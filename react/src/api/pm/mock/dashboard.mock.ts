@@ -280,6 +280,17 @@ function buildUnits(labels: string[], busyLabels: string[], closedLabels: string
 /** 체크인카운터 아일랜드 — 두 터미널이 같은 구성이다 (I 는 쓰지 않는다) */
 const CHKN_LABELS = ['N', 'M', 'L', 'K', 'J', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'];
 
+/** 칩은 카드가 아니라 시설 전체 목록이다 — 서버도 같은 목록을 카드마다 실어 보낸다 */
+const CHKN_UNITS: Record<TmnlId, FcltUnitDto[]> = {
+    T1: buildUnits(CHKN_LABELS, ['N', 'H', 'C', 'B'], ['A']),
+    T2: buildUnits(CHKN_LABELS, ['M', 'C'], ['A']),
+};
+
+const DPTGT_UNITS: Record<TmnlId, FcltUnitDto[]> = {
+    T1: buildUnits(['6', '5', '4', '3', '2', '1'], ['4', '3'], ['6']),
+    T2: buildUnits(['2', '1'], ['1'], []),
+};
+
 const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
     T1: [
         {
@@ -297,7 +308,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearRate: 62,
             cgnStatus: 'BUSY',
             recommend: { targetNm: '대한항공', reqCnt: 5, needAssignYn: 'Y' },
-            unitList: buildUnits(CHKN_LABELS, ['N', 'H', 'C', 'B'], []),
+            unitList: CHKN_UNITS.T1,
         },
         {
             cardId: 'T1-CHKN-D',
@@ -314,7 +325,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearRate: 50,
             cgnStatus: 'NORMAL',
             recommend: { targetNm: '아시아나항공', reqCnt: 3, needAssignYn: 'Y' },
-            unitList: buildUnits(CHKN_LABELS, ['L', 'K', 'F'], ['A']),
+            unitList: CHKN_UNITS.T1,
         },
     ],
     T2: [
@@ -333,7 +344,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearRate: 58,
             cgnStatus: 'BUSY',
             recommend: { targetNm: '대한항공', reqCnt: 4, needAssignYn: 'Y' },
-            unitList: buildUnits(CHKN_LABELS, ['M', 'C'], []),
+            unitList: CHKN_UNITS.T2,
         },
         {
             cardId: 'T2-CHKN-E',
@@ -350,7 +361,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearRate: 47,
             cgnStatus: 'NORMAL',
             recommend: { targetNm: '진에어', reqCnt: 2, needAssignYn: 'N' },
-            unitList: buildUnits(CHKN_LABELS, ['J'], ['A']),
+            unitList: CHKN_UNITS.T2,
         },
     ],
 };
@@ -372,7 +383,7 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearRate: 62,
             cgnStatus: 'BUSY',
             recommend: { targetNm: '보안검색대', reqCnt: 6, needAssignYn: 'N' },
-            unitList: buildUnits(['6', '5', '4', '3', '2', '1'], ['4'], ['6']),
+            unitList: DPTGT_UNITS.T1,
         },
         {
             cardId: 'T1-DEP-1',
@@ -389,7 +400,7 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearRate: 40,
             cgnStatus: 'NORMAL',
             recommend: { targetNm: '보안검색대', reqCnt: 4, needAssignYn: 'N' },
-            unitList: buildUnits(['6', '5', '4', '3', '2', '1'], ['3'], []),
+            unitList: DPTGT_UNITS.T1,
         },
     ],
     T2: [
@@ -408,7 +419,7 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearRate: 62,
             cgnStatus: 'BUSY',
             recommend: { targetNm: '보안검색대', reqCnt: 6, needAssignYn: 'N' },
-            unitList: buildUnits(['2', '1'], ['1'], []),
+            unitList: DPTGT_UNITS.T2,
         },
         {
             cardId: 'T2-DEP-2',
@@ -425,7 +436,7 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             cgnClearRate: 40,
             cgnStatus: 'NORMAL',
             recommend: { targetNm: '보안검색대', reqCnt: 4, needAssignYn: 'N' },
-            unitList: buildUnits(['2', '1'], [], ['2']),
+            unitList: DPTGT_UNITS.T2,
         },
     ],
 };
