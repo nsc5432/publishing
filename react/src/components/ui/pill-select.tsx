@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+const VISIBLE_OPTION_COUNT = 6;
+
 interface PillSelectProps {
     value: string;
     options: string[];
@@ -31,7 +33,9 @@ export function PillSelect({ value, options, unit, onChange }: PillSelectProps) 
             </button>
 
             {open && (
-                <div className="pill-menu">
+                <div
+                    className={`pill-menu${options.length > VISIBLE_OPTION_COUNT ? ' scroll' : ''}`}
+                >
                     {options.map((option) => (
                         <button
                             key={option}
