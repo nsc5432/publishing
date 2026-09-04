@@ -16,6 +16,11 @@ PSG_ATRB_CATEGORIES = {
     "05030000": "EntryTime_11amto12pm",
     "05040000": "EntryTime_12pmto1pm",
     "05050000": "EntryTime_After1pm",
+    "05060000": "EntryTime_Before10am_T2",
+    "05070000": "EntryTime_10amto11am_T2",
+    "05080000": "EntryTime_11amto12pm_T2",
+    "05090000": "EntryTime_12pmto1pm_T2",
+    "05100000": "EntryTime_After1pm_T2",
     "06010000": "EP_Int",
     "06020000": "EP_Dom",
     "07010000": "SecurityType",
@@ -29,6 +34,8 @@ PSG_ATRB_CATEGORIES = {
     "12030000": "ConnectionLoc_T2Arrivals",
     "13010000": "CheckInReportingTime_STDBefore10am",
     "13020000": "CheckInReportingTime_STDAfter10am",
+    "13030000": "CheckInReportingTime_STDBefore10am_T2",
+    "13040000": "CheckInReportingTime_STDAfter10am_T2",
     "14100000": "GateReportingTime_International",
     "14200000": "GateReportingTime_Domestic",
     "15010000": "SecurityReportingTime_Before10am",
@@ -37,6 +44,11 @@ PSG_ATRB_CATEGORIES = {
     "15040000": "SecurityReportingTime_12pmto1pm",
     "15050000": "SecurityReportingTime_After1pm",
     "15060000": "SecurityReportingTime_Domestic",
+    "15070000": "SecurityReportingTime_Before10am_T2",
+    "15080000": "SecurityReportingTime_10amto11am_T2",
+    "15090000": "SecurityReportingTime_11amto12pm_T2",
+    "15100000": "SecurityReportingTime_12pmto1pm_T2",
+    "15110000": "SecurityReportingTime_After1pm_T2",
     "16010000": "Security_HandBagRed",
     "17010000": "DistributionfromCKINtoDG_T1_A",
     "17020000": "DistributionfromCKINtoDG_T1_B",
@@ -93,19 +105,33 @@ CHECKPOINTS_SECURITY = [270, 210, 180, 150, 120, 90, 60, 40]
 CHECKPOINTS_CHECKIN = [300, 240, 180, 150, 120, 90, 60, 30]
 CHECKPOINTS_GATE = [60, 45, 30, 20, 10]
 
-# PERIOD ↔ STD 시간대 코드
-GEN_CODES = {"P1": "05010000", "P2": "05020000", "P3": "05030000", "P4": "05040000", "P5": "05050000"}
-SECURITY_CODES = {"P1": "15010000", "P2": "15020000", "P3": "15030000", "P4": "15040000", "P5": "15050000"}
+# PERIOD ↔ STD 시간대 코드 (터미널 x PERIOD)
+# SHOW_UP 테이블 키가 (FIX_ATRB_GROUP_ID, PSG_ATRB_CD) 뿐이고 전처리 결과는 단일 그룹(999)에 모이므로
+# 터미널 구분은 속성코드로만 표현할 수 있다. t2 코드는 t1 뒤 빈 번호를 이어 붙인 것이고,
+# 15060000 은 국내선(SecurityReportingTime_Domestic) 이 이미 쓰고 있어 15070000 부터 시작한다.
+GEN_CODES = {
+    "t1": {"P1": "05010000", "P2": "05020000", "P3": "05030000", "P4": "05040000", "P5": "05050000"},
+    "t2": {"P1": "05060000", "P2": "05070000", "P3": "05080000", "P4": "05090000", "P5": "05100000"},
+}
+SECURITY_CODES = {
+    "t1": {"P1": "15010000", "P2": "15020000", "P3": "15030000", "P4": "15040000", "P5": "15050000"},
+    "t2": {"P1": "15070000", "P2": "15080000", "P3": "15090000", "P4": "15100000", "P5": "15110000"},
+}
+CHECKIN_CODES = {
+    "t1": {"BEFORE_10AM": "13010000", "AFTER_10AM": "13020000"},
+    "t2": {"BEFORE_10AM": "13030000", "AFTER_10AM": "13040000"},
+}
 PERIODS = ["P1", "P2", "P3", "P4", "P5"]
+TERMINAL_SUFFIXES = ["t1", "t2"]
 
 
 #  태스크 빌더
 def _cumulative_per_period(read_tmpl: str, code_map: dict, checkpoints: list[int]) -> list[dict]:
     """터미널 x PERIOD별 단일 코드 누적 태스크 (gen / dg 공통)."""
     tasks = []
-    for suffix, gid in [("t1", PRE_PRCS_GROUP_ID), ("t2", PRE_PRCS_GROUP_ID)]:
+    for suffix in TERMINAL_SUFFIXES:
         for period in PERIODS:
-            code = code_map[period]
+            code = code_map[suffix][period]
             tasks.append({
                 "description": f"{PSG_ATRB_CATEGORIES[code]} ({suffix})",
                 "name": f"{code}-{suffix}",
@@ -114,35 +140,37 @@ def _cumulative_per_period(read_tmpl: str, code_map: dict, checkpoints: list[int
                 "table": SHOW_UP_TABLE,
                 "transform": "cumulative_percent",
                 "psg_atrb_cd": code,
-                "fix_group_ids": [gid],
+                "fix_group_ids": PRE_PRCS_GROUPS,
                 "checkpoints": checkpoints,
             })
     return tasks
 
 
 def _checkin_reporting_tasks() -> list[dict]:
-    """체크인 리포팅: P1 -> 13010000(STD < 1000), P2~P5 평균 -> 13020000(STD >= 1000)."""
+    """체크인 리포팅: P1 -> STD < 1000, P2~P5 평균 -> STD >= 1000 (터미널별 코드는 CHECKIN_CODES)."""
     tasks = []
-    for suffix, gid in [("t1", PRE_PRCS_GROUP_ID), ("t2", PRE_PRCS_GROUP_ID)]:
+    for suffix in TERMINAL_SUFFIXES:
+        before_code = CHECKIN_CODES[suffix]["BEFORE_10AM"]
+        after_code = CHECKIN_CODES[suffix]["AFTER_10AM"]
         tasks.append({
-            "description": f"CheckInReportingTime_STDBefore10am ({suffix})",
-            "name": f"13010000-{suffix}",
+            "description": f"{PSG_ATRB_CATEGORIES[before_code]} ({suffix})",
+            "name": f"{before_code}-{suffix}",
             "read_file": f"step4-ck-{suffix}-rate.csv",
             "filter": {"PERIOD": "P1"},
             "table": SHOW_UP_TABLE,
             "transform": "cumulative_percent",
-            "psg_atrb_cd": "13010000",
-            "fix_group_ids": [gid],
+            "psg_atrb_cd": before_code,
+            "fix_group_ids": PRE_PRCS_GROUPS,
             "checkpoints": CHECKPOINTS_CHECKIN,
         })
         tasks.append({
-            "description": f"CheckInReportingTime_STDAfter10am ({suffix})",
-            "name": f"13020000-{suffix}",
+            "description": f"{PSG_ATRB_CATEGORIES[after_code]} ({suffix})",
+            "name": f"{after_code}-{suffix}",
             "read_file": f"step4-ck-{suffix}-rate.csv",
             "table": SHOW_UP_TABLE,
             "transform": "cumulative_percent",
-            "psg_atrb_cd": "13020000",
-            "fix_group_ids": [gid],
+            "psg_atrb_cd": after_code,
+            "fix_group_ids": PRE_PRCS_GROUPS,
             "agg_periods": ["P2", "P3", "P4", "P5"],
             "checkpoints": CHECKPOINTS_CHECKIN,
         })
@@ -249,9 +277,9 @@ UPLOAD_TASKS = [
     },
 ]
 
-# 발생시각 (EntryTime): gen-t1/t2 x P1~P5 -> 05010000~05050000
+# 발생시각 (EntryTime): gen-t1/t2 x P1~P5 -> t1 05010000~05050000 / t2 05060000~05100000
 UPLOAD_TASKS += _cumulative_per_period("step4-gen-{t}-rate.csv", GEN_CODES, CHECKPOINTS_ENTRY)
-# 체크인 리포팅 (CheckInReportingTime): ck-t1/t2 -> 13010000 / 13020000
+# 체크인 리포팅 (CheckInReportingTime): ck-t1/t2 -> t1 13010000·13020000 / t2 13030000·13040000
 UPLOAD_TASKS += _checkin_reporting_tasks()
-# 보안 리포팅 (SecurityReportingTime): dg-t1/t2 x P1~P5 -> 15010000~15050000
+# 보안 리포팅 (SecurityReportingTime): dg-t1/t2 x P1~P5 -> t1 15010000~15050000 / t2 15070000~15110000
 UPLOAD_TASKS += _cumulative_per_period("step4-dg-{t}-rate.csv", SECURITY_CODES, CHECKPOINTS_SECURITY)
