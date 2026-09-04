@@ -247,6 +247,9 @@ function toNotice(dptgtRsltList: MapUnitRsltDto[], seeds: GateSeed[]): MapNotice
                 fcltNm: `출국장 ${rslt.unitCd}`,
                 fcltCd: `DG${rslt.unitCd.padStart(2, '0')}`,
                 boothCnt: boothCntMap.get(rslt.unitCd) ?? 0,
+                // 총 소요 부스 · 해소시간은 체크인 공용 Queue 만 산정한다
+                reqCnt: null,
+                cgnClearMin: null,
             })),
     };
 }

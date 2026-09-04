@@ -9,14 +9,14 @@ import { useTimeline } from '@/modules/pm/hooks/useTimeline';
 import { Header } from './components/Header';
 import { IslandStrip } from './components/IslandStrip';
 import { IslandTable } from './components/IslandTable';
-import { ResourceChart } from './components/ResourceChart';
+import { QueueChart } from './components/QueueChart';
 import { SummaryBar } from './components/SummaryBar';
 import { Timeline } from './components/Timeline';
 import { ViewSwitch } from './components/ViewSwitch';
 import { useChknCounter, type ChknCounterQuery } from './hooks/useChknCounterData';
 import { TIMELINE_RANGE } from './timeline';
 import type { TerminalKind, ViewMode } from './types';
-import { EMPTY_CHKN_SLOT, EMPTY_RESOURCE } from './view';
+import { EMPTY_CHKN_SLOT, EMPTY_QUEUE } from './view';
 
 function CheckinCounter() {
     usePageScope('checkinCounter');
@@ -62,7 +62,7 @@ function CheckinCounter() {
                         <div className="chkn-view__body">
                             {view === 'chart' ? (
                                 <>
-                                    <ResourceChart resource={chknDay?.resource ?? EMPTY_RESOURCE} step={timeline.step} time={timeline.label} />
+                                    <QueueChart queue={chknDay?.queue ?? EMPTY_QUEUE} step={timeline.step} time={timeline.label} />
                                     <IslandStrip islands={slot.islands} time={timeline.label} />
                                 </>
                             ) : (

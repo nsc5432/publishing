@@ -16,9 +16,8 @@ import type {
  * 서버 DTO 와 같은 모양으로 둔다. 화면은 목업이든 실통신이든 같은 DTO 를 받으므로
  * 연동 시 화면 코드를 고칠 일이 없다.
  *
- * 하루치를 한 번에 내려준다 — 자원 활용 차트(24시간)와 표 보기(30분 슬롯)가
- * 이 한 건을 나눠 쓴다. 값의 근거는 아일랜드 하나에 모아 두고 나머지를 끌어내
- * 차트와 표가 서로 다른 이야기를 하지 않게 한다.
+ * 하루치를 한 번에 내려준다 — 차트와 표가 모두 30분 슬롯을 읽는다. 값의 근거는
+ * 아일랜드 Queue 하나에 모아 두고 나머지를 끌어내 차트와 표가 서로 다른 이야기를 하지 않게 한다.
  */
 
 const SMLT_ID = 'SMLT-20260710-0001';
@@ -47,7 +46,7 @@ interface IslandSeed {
     island: string;
     /** 보유 카운터 수 (아일랜드 골격) */
     totCnt: number;
-    /** 유인 카운터 운영 대수 */
+    /** 유인 카운터 배정 대수 */
     counterCnt: number;
     kioskCnt: number;
     bagDropCnt: number;
@@ -55,7 +54,7 @@ interface IslandSeed {
     operBgngHour: number;
     operEndHour: number;
     alnCdList: string[];
-    /** 하루 추이의 피크 자리(슬롯 번호) / 최대 대기인원 */
+    /** 하루 추이의 피크 자리(슬롯 번호) / 최대 Queue 인원 */
     peakStep: number;
     peakWtng: number;
 }
@@ -101,16 +100,60 @@ function isOpen(seed: IslandSeed, hour: number): boolean {
     return seed.counterCnt > 0 && seed.operBgngHour <= hour && hour < seed.operEndHour;
 }
 
+function hourOf(step: number): number {
+    return Math.floor((step * STEP_MIN) / 60);
+}
+
 /**
- * 시간대별 대기인원.
+ * 시간대별 공용 Queue 인원.
  * 피크를 중심으로 완만하게 오르내리는 곡선을 만든다. 문 닫은 시각은 0 이다.
  */
-function wtngAt(seed: IslandSeed, step: number): number {
-    if (!isOpen(seed, Math.floor((step * STEP_MIN) / 60))) return 0;
+function queueAt(seed: IslandSeed, step: number): number {
+    if (!isOpen(seed, hourOf(step))) return 0;
 
     const gap = Math.abs(step - seed.peakStep);
 
     return Math.max(0, Math.round(seed.peakWtng * Math.exp(-((gap / 9) ** 2)) - gap * 0.4));
+}
+
+/* ================= 공용 Queue 추천 ================= */
+
+/** NORMAL 등급 상한 (서버 혼잡등급 기준정보와 같은 값) */
+const NORMAL_MAX_QUEUE = 220;
+/** 부스 1대의 분당 처리량 */
+const BOOTH_PRCS_PER_MIN = 2;
+/** 추천 리드타임 (분) */
+const RECOMMEND_LEAD_MIN = 30;
+/** 추천 궤적 구간 (분) */
+const RECOMMEND_SPAN_MIN = 60;
+
+/** 그 시각 운영 부스 — 배정 대수를 Queue 흐름에 맞춰 오르내리게 한다 */
+function boothCntAt(seed: IslandSeed, step: number): number {
+    if (!isOpen(seed, hourOf(step))) return 0;
+
+    const peakRatio = seed.peakWtng === 0 ? 0 : queueAt(seed, step) / seed.peakWtng;
+
+    return Math.max(1, Math.round(seed.counterCnt * (0.5 + peakRatio / 2)));
+}
+
+function extraBoothCntAt(queuePsgCnt: number): number {
+    const excess = queuePsgCnt - NORMAL_MAX_QUEUE;
+
+    return excess <= 0 ? 0 : Math.ceil(excess / (BOOTH_PRCS_PER_MIN * RECOMMEND_LEAD_MIN));
+}
+
+function toCgnClearMin(
+    queuePsgCnt: number,
+    oprBoothCnt: number,
+    extraBoothCnt: number,
+): number | null {
+    if (oprBoothCnt === 0) return null;
+    if (extraBoothCnt === 0) return 0;
+
+    return Math.min(
+        RECOMMEND_SPAN_MIN,
+        Math.ceil((queuePsgCnt - NORMAL_MAX_QUEUE) / (BOOTH_PRCS_PER_MIN * extraBoothCnt)),
+    );
 }
 
 /* ================= 슬롯 ================= */
@@ -118,63 +161,89 @@ function wtngAt(seed: IslandSeed, step: number): number {
 /** 문을 닫은 시각 */
 const EMPTY_STAT: MapCgnStatDto = { wtngPsgCnt: 0, wtngHr: 0, prcsPsgCnt: 0, prcsHr: 0 };
 
-/** 혼잡 현황 지표 4종 — 대기인원 하나에서 나머지를 끌어낸다 (값끼리 어긋나지 않도록) */
-function toStat(wtngPsgCnt: number): MapCgnStatDto {
+/** 30분 처리용량 (명) */
+function toCapacity(oprBoothCnt: number): number {
+    return oprBoothCnt * BOOTH_PRCS_PER_MIN * STEP_MIN;
+}
+
+/** 혼잡 현황 지표 4종 — Queue 하나에서 나머지를 끌어낸다 (값끼리 어긋나지 않도록) */
+function toStat(queuePsgCnt: number, oprBoothCnt: number): MapCgnStatDto {
     return {
-        wtngPsgCnt,
-        wtngHr: Math.round(wtngPsgCnt / 8) + 2,
-        prcsPsgCnt: 20 + Math.round(wtngPsgCnt / 10),
+        wtngPsgCnt: queuePsgCnt,
+        wtngHr: Math.round(queuePsgCnt / 8) + 2,
+        prcsPsgCnt: Math.min(toCapacity(oprBoothCnt), 20 + Math.round(queuePsgCnt * 0.8)),
         prcsHr: 40,
     };
 }
 
-/** 대기인원 → 혼잡도 (뱃지와 알림이 같은 근거를 쓴다) */
-function toStatus(wtngPsgCnt: number): CongestionStatus {
-    if (wtngPsgCnt >= 240) return 'VERY_BUSY';
-    if (wtngPsgCnt >= 140) return 'BUSY';
-    if (wtngPsgCnt >= 50) return 'NORMAL';
+/** Queue 인원 → 혼잡도 (뱃지와 알림이 같은 근거를 쓴다) */
+function toStatus(queuePsgCnt: number): CongestionStatus {
+    if (queuePsgCnt >= 420) return 'VERY_BUSY';
+    if (queuePsgCnt > NORMAL_MAX_QUEUE) return 'BUSY';
+    if (queuePsgCnt >= 80) return 'NORMAL';
 
     return 'FREE';
 }
 
 function toChknRslt(seed: IslandSeed, step: number): MapChknRsltDto {
+    const oprBoothCnt = boothCntAt(seed, step);
+
     // 문을 닫은 시각은 결과 자체가 없다 — 처리인원까지 0 이어야 표가 운영 여부와 어긋나지 않는다
-    if (!isOpen(seed, Math.floor((step * STEP_MIN) / 60))) {
-        return { unitCd: seed.island, cgnStatus: 'FREE', stat: EMPTY_STAT, prcsRate: 0 };
+    if (oprBoothCnt === 0) {
+        return {
+            unitCd: seed.island,
+            cgnStatus: 'FREE',
+            stat: EMPTY_STAT,
+            prcsRate: 0,
+            avgQueuePsgCnt: 0,
+            maxQueuePsgCnt: 0,
+            oprBoothCnt: 0,
+            reqCnt: null,
+            cgnClearMin: null,
+        };
     }
 
-    const wtngPsgCnt = wtngAt(seed, step);
-    const stat = toStat(wtngPsgCnt);
-    const total = stat.prcsPsgCnt + stat.wtngPsgCnt;
+    const queuePsgCnt = queueAt(seed, step);
+    const stat = toStat(queuePsgCnt, oprBoothCnt);
+    const capacity = toCapacity(oprBoothCnt);
+    const extraBoothCnt = extraBoothCntAt(queuePsgCnt);
 
     return {
         unitCd: seed.island,
-        cgnStatus: toStatus(wtngPsgCnt),
+        cgnStatus: toStatus(queuePsgCnt),
         stat,
-        prcsRate: total === 0 ? 0 : Math.round((stat.prcsPsgCnt * 100) / total),
+        prcsRate: capacity === 0 ? 0 : Math.min(100, Math.round((stat.prcsPsgCnt * 100) / capacity)),
+        avgQueuePsgCnt: Math.round(queuePsgCnt * 0.92),
+        maxQueuePsgCnt: Math.round(queuePsgCnt * 1.08),
+        oprBoothCnt,
+        reqCnt: oprBoothCnt + extraBoothCnt,
+        cgnClearMin: toCgnClearMin(queuePsgCnt, oprBoothCnt, extraBoothCnt),
     };
 }
 
-/** 알림은 매우혼잡한 아일랜드만 모은다 (뱃지와 같은 근거) */
-function toNotice(rsltList: MapChknRsltDto[], seeds: IslandSeed[]): MapNoticeDto {
-    const counterCntMap = new Map(seeds.map((seed) => [seed.island, seed.counterCnt]));
-    const busy = rsltList.filter((rslt) => rslt.cgnStatus === 'VERY_BUSY');
+/** 알림은 혼잡(BUSY) 이상인 아일랜드만 Queue 내림차순으로 모은다 (뱃지와 같은 근거) */
+function toNotice(rsltList: MapChknRsltDto[]): MapNoticeDto {
+    const sorted = [...rsltList].sort((a, b) => b.stat.wtngPsgCnt - a.stat.wtngPsgCnt);
+    const busy = sorted.filter(
+        (rslt) => rslt.cgnStatus === 'BUSY' || rslt.cgnStatus === 'VERY_BUSY',
+    );
 
     return {
-        cgnStatus: busy.length > 0 ? 'BUSY' : 'NORMAL',
+        cgnStatus: sorted[0]?.cgnStatus ?? 'FREE',
         itemList: busy.map((rslt) => ({
             fcltNm: `아일랜드 ${rslt.unitCd}`,
             fcltCd: rslt.unitCd,
-            boothCnt: counterCntMap.get(rslt.unitCd) ?? 0,
+            boothCnt: rslt.oprBoothCnt,
+            reqCnt: rslt.reqCnt,
+            cgnClearMin: rslt.cgnClearMin,
         })),
     };
 }
 
 function toSlot(tmnlId: TmnlId, hhmm: string, step: number): ChknCounterSlotDto {
-    const seeds = ISLAND_SEEDS[tmnlId];
-    const chknRsltList = seeds.map((seed) => toChknRslt(seed, step));
+    const chknRsltList = ISLAND_SEEDS[tmnlId].map((seed) => toChknRslt(seed, step));
 
-    return { hhmm, notice: toNotice(chknRsltList, seeds), chknRsltList };
+    return { hhmm, notice: toNotice(chknRsltList), chknRsltList };
 }
 
 /* ================= 아일랜드 · 시간대별 자원 ================= */
@@ -194,33 +263,54 @@ function toIsland(seed: IslandSeed): ChknCounterIslandDto {
     };
 }
 
-/** 시간대별 자원 — 그 시각에 열려 있는 아일랜드의 자원을 더한다 */
+/**
+ * 시간대별 자원 — 그 시각에 열려 있는 아일랜드의 자원을 더한다.
+ * 대기인원은 순간 재고량이라 두 30분 슬롯을 더하지 않고 매시 마지막 Queue 를 싣는다.
+ */
 function toRsrc(seeds: IslandSeed[], totCnt: number, hour: number): ChknCounterRsrcDto {
     const open = seeds.filter((seed) => isOpen(seed, hour));
     const counterCnt = open.reduce((sum, seed) => sum + seed.counterCnt, 0);
-    // 자원 활용 차트의 두 축은 같은 시각을 봐야 한다 — 대기인원도 그 시(정각 슬롯)에서 읽는다
-    const wtngPsgCnt = seeds.reduce((sum, seed) => sum + wtngAt(seed, hour * 2), 0);
+    const lastStep = hour * 2 + 1;
 
     return {
         hour,
         counterCnt,
         kioskCnt: open.reduce((sum, seed) => sum + seed.kioskCnt, 0),
         bagDropCnt: open.reduce((sum, seed) => sum + seed.bagDropCnt, 0),
-        wtngPsgCnt,
-        prcsPsgCnt: counterCnt * 12,
+        wtngPsgCnt: seeds.reduce((sum, seed) => sum + queueAt(seed, lastStep), 0),
+        prcsPsgCnt: seeds.reduce(
+            (sum, seed) =>
+                sum +
+                toStat(queueAt(seed, hour * 2), boothCntAt(seed, hour * 2)).prcsPsgCnt +
+                toStat(queueAt(seed, lastStep), boothCntAt(seed, lastStep)).prcsPsgCnt,
+            0,
+        ),
         utilRate: totCnt === 0 ? 0 : Math.round((counterCnt * 100) / totCnt),
     };
 }
 
 export const chknCounterMock = {
-    /** 화면 하루치 — 차트는 rsrcList 를, 표는 타임라인이 가리키는 슬롯을 읽는다 */
+    /** 화면 하루치 — 차트와 표가 모두 타임라인이 가리키는 슬롯을 읽는다 */
     getChknCounter: (tmnlId: TmnlId): ChknCounterDto => {
         const seeds = ISLAND_SEEDS[tmnlId];
         const totCnt = seeds.reduce((sum, seed) => sum + seed.totCnt, 0);
         const rsrcList = Array.from({ length: HOUR_PER_DAY }, (_, hour) =>
             toRsrc(seeds, totCnt, hour),
         );
+        const slotList = TIME_LIST.map((hhmm, step) => toSlot(tmnlId, hhmm, step));
         const oprSeeds = seeds.filter((seed) => seed.counterCnt > 0);
+        const queueList = slotList.map((slot) =>
+            slot.chknRsltList.reduce((sum, rslt) => sum + rslt.stat.wtngPsgCnt, 0),
+        );
+        const prcsPsgCnt = slotList.reduce(
+            (sum, slot) => sum + slot.chknRsltList.reduce((cnt, rslt) => cnt + rslt.stat.prcsPsgCnt, 0),
+            0,
+        );
+        const capacity = slotList.reduce(
+            (sum, slot) =>
+                sum + slot.chknRsltList.reduce((cnt, rslt) => cnt + toCapacity(rslt.oprBoothCnt), 0),
+            0,
+        );
 
         return {
             error: false,
@@ -232,11 +322,16 @@ export const chknCounterMock = {
             peakCounterCnt: Math.max(...rsrcList.map((rsrc) => rsrc.counterCnt)),
             totKioskCnt: oprSeeds.reduce((sum, seed) => sum + seed.kioskCnt, 0),
             totBagDropCnt: oprSeeds.reduce((sum, seed) => sum + seed.bagDropCnt, 0),
-            waitMaxCnt: Math.max(...rsrcList.map((rsrc) => rsrc.wtngPsgCnt)),
+            waitMaxCnt: Math.max(...queueList),
             islandList: seeds.map(toIsland),
             rsrcList,
-            slotList: TIME_LIST.map((hhmm, step) => toSlot(tmnlId, hhmm, step)),
-            kpi: { avgWaitMin: 9, p95WaitMin: 21, maxQueuePsgCnt: 320, utilRate: 62 },
+            slotList,
+            kpi: {
+                avgWaitMin: 9,
+                p95WaitMin: 21,
+                maxQueuePsgCnt: Math.max(...queueList),
+                utilRate: capacity === 0 ? 0 : Math.round((prcsPsgCnt * 100) / capacity),
+            },
         };
     },
 };

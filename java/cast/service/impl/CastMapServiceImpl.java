@@ -11,9 +11,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.domains.MapLayout;
+import aoms.pm.cast.domains.chkn.ChknQueueDay;
+import aoms.pm.cast.domains.chkn.ChknQueueRecommend;
+import aoms.pm.cast.domains.chkn.ChknQueueSlot;
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
 import aoms.pm.cast.dto.FltSmryRawDto;
+import aoms.pm.cast.dto.MapCgnStatDto;
 import aoms.pm.cast.dto.MapChknInfoDto;
 import aoms.pm.cast.dto.MapChknRsltDto;
 import aoms.pm.cast.dto.MapFcltItemDto;
@@ -36,6 +40,7 @@ import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDepMapper;
 import aoms.pm.cast.mapper.CastDsbdMapper;
 import aoms.pm.cast.mapper.CastMapMapper;
+import aoms.pm.cast.service.CastChknQueueService;
 import aoms.pm.cast.service.CastMapService;
 import aoms.pm.cast.service.CastOperHrService;
 import aoms.pm.cast.service.CastSmltService;
@@ -64,7 +69,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastMapServiceImpl implements CastMapService {
-	private static final List<String> CHKN_FCLT_CD_LIST = List.of("CC", "CK", "SBD");
 	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT", "SC", "SR");
 
 	private static final String EMPTY = "";
@@ -78,6 +82,9 @@ public class CastMapServiceImpl implements CastMapService {
 	private static final int SLOT_BGN_HOUR = 0;
 
 	private static final int HOUR_PER_DAY = 24;
+	private static final int SLOT_MIN = 30;
+	private static final int MINUTE_PER_HOUR = 60;
+	private static final int HHMM_LENGTH = 4;
 	private static final int PERCENT = 100;
 	private static final int NOTICE_ITEM_LIMIT = 6; // 알림 목록이 도면을 덮지 않는 상한
 	private static final int BOOTH_PER_STEP = 50; // 대기인원 50명당 부스 1개 증설로 환산한다
@@ -86,6 +93,7 @@ public class CastMapServiceImpl implements CastMapService {
 	private final CastDsbdMapper castDsbdMapper;
 	private final CastDepMapper castDepMapper;
 	private final CastSmltService castSmltService;
+	private final CastChknQueueService castChknQueueService;
 	private final CastOperHrService castOperHrService;
 	private final UserService userService;
 	private final SessionService sessionService;
@@ -96,8 +104,9 @@ public class CastMapServiceImpl implements CastMapService {
 		TerminalKind tmnlId = searchDto.getTmnlId();
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(searchDto.getSmltId());
 
-		// 시각 → (묶음 단위 → 결과)
-		Map<String, Map<String, SmltRsltRawDto>> chknDayMap = retrieveUnitRsltDayMap(searchDto, CHKN_FCLT_CD_LIST);
+		// 체크인은 아일랜드 공용 Queue 를, 출국장은 시각 → (묶음 단위 → 결과) 를 읽는다
+		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(
+				searchDto.getSmltId(), tmnlId, smltStng.getExcnYmd());
 		Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap = retrieveUnitRsltDayMap(searchDto, DPTGT_FCLT_CD_LIST);
 
 		FltSmryRawDto fltSmry = castDsbdMapper.retrieveFltSmry(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList(), null, null);
@@ -110,7 +119,7 @@ public class CastMapServiceImpl implements CastMapService {
 		result.setChknMarkerList(getChknMarkerList(tmnlId));
 		result.setGateMarkerList(MapLayout.gateMarkerList());
 		result.setChknInfoList(getChknInfoList(tmnlId));
-		result.setSlotList(getSlotList(tmnlId, chknDayMap, dptgtDayMap));
+		result.setSlotList(getSlotList(tmnlId, queueDay, dptgtDayMap));
 
 		return result;
 	}
@@ -259,18 +268,18 @@ public class CastMapServiceImpl implements CastMapService {
 
 	private List<SmltMapSlotDto> getSlotList(
 			TerminalKind tmnlId,
-			Map<String, Map<String, SmltRsltRawDto>> chknDayMap,
+			ChknQueueDay queueDay,
 			Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap) {
 		List<SmltMapSlotDto> result = new ArrayList<>();
 
 		for (String hhmm : TimeBucketUtils.slotTimeList(SLOT_BGN_HOUR)) {
-			Map<String, SmltRsltRawDto> chknMap = chknDayMap.getOrDefault(hhmm, Map.of());
 			Map<String, SmltRsltRawDto> dptgtMap = dptgtDayMap.getOrDefault(hhmm, Map.of());
+			List<MapChknRsltDto> chknRsltList = getChknRsltList(tmnlId, queueDay, toMinute(hhmm));
 
 			SmltMapSlotDto slot = new SmltMapSlotDto();
 			slot.setHhmm(hhmm);
-			slot.setNotice(getNotice(chknMap, dptgtMap));
-			slot.setChknRsltList(getChknRsltList(tmnlId, chknMap));
+			slot.setNotice(getNotice(chknRsltList, dptgtMap));
+			slot.setChknRsltList(chknRsltList);
 			slot.setDptgtRsltList(getDptgtRsltList(tmnlId, dptgtMap));
 
 			result.add(slot);
@@ -279,22 +288,43 @@ public class CastMapServiceImpl implements CastMapService {
 		return result;
 	}
 
-	private List<MapChknRsltDto> getChknRsltList(TerminalKind tmnlId, Map<String, SmltRsltRawDto> chknMap) {
+	/*
+	 * 아일랜드 값은 체크인 상세 화면과 같은 공용 Queue 계산기에서 나온다.
+	 * 같은 smltId · 터미널 · 시각이면 두 화면의 대기인원과 혼잡등급이 반드시 같아야 한다.
+	 */
+	private List<MapChknRsltDto> getChknRsltList(TerminalKind tmnlId, ChknQueueDay queueDay, int bgnMinute) {
 		List<MapChknRsltDto> result = new ArrayList<>();
 
 		for (String islandCd : MapLayout.islandCdList(tmnlId)) {
-			SmltRsltRawDto rslt = chknMap.get(islandCd);
+			ChknQueueSlot queueSlot = queueDay.slotOf(islandCd, bgnMinute, SLOT_MIN);
+			ChknQueueRecommend recommend = queueDay.recommendOf(islandCd, bgnMinute, SLOT_MIN);
+
+			MapCgnStatDto stat = new MapCgnStatDto();
+			stat.setWtngPsgCnt(queueSlot.getCurrentQueue());
+			stat.setWtngHr(queueSlot.getAvgWaitSec());
+			stat.setPrcsPsgCnt(queueSlot.getPrcsPsgCnt());
+			stat.setPrcsHr(queueSlot.getAvgPrcsSec());
 
 			MapChknRsltDto chknRslt = new MapChknRsltDto();
 			chknRslt.setUnitCd(islandCd);
-			chknRslt.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0));
-			chknRslt.setStat(SmltUtils.toCgnStat(rslt));
-			chknRslt.setPrcsRate(rslt != null ? SmltUtils.toPrcsRate(rslt.getTrnstPsgCnt(), rslt.getWtngPsgCnt()) : 0);
+			chknRslt.setCgnStatus(queueDay.statusOf(queueSlot.getCurrentQueue(), "island=" + islandCd));
+			chknRslt.setStat(stat);
+			chknRslt.setPrcsRate(queueSlot.getPrcsRate());
+			chknRslt.setAvgQueuePsgCnt(queueSlot.getAvgQueue());
+			chknRslt.setMaxQueuePsgCnt(queueSlot.getMaxQueue());
+			chknRslt.setOprBoothCnt(queueSlot.getOprBoothCnt());
+			chknRslt.setReqCnt(recommend.getReqCnt());
+			chknRslt.setCgnClearMin(recommend.getCgnClearMin());
 
 			result.add(chknRslt);
 		}
 
 		return result;
+	}
+
+	private int toMinute(String hhmm) {
+		return Integer.parseInt(hhmm.substring(0, 2)) * MINUTE_PER_HOUR
+				+ Integer.parseInt(hhmm.substring(2, HHMM_LENGTH));
 	}
 
 	private List<MapUnitRsltDto> getDptgtRsltList(TerminalKind tmnlId, Map<String, SmltRsltRawDto> dptgtMap) {
@@ -317,42 +347,72 @@ public class CastMapServiceImpl implements CastMapService {
 	/* ================= 혼잡 알림 ================= */
 
 	// 알림은 혼잡(BUSY) 이상인 곳만, 혼잡한 순으로 보여준다
-	private MapNoticeDto getNotice(Map<String, SmltRsltRawDto> chknMap, Map<String, SmltRsltRawDto> dptgtMap) {
-		List<SmltRsltRawDto> candidateList = new ArrayList<>(chknMap.values());
-		candidateList.addAll(dptgtMap.values());
+	private MapNoticeDto getNotice(List<MapChknRsltDto> chknRsltList, Map<String, SmltRsltRawDto> dptgtMap) {
+		List<NoticeCandidate> candidateList = new ArrayList<>();
 
-		List<MapNoticeItemDto> itemList = new ArrayList<>();
-		int maxWtngPsgCnt = 0;
-
-		for (SmltRsltRawDto rslt : candidateList.stream()
-				.sorted(Comparator.comparingInt(SmltRsltRawDto::getWtngPsgCnt).reversed())
-				.collect(Collectors.toList())) {
-			CongestionStatus cgnStatus = CongestionStatus.ofWtngPsgCnt(rslt.getWtngPsgCnt());
-
-			if (cgnStatus == CongestionStatus.FREE || cgnStatus == CongestionStatus.NORMAL) {
-				continue;
-			}
-
-			maxWtngPsgCnt = Math.max(maxWtngPsgCnt, rslt.getWtngPsgCnt());
-
-			if (itemList.size() < NOTICE_ITEM_LIMIT) {
-				itemList.add(toNoticeItem(rslt, chknMap.containsKey(rslt.getUnitCd())));
-			}
+		for (MapChknRsltDto rslt : chknRsltList) {
+			candidateList.add(new NoticeCandidate(
+					rslt.getCgnStatus(),
+					rslt.getStat().getWtngPsgCnt(),
+					new MapNoticeItemDto()
+							.withFcltNm(CHKN_FCLT_NM)
+							.withFcltCd(rslt.getUnitCd())
+							.withBoothCnt(rslt.getOprBoothCnt())
+							.withReqCnt(rslt.getReqCnt())
+							.withCgnClearMin(rslt.getCgnClearMin())));
 		}
 
+		for (SmltRsltRawDto rslt : dptgtMap.values()) {
+			candidateList.add(new NoticeCandidate(
+					CongestionStatus.ofWtngPsgCnt(rslt.getWtngPsgCnt()),
+					rslt.getWtngPsgCnt(),
+					new MapNoticeItemDto()
+							.withFcltNm(DPTGT_FCLT_NM)
+							.withFcltCd(rslt.getUnitCd())
+							// 출국장 조치 부스 수는 대기인원 환산값이다 — 정식 산식은 현업 확인 대상
+							.withBoothCnt(Math.max(1, rslt.getWtngPsgCnt() / BOOTH_PER_STEP))));
+		}
+
+		candidateList.sort(Comparator.comparingInt(NoticeCandidate::getWtngPsgCnt).reversed());
+
+		List<MapNoticeItemDto> itemList = candidateList.stream()
+				.filter(candidate -> candidate.getCgnStatus() != CongestionStatus.FREE
+						&& candidate.getCgnStatus() != CongestionStatus.NORMAL)
+				.limit(NOTICE_ITEM_LIMIT)
+				.map(NoticeCandidate::getItem)
+				.collect(Collectors.toList());
+
 		MapNoticeDto result = new MapNoticeDto();
-		result.setCgnStatus(CongestionStatus.ofWtngPsgCnt(maxWtngPsgCnt));
+		result.setCgnStatus(candidateList.isEmpty()
+				? CongestionStatus.FREE
+				: candidateList.get(0).getCgnStatus());
 		result.setItemList(itemList);
 
 		return result;
 	}
 
-	private MapNoticeItemDto toNoticeItem(SmltRsltRawDto rslt, boolean isChkn) {
-		return new MapNoticeItemDto()
-				.withFcltNm(isChkn ? CHKN_FCLT_NM : DPTGT_FCLT_NM)
-				.withFcltCd(rslt.getUnitCd())
-				// 조치 부스 수는 대기인원을 부스 단위로 환산한 값이다 — 정식 산식은 현업 확인 대상
-				.withBoothCnt(Math.max(1, rslt.getWtngPsgCnt() / BOOTH_PER_STEP));
+	private static final class NoticeCandidate {
+		private final CongestionStatus cgnStatus;
+		private final int wtngPsgCnt;
+		private final MapNoticeItemDto item;
+
+		private NoticeCandidate(CongestionStatus cgnStatus, int wtngPsgCnt, MapNoticeItemDto item) {
+			this.cgnStatus = cgnStatus;
+			this.wtngPsgCnt = wtngPsgCnt;
+			this.item = item;
+		}
+
+		private CongestionStatus getCgnStatus() {
+			return cgnStatus;
+		}
+
+		private int getWtngPsgCnt() {
+			return wtngPsgCnt;
+		}
+
+		private MapNoticeItemDto getItem() {
+			return item;
+		}
 	}
 
 }

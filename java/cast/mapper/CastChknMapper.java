@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
 import aoms.pm.cast.dto.ChknIslandDto;
+import aoms.pm.cast.dto.ChknQueueRawDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
 import aoms.pm.cast.dto.UserChknBoothRawDto;
 import aoms.pm.cast.dto.UserChknOperHrRawDto;
@@ -30,6 +31,13 @@ import aoms.pm.cast.dto.UserSmltChknSaveDto;
 @Mapper
 public interface CastChknMapper {
 	List<CknctCntRawDto> retrieveCknctCntList(@Param("tmnlId") String tmnlId, @Param("useCrgTypeCdList") List<String> useCrgTypeCdList);
+
+	/** 공용 Queue 계산 원천 — 시각을 자르지 않고 시각 + 부스(PSG_FCLT_CD) 단위로 준다 */
+	List<ChknQueueRawDto> retrieveChknQueueRawList(
+			@Param("smltId") String smltId,
+			@Param("tmnlId") String tmnlId,
+			@Param("upPsgFcltCd") String upPsgFcltCd
+	);
 
 	List<String> retrieveAlnCdList(@Param("ymd") String ymd, @Param("tmnlId") String tmnlId);
 

@@ -67,6 +67,9 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
      헷갈리지 않는 이름을 골랐다. **`reqCnt` 는 이제 다시 고정이다.**
    - `CastConfigPreProcessDiffDto` · `CastConfigPreProcessRowDto` 는 2026-09-04 에 삭제됐다.
      전처리 비교·반영 화면이 운영 반영으로 흡수되면서 조회 API 자체가 없어졌다.
+   - `MapChknRsltDto` 에 `avgQueuePsgCnt` · `maxQueuePsgCnt` · `oprBoothCnt` · `reqCnt` ·
+     `cgnClearMin`, `MapNoticeItemDto` 에 `reqCnt` · `cgnClearMin` 이 2026-09-04 에 늘었다
+     (체크인 공용 Queue — §13). **새 이름도 이제 고정이다.**
 2. **enum 문자열 값**
    `'T1'|'T2'` · `'Y'|'N'` · `'FREE'|'NORMAL'|'BUSY'|'VERY_BUSY'` ·
    `'CHKN'|'SLFCHKN'|'DEP'|'SC'|'CMRC'` · `'PSG'|'FLT'` · `'DAILY'|'USER'` ·
@@ -281,8 +284,9 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
 배열(`slotList`)을 갖고, 화면은 타임라인 시각(`hhmm`)으로 슬롯을 찾아 읽는다. 그래서 조회 조건은
 `smltId` + `tmnlId` 뿐이고 **눈금 이동·재생·마커 팝업은 서버를 부르지 않는다**.
 
-체크인카운터는 슬롯과 별개로 시간대별 자원 배열(`rsrcList`, 24칸)을 함께 내려준다 —
-차트 보기가 하루 흐름(자원 운영량 + 대기인원)을 그리고, 표 보기가 슬롯 한 칸을 읽는다.
+체크인카운터는 **차트 보기와 표 보기가 모두 30분 슬롯을 읽는다** — 차트는 하루치 슬롯을 훑고
+표는 타임라인이 가리키는 한 칸을 읽는다. 시간대별 자원 배열(`rsrcList`, 24칸)은 시간 단위 자원
+요약을 쓰는 호환 경로로 남아 있고, 그 `wtngPsgCnt` 는 두 슬롯의 합이 아니라 **매시 마지막 Queue** 다.
 구 메뉴의 `셀프체크인/백드롭` 은 별도 화면·API 가 아니라 이 응답의 아일랜드 자원(`kioskCnt`,
 `bagDropCnt`)으로 흡수됐다 (사용자 시뮬레이션 탭이 합쳐진 것과 같은 이유다).
 
@@ -598,3 +602,40 @@ Failed    → (종착)
   전 컨트롤러 강제가 필요해지면 `PmRole` + `UserService.retrieveRoleIdList` 를 재사용한다.
 - 목업에서 롤별 화면을 보려면 `api/pm/mock/common.mock.ts` 의 `MOCK_ROLE_ID_LIST` 를 바꾼다.
   `map.mock.ts` 도 같은 상수를 읽어 매출을 비운다.
+
+---
+
+## 13. 체크인 아일랜드 공용 Queue
+
+**부스별 결과는 계산 원천으로만 쓰고, 업무 API·화면에는 아일랜드 단위 공용 `Queue` 하나만 내보낸다**
+(2026-09-04, `docs/plans/2026-09-04-checkin-common-queue.md`). 대시보드 체크인 카드 · 터미널맵
+체크인 마커/팝업 · 체크인 상세가 **같은 계산 결과를 나눠 쓴다** — 같은 `smltId` · 터미널 · `hhmm`
+에서 세 화면의 Queue 와 혼잡등급이 어긋나면 그건 버그다.
+
+| 무엇 | 어디 |
+|---|---|
+| 원천 조회 (30분으로 자르지 않은 부스별 결과) | `CastChknMapper#retrieveChknQueueRawList` |
+| 구간 조립 · 배정 부스 · 로그 | `CastChknQueueServiceImpl` |
+| 상태 없는 계산기 (FIFO 코호트) | `domains/chkn/ChknQueueCalculator` |
+| 분 단위 궤적 · 30분/1시간 롤업 | `domains/chkn/ChknQueueSeries` |
+| 슬롯 조회 · 혼잡등급 · 부스 추천 | `domains/chkn/ChknQueueDay` |
+| 혼잡등급 기준정보 (대시보드 공용) | `domains/CgnGradeScale` + `CastCgnGradeService` |
+
+- **Queue 대상은 유인 카운터 `CC` 뿐이다.** `CK`(셀프체크인) · `SBD`(셀프백드롭)는 자원 정보로만
+  남고 Queue·혼잡·추천 계산에서 빠진다.
+- 산식은 `observedQueue[t] - observedQueue[t-1] + observedProcessed[t]` 로 유입을 역산해 1분 단위
+  FIFO 로 흘린다. **`QueueLength_Current` 는 부스별 독립 값이고 `FinishedClients_Abs` 는 누적이
+  아니라 구간 처리인원**이라는 두 전제가 깨지면 산식 전체가 무너진다.
+- 처리시간 fallback 순서는 **원천 → 같은 아일랜드 최근 60분 가중평균 → 터미널 CC 가중평균 →
+  관측 처리량**이고, 모두 없으면 처리용량 0 + 로그다. 소수 처리용량은 버리지 않고 다음 분으로
+  이월해 **반복 실행이 같은 결과**를 낸다.
+- **혼잡등급 220 명 같은 하드코딩 fallback 을 두지 않는다.** 기준정보(`TN_PM_PSG_PRCS_GRD`)가
+  없거나 겹치면 조회 실패로 떨어뜨린다.
+- 추천 `reqCnt` 는 추가 수량이 아니라 **현재 운영분을 포함한 총 소요 부스 수**다. 궤적은 슬롯 시작이
+  아니라 **화면이 보여주는 값(구간 마지막 분의 Queue)** 에서 출발하고, 피크는 리드타임 10분 뒤부터
+  찾는다 — 부스를 여는 데 걸리는 시간 안의 피크를 목표로 삼으면 나눌 분이 0 이라 소요량이 발산한다.
+- 운영 부스나 서비스율이 0이라 산정할 수 없으면 `reqCnt` · `cgnClearMin` 을 **`null` 로 내려** 화면이
+  `-` 로 그린다. 보유 부스보다 큰 소요량이 나와도 **자르거나 숨기지 않는다.**
+- 마지막 결과 시각 뒤에는 **유입 0 인 꼬리 구간**을 붙여 남은 Queue 를 배정 부스로 흘려보낸다.
+  이 구간을 빼면 마지막 Queue 가 24:00 까지 그대로 남아 미운영 시각에 대기인원이 서 있게 된다.
+- 공용 `CastMapMapper#retrieveMapRsltDayList` 는 **고치지 않는다** — 출국장 등 다른 화면이 같이 쓴다.

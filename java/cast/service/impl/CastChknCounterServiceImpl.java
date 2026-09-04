@@ -12,29 +12,32 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import aoms.pm.cast.domains.chkn.ChknQueueDay;
+import aoms.pm.cast.domains.chkn.ChknQueueKpi;
+import aoms.pm.cast.domains.chkn.ChknQueueRecommend;
+import aoms.pm.cast.domains.chkn.ChknQueueSlot;
 import aoms.pm.cast.dto.ChknCounterDto;
 import aoms.pm.cast.dto.ChknCounterIslandDto;
 import aoms.pm.cast.dto.ChknCounterRsrcDto;
 import aoms.pm.cast.dto.ChknCounterSearchDto;
 import aoms.pm.cast.dto.ChknCounterSlotDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
+import aoms.pm.cast.dto.MapCgnStatDto;
 import aoms.pm.cast.dto.MapChknRsltDto;
 import aoms.pm.cast.dto.MapNoticeDto;
 import aoms.pm.cast.dto.MapNoticeItemDto;
 import aoms.pm.cast.dto.OprTimeDto;
 import aoms.pm.cast.dto.SlfDeviceCntRawDto;
 import aoms.pm.cast.dto.SmltKpiDto;
-import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.TimeRange;
 import aoms.pm.cast.dto.UserConfigChknDto;
-import aoms.pm.cast.dto.WaitPsgDto;
 import aoms.pm.cast.enums.CongestionStatus;
 import aoms.pm.cast.enums.SlfType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastChknMapper;
-import aoms.pm.cast.mapper.CastMapMapper;
 import aoms.pm.cast.service.CastChknCounterService;
+import aoms.pm.cast.service.CastChknQueueService;
 import aoms.pm.cast.service.CastSlfchknService;
 import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.cast.service.CastUserConfigService;
@@ -54,6 +57,7 @@ import lombok.RequiredArgsConstructor;
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
  * 2026. 08. 14. / 노세찬 / 최초작성
+ * 2026. 09. 04. / 노세찬 / 아일랜드 공용 Queue 결과로 교체
  * -----------------------------------------------------------------------------------
  * </pre>
  */
@@ -61,9 +65,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastChknCounterServiceImpl implements CastChknCounterService {
-	/** 체크인 구역 시설 : 유인 카운터(CC) + 셀프체크인(CK) + 셀프백드롭(SBD) */
-	private static final List<String> CHKN_FCLT_CD_LIST = List.of("CC", "CK", "SBD");
-
 	/** 보유 카운터 집계 대상 : A, B 유인 체크인카운터 */
 	private static final List<String> BOOTH_USE_CRG_TYPE_CD_LIST = List.of("A", "B");
 
@@ -74,11 +75,14 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 	/** 타임라인 시작 시각 — 새벽 출발편 때문에 이른 시각도 연다 */
 	private static final int SLOT_BGN_HOUR = 0;
 
+	private static final int SLOT_MIN = 30;
+	private static final int MINUTE_PER_HOUR = 60;
+	private static final int HHMM_LENGTH = 4;
 	private static final int PERCENT = 100;
 	private static final int NOTICE_ITEM_LIMIT = 6; // 알림 목록이 요약 바를 밀어내지 않는 상한
 
 	private final CastChknMapper castChknMapper;
-	private final CastMapMapper castMapMapper;
+	private final CastChknQueueService castChknQueueService;
 	private final CastSmltService castSmltService;
 	private final CastSlfchknService castSlfchknService;
 	private final CastUserConfigService castUserConfigService;
@@ -92,16 +96,12 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 
 		List<CknctCntRawDto> cknctCntList = castChknMapper.retrieveCknctCntList(fcltTmnlId, BOOTH_USE_CRG_TYPE_CD_LIST);
 		List<ChknCounterIslandDto> islandList = getIslandList(fcltTmnlId, smltStng, cknctCntList);
-
-		// 시각 → (아일랜드 → 결과)
-		Map<String, Map<String, SmltRsltRawDto>> chknDayMap = retrieveUnitRsltDayMap(searchDto);
-		List<WaitPsgDto> waitList = castSmltService.retrieveWaitPsgList(searchDto.getSmltId(), fcltTmnlId, CHKN_FCLT_CD_LIST);
+		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(
+				searchDto.getSmltId(), tmnlId, smltStng.getExcnYmd());
 
 		int totCnt = cknctCntList.stream().mapToInt(CknctCntRawDto::getCknctCnt).sum();
-		List<ChknCounterRsrcDto> rsrcList = getRsrcList(islandList, waitList, chknDayMap, totCnt);
-
-		SmltKpiDto kpi = castSmltService.retrieveSmltKpi(searchDto.getSmltId(), fcltTmnlId, CHKN_FCLT_CD_LIST);
-		kpi.setUtilRate(getUtilRate(rsrcList, totCnt));
+		List<ChknCounterRsrcDto> rsrcList = getRsrcList(islandList, queueDay, totCnt);
+		ChknQueueKpi queueKpi = queueDay.tmnlSeries().kpi();
 
 		result.setSmltId(searchDto.getSmltId());
 		result.setTmnlId(tmnlId.getValue());
@@ -112,20 +112,13 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		result.setPeakCounterCnt(rsrcList.stream().mapToInt(ChknCounterRsrcDto::getCounterCnt).max().orElse(0));
 		result.setTotKioskCnt(islandList.stream().mapToInt(ChknCounterIslandDto::getKioskCnt).sum());
 		result.setTotBagDropCnt(islandList.stream().mapToInt(ChknCounterIslandDto::getBagDropCnt).sum());
-		result.setWaitMaxCnt(waitList.stream().mapToInt(WaitPsgDto::getWaitPsgCnt).max().orElse(0));
+		result.setWaitMaxCnt(queueKpi.getMaxQueuePsgCnt());
 		result.setIslandList(islandList);
 		result.setRsrcList(rsrcList);
-		result.setSlotList(getSlotList(islandList, chknDayMap));
-		result.setKpi(kpi);
+		result.setSlotList(getSlotList(islandList, queueDay));
+		result.setKpi(getKpi(queueKpi));
 
 		return result;
-	}
-
-	/* ================= 결과 조회 ================= */
-
-	private Map<String, Map<String, SmltRsltRawDto>> retrieveUnitRsltDayMap(ChknCounterSearchDto searchDto) {
-		return SmltUtils.foldByTimeAndUnitCd(castMapMapper.retrieveMapRsltDayList(
-				searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId(), CHKN_FCLT_CD_LIST));
 	}
 
 	/* ================= 아일랜드 ================= */
@@ -204,22 +197,16 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 	/* ================= 시간대별 자원 ================= */
 
 	/*
-	 * 차트 한 칸은 1시간이다. 자원은 운영시간 구간을 시간축으로 펼쳐 더하고(G7),
-	 * 대기인원은 사용자 시뮬레이션 화면과 같은 조회(retrieveWaitPsgList)를 쓴다 —
-	 * 같은 시설의 대기인원이 화면마다 다른 값이 되지 않도록 출처를 하나로 둔다.
+	 * 차트 한 칸은 1시간이다. 자원은 운영시간 구간을 시간축으로 펼쳐 더하고, 대기인원은 순간 재고량이라
+	 * 두 30분 슬롯을 합산하지 않고 매시 마지막 Queue 를 쓴다.
 	 */
 	private List<ChknCounterRsrcDto> getRsrcList(
-			List<ChknCounterIslandDto> islandList,
-			List<WaitPsgDto> waitList,
-			Map<String, Map<String, SmltRsltRawDto>> chknDayMap,
-			int totCnt) {
-		Map<Integer, Integer> waitMap = waitList.stream()
-				.collect(Collectors.toMap(WaitPsgDto::getHour, WaitPsgDto::getWaitPsgCnt, (first, ignored) -> first));
-
+			List<ChknCounterIslandDto> islandList, ChknQueueDay queueDay, int totCnt) {
 		List<ChknCounterRsrcDto> result = new ArrayList<>();
 
 		for (String hour : TimeBucketUtils.hourList()) {
 			int hourValue = Integer.parseInt(hour);
+			ChknQueueSlot hourSlot = queueDay.tmnlSeries().slotOf(hourValue * MINUTE_PER_HOUR, MINUTE_PER_HOUR);
 			List<ChknCounterIslandDto> oprIslandList = islandList.stream()
 					.filter(island -> isOpr(island.getOprTimeList(), hourValue))
 					.collect(toList());
@@ -229,24 +216,11 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 			rsrc.setCounterCnt(counterCnt);
 			rsrc.setKioskCnt(oprIslandList.stream().mapToInt(ChknCounterIslandDto::getKioskCnt).sum());
 			rsrc.setBagDropCnt(oprIslandList.stream().mapToInt(ChknCounterIslandDto::getBagDropCnt).sum());
-			rsrc.setWtngPsgCnt(waitMap.getOrDefault(hourValue, 0));
-			rsrc.setPrcsPsgCnt(getPrcsPsgCnt(chknDayMap, hour));
+			rsrc.setWtngPsgCnt(hourSlot.getCurrentQueue());
+			rsrc.setPrcsPsgCnt(hourSlot.getPrcsPsgCnt());
 			rsrc.setUtilRate(totCnt == 0 ? 0 : counterCnt * PERCENT / totCnt);
 
 			result.add(rsrc);
-		}
-
-		return result;
-	}
-
-	// 한 시간에는 30분 버킷 2칸이 들어 있다. 처리인원은 흘러간 사람 수라 두 칸을 더한다
-	private int getPrcsPsgCnt(Map<String, Map<String, SmltRsltRawDto>> chknDayMap, String hour) {
-		int result = 0;
-
-		for (String bucket : TimeBucketUtils.bucketList(hour)) {
-			result += chknDayMap.getOrDefault(bucket, Map.of()).values().stream()
-					.mapToInt(SmltRsltRawDto::getTrnstPsgCnt)
-					.sum();
 		}
 
 		return result;
@@ -257,30 +231,30 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 				.anyMatch(oprTime -> oprTime.getOperBgngHour() <= hour && hour < oprTime.getOperEndHour());
 	}
 
-	// 가동률 = 운영 카운터·시간 합 / (전체 카운터 수 × 24시간) — 사용자 시뮬레이션 탭과 같은 식이다
-	private int getUtilRate(List<ChknCounterRsrcDto> rsrcList, int totCnt) {
-		if (totCnt == 0 || rsrcList.isEmpty()) {
-			return 0;
-		}
+	/* ================= 결과 지표 ================= */
 
-		int oprCounterHour = rsrcList.stream().mapToInt(ChknCounterRsrcDto::getCounterCnt).sum();
+	private SmltKpiDto getKpi(ChknQueueKpi queueKpi) {
+		SmltKpiDto result = new SmltKpiDto();
 
-		return oprCounterHour * PERCENT / (totCnt * rsrcList.size());
+		result.setAvgWaitMin(queueKpi.getAvgWaitMin());
+		result.setP95WaitMin(queueKpi.getP95WaitMin());
+		result.setMaxQueuePsgCnt(queueKpi.getMaxQueuePsgCnt());
+		result.setUtilRate(queueKpi.getUtilRate());
+
+		return result;
 	}
 
 	/* ================= 슬롯 ================= */
 
-	private List<ChknCounterSlotDto> getSlotList(
-			List<ChknCounterIslandDto> islandList, Map<String, Map<String, SmltRsltRawDto>> chknDayMap) {
+	private List<ChknCounterSlotDto> getSlotList(List<ChknCounterIslandDto> islandList, ChknQueueDay queueDay) {
 		List<ChknCounterSlotDto> result = new ArrayList<>();
 
 		for (String hhmm : TimeBucketUtils.slotTimeList(SLOT_BGN_HOUR)) {
-			List<MapChknRsltDto> chknRsltList =
-					getChknRsltList(islandList, chknDayMap.getOrDefault(hhmm, Map.of()));
+			List<MapChknRsltDto> chknRsltList = getChknRsltList(islandList, queueDay, toMinute(hhmm));
 
 			ChknCounterSlotDto slot = new ChknCounterSlotDto();
 			slot.setHhmm(hhmm);
-			slot.setNotice(getNotice(islandList, chknRsltList));
+			slot.setNotice(getNotice(chknRsltList));
 			slot.setChknRsltList(chknRsltList);
 
 			result.add(slot);
@@ -290,57 +264,76 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 	}
 
 	private List<MapChknRsltDto> getChknRsltList(
-			List<ChknCounterIslandDto> islandList, Map<String, SmltRsltRawDto> chknMap) {
+			List<ChknCounterIslandDto> islandList, ChknQueueDay queueDay, int bgnMinute) {
 		List<MapChknRsltDto> result = new ArrayList<>();
 
 		for (ChknCounterIslandDto island : islandList) {
-			SmltRsltRawDto rslt = chknMap.get(island.getIsland());
-
-			MapChknRsltDto chknRslt = new MapChknRsltDto();
-			chknRslt.setUnitCd(island.getIsland());
-			chknRslt.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0));
-			chknRslt.setStat(SmltUtils.toCgnStat(rslt));
-			chknRslt.setPrcsRate(rslt != null ? SmltUtils.toPrcsRate(rslt.getTrnstPsgCnt(), rslt.getWtngPsgCnt()) : 0);
-
-			result.add(chknRslt);
+			result.add(toChknRslt(island.getIsland(), queueDay, bgnMinute));
 		}
 
 		return result;
 	}
 
+	private MapChknRsltDto toChknRslt(String islandCd, ChknQueueDay queueDay, int bgnMinute) {
+		ChknQueueSlot queueSlot = queueDay.slotOf(islandCd, bgnMinute, SLOT_MIN);
+		ChknQueueRecommend recommend = queueDay.recommendOf(islandCd, bgnMinute, SLOT_MIN);
+
+		MapCgnStatDto stat = new MapCgnStatDto();
+		stat.setWtngPsgCnt(queueSlot.getCurrentQueue());
+		stat.setWtngHr(queueSlot.getAvgWaitSec());
+		stat.setPrcsPsgCnt(queueSlot.getPrcsPsgCnt());
+		stat.setPrcsHr(queueSlot.getAvgPrcsSec());
+
+		MapChknRsltDto result = new MapChknRsltDto();
+		result.setUnitCd(islandCd);
+		result.setCgnStatus(queueDay.statusOf(queueSlot.getCurrentQueue(), "island=" + islandCd));
+		result.setStat(stat);
+		result.setPrcsRate(queueSlot.getPrcsRate());
+		result.setAvgQueuePsgCnt(queueSlot.getAvgQueue());
+		result.setMaxQueuePsgCnt(queueSlot.getMaxQueue());
+		result.setOprBoothCnt(queueSlot.getOprBoothCnt());
+		result.setReqCnt(recommend.getReqCnt());
+		result.setCgnClearMin(recommend.getCgnClearMin());
+
+		return result;
+	}
+
+	private int toMinute(String hhmm) {
+		return Integer.parseInt(hhmm.substring(0, 2)) * MINUTE_PER_HOUR
+				+ Integer.parseInt(hhmm.substring(2, HHMM_LENGTH));
+	}
+
 	/* ================= 혼잡 알림 ================= */
 
-	// 알림은 혼잡(BUSY) 이상인 아일랜드만, 혼잡한 순으로 보여준다
-	private MapNoticeDto getNotice(List<ChknCounterIslandDto> islandList, List<MapChknRsltDto> chknRsltList) {
-		Map<String, Integer> counterCntMap = islandList.stream()
-				.collect(Collectors.toMap(ChknCounterIslandDto::getIsland, ChknCounterIslandDto::getCounterCnt,
-						(first, ignored) -> first));
-
-		List<MapNoticeItemDto> itemList = new ArrayList<>();
-		int maxWtngPsgCnt = 0;
-
-		for (MapChknRsltDto rslt : chknRsltList.stream()
+	// 알림은 혼잡(BUSY) 이상인 아일랜드만, Queue 가 긴 순으로 보여준다
+	private MapNoticeDto getNotice(List<MapChknRsltDto> chknRsltList) {
+		List<MapChknRsltDto> sortedList = chknRsltList.stream()
 				.sorted(Comparator.comparingInt((MapChknRsltDto target) -> target.getStat().getWtngPsgCnt()).reversed())
-				.collect(toList())) {
+				.collect(toList());
+		List<MapNoticeItemDto> itemList = new ArrayList<>();
+
+		for (MapChknRsltDto rslt : sortedList) {
 			CongestionStatus cgnStatus = rslt.getCgnStatus();
 
 			if (cgnStatus == CongestionStatus.FREE || cgnStatus == CongestionStatus.NORMAL) {
 				continue;
 			}
 
-			maxWtngPsgCnt = Math.max(maxWtngPsgCnt, rslt.getStat().getWtngPsgCnt());
-
-			if (itemList.size() < NOTICE_ITEM_LIMIT) {
-				itemList.add(new MapNoticeItemDto()
-						.withFcltNm(ISLAND_NM_PREFIX + rslt.getUnitCd())
-						.withFcltCd(rslt.getUnitCd())
-						.withBoothCnt(counterCntMap.getOrDefault(rslt.getUnitCd(), 0)));
+			if (itemList.size() >= NOTICE_ITEM_LIMIT) {
+				break;
 			}
+
+			itemList.add(new MapNoticeItemDto()
+					.withFcltNm(ISLAND_NM_PREFIX + rslt.getUnitCd())
+					.withFcltCd(rslt.getUnitCd())
+					.withBoothCnt(rslt.getOprBoothCnt())
+					.withReqCnt(rslt.getReqCnt())
+					.withCgnClearMin(rslt.getCgnClearMin()));
 		}
 
 		MapNoticeDto result = new MapNoticeDto();
-		// 알림 단계는 가장 혼잡한 아일랜드를 따른다 (맵형태보기 · 출국장과 같은 기준)
-		result.setCgnStatus(CongestionStatus.ofWtngPsgCnt(maxWtngPsgCnt));
+		// 알림 단계는 Queue 가 가장 긴 아일랜드를 따른다 (맵형태보기 · 출국장과 같은 기준)
+		result.setCgnStatus(sortedList.isEmpty() ? CongestionStatus.FREE : sortedList.get(0).getCgnStatus());
 		result.setItemList(itemList);
 
 		return result;

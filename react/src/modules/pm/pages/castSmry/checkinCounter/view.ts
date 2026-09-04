@@ -1,20 +1,19 @@
 import type {
     ChknCounterDto,
     ChknCounterIslandDto,
-    ChknCounterRsrcDto,
     ChknCounterSlotDto,
     CongestionStatus,
     MapChknRsltDto,
     MapNoticeDto,
-    OprTimeDto,
+    MapNoticeItemDto,
     SmltKpiDto,
 } from '@/types/api.types';
-import { formatCount, pad2 } from '@/lib/format';
+import { formatCount, formatHhmm } from '@/lib/format';
 import type {
     ChknDay,
     ChknIslandView,
     ChknKpi,
-    ChknResourceSeries,
+    ChknQueueSeries,
     ChknSlot,
     ChknSummaryItem,
     CongestionLevel,
@@ -29,8 +28,8 @@ import type {
  * 그 접점을 여기 한 곳에 둔다 — 출국장 화면과 같은 규칙이라 두 화면에서 같은 상태가
  * 같은 색으로 보인다.
  *
- * 하루치를 한 번에 받으므로 여기서 30분 슬롯을 모두 펼쳐 두고, 차트 보기의 자원 활용도
- * 같은 응답(rsrcList)에서 뽑는다. 두 보기가 한 벌의 값을 나눠 쓴다.
+ * 차트와 표가 모두 30분 슬롯 하나를 근거로 삼는다. 값을 두 벌 만들지 않으므로
+ * 타임라인을 옮겨도 두 보기가 서로 다른 이야기를 하지 않는다.
  */
 
 /** 혼잡도 4단계 → 뱃지 3단계 (여유와 보통은 같은 색을 쓴다) */
@@ -51,6 +50,12 @@ const CONGESTION_TO_NOTICE_LEVEL: Record<CongestionStatus, NoticeLevel> = {
 
 /** 값이 없을 때 표기 */
 const EMPTY = '-';
+
+const SEC_PER_MIN = 60;
+
+export function toWaitMin(waitSec: number): number {
+    return Math.round(waitSec / SEC_PER_MIN);
+}
 
 /* ================= 요약 · 결과 지표 ================= */
 
@@ -77,72 +82,105 @@ function toSummary(dto: ChknCounterDto): ChknSummaryItem[] {
     ];
 }
 
-/** 시뮬레이션 결과 지표 4종 — 사용자 시뮬레이션 패널 헤드와 같은 순서로 읽는다 */
-function toKpis(kpi: SmltKpiDto): ChknKpi[] {
+/**
+ * 공용 Queue 결과 지표 4종.
+ * P95 는 응답에 남지만 화면에 내보내지 않는다 — 근사값이라 운영 판단 기준이 되지 못한다.
+ */
+function toKpis(kpi: SmltKpiDto, peakHhmm: string, prcsPsgCnt: number): ChknKpi[] {
     return [
-        { id: 'avgWait', label: '평균대기', value: formatCount(kpi.avgWaitMin), unit: '분' },
-        { id: 'p95Wait', label: 'P95대기', value: formatCount(kpi.p95WaitMin), unit: '분' },
+        { id: 'avgWait', label: '평균 대기', value: formatCount(kpi.avgWaitMin), unit: '분' },
         {
             id: 'maxQueue',
-            label: '최대 큐인원',
+            label: '최대 Queue',
             value: formatCount(kpi.maxQueuePsgCnt),
             unit: '명',
+            note: peakHhmm === '' ? undefined : formatHhmm(peakHhmm),
         },
-        { id: 'util', label: '가동률', value: formatCount(kpi.utilRate), unit: '%' },
+        { id: 'prcs', label: '총 처리인원', value: formatCount(prcsPsgCnt), unit: '명' },
+        { id: 'util', label: '처리용량 사용률', value: formatCount(kpi.utilRate), unit: '%' },
     ];
 }
 
-/* ================= 자원 활용 차트 ================= */
+/* ================= Queue 차트 ================= */
+
+function slotQueue(slot: ChknCounterSlotDto): number {
+    return slot.chknRsltList.reduce((sum, rslt) => sum + rslt.stat.wtngPsgCnt, 0);
+}
+
+function slotPrcsPsgCnt(slot: ChknCounterSlotDto): number {
+    return slot.chknRsltList.reduce((sum, rslt) => sum + rslt.stat.prcsPsgCnt, 0);
+}
+
+/** 처리 여객 가중 평균대기 — 아일랜드를 합칠 때 처리인원이 적은 곳이 값을 끌고 가지 않게 한다 */
+function slotWaitSec(slot: ChknCounterSlotDto): number {
+    const prcsPsgCnt = slotPrcsPsgCnt(slot);
+
+    if (prcsPsgCnt === 0) return 0;
+
+    const weightedSum = slot.chknRsltList.reduce(
+        (sum, rslt) => sum + rslt.stat.wtngHr * rslt.stat.prcsPsgCnt,
+        0,
+    );
+
+    return Math.round(weightedSum / prcsPsgCnt);
+}
+
+/** 처리용량 사용률은 아일랜드 평균이 아니라 운영 부스로 가중해 합친다 */
+function slotPrcsRate(slot: ChknCounterSlotDto): number {
+    const boothCnt = slot.chknRsltList.reduce((sum, rslt) => sum + rslt.oprBoothCnt, 0);
+
+    if (boothCnt === 0) return 0;
+
+    const weightedSum = slot.chknRsltList.reduce(
+        (sum, rslt) => sum + rslt.prcsRate * rslt.oprBoothCnt,
+        0,
+    );
+
+    return Math.round(weightedSum / boothCnt);
+}
 
 /**
- * 시간대별 자원 활용 — 막대 3종과 대기인원 꺾은선이 같은 시각을 본다.
- * 서버가 시간 순으로 24개를 채워 내려주므로 여기서는 축별로 갈라 담기만 한다.
+ * 30분 단위 하루 흐름 — 막대(운영 부스)와 꺾은선(Queue 인원)이 같은 슬롯을 본다.
+ * 표 보기와 근거가 같으므로 타임라인을 옮기면 두 보기가 함께 바뀐다.
  */
-function toResource(rsrcList: ChknCounterRsrcDto[], waitMaxCnt: number): ChknResourceSeries {
+function toQueueSeries(slotList: ChknCounterSlotDto[], queueMax: number): ChknQueueSeries {
     return {
-        hourLabels: rsrcList.map((rsrc) => pad2(rsrc.hour)),
-        counter: rsrcList.map((rsrc) => rsrc.counterCnt),
-        kiosk: rsrcList.map((rsrc) => rsrc.kioskCnt),
-        bagdrop: rsrcList.map((rsrc) => rsrc.bagDropCnt),
-        wait: rsrcList.map((rsrc) => rsrc.wtngPsgCnt),
-        waitMax: waitMaxCnt,
-        utilRate: rsrcList.map((rsrc) => rsrc.utilRate),
+        timeLabels: slotList.map((slot) => formatHhmm(slot.hhmm)),
+        booth: slotList.map((slot) =>
+            slot.chknRsltList.reduce((sum, rslt) => sum + rslt.oprBoothCnt, 0),
+        ),
+        queue: slotList.map(slotQueue),
+        queueMax,
+        waitSec: slotList.map(slotWaitSec),
+        prcsPsgCnt: slotList.map(slotPrcsPsgCnt),
+        prcsRate: slotList.map(slotPrcsRate),
     };
+}
+
+/** 하루 Queue 가 가장 길었던 슬롯 시각 — 최대 Queue 지표의 설명이 된다 */
+function toPeakHhmm(slotList: ChknCounterSlotDto[]): string {
+    let peakHhmm = '';
+    let peakQueue = 0;
+
+    for (const slot of slotList) {
+        const queue = slotQueue(slot);
+
+        if (queue > peakQueue) {
+            peakQueue = queue;
+            peakHhmm = slot.hhmm;
+        }
+    }
+
+    return peakHhmm;
 }
 
 /* ================= 아일랜드 ================= */
 
-/** 운영 시간 구간 → 표기 (구간이 여럿이면 이어 붙인다) */
-function toOperTime(oprTimeList: OprTimeDto[]): string {
-    if (oprTimeList.length === 0) return EMPTY;
-
-    return oprTimeList
-        .map((time) => `${pad2(time.operBgngHour)}:00-${pad2(time.operEndHour)}:00`)
-        .join(', ');
-}
-
 /**
- * 그 시각에 문을 연 아일랜드인가.
- *
- * 자원 구성(카운터 · 키오스크 대수)은 하루치 한 벌뿐이라, 운영시간 밖의 시각에도 그대로
- * 내려온다. 그 값을 그대로 그리면 새벽 3시에도 카운터가 열려 있는 것처럼 보이므로
- * 타임라인이 가리키는 시각을 운영시간 구간과 맞춰 본다.
+ * 표 보기의 1행 — 자원 구성은 하루 내내 같고 Queue 값은 그 시각 슬롯에서 온다.
+ * 그 시각에 문을 연 부스가 없으면 미운영으로 그린다.
  */
-function isOperating(island: ChknCounterIslandDto, hour: number): boolean {
-    if (island.useYn === 'N') return false;
-
-    return island.oprTimeList.some((time) => time.operBgngHour <= hour && hour < time.operEndHour);
-}
-
-/**
- * 표 보기의 1행 — 자원 구성은 하루 내내 같고 혼잡도·지표만 그 시각 결과에서 온다.
- * 결과가 없는 시각(문 닫은 아일랜드)은 원활·0 으로 둔다.
- */
-function toIslandView(
-    island: ChknCounterIslandDto,
-    rslt: MapChknRsltDto | undefined,
-    hour: number,
-): ChknIslandView {
+function toIslandView(island: ChknCounterIslandDto, rslt: MapChknRsltDto | undefined): ChknIslandView {
     const stat = rslt?.stat;
 
     return {
@@ -150,20 +188,31 @@ function toIslandView(
         island: island.island,
         title: island.fcltNm,
         level: CONGESTION_TO_LEVEL[rslt?.cgnStatus ?? 'NORMAL'],
-        isClosed: !isOperating(island, hour),
-        counterCnt: island.counterCnt,
-        kioskCnt: island.kioskCnt,
-        bagDropCnt: island.bagDropCnt,
-        operTime: toOperTime(island.oprTimeList),
-        airlines: island.alnCdList.length > 0 ? island.alnCdList.join(', ') : EMPTY,
-        wtngPsgCnt: stat?.wtngPsgCnt ?? 0,
-        wtngHr: stat?.wtngHr ?? 0,
+        isClosed: (rslt?.oprBoothCnt ?? 0) === 0,
+        oprBoothCnt: rslt?.oprBoothCnt ?? 0,
+        queuePsgCnt: stat?.wtngPsgCnt ?? 0,
+        avgQueuePsgCnt: rslt?.avgQueuePsgCnt ?? 0,
+        maxQueuePsgCnt: rslt?.maxQueuePsgCnt ?? 0,
+        waitSec: stat?.wtngHr ?? 0,
         prcsPsgCnt: stat?.prcsPsgCnt ?? 0,
         prcsRate: rslt?.prcsRate ?? 0,
+        cgnClear: rslt?.cgnClearMin == null ? EMPTY : `${formatCount(rslt.cgnClearMin)}분`,
+        reqCnt: rslt?.reqCnt == null ? EMPTY : `${formatCount(rslt.reqCnt)}개`,
+        airlines: island.alnCdList.length > 0 ? island.alnCdList.join(', ') : EMPTY,
     };
 }
 
 /* ================= 하루치 ================= */
+
+/** 알림 한 줄 — 지금 몇 부스로 버티는지, 몇 부스가 필요한지, 언제 풀리는지 */
+function toNoticeDesc(item: MapNoticeItemDto): string {
+    const parts = [`운영 ${formatCount(item.boothCnt)}개`];
+
+    if (item.reqCnt != null) parts.push(`필요 ${formatCount(item.reqCnt)}개`);
+    if (item.cgnClearMin != null) parts.push(`해소 ${formatCount(item.cgnClearMin)}분`);
+
+    return parts.join(' · ');
+}
 
 function toNotice(notice: MapNoticeDto): NoticeData {
     return {
@@ -171,7 +220,7 @@ function toNotice(notice: MapNoticeDto): NoticeData {
         items: notice.itemList.map((item) => ({
             id: item.fcltCd,
             facility: item.fcltNm,
-            desc: `${item.boothCnt}개 카운터 운영`,
+            desc: toNoticeDesc(item),
         })),
     };
 }
@@ -179,22 +228,20 @@ function toNotice(notice: MapNoticeDto): NoticeData {
 /** 슬롯 1칸 — 알림과 표가 같은 결과에서 나온다 */
 function toSlot(islandList: ChknCounterIslandDto[], slot: ChknCounterSlotDto): ChknSlot {
     const rsltMap = new Map(slot.chknRsltList.map((rslt) => [rslt.unitCd, rslt]));
-    // 슬롯 시각의 시(HH) — 운영시간 구간이 시 단위라 분은 보지 않는다 (2400 은 어디에도 안 든다)
-    const hour = Number(slot.hhmm.slice(0, 2));
 
     return {
         notice: toNotice(slot.notice),
-        islands: islandList.map((island) =>
-            toIslandView(island, rsltMap.get(island.island), hour),
-        ),
+        islands: islandList.map((island) => toIslandView(island, rsltMap.get(island.island))),
     };
 }
 
 export function toChknDay(dto: ChknCounterDto): ChknDay {
+    const prcsPsgCnt = dto.slotList.reduce((sum, slot) => sum + slotPrcsPsgCnt(slot), 0);
+
     return {
         summary: toSummary(dto),
-        kpis: toKpis(dto.kpi),
-        resource: toResource(dto.rsrcList, dto.waitMaxCnt),
+        kpis: toKpis(dto.kpi, toPeakHhmm(dto.slotList), prcsPsgCnt),
+        queue: toQueueSeries(dto.slotList, dto.waitMaxCnt),
         slots: Object.fromEntries(
             dto.slotList.map((slot) => [slot.hhmm, toSlot(dto.islandList, slot)]),
         ),
@@ -205,14 +252,14 @@ export function toChknDay(dto: ChknCounterDto): ChknDay {
 
 export const EMPTY_NOTICE: NoticeData = { level: 'normal', items: [] };
 
-export const EMPTY_RESOURCE: ChknResourceSeries = {
-    hourLabels: [],
-    counter: [],
-    kiosk: [],
-    bagdrop: [],
-    wait: [],
-    waitMax: 0,
-    utilRate: [],
+export const EMPTY_QUEUE: ChknQueueSeries = {
+    timeLabels: [],
+    booth: [],
+    queue: [],
+    queueMax: 0,
+    waitSec: [],
+    prcsPsgCnt: [],
+    prcsRate: [],
 };
 
 /** 응답 전이거나 슬롯에 없는 시각 */

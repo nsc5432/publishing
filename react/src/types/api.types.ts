@@ -199,6 +199,8 @@ export interface MapNoticeItemDto {
     fcltNm: string; // 시설명 (예: 체크인카운터)
     fcltCd: string; // 시설 코드 (예: M11)
     boothCnt: number; // 조치 부스 수
+    reqCnt: number | null; // 총 소요 부스 수 — 산정 불가면 null
+    cgnClearMin: number | null; // NORMAL 도달 예상 분 — 산정 불가면 null
 }
 
 /** 상단 혼잡 알림 */
@@ -246,9 +248,19 @@ export interface MapUnitRsltDto {
     stat: MapCgnStatDto;
 }
 
-/** 아일랜드는 상세 팝업에 처리율이 더 붙는다 */
+/**
+ * 아일랜드 한 시각의 공용 Queue 결과.
+ *
+ * `stat` 4종은 부스 집계가 아니라 아일랜드 하나로 합친 Queue 값이다 —
+ * 대기인원은 슬롯 마지막 Queue, 대기시간은 FIFO 평균, 처리인원은 구간 처리량이다.
+ */
 export interface MapChknRsltDto extends MapUnitRsltDto {
-    prcsRate: number; // 처리율 (%)
+    prcsRate: number; // 처리용량 사용률 (%)
+    avgQueuePsgCnt: number; // 30분 평균 Queue 인원 (명)
+    maxQueuePsgCnt: number; // 30분 최대 Queue 인원 (명)
+    oprBoothCnt: number; // 슬롯 마지막 운영 부스 수 (개)
+    reqCnt: number | null; // NORMAL 이하를 위한 총 소요 부스 수 — 산정 불가면 null
+    cgnClearMin: number | null; // 추천 적용 후 NORMAL 도달 예상 분 — 산정 불가면 null
 }
 
 /** 맵형태보기 30분 슬롯 1칸 */
@@ -364,15 +376,15 @@ export interface ChknCounterIslandDto {
 }
 
 /**
- * 시간대별 자원 운영 1시간분 — 자원 활용 차트의 막대 1개.
- * 대기인원을 같은 행에 실어 보내므로 차트가 축 두 개를 한 벌의 값으로 그린다.
+ * 시간대별 자원 운영 1시간분.
+ * 대기인원은 순간 재고량이라 두 30분 슬롯을 더하지 않고 매시 마지막 Queue 를 싣는다.
  */
 export interface ChknCounterRsrcDto {
     hour: number; // 0~23
     counterCnt: number; // 그 시간에 열린 유인 카운터 (개)
     kioskCnt: number; // 그 시간에 열린 키오스크 (대)
     bagDropCnt: number; // 그 시간에 열린 셀프백드롭 (대)
-    wtngPsgCnt: number; // 대기인원 (명) — 꺾은선
+    wtngPsgCnt: number; // 매시 마지막 Queue 인원 (명)
     prcsPsgCnt: number; // 처리인원 (명)
     utilRate: number; // 자원 활용률 (%) = 운영 카운터 / 전체 카운터
 }
@@ -387,8 +399,8 @@ export interface ChknCounterSlotDto {
 /**
  * 체크인카운터 화면 본문 — 하루치를 한 번에 내려준다.
  *
- * 차트 보기는 rsrcList(24시간)를 훑고, 표 보기는 타임라인이 가리키는 슬롯 한 칸을 읽는다.
- * 출국장 화면과 같은 규칙이라 타임라인 · 보기 전환은 재조회를 부르지 않는다.
+ * 차트와 표가 모두 30분 슬롯(slotList)을 읽는다. rsrcList(24시간)는 시간 단위 자원 요약을
+ * 쓰는 호환 경로용이다. 출국장 화면과 같은 규칙이라 타임라인 · 보기 전환은 재조회를 부르지 않는다.
  */
 export interface ChknCounterDto extends JsonResponse {
     smltId: string;
@@ -398,7 +410,7 @@ export interface ChknCounterDto extends JsonResponse {
     peakCounterCnt: number; // 피크 카운터 (시간대별 운영 카운터의 최댓값)
     totKioskCnt: number; // 키오스크 합계 (대)
     totBagDropCnt: number; // 셀프백드롭 합계 (대)
-    waitMaxCnt: number; // 꺾은선 우측 축 최댓값 (명)
+    waitMaxCnt: number; // 당일 공용 Queue 최댓값 (명) — 꺾은선 우측 축
     islandList: ChknCounterIslandDto[]; // 아일랜드 (A~N)
     rsrcList: ChknCounterRsrcDto[]; // 시간대별 자원 (24개)
     slotList: ChknCounterSlotDto[]; // 00:00~24:00 (30분, 49칸)

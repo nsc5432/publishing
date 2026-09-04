@@ -183,41 +183,108 @@ function toUnitRslt(seed: DepSeed, step: number): MapUnitRsltDto {
     return { unitCd: seed[0], cgnStatus: toStatus(wtngPsgCnt), stat: toStat(wtngPsgCnt) };
 }
 
-function toChknRslt(seed: DepSeed, step: number): MapChknRsltDto {
-    const rslt = toUnitRslt(seed, step);
+/* ================= 아일랜드 공용 Queue ================= */
 
-    return { ...rslt, prcsRate: toPrcsRate(rslt.stat.wtngPsgCnt) };
+/** NORMAL 등급 상한 (서버 혼잡등급 기준정보와 같은 값) */
+const NORMAL_MAX_QUEUE = 220;
+/** 부스 1대가 감당하는 Queue 인원 */
+const QUEUE_PER_BOOTH = 12;
+/** 부스 1대의 분당 처리량 */
+const BOOTH_PRCS_PER_MIN = 2;
+/** 추천 리드타임 (분) */
+const RECOMMEND_LEAD_MIN = 30;
+/** 추천 궤적 구간 (분) */
+const RECOMMEND_SPAN_MIN = 60;
+
+function toBoothCnt(queuePsgCnt: number): number {
+    return queuePsgCnt === 0 ? 0 : Math.max(1, Math.round(queuePsgCnt / QUEUE_PER_BOOTH));
 }
 
-/** 알림 후보 : [그 시각 상태, 시설명] */
-type NoticeSeed = [MapUnitRsltDto, string];
+/** 피크를 NORMAL 이하로 만드는 추가 부스 수 */
+function toExtraBoothCnt(queuePsgCnt: number): number {
+    const excess = queuePsgCnt - NORMAL_MAX_QUEUE;
+
+    return excess <= 0 ? 0 : Math.ceil(excess / (BOOTH_PRCS_PER_MIN * RECOMMEND_LEAD_MIN));
+}
+
+function toCgnClearMin(
+    queuePsgCnt: number,
+    oprBoothCnt: number,
+    extraBoothCnt: number,
+): number | null {
+    if (oprBoothCnt === 0) return null;
+    if (extraBoothCnt === 0) return 0;
+
+    return Math.min(
+        RECOMMEND_SPAN_MIN,
+        Math.ceil((queuePsgCnt - NORMAL_MAX_QUEUE) / (BOOTH_PRCS_PER_MIN * extraBoothCnt)),
+    );
+}
+
+function toChknRslt(seed: DepSeed, step: number): MapChknRsltDto {
+    const rslt = toUnitRslt(seed, step);
+    const queuePsgCnt = rslt.stat.wtngPsgCnt;
+    const oprBoothCnt = toBoothCnt(queuePsgCnt);
+    const extraBoothCnt = toExtraBoothCnt(queuePsgCnt);
+
+    return {
+        ...rslt,
+        prcsRate: toPrcsRate(queuePsgCnt),
+        avgQueuePsgCnt: Math.round(queuePsgCnt * 0.92),
+        maxQueuePsgCnt: Math.round(queuePsgCnt * 1.08),
+        oprBoothCnt,
+        // 운영 부스가 없으면 서비스율을 알 수 없어 추천을 내지 못한다 (서버와 같은 규칙)
+        reqCnt: oprBoothCnt === 0 ? null : oprBoothCnt + extraBoothCnt,
+        cgnClearMin: toCgnClearMin(queuePsgCnt, oprBoothCnt, extraBoothCnt),
+    };
+}
+
+/** 알림 후보 — 체크인은 공용 Queue 추천을, 출국장은 대기인원 환산값을 싣는다 */
+interface NoticeSeed {
+    rslt: MapUnitRsltDto;
+    item: MapNoticeItemDto;
+}
 
 /** 알림 목록이 도면을 덮지 않는 상한 (서버와 같은 값) */
 const NOTICE_ITEM_LIMIT = 6;
 /** 대기인원 50명당 부스 1개 증설로 환산한다 (서버와 같은 규칙) */
 const BOOTH_PER_STEP = 50;
 
-function toNoticeItem([rslt, fcltNm]: NoticeSeed): MapNoticeItemDto {
+function toChknNoticeSeed(rslt: MapChknRsltDto): NoticeSeed {
     return {
-        fcltNm,
-        fcltCd: rslt.unitCd,
-        boothCnt: Math.max(1, Math.floor(rslt.stat.wtngPsgCnt / BOOTH_PER_STEP)),
+        rslt,
+        item: {
+            fcltNm: '체크인카운터',
+            fcltCd: rslt.unitCd,
+            boothCnt: rslt.oprBoothCnt,
+            reqCnt: rslt.reqCnt,
+            cgnClearMin: rslt.cgnClearMin,
+        },
+    };
+}
+
+function toDptgtNoticeSeed(rslt: MapUnitRsltDto): NoticeSeed {
+    return {
+        rslt,
+        item: {
+            fcltNm: '출국장',
+            fcltCd: rslt.unitCd,
+            boothCnt: Math.max(1, Math.floor(rslt.stat.wtngPsgCnt / BOOTH_PER_STEP)),
+            reqCnt: null,
+            cgnClearMin: null,
+        },
     };
 }
 
 /** 알림은 혼잡(BUSY) 이상인 곳만, 혼잡한 순으로 모은다 */
 function toNotice(chknList: MapChknRsltDto[], dptgtList: MapUnitRsltDto[]): MapNoticeDto {
-    const seeds: NoticeSeed[] = [
-        ...chknList.map((rslt): NoticeSeed => [rslt, '체크인카운터']),
-        ...dptgtList.map((rslt): NoticeSeed => [rslt, '출국장']),
-    ];
-    const busy = seeds
-        .filter(([rslt]) => rslt.cgnStatus === 'BUSY' || rslt.cgnStatus === 'VERY_BUSY')
-        .sort(([a], [b]) => b.stat.wtngPsgCnt - a.stat.wtngPsgCnt);
+    const busy = [...chknList.map(toChknNoticeSeed), ...dptgtList.map(toDptgtNoticeSeed)]
+        .filter(({ rslt }) => rslt.cgnStatus === 'BUSY' || rslt.cgnStatus === 'VERY_BUSY')
+        .sort((a, b) => b.rslt.stat.wtngPsgCnt - a.rslt.stat.wtngPsgCnt);
 
     return {
-        cgnStatus: toStatus(busy[0]?.[0].stat.wtngPsgCnt ?? 0),
-        itemList: busy.slice(0, NOTICE_ITEM_LIMIT).map(toNoticeItem),
+        cgnStatus: toStatus(busy[0]?.rslt.stat.wtngPsgCnt ?? 0),
+        itemList: busy.slice(0, NOTICE_ITEM_LIMIT).map(({ item }) => item),
     };
 }
 
