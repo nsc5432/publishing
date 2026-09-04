@@ -15,7 +15,6 @@ import { useCastConfigDataset } from '../hooks/useCastConfigDataset';
 import { useCastConfigPreProcessDiff } from '../hooks/useCastConfigPreProcessDiff';
 import { useDatasetDraft } from '../hooks/useDatasetDraft';
 import { CategoryBar } from './CategoryBar';
-import { CategoryManagerModal } from './CategoryManagerModal';
 import { CategoryRegisterModal } from './CategoryRegisterModal';
 import { CumulativeChart } from './CumulativeChart';
 import { DataGrid } from './DataGrid';
@@ -31,7 +30,7 @@ interface DataConfigModalProps {
     onClose: () => void;
 }
 
-type Layer = 'none' | 'register' | 'manage' | 'preProcess' | 'history';
+type Layer = 'none' | 'register' | 'preProcess' | 'history';
 
 const PAGE_SIZE = 25;
 const SAVE_FAIL = '변경사항을 저장하지 못했습니다.';
@@ -417,7 +416,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                     current={currentCategory}
                     onSelect={handleCategorySelect}
                     onRegister={() => setLayer('register')}
-                    onManage={() => setLayer('manage')}
                 />
 
                 <DatasetTabs tabs={group.datasets} activeIndex={activeTab} onSelect={handleTabSelect} />
@@ -508,15 +506,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                 />
             )}
 
-            {layer === 'manage' && (
-                <CategoryManagerModal
-                    categories={categories}
-                    currentCode={currentCategory?.code ?? ''}
-                    onSelect={handleCategorySelect}
-                    onClose={() => setLayer('none')}
-                />
-            )}
-
             {layer === 'preProcess' && (
                 <PreProcessApplyModal
                     key={`${dataset.sheetName}-${fetchedDiff.token}`}
@@ -528,12 +517,7 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
             )}
 
             {layer === 'history' && (
-                <PreProcessHistoryModal
-                    histories={fetchedHistory.data}
-                    reverting={saving}
-                    onRevert={handleRevertPreProcess}
-                    onClose={() => setLayer('none')}
-                />
+                <PreProcessHistoryModal histories={fetchedHistory.data} reverting={saving} onRevert={handleRevertPreProcess} onClose={() => setLayer('none')} />
             )}
         </div>
     );

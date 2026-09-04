@@ -5,10 +5,9 @@ interface CategoryBarProps {
     current: Category | null;
     onSelect: (code: string) => void;
     onRegister: () => void;
-    onManage: () => void;
 }
 
-export function CategoryBar({ categories, current, onSelect, onRegister, onManage }: CategoryBarProps) {
+export function CategoryBar({ categories, current, onSelect, onRegister }: CategoryBarProps) {
     return (
         <div className="cast-config-category-bar">
             <label className="cast-config-category-pick">
@@ -36,9 +35,6 @@ export function CategoryBar({ categories, current, onSelect, onRegister, onManag
 
             <button type="button" className="cast-config-ghost-button" onClick={onRegister}>
                 카테고리 등록
-            </button>
-            <button type="button" className="cast-config-ghost-button" onClick={onManage}>
-                카테고리 관리
             </button>
         </div>
     );

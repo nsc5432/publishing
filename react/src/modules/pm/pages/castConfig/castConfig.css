@@ -1116,41 +1116,7 @@ html[data-page='castConfig'] .cast-config-form__checks label {
     font-size: 11px;
 }
 
-/* ---- 카테고리 검색 · 목록 ---- */
-
-html[data-page='castConfig'] .cast-config-category-search {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-}
-
-html[data-page='castConfig'] .cast-config-category-search label {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    color: #45607a;
-    font-size: 11px;
-    font-weight: 800;
-}
-
-html[data-page='castConfig'] .cast-config-category-search input {
-    min-height: 32px;
-    width: 150px;
-    padding: 0 10px;
-    border: 1px solid #c4d2da;
-    border-radius: 8px;
-    color: #173448;
-    background: #fff;
-    font-size: 12px;
-    user-select: text;
-}
-
-html[data-page='castConfig'] .cast-config-category-search .cast-config-ghost-button {
-    min-height: 32px;
-    padding: 0 14px;
-    font-size: 11px;
-}
+/* ---- 카테고리 목록 ---- */
 
 html[data-page='castConfig'] .cast-config-category-table {
     border: 1px solid #ccd9e1;
