@@ -4,10 +4,10 @@ import { LoadingBar } from './components/ui/loading-bar';
 import { DialogProvider } from './components/ui/dialog-provider';
 import { AccessGuard } from './modules/pm/auth/AccessGuard';
 
-const loadDashboard = () => import('./modules/pm/pages/dashboard/Dashboard');
-const loadTerminalMap = () => import('./modules/pm/pages/terminalMap/TerminalMap');
-const loadDepartureHall = () => import('./modules/pm/pages/departureHall/DepartureHall');
-const loadCheckinCounter = () => import('./modules/pm/pages/checkinCounter/CheckinCounter');
+const loadDashboard = () => import('./modules/pm/pages/castSmry/dashboard/Dashboard');
+const loadTerminalMap = () => import('./modules/pm/pages/castSmry/terminalMap/TerminalMap');
+const loadDepartureHall = () => import('./modules/pm/pages/castSmry/departureHall/DepartureHall');
+const loadCheckinCounter = () => import('./modules/pm/pages/castSmry/checkinCounter/CheckinCounter');
 const loadUserSmltConfig = () => import('./modules/pm/pages/userSmlt/UserSmltConfig');
 const loadMonitoring = () => import('./modules/pm/pages/monitoring/Monitoring');
 const loadFacilityMap = () => import('./modules/pm/pages/facilityMap/FacilityMap');

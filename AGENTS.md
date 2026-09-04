@@ -13,10 +13,10 @@
 
 | 화면 | 라우트 | 폴더 |
 |---|---|---|
-| 요약보기(대시보드) | `/rui/pm`, `/rui/pm/daily-smlt/dashboard` | `modules/pm/pages/dashboard` |
-| 맵형태보기 | `/rui/pm/daily-smlt/terminalMap` | `modules/pm/pages/terminalMap` |
-| 체크인카운터 | `/rui/pm/daily-smlt/checkinCounter` | `modules/pm/pages/checkinCounter` |
-| 출국장 | `/rui/pm/daily-smlt/departureHall` | `modules/pm/pages/departureHall` |
+| 요약보기(대시보드) | `/rui/pm`, `/rui/pm/daily-smlt/dashboard` | `modules/pm/pages/castSmry/dashboard` |
+| 맵형태보기 | `/rui/pm/daily-smlt/terminalMap` | `modules/pm/pages/castSmry/terminalMap` |
+| 체크인카운터 | `/rui/pm/daily-smlt/checkinCounter` | `modules/pm/pages/castSmry/checkinCounter` |
+| 출국장 | `/rui/pm/daily-smlt/departureHall` | `modules/pm/pages/castSmry/departureHall` |
 | 사용자 시뮬레이션 조건설정 | `/rui/pm/user-smlt/config` | `modules/pm/pages/userSmlt` |
 | 시뮬레이션 모니터링 | `/rui/pm/smlt-monitoring` | `modules/pm/pages/monitoring` |
 | 시설물 매핑 | `/rui/pm/fclt-map` | `modules/pm/pages/facilityMap` |
@@ -113,7 +113,14 @@ react/src/
   modules/pm/
     hooks/useTimeline.ts     타임라인 (맵형태보기 · 출국장 공용)
     types/map.types.ts       도면 공용 타입 (마커 · 혼잡 알림 · 터미널)
-    pages/<화면>/
+    pages/castSmry/<요약화면>/
+      types.ts       뷰모델 타입 + 라벨 맵
+      view.ts        DTO → 뷰모델 매퍼 + EMPTY_* 기본값
+      hooks/         화면 전용 조회 훅
+      <Page>.tsx     화면 루트
+      components/    화면 전용 컴포넌트
+      <화면>.css
+    pages/<기타화면>/
       types.ts       뷰모델 타입 + 라벨 맵
       view.ts        DTO → 뷰모델 매퍼 + EMPTY_* 기본값
       hooks/         화면 전용 조회 훅
@@ -163,7 +170,7 @@ imports
 
 - 컴포넌트 안: `state → 파생값(useMemo) → callback → effect → handler → JSX`
 - `view.ts`: `타입 → 상수 맵 → to*() 매퍼(호출 순서대로) → EMPTY_* (맨 아래)`
-- 기준 파일: `pages/departureHall/components/Header.tsx`
+- 기준 파일: `pages/castSmry/departureHall/components/Header.tsx`
 
 ---
 
