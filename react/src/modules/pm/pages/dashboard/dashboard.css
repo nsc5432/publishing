@@ -1308,11 +1308,6 @@ html[data-page='dashboard'] .gate-mid .num {
     line-height: 1.3;
 }
 
-html[data-page='dashboard'] .gate-mid .num small {
-    font-size: 25px;
-    font-weight: 700;
-}
-
 html[data-page='dashboard'] .gate-mid .meta {
     font-size: 15px;
     color: #6c7688;

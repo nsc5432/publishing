@@ -126,7 +126,6 @@
             NVL(MAX(A.WTNG_LINE_LEN), 0) AS WTNG_PSG_CNT
         FROM PMOWN.TN_PM_PSG_WTNG_INFO A
         WHERE 1 = 1
-        <!-- 여객흐름자료생성일시는 yyyyMMddHHmm 문자열이자 PK 선두라 앞자리 범위로 자른다 -->
         AND A.PSG_FLOW_DATA_CRT_DT BETWEEN #{ymd} || '0000' AND #{ymd} || '2359'
         AND A.TMNL_ID = #{tmnlId}
         <if test="fcltTypeCdList != null and fcltTypeCdList.size() > 0">
@@ -138,7 +137,6 @@
 
     <select id="retrieveRsltByUnitList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
         /* CastDsbdMapper.retrieveRsltByUnitList */
-        <!-- smltActlDt 를 주면 그 시각 한 칸만, 주지 않으면 [bgnDt, endDt) 구간을 읽는다 -->
         SELECT
             TO_CHAR(A.SMLT_ACTL_DT, 'HH24MI') AS TIME,
             A.SMLT_ACTL_DT,
@@ -196,8 +194,6 @@
 
     <select id="retrieveChknAlnAssignmentList" resultType="aoms.pm.cast.dto.ChknAlnAssignmentRawDto">
         /* CastDsbdMapper.retrieveChknAlnAssignmentList */
-        <!-- CA001 은 운영계 일일 배정을, 그 외는 발행된 CAST 배정 snapshot 을 원천으로 삼는다.
-             원천만 갈리고 집계 방식은 같아 CTE 안에서만 나눈다 -->
         WITH VALID_ASSIGNMENT AS (
         <choose>
             <when test="cknctAlctnRsrcId == 'CA001'">

@@ -305,10 +305,7 @@ function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDeta
             </div>
             <div className="gate-mid">
                 <div className="isl">{variant.island ?? ' '}</div>
-                <div className="num">
-                    {variant.num}
-                    {variant.numSmall && <small>{variant.numSmall}</small>}
-                </div>
+                <div className="num">{variant.num}</div>
                 <div className="meta">
                     {variant.meta.map((metaCell) => (
                         <span key={metaCell.label}>

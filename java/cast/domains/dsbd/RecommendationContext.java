@@ -51,7 +51,6 @@ public final class RecommendationContext {
 	}
 
 	public RecommendationResources getRecommendationResourcesAt(LocalDateTime dt) {
-		// 보안검색대 운영 snapshot 은 시각별로 갈리지 않아 한 번만 읽는다
 		if (fcltType == FcltType.DEP) {
 			if (scrtyResources == null) {
 				scrtyResources = resourceLoader.apply(dt);
@@ -63,7 +62,6 @@ public final class RecommendationContext {
 		return resourceCache.computeIfAbsent(dt, resourceLoader);
 	}
 
-	// 결과 조회에 시설 조건이 없어 유닛마다 다시 부르면 같은 결과를 되풀이해 읽는다
 	public List<SmltRsltRawDto> priorSlotsOf(String unitCd) {
 		if (priorSlotMap == null) {
 			priorSlotMap = priorSlotLoader.get();

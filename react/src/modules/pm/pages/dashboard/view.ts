@@ -69,7 +69,6 @@ function toGateVariant(card: DsbdFcltCardDto): GateVariant {
     return {
         island: isCheckin ? '아일랜드' : undefined,
         num: card.fcltNm,
-        numSmall: card.fcltDesc ? `(${card.fcltDesc})` : undefined,
         meta: isCheckin
             ? [
                   { label: '전체', value: formatCount(card.totCnt) },

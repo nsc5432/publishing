@@ -64,7 +64,6 @@ export interface GateRecommend {
 export interface GateVariant {
     island?: string;
     num: string;
-    numSmall?: string;
     meta: GateMeta[];
     processRate: GaugeData;
     clearTime: GaugeData;

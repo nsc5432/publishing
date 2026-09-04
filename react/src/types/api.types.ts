@@ -174,7 +174,6 @@ export interface DsbdFcltCardDto {
     island: string; // 체크인카운터 아일랜드 (출국장이면 '')
     dptgtNo: string; // 출국장 번호 (체크인카운터면 '')
     fcltNm: string; // 표시명 (예: B / 3번)
-    fcltDesc: string; // 부가 표기 (예: 좌측 B4~B8)
     totCnt: number; // 전체 (개)
     oprCnt: number; // 운영 (개)
     wtngPsgCnt: number; // 대기열 / 예상인원 (명)
