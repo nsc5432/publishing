@@ -40,7 +40,8 @@ function Dashboard() {
     const [draftTime, setDraftTime] = useState('');
     const [query, setQuery] = useState<DashboardQuery | null>(null);
     const [category, setCategory] = useState<DsbdCategory>(DEFAULT_CATEGORY);
-    const [primeCategory, setPrimeCategory] = useState<DsbdCategory | null>(DEFAULT_CATEGORY);
+    const [activePrimeCategory, setActivePrimeCategory] =
+        useState<DsbdCategory | null>(DEFAULT_CATEGORY);
 
     useEffect(() => {
         if (!baseInfo) return;
@@ -73,19 +74,19 @@ function Dashboard() {
         if (draftYmd !== ymd) {
             setYmd(draftYmd);
             setSearchParams({}, { replace: true });
-            setPrimeCategory(null);
+            setActivePrimeCategory(null);
             return;
         }
 
         if (!baseInfo || !draftTime) return;
 
         setQuery({ smltId: baseInfo.smltId, ymd: baseInfo.ymd, hhmm: draftTime });
-        setPrimeCategory(null);
+        setActivePrimeCategory(null);
     };
 
     const handleCategoryChange = (nextCategory: DsbdCategory) => {
         setCategory(nextCategory);
-        setPrimeCategory(nextCategory);
+        setActivePrimeCategory(nextCategory);
     };
 
     const handleViewConfig = () => {
@@ -125,12 +126,20 @@ function Dashboard() {
                 <HeaderSummary
                     planDate={formatYmd(header?.ymd ?? baseInfo?.ymd ?? '', '-')}
                     header={header}
-                    category={category}
+                    activePrimeCategory={activePrimeCategory}
                     onCategoryChange={handleCategoryChange}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary terminal="T1" data={terminal1View} titleCategory={primeCategory} />
-                        <TerminalSummary terminal="T2" data={terminal2View} titleCategory={primeCategory} />
+                        <TerminalSummary
+                            terminal="T1"
+                            data={terminal1View}
+                            titleCategory={activePrimeCategory}
+                        />
+                        <TerminalSummary
+                            terminal="T2"
+                            data={terminal2View}
+                            titleCategory={activePrimeCategory}
+                        />
                     </section>
                 </HeaderSummary>
             </div>

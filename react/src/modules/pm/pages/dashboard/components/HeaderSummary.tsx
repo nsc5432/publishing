@@ -6,13 +6,11 @@ import { HeaderInfoCards } from '@/modules/pm/components/HeaderInfoCards';
 interface HeaderSummaryProps {
     planDate: string;
     header: DsbdHeaderDto | null;
-    /** 퀵 타일 선택 — 터미널 패널의 시간대별 결과가 이 값을 따른다 */
-    category: DsbdCategory;
+    activePrimeCategory: DsbdCategory | null;
     onCategoryChange: (category: DsbdCategory) => void;
     children: ReactNode;
 }
 
-/** 퀵 타일 = 조회 대상 지표 */
 const QUICK_TILES: { category: DsbdCategory; label: string; Icon: typeof QuickPaxIcon }[] = [
     { category: 'PSG', label: '터미널 여객수', Icon: QuickPaxIcon },
     { category: 'FLT', label: '운항편', Icon: QuickFlightIcon },
@@ -20,13 +18,10 @@ const QUICK_TILES: { category: DsbdCategory; label: string; Icon: typeof QuickPa
     { category: 'DEP', label: '출국장', Icon: QuickGateIcon },
 ];
 
-/**
- * 상단 요약 카드 행 + 하단 슬롯으로 이루어진 본문.
- */
 export function HeaderSummary({
     planDate,
     header,
-    category,
+    activePrimeCategory,
     onCategoryChange,
     children,
 }: HeaderSummaryProps) {
@@ -43,8 +38,10 @@ export function HeaderSummary({
                                 <button
                                     key={tile.category}
                                     type="button"
-                                    className={`qtile${category === tile.category ? ' active' : ''}`}
-                                    aria-pressed={category === tile.category}
+                                    className={`qtile${
+                                        activePrimeCategory === tile.category ? ' active' : ''
+                                    }`}
+                                    aria-pressed={activePrimeCategory === tile.category}
                                     onClick={() => onCategoryChange(tile.category)}
                                 >
                                     <tile.Icon aria-hidden="true" />
