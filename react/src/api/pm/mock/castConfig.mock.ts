@@ -10,8 +10,6 @@ import type {
     CastConfigGridRowDto,
     CastConfigGroupListDto,
     CastConfigOptionDto,
-    CastConfigPreProcessDiffDto,
-    CastConfigPreProcessRowDto,
     CastConfigSaveItemDto,
     CastConfigValidationDto,
     JsonResponse,
@@ -505,34 +503,6 @@ function findDataset(tmnlId: TmnlId, fixAtrbGroupId: string, sheetNm: string): C
     return DATASETS[tmnlId][fixAtrbGroupId]?.[sheetNm];
 }
 
-function readCell(dataset: CastConfigDatasetDto, rowNo: number, column: string): string {
-    return dataset.rowList.find((row) => row.rowNo === rowNo)?.cellList.find((cell) => cell.column === column)?.value ?? '';
-}
-
-function toPreProcessRow(
-    base: CastConfigDatasetDto,
-    pre: CastConfigDatasetDto,
-    row: CastConfigGridRowDto,
-    valueColumnList: string[],
-): CastConfigPreProcessRowDto {
-    const matched = pre.rowList.some((candidate) => candidate.rowNo === row.rowNo);
-    const baseVlList = valueColumnList.map((column) => readCell(base, row.rowNo, column));
-    const preVlList = valueColumnList.map((column) => (matched ? readCell(pre, row.rowNo, column) : ''));
-    const changed = matched && valueColumnList.some((_, index) => baseVlList[index] !== preVlList[index]);
-
-    return {
-        rowNo: row.rowNo,
-        atrbCd: String(row.rowNo).padStart(8, '0'),
-        dtlSeCd: String(row.rowNo + 1).padStart(8, '0'),
-        atrbCdNm: row.cellList[0]?.value ?? '',
-        dtlSeCdNm: base.sheetNm === CKNCT_TYPE_SHEET ? '' : (row.cellList[1]?.value ?? ''),
-        baseVlList,
-        preVlList,
-        changedYn: changed ? 'Y' : 'N',
-        matchedYn: matched ? 'Y' : 'N',
-    };
-}
-
 function toCategoryOrder(category: CastConfigCategoryDto): number {
     if (category.fixAtrbGroupId === BASE_CATEGORY_ID) return 0;
     if (category.fixAtrbGroupId === PRE_PRCS_CATEGORY_ID) return 1;
@@ -545,17 +515,6 @@ function toNowYmdHms(): string {
 
     return `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
 }
-
-const EMPTY_DIFF: CastConfigPreProcessDiffDto = {
-    ...OK,
-    sheetNm: '',
-    valueColumnList: [],
-    valueLabelList: [],
-    changedCnt: 0,
-    rowList: [],
-    preProcessNm: '',
-    preProcessDt: '',
-};
 
 const HISTORIES: MockHistory[] = [];
 let aplySnSeq = 0;
@@ -656,128 +615,68 @@ export const castConfigMock = {
         return OK;
     },
 
-    applyDefault: (tmnlId: TmnlId, groupId: string, fixAtrbGroupId: string, sheetNm: string, rowNoList: number[]): JsonResponse => {
+    applyOperation: (tmnlId: TmnlId, groupId: string, fixAtrbGroupId: string): JsonResponse => {
         const group = GROUPS.find((item) => item.groupId === groupId);
-        if (!group?.sheets.includes(sheetNm)) {
-            return { error: true, errorMessage: '시설그룹에 연결되지 않은 원본 시트입니다.' };
+        if (!group) return { error: true, errorMessage: '시설그룹을 찾지 못했습니다.' };
+
+        if (fixAtrbGroupId === BASE_CATEGORY_ID) {
+            return { error: true, errorMessage: '기준정보는 운영 반영 대상이 아닙니다.' };
         }
 
-        if ([BASE_CATEGORY_ID, PRE_PRCS_CATEGORY_ID].includes(fixAtrbGroupId)) {
-            return { error: true, errorMessage: '기준정보와 전처리 결과는 수정할 수 없습니다.' };
-        }
+        const fromPreProcess = fixAtrbGroupId === PRE_PRCS_CATEGORY_ID;
+        let totalRowCnt = 0;
 
-        const base = findDataset(tmnlId, BASE_CATEGORY_ID, sheetNm);
-        const target = findDataset(tmnlId, fixAtrbGroupId, sheetNm);
-        if (!base || !target) return { error: true, errorMessage: '기준정보를 찾지 못했습니다.' };
+        for (const sheetNm of group.sheets) {
+            const base = findDataset(tmnlId, BASE_CATEGORY_ID, sheetNm);
+            const source = findDataset(tmnlId, fixAtrbGroupId, sheetNm);
+            if (!base || !source) continue;
 
-        for (const row of target.rowList) {
-            if (rowNoList.length > 0 && !rowNoList.includes(row.rowNo)) continue;
-            const source = base.rowList.find((candidate) => candidate.rowNo === row.rowNo);
-            if (!source) continue;
+            const valueColumnList = findValueColumns(base);
+            const snapshot: MockSnapshot[] = [];
+            let aplyRowCnt = 0;
 
-            for (const cell of row.cellList) {
-                const sourceCell = source.cellList.find((candidate) => candidate.column === cell.column);
-                if (sourceCell) cell.value = sourceCell.value;
-            }
-        }
+            for (const row of base.rowList) {
+                if (fromPreProcess && !isPreProcessRow(sheetNm, row.rowNo)) continue;
 
-        return OK;
-    },
+                const sourceRow = source.rowList.find((candidate) => candidate.rowNo === row.rowNo);
+                if (!sourceRow) continue;
 
-    getPreProcessDiff: (tmnlId: TmnlId, groupId: string, sheetNm: string): CastConfigPreProcessDiffDto => {
-        const group = GROUPS.find((item) => item.groupId === groupId);
-        if (!group?.sheets.includes(sheetNm)) {
-            return { ...EMPTY_DIFF, error: true, errorMessage: '시설그룹에 연결되지 않은 원본 시트입니다.' };
-        }
+                aplyRowCnt += 1;
 
-        const base = findDataset(tmnlId, BASE_CATEGORY_ID, sheetNm);
-        const pre = findDataset(tmnlId, PRE_PRCS_CATEGORY_ID, sheetNm);
-        if (!base || !pre) return { ...EMPTY_DIFF, error: true, errorMessage: '전처리 결과를 찾지 못했습니다.' };
+                for (const valueColumn of valueColumnList) {
+                    const cell = row.cellList.find((candidate) => candidate.column === valueColumn);
+                    const sourceCell = sourceRow.cellList.find((candidate) => candidate.column === valueColumn);
+                    if (!cell || !sourceCell) continue;
 
-        const valueColumnList = findValueColumns(base);
-        const rowList = base.rowList
-            .filter((row) => isPreProcessRow(sheetNm, row.rowNo))
-            .map((row) => toPreProcessRow(base, pre, row, valueColumnList));
-        const category = CATEGORIES.find((item) => item.fixAtrbGroupId === PRE_PRCS_CATEGORY_ID);
-
-        return {
-            ...OK,
-            sheetNm,
-            valueColumnList,
-            valueLabelList: valueColumnList.map(
-                (valueColumn) => base.columnList.find((item) => item.column === valueColumn)?.label ?? valueColumn,
-            ),
-            changedCnt: rowList.filter((row) => row.changedYn === 'Y').length,
-            rowList,
-            preProcessNm: category?.atrbGroupNm ?? '',
-            preProcessDt: category?.lastMdfcnDt ?? '',
-        };
-    },
-
-    applyPreProcess: (
-        tmnlId: TmnlId,
-        groupId: string,
-        sheetNm: string,
-        preProcessDt: string,
-        rowNoList: number[],
-    ): JsonResponse => {
-        const group = GROUPS.find((item) => item.groupId === groupId);
-        if (!group?.sheets.includes(sheetNm)) {
-            return { error: true, errorMessage: '시설그룹에 연결되지 않은 원본 시트입니다.' };
-        }
-
-        if (rowNoList.length === 0) return { error: true, errorMessage: '반영할 행을 선택해 주세요.' };
-
-        const base = findDataset(tmnlId, BASE_CATEGORY_ID, sheetNm);
-        const pre = findDataset(tmnlId, PRE_PRCS_CATEGORY_ID, sheetNm);
-        if (!base || !pre) return { error: true, errorMessage: '전처리 결과를 찾지 못했습니다.' };
-
-        const category = CATEGORIES.find((item) => item.fixAtrbGroupId === PRE_PRCS_CATEGORY_ID);
-        if ((category?.lastMdfcnDt ?? '') !== preProcessDt) {
-            return { error: true, errorMessage: '전처리 결과가 갱신되었습니다. 다시 조회해 주세요.' };
-        }
-
-        const valueColumnList = findValueColumns(base);
-        const snapshot: MockSnapshot[] = [];
-        let aplyRowCnt = 0;
-
-        for (const rowNo of rowNoList) {
-            const row = base.rowList.find((candidate) => candidate.rowNo === rowNo);
-            const source = pre.rowList.find((candidate) => candidate.rowNo === rowNo);
-            if (!row || !source || !isPreProcessRow(sheetNm, rowNo)) {
-                return { error: true, errorMessage: '전처리 대상이 아닌 행이 포함되어 있습니다.' };
+                    snapshot.push({ rowNo: row.rowNo, column: valueColumn, value: cell.value });
+                    cell.value = sourceCell.value;
+                }
             }
 
-            aplyRowCnt += 1;
+            if (aplyRowCnt === 0) continue;
 
-            for (const valueColumn of valueColumnList) {
-                const cell = row.cellList.find((candidate) => candidate.column === valueColumn);
-                const sourceCell = source.cellList.find((candidate) => candidate.column === valueColumn);
-                if (!cell || !sourceCell) continue;
-
-                snapshot.push({ rowNo, column: valueColumn, value: cell.value });
-                cell.value = sourceCell.value;
-            }
+            totalRowCnt += aplyRowCnt;
+            HISTORIES.unshift({
+                hstry: {
+                    aplySn: ++aplySnSeq,
+                    srcFixAtrbGroupId: fixAtrbGroupId,
+                    tgtFixAtrbGroupId: BASE_CATEGORY_ID,
+                    // 터미널 축이 없는 시트는 서버도 TMNL_ID 를 비워 T1/T2 를 한 순서열로 묶는다
+                    tmnlId: sheetNm === CKNCT_TYPE_SHEET ? '' : tmnlId,
+                    tblNm: TABLE_BY_SHEET[sheetNm] ?? 'TN_PM_SMLT_PSG_ATRB',
+                    sheetNm,
+                    aplyRowCnt,
+                    cnclYn: 'N',
+                    revertableYn: 'Y',
+                    frstRegDt: toNowYmdHms(),
+                    frstRgtrId: 'PM001',
+                },
+                terminal: tmnlId,
+                snapshot,
+            });
         }
 
-        HISTORIES.unshift({
-            hstry: {
-                aplySn: ++aplySnSeq,
-                srcFixAtrbGroupId: PRE_PRCS_CATEGORY_ID,
-                tgtFixAtrbGroupId: BASE_CATEGORY_ID,
-                // 터미널 축이 없는 시트는 서버도 TMNL_ID 를 비워 T1/T2 를 한 순서열로 묶는다
-                tmnlId: sheetNm === CKNCT_TYPE_SHEET ? '' : tmnlId,
-                tblNm: TABLE_BY_SHEET[sheetNm] ?? 'TN_PM_SMLT_PSG_ATRB',
-                sheetNm,
-                aplyRowCnt,
-                cnclYn: 'N',
-                revertableYn: 'Y',
-                frstRegDt: toNowYmdHms(),
-                frstRgtrId: 'PM001',
-            },
-            terminal: tmnlId,
-            snapshot,
-        });
+        if (totalRowCnt === 0) return { error: true, errorMessage: '반영할 행이 없습니다.' };
 
         return OK;
     },
@@ -824,10 +723,5 @@ export const castConfigMock = {
         entry.hstry.revertableYn = 'N';
 
         return OK;
-    },
-
-    uploadExcel: (_tmnlId: TmnlId, groupId: string, sheetNm: string): JsonResponse => {
-        const group = GROUPS.find((item) => item.groupId === groupId);
-        return group?.sheets.includes(sheetNm) ? OK : { error: true, errorMessage: '시설그룹에 연결되지 않은 원본 시트입니다.' };
     },
 };

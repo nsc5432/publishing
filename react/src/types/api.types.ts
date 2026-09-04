@@ -783,30 +783,7 @@ export interface CastConfigSaveItemDto {
     value: string;
 }
 
-/** 전처리 결과(999) ↔ 기준정보(001) 비교 한 행 */
-export interface CastConfigPreProcessRowDto {
-    rowNo: number; // 격자와 같은 행 번호 — applyPreProcess 의 rowNoList 가 이 값을 쓴다
-    atrbCd: string;
-    dtlSeCd: string;
-    atrbCdNm: string;
-    dtlSeCdNm: string;
-    baseVlList: string[]; // 기준정보(001) 현재 값. diff 의 valueColumnList 와 같은 순서·길이
-    preVlList: string[]; // 전처리 결과(999) 값
-    changedYn: YnFlag;
-    matchedYn: YnFlag; // N = 전처리 결과에 대응 행이 없다
-}
-
-export interface CastConfigPreProcessDiffDto extends JsonResponse {
-    sheetNm: string;
-    valueColumnList: string[]; // 시트마다 개수가 다르다 — 체크인유형은 비율 3열
-    valueLabelList: string[];
-    changedCnt: number;
-    rowList: CastConfigPreProcessRowDto[];
-    preProcessNm: string; // '전처리 결과 (260212-260218)'
-    preProcessDt: string; // 최종수정일시 (yyyyMMddHHmmss)
-}
-
-/** 전처리 결과 → 기준정보 반영 이력 */
+/** 카테고리 → 기준정보 반영 이력 */
 export interface CastConfigAplyHstryDto {
     aplySn: number;
     srcFixAtrbGroupId: string;

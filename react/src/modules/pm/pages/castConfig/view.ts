@@ -7,7 +7,6 @@ import type {
     CastConfigDatasetDto,
     CastConfigGroupDto,
     CastConfigGroupListDto,
-    CastConfigPreProcessDiffDto,
     CastConfigValidationKind,
 } from '@/types/api.types';
 import { toCellKey } from './cell';
@@ -21,7 +20,6 @@ import type {
     FacilityGroupId,
     GridRow,
     GroupDefinition,
-    PreProcessDiff,
     ValidationKind,
 } from './types';
 
@@ -120,26 +118,6 @@ function toCategory(dto: CastConfigCategoryDto): Category {
 
 export function toCastConfigCategories(dto: CastConfigCategoryListDto): Category[] {
     return dto.categoryList.map(toCategory);
-}
-
-export function toPreProcessDiff(dto: CastConfigPreProcessDiffDto): PreProcessDiff {
-    return {
-        sheetName: dto.sheetNm,
-        valueLabels: dto.valueLabelList,
-        changedCount: dto.changedCnt,
-        rows: dto.rowList.map((row) => ({
-            rowNo: row.rowNo,
-            attribute: row.atrbCdNm || row.atrbCd,
-            detail: row.dtlSeCdNm || row.dtlSeCd,
-            baseValues: row.baseVlList,
-            preValues: row.preVlList,
-            changed: row.changedYn === 'Y',
-            matched: row.matchedYn === 'Y',
-        })),
-        preProcessName: dto.preProcessNm,
-        preProcessAt: formatDateTime(dto.preProcessDt),
-        preProcessDt: dto.preProcessDt,
-    };
 }
 
 export function toApplyHistories(dto: CastConfigAplyHstryListDto): ApplyHistory[] {
@@ -264,16 +242,6 @@ export const EMPTY_CAST_CONFIG_GROUPS: FacilityGroup[] = GROUP_IDS.map((id) => (
 }));
 
 export const EMPTY_CAST_CONFIG_CATEGORIES: Category[] = [];
-
-export const EMPTY_PRE_PROCESS_DIFF: PreProcessDiff = {
-    sheetName: '',
-    valueLabels: [],
-    changedCount: 0,
-    rows: [],
-    preProcessName: '',
-    preProcessAt: '',
-    preProcessDt: '',
-};
 
 export const EMPTY_APPLY_HISTORIES: ApplyHistory[] = [];
 

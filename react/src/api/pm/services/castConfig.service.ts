@@ -8,7 +8,6 @@ import type {
     CastConfigCategorySaveDto,
     CastConfigDatasetDto,
     CastConfigGroupListDto,
-    CastConfigPreProcessDiffDto,
     CastConfigSaveItemDto,
     JsonResponse,
     TmnlId,
@@ -52,42 +51,10 @@ export const castConfigService = {
         return response.data;
     },
 
-    applyDefault: async (tmnlId: TmnlId, groupId: string, fixAtrbGroupId: string, sheetNm: string, rowNoList: number[]): Promise<JsonResponse> => {
-        if (USE_MOCK) return mockResponse(castConfigMock.applyDefault(tmnlId, groupId, fixAtrbGroupId, sheetNm, rowNoList), { loading: true });
+    applyOperation: async (tmnlId: TmnlId, groupId: string, fixAtrbGroupId: string): Promise<JsonResponse> => {
+        if (USE_MOCK) return mockResponse(castConfigMock.applyOperation(tmnlId, groupId, fixAtrbGroupId), { loading: true });
 
-        const response = await apiClient.post<JsonResponse>(
-            API_ENDPOINTS.CAST_CONFIG_DEFAULT_APPLY,
-            { tmnlId, groupId, fixAtrbGroupId, sheetNm, rowNoList },
-            LOADING,
-        );
-        return response.data;
-    },
-
-    getPreProcessDiff: async (tmnlId: TmnlId, groupId: string, sheetNm: string): Promise<CastConfigPreProcessDiffDto> => {
-        if (USE_MOCK) return mockResponse(castConfigMock.getPreProcessDiff(tmnlId, groupId, sheetNm), { loading: true });
-
-        const response = await apiClient.post<CastConfigPreProcessDiffDto>(API_ENDPOINTS.CAST_CONFIG_PRE_PRCS_DIFF, { tmnlId, groupId, sheetNm }, LOADING);
-        return response.data;
-    },
-
-    applyPreProcess: async (
-        tmnlId: TmnlId,
-        groupId: string,
-        sheetNm: string,
-        preProcessDt: string,
-        rowNoList: number[],
-    ): Promise<JsonResponse> => {
-        if (USE_MOCK) {
-            return mockResponse(castConfigMock.applyPreProcess(tmnlId, groupId, sheetNm, preProcessDt, rowNoList), {
-                loading: true,
-            });
-        }
-
-        const response = await apiClient.post<JsonResponse>(
-            API_ENDPOINTS.CAST_CONFIG_PRE_PRCS_APPLY,
-            { tmnlId, groupId, sheetNm, preProcessDt, rowNoList },
-            LOADING,
-        );
+        const response = await apiClient.post<JsonResponse>(API_ENDPOINTS.CAST_CONFIG_OPER_APPLY, { tmnlId, groupId, fixAtrbGroupId }, LOADING);
         return response.data;
     },
 
@@ -102,24 +69,6 @@ export const castConfigService = {
         if (USE_MOCK) return mockResponse(castConfigMock.revertPreProcess(aplySn), { loading: true });
 
         const response = await apiClient.post<JsonResponse>(API_ENDPOINTS.CAST_CONFIG_PRE_PRCS_REVERT, { aplySn }, LOADING);
-        return response.data;
-    },
-
-    uploadExcel: async (tmnlId: TmnlId, groupId: string, fixAtrbGroupId: string, sheetNm: string, file: File): Promise<JsonResponse> => {
-        if (USE_MOCK) return mockResponse(castConfigMock.uploadExcel(tmnlId, groupId, sheetNm), { loading: true });
-
-        const form = new FormData();
-        form.append('tmnlId', tmnlId);
-        form.append('groupId', groupId);
-        form.append('fixAtrbGroupId', fixAtrbGroupId);
-        form.append('sheetNm', sheetNm);
-        form.append('file', file);
-
-        // 인스턴스 기본 Content-Type 이 application/json 이라 FormData 로는 직접 덮어야 한다.
-        const response = await apiClient.post<JsonResponse>(API_ENDPOINTS.CAST_CONFIG_EXCEL_UPLOAD, form, {
-            ...LOADING,
-            headers: { 'Content-Type': 'multipart/form-data' },
-        });
         return response.data;
     },
 };

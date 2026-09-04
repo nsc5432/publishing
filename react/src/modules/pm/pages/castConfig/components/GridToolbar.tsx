@@ -1,4 +1,3 @@
-import { useRef } from 'react';
 import { SearchIcon } from '@/components/icons';
 import { formatCount } from '@/lib/format';
 
@@ -10,18 +9,14 @@ interface GridToolbarProps {
     sheetChangeCount: number;
     totalChangeCount: number;
     readOnly: boolean;
-    isBase: boolean;
     isPreProcess: boolean;
     onQueryChange: (query: string) => void;
     onDownload: () => void;
-    onUpload: (file: File) => void;
-    onApplyDefault: () => void;
-    onApplyPreProcess: () => void;
     onOpenHistory: () => void;
     onReset: () => void;
 }
 
-const BASE_HINT = '> 기준정보는 기본값이므로 변경할 수 없습니다. 전처리 결과만 반영할 수 있습니다.';
+const BASE_HINT = '> 기준정보는 기본값이므로 변경할 수 없습니다. 카테고리를 운영 반영해야 바뀝니다.';
 const PRE_PRCS_HINT = '> 전처리 결과는 매주 파이프라인이 갱신하므로 변경할 수 없습니다.';
 
 export function GridToolbar({
@@ -32,18 +27,12 @@ export function GridToolbar({
     sheetChangeCount,
     totalChangeCount,
     readOnly,
-    isBase,
     isPreProcess,
     onQueryChange,
     onDownload,
-    onUpload,
-    onApplyDefault,
-    onApplyPreProcess,
     onOpenHistory,
     onReset,
 }: GridToolbarProps) {
-    const fileRef = useRef<HTMLInputElement>(null);
-
     return (
         <div className="cast-config-grid-head">
             <div className="cast-config-grid-title">
@@ -77,33 +66,12 @@ export function GridToolbar({
                     <button type="button" className="cast-config-ghost-button" onClick={onDownload}>
                         엑셀저장
                     </button>
-                    <button type="button" className="cast-config-ghost-button" disabled={readOnly} onClick={() => fileRef.current?.click()}>
-                        엑셀업로드
-                    </button>
-                    <button type="button" className="cast-config-ghost-button" disabled={readOnly} onClick={onApplyDefault}>
-                        디폴트속성적용
-                    </button>
-                    <button type="button" className="cast-config-ghost-button" disabled={!isBase} onClick={onApplyPreProcess}>
-                        전처리 반영
-                    </button>
-                    <button type="button" className="cast-config-ghost-button" disabled={!isBase} onClick={onOpenHistory}>
+                    <button type="button" className="cast-config-ghost-button" onClick={onOpenHistory}>
                         반영 이력
                     </button>
                     <button type="button" className="cast-config-ghost-button" disabled={readOnly} onClick={onReset}>
                         초기화
                     </button>
-
-                    <input
-                        ref={fileRef}
-                        type="file"
-                        className="blind"
-                        accept=".xlsx,.xls"
-                        onChange={(event) => {
-                            const file = event.target.files?.[0];
-                            event.target.value = '';
-                            if (file) onUpload(file);
-                        }}
-                    />
                 </div>
             </div>
         </div>

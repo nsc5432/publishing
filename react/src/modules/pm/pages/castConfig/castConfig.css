@@ -613,14 +613,6 @@ html[data-page='castConfig'] .cast-config-data-grid th {
     white-space: nowrap;
 }
 
-html[data-page='castConfig'] .cast-config-data-grid th.cast-config-check-col {
-    left: 0;
-    z-index: 4;
-    min-width: 44px;
-    width: 44px;
-    text-align: center;
-}
-
 html[data-page='castConfig'] .cast-config-data-grid td {
     min-width: 150px;
     max-width: 320px;
@@ -629,18 +621,6 @@ html[data-page='castConfig'] .cast-config-data-grid td {
     border-bottom: 1px solid #e0e8ed;
     background: #fff;
     vertical-align: top;
-}
-
-html[data-page='castConfig'] .cast-config-data-grid td.cast-config-check-col {
-    position: sticky;
-    left: 0;
-    z-index: 2;
-    min-width: 44px;
-    width: 44px;
-    padding: 11px 8px;
-    background: #eef3f6;
-    text-align: center;
-    vertical-align: middle;
 }
 
 html[data-page='castConfig'] .cast-config-cell-view,
@@ -911,31 +891,6 @@ html[data-page='castConfig'] .cast-config-cell-off {
     background: #f2f5f8;
     text-align: center;
     vertical-align: middle;
-}
-
-html[data-page='castConfig'] .cast-config-data-grid tr.is-selected td {
-    background: #eef2ff;
-}
-
-/* ---- 선택 행 일괄 처리 ---- */
-
-html[data-page='castConfig'] .cast-config-bulk-bar {
-    display: flex;
-    flex: none;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 18px;
-    border-top: 1px solid #ccd9e1;
-    background: #eef2ff;
-    color: #333a8f;
-    font-size: 11px;
-    font-weight: 800;
-}
-
-html[data-page='castConfig'] .cast-config-bulk-bar .cast-config-ghost-button {
-    min-height: 30px;
-    padding: 0 12px;
-    font-size: 11px;
 }
 
 /* ---- 누적곡선 미리보기 ---- */

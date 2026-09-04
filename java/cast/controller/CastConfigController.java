@@ -4,18 +4,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
 import aoms.pm.cast.dto.CastConfigAplyHstryListDto;
 import aoms.pm.cast.dto.CastConfigCategoryListDto;
 import aoms.pm.cast.dto.CastConfigCategorySaveDto;
 import aoms.pm.cast.dto.CastConfigDatasetDto;
-import aoms.pm.cast.dto.CastConfigDefaultApplyDto;
 import aoms.pm.cast.dto.CastConfigGroupListDto;
-import aoms.pm.cast.dto.CastConfigPreProcessApplyDto;
-import aoms.pm.cast.dto.CastConfigPreProcessDiffDto;
+import aoms.pm.cast.dto.CastConfigOperApplyDto;
 import aoms.pm.cast.dto.CastConfigPreProcessRevertDto;
 import aoms.pm.cast.dto.CastConfigSaveDto;
 import aoms.pm.cast.dto.CastConfigSearchDto;
@@ -56,19 +52,9 @@ public class CastConfigController {
 		return ResponseUtils.res(castConfigService.saveCategory(saveDto));
 	}
 
-	@PostMapping(value = "/applyDefaultAttribute")
-	public ResponseEntity<JsonResponse> applyDefaultAttribute(@RequestBody CastConfigDefaultApplyDto applyDto) {
-		return ResponseUtils.res(castConfigService.applyDefaultAttribute(applyDto));
-	}
-
-	@PostMapping(value = "/retrievePreProcessDiff")
-	public ResponseEntity<CastConfigPreProcessDiffDto> retrievePreProcessDiff(@RequestBody CastConfigSearchDto searchDto) {
-		return ResponseUtils.res(castConfigService.retrievePreProcessDiff(searchDto));
-	}
-
-	@PostMapping(value = "/applyPreProcess")
-	public ResponseEntity<JsonResponse> applyPreProcess(@RequestBody CastConfigPreProcessApplyDto applyDto) {
-		return ResponseUtils.res(castConfigService.applyPreProcess(applyDto));
+	@PostMapping(value = "/applyOperation")
+	public ResponseEntity<JsonResponse> applyOperation(@RequestBody CastConfigOperApplyDto applyDto) {
+		return ResponseUtils.res(castConfigService.applyOperation(applyDto));
 	}
 
 	@PostMapping(value = "/retrievePreProcessHistory")
@@ -79,16 +65,5 @@ public class CastConfigController {
 	@PostMapping(value = "/revertPreProcess")
 	public ResponseEntity<JsonResponse> revertPreProcess(@RequestBody CastConfigPreProcessRevertDto revertDto) {
 		return ResponseUtils.res(castConfigService.revertPreProcess(revertDto));
-	}
-
-	@PostMapping(value = "/uploadExcel")
-	public ResponseEntity<JsonResponse> uploadExcel(
-			@RequestPart("tmnlId") String tmnlId,
-			@RequestPart("groupId") String groupId,
-			@RequestPart("fixAtrbGroupId") String fixAtrbGroupId,
-			@RequestPart("sheetNm") String sheetNm,
-			@RequestPart("file") MultipartFile file
-	) {
-		return ResponseUtils.res(castConfigService.uploadExcel(tmnlId, groupId, fixAtrbGroupId, sheetNm, file));
 	}
 }

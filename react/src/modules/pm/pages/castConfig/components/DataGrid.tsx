@@ -9,11 +9,8 @@ interface DataGridProps {
     rows: GridRow[];
     drafts: DraftChanges;
     readOnly: boolean;
-    selected: Set<number>;
     emptyMessage: string;
     onCellChange: (row: GridRow, column: string, value: string) => void;
-    onToggleRow: (rowNo: number) => void;
-    onToggleAll: (rowNos: number[], checked: boolean) => void;
 }
 
 function toRowSpans(dataset: Dataset, rows: GridRow[], drafts: DraftChanges): Map<string, number> {
@@ -44,7 +41,7 @@ function toRowSpans(dataset: Dataset, rows: GridRow[], drafts: DraftChanges): Ma
     return spans;
 }
 
-export function DataGrid({ dataset, rows, drafts, readOnly, selected, emptyMessage, onCellChange, onToggleRow, onToggleAll }: DataGridProps) {
+export function DataGrid({ dataset, rows, drafts, readOnly, emptyMessage, onCellChange }: DataGridProps) {
     const spans = useMemo(() => toRowSpans(dataset, rows, drafts), [dataset, rows, drafts]);
     const shapeColumns = useMemo(() => toShapeColumns(dataset), [dataset]);
 
@@ -56,26 +53,10 @@ export function DataGrid({ dataset, rows, drafts, readOnly, selected, emptyMessa
         );
     }
 
-    const pageRowNos = rows.map((row) => row.rowNo);
-    const allSelected = pageRowNos.every((rowNo) => selected.has(rowNo));
-
     return (
         <table className="cast-config-data-grid" aria-label={`${dataset.sheetName} 상세`}>
             <thead>
                 <tr>
-                    {!readOnly && (
-                        <th scope="col" className="cast-config-check-col">
-                            <input
-                                type="checkbox"
-                                checked={allSelected}
-                                aria-label="이 페이지 전체 선택"
-                                ref={(node) => {
-                                    if (node) node.indeterminate = !allSelected && pageRowNos.some((rowNo) => selected.has(rowNo));
-                                }}
-                                onChange={(event) => onToggleAll(pageRowNos, event.target.checked)}
-                            />
-                        </th>
-                    )}
                     {dataset.columns.map((column) => (
                         <th key={column.key} scope="col" title={column.label}>
                             {column.label}
@@ -88,18 +69,7 @@ export function DataGrid({ dataset, rows, drafts, readOnly, selected, emptyMessa
                     const activeShape = toActiveShapeColumns(dataset, row, drafts);
 
                     return (
-                        <tr key={row.rowNo} className={selected.has(row.rowNo) ? 'is-selected' : undefined}>
-                            {!readOnly && (
-                                <td className="cast-config-check-col">
-                                    <input
-                                        type="checkbox"
-                                        checked={selected.has(row.rowNo)}
-                                        aria-label={`${row.rowNo}행 선택`}
-                                        onChange={() => onToggleRow(row.rowNo)}
-                                    />
-                                </td>
-                            )}
-
+                        <tr key={row.rowNo}>
                             {dataset.columns.map((column) => {
                                 const key = toCellKey(dataset.sheetName, row.rowNo, column.key);
                                 const span = spans.get(key) ?? 1;

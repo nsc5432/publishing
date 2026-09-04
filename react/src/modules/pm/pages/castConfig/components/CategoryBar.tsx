@@ -5,9 +5,11 @@ interface CategoryBarProps {
     current: Category | null;
     onSelect: (code: string) => void;
     onRegister: () => void;
+    onApplyOper: () => void;
+    applying: boolean;
 }
 
-export function CategoryBar({ categories, current, onSelect, onRegister }: CategoryBarProps) {
+export function CategoryBar({ categories, current, onSelect, onRegister, onApplyOper, applying }: CategoryBarProps) {
     return (
         <div className="cast-config-category-bar">
             <label className="cast-config-category-pick">
@@ -35,6 +37,9 @@ export function CategoryBar({ categories, current, onSelect, onRegister }: Categ
 
             <button type="button" className="cast-config-ghost-button" onClick={onRegister}>
                 카테고리 등록
+            </button>
+            <button type="button" className="cast-config-primary-button" disabled={applying || !current || current.isBase} onClick={onApplyOper}>
+                운영 반영
             </button>
         </div>
     );

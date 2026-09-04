@@ -12,7 +12,6 @@ import { readCellValue, toShapeColumns, validateDataset } from '../view';
 import { useCastConfigApplyHistory } from '../hooks/useCastConfigApplyHistory';
 import { useCastConfigCategories } from '../hooks/useCastConfigCategories';
 import { useCastConfigDataset } from '../hooks/useCastConfigDataset';
-import { useCastConfigPreProcessDiff } from '../hooks/useCastConfigPreProcessDiff';
 import { useDatasetDraft } from '../hooks/useDatasetDraft';
 import { CategoryBar } from './CategoryBar';
 import { CategoryRegisterModal } from './CategoryRegisterModal';
@@ -21,7 +20,6 @@ import { DataGrid } from './DataGrid';
 import { DatasetTabs } from './DatasetTabs';
 import { GridToolbar } from './GridToolbar';
 import { Pagination } from './Pagination';
-import { PreProcessApplyModal } from './PreProcessApplyModal';
 import { PreProcessHistoryModal } from './PreProcessHistoryModal';
 
 interface DataConfigModalProps {
@@ -30,11 +28,12 @@ interface DataConfigModalProps {
     onClose: () => void;
 }
 
-type Layer = 'none' | 'register' | 'preProcess' | 'history';
+type Layer = 'none' | 'register' | 'history';
 
 const PAGE_SIZE = 25;
 const SAVE_FAIL = '변경사항을 저장하지 못했습니다.';
 const DISCARD_WARNING = '저장하지 않은 변경사항이 있습니다. 계속하시겠습니까?';
+const OPER_APPLY_FAIL = '기준정보에 반영하지 못했습니다.';
 
 function toSaveItems(categoryCode: string, drafts: DraftChanges): CastConfigSaveItemDto[] {
     return Object.entries(drafts).map(([key, value]) => {
@@ -91,15 +90,9 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
     const fetched = useCastConfigDataset(datasetQuery);
     const dataset = fetched.data;
 
-    const diffQuery = useMemo(
-        () => (layer === 'preProcess' && activeSheet && isBase ? { terminal, groupId: group.id, sheetName: activeSheet, reloadToken } : null),
-        [activeSheet, group.id, isBase, layer, reloadToken, terminal],
-    );
-    const fetchedDiff = useCastConfigPreProcessDiff(diffQuery);
-
     const historyQuery = useMemo(
-        () => (layer === 'history' && isBase ? { terminal, sheetName: activeSheet, reloadToken } : null),
-        [activeSheet, isBase, layer, reloadToken, terminal],
+        () => (layer === 'history' ? { terminal, sheetName: activeSheet, reloadToken } : null),
+        [activeSheet, layer, reloadToken, terminal],
     );
     const fetchedHistory = useCastConfigApplyHistory(historyQuery);
 
@@ -117,7 +110,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
 
     useErrorAlert(fetchedCategories.error, fetchedCategories.token);
     useErrorAlert(fetched.error, fetched.token);
-    useErrorAlert(fetchedDiff.error, fetchedDiff.token);
     useErrorAlert(fetchedHistory.error, fetchedHistory.token);
 
     const confirmDiscard = useCallback(async () => {
@@ -162,7 +154,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
         setActiveTab(index);
         setQuery('');
         setPage(1);
-        draft.clearSelection();
         gridRef.current?.scrollTo({ top: 0, left: 0 });
     };
 
@@ -174,7 +165,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                 if (!ok) return;
 
                 draft.clearAll();
-                draft.clearSelection();
                 setCategoryCode(code);
                 setPage(1);
                 setLayer('none');
@@ -207,89 +197,34 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
         );
     };
 
-    const runAndReload = (title: string, run: () => Promise<unknown>) => {
-        setSaving(true);
-        run()
-            .then(() => {
-                setSaving(false);
-                draft.clearSheet(dataset.sheetName);
-                draft.clearSelection();
-                setReloadToken((token) => token + 1);
-            })
-            .catch((error: ApiError) => {
-                setSaving(false);
-                dialog.alert({ title, description: error?.message || '요청을 처리하지 못했습니다.' }).catch(() => {});
-            });
-    };
+    const handleApplyOper = () => {
+        if (!currentCategory || currentCategory.isBase) return;
 
-    const handleUpload = (file: File) => {
-        if (!currentCategory) return;
-
-        runAndReload('엑셀업로드', () =>
-            castConfigService
-                .uploadExcel(terminal, group.id, currentCategory.code, dataset.sheetName, file)
-                .then((dto) => unwrap(dto, '엑셀을 반영하지 못했습니다.')),
-        );
-    };
-
-    const handleApplyDefault = () => {
-        if (!currentCategory) return;
-
-        const rowNoList = [...draft.selected];
-        const scope = rowNoList.length > 0 ? `선택한 ${formatCount(rowNoList.length)}개 행` : '이 시트 전체';
-
-        dialog
-            .confirm({ title: '디폴트속성적용', description: `${scope}을 기준정보 값으로 되돌립니다. 계속하시겠습니까?` })
+        confirmDiscard()
             .then((ok) => {
                 if (!ok) return;
 
-                runAndReload('디폴트속성적용', () =>
-                    castConfigService
-                        .applyDefault(terminal, group.id, currentCategory.code, dataset.sheetName, rowNoList)
-                        .then((dto) => unwrap(dto, '기준정보를 적용하지 못했습니다.')),
-                );
-            })
-            .catch(() => {});
-    };
-
-    const handleApplyPreProcess = (rowNoList: number[]) => {
-        const diff = fetchedDiff.data;
-        const preview: DraftChanges = {};
-        for (const row of diff.rows) {
-            if (!rowNoList.includes(row.rowNo)) continue;
-
-            diff.valueLabels.forEach((label, index) => {
-                preview[toCellKey(dataset.sheetName, row.rowNo, label)] = row.preValues[index] ?? '';
-            });
-        }
-
-        const messages = validateDataset(dataset, preview);
-        if (messages.length > 0) {
-            dialog.alert({ title: '반영 전 확인', description: messages.join('\n') }).catch(() => {});
-            return;
-        }
-
-        dialog
-            .confirm({
-                title: '전처리 반영',
-                description: `선택한 ${formatCount(rowNoList.length)}개 행을 기준정보에 반영합니다. 일일 시뮬레이션에 그대로 쓰입니다. 계속하시겠습니까?`,
+                return dialog.confirm({
+                    title: '운영 반영',
+                    description: `${currentCategory.name}(${currentCategory.code}) 의 모든 시트를 기준정보에 덮어씁니다. 일일 시뮬레이션에 그대로 쓰입니다. 계속하시겠습니까?`,
+                });
             })
             .then((ok) => {
                 if (!ok) return;
 
                 setSaving(true);
                 castConfigService
-                    .applyPreProcess(terminal, group.id, dataset.sheetName, diff.preProcessDt, rowNoList)
-                    .then((dto) => unwrap(dto, '전처리 결과를 반영하지 못했습니다.'))
+                    .applyOperation(terminal, group.id, currentCategory.code)
+                    .then((dto) => unwrap(dto, OPER_APPLY_FAIL))
                     .then(() => {
                         setSaving(false);
-                        setLayer('none');
+                        draft.clearAll();
                         setReloadToken((token) => token + 1);
-                        dialog.alert({ title: '반영 완료', description: `${formatCount(rowNoList.length)}개 행을 기준정보에 반영했습니다.` }).catch(() => {});
+                        dialog.alert({ title: '운영 반영', description: '기준정보에 반영했습니다. 되돌리려면 반영 이력을 확인하세요.' }).catch(() => {});
                     })
                     .catch((error: ApiError) => {
                         setSaving(false);
-                        dialog.alert({ title: '전처리 반영', description: error?.message || '전처리 결과를 반영하지 못했습니다.' }).catch(() => {});
+                        dialog.alert({ title: '운영 반영', description: error?.message || OPER_APPLY_FAIL }).catch(() => {});
                     });
             })
             .catch(() => {});
@@ -326,7 +261,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                 if (!ok) return;
 
                 draft.clearSheet(dataset.sheetName);
-                draft.clearSelection();
                 setReloadToken((token) => token + 1);
             })
             .catch(() => {});
@@ -341,7 +275,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                 setSaving(false);
                 setLayer('none');
                 draft.clearAll();
-                draft.clearSelection();
                 setCategoryCode(dto.fixAtrbGroupId);
                 setReloadToken((token) => token + 1);
             })
@@ -368,7 +301,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
             .then(() => {
                 setSaving(false);
                 draft.clearAll();
-                draft.clearSelection();
                 setReloadToken((token) => token + 1);
                 dialog.alert({ title: '저장 완료', description: `${formatCount(itemList.length)}개 변경사항을 저장했습니다.` }).catch(() => {});
             })
@@ -416,6 +348,8 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                     current={currentCategory}
                     onSelect={handleCategorySelect}
                     onRegister={() => setLayer('register')}
+                    onApplyOper={handleApplyOper}
+                    applying={saving}
                 />
 
                 <DatasetTabs tabs={group.datasets} activeIndex={activeTab} onSelect={handleTabSelect} />
@@ -428,16 +362,12 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                     sheetChangeCount={sheetChangeCount}
                     totalChangeCount={totalChangeCount}
                     readOnly={readOnly}
-                    isBase={isBase}
                     isPreProcess={isPreProcess}
                     onQueryChange={(value) => {
                         setQuery(value);
                         setPage(1);
                     }}
                     onDownload={handleDownload}
-                    onUpload={handleUpload}
-                    onApplyDefault={handleApplyDefault}
-                    onApplyPreProcess={() => setLayer('preProcess')}
                     onOpenHistory={() => setLayer('history')}
                     onReset={handleReset}
                 />
@@ -462,22 +392,10 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                         rows={pageRows}
                         drafts={drafts}
                         readOnly={readOnly}
-                        selected={draft.selected}
                         emptyMessage={emptyMessage}
                         onCellChange={handleCellChange}
-                        onToggleRow={draft.toggleRow}
-                        onToggleAll={draft.toggleAll}
                     />
                 </div>
-
-                {!readOnly && draft.selected.size > 0 && (
-                    <div className="cast-config-bulk-bar">
-                        <span>{formatCount(draft.selected.size)}행 선택</span>
-                        <button type="button" className="cast-config-ghost-button" onClick={draft.clearSelection}>
-                            선택 해제
-                        </button>
-                    </div>
-                )}
 
                 <footer className="cast-config-modal__footer">
                     <Pagination
@@ -502,16 +420,6 @@ export function DataConfigModal({ terminal, group, onClose }: DataConfigModalPro
                     sheetNames={group.datasets.map((tab) => tab.sheetName)}
                     saving={saving}
                     onSubmit={handleCategorySave}
-                    onClose={() => setLayer('none')}
-                />
-            )}
-
-            {layer === 'preProcess' && (
-                <PreProcessApplyModal
-                    key={`${dataset.sheetName}-${fetchedDiff.token}`}
-                    diff={fetchedDiff.data}
-                    applying={saving}
-                    onApply={handleApplyPreProcess}
                     onClose={() => setLayer('none')}
                 />
             )}

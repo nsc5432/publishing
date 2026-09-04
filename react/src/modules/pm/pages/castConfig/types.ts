@@ -36,26 +36,6 @@ export interface Category {
     modifiedAt: string;
 }
 
-export interface PreProcessRow {
-    rowNo: number;
-    attribute: string;
-    detail: string;
-    baseValues: string[];
-    preValues: string[];
-    changed: boolean;
-    matched: boolean;
-}
-
-export interface PreProcessDiff {
-    sheetName: string;
-    valueLabels: string[];
-    changedCount: number;
-    rows: PreProcessRow[];
-    preProcessName: string;
-    preProcessAt: string;
-    preProcessDt: string;
-}
-
 export interface ApplyHistory {
     sn: number;
     sheetName: string;

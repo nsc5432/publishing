@@ -7,15 +7,10 @@ export interface DatasetDraft {
     removeKeys: (keys: string[]) => void;
     clearSheet: (sheetName: string) => void;
     clearAll: () => void;
-    selected: Set<number>;
-    toggleRow: (rowNo: number) => void;
-    toggleAll: (rowNos: number[], checked: boolean) => void;
-    clearSelection: () => void;
 }
 
 export function useDatasetDraft(): DatasetDraft {
     const [drafts, setDrafts] = useState<DraftChanges>({});
-    const [selected, setSelected] = useState<Set<number>>(() => new Set());
 
     const setValue = (key: string, value: string, original: string) => {
         setDrafts((previous) => {
@@ -44,27 +39,5 @@ export function useDatasetDraft(): DatasetDraft {
 
     const clearAll = () => setDrafts({});
 
-    const toggleRow = (rowNo: number) => {
-        setSelected((previous) => {
-            const nextSelection = new Set(previous);
-            if (nextSelection.has(rowNo)) nextSelection.delete(rowNo);
-            else nextSelection.add(rowNo);
-            return nextSelection;
-        });
-    };
-
-    const toggleAll = (rowNos: number[], checked: boolean) => {
-        setSelected((previous) => {
-            const nextSelection = new Set(previous);
-            for (const rowNo of rowNos) {
-                if (checked) nextSelection.add(rowNo);
-                else nextSelection.delete(rowNo);
-            }
-            return nextSelection;
-        });
-    };
-
-    const clearSelection = () => setSelected(new Set());
-
-    return { drafts, setValue, removeKeys, clearSheet, clearAll, selected, toggleRow, toggleAll, clearSelection };
+    return { drafts, setValue, removeKeys, clearSheet, clearAll };
 }

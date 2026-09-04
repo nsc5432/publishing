@@ -65,11 +65,8 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
    - 예외 1건: `FcltRecommendDto.addCnt` → `reqCnt` (2026-08-28 결정). 값이 "추가 수량" 이
      아니라 "총 소요 수량" 이라 이름이 반대 의미였고, 같은 카드의 `totCnt`(보유 대수) 와
      헷갈리지 않는 이름을 골랐다. **`reqCnt` 는 이제 다시 고정이다.**
-   - 예외 2건: 전처리 비교 DTO 의 단수형 4개가 복수형이 됐다 (2026-09-03 결정).
-     `CastConfigPreProcessDiffDto.valueColumn`/`valueLabel` → `valueColumnList`/`valueLabelList`,
-     `CastConfigPreProcessRowDto.baseVl`/`preVl` → `baseVlList`/`preVlList`.
-     체크인유형 시트가 비율 3컬럼을 한 번에 비교·반영해 단수형 이름이 값을 담을 수 없었다.
-     서버·화면을 같이 바꾸는 구조 변경이라 예외로 뒀다. **이 4개는 이제 다시 고정이다.**
+   - `CastConfigPreProcessDiffDto` · `CastConfigPreProcessRowDto` 는 2026-09-04 에 삭제됐다.
+     전처리 비교·반영 화면이 운영 반영으로 흡수되면서 조회 API 자체가 없어졌다.
 2. **enum 문자열 값**
    `'T1'|'T2'` · `'Y'|'N'` · `'FREE'|'NORMAL'|'BUSY'|'VERY_BUSY'` ·
    `'CHKN'|'SLFCHKN'|'DEP'|'SC'|'CMRC'` · `'PSG'|'FLT'` · `'DAILY'|'USER'` ·
@@ -96,7 +93,7 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
 react/src/
   api/pm/
     client.ts        axios 인스턴스 + 인터셉터(로딩바 · 에러 정규화)
-    endpoints.ts     API_ENDPOINTS (22개)
+    endpoints.ts     API_ENDPOINTS (31개)
     result.ts        unwrap() — 본문 error 플래그를 catch 경로로 던진다
     services/*.service.ts   도메인별 서비스 객체 (목업/실통신 분기도 여기서)
     mock/            USE_MOCK 토글 + 화면별 목업 데이터
@@ -240,10 +237,7 @@ npm run build:prd  # 운영 빌드
 | 〃 | `CAST_CONFIG_SAVE` | `/cast-config/saveDataset` |
 | 〃 | `CAST_CONFIG_CATEGORY_LIST` | `/cast-config/retrieveCategoryList` |
 | 〃 | `CAST_CONFIG_CATEGORY_SAVE` | `/cast-config/saveCategory` |
-| 〃 | `CAST_CONFIG_DEFAULT_APPLY` | `/cast-config/applyDefaultAttribute` |
-| 〃 | `CAST_CONFIG_EXCEL_UPLOAD` | `/cast-config/uploadExcel` (multipart) |
-| 〃 | `CAST_CONFIG_PRE_PRCS_DIFF` | `/cast-config/retrievePreProcessDiff` |
-| 〃 | `CAST_CONFIG_PRE_PRCS_APPLY` | `/cast-config/applyPreProcess` |
+| 〃 | `CAST_CONFIG_OPER_APPLY` | `/cast-config/applyOperation` |
 | 〃 | `CAST_CONFIG_PRE_PRCS_HSTRY` | `/cast-config/retrievePreProcessHistory` |
 | 〃 | `CAST_CONFIG_PRE_PRCS_REVERT` | `/cast-config/revertPreProcess` |
 
@@ -256,7 +250,7 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
 
 | ID | 뜻 | 누가 쓰나 |
 |---|---|---|
-| `001` | 기준정보. CAST 가 `PS001` 로 읽어 가는 **일일 시뮬레이션의 실제 입력** | 화면에서 셀 직접 편집 불가. 전처리 반영으로만 바뀐다 |
+| `001` | 기준정보. CAST 가 `PS001` 로 읽어 가는 **일일 시뮬레이션의 실제 입력** | 화면에서 셀 직접 편집 불가. 운영 반영으로만 바뀐다 |
 | `999` | 전처리 결과. `data-processing/run_pipeline.py` 가 주단위로 전량 교체 | 읽기전용. 화면은 비교·반영에만 쓴다 |
 
 - `TN_PM_SMLT_STNG.PRPT_SET_RSRC_ID` 는 CAST 가 결과에 실어 보내는 값을 서버가 **기록만** 하는 칸이다
@@ -266,7 +260,17 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
   파이프라인에 태스크를 더하면 `java/ddl/2026-09-02-atrb-pre-process.sql` (2) 의 코드 목록도 함께 늘린다.
 - 반영은 `TN_PM_SMLT_ATRB_APLY_HSTRY(_DTL)` 에 **적용 직전 값을 먼저 스냅샷**한 뒤 복사한다.
   되돌리기는 그 스냅샷을 `updateAtrbValue` 로 되쓴다. 스냅샷을 복사 뒤에 찍으면 되돌릴 값이 이미 덮인다.
-- 디폴트속성적용(001→카테고리)과 전처리 반영(999→001)은 **같은 SQL `copyFromGroup`** 을 방향만 바꿔 쓴다.
+- **운영 반영(카테고리→001)이 001 을 갱신하는 유일한 화면 경로다.** 카테고리 바 오른쪽 버튼 하나가
+  그룹의 **전 시트를 한 번에** 밀고, 시트마다 이력 1건을 남긴다. `999` 를 고르면 구 '전처리 반영'과
+  같은 동작이라 그 버튼은 없애고 이쪽으로 흡수했다 (2026-09-04 결정).
+  **소스가 `999` 일 때만 값 컬럼을 전처리 산출 컬럼으로 좁힌다** — 사용자 카테고리는 편집 가능한 전
+  컬럼을 밀지만, `999` 는 파이프라인이 산출 컬럼만 채워 NULL 이 기준정보를 비운다.
+- 디폴트속성적용(001→카테고리) · 운영 반영(카테고리→001)은 **같은 SQL `copyFromGroup`** 을 방향만
+  바꿔 쓴다. `copyFromGroup` 은 UPDATE 만 하므로 001 에 없는 행은 반영되지 않고 조용히 빠진다 —
+  반영 전에 행 키를 대조해 걸러 낸다.
+- 엑셀업로드·디폴트속성적용·전처리 반영은 **화면과 서버 양쪽에서 걷어냈다.** 그리드의 행 선택
+  체크박스도 같이 사라졌다 — 선택값을 쓰던 곳이 디폴트속성적용 하나뿐이었다.
+  `CastConfigMapper` 는 그대로다. `copyFromGroup` 을 비롯한 모든 statement 를 남은 경로가 쓴다.
 - **터미널은 그룹이 아니라 속성코드가 가른다.** 전처리 결과가 `999` 하나에 모이므로 T1/T2 가 같은
   `PSG_ATRB_CD` 를 쓰면 뒤엣것이 앞엣것을 지운다. `step5_save.assert_unique_keys` 가 이걸 막는다.
 
