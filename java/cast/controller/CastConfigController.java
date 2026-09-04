@@ -7,6 +7,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import aoms.pm.cast.dto.CastConfigAplyHstryListDto;
+import aoms.pm.cast.dto.CastConfigAplySetHstryListDto;
+import aoms.pm.cast.dto.CastConfigAplySetRevertDto;
+import aoms.pm.cast.dto.CastConfigCategoryCloneDto;
+import aoms.pm.cast.dto.CastConfigCategoryCloneResultDto;
 import aoms.pm.cast.dto.CastConfigCategoryListDto;
 import aoms.pm.cast.dto.CastConfigCategorySaveDto;
 import aoms.pm.cast.dto.CastConfigDatasetDto;
@@ -14,6 +18,8 @@ import aoms.pm.cast.dto.CastConfigGroupListDto;
 import aoms.pm.cast.dto.CastConfigOperApplyDto;
 import aoms.pm.cast.dto.CastConfigPreProcessRevertDto;
 import aoms.pm.cast.dto.CastConfigSaveDto;
+import aoms.pm.cast.dto.CastConfigSetDto;
+import aoms.pm.cast.dto.CastConfigSetSaveDto;
 import aoms.pm.cast.dto.CastConfigSearchDto;
 import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.service.CastConfigService;
@@ -65,5 +71,35 @@ public class CastConfigController {
 	@PostMapping(value = "/revertPreProcess")
 	public ResponseEntity<JsonResponse> revertPreProcess(@RequestBody CastConfigPreProcessRevertDto revertDto) {
 		return ResponseUtils.res(castConfigService.revertPreProcess(revertDto));
+	}
+
+	@PostMapping(value = "/cloneCategory")
+	public ResponseEntity<CastConfigCategoryCloneResultDto> cloneCategory(@RequestBody CastConfigCategoryCloneDto cloneDto) {
+		return ResponseUtils.res(castConfigService.cloneCategory(cloneDto));
+	}
+
+	@PostMapping(value = "/saveCategorySet")
+	public ResponseEntity<JsonResponse> saveCategorySet(@RequestBody CastConfigSetSaveDto saveDto) {
+		return ResponseUtils.res(castConfigService.saveCategorySet(saveDto));
+	}
+
+	@PostMapping(value = "/retrieveCategorySet")
+	public ResponseEntity<CastConfigSetDto> retrieveCategorySet(@RequestBody CastConfigSearchDto searchDto) {
+		return ResponseUtils.res(castConfigService.retrieveCategorySet(searchDto));
+	}
+
+	@PostMapping(value = "/applyCategorySet")
+	public ResponseEntity<JsonResponse> applyCategorySet(@RequestBody CastConfigSearchDto searchDto) {
+		return ResponseUtils.res(castConfigService.applyCategorySet(searchDto));
+	}
+
+	@PostMapping(value = "/retrieveApplySetHistory")
+	public ResponseEntity<CastConfigAplySetHstryListDto> retrieveApplySetHistory() {
+		return ResponseUtils.res(castConfigService.retrieveApplySetHistory());
+	}
+
+	@PostMapping(value = "/revertApplySet")
+	public ResponseEntity<JsonResponse> revertApplySet(@RequestBody CastConfigAplySetRevertDto revertDto) {
+		return ResponseUtils.res(castConfigService.revertApplySet(revertDto));
 	}
 }

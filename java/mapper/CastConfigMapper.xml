@@ -68,6 +68,30 @@
         )
     </insert>
 
+    <select id="retrieveAvailableCategoryId" resultType="string">
+        SELECT LPAD(MIN(C.CATEGORY_NO), 3, '0')
+        FROM (
+            SELECT LEVEL + 1 AS CATEGORY_NO
+            FROM DUAL
+            CONNECT BY LEVEL &lt;= 997
+        ) C
+        WHERE NOT EXISTS (
+            SELECT 1
+            FROM PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP A
+            WHERE A.FIX_ATRB_GROUP_ID = LPAD(C.CATEGORY_NO, 3, '0')
+        )
+    </select>
+
+    <insert id="insertClonedCategory">
+        INSERT INTO PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP (
+            FIX_ATRB_GROUP_ID, ATRB_GROUP_NM, CFMTN_YN, GROUP_PRCS_STTS_CD, DEL_YN,
+            FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
+        ) VALUES (
+            #{fixAtrbGroupId}, #{atrbGroupNm}, 'N', '01', 'N',
+            #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
     <select id="retrievePsgAtrbList" resultType="aoms.pm.cast.dto.CastConfigAtrbRawDto">
         /* CastConfigMapper.retrievePsgAtrbList */
         SELECT
@@ -239,18 +263,70 @@
         AND A.${groupColumnNm} = '001'
     </insert>
 
+    <insert id="insertFromGroup">
+        INSERT INTO PMOWN.${tableNm} (
+            ${groupColumnNm},
+            ${keyColumnNm},
+            <if test="dtlColumnNm != null and dtlColumnNm != ''">
+            ${dtlColumnNm},
+            </if>
+            <foreach collection="valueColumnList" item="columnNm" separator=",">
+                ${columnNm}
+            </foreach>,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        )
+        SELECT
+            #{fixAtrbGroupId},
+            A.${keyColumnNm},
+            <if test="dtlColumnNm != null and dtlColumnNm != ''">
+            A.${dtlColumnNm},
+            </if>
+            <foreach collection="valueColumnList" item="columnNm" separator=",">
+                A.${columnNm}
+            </foreach>,
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        FROM PMOWN.${tableNm} A
+        WHERE A.${groupColumnNm} = #{srcFixAtrbGroupId}
+    </insert>
+
     <select id="retrieveAplyHstrySn" resultType="long">
         /* CastConfigMapper.retrieveAplyHstrySn */
         SELECT PMOWN.SQ1_TN_PM_SMLT_ATRB_APLY.NEXTVAL FROM DUAL
     </select>
 
+    <select id="retrieveAplySetSn" resultType="long">
+        SELECT PMOWN.SQ1_TN_PM_SMLT_ATRB_APLY_SET.NEXTVAL FROM DUAL
+    </select>
+
+    <insert id="insertAplySetHstry" parameterType="aoms.pm.cast.dto.CastConfigAplySetHstryDto">
+        INSERT INTO PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY (
+            APLY_SET_SN, SRC_FIX_ATRB_GROUP_ID, TGT_FIX_ATRB_GROUP_ID, APLY_ROW_CNT,
+            CNCL_YN, FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
+        ) VALUES (
+            #{aplySetSn}, #{srcFixAtrbGroupId}, #{tgtFixAtrbGroupId}, 0,
+            'N', #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <update id="updateAplySetRowCnt">
+        UPDATE PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY
+        SET APLY_ROW_CNT = #{aplyRowCnt}
+        WHERE APLY_SET_SN = #{aplySetSn}
+    </update>
+
     <insert id="insertAplyHstry" parameterType="aoms.pm.cast.dto.CastConfigAplyHstryDto">
         /* CastConfigMapper.insertAplyHstry */
         INSERT INTO PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY (
             APLY_SN,
+            APLY_SET_SN,
             SRC_FIX_ATRB_GROUP_ID,
             TGT_FIX_ATRB_GROUP_ID,
             TMNL_ID,
+            GROUP_ID,
             TBL_NM,
             SHEET_NM,
             APLY_ROW_CNT,
@@ -260,9 +336,11 @@
             FRST_REG_DT
         ) VALUES (
             #{aplySn},
+            #{aplySetSn},
             #{srcFixAtrbGroupId},
             #{tgtFixAtrbGroupId},
             #{tmnlId},
+            #{groupId},
             #{tblNm},
             #{sheetNm},
             #{aplyRowCnt},
@@ -388,5 +466,84 @@
             AND NVL(N.CNCL_YN, 'N') = 'N'
             AND N.APLY_SN > A.APLY_SN
         )
+    </update>
+
+    <select id="retrieveAplySetHstryList" resultType="aoms.pm.cast.dto.CastConfigAplySetHstryDto">
+        SELECT
+            A.APLY_SET_SN AS APLY_SET_SN,
+            A.SRC_FIX_ATRB_GROUP_ID AS SRC_FIX_ATRB_GROUP_ID,
+            A.TGT_FIX_ATRB_GROUP_ID AS TGT_FIX_ATRB_GROUP_ID,
+            NVL(A.APLY_ROW_CNT, 0) AS APLY_ROW_CNT,
+            NVL(A.CNCL_YN, 'N') AS CNCL_YN,
+            CASE
+                WHEN NVL(A.CNCL_YN, 'N') = 'N'
+                 AND NOT EXISTS (
+                    SELECT 1
+                    FROM PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY N
+                    WHERE N.TGT_FIX_ATRB_GROUP_ID = A.TGT_FIX_ATRB_GROUP_ID
+                    AND NVL(N.CNCL_YN, 'N') = 'N'
+                    AND N.APLY_SET_SN &gt; A.APLY_SET_SN
+                 ) THEN 'Y'
+                ELSE 'N'
+            END AS REVERTABLE_YN,
+            NVL(TO_CHAR(A.FRST_REG_DT, 'YYYYMMDDHH24MISS'), ' ') AS FRST_REG_DT,
+            NVL(A.FRST_RGTR_ID, ' ') AS FRST_RGTR_ID
+        FROM PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY A
+        WHERE A.TGT_FIX_ATRB_GROUP_ID = '001'
+        ORDER BY A.APLY_SET_SN DESC
+    </select>
+
+    <select id="retrieveAplySetHstryForUpdate" resultType="aoms.pm.cast.dto.CastConfigAplySetHstryDto">
+        SELECT
+            A.APLY_SET_SN AS APLY_SET_SN,
+            A.SRC_FIX_ATRB_GROUP_ID AS SRC_FIX_ATRB_GROUP_ID,
+            A.TGT_FIX_ATRB_GROUP_ID AS TGT_FIX_ATRB_GROUP_ID,
+            NVL(A.APLY_ROW_CNT, 0) AS APLY_ROW_CNT,
+            NVL(A.CNCL_YN, 'N') AS CNCL_YN
+        FROM PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY A
+        WHERE A.APLY_SET_SN = #{aplySetSn}
+        FOR UPDATE WAIT 3
+    </select>
+
+    <select id="retrieveAplyHstryListBySet" resultType="aoms.pm.cast.dto.CastConfigAplyHstryDto">
+        SELECT
+            A.APLY_SN AS APLY_SN,
+            A.APLY_SET_SN AS APLY_SET_SN,
+            A.SRC_FIX_ATRB_GROUP_ID AS SRC_FIX_ATRB_GROUP_ID,
+            A.TGT_FIX_ATRB_GROUP_ID AS TGT_FIX_ATRB_GROUP_ID,
+            NVL(A.TMNL_ID, ' ') AS TMNL_ID,
+            NVL(A.GROUP_ID, ' ') AS GROUP_ID,
+            NVL(A.TBL_NM, ' ') AS TBL_NM,
+            NVL(A.SHEET_NM, ' ') AS SHEET_NM,
+            NVL(A.APLY_ROW_CNT, 0) AS APLY_ROW_CNT,
+            NVL(A.CNCL_YN, 'N') AS CNCL_YN
+        FROM PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY A
+        WHERE A.APLY_SET_SN = #{aplySetSn}
+        ORDER BY A.APLY_SN
+    </select>
+
+    <update id="updateAplySetHstryCancel">
+        UPDATE PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY A
+        SET CNCL_YN = 'Y',
+            CNCL_DT = CURRENT_TIMESTAMP,
+            CNCL_RGTR_ID = #{loginUserId}
+        WHERE A.APLY_SET_SN = #{aplySetSn}
+        AND A.CNCL_YN = 'N'
+        AND NOT EXISTS (
+            SELECT 1
+            FROM PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY N
+            WHERE N.TGT_FIX_ATRB_GROUP_ID = A.TGT_FIX_ATRB_GROUP_ID
+            AND NVL(N.CNCL_YN, 'N') = 'N'
+            AND N.APLY_SET_SN &gt; A.APLY_SET_SN
+        )
+    </update>
+
+    <update id="updateAplyHstryCancelBySet">
+        UPDATE PMOWN.TN_PM_SMLT_ATRB_APLY_HSTRY
+        SET CNCL_YN = 'Y',
+            CNCL_DT = CURRENT_TIMESTAMP,
+            CNCL_RGTR_ID = #{loginUserId}
+        WHERE APLY_SET_SN = #{aplySetSn}
+        AND CNCL_YN = 'N'
     </update>
 </mapper>

@@ -50,6 +50,7 @@ function NavFlyout({ items, activeId, onSelect }: NavFlyoutProps) {
 interface LnbProps {
     topItems?: NavItem[];
     onSelect?: (id: string) => void;
+    onBeforeNavigate?: () => boolean | Promise<boolean>;
     user?: { dept: string; name: string };
 }
 
@@ -61,7 +62,7 @@ function toActiveId(items: NavItem[], pathname: string): string | undefined {
     })?.id;
 }
 
-export function Lnb({ topItems = LNB_TOP, onSelect, user = LNB_USER }: LnbProps) {
+export function Lnb({ topItems = LNB_TOP, onSelect, onBeforeNavigate, user = LNB_USER }: LnbProps) {
     const { pathname } = useLocation();
     const [open, setOpen] = useState(false);
     const navigate = useNavigate();
@@ -69,10 +70,7 @@ export function Lnb({ topItems = LNB_TOP, onSelect, user = LNB_USER }: LnbProps)
     const { userInfo, isLoaded } = useUserInfo();
 
     // 권한 없는 메뉴가 한 프레임 보였다 사라지지 않게, 롤을 알기 전에는 비운다
-    const allowedItems = useMemo(
-        () => (isLoaded ? filterNavItems(userInfo?.roleIdList ?? [], topItems) : []),
-        [isLoaded, userInfo, topItems],
-    );
+    const allowedItems = useMemo(() => (isLoaded ? filterNavItems(userInfo?.roleIdList ?? [], topItems) : []), [isLoaded, userInfo, topItems]);
     const activeTop = toActiveId(allowedItems, pathname);
     const displayUser = userInfo ? { dept: userInfo.deptNm, name: userInfo.userNm } : user;
 
@@ -94,7 +92,8 @@ export function Lnb({ topItems = LNB_TOP, onSelect, user = LNB_USER }: LnbProps)
         };
     }, [open]);
 
-    const handleNavigate = (item: NavItem) => {
+    const handleNavigate = async (item: NavItem) => {
+        if (onBeforeNavigate && !(await onBeforeNavigate())) return;
         onSelect?.(item.id);
         if (item.path) navigate(item.path);
     };
@@ -109,7 +108,7 @@ export function Lnb({ topItems = LNB_TOP, onSelect, user = LNB_USER }: LnbProps)
                                 icon={item.icon}
                                 label={item.label}
                                 className={`nav-item${item.id === activeTop ? ' active' : ''}`}
-                                onClick={() => handleNavigate(item)}
+                                onClick={() => void handleNavigate(item)}
                             />
                         );
 
@@ -118,7 +117,11 @@ export function Lnb({ topItems = LNB_TOP, onSelect, user = LNB_USER }: LnbProps)
                         return (
                             <div key={item.id} className="nav-group">
                                 {button}
-                                <NavFlyout items={item.children} activeId={toActiveId(item.children, pathname)} onSelect={handleNavigate} />
+                                <NavFlyout
+                                    items={item.children}
+                                    activeId={toActiveId(item.children, pathname)}
+                                    onSelect={(item) => void handleNavigate(item)}
+                                />
                             </div>
                         );
                     })}

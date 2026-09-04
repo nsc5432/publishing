@@ -37,6 +37,7 @@ public enum CastConfigGroup {
 		Map<CastConfigSheet, Set<String>> filters = new EnumMap<>(CastConfigSheet.class);
 		filters.put(CastConfigSheet.PSG_ATRB, rootCdSet);
 		filters.put(CastConfigSheet.SHOW_UP_ATRB, rootCdSet);
+		filters.put(CastConfigSheet.SRVC_ATRB, rootCdSet);
 
 		if (cknctType) {
 			// 항공사 단위라 걸러 낼 상위코드가 없다. 빈 Set 이 곧 "필터 없음"이다

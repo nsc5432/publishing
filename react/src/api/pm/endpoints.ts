@@ -52,4 +52,10 @@ export const API_ENDPOINTS = {
     CAST_CONFIG_OPER_APPLY: prefix + '/cast-config/applyOperation',
     CAST_CONFIG_PRE_PRCS_HSTRY: prefix + '/cast-config/retrievePreProcessHistory',
     CAST_CONFIG_PRE_PRCS_REVERT: prefix + '/cast-config/revertPreProcess',
+    CAST_CONFIG_CATEGORY_CLONE: prefix + '/cast-config/cloneCategory',
+    CAST_CONFIG_SET_SAVE: prefix + '/cast-config/saveCategorySet',
+    CAST_CONFIG_SET_RETRIEVE: prefix + '/cast-config/retrieveCategorySet',
+    CAST_CONFIG_SET_APPLY: prefix + '/cast-config/applyCategorySet',
+    CAST_CONFIG_SET_HSTRY: prefix + '/cast-config/retrieveApplySetHistory',
+    CAST_CONFIG_SET_REVERT: prefix + '/cast-config/revertApplySet',
 };

@@ -1,6 +1,7 @@
 import { formatCount, formatDateTime } from '@/lib/format';
 import type {
     CastConfigAplyHstryListDto,
+    CastConfigAplySetHstryListDto,
     CastConfigCategoryDto,
     CastConfigCategoryListDto,
     CastConfigColumnType,
@@ -12,6 +13,7 @@ import type {
 import { toCellKey } from './cell';
 import type {
     ApplyHistory,
+    ApplySetHistory,
     Category,
     ColumnType,
     Dataset,
@@ -132,6 +134,25 @@ export function toApplyHistories(dto: CastConfigAplyHstryListDto): ApplyHistory[
     }));
 }
 
+export function toApplySetHistories(dto: CastConfigAplySetHstryListDto): ApplySetHistory[] {
+    return dto.hstryList.map((history) => ({
+        sn: history.aplySetSn,
+        sourceCode: history.srcFixAtrbGroupId,
+        rowCount: history.aplyRowCnt,
+        canceled: history.cnclYn === 'Y',
+        revertable: history.revertableYn === 'Y',
+        appliedAt: formatDateTime(history.frstRegDt),
+        appliedBy: history.frstRgtrId,
+        details: history.detailList.map((detail) => ({
+            sn: detail.aplySn,
+            terminal: detail.tmnlId || '공통',
+            groupId: detail.groupId,
+            sheetName: detail.sheetNm,
+            rowCount: detail.aplyRowCnt,
+        })),
+    }));
+}
+
 export function toCastConfigDataset(dto: CastConfigDatasetDto): Dataset {
     return {
         sheetName: dto.sheetNm,
@@ -244,6 +265,8 @@ export const EMPTY_CAST_CONFIG_GROUPS: FacilityGroup[] = GROUP_IDS.map((id) => (
 export const EMPTY_CAST_CONFIG_CATEGORIES: Category[] = [];
 
 export const EMPTY_APPLY_HISTORIES: ApplyHistory[] = [];
+
+export const EMPTY_APPLY_SET_HISTORIES: ApplySetHistory[] = [];
 
 export const EMPTY_CAST_CONFIG_DATASET: Dataset = {
     sheetName: '',

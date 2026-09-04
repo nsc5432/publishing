@@ -46,6 +46,25 @@ export interface ApplyHistory {
     appliedBy: string;
 }
 
+export interface ApplySetDetail {
+    sn: number;
+    terminal: string;
+    groupId: string;
+    sheetName: string;
+    rowCount: number;
+}
+
+export interface ApplySetHistory {
+    sn: number;
+    sourceCode: string;
+    rowCount: number;
+    canceled: boolean;
+    revertable: boolean;
+    appliedAt: string;
+    appliedBy: string;
+    details: ApplySetDetail[];
+}
+
 export interface SelectOption {
     code: string;
     label: string;
@@ -88,3 +107,17 @@ export interface Dataset {
 }
 
 export type DraftChanges = Record<string, string>;
+
+export interface DatasetScope {
+    terminal: TerminalKind;
+    groupId: FacilityGroupId;
+    sheetName: string;
+}
+
+export interface DatasetDraftChange extends DatasetScope {
+    rowNo: number;
+    column: string;
+    value: string;
+}
+
+export type DatasetDraftChanges = Record<string, DatasetDraftChange>;

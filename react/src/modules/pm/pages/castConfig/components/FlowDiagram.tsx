@@ -11,7 +11,7 @@ interface FlowDiagramProps {
 
 const NODE_ICON: Record<FacilityGroupId, string> = {
     checkin: 'CI',
-    departure: 'DH',
+    departure: 'DG',
     security: 'SC',
     border: 'BC',
     gate: 'GT',

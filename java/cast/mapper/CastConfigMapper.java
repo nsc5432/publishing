@@ -7,6 +7,7 @@ import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
 import aoms.pm.cast.dto.CastConfigAplyHstryDtlDto;
 import aoms.pm.cast.dto.CastConfigAplyHstryDto;
+import aoms.pm.cast.dto.CastConfigAplySetHstryDto;
 import aoms.pm.cast.dto.CastConfigAtrbRawDto;
 import aoms.pm.cast.dto.CastConfigCategoryDto;
 import aoms.pm.cast.dto.CastConfigCategorySaveDto;
@@ -23,6 +24,15 @@ public interface CastConfigMapper {
 	int retrieveCategoryCnt(@Param("fixAtrbGroupId") String fixAtrbGroupId);
 
 	int insertCategory(CastConfigCategorySaveDto saveDto);
+
+	String retrieveAvailableCategoryId();
+
+	int insertClonedCategory(
+			@Param("fixAtrbGroupId") String fixAtrbGroupId,
+			@Param("atrbGroupNm") String atrbGroupNm,
+			@Param("loginUserId") String loginUserId,
+			@Param("loginIpAddr") String loginIpAddr
+	);
 
 	List<CastConfigAtrbRawDto> retrievePsgAtrbList(
 			@Param("tableNm") String tableNm,
@@ -78,7 +88,25 @@ public interface CastConfigMapper {
 			@Param("loginIpAddr") String loginIpAddr
 	);
 
+	int insertFromGroup(
+			@Param("tableNm") String tableNm,
+			@Param("valueColumnList") List<String> valueColumnList,
+			@Param("groupColumnNm") String groupColumnNm,
+			@Param("srcFixAtrbGroupId") String srcFixAtrbGroupId,
+			@Param("fixAtrbGroupId") String fixAtrbGroupId,
+			@Param("keyColumnNm") String keyColumnNm,
+			@Param("dtlColumnNm") String dtlColumnNm,
+			@Param("loginUserId") String loginUserId,
+			@Param("loginIpAddr") String loginIpAddr
+	);
+
 	long retrieveAplyHstrySn();
+
+	long retrieveAplySetSn();
+
+	int insertAplySetHstry(CastConfigAplySetHstryDto hstryDto);
+
+	int updateAplySetRowCnt(@Param("aplySetSn") long aplySetSn, @Param("aplyRowCnt") int aplyRowCnt);
 
 	int insertAplyHstry(CastConfigAplyHstryDto hstryDto);
 
@@ -104,6 +132,22 @@ public interface CastConfigMapper {
 	CastConfigAplyHstryDto retrieveAplyHstry(@Param("aplySn") long aplySn);
 
 	List<CastConfigAplyHstryDtlDto> retrieveAplyHstryDtlList(@Param("aplySn") long aplySn);
+
+	List<CastConfigAplySetHstryDto> retrieveAplySetHstryList();
+
+	CastConfigAplySetHstryDto retrieveAplySetHstryForUpdate(@Param("aplySetSn") long aplySetSn);
+
+	List<CastConfigAplyHstryDto> retrieveAplyHstryListBySet(@Param("aplySetSn") long aplySetSn);
+
+	int updateAplySetHstryCancel(
+			@Param("aplySetSn") long aplySetSn,
+			@Param("loginUserId") String loginUserId
+	);
+
+	int updateAplyHstryCancelBySet(
+			@Param("aplySetSn") long aplySetSn,
+			@Param("loginUserId") String loginUserId
+	);
 
 	int updateAplyHstryCancel(
 			@Param("aplySn") long aplySn,

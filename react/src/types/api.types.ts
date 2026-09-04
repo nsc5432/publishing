@@ -523,9 +523,7 @@ export interface UserSmltChknDto extends JsonResponse {
 export interface UserSmltChknSaveReq {
     smltId: string;
     tmnlId: TmnlId;
-    islandList: Array<
-        Pick<ChknIslandDto, 'island' | 'oprTimeList' | 'boothList' | 'kioskCnt' | 'bagDropCnt'>
-    >;
+    islandList: Array<Pick<ChknIslandDto, 'island' | 'oprTimeList' | 'boothList' | 'kioskCnt' | 'bagDropCnt'>>;
 }
 
 /* --------- 출국장 탭 (보안 검색대 흡수) --------- */
@@ -567,18 +565,7 @@ export interface UserSmltDepDto extends JsonResponse {
 export interface UserSmltDepSaveReq {
     smltId: string;
     tmnlId: TmnlId;
-    dptgtList: Array<
-        Pick<
-            UserSmltDepItemDto,
-            | 'dptgtNo'
-            | 'oprYn'
-            | 'oprTimeList'
-            | 'gnrlSrchCntom'
-            | 'smartPassSrchCntom'
-            | 'scshCntom'
-            | 'planList'
-        >
-    >;
+    dptgtList: Array<Pick<UserSmltDepItemDto, 'dptgtNo' | 'oprYn' | 'oprTimeList' | 'gnrlSrchCntom' | 'smartPassSrchCntom' | 'scshCntom' | 'planList'>>;
 }
 
 /* --------- 지도 보기 / 시뮬레이션 실행 --------- */
@@ -733,6 +720,15 @@ export interface CastConfigCategorySaveDto {
     sheetNmList: string[]; // 새 카테고리에 포함할 시트
 }
 
+export interface CastConfigCategoryCloneDto {
+    srcFixAtrbGroupId: string;
+    atrbGroupNm: string;
+}
+
+export interface CastConfigCategoryCloneResultDto extends JsonResponse {
+    fixAtrbGroupId: string;
+}
+
 export interface CastConfigOptionDto {
     code: string;
     label: string;
@@ -783,6 +779,27 @@ export interface CastConfigSaveItemDto {
     value: string;
 }
 
+export interface CastConfigSetSaveItemDto {
+    tmnlId: TmnlId;
+    groupId: string;
+    sheetNm: string;
+    rowNo: number;
+    column: string;
+    value: string;
+}
+
+export interface CastConfigSetDatasetDto {
+    tmnlId: TmnlId | '';
+    groupId: string;
+    groupNm: string;
+    dataset: CastConfigDatasetDto;
+}
+
+export interface CastConfigSetDto extends JsonResponse {
+    fixAtrbGroupId: string;
+    datasetList: CastConfigSetDatasetDto[];
+}
+
 /** 카테고리 → 기준정보 반영 이력 */
 export interface CastConfigAplyHstryDto {
     aplySn: number;
@@ -801,4 +818,29 @@ export interface CastConfigAplyHstryDto {
 export interface CastConfigAplyHstryListDto extends JsonResponse {
     totalCnt: number;
     hstryList: CastConfigAplyHstryDto[];
+}
+
+export interface CastConfigAplySetDetailDto {
+    aplySn: number;
+    tmnlId: string;
+    groupId: string;
+    sheetNm: string;
+    aplyRowCnt: number;
+}
+
+export interface CastConfigAplySetHstryDto {
+    aplySetSn: number;
+    srcFixAtrbGroupId: string;
+    tgtFixAtrbGroupId: string;
+    aplyRowCnt: number;
+    cnclYn: YnFlag;
+    revertableYn: YnFlag;
+    frstRegDt: string;
+    frstRgtrId: string;
+    detailList: CastConfigAplySetDetailDto[];
+}
+
+export interface CastConfigAplySetHstryListDto extends JsonResponse {
+    totalCnt: number;
+    hstryList: CastConfigAplySetHstryDto[];
 }
