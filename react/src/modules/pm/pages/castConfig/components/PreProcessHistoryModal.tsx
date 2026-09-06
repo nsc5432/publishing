@@ -16,7 +16,6 @@ const TBL_COLS = '1.5fr 1.3fr 1fr 1fr 1fr 92px';
 
 export function PreProcessHistoryModal({ histories, reverting, onRevert, onClose }: PreProcessHistoryModalProps) {
     const [page, setPage] = useState(1);
-    const [expanded, setExpanded] = useState<number | null>(null);
     const totalPages = Math.max(1, Math.ceil(histories.length / PAGE_SIZE));
     const currentPage = Math.min(page, totalPages);
     const pageRows = histories.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -48,14 +47,7 @@ export function PreProcessHistoryModal({ histories, reverting, onRevert, onClose
                         {pageRows.map((history) => (
                             <div className="cast-config-history-set" key={history.sn}>
                                 <div className="cast-config-category-table__row">
-                                    <button
-                                        type="button"
-                                        className="cast-config-history-toggle"
-                                        aria-expanded={expanded === history.sn}
-                                        onClick={() => setExpanded((value) => (value === history.sn ? null : history.sn))}
-                                    >
-                                        {history.appliedAt}
-                                    </button>
+                                    <div>{history.appliedAt}</div>
                                     <div>{history.sourceCode}</div>
                                     <div>{formatCount(history.rowCount)}</div>
                                     <div>{history.appliedBy}</div>
@@ -71,16 +63,6 @@ export function PreProcessHistoryModal({ histories, reverting, onRevert, onClose
                                         </button>
                                     </div>
                                 </div>
-
-                                {expanded === history.sn && (
-                                    <div className="cast-config-history-details">
-                                        {history.details.map((detail) => (
-                                            <span key={detail.sn}>
-                                                {detail.terminal} · {detail.groupId} · {detail.sheetName} · {formatCount(detail.rowCount)}행
-                                            </span>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
                         ))}
 
