@@ -13,7 +13,6 @@ import { useBaseInfo } from '@/hooks/useBaseInfo';
 import { toSimulationType } from './view';
 import { useDashboardHeader, useTerminalPanel, type DashboardQuery } from './hooks/useDashboardData';
 import { useExecDetail } from './hooks/useExecDetail';
-import { useFitToScreen } from './hooks/useFitToScreen';
 
 const USER_SMLT_CONFIG_PATH = '/rui/pm/user-smlt/config';
 
@@ -58,8 +57,6 @@ function Dashboard() {
     const error = baseError || headerError || t1Error || t2Error;
 
     useErrorAlert(error, baseToken + headerToken + t1Token + t2Token);
-
-    useFitToScreen();
 
     const hour = draftTime.slice(0, 2);
     const minute = draftTime.slice(2, 4);

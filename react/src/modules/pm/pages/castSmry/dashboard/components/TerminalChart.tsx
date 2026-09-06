@@ -60,7 +60,12 @@ export function TerminalChart({ rsltList }: TerminalChartProps) {
                 axisLabel: {
                     ...AXIS_LABEL,
                     margin: -14,
-                    interval: (index: number) => index % X_LABEL_INTERVAL === 0 || index === rsltList.length - 1,
+                    interval: (index: number) => {
+                        const last = rsltList.length - 1;
+                        if (index === last) return true;
+                        // 마지막 라벨 바로 앞 눈금은 끝 라벨과 붙어 겹친다
+                        return index % X_LABEL_INTERVAL === 0 && last - index >= X_LABEL_INTERVAL;
+                    },
                 },
             },
             yAxis: {

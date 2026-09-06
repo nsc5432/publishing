@@ -7,7 +7,6 @@ const START_ANGLE = 360 - 119;
 const END_ANGLE = START_ANGLE - SWEEP_ANGLE;
 const RADIUS = `${((30 / 37) * 100).toFixed(1)}%`;
 const RING_WIDTH = 3.4;
-const GAUGE_SIZE_PX = 72;
 
 interface GaugeDonutProps {
     value: number;
@@ -67,7 +66,7 @@ export function GaugeDonut({ value, centerText, captionText, accentColor }: Gaug
 
     return (
         <div className="donut">
-            <EChart className="donut__chart" style={{ width: GAUGE_SIZE_PX, height: GAUGE_SIZE_PX }} option={option} />
+            <EChart className="donut__chart" option={option} />
         </div>
     );
 }

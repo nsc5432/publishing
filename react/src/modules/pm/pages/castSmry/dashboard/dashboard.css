@@ -49,12 +49,20 @@ html[data-page='dashboard'] {
     --faint: #9aa3b2;
     --sh: 0 1px 2px rgba(46, 50, 94, 0.04), 0 6px 16px rgba(46, 50, 94, 0.06);
     --sh-lg: 0 1px 3px rgba(46, 50, 94, 0.05), 0 10px 30px rgba(46, 50, 94, 0.08);
-    /* 카드/패널 가장자리를 또렷하게 하는 헤어라인 */
     --hair: 1px solid rgba(255, 255, 255, 0.65);
     --card-bg: linear-gradient(140deg, #f4f3f9 0%, #edecf5 42%, #e6e6f2 100%);
     --panel-bg: linear-gradient(158deg, #efeef6 0%, #f8f8fc 32%, #fdfdfe 66%, #f3f7fa 100%);
     --box-blue: #eaf3ff;
     --box-mint: #f0fffc;
+    --lost: clamp(0px, 1080px - 100vh, 120px);
+    --main-gap: calc(28px - var(--lost) * 0.09);
+    --top-row-h: calc(197px - var(--lost) * 0.21);
+    --title-gap: calc(24px - var(--lost) * 0.11);
+    --view-gap: calc(26px - var(--lost) * 0.12);
+    --sum-top-h: calc(100px - var(--lost) * 0.13);
+    --p-top-h: 199px;
+    --donut-size: 72px;
+    --panel-min-h: 660px;
 }
 
 /* icon sizing helpers */
@@ -76,15 +84,13 @@ html[data-page='dashboard'] .i-teal {
     color: var(--teal);
 }
 
-/* ============ layout skeleton ============ */
+/* ============ layout skeleton ============
+   기본 배치는 T1/T2 가로 2단 = 한 화면. overflow:hidden 으로 스크롤을 구조적으로
+   막고, 모자란 높이는 --lost 예산이 여백에서 걷어 온다.
+   폭·높이가 예산 밖이면 세로 1단 + 스크롤로 내려간다 — 파일 맨 아래 '반응형' 절. */
 html[data-page='dashboard'] .app {
-    position: absolute;
-    top: var(--app-y, 0);
-    left: var(--app-x, 0);
-    transform-origin: 0 0;
-    width: var(--app-w, 1920px);
-    height: var(--app-h, 1080px);
-    transform: scale(var(--scale, 1));
+    flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -93,16 +99,15 @@ html[data-page='dashboard'] .app {
 html[data-page='dashboard'] .body {
     display: flex;
     flex: 1;
-    padding: calc(var(--pm-shell-top) / var(--scale, 1)) calc(var(--pm-shell-x) / var(--scale, 1)) calc(var(--pm-shell-bottom) / var(--scale, 1))
-        calc((var(--pm-shell-x) + var(--pm-lnb-w) + var(--pm-shell-gap)) / var(--scale, 1));
     min-height: 0;
+    padding: var(--pm-shell-top) var(--pm-shell-x) var(--pm-shell-bottom) calc(var(--pm-shell-x) + var(--pm-lnb-w) + var(--pm-shell-gap));
 }
 
 html[data-page='dashboard'] .main {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: var(--main-gap);
     min-width: 0;
 }
 
@@ -113,7 +118,7 @@ html[data-page='dashboard'] .row {
 }
 
 html[data-page='dashboard'] .row--top {
-    height: 197px;
+    min-height: var(--top-row-h);
     gap: 16px;
     flex-shrink: 0;
 }
@@ -546,7 +551,7 @@ html[data-page='dashboard'] .panel-red {
 html[data-page='dashboard'] .p-top {
     display: flex;
     gap: 20px;
-    height: 199px;
+    height: var(--p-top-h);
     flex-shrink: 0;
 }
 
@@ -743,6 +748,7 @@ html[data-page='dashboard'] .peak-title {
     font-size: 15px;
     font-weight: 700;
     letter-spacing: -0.5px;
+    padding-left: 0.5rem;
 }
 
 html[data-page='dashboard'] .peak-body {
@@ -757,7 +763,7 @@ html[data-page='dashboard'] .peak-badge {
     flex-shrink: 0;
     background: #d7f0ee;
     border-radius: 10px;
-    padding: 10px 0 10px;
+    padding: 8px 0 10px;
     text-align: center;
 }
 
@@ -905,7 +911,7 @@ html[data-page='dashboard'] .p-title-row {
     display: flex;
     align-items: stretch;
     height: 40px;
-    margin: 24px 0 0;
+    margin: var(--title-gap) 0 0;
     flex-shrink: 0;
 }
 
@@ -1060,7 +1066,7 @@ html[data-page='dashboard'] .view {
     flex-direction: column;
     flex: 1;
     min-height: 0;
-    padding-top: 26px;
+    padding-top: var(--view-gap);
 }
 
 html[data-page='dashboard'] .view[hidden] {
@@ -1071,7 +1077,7 @@ html[data-page='dashboard'] .view[hidden] {
 html[data-page='dashboard'] .sum-top {
     display: flex;
     gap: 16px;
-    height: 100px;
+    height: var(--sum-top-h);
     flex-shrink: 0;
 }
 
@@ -1210,7 +1216,7 @@ html[data-page='dashboard'] .gate {
     flex: 1;
     min-width: 0;
     border-radius: 16px;
-    padding: 13px 16px 11px;
+    padding: 10px 16px 8px;
     background: linear-gradient(170deg, #edf0f7 0%, #f7f9fc 45%, #fbfcfe 100%);
     box-shadow:
         0 1px 3px rgba(46, 50, 94, 0.05),
@@ -1289,8 +1295,8 @@ html[data-page='dashboard'] .gate-head .plus > i > svg {
 html[data-page='dashboard'] .gate-mid {
     background: rgba(255, 255, 255, 0.7);
     border-radius: 14px;
-    margin-top: 9px;
-    padding: 9px 0 12px;
+    margin-top: 6px;
+    padding: 7px 0 9px;
     text-align: center;
     flex-shrink: 0;
 }
@@ -1363,7 +1369,7 @@ html[data-page='dashboard'] .gate-arrow > i > svg {
 html[data-page='dashboard'] .gauge-row {
     display: flex;
     gap: 9px;
-    margin-top: 7px;
+    margin-top: 5px;
     flex: 1;
     min-height: 0;
 }
@@ -1385,9 +1391,12 @@ html[data-page='dashboard'] .gauge .k {
     font-weight: 500;
 }
 
+html[data-page='dashboard'] .gauge .donut {
+    width: var(--donut-size);
+    height: var(--donut-size);
+}
+
 html[data-page='dashboard'] .gauge .donut > .donut__chart {
-    width: 72px;
-    height: 72px;
     display: block;
 }
 
@@ -1426,7 +1435,7 @@ html[data-page='dashboard'] .rec .name {
     font-size: 16px;
     font-weight: 700;
     color: #23272f;
-    margin-top: 5px;
+    margin-top: 3px;
 }
 
 html[data-page='dashboard'] .rec .cnt {
@@ -1458,7 +1467,7 @@ html[data-page='dashboard'] .chips {
     display: flex;
     gap: 6px;
     justify-content: center;
-    margin-top: 7px;
+    margin-top: 5px;
     flex-shrink: 0;
     flex-wrap: wrap;
 }
@@ -1582,4 +1591,261 @@ html[data-page='dashboard'] .trow .w {
 html[data-page='dashboard'] .trow.sel {
     border: 1.5px dashed #7a80bd;
     background: rgba(236, 237, 249, 0.6);
+}
+
+/* =====================================================================
+   반응형
+   기본(가로 2단 · 한 화면)에서 한 단계씩 풀어 나간다.
+
+     1600w  패널 가로 2단 → 세로 1단 + 스크롤, 동시에 상단도 두 줄로
+     1350w  정보카드 4장을 2열 그리드로
+      830w  그 그리드를 1열로
+      860w  패널 안(차트 · 게이트)까지 세로로 푼다
+   ===================================================================== */
+
+/* 2단을 포기하는 조건은 폭 하나뿐이다 — 패널이 아이콘(79) + 지표(298) + 차트를
+   나란히 담으려면 좌우로 1600px 이 든다. 세로는 아무리 낮아도 2단을 유지한다.
+   여기서는 스크롤이 목적이므로 여백을 원래 값으로 되돌린다(--lost: 0). */
+@media (max-width: 1599px) {
+    html[data-page='dashboard'] {
+        --lost: 0px;
+    }
+
+    html[data-page='dashboard'] .app {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    /* min-height:0 이면 내용의 min-content 높이가 위로 전달되지 않아
+       스크롤 대신 눌린다 — 스크롤 구간에서는 auto 로 되돌린다. */
+    html[data-page='dashboard'] .body,
+    html[data-page='dashboard'] .row--panels {
+        min-height: auto;
+    }
+
+    html[data-page='dashboard'] .row--panels {
+        flex-direction: column;
+    }
+
+    html[data-page='dashboard'] .panel {
+        min-height: var(--panel-min-h);
+    }
+}
+
+/* 가로 2단인데 세로 여백 예산(--lost)이 바닥나 .gates 가 게이트 카드의 실제
+   높이(약 301px) 아래로 눌리는 구간. 그대로 두면 '배정 필요' 문구가 아래 칩 줄과
+   겹친다. 글자·게이지를 한 단계 낮춰 카드를 약 261px 로 줄인다.
+   진입점 1002px 은 브라우저에서 겹침이 시작되는 높이를 재서 잡았다. */
+@media (min-width: 1600px) and (max-height: 1001px) {
+    html[data-page='dashboard'] {
+        --donut-size: 58px;
+    }
+
+    html[data-page='dashboard'] .gate {
+        padding: 8px 12px 6px;
+    }
+
+    html[data-page='dashboard'] .gate-head b {
+        font-size: 15px;
+    }
+
+    html[data-page='dashboard'] .gate-mid {
+        margin-top: 4px;
+        padding: 5px 0 6px;
+    }
+
+    html[data-page='dashboard'] .gate-mid .isl,
+    html[data-page='dashboard'] .gate-mid .meta {
+        font-size: 13px;
+    }
+
+    html[data-page='dashboard'] .gate-mid .num {
+        font-size: 25px;
+    }
+
+    html[data-page='dashboard'] .rec .tag {
+        font-size: 13px;
+    }
+
+    html[data-page='dashboard'] .rec .name {
+        font-size: 14px;
+    }
+
+    html[data-page='dashboard'] .rec .cnt {
+        font-size: 18px;
+    }
+
+    html[data-page='dashboard'] .rec .cap {
+        font-size: 13px;
+    }
+
+    html[data-page='dashboard'] .chip {
+        width: 17px;
+        height: 17px;
+    }
+}
+
+/* 촘촘 모드로도 안 되는 구간(뷰포트 930px 미만 — 브라우저에서 겹침이 시작되는
+   높이를 재서 잡았다). 여백도 글자도 더 줄일 게 없으므로 본문을 통째로 zoom 으로
+   낮춘다 — 2단 · 무스크롤 · 잘림 없음을 셋 다 지키는 유일한 수단이다.
+   transform:scale 이 아니라 zoom 인 이유는 레이아웃이 축소된 크기로 다시
+   계산되기 때문이다(스케일 좌표계를 되돌리는 --scale 나눗셈이 필요 없다).
+
+   본문(.main)이 930px 화면에서 쓰는 높이가 824px 이고, 실제로 쥐어지는 높이는
+   (뷰포트 − 헤더 − 본문 여백) 이다. 각 단계는 그 구간에서 가장 불리한 지점의
+   비율보다 낮게 잡았다. 헤더·여백이 한 번 줄어드는 900px 경계가 그 지점이다.
+   1600px 이상에서 뷰포트가 646px 보다 낮으면 단계를 더 두어야 한다.
+
+   ⚠ --lost 를 여기서 최대값으로 못박는다. 그 값이 100vh 로 정의돼 있어 zoom 안에서
+   다시 계산되면 (100vh 가 1/zoom 배로 커져) 여백 압축이 도로 풀리고, zoom 으로 번
+   높이를 그만큼 도로 까먹는다. 못박아야 .main 이 쓰는 높이가 824px 로 고정돼
+   위 단계 계산이 성립한다. */
+@media (min-width: 1600px) and (max-height: 929px) {
+    html[data-page='dashboard'] {
+        --lost: 120px;
+    }
+}
+
+@media (min-width: 1600px) and (max-height: 929px) {
+    html[data-page='dashboard'] .main {
+        zoom: 0.95;
+    }
+}
+
+@media (min-width: 1600px) and (max-height: 868px) {
+    html[data-page='dashboard'] .main {
+        zoom: 0.88;
+    }
+}
+
+@media (min-width: 1600px) and (max-height: 811px) {
+    html[data-page='dashboard'] .main {
+        zoom: 0.82;
+    }
+}
+
+@media (min-width: 1600px) and (max-height: 761px) {
+    html[data-page='dashboard'] .main {
+        zoom: 0.76;
+    }
+}
+
+@media (min-width: 1600px) and (max-height: 712px) {
+    html[data-page='dashboard'] .main {
+        zoom: 0.68;
+    }
+}
+
+@media (max-width: 1599px) {
+    html[data-page='dashboard'] {
+        --lost: 0px;
+    }
+
+    html[data-page='dashboard'] .app {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
+
+    /* min-height:0 이면 내용의 min-content 높이가 위로 전달되지 않아
+       스크롤 대신 눌린다 — 스크롤 구간에서는 auto 로 되돌린다. */
+    html[data-page='dashboard'] .body,
+    html[data-page='dashboard'] .row--panels {
+        min-height: auto;
+    }
+
+    html[data-page='dashboard'] .row--panels {
+        flex-direction: column;
+    }
+
+    html[data-page='dashboard'] .panel {
+        min-height: var(--panel-min-h);
+    }
+}
+
+/* 정보카드 4장 + PRIME TIME 을 한 줄에 두면 이 폭부터 카드 안 숫자가 겹친다
+   (1700px 에서 출발/도착 여객수가 먼저 넘친다). 패널이 세로로 서는 시점과
+   같은 자리에서 상단도 두 줄로 접는다. */
+@media (max-width: 1599px) {
+    html[data-page='dashboard'] .row--top {
+        flex-wrap: wrap;
+    }
+
+    html[data-page='dashboard'] .header-info-cards,
+    html[data-page='dashboard'] .c-quick {
+        flex: 1 1 100%;
+    }
+
+    html[data-page='dashboard'] .header-info-cards .card {
+        min-height: var(--top-row-h);
+    }
+
+    /* 한 줄을 통째로 쓰므로 2×2 타일을 가로 4칸으로 눕힌다 */
+    html[data-page='dashboard'] .quick-grid {
+        grid-template-columns: repeat(4, 1fr);
+        grid-template-rows: 1fr;
+    }
+
+    html[data-page='dashboard'] .qtile {
+        flex-direction: row;
+        gap: 10px;
+        padding: 14px 0;
+    }
+}
+
+/* 한 줄을 다 써도 4장은 이 폭부터 숫자가 겹친다(측정값 1350px).
+   flex-wrap 으로 접으면 폭에 따라 한 줄에 서는 카드 수가 4→3→2 로 요동쳐
+   어떤 폭에서만 다시 겹친다. 항상 2열인 그리드가 예측 가능하다. */
+@media (max-width: 1349px) {
+    html[data-page='dashboard'] .header-info-cards {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+/* 2열로도 카드 하나가 326px(일일 운항계획의 내용 폭) 아래로 내려가는 지점 */
+@media (max-width: 829px) {
+    html[data-page='dashboard'] .header-info-cards {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 859px) {
+    html[data-page='dashboard'] {
+        --panel-min-h: 1250px;
+    }
+
+    html[data-page='dashboard'] .p-top {
+        height: auto;
+        flex-wrap: wrap;
+    }
+
+    html[data-page='dashboard'] .p-mid {
+        width: auto;
+        flex: 1 1 260px;
+        min-height: var(--p-top-h);
+    }
+
+    html[data-page='dashboard'] .chartbox {
+        flex-basis: 100%;
+        height: 190px;
+    }
+
+    html[data-page='dashboard'] .sum-two {
+        flex: 0 1 300px;
+    }
+
+    html[data-page='dashboard'] .gates {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    html[data-page='dashboard'] .p-title {
+        max-width: 44%;
+        font-size: 19px;
+    }
+
+    html[data-page='dashboard'] .p-bar {
+        font-size: 18px;
+        padding: 0 78px 0 18px;
+    }
 }

@@ -382,6 +382,48 @@
     background: rgba(150, 158, 190, 0.18);
     border-radius: 6px;
     padding: 3px 10px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* 카드 폭이 줄면 출발/도착 숫자(최대 6자리 + 천단위 구분)가 먼저 넘친다.
+   .stat-cells 는 nowrap + 가운데 정렬이라 넘치는 순간 옆 칸 숫자와 곧장 겹치므로,
+   숫자가 설 자리를 아이콘·합계 박스에서 미리 걷어 온다. */
+@media (max-width: 1799px) {
+    .header-info-cards .plan-icons {
+        width: 46px;
+    }
+
+    .header-info-cards .i-plane-lg > svg {
+        width: 40px;
+        height: 40px;
+    }
+
+    .header-info-cards .i-people-lg > svg {
+        width: 44px;
+        height: 44px;
+    }
+
+    .header-info-cards .plan-total {
+        width: 112px;
+        margin: 0 6px;
+    }
+
+    .header-info-cards .plan-total .v {
+        font-size: 27px;
+    }
+
+    .header-info-cards .plan-total .v.teal {
+        font-size: 23px;
+    }
+
+    .header-info-cards .stat-cells .v {
+        font-size: 26px;
+    }
+
+    .header-info-cards .stat-psg .v {
+        font-size: 21px;
+    }
 }
 
 /* 기상정보 */
