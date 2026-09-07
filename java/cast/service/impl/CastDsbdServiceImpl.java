@@ -427,7 +427,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setIsland(unitCd);
 		result.setDptgtNo(EMPTY);
 		result.setFcltNm(unitCd);
-		result.setFcltDesc(EMPTY);
 		result.setTotCnt(unit != null ? unit.getTotCnt() : 0);
 		result.setOprCnt(unit != null ? unit.getOprCnt() : 0);
 		result.setWtngPsgCnt(queuePsgCnt);
@@ -702,7 +701,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setIsland(EMPTY);
 		result.setDptgtNo(unitCd);
 		result.setFcltNm(unitCd + "번");
-		result.setFcltDesc(EMPTY);
 		result.setTotCnt(unit != null ? unit.getTotCnt() : 0);
 		result.setOprCnt(unit != null ? unit.getOprCnt() : 0);
 		result.setWtngPsgCnt(displayRslt.getWtngPsgCnt());
