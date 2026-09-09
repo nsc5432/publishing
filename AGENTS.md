@@ -487,9 +487,13 @@ SMLT_ID (draft)
                     └─0:1─ RSLT_SMLT_ID (결과 세트)
 ```
 
-`SMLT_REQ_ID` 는 `'WI' + SMLT_ID + TMNL_ID + LPAD(SMLT_FLFMT_SN, 4, '0')` 로
-`(draft, 터미널, 회차)` 에서 결정론적으로 만든다 — 예: `WI20260827P010001`.
-그래서 유니크 제약이 그대로 중복 실행 방어가 된다.
+`SMLT_REQ_ID` 는 `'WI' + SMLT_ID + LPAD(SMLT_FLFMT_SN, 4, '0')` 로 `(draft, 회차)` 에서
+결정론적으로 만든다 — 예: `WI202608270001`. 그래서 유니크 제약이 그대로 중복 실행 방어가 된다.
+
+**실행 요청에는 터미널 축이 없다.** CAST 는 공항 전체(T1·T2)를 한 번에 돌리고 터미널별 수행
+옵션이 없다. 그래서 `TN_PM_SMLT_USER_MSTR` 에 `TMNL_ID` 를 두지 않고, 한 요청이 발행하는
+FS·CA·SBD·시설운영 리소스에 양 터미널 draft 가 함께 들어간다 (2026-09-09 결정).
+편집 draft(`TN_PM_SMLT_USER_*`)는 화면이 터미널 탭으로 나뉘어 있어 `TMNL_ID` 를 그대로 둔다.
 
 **결과와 요청은 리소스 번호로 잇는다.** CAST는 결과 XML 의 `Run` 섹션에 자기가 쓴 입력 리소스
 ID를 그대로 실어 보내고(`RUN_MAP` 이 파싱), 요청마다 새 FS 번호를 발행하므로
@@ -565,7 +569,7 @@ Failed    → (종착)
 - **`LISTAGG` 는 NULL 셀을 배열에서 통째로 빼 뒤 값을 한 칸 당긴다.** `NVL(…, ' ')` 로 자리를
   채우고 정렬 기준을 전 컬럼 동일하게 맞춰야 행 대응이 유지된다.
 - **감시 배치를 두지 않는다.** CAST가 `Executing` 으로 바꾼 뒤 죽으면 `UX_ACTIVE` 때문에 그
-  (draft, 터미널) 의 재실행이 막힌다. 수동 복구 SQL 은
+  draft 의 재실행이 막힌다. 수동 복구 SQL 은
   `java/ddl/2026-08-27-user-smlt-alter.sql` 말미에 주석으로 있다.
 
 ### 11.7 DDL과 Mapper 정합성 주의

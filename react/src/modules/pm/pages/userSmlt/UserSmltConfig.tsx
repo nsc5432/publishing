@@ -80,15 +80,18 @@ function UserSmltConfig() {
     };
 
     const handleRun = () => {
-        const runnableTerminals = targets.filter((terminal) => smltIds[terminal]);
-        if (runnableTerminals.length === 0) return;
+        // 시뮬레이션은 공항 전체를 한 번에 돌린다. 편집 중인 draft 하나로 실행을 건다
+        const runSmltId = targets.map((terminal) => smltIds[terminal]).find(Boolean);
+        if (!runSmltId) return;
 
         dialog
             .confirm({ title: '시뮬레이션 실행', description: EXEC_CONFIRM })
             .then((confirmed) => {
                 if (!confirmed) return;
 
-                Promise.all(runnableTerminals.map((terminal) => userSmltService.execute(smltIds[terminal], terminal).then((dto) => unwrap(dto, EXEC_FAIL))))
+                userSmltService
+                    .execute(runSmltId)
+                    .then((dto) => unwrap(dto, EXEC_FAIL))
                     .then(() => navigate(MONITORING_PATH))
                     .catch((error: ApiError) => {
                         dialog

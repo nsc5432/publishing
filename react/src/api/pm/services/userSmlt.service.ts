@@ -137,12 +137,13 @@ export const userSmltService = {
     },
 
     // 시뮬레이션 실행 (저장된 조건으로 수행을 건다. 비동기로 시작만 한다)
-    execute: async (smltId: string, tmnlId: TmnlId): Promise<UserSmltExecDto> => {
+    // CAST 는 T1·T2 를 한 번에 돌리므로 터미널을 지정하지 않는다
+    execute: async (smltId: string): Promise<UserSmltExecDto> => {
         if (USE_MOCK) return mockResponse(userSmltMock.execute(smltId), { loading: true });
 
         const response = await apiClient.post<UserSmltExecDto>(
             API_ENDPOINTS.USER_SMLT_EXECUTE,
-            { smltId, tmnlId },
+            { smltId },
             { params: { loading: true } },
         );
 

@@ -7,6 +7,10 @@
     실행 시점에 FS·CA·SBD·시설운영 리소스를 새로 발행하고, TN_PM_SMLT_USER_MSTR 이 그 ID 를
     가리킨다. 이후 draft 를 고쳐도 발행된 리소스는 변하지 않는다.
 
+    CAST 는 공항 전체를 한 번에 돌린다. 리소스 하나에 T1·T2 draft 가 함께 들어가므로 여기 문장은
+    터미널로 거르지 않고 draft 행이 들고 있는 TMNL_ID 를 그대로 싣는다. 아일랜드 코드와 출국장
+    번호는 터미널 간에 겹치므로 부스·기기 번호 매김도 터미널을 파티션에 넣어야 한다.
+
     번호는 SQ1_TN_PM_SMLT_USER_RSRC 하나를 다섯 리소스가 공유한다 (002~999 순환).
     retrieveFcltyOpngTblDptg 가 출국장 번호로 TN_PM_SMLT_SCHDL_ATRB 를 뒤지기 때문에
     FS 와 출국장 번호가 반드시 같아야 한다.
@@ -58,7 +62,7 @@
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         ) VALUES (
             #{snapshot.rsrcNo},
-            '사용자 시뮬레이션 ' || #{snapshot.smltId} || ' ' || #{snapshot.tmnlId},
+            '사용자 시뮬레이션 ' || #{snapshot.smltId},
             '99', 'Y', 'Y',
             #{snapshot.loginUserId}, #{snapshot.loginIpAddr}, CURRENT_TIMESTAMP
         )
@@ -71,7 +75,8 @@
         <!-- 일일 리소스가 FS001(운영계 직접 조회)일 때. 편별 여객수에 증감률을 곱해 넣는다.
              AJMT_RT 는 -100 ~ 100 의 증감률이라 곱셈 계수는 (100 + AJMT_RT) / 100 이다.
              HOURLY 면 예측시각이 속한 시간대 구간의 값을, RATIO 면 헤더 한 건의 값을 쓴다.
-             조정은 사용자가 편집한 터미널의 편에만 건다 -->
+             편의 터미널로 조정 draft 를 골라 T1·T2 각각의 조정률을 건다. 운항 P02 는 T1(P01)
+             소속이고, 공용(P) 편은 어느 draft 에도 붙지 않아 원본 그대로 나간다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB (
             SCHDL_ATRB_GROUP_ID, DOM_INTL_SE_CD, ARR_DEP_SE_CD, TMNL_ID, ALN_CD,
             FLTNM, DEP_ARR_YMD, DEP_ARR_HM, PREDC_HM, ACTL_HM,
@@ -96,19 +101,23 @@
                 A.ARCFT_STGCP, A.RSVT_BDPSG_CNT AS BDPSG_CNT,
                 A.RSVT_TRNS_BDPSG_CNT AS TRNS_BDPSG_CNT,
                 A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.GD_IRR_YN AS IRR_FLT_YN, A.TDFLT_YN,
-                CASE
-                    WHEN A.TMNL_ID NOT IN (<foreach collection="fltTmnlIdList" item="item" separator=",">#{item}</foreach>) THEN 0
-                    WHEN #{ajmtTypeCd} = 'HOURLY' THEN NVL((
-                        SELECT T.AJMT_RT
-                        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
-                        WHERE T.SMLT_ID = #{smltId}
-                        AND T.TMNL_ID = #{tmnlId}
-                        AND NVL(A.PREDC_HM, A.SCHDL_HM) >= T.BGNG_HM
-                        AND NVL(A.PREDC_HM, A.SCHDL_HM) &lt; NVL(T.END_HM, '2400')
-                        AND ROWNUM = 1
-                    ), 0)
-                    ELSE #{ajmtRt}
-                END AS AJMT_RT,
+                NVL((
+                    SELECT CASE
+                             WHEN F.AJMT_TYPE_CD = 'HOURLY' THEN NVL((
+                                 SELECT T.AJMT_RT
+                                 FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
+                                 WHERE T.SMLT_ID = F.SMLT_ID
+                                 AND T.TMNL_ID = F.TMNL_ID
+                                 AND NVL(A.PREDC_HM, A.SCHDL_HM) >= T.BGNG_HM
+                                 AND NVL(A.PREDC_HM, A.SCHDL_HM) &lt; NVL(T.END_HM, '2400')
+                                 AND ROWNUM = 1
+                             ), 0)
+                             ELSE NVL(F.AJMT_RT, 0)
+                           END
+                    FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT F
+                    WHERE F.SMLT_ID = #{smltId}
+                    AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
+                ), 0) AS AJMT_RT,
                 <!-- PK 는 (그룹, 출도착, 편명, 일자, 시분) 이다. 운영계 중복행을 여기서 접는다 -->
                 ROW_NUMBER() OVER (
                     PARTITION BY A.ARR_DEP_SE_CD, A.FLTNM, A.GD_SE_YMD, A.SCHDL_HM
@@ -148,19 +157,23 @@
             A.FLTNM, A.DALY_FLTSH_ID, A.DEP_ARR_YMD, A.DEP_ARR_HM, A.PREDC_HM, A.ACTL_HM,
             A.ARR_DEP_ARPT_CD, A.ACST_NO, A.GATE_NO, A.GATE_TYPE, A.ARCFT_STGCP,
             ROUND(NVL(A.BDPSG_CNT, 0) * (100 +
-                CASE
-                    WHEN A.TMNL_ID NOT IN (<foreach collection="fltTmnlIdList" item="item" separator=",">#{item}</foreach>) THEN 0
-                    WHEN #{ajmtTypeCd} = 'HOURLY' THEN NVL((
-                        SELECT T.AJMT_RT
-                        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
-                        WHERE T.SMLT_ID = #{smltId}
-                        AND T.TMNL_ID = #{tmnlId}
-                        AND NVL(A.PREDC_HM, A.DEP_ARR_HM) >= T.BGNG_HM
-                        AND NVL(A.PREDC_HM, A.DEP_ARR_HM) &lt; NVL(T.END_HM, '2400')
-                        AND ROWNUM = 1
-                    ), 0)
-                    ELSE #{ajmtRt}
-                END
+                NVL((
+                    SELECT CASE
+                             WHEN F.AJMT_TYPE_CD = 'HOURLY' THEN NVL((
+                                 SELECT T.AJMT_RT
+                                 FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
+                                 WHERE T.SMLT_ID = F.SMLT_ID
+                                 AND T.TMNL_ID = F.TMNL_ID
+                                 AND NVL(A.PREDC_HM, A.DEP_ARR_HM) >= T.BGNG_HM
+                                 AND NVL(A.PREDC_HM, A.DEP_ARR_HM) &lt; NVL(T.END_HM, '2400')
+                                 AND ROWNUM = 1
+                             ), 0)
+                             ELSE NVL(F.AJMT_RT, 0)
+                           END
+                    FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT F
+                    WHERE F.SMLT_ID = #{smltId}
+                    AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
+                ), 0)
             ) / 100),
             A.TRNS_BDPSG_CNT, A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.CKNCT_RANGE_CN,
             A.SLF_CHKN_PSBLTY_YN, A.IRR_FLT_YN, A.TDFLT_YN, A.BUS_NEED_YN, A.WAYO_ID,
@@ -185,11 +198,11 @@
         SELECT
             #{rsrcNo},
             CASE
-                WHEN #{tmnlId} = 'P03' THEN 'P03CKIN'
+                WHEN B.TMNL_ID = 'P03' THEN 'P03CKIN'
                 WHEN NVL(C.DOM_INTL_SE_CD, 'I') = 'I' THEN 'P01CKINInt'
                 ELSE 'P01CKINDom'
             END,
-            #{tmnlId},
+            B.TMNL_ID,
             C.CKNCT_ID,
             B.ALN_CD,
             NVL(C.DOM_INTL_SE_CD, 'I'),
@@ -207,19 +220,21 @@
                 AND H.CHKN_ISL_CD = B.CHKN_ISL_CD
             INNER JOIN (
                 SELECT
+                    K.TMNL_ID,
                     SUBSTR(K.CKNCT_ID, 1, 1) AS CHKN_ISL_CD,
                     K.CKNCT_ID,
                     K.DOM_INTL_SE_CD,
-                    ROW_NUMBER() OVER (PARTITION BY SUBSTR(K.CKNCT_ID, 1, 1) ORDER BY K.CKNCT_ID) AS BOOTH_NO
+                    ROW_NUMBER() OVER (
+                        PARTITION BY K.TMNL_ID, SUBSTR(K.CKNCT_ID, 1, 1) ORDER BY K.CKNCT_ID
+                    ) AS BOOTH_NO
                 FROM CAOWN.TN_CA_CKNCT K
-                WHERE K.TMNL_ID = #{tmnlId}
-                AND K.USE_YN = 'Y'
+                WHERE K.USE_YN = 'Y'
                 AND K.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
             ) C
-                ON  C.CHKN_ISL_CD = B.CHKN_ISL_CD
+                ON  C.TMNL_ID = B.TMNL_ID
+                AND C.CHKN_ISL_CD = B.CHKN_ISL_CD
                 AND C.BOOTH_NO = B.BOOTH_NO
         WHERE B.SMLT_ID = #{smltId}
-        AND B.TMNL_ID = #{tmnlId}
         AND B.ALN_CD IS NOT NULL
     </insert>
 
@@ -238,8 +253,8 @@
         )
         SELECT
             #{rsrcNo},
-            CASE WHEN #{tmnlId} = 'P03' THEN 'P03SBD' ELSE 'P01SBD' END,
-            #{tmnlId},
+            CASE WHEN I.TMNL_ID = 'P03' THEN 'P03SBD' ELSE 'P01SBD' END,
+            I.TMNL_ID,
             C.CKNCT_ID,
             A.ALN_CD,
             NVL(C.DOM_INTL_SE_CD, 'I'),
@@ -257,16 +272,19 @@
                 AND H.CHKN_ISL_CD = I.CHKN_ISL_CD
             INNER JOIN (
                 SELECT
+                    K.TMNL_ID,
                     SUBSTR(K.CKNCT_ID, 1, 1) AS CHKN_ISL_CD,
                     K.CKNCT_ID,
                     K.DOM_INTL_SE_CD,
-                    ROW_NUMBER() OVER (PARTITION BY SUBSTR(K.CKNCT_ID, 1, 1) ORDER BY K.CKNCT_ID) AS DEVICE_NO
+                    ROW_NUMBER() OVER (
+                        PARTITION BY K.TMNL_ID, SUBSTR(K.CKNCT_ID, 1, 1) ORDER BY K.CKNCT_ID
+                    ) AS DEVICE_NO
                 FROM CAOWN.TN_CA_CKNCT K
-                WHERE K.TMNL_ID = #{tmnlId}
-                AND K.USE_YN = 'Y'
+                WHERE K.USE_YN = 'Y'
                 AND K.CKNCT_USE_CRG_APLCN_TYPE_CD = 'H'
             ) C
-                ON  C.CHKN_ISL_CD = I.CHKN_ISL_CD
+                ON  C.TMNL_ID = I.TMNL_ID
+                AND C.CHKN_ISL_CD = I.CHKN_ISL_CD
                 AND C.DEVICE_NO &lt;= NVL(I.SBD_CNT, 0)
             LEFT OUTER JOIN (
                 SELECT
@@ -284,7 +302,6 @@
                 AND A.TMNL_ID = I.TMNL_ID
                 AND A.CHKN_ISL_CD = I.CHKN_ISL_CD
         WHERE I.SMLT_ID = #{smltId}
-        AND I.TMNL_ID = #{tmnlId}
     </insert>
 
     <insert id="insertSbdAtrbKiosk" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
@@ -299,8 +316,8 @@
         )
         SELECT
             #{rsrcNo},
-            CASE WHEN #{tmnlId} = 'P03' THEN 'P03Self' ELSE 'P01Self' END,
-            #{tmnlId},
+            CASE WHEN I.TMNL_ID = 'P03' THEN 'P03Self' ELSE 'P01Self' END,
+            I.TMNL_ID,
             C.SLF_CHKN_ISTR_ID,
             C.ALN_CD,
             'I',
@@ -318,30 +335,30 @@
                 AND H.CHKN_ISL_CD = I.CHKN_ISL_CD
             INNER JOIN (
                 SELECT
+                    P.TMNL_ID,
                     SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1) AS CHKN_ISL_CD,
                     P.SLF_CHKN_ISTR_ID,
                     MIN(P.ALN_CD) AS ALN_CD,
                     LISTAGG(P.ALN_CD, ',') WITHIN GROUP (ORDER BY P.ALN_CD) AS ALN_CD_LIST,
                     ROW_NUMBER() OVER (
-                        PARTITION BY SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1)
+                        PARTITION BY P.TMNL_ID, SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1)
                         ORDER BY P.SLF_CHKN_ISTR_ID
                     ) AS DEVICE_NO
                 FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY P
-                WHERE P.TMNL_ID = #{tmnlId}
-                AND P.PLCY_YMD = (
+                WHERE P.PLCY_YMD = (
                     SELECT NVL(
                         MAX(CASE WHEN X.PLCY_YMD = #{excnYmd} THEN X.PLCY_YMD END),
                         MAX(X.PLCY_YMD)
                     )
                     FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY X
-                    WHERE X.TMNL_ID = #{tmnlId}
+                    WHERE X.TMNL_ID = P.TMNL_ID
                 )
-                GROUP BY SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1), P.SLF_CHKN_ISTR_ID
+                GROUP BY P.TMNL_ID, SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1), P.SLF_CHKN_ISTR_ID
             ) C
-                ON  C.CHKN_ISL_CD = I.CHKN_ISL_CD
+                ON  C.TMNL_ID = I.TMNL_ID
+                AND C.CHKN_ISL_CD = I.CHKN_ISL_CD
                 AND C.DEVICE_NO &lt;= NVL(I.KOS_CNT, 0)
         WHERE I.SMLT_ID = #{smltId}
-        AND I.TMNL_ID = #{tmnlId}
     </insert>
 
     <!-- ================= FacilityOpeningTable_DepartureGate ================= -->
@@ -355,15 +372,14 @@
         )
         SELECT
             #{rsrcNo},
-            ROW_NUMBER() OVER (ORDER BY D.DPTGT_NO),
-            #{tmnlId},
+            ROW_NUMBER() OVER (ORDER BY D.TMNL_ID, D.DPTGT_NO),
+            D.TMNL_ID,
             'D',
             D.DPTGT_NO,
             NVL(D.GNRL_SRCH_CNTOM, 0) + NVL(D.SMART_PASS_SRCH_CNTOM, 0),
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM PMOWN.TN_PM_SMLT_USER_DPTGT D
         WHERE D.SMLT_ID = #{smltId}
-        AND D.TMNL_ID = #{tmnlId}
         AND D.OPER_YN = 'Y'
     </insert>
 
@@ -378,22 +394,20 @@
         )
         SELECT
             #{rsrcNo},
-            ROW_NUMBER() OVER (ORDER BY X.DPTGT_NO, X.OPER_BGNG_HOUR),
-            #{tmnlId},
+            ROW_NUMBER() OVER (ORDER BY X.TMNL_ID, X.DPTGT_NO, X.OPER_BGNG_HOUR),
+            X.TMNL_ID,
             'D',
             X.DPTGT_NO,
             X.SCSH_CNTOM,
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM (
-            SELECT P.DPTGT_NO, P.OPER_BGNG_HOUR, NVL(P.SCSH_CNTOM, 0) AS SCSH_CNTOM
+            SELECT P.TMNL_ID, P.DPTGT_NO, P.OPER_BGNG_HOUR, NVL(P.SCSH_CNTOM, 0) AS SCSH_CNTOM
             FROM PMOWN.TN_PM_SMLT_SCSH_OPER_PLAN P
             WHERE P.SMLT_ID = #{smltId}
-            AND P.TMNL_ID = #{tmnlId}
             UNION ALL
-            SELECT D.DPTGT_NO, 0 AS OPER_BGNG_HOUR, NVL(D.SCSH_CNTOM, 0) AS SCSH_CNTOM
+            SELECT D.TMNL_ID, D.DPTGT_NO, 0 AS OPER_BGNG_HOUR, NVL(D.SCSH_CNTOM, 0) AS SCSH_CNTOM
             FROM PMOWN.TN_PM_SMLT_USER_DPTGT D
             WHERE D.SMLT_ID = #{smltId}
-            AND D.TMNL_ID = #{tmnlId}
             AND D.OPER_YN = 'Y'
             AND NOT EXISTS (
                 SELECT 1 FROM PMOWN.TN_PM_SMLT_SCSH_OPER_PLAN P

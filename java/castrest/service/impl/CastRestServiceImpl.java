@@ -2564,8 +2564,6 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 				saveSimLog("19", "2");
 				return 1;
 			}
-
-			dto.setTmnlId(userReq.getTmnlId());
 		}
 
 		String simId = castRestMapper.retrieveSimId(dto);

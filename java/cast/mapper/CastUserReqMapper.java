@@ -25,7 +25,7 @@ import aoms.pm.cast.dto.UserSmltReqDto;
 public interface CastUserReqMapper {
 	void insertUserReq(UserSmltReqDto dto);
 
-	int retrieveActiveReqCnt(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
+	int retrieveActiveReqCnt(@Param("smltId") String smltId);
 
 	UserSmltReqDto retrieveUserReqByKey(@Param("smltReqId") String smltReqId);
 }

@@ -2273,7 +2273,6 @@ ORDER BY
         -- 요청마다 새 FS 번호를 발행하므로 그 번호가 곧 요청 식별자가 된다.
         SELECT SMLT_REQ_ID AS smltReqId
              , SMLT_ID AS smltId
-             , TMNL_ID AS tmnlId
              , SMLT_FLFMT_SN AS smltFlfmtSn
              , NVL(RSLT_SMLT_ID, '') AS rsltSmltId
              , SMLT_STTS AS smltStts
@@ -2285,7 +2284,6 @@ ORDER BY
         /* CastRestMapper.retrieveUserReqByKey */
         SELECT SMLT_REQ_ID AS smltReqId
              , SMLT_ID AS smltId
-             , TMNL_ID AS tmnlId
              , SMLT_FLFMT_SN AS smltFlfmtSn
              , NVL(RSLT_SMLT_ID, '') AS rsltSmltId
              , SMLT_STTS AS smltStts

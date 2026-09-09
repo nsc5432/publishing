@@ -454,7 +454,7 @@ export const userSmltMock = {
     execute: (smltId: string): UserSmltExecDto => ({
         ...OK,
         smltId,
-        smltReqId: `WI${smltId}P010001`,
+        smltReqId: `WI${smltId}0001`,
         smltFlfmtSn: 1,
         smltFlfmtSttsCd: 'RUNNING',
         smltFlfmtBgngDt: SAVE_DT,

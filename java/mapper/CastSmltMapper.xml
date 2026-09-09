@@ -62,21 +62,22 @@
     <select id="retrieveUserSmltCondFilledCnt" resultType="int">
         /* CastSmltMapper.retrieveUserSmltCondFilledCnt */
         <!-- CAST 리소스는 운항·체크인·출국장 세 영역이 모두 있어야 완결된다.
-             합계로 세면 한 영역만 저장돼도 통과하므로 각각을 본다 -->
+             합계로 세면 한 영역만 저장돼도 통과하므로 각각을 본다.
+             실행은 공항 전체 단위라 터미널로 거르지 않는다 -->
         SELECT COUNT(*) AS CNT
         FROM (
             SELECT 1 FROM DUAL
             WHERE EXISTS (
                 SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT
-                WHERE SMLT_ID = #{smltId} AND TMNL_ID = #{tmnlId}
+                WHERE SMLT_ID = #{smltId}
             )
             AND EXISTS (
                 SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL
-                WHERE SMLT_ID = #{smltId} AND TMNL_ID = #{tmnlId}
+                WHERE SMLT_ID = #{smltId}
             )
             AND EXISTS (
                 SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_DPTGT
-                WHERE SMLT_ID = #{smltId} AND TMNL_ID = #{tmnlId}
+                WHERE SMLT_ID = #{smltId}
             )
         )
     </select>

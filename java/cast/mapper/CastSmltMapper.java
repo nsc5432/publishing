@@ -45,7 +45,7 @@ public interface CastSmltMapper {
 	);
 
 	/** 운항·체크인·출국장 세 영역이 각각 저장돼 있는지 본다. 하나라도 비면 0 */
-	int retrieveUserSmltCondFilledCnt(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
+	int retrieveUserSmltCondFilledCnt(@Param("smltId") String smltId);
 
 	String retrieveUserSmltSaveDt(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
 

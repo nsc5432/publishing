@@ -8,7 +8,6 @@
         INSERT INTO PMOWN.TN_PM_SMLT_USER_MSTR (
             SMLT_REQ_ID,
             SMLT_ID,
-            TMNL_ID,
             EXCN_YMD,
             SMLT_FLFMT_SN,
             MDL_RSRC_ID,
@@ -33,7 +32,6 @@
         ) VALUES (
             #{smltReqId},
             #{smltId},
-            #{tmnlId},
             #{excnYmd},
             #{smltFlfmtSn},
             #{mdlRsrcId},
@@ -64,7 +62,6 @@
         SELECT COUNT(*) AS CNT
         FROM PMOWN.TN_PM_SMLT_USER_MSTR
         WHERE SMLT_ID = #{smltId}
-        AND TMNL_ID = #{tmnlId}
         AND SMLT_STTS IN ('New', 'Executing')
     </select>
 
@@ -73,7 +70,6 @@
         SELECT
             SMLT_REQ_ID,
             SMLT_ID,
-            TMNL_ID,
             EXCN_YMD,
             SMLT_FLFMT_SN,
             NVL(RSLT_SMLT_ID, '') AS RSLT_SMLT_ID,

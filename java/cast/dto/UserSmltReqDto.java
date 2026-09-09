@@ -12,7 +12,6 @@ public class UserSmltReqDto extends AomsDefaultDto {
 
 	private String smltReqId; // CAST 가 WhatIfRunID 로 읽어 가는 실행 요청 ID
 	private String smltId; // 편집 draft ID
-	private String tmnlId; // DB 터미널 코드 (P01/P03)
 	private String excnYmd;
 	private int smltFlfmtSn;
 	private String rsltSmltId; // CAST 결과가 만든 TN_PM_SMLT_STNG.SMLT_ID

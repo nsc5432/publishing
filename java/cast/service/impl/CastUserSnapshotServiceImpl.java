@@ -8,11 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.dto.SmltStngDto;
-import aoms.pm.cast.dto.UserFltPsgRawDto;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto;
-import aoms.pm.cast.enums.AdjType;
-import aoms.pm.cast.enums.TerminalKind;
-import aoms.pm.cast.mapper.CastFltPsgMapper;
 import aoms.pm.cast.mapper.CastUserSnapshotMapper;
 import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.cast.service.CastUserSnapshotService;
@@ -47,14 +43,13 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 	private static final String SECURITY_CONTROL = "FacilityOpeningTable_SecurityControl";
 
 	private final CastUserSnapshotMapper castUserSnapshotMapper;
-	private final CastFltPsgMapper castFltPsgMapper;
 	private final CastSmltService castSmltService;
 	private final SessionService sessionService;
 
 	@Override
-	public UserSmltRsrcSnapshotDto publish(String smltId, TerminalKind tmnlId, String excnYmd) {
+	public UserSmltRsrcSnapshotDto publish(String smltId, String excnYmd) {
 		SmltStngDto dailyStng = castSmltService.retrieveSmltStngByKey(smltId);
-		UserSmltRsrcSnapshotDto snapshot = getSnapshot(smltId, tmnlId, excnYmd, dailyStng);
+		UserSmltRsrcSnapshotDto snapshot = getSnapshot(smltId, excnYmd, dailyStng);
 
 		publishRsrc(RsrcTable.FLT_SCHDL, snapshot, this::insertSchdlAtrb);
 		publishRsrc(RsrcTable.CKNCT, snapshot, castUserSnapshotMapper::insertCknctAtrb);
@@ -67,7 +62,6 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 
 	private UserSmltRsrcSnapshotDto getSnapshot(
 			String smltId,
-			TerminalKind tmnlId,
 			String excnYmd,
 			SmltStngDto dailyStng
 	) {
@@ -75,12 +69,9 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 		SessionUtils.setUserContext(result, sessionService);
 
 		String rsrcNo = castUserSnapshotMapper.retrieveNextRsrcNo();
-		UserFltPsgRawDto ajmt = castFltPsgMapper.retrieveUserFltPsg(smltId, tmnlId.getFcltTmnlId());
 
 		result.setRsrcNo(rsrcNo);
 		result.setSmltId(smltId);
-		result.setTmnlId(tmnlId.getFcltTmnlId());
-		result.setFltTmnlIdList(tmnlId.getFltTmnlIdList());
 		result.setExcnYmd(excnYmd);
 
 		result.setFltSchdlRsrcId(FS + rsrcNo);
@@ -99,8 +90,6 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 		result.setFcltyOpngTrScrtyCntrlRsrcId(dailyStng.getFcltyOpngTrScrtyCntrlRsrcId());
 
 		result.setSrcFltSchdlRsrcId(dailyStng.getFltSchdlRsrcId());
-		result.setAjmtTypeCd(ajmt != null ? ajmt.getAjmtTypeCd() : AdjType.RATIO.getValue());
-		result.setAjmtRt(ajmt != null ? ajmt.getAjmtRt() : 0);
 
 		return result;
 	}

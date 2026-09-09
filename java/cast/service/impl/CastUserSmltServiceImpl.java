@@ -57,7 +57,7 @@ import lombok.RequiredArgsConstructor;
 @Transactional(rollbackFor = Exception.class)
 public class CastUserSmltServiceImpl implements CastUserSmltService {
 	private static final String EMPTY = "";
-	// CAST 가 WhatIfRunID 로 읽어 간다. (SMLT_ID, TMNL_ID, SMLT_FLFMT_SN) 에서 결정론적으로 나온다
+	// CAST 가 WhatIfRunID 로 읽어 간다. (SMLT_ID, SMLT_FLFMT_SN) 에서 결정론적으로 나온다
 	private static final String REQ_ID_PREFIX = "WI";
 	private static final int REQ_ID_SN_WIDTH = 4;
 
@@ -76,11 +76,11 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 		result.setYmd(searchDto.getYmd());
 		result.setSaveDt(EMPTY);
 
-		String smltId = retrieveSmltId(searchDto.getYmd(), SmltType.USER, fcltTmnlId);
+		String smltId = retrieveSmltId(searchDto.getYmd(), SmltType.USER);
 
 		if (smltId == null) {
 			// 사용자 시뮬레이션이 없으면 그날의 일일 시뮬레이션을 편집 기준으로 잡는다
-			smltId = retrieveSmltId(searchDto.getYmd(), SmltType.DAILY, fcltTmnlId);
+			smltId = retrieveSmltId(searchDto.getYmd(), SmltType.DAILY);
 		}
 
 		if (smltId == null) {
@@ -125,15 +125,13 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 		}
 
 		String smltId = searchDto.getSmltId();
-		String fcltTmnlId = searchDto.getFcltTmnlId();
 		String excnYmd = castSmltService.retrieveSmltStngByKey(smltId).getExcnYmd();
 
 		int smltFlfmtSn = castSmltMapper.retrieveNextSmltFlfmtSn(smltId);
-		String smltReqId = toSmltReqId(smltId, fcltTmnlId, smltFlfmtSn);
+		String smltReqId = toSmltReqId(smltId, smltFlfmtSn);
 
 		try {
-			UserSmltRsrcSnapshotDto snapshot =
-					castUserSnapshotService.publish(smltId, searchDto.getTmnlId(), excnYmd);
+			UserSmltRsrcSnapshotDto snapshot = castUserSnapshotService.publish(smltId, excnYmd);
 
 			// 요청이 이력을 참조하므로 이력 먼저 넣는다
 			castSmltMapper.insertSmltFlfmtHstry(getFlfmtHstry(searchDto, smltFlfmtSn));
@@ -158,14 +156,14 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 		return result;
 	}
 
-	// 같은 일자·터미널에 여러 건이면 가장 최근 것을 편집 대상으로 잡는다
-	private String retrieveSmltId(String ymd, SmltType smltType, String fcltTmnlId) {
+	// 같은 일자에 여러 건이면 가장 최근 것을 편집 대상으로 잡는다.
+	// 실행 세트는 공항 전체라 터미널로 거르지 않는다 — T1·T2 화면이 같은 draft 를 나눠 편집한다
+	private String retrieveSmltId(String ymd, SmltType smltType) {
 		SmltStngSearchDto stngSearchDto = new SmltStngSearchDto();
 		stngSearchDto.setExcnYmd(ymd);
 		stngSearchDto.setSmltType(smltType.getDbCode());
 
 		return castSmltMapper.retrieveSmltStng(stngSearchDto).stream()
-				.filter(stng -> fcltTmnlId.equals(stng.getTmnlId()))
 				.map(SmltStngDto::getSmltId)
 				.max(Comparator.naturalOrder())
 				.orElse(null);
@@ -216,27 +214,24 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 			return new JsonResponse().error("로그인을 진행해주세요.");
 		}
 
-		if (searchDto.getSmltId() == null || searchDto.getSmltId().isEmpty() || searchDto.getTmnlId() == null) {
+		if (searchDto.getSmltId() == null || searchDto.getSmltId().isEmpty()) {
 			return new JsonResponse().error("수행 대상 시뮬레이션이 지정되지 않았습니다.");
 		}
 
-		searchDto.setFcltTmnlId(searchDto.getTmnlId().getFcltTmnlId());
-
 		// CAST 리소스는 세 영역이 다 있어야 완결된다. 하나라도 비면 실행하지 않는다
-		if (castSmltMapper.retrieveUserSmltCondFilledCnt(searchDto.getSmltId(), searchDto.getFcltTmnlId()) == 0) {
+		if (castSmltMapper.retrieveUserSmltCondFilledCnt(searchDto.getSmltId()) == 0) {
 			return new JsonResponse().error("운항·체크인카운터·출국장 조건을 모두 저장해주세요.");
 		}
 
-		if (castUserReqMapper.retrieveActiveReqCnt(searchDto.getSmltId(), searchDto.getFcltTmnlId()) > 0) {
+		if (castUserReqMapper.retrieveActiveReqCnt(searchDto.getSmltId()) > 0) {
 			return new JsonResponse().error("이미 수행 중인 시뮬레이션이 있습니다.");
 		}
 
 		return null;
 	}
 
-	private String toSmltReqId(String smltId, String fcltTmnlId, int smltFlfmtSn) {
-		return REQ_ID_PREFIX + smltId + fcltTmnlId
-				+ String.format("%0" + REQ_ID_SN_WIDTH + "d", smltFlfmtSn);
+	private String toSmltReqId(String smltId, int smltFlfmtSn) {
+		return REQ_ID_PREFIX + smltId + String.format("%0" + REQ_ID_SN_WIDTH + "d", smltFlfmtSn);
 	}
 
 	private SmltExcnDto getFlfmtHstry(UserSmltExecSearchDto searchDto, int smltFlfmtSn) {
@@ -245,7 +240,6 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 
 		result.setSmltId(searchDto.getSmltId());
 		result.setSmltFlfmtSn(smltFlfmtSn);
-		result.setTmnlId(searchDto.getFcltTmnlId());
 		result.setSmltType(SmltType.USER.getDbCode());
 		result.setSmltFlfmtSttsCd(SmltExecStatus.RUNNING.getValue());
 
@@ -264,7 +258,6 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 
 		result.setSmltReqId(smltReqId);
 		result.setSmltId(searchDto.getSmltId());
-		result.setTmnlId(searchDto.getFcltTmnlId());
 		result.setExcnYmd(excnYmd);
 		result.setSmltFlfmtSn(smltFlfmtSn);
 
