@@ -261,7 +261,7 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
   **`001` 의 내용을 바꾸는 길뿐이다.**
 - 반영 대상 행은 카탈로그 `TN_PM_SMLT_PSG_FIX_PARA_CD.PRE_PRCS_YN = 'Y'` 로 가른다.
   파이프라인에 태스크를 더하면 `java/ddl/2026-09-02-atrb-pre-process.sql` (2) 의 코드 목록도 함께 늘린다.
-- 반영은 `TN_PM_SMLT_ATRB_APLY_HSTRY(_DTL)` 에 **적용 직전 값을 먼저 스냅샷**한 뒤 복사한다.
+- 반영은 `TH_PM_SMLT_ATRB_APLY_HSTRY(_DTL)` 에 **적용 직전 값을 먼저 스냅샷**한 뒤 복사한다.
   되돌리기는 그 스냅샷을 `updateAtrbValue` 로 되쓴다. 스냅샷을 복사 뒤에 찍으면 되돌릴 값이 이미 덮인다.
 - **운영 반영(카테고리→001)이 001 을 갱신하는 유일한 화면 경로다.** 카테고리 바 오른쪽 버튼 하나가
   그룹의 **전 시트를 한 번에** 밀고, 시트마다 이력 1건을 남긴다. `999` 를 고르면 구 '전처리 반영'과
