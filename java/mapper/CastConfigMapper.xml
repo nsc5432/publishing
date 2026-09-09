@@ -303,7 +303,7 @@
     </select>
 
     <insert id="insertAplySetHstry" parameterType="aoms.pm.cast.dto.CastConfigAplySetHstryDto">
-        INSERT INTO PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY (
+        INSERT INTO PMOWN.TH_PM_SMLT_ATRB_APLY_SET_HSTRY (
             APLY_SET_SN, SRC_FIX_ATRB_GROUP_ID, TGT_FIX_ATRB_GROUP_ID, APLY_ROW_CNT,
             CNCL_YN, FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         ) VALUES (
@@ -313,7 +313,7 @@
     </insert>
 
     <update id="updateAplySetRowCnt">
-        UPDATE PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY
+        UPDATE PMOWN.TH_PM_SMLT_ATRB_APLY_SET_HSTRY
         SET APLY_ROW_CNT = #{aplyRowCnt}
         WHERE APLY_SET_SN = #{aplySetSn}
     </update>
@@ -479,7 +479,7 @@
                 WHEN NVL(A.CNCL_YN, 'N') = 'N'
                  AND NOT EXISTS (
                     SELECT 1
-                    FROM PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY N
+                    FROM PMOWN.TH_PM_SMLT_ATRB_APLY_SET_HSTRY N
                     WHERE N.TGT_FIX_ATRB_GROUP_ID = A.TGT_FIX_ATRB_GROUP_ID
                     AND NVL(N.CNCL_YN, 'N') = 'N'
                     AND N.APLY_SET_SN &gt; A.APLY_SET_SN
@@ -488,7 +488,7 @@
             END AS REVERTABLE_YN,
             NVL(TO_CHAR(A.FRST_REG_DT, 'YYYYMMDDHH24MISS'), ' ') AS FRST_REG_DT,
             NVL(A.FRST_RGTR_ID, ' ') AS FRST_RGTR_ID
-        FROM PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY A
+        FROM PMOWN.TH_PM_SMLT_ATRB_APLY_SET_HSTRY A
         WHERE A.TGT_FIX_ATRB_GROUP_ID = '001'
         ORDER BY A.APLY_SET_SN DESC
     </select>
@@ -500,7 +500,7 @@
             A.TGT_FIX_ATRB_GROUP_ID AS TGT_FIX_ATRB_GROUP_ID,
             NVL(A.APLY_ROW_CNT, 0) AS APLY_ROW_CNT,
             NVL(A.CNCL_YN, 'N') AS CNCL_YN
-        FROM PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY A
+        FROM PMOWN.TH_PM_SMLT_ATRB_APLY_SET_HSTRY A
         WHERE A.APLY_SET_SN = #{aplySetSn}
         FOR UPDATE WAIT 3
     </select>
@@ -523,7 +523,7 @@
     </select>
 
     <update id="updateAplySetHstryCancel">
-        UPDATE PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY A
+        UPDATE PMOWN.TH_PM_SMLT_ATRB_APLY_SET_HSTRY A
         SET CNCL_YN = 'Y',
             CNCL_DT = CURRENT_TIMESTAMP,
             CNCL_RGTR_ID = #{loginUserId}
@@ -531,7 +531,7 @@
         AND A.CNCL_YN = 'N'
         AND NOT EXISTS (
             SELECT 1
-            FROM PMOWN.TN_PM_SMLT_ATRB_APLY_SET_HSTRY N
+            FROM PMOWN.TH_PM_SMLT_ATRB_APLY_SET_HSTRY N
             WHERE N.TGT_FIX_ATRB_GROUP_ID = A.TGT_FIX_ATRB_GROUP_ID
             AND NVL(N.CNCL_YN, 'N') = 'N'
             AND N.APLY_SET_SN &gt; A.APLY_SET_SN
