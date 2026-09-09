@@ -146,7 +146,6 @@ export function toApplySetHistories(dto: CastConfigAplySetHstryListDto): ApplySe
         details: history.detailList.map((detail) => ({
             sn: detail.aplySn,
             terminal: detail.tmnlId || '공통',
-            groupId: detail.groupId,
             sheetName: detail.sheetNm,
             rowCount: detail.aplyRowCnt,
         })),

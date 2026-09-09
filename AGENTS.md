@@ -67,6 +67,8 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
      헷갈리지 않는 이름을 골랐다. **`reqCnt` 는 이제 다시 고정이다.**
    - `CastConfigPreProcessDiffDto` · `CastConfigPreProcessRowDto` 는 2026-09-04 에 삭제됐다.
      전처리 비교·반영 화면이 운영 반영으로 흡수되면서 조회 API 자체가 없어졌다.
+   - `CastConfigAplySetDetailDto.groupId` 와 그 원천 컬럼 `TH_PM_SMLT_ATRB_APLY_HSTRY.GROUP_ID`
+     는 2026-09-09 에 삭제됐다. 세트 이력 상세를 화면이 그리지 않아 읽는 곳이 없었다.
    - `MapChknRsltDto` 에 `avgQueuePsgCnt` · `maxQueuePsgCnt` · `oprBoothCnt` · `reqCnt` ·
      `cgnClearMin`, `MapNoticeItemDto` 에 `reqCnt` · `cgnClearMin` 이 2026-09-04 에 늘었다
      (체크인 공용 Queue — §13). **새 이름도 이제 고정이다.**

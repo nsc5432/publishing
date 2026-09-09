@@ -835,7 +835,6 @@ export interface CastConfigAplyHstryListDto extends JsonResponse {
 export interface CastConfigAplySetDetailDto {
     aplySn: number;
     tmnlId: string;
-    groupId: string;
     sheetNm: string;
     aplyRowCnt: number;
 }

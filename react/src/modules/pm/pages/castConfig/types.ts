@@ -49,7 +49,6 @@ export interface ApplyHistory {
 export interface ApplySetDetail {
     sn: number;
     terminal: string;
-    groupId: string;
     sheetName: string;
     rowCount: number;
 }

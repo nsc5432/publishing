@@ -15,7 +15,6 @@ public class CastConfigAplyHstryDto extends AomsDefaultDto {
 	private String srcFixAtrbGroupId;
 	private String tgtFixAtrbGroupId;
 	private String tmnlId;
-	private String groupId;
 	private String tblNm;
 	private String sheetNm;
 	private int aplyRowCnt;

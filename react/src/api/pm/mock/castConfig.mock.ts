@@ -969,7 +969,6 @@ export const castConfigMock = {
                     detailList.push({
                         aplySn: ++aplySnSeq,
                         tmnlId: common ? '' : tmnlId,
-                        groupId: group.groupId,
                         sheetNm: sheetName,
                         aplyRowCnt: rowCount,
                     });

@@ -759,7 +759,6 @@ public class CastConfigServiceImpl implements CastConfigService {
 			hstry.setSrcFixAtrbGroupId(sourceId);
 			hstry.setTgtFixAtrbGroupId(BASE_FIX_ATRB_GROUP_ID);
 			hstry.setTmnlId(scope.getDisplayTerminal() == null ? "" : scope.getDisplayTerminal().getValue());
-			hstry.setGroupId(scope.getGroup().getGroupId());
 			hstry.setTblNm(sheet.getTableNm());
 			hstry.setSheetNm(sheet.getSheetNm());
 			hstry.setAplyRowCnt(targets.size());
@@ -820,7 +819,6 @@ public class CastConfigServiceImpl implements CastConfigService {
 			List<CastConfigAplyHstryDto> detailList = castConfigMapper.retrieveAplyHstryListBySet(hstry.getAplySetSn());
 			for (CastConfigAplyHstryDto detail : detailList) {
 				detail.setTmnlId(StringUtils.trimToEmpty(detail.getTmnlId()));
-				detail.setGroupId(StringUtils.trimToEmpty(detail.getGroupId()));
 			}
 			hstry.setDetailList(detailList);
 		}
