@@ -6,7 +6,11 @@ public interface SlfChknOperPlcyMapper {
 
     int countOverlengthIstrId(@Param("ymd") String ymd);
 
-    int upsert(@Param("ymd") String ymd);
+    int insertNew(@Param("ymd") String ymd);
 
-    int deleteMissing(@Param("ymd") String ymd);
+    int deleteStartedMissing(@Param("ymd") String ymd);
+
+    int closeMissing(@Param("ymd") String ymd);
+
+    int reopenObserved(@Param("ymd") String ymd);
 }

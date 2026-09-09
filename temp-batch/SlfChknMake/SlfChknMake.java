@@ -32,8 +32,10 @@ public class SlfChknMake {
                     "CHKN_ISTR_NO exceeds 10 characters for PSG_TRNSP_YMD: " + ymd);
         }
 
-        slfChknOperPlcyMapper.upsert(ymd);
-        slfChknOperPlcyMapper.deleteMissing(ymd);
+        slfChknOperPlcyMapper.deleteStartedMissing(ymd);
+        slfChknOperPlcyMapper.closeMissing(ymd);
+        slfChknOperPlcyMapper.reopenObserved(ymd);
+        slfChknOperPlcyMapper.insertNew(ymd);
     }
 
     private static void validateYmd(String ymd) {

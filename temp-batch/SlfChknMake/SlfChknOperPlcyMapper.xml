@@ -3,7 +3,6 @@
 
 <mapper namespace="batch.SlfChknOperPlcyMapper">
     <select id="countOverlengthIstrId" resultType="int">
-        /* SlfChknOperPlcyMapper.countOverlengthIstrId */
         SELECT COUNT(*)
         FROM PMOWN.TN_PM_BDPS_ISSU_INFO A
         WHERE A.PSG_TRNSP_YMD = #{ymd}
@@ -13,57 +12,44 @@
         AND LENGTH(TRIM(A.CHKN_ISTR_NO)) > 10
     </select>
 
-    <update id="upsert">
-        /* SlfChknOperPlcyMapper.upsert */
-        MERGE INTO PMOWN.TN_PM_SLF_CHKN_OPER_PLCY A
-        USING (
-            SELECT DISTINCT
-                B.TMNL_SE_CD AS TMNL_ID,
-                TRIM(B.CHKN_ISTR_NO) AS SLF_CHKN_ISTR_ID,
-                B.ALN_CD,
-                B.PSG_TRNSP_YMD AS PLCY_YMD
-            FROM PMOWN.TN_PM_BDPS_ISSU_INFO B
-            WHERE B.PSG_TRNSP_YMD = #{ymd}
-            AND B.CHKN_SE_CD = 'SCI'
-            AND B.TMNL_SE_CD IN ('P01', 'P03')
-            AND TRIM(B.CHKN_ISTR_NO) IS NOT NULL
-        ) B
-        ON (
-            A.TMNL_ID = B.TMNL_ID
-            AND A.SLF_CHKN_ISTR_ID = B.SLF_CHKN_ISTR_ID
-            AND A.ALN_CD = B.ALN_CD
-            AND A.PLCY_YMD = B.PLCY_YMD
+    <insert id="insertNew">
+        INSERT INTO PMOWN.TN_PM_SLF_CHKN_OPER_PLCY (
+            TMNL_ID,
+            SLF_CHKN_ISTR_ID,
+            ALN_CD,
+            PLCY_BGNG_YMD,
+            PLCY_END_YMD,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
         )
-        WHEN MATCHED THEN
-            UPDATE SET
-                A.LAST_MDFR_ID = 'SYSTEM',
-                A.LAST_MDFR_IP_ADDR = '1.1.1.1',
-                A.LAST_MDFCN_DT = CURRENT_TIMESTAMP
-        WHEN NOT MATCHED THEN
-            INSERT (
-                TMNL_ID,
-                SLF_CHKN_ISTR_ID,
-                ALN_CD,
-                PLCY_YMD,
-                FRST_RGTR_ID,
-                FRST_RGTR_IP_ADDR,
-                FRST_REG_DT
-            )
-            VALUES (
-                B.TMNL_ID,
-                B.SLF_CHKN_ISTR_ID,
-                B.ALN_CD,
-                B.PLCY_YMD,
-                'SYSTEM',
-                '1.1.1.1',
-                CURRENT_TIMESTAMP
-            )
-    </update>
+        SELECT DISTINCT
+            B.TMNL_SE_CD,
+            TRIM(B.CHKN_ISTR_NO),
+            B.ALN_CD,
+            #{ymd},
+            '99991231',
+            'SYSTEM',
+            '1.1.1.1',
+            CURRENT_TIMESTAMP
+        FROM PMOWN.TN_PM_BDPS_ISSU_INFO B
+        WHERE B.PSG_TRNSP_YMD = #{ymd}
+        AND B.CHKN_SE_CD = 'SCI'
+        AND B.TMNL_SE_CD IN ('P01', 'P03')
+        AND TRIM(B.CHKN_ISTR_NO) IS NOT NULL
+        AND NOT EXISTS (
+            SELECT 1
+            FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY A
+            WHERE A.TMNL_ID = B.TMNL_SE_CD
+            AND A.SLF_CHKN_ISTR_ID = TRIM(B.CHKN_ISTR_NO)
+            AND A.ALN_CD = B.ALN_CD
+            AND #{ymd} BETWEEN A.PLCY_BGNG_YMD AND A.PLCY_END_YMD
+        )
+    </insert>
 
-    <delete id="deleteMissing">
-        /* SlfChknOperPlcyMapper.deleteMissing */
+    <delete id="deleteStartedMissing">
         DELETE FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY A
-        WHERE A.PLCY_YMD = #{ymd}
+        WHERE A.PLCY_BGNG_YMD = #{ymd}
         AND NOT EXISTS (
             SELECT 1
             FROM PMOWN.TN_PM_BDPS_ISSU_INFO B
@@ -76,4 +62,55 @@
             AND B.ALN_CD = A.ALN_CD
         )
     </delete>
+
+    <update id="closeMissing">
+        UPDATE PMOWN.TN_PM_SLF_CHKN_OPER_PLCY A
+        SET
+            A.PLCY_END_YMD = TO_CHAR(TO_DATE(#{ymd}, 'YYYYMMDD') - 1, 'YYYYMMDD'),
+            A.LAST_MDFR_ID = 'SYSTEM',
+            A.LAST_MDFR_IP_ADDR = '1.1.1.1',
+            A.LAST_MDFCN_DT = CURRENT_TIMESTAMP
+        WHERE A.PLCY_BGNG_YMD &lt; #{ymd}
+        AND #{ymd} BETWEEN A.PLCY_BGNG_YMD AND A.PLCY_END_YMD
+        AND NOT EXISTS (
+            SELECT 1
+            FROM PMOWN.TN_PM_BDPS_ISSU_INFO B
+            WHERE B.PSG_TRNSP_YMD = #{ymd}
+            AND B.CHKN_SE_CD = 'SCI'
+            AND B.TMNL_SE_CD IN ('P01', 'P03')
+            AND TRIM(B.CHKN_ISTR_NO) IS NOT NULL
+            AND B.TMNL_SE_CD = A.TMNL_ID
+            AND TRIM(B.CHKN_ISTR_NO) = A.SLF_CHKN_ISTR_ID
+            AND B.ALN_CD = A.ALN_CD
+        )
+    </update>
+
+    <update id="reopenObserved">
+        UPDATE PMOWN.TN_PM_SLF_CHKN_OPER_PLCY A
+        SET
+            A.PLCY_END_YMD = '99991231',
+            A.LAST_MDFR_ID = 'SYSTEM',
+            A.LAST_MDFR_IP_ADDR = '1.1.1.1',
+            A.LAST_MDFCN_DT = CURRENT_TIMESTAMP
+        WHERE A.PLCY_END_YMD = TO_CHAR(TO_DATE(#{ymd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
+        AND EXISTS (
+            SELECT 1
+            FROM PMOWN.TN_PM_BDPS_ISSU_INFO B
+            WHERE B.PSG_TRNSP_YMD = #{ymd}
+            AND B.CHKN_SE_CD = 'SCI'
+            AND B.TMNL_SE_CD IN ('P01', 'P03')
+            AND TRIM(B.CHKN_ISTR_NO) IS NOT NULL
+            AND B.TMNL_SE_CD = A.TMNL_ID
+            AND TRIM(B.CHKN_ISTR_NO) = A.SLF_CHKN_ISTR_ID
+            AND B.ALN_CD = A.ALN_CD
+        )
+        AND NOT EXISTS (
+            SELECT 1
+            FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY X
+            WHERE X.TMNL_ID = A.TMNL_ID
+            AND X.SLF_CHKN_ISTR_ID = A.SLF_CHKN_ISTR_ID
+            AND X.ALN_CD = A.ALN_CD
+            AND #{ymd} BETWEEN X.PLCY_BGNG_YMD AND X.PLCY_END_YMD
+        )
+    </update>
 </mapper>

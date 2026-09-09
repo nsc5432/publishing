@@ -345,14 +345,7 @@
                         ORDER BY P.SLF_CHKN_ISTR_ID
                     ) AS DEVICE_NO
                 FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY P
-                WHERE P.PLCY_YMD = (
-                    SELECT NVL(
-                        MAX(CASE WHEN X.PLCY_YMD = #{excnYmd} THEN X.PLCY_YMD END),
-                        MAX(X.PLCY_YMD)
-                    )
-                    FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY X
-                    WHERE X.TMNL_ID = P.TMNL_ID
-                )
+                WHERE #{excnYmd} BETWEEN P.PLCY_BGNG_YMD AND P.PLCY_END_YMD
                 GROUP BY P.TMNL_ID, SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1), P.SLF_CHKN_ISTR_ID
             ) C
                 ON  C.TMNL_ID = I.TMNL_ID
