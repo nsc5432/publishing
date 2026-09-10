@@ -444,6 +444,9 @@ CAST 진입점 prefix 는 `/castrest/rest/json` 이다.
 `P01SBD` / `P03SBD` 이고 키오스크가 `P01Self` / `P03Self` 다. 발행(`CastUserSnapshotMapper.xml`)과
 조회(`CastRestMapper.xml`)가 같은 값을 써야 하며, 한쪽만 고치면 블록이 통째로 비거나 뒤바뀐다.
 `SBD` 의 `AirlineCode` 는 `ALN_CD` 가 아니라 **`CHKN_TYPE_DTL_INFO`** 에서 나온다.
+일일 `SBD001` 의 백드롭 운영시각은 운항편 출발시각에서
+`TN_PM_SBD_OPER_PLCY.SBD_STRT_HR` / `SBD_END_HR`(출발 전 시간)를 빼서 만든다. 항공사별 정책을
+각 운항시각에 먼저 적용한 뒤 카운터별 `MIN` / `MAX` 를 구해야 한다.
 
 PropertySet은 `TN_PM_SMLT_FIX_ATRB_GROUP`과 `TN_PM_SMLT_{PSG,SHOW_UP,SRVC}_ATRB`를 사용하고,
 시설운영 GenericTable은 각 시설운영 `MSTR/ATRB`를 사용한다. 결과의 일일/사용자 구분은 `001`이

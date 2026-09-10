@@ -1150,8 +1150,14 @@ ORDER BY
                         WHEN CIC.DOM_INTL_SE_CD = 'I' THEN 'Int'
                         ELSE 'Dom'
                     END                                       AS DomStatus        -- 국내국제구분코드
-                    , TO_CHAR(TO_DATE(MIN(GD.OPEN_TM), 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD"T"HH24:MI:SS".000"')                            AS t1
-                    , TO_CHAR(TO_DATE(MAX(GD.CLOSE_TM), 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD"T"HH24:MI:SS".000"')                           AS t2
+                    , TO_CHAR(
+                        MIN(GD.FIRST_FLT_DT - PLCY.SBD_STRT_HR / 24),
+                        'YYYY-MM-DD"T"HH24:MI:SS".000"'
+                    ) AS t1
+                    , TO_CHAR(
+                        MAX(GD.LAST_FLT_DT - PLCY.SBD_END_HR / 24),
+                        'YYYY-MM-DD"T"HH24:MI:SS".000"'
+                    ) AS t2
                 FROM CAOWN.TN_CA_CKNCT CIC
                     LEFT JOIN PMOWN.TN_PM_SBD_OPER_PLCY PLCY
                     ON CIC.TMNL_ID = PLCY.TMNL_ID
@@ -1161,8 +1167,8 @@ ORDER BY
                                     A.GD_SE_YMD AS GD_SE_DT
                                     , A.TMNL_ID AS TER_ID
                                     , A.ALN_CD
-                                    , MIN(TO_CHAR(TO_DATE(A.GD_SE_YMD || A.SCHDL_HM, 'YYYYMMDDHH24MISS') - 5/24, 'YYYYMMDDHH24MISS')) AS OPEN_TM
-                                    , MAX(TO_CHAR(TO_DATE(A.GD_SE_YMD || A.SCHDL_HM, 'YYYYMMDDHH24MISS') - 1/24, 'YYYYMMDDHH24MISS')) AS CLOSE_TM
+                                    , MIN(TO_DATE(A.GD_SE_YMD || A.SCHDL_HM, 'YYYYMMDDHH24MISS')) AS FIRST_FLT_DT
+                                    , MAX(TO_DATE(A.GD_SE_YMD || A.SCHDL_HM, 'YYYYMMDDHH24MISS')) AS LAST_FLT_DT
                                 FROM GOOWN.TN_GO_GD_DATA A
                                 WHERE 1=1
                                 AND A.CSHR_STTS_CD != 'SL'
@@ -1182,7 +1188,7 @@ ORDER BY
                 WHERE 1=1
                 AND CIC.USE_YN = 'Y'
                 AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD = 'H'
-                AND GD.OPEN_TM IS NOT null
+                AND GD.FIRST_FLT_DT IS NOT NULL
                 AND SYSTIMESTAMP BETWEEN TO_TIMESTAMP(PLCY.PLCY_BGNG_DT, 'YYYY-MM-DD HH24:MI:SS') AND TO_TIMESTAMP(PLCY.PLCY_END_DT, 'YYYY-MM-DD HH24:MI:SS')
                 GROUP BY CIC.TMNL_ID, CIC.CKNCT_ID, CIC.DOM_INTL_SE_CD
             ) SBD
