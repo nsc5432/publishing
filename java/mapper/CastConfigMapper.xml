@@ -169,13 +169,13 @@
             ' ' AS DTL_SE_CD,
             NVL(TO_CHAR(A.CKNCT_RT), ' ') AS CKNCT_RT,
             NVL(TO_CHAR(A.KOS_RT), ' ')   AS KOS_RT,
-            NVL(TO_CHAR(A.MOB_RT), ' ')   AS MOB_RT,
+            NVL(TO_CHAR(A.MOBL_RT), ' ')  AS MOB_RT,
             NVL(TO_CHAR(A.SRVC_HR), ' ')  AS SRVC_HR,
             A.ALN_CD AS ATRB_CD_NM,
             ' ' AS DTL_SE_CD_NM,
             'Number' AS CATALOG_VL_TYPE,
             'Y' AS PRE_PRCS_YN
-        FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC A
+        FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB A
         WHERE A.CKNCT_TYPE_ATRB_ID = #{fixAtrbGroupId}
         ORDER BY A.ALN_CD
     </select>

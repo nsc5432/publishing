@@ -74,9 +74,8 @@ public class CastConfigServiceImpl implements CastConfigService {
 	private static final String YN_N = "N";
 	private static final String FRST_REG_DT_PATTERN = "\\d{14}";
 	private static final Set<String> NUMBER_COLUMN_SET =
-			Set.of("MIN_VL", "MAX_VL", "DSTB_MAX_VL", "CKNCT_RT", "KOS_RT", "MOB_RT", "SRVC_HR");
+			Set.of("MIN_VL", "MAX_VL", "DSTB_MAX_VL", "CKNCT_RT", "KOS_RT", "MOBL_RT", "SRVC_HR");
 
-	/** 격자 첫 데이터 행 번호 — 1행은 머리글이다 */
 	private static final int FIRST_DATA_ROW_NO = 2;
 	private static final int FIX_ATRB_GROUP_ID_MAX_LENGTH = 8;
 
@@ -194,7 +193,6 @@ public class CastConfigServiceImpl implements CastConfigService {
 			return new JsonResponse().error("저장할 변경 내용이 없습니다.");
 		}
 
-		// 카테고리 · 시트가 같은 항목끼리 묶어야 행 목록을 한 번만 읽고 행 번호를 맞출 수 있다
 		Map<String, List<CastConfigSaveItemDto>> itemMap = new LinkedHashMap<>();
 
 		for (CastConfigSaveItemDto item : saveDto.getItemList()) {
@@ -954,7 +952,6 @@ public class CastConfigServiceImpl implements CastConfigService {
 		return dataset;
 	}
 
-	// 행이 하나도 없는 시트는 화면에 걸지 않는다
 	private List<CastConfigDatasetSummaryDto> getDatasetList(CastConfigGroup group, TerminalKind tmnlId) {
 		List<CastConfigDatasetSummaryDto> result = new ArrayList<>();
 
@@ -979,14 +976,12 @@ public class CastConfigServiceImpl implements CastConfigService {
 		return result;
 	}
 
-	// 통과하면 null. 검사를 통과한 항목만 targetList 에 쌓는다
 	private JsonResponse appendUpdateTargets(
 			List<UpdateTarget> targetList,
 			CastConfigGroup group,
 			TerminalKind tmnlId,
 			List<CastConfigSaveItemDto> itemList
 	) {
-		// 같은 (카테고리, 시트) 로 묶여 온 항목이라 첫 건의 조건이 목록 전체의 조건이다
 		CastConfigSaveItemDto firstItem = itemList.get(0);
 
 		if (isReservedGroup(firstItem.getFixAtrbGroupId())) {
@@ -1025,7 +1020,6 @@ public class CastConfigServiceImpl implements CastConfigService {
 		return null;
 	}
 
-	// 통과하면 null
 	private JsonResponse validateValue(CastConfigColumnDef column, CastConfigAtrbRawDto row, String value) {
 		if (column.getType() == CastConfigColumnType.NUMBER && !StringUtils.isBlank(value)) {
 			try {
@@ -1035,7 +1029,6 @@ public class CastConfigServiceImpl implements CastConfigService {
 			}
 		}
 
-		// 입력값 컬럼만 카탈로그가 정한 자료형(Integer / Float)을 추가로 지킨다
 		if (!INPT_VL_COLUMN.equals(column.getPhysicalColumn()) || StringUtils.isBlank(value)) {
 			return null;
 		}
@@ -1196,7 +1189,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 				return StringUtils.trimToEmpty(raw.getCknctRt());
 			case "KOS_RT":
 				return StringUtils.trimToEmpty(raw.getKosRt());
-			case "MOB_RT":
+			case "MOBL_RT":
 				return StringUtils.trimToEmpty(raw.getMobRt());
 			case "SRVC_HR":
 				return StringUtils.trimToEmpty(raw.getSrvcHr());
@@ -1229,7 +1222,6 @@ public class CastConfigServiceImpl implements CastConfigService {
 					false
 			);
 		} catch (CannotAcquireLockException e) {
-			// 락 획득 전이라 쓴 것이 없다. 롤백 표시 없이 안내로 돌려보낸다
 			return new PreProcessLock(null, true);
 		}
 	}
@@ -1247,7 +1239,6 @@ public class CastConfigServiceImpl implements CastConfigService {
 				.orElse(null);
 	}
 
-	// 되돌리기·복사가 다루는 것은 사용자가 고칠 수 있는 열뿐이다
 	private List<String> getValueColumnList(CastConfigSheet sheet) {
 		return sheet.getColumnList().stream()
 				.filter(CastConfigColumnDef::isEditable)

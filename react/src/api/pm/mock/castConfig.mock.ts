@@ -72,7 +72,7 @@ const PRE_PRCS_CATEGORY_ID = '999';
 
 const CKNCT_TYPE_SHEET = '체크인유형';
 const CKNCT_TYPE_VALUE_COLUMNS = ['카운터비율', '키오스크비율', '모바일비율'];
-const TABLE_BY_SHEET: Record<string, string> = { [CKNCT_TYPE_SHEET]: 'TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC' };
+const TABLE_BY_SHEET: Record<string, string> = { [CKNCT_TYPE_SHEET]: 'TN_PM_SMLT_CKNCT_TYPE_ATRB' };
 
 const CATEGORIES: CastConfigCategoryDto[] = [
     {

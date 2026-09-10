@@ -258,6 +258,8 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
 | `001` | 기준정보. CAST 가 `PS001` 로 읽어 가는 **일일 시뮬레이션의 실제 입력** | 화면에서 셀 직접 편집 불가. 운영 반영으로만 바뀐다 |
 | `999` | 전처리 결과. `data-processing/run_pipeline.py` 가 주단위로 전량 교체 | 읽기전용. 화면은 비교·반영에만 쓴다 |
 
+- 체크인유형도 `TN_PM_SMLT_CKNCT_TYPE_ATRB` 하나에서 관리한다. `CKNCT_TYPE_ATRB_ID` 가 카테고리
+  축이며 전처리 결과는 `999`, 운영 기준정보는 `001` 이다. `_PRC` 별도 테이블은 사용하지 않는다.
 - `TN_PM_SMLT_STNG.PRPT_SET_RSRC_ID` 는 CAST 가 결과에 실어 보내는 값을 서버가 **기록만** 하는 칸이다
   (`CastRestMapper.xml#insertSimSet`). 앱에서 일일 시뮬레이션이 쓸 PropertySet 을 바꿔 지정할 수 없고,
   **`001` 의 내용을 바꾸는 길뿐이다.**

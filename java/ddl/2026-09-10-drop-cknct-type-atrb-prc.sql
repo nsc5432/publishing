@@ -1,0 +1,106 @@
+-- =====================================================================================
+-- 체크인유형 속성 단일화: TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC 제거
+-- 2026-09-10
+--
+-- TN_PM_SMLT_CKNCT_TYPE_ATRB 를 단일 원본으로 사용한다.
+-- _PRC 의 최종 상태를 001, 999, 사용자 카테고리 모두 이관한다.
+-- 적용 전에 001 차이를 확인한다. 차이가 있으면 _PRC 값이 새 CAST 운영값이 된다.
+--
+-- SELECT P.ALN_CD,
+--        P.CKNCT_RT AS PRC_CKNCT_RT, A.CKNCT_RT AS ATRB_CKNCT_RT,
+--        P.KOS_RT AS PRC_KOS_RT, A.KOS_RT AS ATRB_KOS_RT,
+--        P.MOB_RT AS PRC_MOB_RT, A.MOBL_RT AS ATRB_MOBL_RT,
+--        P.SRVC_HR AS PRC_SRVC_HR, A.SRVC_HR AS ATRB_SRVC_HR
+--   FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC P
+--   FULL OUTER JOIN PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB A
+--     ON A.CKNCT_TYPE_ATRB_ID = P.CKNCT_TYPE_ATRB_ID
+--    AND A.ALN_CD = P.ALN_CD
+--  WHERE NVL(P.CKNCT_TYPE_ATRB_ID, A.CKNCT_TYPE_ATRB_ID) = '001'
+--  ORDER BY NVL(P.ALN_CD, A.ALN_CD);
+-- =====================================================================================
+
+MERGE INTO PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB T
+USING (
+    SELECT CKNCT_TYPE_ATRB_ID,
+           ALN_CD,
+           CKNCT_RT,
+           CKNCT_VL,
+           KOS_RT,
+           KOS_VL,
+           MOB_RT,
+           MOB_VL,
+           SRVC_HR,
+           FRST_RGTR_ID,
+           FRST_RGTR_IP_ADDR,
+           FRST_REG_DT,
+           LAST_MDFR_ID,
+           LAST_MDFR_IP_ADDR,
+           LAST_MDFCN_DT
+      FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC
+) S
+ON (
+    T.CKNCT_TYPE_ATRB_ID = S.CKNCT_TYPE_ATRB_ID
+    AND T.ALN_CD = S.ALN_CD
+)
+WHEN MATCHED THEN UPDATE SET
+    T.CKNCT_RT = S.CKNCT_RT,
+    T.CKNCT_VL = S.CKNCT_VL,
+    T.KOS_RT = S.KOS_RT,
+    T.KOS_VL = S.KOS_VL,
+    T.MOBL_RT = S.MOB_RT,
+    T.MOBL_VL = S.MOB_VL,
+    T.SRVC_HR = S.SRVC_HR,
+    T.LAST_MDFR_ID = S.LAST_MDFR_ID,
+    T.LAST_MDFR_IP_ADDR = S.LAST_MDFR_IP_ADDR,
+    T.LAST_MDFCN_DT = S.LAST_MDFCN_DT
+WHEN NOT MATCHED THEN INSERT (
+    CKNCT_TYPE_ATRB_ID,
+    ALN_CD,
+    CKNCT_RT,
+    CKNCT_VL,
+    KOS_RT,
+    KOS_VL,
+    MOBL_RT,
+    MOBL_VL,
+    SRVC_HR,
+    FRST_RGTR_ID,
+    FRST_RGTR_IP_ADDR,
+    FRST_REG_DT,
+    LAST_MDFR_ID,
+    LAST_MDFR_IP_ADDR,
+    LAST_MDFCN_DT
+) VALUES (
+    S.CKNCT_TYPE_ATRB_ID,
+    S.ALN_CD,
+    S.CKNCT_RT,
+    S.CKNCT_VL,
+    S.KOS_RT,
+    S.KOS_VL,
+    S.MOB_RT,
+    S.MOB_VL,
+    S.SRVC_HR,
+    S.FRST_RGTR_ID,
+    S.FRST_RGTR_IP_ADDR,
+    S.FRST_REG_DT,
+    S.LAST_MDFR_ID,
+    S.LAST_MDFR_IP_ADDR,
+    S.LAST_MDFCN_DT
+);
+
+UPDATE PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY_DTL D
+   SET D.COLUMN_NM = 'MOBL_RT'
+ WHERE D.COLUMN_NM = 'MOB_RT'
+   AND EXISTS (
+       SELECT 1
+         FROM PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY H
+        WHERE H.APLY_SN = D.APLY_SN
+          AND H.TBL_NM = 'TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC'
+   );
+
+UPDATE PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY
+   SET TBL_NM = 'TN_PM_SMLT_CKNCT_TYPE_ATRB'
+ WHERE TBL_NM = 'TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC';
+
+COMMIT;
+
+DROP TABLE PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC;

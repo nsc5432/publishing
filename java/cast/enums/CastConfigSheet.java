@@ -52,7 +52,7 @@ public enum CastConfigSheet {
 	),
 	CKNCT_TYPE_ATRB(
 			"체크인유형",
-			"TN_PM_SMLT_CKNCT_TYPE_ATRB_PRC",
+			"TN_PM_SMLT_CKNCT_TYPE_ATRB",
 			"CKNCT_TYPE_ATRB_ID",
 			"ALN_CD",
 			"",
@@ -61,7 +61,7 @@ public enum CastConfigSheet {
 			null,
 			CastConfigCatalogKind.CKNCT_TYPE,
 			CastConfigTerminalRule.NONE,
-			List.of("CKNCT_RT", "KOS_RT", "MOB_RT")
+			List.of("CKNCT_RT", "KOS_RT", "MOBL_RT")
 	);
 
 	private final String sheetNm;
@@ -151,12 +151,12 @@ public enum CastConfigSheet {
 	}
 
 	private static List<CastConfigColumnDef> cknctTypeColumns() {
-		// CKNCT_VL/KOS_VL/MOB_VL 은 Counter/Kiosk/Mobile 고정 라벨이라 화면에 내지 않는다
+		// CKNCT_VL/KOS_VL/MOBL_VL 은 Counter/Kiosk/Mobile 고정 라벨이라 화면에 내지 않는다
 		return List.of(
 				column("항공사코드", CastConfigColumnType.READONLY, "ALN_CD", false, true),
 				column("카운터비율", CastConfigColumnType.NUMBER, "CKNCT_RT", true, false),
 				column("키오스크비율", CastConfigColumnType.NUMBER, "KOS_RT", true, false),
-				column("모바일비율", CastConfigColumnType.NUMBER, "MOB_RT", true, false),
+				column("모바일비율", CastConfigColumnType.NUMBER, "MOBL_RT", true, false),
 				column("서비스시간", CastConfigColumnType.NUMBER, "SRVC_HR", true, false)
 		);
 	}

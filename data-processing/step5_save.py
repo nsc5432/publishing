@@ -158,9 +158,6 @@ def _build_island_dg_groups(task: dict, data_dir: str) -> list[tuple[dict, list[
 
 
 def _build_ckin_type_groups(task: dict, data_dir: str) -> list[tuple[dict, list[dict]]]:
-    # 체크인유형
-    # CSV: ALN_CD, CHECKIN_TYPE(CK/SCI/MOBILE), PRIOR, POSTERIOR(0~1 비율)
-    # DB: CKNCT_TYPE_ATRB_ID, ALN_CD, CKNCT_RT, CKNCT_VL, KOS_RT, KOS_VL, MOB_RT, MOB_VL
     df = pd.read_csv(os.path.join(data_dir, task["read_file"]))
     groups = []
     for gid in task["fix_group_ids"]:
@@ -177,8 +174,8 @@ def _build_ckin_type_groups(task: dict, data_dir: str) -> list[tuple[dict, list[
                 "CKNCT_VL": "Counter",
                 "KOS_RT": rounded[1],
                 "KOS_VL": "Kiosk",
-                "MOB_RT": rounded[2],
-                "MOB_VL": "Mobile",
+                "MOBL_RT": rounded[2],
+                "MOBL_VL": "Mobile",
             }]
 
             groups.append((composite_key, values))
