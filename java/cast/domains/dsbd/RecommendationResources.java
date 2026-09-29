@@ -2,6 +2,8 @@ package aoms.pm.cast.domains.dsbd;
 
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * @Classname : RecommendationResources.java
  * @Description : 시설 추천 산정에 쓰는 한 시점의 운영자원 (유닛별 운영 대수, 체크인 대표 항공사)
@@ -17,7 +19,10 @@ import java.util.Map;
  *
  * </pre>
  */
+@Slf4j
 public final class RecommendationResources {
+	private static final String EMPTY = "";
+
 	private final Map<String, Integer> openCountMap;
 	private final Map<String, AssignmentSummary> targetMap;
 	private final String fixedTargetName;
@@ -42,14 +47,12 @@ public final class RecommendationResources {
 		}
 
 		AssignmentSummary target = targetMap.get(unitCd);
-		if (target == null || target.getAlnCd().isEmpty()) {
-			throw new IllegalStateException("체크인 항공사 배정정보를 찾을 수 없습니다. " + context);
+		// 빈 이름은 호출부에서 '배정 대상 없음'(needAssignYn=N)으로 읽힌다
+		if (target == null) {
+			log.warn("체크인 항공사 배정정보가 없어 추천 대상을 비웁니다. {}", context);
+			return EMPTY;
 		}
 
-		if (target.getAlnNm().isEmpty()) {
-			throw new IllegalStateException("체크인 항공사명을 찾을 수 없습니다. " + context + ", alnCd=" + target.getAlnCd());
-		}
-
-		return target.getAlnNm();
+		return target.getAlnNm().isEmpty() ? target.getAlnCd() : target.getAlnNm();
 	}
 }
