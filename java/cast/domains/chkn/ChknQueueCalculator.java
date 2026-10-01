@@ -5,6 +5,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.List;
@@ -46,7 +47,7 @@ public final class ChknQueueCalculator {
 	) {
 		int[] queue = new int[MINUTE_PER_DAY];
 		int[] processed = new int[MINUTE_PER_DAY];
-		int[] boothCnt = new int[MINUTE_PER_DAY];
+		int[] boothCnt = Arrays.copyOf(assignedBoothCnt, MINUTE_PER_DAY);
 		int[] capacity = new int[MINUTE_PER_DAY];
 		long[] waitMinSum = new long[MINUTE_PER_DAY];
 		long[] prcsSecSum = new long[MINUTE_PER_DAY];
@@ -55,10 +56,6 @@ public final class ChknQueueCalculator {
 
 		List<ChknQueueInterval> sortedList = new ArrayList<>(intervalList);
 		sortedList.sort(Comparator.comparingInt(ChknQueueInterval::getBgnMinute));
-
-		for (int minute = 0; minute < MINUTE_PER_DAY; minute++) {
-			boothCnt[minute] = assignedBoothCnt[minute];
-		}
 
 		Deque<int[]> cohortQueue = new ArrayDeque<>();
 		BigDecimal carry = BigDecimal.ZERO;
@@ -172,7 +169,6 @@ public final class ChknQueueCalculator {
 				.intValueExact();
 	}
 
-	/** 원천 → 같은 아일랜드 최근 60분 가중평균 → 터미널 가중평균 순으로 찾는다 */
 	private static BigDecimal resolvePrcsSec(
 			List<ChknQueueInterval> intervalList, int index, BigDecimal tmnlAvgPrcsSec) {
 		ChknQueueInterval interval = intervalList.get(index);

@@ -54,17 +54,16 @@ public final class ChknQueueSeries {
 			List<String> warningList
 	) {
 		this.island = island;
-		this.queue = queue;
-		this.processed = processed;
-		this.boothCnt = boothCnt;
-		this.capacity = capacity;
-		this.waitMinSum = waitMinSum;
-		this.prcsSecSum = prcsSecSum;
-		this.waitDistribution = waitDistribution;
+		this.queue = queue.clone();
+		this.processed = processed.clone();
+		this.boothCnt = boothCnt.clone();
+		this.capacity = capacity.clone();
+		this.waitMinSum = waitMinSum.clone();
+		this.prcsSecSum = prcsSecSum.clone();
+		this.waitDistribution = waitDistribution.clone();
 		this.warningList = warningList;
 	}
 
-	/** 여러 아일랜드를 한 줄로 합친다 — 터미널 지표와 차트가 같은 궤적을 본다 */
 	public static ChknQueueSeries merge(String island, List<ChknQueueSeries> seriesList) {
 		int[] queue = new int[MINUTE_PER_DAY];
 		int[] processed = new int[MINUTE_PER_DAY];
@@ -149,7 +148,6 @@ public final class ChknQueueSeries {
 				boothCnt[end - 1]);
 	}
 
-	/** 선택 시각부터 spanMin 분까지의 Queue 궤적 — 부스 추천이 읽는다 */
 	public List<FcltRecommendationCalculator.QueuePoint> trajectoryOf(int bgnMinute, int spanMin) {
 		List<FcltRecommendationCalculator.QueuePoint> result = new ArrayList<>();
 		int bgn = Math.max(bgnMinute, 0);
@@ -162,13 +160,6 @@ public final class ChknQueueSeries {
 		return result;
 	}
 
-	/**
-	 * 부스 1대의 분당 처리량. 구간 전체의 처리용량을 부스·분으로 나눠 한 분의 흔들림을 지운다.
-	 * 문을 연 부스가 없으면 산정할 수 없어 null 이다.
-	 *
-	 * 처리용량이 0 인 분은 빼고 센다 — 결과가 아직 없는 시각은 부스만 배정돼 있어
-	 * 함께 세면 실제로 낼 수 있는 처리량이 낮게 잡힌다.
-	 */
 	public BigDecimal serviceRateOf(int bgnMinute, int spanMin) {
 		int bgn = Math.max(bgnMinute, 0);
 		int end = Math.min(bgnMinute + spanMin, MINUTE_PER_DAY);
@@ -176,6 +167,7 @@ public final class ChknQueueSeries {
 		long boothMinuteSum = 0;
 
 		for (int minute = bgn; minute < end; minute++) {
+			// 결과가 아직 없는 시각은 부스만 배정돼 있어 함께 세면 처리량이 낮게 잡힌다
 			if (capacity[minute] <= 0) {
 				continue;
 			}
