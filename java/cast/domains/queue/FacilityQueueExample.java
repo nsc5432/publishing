@@ -16,8 +16,20 @@ public final class FacilityQueueExample {
     private FacilityQueueExample() { }
 
     public static void main(String[] args) {
-        // 식별 단위는 'T1 체크인 C 아일랜드의 Queue 3'이다. 다른 큐는 별도 객체로 만든다.
-        // 종료 시각을 생략하면 시작부터 10분이다. 평균 인원과 종료 스냅샷은 다른 필드에 넣는다.
+        /*
+         * TODO Xovis 실데이터 연계 시 조회 리스트를 보정한 뒤 집계·도메인 객체 생성에 전달한다.
+         * - refineOutPaxCntDesk(List<XovisDataDto>)는 ISLAND=L, DESKTYPE=Desk만 보정한다.
+         * - 원본 DTO는 보존하고 보정한 사본 리스트를 반환한다.
+         * - TERMINAL/ISLAND/DESKNAME/DESKTYPE별로 OCCURTIME을 정렬하고 중복 시점을 검증한다.
+         *   배정에 따라 바뀌는 QUEID는 물리적 Desk의 시계열을 나누는 키로 사용하지 않는다.
+         * - 연속된 10분 자료의 TOTALPAXCNTDESK 차분을 OUTPAXCNTDESK에 반영한다.
+         *   누적값이 0이거나 DESKOPEN=0인 행도 이전값 비교에 포함한다.
+         * - 조회 시작 전 10분을 추가 조회해 첫 시점을 계산한 뒤 추가 조회분은 반환에서 제외한다.
+         * - 이전값 없음, 누적값 결측, 시점 누락·중복, 누적값 감소는 미산출로 구분한다.
+         *   감소분을 0으로 덮지 않고 초기화·정정 여부를 확인한다.
+         * - 날짜 변경만으로 기준값을 초기화하지 않는다. 관측 자료는 00:10에 누적값이 초기화됐다.
+         * - L 외 행은 그대로 유지한다. B03의 00:00 처리량 이상은 별도 검증 대상으로 남긴다.
+         */
         FacilityQueueMetrics metrics = FacilityQueueMetrics.builder()
                 .tmnlId("T1")
                 .fcltType("CHKN")
@@ -32,7 +44,6 @@ public final class FacilityQueueExample {
                 .samePassengerPopulation(true)
                 .build();
 
-        // 유입률을 별도로 주지 않았으므로 Little's Law를 명시적으로 허용한다.
         // Lq=30명, Wq=600초 → lambda=180명/시간. S=120초 → mu=30명/시간/시설.
         // 동일 속도 8개 시설이 이 큐를 공유하고 앞으로도 조건이 일정하다고 가정한다.
         FacilityQueueContext current = FacilityQueueContext.builder()
@@ -59,13 +70,10 @@ public final class FacilityQueueExample {
         print("구간 유입인원(명), 기대값 30", metrics.estimateArrivalPsgCnt(current));
         print("40명에서 10명까지 해소(초), 기대값 1800", metrics.estimateClearTimeSec(current, 10));
 
-        // 10분 안에 40→10명으로 줄이려면 총 12개, 현재 8개보다 추가 4개가 필요하다.
-        // 최대 10개만 배정할 수 있으므로 해당 목표의 실현 가능성은 false이다.
         print("10분 목표 필요 총 수, 기대값 12", metrics.estimateRequiredServerCnt(current, 10, 600));
         print("10분 목표 추가 수, 기대값 4", metrics.estimateAdditionalServerCnt(current, 10, 600));
         print("보유 시설로 목표 달성 가능, 기대값 false", metrics.assessCapacityFeasibility(current, 10, 600));
 
-        // 같은 관측값에 시설 6개 조건을 적용하면 C=lambda=180이라 현재 큐가 줄지 않는다.
         FacilityQueueContext overloaded = FacilityQueueContext.builder()
                 .oprServerCnt(6)
                 .arrivalRatePerHour(180.0)
@@ -74,7 +82,6 @@ public final class FacilityQueueExample {
                 .build();
         print("처리능력=유입률이면 해소 불가", metrics.estimateClearTimeSec(overloaded, 10));
 
-        // 모형 가정을 확인하지 않으면 플래그는 기본 false이며 추정값을 임의로 만들지 않는다.
         print("가정 미확인 시 유입 추정 불가",
                 metrics.estimateArrivalRatePerHour(FacilityQueueContext.builder().build()));
 
@@ -98,7 +105,6 @@ public final class FacilityQueueExample {
         }
     }
 
-    /** 숫자뿐 아니라 상태·방법·사유도 출력해 직접 계산과 추정을 구분하며 읽는다. */
     private static void print(String label, MetricResult<?> result) {
         System.out.println(label + ": " + result);
     }
