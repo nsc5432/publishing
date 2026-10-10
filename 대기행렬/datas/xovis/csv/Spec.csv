@@ -1,0 +1,67 @@
+﻿Row,Field Name,ESB DB Field Name,Key,Type,Size,Lang,MVD Index,Encryption,Description,한글명
+60,Occur DateTime,occurTime,X,VARCHAR,12,,,,"여객흐름 데이터 생성시간
+(YYYYMMDDHH24MI) :10분주기
+Ex) ""202012250900""
+20년 12월 25일 08시 59분 00초
+ ~20년 12월 25일 08시 59분 59초
+간 데이터 대상",여객흐름생성시간
+61,Terminal,terminal,X,VARCHAR,4,,,,"체크인 카운터가 위치한 터미널
+- IIS MVD (IIS_Terminal ID)
+- 1터미널만 발생(P01)",터미널아이디
+62,Island,island,X,VARCHAR,2,,,,"아일랜드
+- 값: A ~ N",아일랜드코드
+63,Desk Name,deskName,X,VARCHAR,30,,,,"DESK, QUEUE의 이름
+DESK : 체크인카운터
+- IIS MVD (Checkin Counter)
+- Ex) B01, B02
+QUEUE : 할당된 Airline명
+- Airline코드 + 알파 (미정)
+- Ex) 항공사코드+클래스",데스크명
+64,Desk Type,deskType,X,VARCHAR,10,E,,,"데이터 타입, Desk, Queue",데스크유형
+65,Queue Id,queID,,VARCHAR,4,,,,대기열 ID,대기열아이디
+66,Queue Length,queLength,,VARCHAR,4,,,,"대기열 길이(단위 : 명)
+-Type값이 Queue인 경우만 제공",대기열길이
+67,Waiting Time,waitTime,,VARCHAR,5,,,,"대기시간
+-현재 대기열을 떠나는 여객이 대기열에서 대기한 시간(단위 : Sec)
+-Type값이 Queue인 경우만 제공",대기시간
+68,Expect Waiting Time,exptWaitTime,,VARCHAR,5,,,,"예상대기시간(초단기예측)
+-현재 대기열에 진입하는 여객의 예상대기시간 (단위 : Sec)
+-Type값이 Queue인 경우만 제공",예상대기시간
+69,Historical Waiting Time,histWaitTime,,VARCHAR,5,,,,"예상대기시간(이력)
+-현재 대기열에 진입하는 여객이 대기해야 할 시간(단위 : Sec)
+-Type값이 Queue인 경우만 제공",예상대기시간이력
+70,Outflow Rate_Queue,outRateQueue,,VARCHAR,4,,,,"대기열의 시간당 여객 유출 속도
+(단위 : PAX/h)
+-Type값이 Queue인 경우만 제공",여객진출속도
+71,Outflow or InFlow Pax Count,outInPaxCnt,,VARCHAR,4,,,,"대기열 유출 혹은 Desk 유입 여객수
+(단위 : 명)
+- Queue : 대기열을 떠난 여객 수
+- Desk : Desk 별 유입 여객 수",진출진입여객수
+72,OverFlow Pax Remark,overPaxRem,,VARCHAR,40,,,,"OVERFLOW 생성여부
+(생성시 저장된 TEXT)
+-Type값이 Queue인 경우만 제공",오버플로생성내용
+73,Allocated Counter,allocCnter,,CHAR,1,,,,"대기열의 DESK 할당 여부
+( 0 : unallocated, 1 : allocated )
+-Type값이 Queue인 경우만 제공",데스크할당여부
+74,Allocated Airline,allocArln,,CHAR,1,,,,"Desk의 Airline 할당 여부
+( 0 : unallocated, 1 : allocated )
+-Type값이 Desk인 경우만 제공",데스크항공사할당여부
+75,DeskOpen,deskOpen,,CHAR,1,,,,"DESK 사용 여부
+(0 : 미사용, 1 : 사용)
+-Type값이 Desk인 경우만 제공",데스크사용여부
+76,OutFlow Rate_Desk,outRateDesk,,VARCHAR,4,,,,"데스크의 시간당 여객 유출 속도
+(단위 : PAX/h)
+-Type값이 Desk인 경우만 제공",데스크여객진출속도
+77,Open Time,openTime,,VARCHAR,5,,,,"일일누적 사용시간
+(단위 : Sec)
+-Type값이 Desk인 경우만 제공",일누적사용시간
+78,Outflow Pax Count_Desk,outPaxCntDesk,,VARCHAR,4,,,,"Desk를 떠난 여객의 수(10분 누적)
+(단위 : 명)
+-Type값이 Desk인 경우만 제공",데스크진출여객수
+79,Total Pax Count_Desk,totalPaxCntDesk,,VARCHAR,4,,,,"일일누적 여객수
+(단위 : 명)
+-Type값이 Desk인 경우만 제공",일누적여객수
+80,Processing Time,procTime,,VARCHAR,5,,,,"업무처리시간
+(단위 : Sec)
+-Type값이 Desk인 경우만 제공",업무처리시간
+81,Reference Column 1,refCol1,,VARCHAR,20,,,,예비 컬럼,예비필드1
