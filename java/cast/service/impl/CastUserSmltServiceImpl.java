@@ -57,7 +57,6 @@ import lombok.RequiredArgsConstructor;
 @Transactional(rollbackFor = Exception.class)
 public class CastUserSmltServiceImpl implements CastUserSmltService {
 	private static final String EMPTY = "";
-	// CAST 가 WhatIfRunID 로 읽어 간다. (SMLT_ID, SMLT_FLFMT_SN) 에서 결정론적으로 나온다
 	private static final String REQ_ID_PREFIX = "WI";
 	private static final int REQ_ID_SN_WIDTH = 4;
 
@@ -156,8 +155,6 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 		return result;
 	}
 
-	// 같은 일자에 여러 건이면 가장 최근 것을 편집 대상으로 잡는다.
-	// 실행 세트는 공항 전체라 터미널로 거르지 않는다 — T1·T2 화면이 같은 draft 를 나눠 편집한다
 	private String retrieveSmltId(String ymd, SmltType smltType) {
 		SmltStngSearchDto stngSearchDto = new SmltStngSearchDto();
 		stngSearchDto.setExcnYmd(ymd);
@@ -169,7 +166,6 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 				.orElse(null);
 	}
 
-	// 미수행이면 '' 다. 수행한 적이 있으면 마지막 이력의 상태를 그대로 쓴다
 	private String toExecStatus(SmltExcnDto lastFlfmt) {
 		if (lastFlfmt == null) {
 			return EMPTY;
@@ -246,13 +242,7 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 		return result;
 	}
 
-	private UserSmltReqDto getUserReq(
-			UserSmltExecSearchDto searchDto,
-			String smltReqId,
-			int smltFlfmtSn,
-			String excnYmd,
-			UserSmltRsrcSnapshotDto snapshot
-	) {
+	private UserSmltReqDto getUserReq(UserSmltExecSearchDto searchDto, String smltReqId, int smltFlfmtSn, String excnYmd, UserSmltRsrcSnapshotDto snapshot) {
 		UserSmltReqDto result = new UserSmltReqDto();
 		SessionUtils.setUserContext(result, sessionService);
 

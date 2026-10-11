@@ -49,11 +49,7 @@ public final class CgnGradeScale {
 				throw new IllegalStateException("혼잡등급 기준정보가 중복되었습니다. " + context + ", psgPrcsGrdCd=" + gradeCode);
 			}
 
-			try {
-				CongestionStatus.ofGradeCode(gradeCode);
-			} catch (RuntimeException exception) {
-				throw new IllegalStateException("혼잡등급 코드가 올바르지 않습니다. " + context + ", psgPrcsGrdCd=" + gradeCode, exception);
-			}
+			CongestionStatus.ofGradeCode(gradeCode);
 
 			validateRange(grade, context);
 		}

@@ -12,7 +12,7 @@ import aoms.pm.cast.service.FcltRecommendationCalculator;
 
 /**
  * @Classname : ChknQueueDay.java
- * @Description : 터미널 하루치 공용 Queue — 대시보드 · 맵형태보기 · 체크인 상세가 함께 읽는다
+ * @Description : 체크인 하루치 Queue
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
@@ -26,12 +26,8 @@ import aoms.pm.cast.service.FcltRecommendationCalculator;
  * </pre>
  */
 public final class ChknQueueDay {
-	/** 추천 궤적 구간 — 선택 시각부터 향후 60분 */
 	public static final int RECOMMEND_SPAN_MIN = 60;
-
-	/** 부스를 더 열기까지 걸리는 시간. 이 앞의 피크는 어떤 수량으로도 막지 못한다 (대시보드와 같은 값) */
 	private static final int RECOMMEND_LEAD_MIN = 10;
-
 	private static final String TMNL_ISLAND = "*";
 
 	private final Map<String, ChknQueueSeries> seriesMap;
@@ -66,13 +62,6 @@ public final class ChknQueueDay {
 		return tmnlSeries.getWarningList();
 	}
 
-	/**
-	 * 선택 슬롯의 Queue 를 향후 60분 안에 NORMAL 이하로 만드는 총 소요 부스 수.
-	 * 운영 부스나 서비스율이 없어 산정할 수 없으면 값이 비어 화면이 '-' 로 그린다.
-	 *
-	 * 궤적은 슬롯 시작이 아니라 화면이 보여주는 값(구간 마지막 분의 Queue)에서 출발한다.
-	 * 슬롯 시작에서 재면 아직 쌓이기 전이라 이미 해소된 것처럼 보인다.
-	 */
 	public ChknQueueRecommend recommendOf(String island, int bgnMinute, int slotMin) {
 		ChknQueueSeries series = seriesMap.get(island);
 
@@ -99,7 +88,8 @@ public final class ChknQueueDay {
 					serviceRate,
 					gradeScale.getNormalMax(),
 					openCount,
-					trajectory);
+					trajectory
+			);
 
 			return new ChknQueueRecommend(result.getReqCnt(), result.getClearMinutes());
 		} catch (IllegalArgumentException | IllegalStateException exception) {

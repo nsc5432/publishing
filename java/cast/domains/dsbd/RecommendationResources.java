@@ -6,7 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * @Classname : RecommendationResources.java
- * @Description : 시설 추천 산정에 쓰는 한 시점의 운영자원 (유닛별 운영 대수, 체크인 대표 항공사)
+ * @Description : 시설 추천에 필요한 자원
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
@@ -22,16 +22,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class RecommendationResources {
 	private static final String EMPTY = "";
-
 	private final Map<String, Integer> openCountMap;
 	private final Map<String, AssignmentSummary> targetMap;
 	private final String fixedTargetName;
 
-	public RecommendationResources(
-			Map<String, Integer> openCountMap,
-			Map<String, AssignmentSummary> targetMap,
-			String fixedTargetName
-	) {
+	public RecommendationResources(Map<String, Integer> openCountMap, Map<String, AssignmentSummary> targetMap, String fixedTargetName) {
 		this.openCountMap = openCountMap;
 		this.targetMap = targetMap;
 		this.fixedTargetName = fixedTargetName;
@@ -47,9 +42,9 @@ public final class RecommendationResources {
 		}
 
 		AssignmentSummary target = targetMap.get(unitCd);
-		// 빈 이름은 호출부에서 '배정 대상 없음'(needAssignYn=N)으로 읽힌다
+
 		if (target == null) {
-			log.warn("체크인 항공사 배정정보가 없어 추천 대상을 비웁니다. {}", context);
+			log.warn("체크인 항공사 배정정보가 없어 추천 대상을 비움: {}", context);
 			return EMPTY;
 		}
 

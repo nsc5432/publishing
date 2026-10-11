@@ -32,19 +32,10 @@ import aoms.pm.cast.dto.WaitPsgDto;
 public interface CastSmltMapper {
 	List<SmltStngDto> retrieveSmltStng(SmltStngSearchDto searchDto);
 
-	List<WaitPsgDto> retrieveWaitPsgList(
-			@Param("smltId") String smltId,
-			@Param("tmnlId") String tmnlId,
-			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
-	);
+	List<WaitPsgDto> retrieveWaitPsgList(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId, @Param("upPsgFcltCdList") List<String> upPsgFcltCdList);
 
-	SmltKpiRawDto retrieveSmltKpiRaw(
-			@Param("smltId") String smltId,
-			@Param("tmnlId") String tmnlId,
-			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
-	);
+	SmltKpiRawDto retrieveSmltKpiRaw(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId, @Param("upPsgFcltCdList") List<String> upPsgFcltCdList);
 
-	/** 운항·체크인·출국장 세 영역이 각각 저장돼 있는지 본다. 하나라도 비면 0 */
 	int retrieveUserSmltCondFilledCnt(@Param("smltId") String smltId);
 
 	String retrieveUserSmltSaveDt(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
@@ -53,13 +44,8 @@ public interface CastSmltMapper {
 
 	void insertSmltFlfmtHstry(SmltExcnDto dto);
 
-	int updateSmltFlfmtClosed(
-			@Param("smltId") String smltId,
-			@Param("smltFlfmtSn") int smltFlfmtSn,
-			@Param("smltFlfmtSttsCd") String smltFlfmtSttsCd
-	);
+	int updateSmltFlfmtClosed(@Param("smltId") String smltId, @Param("smltFlfmtSn") int smltFlfmtSn, @Param("smltFlfmtSttsCd") String smltFlfmtSttsCd);
 
-	/** smltFlfmtSn 을 주면 그 회차를, null 이면 가장 최근 회차 1건을 준다. */
 	SmltExcnDto retrieveSmltFlfmt(@Param("smltId") String smltId, @Param("smltFlfmtSn") Integer smltFlfmtSn);
 
 	List<SmltExcnDto> retrieveSmltFlfmtList(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);

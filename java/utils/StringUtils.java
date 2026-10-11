@@ -9,7 +9,7 @@ public class StringUtils {
 	}
 
 	public static boolean isBlank(String value) {
-		return value == null || value.trim().isEmpty();
+		return value == null || value.isEmpty();
 	}
 
 	public static String trimToEmpty(String value) {

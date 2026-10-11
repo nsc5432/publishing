@@ -18,10 +18,5 @@ import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto;
  * </pre>
  */
 public interface CastUserSnapshotService {
-	/*
-	 * 실행 시점의 draft 를 CAST 리소스로 굳힌다. 이후 draft 가 바뀌어도 발행분은 변하지 않는다.
-	 * 한 리소스 세트에 T1·T2 draft 가 함께 들어간다 — CAST 는 공항 전체를 한 번에 돌린다.
-	 * 호출자(실행 등록)의 트랜잭션에 참여하므로 등록이 실패하면 발행분도 함께 롤백된다.
-	 */
 	UserSmltRsrcSnapshotDto publish(String smltId, String excnYmd);
 }

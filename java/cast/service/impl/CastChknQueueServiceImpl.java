@@ -71,10 +71,8 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 		String context = "smltId=" + smltId + ", tmnlId=" + tmnlId.getValue();
 
-		List<ChknQueueRawDto> rawList =
-				castChknMapper.retrieveChknQueueRawList(smltId, fcltTmnlId, QUEUE_UP_PSG_FCLT_CD);
-		Map<String, List<UserConfigChknDto>> boothMap =
-				castUserConfigService.retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
+		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(smltId, fcltTmnlId, QUEUE_UP_PSG_FCLT_CD);
+		Map<String, List<UserConfigChknDto>> boothMap = castUserConfigService.retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
 
 		LocalDate baseDate = LocalDate.parse(excnYmd, DateTimeFormatter.ofPattern(YMD_FORMAT));
 		Map<String, Map<Integer, List<ChknQueueRawDto>>> islandRawMap = groupByIslandAndMinute(rawList, baseDate);
@@ -83,11 +81,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		Map<String, ChknQueueSeries> seriesMap = new LinkedHashMap<>();
 
 		for (String island : islandCdList(boothMap, islandRawMap)) {
-			seriesMap.put(island, ChknQueueCalculator.calculate(
-					island,
-					toIntervalList(islandRawMap.getOrDefault(island, Map.of())),
-					toAssignedBoothCnt(boothMap.get(island)),
-					tmnlAvgPrcsSec));
+			seriesMap.put(island, ChknQueueCalculator.calculate(island, toIntervalList(islandRawMap.getOrDefault(island, Map.of())), toAssignedBoothCnt(boothMap.get(island)), tmnlAvgPrcsSec));
 		}
 
 		ChknQueueDay result = new ChknQueueDay(seriesMap, castCgnGradeService.retrieveGradeScale(FcltType.CHKN, context));

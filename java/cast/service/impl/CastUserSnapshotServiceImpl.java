@@ -60,11 +60,7 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 		return snapshot;
 	}
 
-	private UserSmltRsrcSnapshotDto getSnapshot(
-			String smltId,
-			String excnYmd,
-			SmltStngDto dailyStng
-	) {
+	private UserSmltRsrcSnapshotDto getSnapshot(String smltId, String excnYmd, SmltStngDto dailyStng) {
 		UserSmltRsrcSnapshotDto result = new UserSmltRsrcSnapshotDto();
 		SessionUtils.setUserContext(result, sessionService);
 

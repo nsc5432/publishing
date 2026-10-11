@@ -525,9 +525,10 @@ CAST에 요구하지 않는다.
 
 1. **`ddl/2026-08-27-user-smlt-alter.sql` 은 적용 전이다.** mapper 를 기준으로 썼으므로
    실 스키마를 `ALL_TAB_COLUMNS` 로 조회해 §11.7 의 불일치를 먼저 확정해야 한다.
-2. FS snapshot 의 `GOOWN.TN_GO_GD_DATA` 원천에서 **부속 컬럼 9종**(`ALN_CTGRY`, `GATE_TYPE`,
-   `SLF_CHKN_PSBLTY_YN` 등)을 확인하지 못해 NULL 로 둔다. `CastUserSnapshotMapper.xml` 상단
-   TODO 에 나열돼 있다. 일일 리소스가 `FSxxx` 면 전 컬럼 복사라 해당 없다.
+2. FS snapshot(`insertSchdlAtrbFromDaily`)은 `GOOWN.TN_GO_GD_DATA` 원천에서 **부속 컬럼 9종**을
+   확인하지 못해 NULL 로 둔다 — `ALN_CTGRY` · `DALY_FLTSH_ID` · `GATE_TYPE` · `CKNCT_RANGE_CN` ·
+   `SLF_CHKN_PSBLTY_YN` · `BUS_NEED_YN` · `WAYO_ID` · `FRST_BAG_INPUT_DT` · `LAST_BAG_INPUT_DT`.
+   일일 리소스가 `FSxxx` 면 `insertSchdlAtrbFromSrc` 가 전 컬럼을 복사하므로 해당 없다.
 3. SBD snapshot 의 키오스크(`KOS_CNT`)는 `TN_PM_SLF_CHKN_OPER_PLCY` 에서 발행하지만,
    그 테이블에 아일랜드 컬럼이 없어 `SLF_CHKN_ISTR_ID` 앞 한 자를 아일랜드로 가정한다.
    실 기기 ID 체계가 다르면 키오스크가 0건으로 발행된다. `TN_PM_SMLT_SBD_ATRB.CKNCT_ID` 가

@@ -10,20 +10,16 @@ import lombok.Setter;
 public class UserSmltRsrcSnapshotDto extends AomsDefaultDto {
 	private static final long serialVersionUID = 1L;
 
-	// FS · CA · SBD · 시설운영이 공유하는 리소스 번호 (002~999)
 	private String rsrcNo;
-
 	private String smltId;
 	private String excnYmd;
 
-	// 사용자 조건으로 새로 발행한 리소스
 	private String fltSchdlRsrcId; // FS002
 	private String cknctAlctnRsrcId; // CA002
 	private String sbdCntrlAlctnId; // SBD002
 	private String fcltyOpngDptcnySrngRsrcId; // FacilityOpeningTable_DepartureGate002
 	private String fcltyOpngScrtyCntrlRsrcId; // FacilityOpeningTable_SecurityControl002
 
-	// 사용자가 편집하지 않아 일일 설정에서 그대로 승계한 리소스
 	private String mdlRsrcId;
 	private String prptStngRsrcId;
 	private String cknctSrvcHrRsrcId;
@@ -32,7 +28,5 @@ public class UserSmltRsrcSnapshotDto extends AomsDefaultDto {
 	private String fcltyOpngDptcnyRsrcId;
 	private String fcltyOpngEntcnyRsrcId;
 	private String fcltyOpngTrScrtyCntrlRsrcId;
-
-	// 조정률 적용 대상 원천. FS001 이면 운영계에서, 아니면 기존 스케줄 리소스에서 복사한다
 	private String srcFltSchdlRsrcId;
 }

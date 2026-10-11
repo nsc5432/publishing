@@ -66,15 +66,13 @@ public class CastConfigServiceImpl implements CastConfigService {
 	private static final String BASE_FIX_ATRB_GROUP_ID = "001";
 	private static final String PRE_PRCS_FIX_ATRB_GROUP_ID = "999";
 	private static final String INPT_VL_COLUMN = "INPT_VL";
-	private static final String PRE_PRCS_BUSY_MESSAGE =
-			"전처리 결과가 갱신 중입니다. 잠시 후 다시 시도해 주세요.";
+	private static final String PRE_PRCS_BUSY_MESSAGE = "전처리 결과가 갱신 중입니다. 잠시 후 다시 시도해 주세요.";
 	private static final String VL_TYPE_INTEGER = "Integer";
 	private static final String VL_TYPE_FLOAT = "Float";
 	private static final String YN_Y = "Y";
 	private static final String YN_N = "N";
 	private static final String FRST_REG_DT_PATTERN = "\\d{14}";
-	private static final Set<String> NUMBER_COLUMN_SET =
-			Set.of("MIN_VL", "MAX_VL", "DSTB_MAX_VL", "CKNCT_RT", "KOS_RT", "MOBL_RT", "SRVC_HR");
+	private static final Set<String> NUMBER_COLUMN_SET = Set.of("MIN_VL", "MAX_VL", "DSTB_MAX_VL", "CKNCT_RT", "KOS_RT", "MOB_RT", "SRVC_HR");
 
 	private static final int FIRST_DATA_ROW_NO = 2;
 	private static final int FIX_ATRB_GROUP_ID_MAX_LENGTH = 8;
@@ -1212,23 +1210,16 @@ public class CastConfigServiceImpl implements CastConfigService {
 		return result;
 	}
 
-	// 주간 파이프라인이 999 를 갈아 끼우는 동안 이 행을 잡고 있다. 무한 대기하면 요청
-	// 스레드가 그대로 묶여 FOR UPDATE WAIT 3 으로 끊는다.
-	// 대기 초과 예외 타입은 Tibero 드라이버 확정 전이다 — 안 걸리면 DataAccessException 으로 넓힌다.
 	private PreProcessLock lockPreProcessCategory() {
 		try {
-			return new PreProcessLock(
-					castConfigMapper.retrieveCategoryForUpdate(PRE_PRCS_FIX_ATRB_GROUP_ID),
-					false
-			);
+			return new PreProcessLock(castConfigMapper.retrieveCategoryForUpdate(PRE_PRCS_FIX_ATRB_GROUP_ID), false);
 		} catch (CannotAcquireLockException e) {
 			return new PreProcessLock(null, true);
 		}
 	}
 
 	private boolean isReservedGroup(String fixAtrbGroupId) {
-		return BASE_FIX_ATRB_GROUP_ID.equals(fixAtrbGroupId)
-				|| PRE_PRCS_FIX_ATRB_GROUP_ID.equals(fixAtrbGroupId);
+		return BASE_FIX_ATRB_GROUP_ID.equals(fixAtrbGroupId) || PRE_PRCS_FIX_ATRB_GROUP_ID.equals(fixAtrbGroupId);
 	}
 
 	private CastConfigColumnDef findColumnByPhysical(CastConfigSheet sheet, String physicalColumn) {

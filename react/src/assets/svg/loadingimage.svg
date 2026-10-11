@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" width="160" height="160">
+  <style>
+    /* 점들을 품은 그룹: 중앙(60,60)을 기준으로 정밀 회전 */
+    .sk-child-group {
+      transform-origin: 60px 60px;
+    }
+
+    /* 점 자체: 제자리(60,0) 중심축 기준으로 완벽히 대칭 스케일 적용 */
+    .sk-dot {
+      fill: #50c8d9;
+      transform-origin: 60px 0px; 
+      will-change: transform, opacity;
+      animation: sk-circleBounceDelay 2.5s infinite ease-in-out both;
+      animation-delay: var(--delay);
+    }
+    
+    /* 비행기 회전: 점들과 똑같이 (60,60) 중심축을 공유하여 기하학적 일치 구현 */
+    .pure-svg-spin {
+      transform-origin: 60px 60px;
+      will-change: transform;
+      animation: svgSpin 2.5s infinite linear;
+    }
+
+    @keyframes svgSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes sk-circleBounceDelay {
+      0%, 20%, 60% {
+        transform: scale(1);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(0);
+        opacity: 1;
+      }
+    }
+  </style>
+
+  <defs>
+    <linearGradient id="paint0_linear_674_15226" x1="80.726" y1="133.151" x2="-114.667" y2="-236.813" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00AAB5"/>
+      <stop offset="0.25" stop-color="#00AAB5"/>
+      <stop offset="0.68" stop-color="#00AAB5"/>
+      <stop offset="1" stop-color="#00AAB5"/>
+    </linearGradient>
+  </defs>
+
+  <g transform="translate(20, 20)">
+    
+    <g>
+      <g class="sk-child-group" style="transform: rotate(0deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -2.5s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(15deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -2.39583s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(30deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -2.29167s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(45deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -2.1875s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(60deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -2.08333s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(75deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -1.97917s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(90deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -1.875s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(105deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -1.77083s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(120deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -1.66667s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(135deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -1.5625s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(150deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -1.45833s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(165deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -1.35417s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(180deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -1.25s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(195deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -1.14583s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(210deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -1.04167s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(225deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -0.9375s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(240deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -0.83333s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(255deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -0.729167s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(270deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -0.625s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(285deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -0.520833s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(300deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -0.416667s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(315deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -0.3125s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(330deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -0.208333s;" /></g>
+      <g class="sk-child-group" style="transform: rotate(345deg);"><circle class="sk-dot" cx="60" cy="0" r="3" style="--delay: -0.104167s;" /></g>
+    </g>
+
+    <g class="pure-svg-spin">
+      <g transform="translate(47.38, -12.78) scale(0.456)">
+        <path d="M26.3264 24.232L21.0861 0H23.7063L28.4891 9.32639C30.4022 9.07658 31.6915 8.20223 33.8542 9.15985C34.2701 9.3264 34.6028 10.1591 34.6028 10.9086C34.6028 11.658 34.2701 12.4491 33.8542 12.6572C32.3986 13.2818 31.3588 13.1152 30.2775 12.8654L32.9392 18.1115C34.4365 17.7784 35.6426 17.2372 37.5141 18.1115C37.93 18.2781 38.2627 19.1108 38.2627 19.8602C38.2627 20.6097 37.93 21.4007 37.5141 21.6089C36.4744 22.0669 35.6842 22.1086 34.8939 21.9836L36.2664 24.69H46.4144C49.5752 24.69 52.6944 25.2729 55.6057 26.397C57.0614 26.9799 57.0614 29.0617 55.6057 29.6446C52.6944 30.7688 49.5752 31.3517 46.4144 31.3517H36.2664L34.8939 34.058C35.6842 33.9331 36.516 34.0164 37.5141 34.4327C37.93 34.5993 38.2627 35.432 38.2627 36.1814C38.2627 36.9309 37.93 37.7219 37.5141 37.9301C35.6426 38.7628 34.4365 38.2216 32.9392 37.9301L30.2775 43.1762C31.3588 42.9264 32.3986 42.7599 33.8542 43.3844C34.2701 43.5509 34.6028 44.3836 34.6028 45.1331C34.6028 45.8825 34.2701 46.6736 33.8542 46.8818C31.6499 47.8394 30.4022 46.9651 28.4891 46.7152L23.7063 56.0416H21.0861L26.368 31.8097L17.7589 31.6848C14.1822 31.6431 10.647 31.1851 7.19506 30.3108L1.70519 40.0535H0L2.16268 28.9368V27.1881L0 16.0714H1.70519L7.19506 25.8141C10.647 24.9398 14.2238 24.4818 17.7589 24.4401L26.368 24.3152L26.3264 24.232Z" 
+              fill="url(#paint0_linear_674_15226)"/>
+      </g>
+    </g>
+    
+  </g>
+</svg>

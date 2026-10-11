@@ -163,13 +163,12 @@
 
     <select id="retrieveCknctTypeAtrbList" resultType="aoms.pm.cast.dto.CastConfigAtrbRawDto">
         /* CastConfigMapper.retrieveCknctTypeAtrbList */
-        <!-- 전 행이 파이프라인 산출물이라 카탈로그 조인도 PRE_PRCS_YN 플래그도 없다 -->
         SELECT
             A.ALN_CD AS ATRB_CD,
             ' ' AS DTL_SE_CD,
             NVL(TO_CHAR(A.CKNCT_RT), ' ') AS CKNCT_RT,
             NVL(TO_CHAR(A.KOS_RT), ' ')   AS KOS_RT,
-            NVL(TO_CHAR(A.MOBL_RT), ' ')  AS MOB_RT,
+            NVL(TO_CHAR(A.MOBL_RT), ' ')   AS MOB_RT,
             NVL(TO_CHAR(A.SRVC_HR), ' ')  AS SRVC_HR,
             A.ALN_CD AS ATRB_CD_NM,
             ' ' AS DTL_SE_CD_NM,
@@ -182,7 +181,6 @@
 
     <update id="updateAtrbValue">
         /* CastConfigMapper.updateAtrbValue */
-        <!-- 문자·숫자 컬럼이 같은 문장을 쓴다. 바인딩 타입은 호출하는 쪽이 정한다 -->
         UPDATE PMOWN.${tableNm}
         SET ${columnNm} = #{value},
             LAST_MDFR_ID = #{loginUserId},

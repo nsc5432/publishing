@@ -1,7 +1,7 @@
 import { useEffect, useSyncExternalStore } from 'react';
 import { loadingBar } from '@/lib/loading-bar';
 import { AirplaneIcon } from '@/components/icons';
-import LoadingImage from '@/assets/gif/loadingimage.gif';
+import LoadingImage from '@/assets/svg/loadingimage.svg';
 /**
  * 로딩 바 컴포넌트
  * - 수동 사용: loadingBar.show() / loadingBar.hide()

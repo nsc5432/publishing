@@ -212,7 +212,7 @@ public class CastFcltServiceImpl implements CastFcltService {
 		}
 
 		for (FcltMapSaveItemDto item : saveDto.getItemList()) {
-			if (item.getPsgFcltCd() == null || item.getPsgFcltCd().trim().isEmpty()) {
+			if (item.getPsgFcltCd() == null || item.getPsgFcltCd().isEmpty()) {
 				return new JsonResponse().error("여객시설코드가 없는 항목이 있습니다.");
 			}
 		}

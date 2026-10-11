@@ -63,11 +63,11 @@ import aoms.pm.cast.enums.SmltType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDsbdMapper;
 import aoms.pm.cast.mapper.CastFltPsgMapper;
-import aoms.pm.cast.service.CastDsbdService;
 import aoms.pm.cast.service.CastCgnGradeService;
 import aoms.pm.cast.service.CastChknQueueService;
-import aoms.pm.cast.service.FcltRecommendationCalculator;
+import aoms.pm.cast.service.CastDsbdService;
 import aoms.pm.cast.service.CastSmltService;
+import aoms.pm.cast.service.FcltRecommendationCalculator;
 import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
 
@@ -320,10 +320,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return result;
 	}
 
-	/*
-	 * 체크인 카드는 CC 공용 Queue 만 본다 — 대기·처리·혼잡·추천이 맵형태보기 · 체크인 상세와 같은 값이어야 한다.
-	 * 키오스크와 셀프백드롭은 자원 현황(전체 · 운영 수량)에만 남고 Queue 와 추천에는 들어가지 않는다.
-	 */
 	private List<DsbdFcltCardDto> getChknFcltCardList(DsbdSearchDto searchDto) {
 		TerminalKind tmnlId = searchDto.getTmnlId();
 		String smltId = searchDto.getSmltId();
@@ -334,8 +330,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(smltId);
 		RollingRange range = getRollingRange(smltStng.getExcnYmd(), hhmm);
 		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltId, tmnlId, smltStng.getExcnYmd());
-		RecommendationResources resources = getRecommendationResources(
-				FcltType.CHKN, smltStng, fcltTmnlId, range.getBgnDt());
+		RecommendationResources resources = getRecommendationResources(FcltType.CHKN, smltStng, fcltTmnlId, range.getBgnDt());
 
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, List.of("CC", "CK", "SBD"))
 				.stream().collect(Collectors.toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
@@ -345,21 +340,12 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
 		for (String unitCd : sortedByQueue(queueDay, bgnMinute)) {
-			result.add(getChknFcltCard(
-					unitCd,
-					queueDay,
-					bgnMinute,
-					range,
-					unitMap.get(unitCd),
-					unitList,
-					resources,
-					baseContext));
+			result.add(getChknFcltCard(unitCd, queueDay, bgnMinute, range, unitMap.get(unitCd), unitList, resources, baseContext));
 		}
 
 		return result;
 	}
 
-	// 그 시각에 아무 일도 없는 아일랜드는 카드를 만들지 않는다 (캐러셀에 빈 장이 끼지 않도록)
 	private List<String> sortedByQueue(ChknQueueDay queueDay, int bgnMinute) {
 		List<String> result = new ArrayList<>();
 
@@ -402,24 +388,13 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return result;
 	}
 
-	private DsbdFcltCardDto getChknFcltCard(
-			String unitCd,
-			ChknQueueDay queueDay,
-			int bgnMinute,
-			RollingRange range,
-			FcltUnitRawDto unit,
-			List<FcltUnitDto> unitList,
-			RecommendationResources resources,
-			String baseContext
-	) {
+	private DsbdFcltCardDto getChknFcltCard(String unitCd, ChknQueueDay queueDay, int bgnMinute, RollingRange range, FcltUnitRawDto unit, List<FcltUnitDto> unitList, RecommendationResources resources, String baseContext) {
 		ChknQueueSlot slot = queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN);
 		ChknQueueSlot rollingSlot = queueDay.slotOf(unitCd, bgnMinute, range.getActualMinutes());
 		ChknQueueRecommend recommend = queueDay.recommendOf(unitCd, bgnMinute, CARD_SLOT_MIN);
 		int queuePsgCnt = slot.getCurrentQueue();
 		// 배정이 없는 아일랜드는 추천 대상 항공사도 없다
-		String targetName = recommend.getReqCnt() == null
-				? EMPTY
-				: resources.getTargetName(unitCd, recommendContext(baseContext, FcltType.CHKN, unitCd));
+		String targetName = recommend.getReqCnt() == null ? EMPTY : resources.getTargetName(unitCd, recommendContext(baseContext, FcltType.CHKN, unitCd));
 
 		DsbdFcltCardDto result = new DsbdFcltCardDto();
 		result.setCardId(FcltType.CHKN.getValue() + "-" + unitCd);
@@ -863,7 +838,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	private void requireResourceId(String resourceId, String columnName, SmltStngDto smltStng) {
-		if (resourceId == null || resourceId.trim().isEmpty()) {
+		if (resourceId == null || resourceId.isEmpty()) {
 			throw new IllegalStateException("실행 리소스 정보를 찾을 수 없습니다. smltId=" + smltStng.getSmltId() + ", column=" + columnName);
 		}
 	}

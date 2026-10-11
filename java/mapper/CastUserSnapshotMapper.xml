@@ -1,40 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<!--
-    사용자 조건 → CAST 입력 리소스 snapshot.
-
-    실행 시점에 FS·CA·SBD·시설운영 리소스를 새로 발행하고, TN_PM_SMLT_USER_MSTR 이 그 ID 를
-    가리킨다. 이후 draft 를 고쳐도 발행된 리소스는 변하지 않는다.
-
-    CAST 는 공항 전체를 한 번에 돌린다. 리소스 하나에 T1·T2 draft 가 함께 들어가므로 여기 문장은
-    터미널로 거르지 않고 draft 행이 들고 있는 TMNL_ID 를 그대로 싣는다. 아일랜드 코드와 출국장
-    번호는 터미널 간에 겹치므로 부스·기기 번호 매김도 터미널을 파티션에 넣어야 한다.
-
-    번호는 SQ1_TN_PM_SMLT_USER_RSRC 하나를 다섯 리소스가 공유한다 (002~999 순환).
-    retrieveFcltyOpngTblDptg 가 출국장 번호로 TN_PM_SMLT_SCHDL_ATRB 를 뒤지기 때문에
-    FS 와 출국장 번호가 반드시 같아야 한다.
-
-    마스터 행 생성과 삭제는 다섯 리소스가 같은 문장을 쓴다 (deleteRsrcAtrb / deleteRsrcMstr /
-    insertRsrcMstr). 테이블·컬럼명은 CastUserSnapshotServiceImpl 의 RsrcTable 이 넘긴다.
-
-    SBD 는 BLCK_ID 로 백드롭(P01SBD/P03SBD)과 키오스크(P01Self/P03Self)를 가른다.
-    CastRestMapper 의 retrieveSelfCheckInCountAndBagDrop 이 이 컬럼을 그대로 읽으므로
-    둘 중 하나만 고치면 블록이 어긋난다.
-
-    TODO(실 스키마 확인) — GOOWN 원본 컬럼을 확인하지 못해 NULL 로 두는 것들.
-      TN_PM_SMLT_SCHDL_ATRB : ALN_CTGRY, DALY_FLTSH_ID, GATE_TYPE, CKNCT_RANGE_CN,
-                              SLF_CHKN_PSBLTY_YN, BUS_NEED_YN, WAYO_ID,
-                              FRST_BAG_INPUT_DT, LAST_BAG_INPUT_DT
-    일일 FLT_SCHDL_RSRC_ID 가 FS001 이 아니면 insertSchdlAtrbFromSrc 를 타므로 위 제약이 없다.
-
-    TODO(실 데이터 확인) — 키오스크 발행이 기대는 두 가지.
-      1. TN_PM_SMLT_SBD_ATRB.CKNCT_ID 는 VARCHAR2(4) 인데 SLF_CHKN_ISTR_ID 는 VARCHAR2(10) 이다.
-         실 기기 ID 가 4자를 넘으면 insertSbdAtrbKiosk 가 깨진다 — 컬럼 확장이 필요하다.
-      2. TN_PM_SLF_CHKN_OPER_PLCY 에 아일랜드 컬럼이 없어 SLF_CHKN_ISTR_ID 앞 한 자를 아일랜드로
-         본다(백드롭이 CKNCT_ID 에 쓰는 규칙과 같다). 기기 ID 체계가 다르면 아일랜드별 KOS_CNT 가
-         어떤 기기에도 붙지 않아 키오스크가 0건으로 발행된다.
--->
 <mapper namespace="aoms.pm.cast.mapper.CastUserSnapshotMapper">
 
     <select id="retrieveNextRsrcNo" resultType="java.lang.String">
@@ -68,15 +34,8 @@
         )
     </insert>
 
-    <!-- ================= FlightSchedule ================= -->
-
     <insert id="insertSchdlAtrbFromDaily" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSchdlAtrbFromDaily */
-        <!-- 일일 리소스가 FS001(운영계 직접 조회)일 때. 편별 여객수에 증감률을 곱해 넣는다.
-             AJMT_RT 는 -100 ~ 100 의 증감률이라 곱셈 계수는 (100 + AJMT_RT) / 100 이다.
-             HOURLY 면 예측시각이 속한 시간대 구간의 값을, RATIO 면 헤더 한 건의 값을 쓴다.
-             편의 터미널로 조정 draft 를 골라 T1·T2 각각의 조정률을 건다. 운항 P02 는 T1(P01)
-             소속이고, 공용(P) 편은 어느 draft 에도 붙지 않아 원본 그대로 나간다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB (
             SCHDL_ATRB_GROUP_ID, DOM_INTL_SE_CD, ARR_DEP_SE_CD, TMNL_ID, ALN_CD,
             FLTNM, DEP_ARR_YMD, DEP_ARR_HM, PREDC_HM, ACTL_HM,
@@ -102,23 +61,23 @@
                 A.RSVT_TRNS_BDPSG_CNT AS TRNS_BDPSG_CNT,
                 A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.GD_IRR_YN AS IRR_FLT_YN, A.TDFLT_YN,
                 NVL((
-                    SELECT CASE
-                             WHEN F.AJMT_TYPE_CD = 'HOURLY' THEN NVL((
-                                 SELECT T.AJMT_RT
-                                 FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
-                                 WHERE T.SMLT_ID = F.SMLT_ID
-                                 AND T.TMNL_ID = F.TMNL_ID
-                                 AND NVL(A.PREDC_HM, A.SCHDL_HM) >= T.BGNG_HM
-                                 AND NVL(A.PREDC_HM, A.SCHDL_HM) &lt; NVL(T.END_HM, '2400')
-                                 AND ROWNUM = 1
-                             ), 0)
-                             ELSE NVL(F.AJMT_RT, 0)
-                           END
-                    FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT F
-                    WHERE F.SMLT_ID = #{smltId}
-                    AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
+                    SELECT 
+	                    CASE
+	                        WHEN F.AJMT_TYPE_CD = 'HOURLY' THEN NVL((
+		                        SELECT T.AJMT_RT
+		                        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
+		                        WHERE T.SMLT_ID = F.SMLT_ID
+		                        AND T.TMNL_ID = F.TMNL_ID
+		                        AND NVL(A.PREDC_HM, A.SCHDL_HM) >= T.BGNG_HM
+		                        AND NVL(A.PREDC_HM, A.SCHDL_HM) &lt; NVL(T.END_HM, '2400')
+		                        AND ROWNUM = 1
+	                        ), 0)
+	                        ELSE NVL(F.AJMT_RT, 0)
+	                    END
+	                FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT F
+	                WHERE F.SMLT_ID = #{smltId}
+	                AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')  
                 ), 0) AS AJMT_RT,
-                <!-- PK 는 (그룹, 출도착, 편명, 일자, 시분) 이다. 운영계 중복행을 여기서 접는다 -->
                 ROW_NUMBER() OVER (
                     PARTITION BY A.ARR_DEP_SE_CD, A.FLTNM, A.GD_SE_YMD, A.SCHDL_HM
                     ORDER BY A.RSVT_BDPSG_CNT DESC NULLS LAST
@@ -140,9 +99,6 @@
 
     <insert id="insertSchdlAtrbFromSrc" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSchdlAtrbFromSrc */
-        <!-- 일일 리소스가 이미 스케줄 리소스(FSxxx)일 때. 전 컬럼을 복사하고 여객수만 조정한다.
-             증감률 규칙은 insertSchdlAtrbFromDaily 와 같다. 다만 이 테이블에는 SCHDL_HM 이
-             없고 같은 뜻의 컬럼이 DEP_ARR_HM(출발도착시분) 이라 그쪽을 본다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB (
             SCHDL_ATRB_GROUP_ID, DOM_INTL_SE_CD, ARR_DEP_SE_CD, TMNL_ID, ALN_CD, ALN_CTGRY,
             FLTNM, DALY_FLTSH_ID, DEP_ARR_YMD, DEP_ARR_HM, PREDC_HM, ACTL_HM,
@@ -158,18 +114,19 @@
             A.ARR_DEP_ARPT_CD, A.ACST_NO, A.GATE_NO, A.GATE_TYPE, A.ARCFT_STGCP,
             ROUND(NVL(A.BDPSG_CNT, 0) * (100 +
                 NVL((
-                    SELECT CASE
-                             WHEN F.AJMT_TYPE_CD = 'HOURLY' THEN NVL((
-                                 SELECT T.AJMT_RT
-                                 FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
-                                 WHERE T.SMLT_ID = F.SMLT_ID
-                                 AND T.TMNL_ID = F.TMNL_ID
-                                 AND NVL(A.PREDC_HM, A.DEP_ARR_HM) >= T.BGNG_HM
-                                 AND NVL(A.PREDC_HM, A.DEP_ARR_HM) &lt; NVL(T.END_HM, '2400')
-                                 AND ROWNUM = 1
-                             ), 0)
-                             ELSE NVL(F.AJMT_RT, 0)
-                           END
+                    SELECT
+                        CASE
+                            WHEN F.AJMT_TYPE_CD = 'HOURLY' THEN NVL((
+                                SELECT T.AJMT_RT
+                                FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
+                                WHERE T.SMLT_ID = F.SMLT_ID
+                                AND T.TMNL_ID = F.TMNL_ID
+                                AND NVL(A.PREDC_HM, A.DEP_ARR_HM) >= T.BGNG_HM
+                                AND NVL(A.PREDC_HM, A.DEP_ARR_HM) &lt; NVL(T.END_HM, '2400')
+                                AND ROWNUM = 1
+                            ), 0)
+                            ELSE NVL(F.AJMT_RT, 0)
+                        END
                     FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT F
                     WHERE F.SMLT_ID = #{smltId}
                     AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
@@ -183,12 +140,8 @@
         WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{srcFltSchdlRsrcId}, 'FS', '')
     </insert>
 
-    <!-- ================= CounterAllocation ================= -->
-
     <insert id="insertCknctAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertCknctAtrb */
-        <!-- 부스 × 아일랜드 운영시간 구간. 부스 번호는 아일랜드 안의 순번이라
-             CAOWN.TN_CA_CKNCT 의 n 번째 실제 카운터로 옮긴다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_CKNCT_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, CHKN_OPEN_PRNMNT_DT, CHKN_CLOSE_PRNMNT_DT, CHKN_TYPE_CD,
@@ -224,9 +177,7 @@
                     SUBSTR(K.CKNCT_ID, 1, 1) AS CHKN_ISL_CD,
                     K.CKNCT_ID,
                     K.DOM_INTL_SE_CD,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY K.TMNL_ID, SUBSTR(K.CKNCT_ID, 1, 1) ORDER BY K.CKNCT_ID
-                    ) AS BOOTH_NO
+                    ROW_NUMBER() OVER (PARTITION BY K.TMNL_ID, SUBSTR(K.CKNCT_ID, 1, 1) ORDER BY K.CKNCT_ID) AS BOOTH_NO
                 FROM CAOWN.TN_CA_CKNCT K
                 WHERE K.USE_YN = 'Y'
                 AND K.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
@@ -238,14 +189,8 @@
         AND B.ALN_CD IS NOT NULL
     </insert>
 
-    <!-- ================= SelfCheckIn / BagDrop ================= -->
-
     <insert id="insertSbdAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSbdAtrb */
-        <!-- 아일랜드가 정한 백드롭 대수만큼 실제 장비를 앞에서부터 켠다.
-             항공사 배정은 아일랜드에 붙은 부스 항공사를 그대로 따른다.
-             비-001 SBD 조회는 AirlineCode 를 ALN_CD 가 아니라 CHKN_TYPE_DTL_INFO 에서 뽑으므로
-             항공사 목록을 그쪽에 넣어야 한다. 따옴표는 조회 SQL 이 붙인다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_SBD_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD, CHKN_TYPE_DTL_INFO,
@@ -276,14 +221,12 @@
                     SUBSTR(K.CKNCT_ID, 1, 1) AS CHKN_ISL_CD,
                     K.CKNCT_ID,
                     K.DOM_INTL_SE_CD,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY K.TMNL_ID, SUBSTR(K.CKNCT_ID, 1, 1) ORDER BY K.CKNCT_ID
-                    ) AS DEVICE_NO
+                    ROW_NUMBER() OVER (PARTITION BY K.TMNL_ID, SUBSTR(K.CKNCT_ID, 1, 1) ORDER BY K.CKNCT_ID) AS DEVICE_NO
                 FROM CAOWN.TN_CA_CKNCT K
                 WHERE K.USE_YN = 'Y'
                 AND K.CKNCT_USE_CRG_APLCN_TYPE_CD = 'H'
             ) C
-                ON  C.TMNL_ID = I.TMNL_ID
+                ON C.TMNL_ID = I.TMNL_ID
                 AND C.CHKN_ISL_CD = I.CHKN_ISL_CD
                 AND C.DEVICE_NO &lt;= NVL(I.SBD_CNT, 0)
             LEFT OUTER JOIN (
@@ -306,9 +249,6 @@
 
     <insert id="insertSbdAtrbKiosk" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSbdAtrbKiosk */
-        <!-- 키오스크는 CAOWN.TN_CA_CKNCT 가 아니라 셀프체크인 운영정책이 원천이다.
-             일일 SBD001 이 P01Self/P03Self 블록을 이 테이블에서 만든다.
-             정책일자는 실행일자 것이 있으면 그것을, 없으면 가장 최근 것을 쓴다 (일일과 동일) -->
         INSERT INTO PMOWN.TN_PM_SMLT_SBD_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD, CHKN_TYPE_DTL_INFO,
@@ -340,25 +280,19 @@
                     P.SLF_CHKN_ISTR_ID,
                     MIN(P.ALN_CD) AS ALN_CD,
                     LISTAGG(P.ALN_CD, ',') WITHIN GROUP (ORDER BY P.ALN_CD) AS ALN_CD_LIST,
-                    ROW_NUMBER() OVER (
-                        PARTITION BY P.TMNL_ID, SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1)
-                        ORDER BY P.SLF_CHKN_ISTR_ID
-                    ) AS DEVICE_NO
+                    ROW_NUMBER() OVER (PARTITION BY P.TMNL_ID, SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1) ORDER BY P.SLF_CHKN_ISTR_ID) AS DEVICE_NO
                 FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY P
                 WHERE #{excnYmd} BETWEEN P.PLCY_BGNG_YMD AND P.PLCY_END_YMD
                 GROUP BY P.TMNL_ID, SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1), P.SLF_CHKN_ISTR_ID
             ) C
-                ON  C.TMNL_ID = I.TMNL_ID
+                ON C.TMNL_ID = I.TMNL_ID
                 AND C.CHKN_ISL_CD = I.CHKN_ISL_CD
                 AND C.DEVICE_NO &lt;= NVL(I.KOS_CNT, 0)
         WHERE I.SMLT_ID = #{smltId}
     </insert>
 
-    <!-- ================= FacilityOpeningTable_DepartureGate ================= -->
-
     <insert id="insertDptgtAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertDptgtAtrb */
-        <!-- 운영하는 출국장만 넣는다. FCLTY_CNT 는 일반 + 스마트패스 검색대 합이다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB (
             DPTGT_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, FCLTY_CNT,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
@@ -376,11 +310,8 @@
         AND D.OPER_YN = 'Y'
     </insert>
 
-    <!-- ================= FacilityOpeningTable_SecurityControl ================= -->
-
     <insert id="insertScrtyCntrlAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertScrtyCntrlAtrb */
-        <!-- 시간대별 운영계획이 있으면 그것을, 없으면 출국장 기본 검색대 수를 쓴다 -->
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB (
             SCRTY_CNTRL_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, FCLTY_CNT,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
@@ -397,7 +328,9 @@
             SELECT P.TMNL_ID, P.DPTGT_NO, P.OPER_BGNG_HOUR, NVL(P.SCSH_CNTOM, 0) AS SCSH_CNTOM
             FROM PMOWN.TN_PM_SMLT_SCSH_OPER_PLAN P
             WHERE P.SMLT_ID = #{smltId}
+            
             UNION ALL
+            
             SELECT D.TMNL_ID, D.DPTGT_NO, 0 AS OPER_BGNG_HOUR, NVL(D.SCSH_CNTOM, 0) AS SCSH_CNTOM
             FROM PMOWN.TN_PM_SMLT_USER_DPTGT D
             WHERE D.SMLT_ID = #{smltId}

@@ -91,8 +91,7 @@ public final class ChknQueueSeries {
 			warningList.addAll(series.warningList);
 		}
 
-		return new ChknQueueSeries(
-				island, queue, processed, boothCnt, capacity, waitMinSum, prcsSecSum, waitDistribution, warningList);
+		return new ChknQueueSeries(island, queue, processed, boothCnt, capacity, waitMinSum, prcsSecSum, waitDistribution, warningList);
 	}
 
 	public String getIsland() {
@@ -138,14 +137,15 @@ public final class ChknQueueSeries {
 		int minutes0 = end - bgn;
 
 		return new ChknQueueSlot(
-				queue[end - 1],
-				Math.toIntExact(Math.round((double) queueSum / minutes0)),
-				maxQueue,
-				processedSum == 0 ? 0 : Math.toIntExact(Math.round((double) waitSum * SEC_PER_MIN / processedSum)),
-				Math.toIntExact(processedSum),
-				processedSum == 0 ? 0 : Math.toIntExact(Math.round((double) prcsSum / processedSum)),
-				toUtilRate(processedSum, capacitySum),
-				boothCnt[end - 1]);
+			queue[end - 1],
+			Math.toIntExact(Math.round((double) queueSum / minutes0)),
+			maxQueue,
+			processedSum == 0 ? 0 : Math.toIntExact(Math.round((double) waitSum * SEC_PER_MIN / processedSum)),
+			Math.toIntExact(processedSum),
+			processedSum == 0 ? 0 : Math.toIntExact(Math.round((double) prcsSum / processedSum)),
+			toUtilRate(processedSum, capacitySum),
+			boothCnt[end - 1]
+		);
 	}
 
 	public List<FcltRecommendationCalculator.QueuePoint> trajectoryOf(int bgnMinute, int spanMin) {
@@ -167,7 +167,6 @@ public final class ChknQueueSeries {
 		long boothMinuteSum = 0;
 
 		for (int minute = bgn; minute < end; minute++) {
-			// 결과가 아직 없는 시각은 부스만 배정돼 있어 함께 세면 처리량이 낮게 잡힌다
 			if (capacity[minute] <= 0) {
 				continue;
 			}

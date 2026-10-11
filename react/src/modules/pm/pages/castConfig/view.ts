@@ -183,11 +183,11 @@ export function toCastConfigDataset(dto: CastConfigDatasetDto): Dataset {
         shapeColumn: dto.shapeColumn,
         validation: dto.validation
             ? {
-                  kind: VALIDATION_KIND[dto.validation.kind],
-                  column: dto.validation.column,
-                  groupColumn: dto.validation.groupColumn,
-                  target: dto.validation.target,
-              }
+                kind: VALIDATION_KIND[dto.validation.kind],
+                column: dto.validation.column,
+                groupColumn: dto.validation.groupColumn,
+                target: dto.validation.target,
+            }
             : null,
     };
 }

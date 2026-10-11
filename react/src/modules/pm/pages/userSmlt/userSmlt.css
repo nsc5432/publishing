@@ -72,7 +72,6 @@ html[data-page='userSmlt'] .gnb__title {
     white-space: nowrap;
 }
 
-/* 조회 전용으로 들어왔을 때만 붙는다 — 결과 화면(대시보드)으로 되돌아가는 길 */
 html[data-page='userSmlt'] .gnb__back {
     flex: 0 0 auto;
     padding: 0;
@@ -90,11 +89,6 @@ html[data-page='userSmlt'] .gnb__back:hover {
     text-decoration: underline;
 }
 
-/* 단계 스테퍼 자리 — 본문 패널(.panels)의 가로 중앙에 맞춘다.
-   GNB 는 왼쪽 타이틀과 오른쪽 조작부의 폭이 서로 달라 흐름상 가운데를 잡으면
-   패널 가운데와 어긋난다. 그래서 스테퍼만 흐름에서 떼어, LNB 레일 오른쪽부터
-   본문 오른쪽 끝까지(= .panels 가 차지하는 구간)를 기준으로 중앙에 세운다.
-   터미널을 고르기 전에는 빈 채로 남는다 */
 html[data-page='userSmlt'] .gnb__center {
     position: absolute;
     top: 0;
@@ -104,15 +98,13 @@ html[data-page='userSmlt'] .gnb__center {
     display: flex;
     align-items: center;
     justify-content: center;
-    /* 타이틀·조작부와 겹치더라도 그쪽 클릭을 가로막지 않게 */
     pointer-events: none;
 }
 
-html[data-page='userSmlt'] .gnb__center > * {
+html[data-page='userSmlt'] .gnb__center>* {
     pointer-events: auto;
 }
 
-/* 스테퍼가 흐름에서 빠졌으므로 조작부를 오른쪽 끝으로 직접 민다 */
 html[data-page='userSmlt'] .gnb__right {
     display: flex;
     align-items: center;
@@ -121,9 +113,6 @@ html[data-page='userSmlt'] .gnb__right {
     white-space: nowrap;
 }
 
-/* 폭이 좁아지면 패널 중앙(≈화면 중앙)에 세운 스테퍼가 오른쪽 조작부와 겹친다.
-   겹치기 시작하는 폭 언저리에서 흐름 배치로 되돌려, 남는 자리 안에서만 가운데를
-   잡는다 (LNB 레일 폭만큼은 그대로 오른쪽으로 밀어 둔다) */
 @media screen and (max-width: 1800px) {
     html[data-page='userSmlt'] .gnb__center {
         position: static;
@@ -165,9 +154,6 @@ html[data-page='userSmlt'] .date-picker__label {
     color: #5a5f6b;
 }
 
-/* 날짜 입력(input[type=date])을 표기 위에 투명하게 겹쳐 둔다 — showPicker() 가 여는
-   달력이 이 위치를 기준으로 뜨므로, 보이는 버튼과 정확히 겹치도록 relative 를 여기 둔다.
-   display:none 으로 감추면 showPicker() 가 달력을 열지 못하므로 opacity 로만 지운다. */
 html[data-page='userSmlt'] .date-picker__field {
     position: relative;
     display: flex;
@@ -276,11 +262,8 @@ html[data-page='userSmlt'] .btn--save:hover {
 }
 
 /* =====================================================================
-   3. 본문 · 탭바
+   3. 본문/탭바
    ===================================================================== */
-
-/* GNB 아래 본문 — 좌측 LNB 레일 + 탭/패널 영역.
-   여백은 화면 공용 셸 규격(common.css --pm-shell-*)을 따른다 */
 html[data-page='userSmlt'] .body {
     position: relative;
     z-index: 1;
@@ -299,9 +282,6 @@ html[data-page='userSmlt'] .content {
     min-height: 0;
 }
 
-/* 단계 스테퍼 + 다음 단계 버튼 — GNB 가운데(.gnb__center)에 얹는다.
-   본문에서 한 줄을 쓰지 않으므로 그만큼 패널 높이가 늘어난다.
-   ⚠ 수량 증감 컨트롤(.stepper, components/CountStepper.tsx)과는 다른 것 */
 html[data-page='userSmlt'] .steps {
     position: relative;
     display: flex;
@@ -320,7 +300,6 @@ html[data-page='userSmlt'] .tabs {
     backdrop-filter: blur(6px);
 }
 
-/* 단계 사이 셰브론 — 순서가 있다는 표시 */
 html[data-page='userSmlt'] .tabs__sep {
     flex: 0 0 auto;
     width: 5px;
@@ -403,11 +382,6 @@ html[data-page='userSmlt'] .tabs__item.is-active .tabs__no {
     color: #fff;
 }
 
-/* 다음 단계 버튼 — 스테퍼만으로는 "눌러서 넘어간다"가 읽히지 않아 옆에 세운다.
-   오른쪽 시뮬레이션 실행(.btn--run)이 이 화면의 최종 동작이므로,
-   그보다 한 단계 약한 흰 알약으로 둔다.
-   스테퍼 오른쪽에 매달아(absolute) 스테퍼 자체는 패널 중앙에 그대로 두고,
-   마지막 단계에서 버튼이 빠져도 스테퍼가 밀리지 않게 한다 */
 html[data-page='userSmlt'] .tabs__next {
     position: absolute;
     top: 50%;
@@ -466,10 +440,6 @@ html[data-page='userSmlt'] .tabs__next:hover::after {
     }
 }
 
-/* ---------------------------------------------------------------------
-   3-1. 도입 — 터미널 선택 (components/TerminalIntro.tsx)
-   카드는 라디오가 아니라 체크다 — 1장 또는 2장을 고르고 아래 버튼으로 넘어간다.
-   --------------------------------------------------------------------- */
 html[data-page='userSmlt'] .intro {
     flex: 1 1 auto;
     display: flex;
@@ -612,7 +582,6 @@ html[data-page='userSmlt'] .btn.intro__start:disabled:hover {
 
 html[data-page='userSmlt'] .intro__label {
     position: relative;
-    /* 도형(::before) 위로 */
     font-size: clamp(34px, 3.6vw, 58px);
     font-weight: 700;
     letter-spacing: -0.5px;
@@ -626,7 +595,6 @@ html[data-page='userSmlt'] .intro__card--t2 .intro__label {
     color: #20b8a0;
 }
 
-/* 미구현 탭 안내 */
 html[data-page='userSmlt'] .tab-placeholder {
     flex: 1 1 auto;
     display: flex;
@@ -641,9 +609,8 @@ html[data-page='userSmlt'] .tab-placeholder {
 }
 
 /* =====================================================================
-   4. 패널 (T1/T2 공통 셸)
+   4. 패널
    ===================================================================== */
-/* 상세 드로어(.drawer)가 이 영역 위에 오버레이로 뜨므로 위치 기준이 된다 */
 html[data-page='userSmlt'] .panels {
     position: relative;
     display: flex;
@@ -653,9 +620,6 @@ html[data-page='userSmlt'] .panels {
     min-height: 0;
 }
 
-/* 블럭 차트(ECharts px 상수)와 아래 격자(DOM)가 공유하는 시간 좌표.
-   BlockChart.tsx 의 GUTTER(44) / Y_RIGHT(40) 와 값이 같아야 08시 블럭 아래에 08시 칸이 온다.
-   TerminalPanel 은 children 을 .panel 바로 아래에 둔다 — 별도 body 래퍼가 없다 */
 html[data-page='userSmlt'] .panel {
     --gut: 44px;
     --rgt: 40px;
@@ -689,8 +653,6 @@ html[data-page='userSmlt'] .panel--disabled * {
     pointer-events: none;
 }
 
-/* 편집 초점 — 두 터미널을 함께 켰을 때 도크·드로어가 어느 쪽을 보는지 표시한다.
-   하나만 켠 상태에서는 초점이 항상 그 패널이라 굳이 눈에 띌 필요가 없다 */
 html[data-page='userSmlt'] .panels:has(.panel--active + .panel--active) .panel--focus {
     border-color: var(--pm-primary-light);
     box-shadow:
@@ -738,9 +700,6 @@ html[data-page='userSmlt'] .panel--disabled .terminal-badge {
     box-shadow: none;
 }
 
-/* 시뮬레이션 대상 스위치 — 설정 도중에도 터미널을 켜고 끈다.
-   헤드는 요약·결과지표로 꽉 차서 바닥(.panel__foot) 오른쪽 끝에 절대배치한다.
-   꺼진 패널에서는 .panel--disabled 가 클릭을 패널로 넘겨 어디를 눌러도 켜진다 */
 html[data-page='userSmlt'] .tswitch {
     position: absolute;
     right: 0;
@@ -795,7 +754,6 @@ html[data-page='userSmlt'] .tswitch.is-on .tswitch__knob {
     transform: translateX(16px);
 }
 
-/* 마지막 남은 1개 — 끄지 못한다 */
 html[data-page='userSmlt'] .tswitch:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -816,7 +774,6 @@ html[data-page='userSmlt'] .panel--disabled .summary {
     background: #e6e6e6;
 }
 
-/* 결과 지표까지 붙으면 폭이 빠듯하다. 라벨이 두 줄로 접히지 않게 고정한다 */
 html[data-page='userSmlt'] .summary__group {
     display: flex;
     align-items: baseline;
@@ -839,8 +796,6 @@ html[data-page='userSmlt'] .summary__value--accent {
     color: var(--pm-primary);
 }
 
-/* 시뮬레이션 결과 지표 (평균대기 / P95대기 / 최대 큐인원 / 가동률) --------------
-   구성 지표 오른쪽에 세로 구분선을 두고 붙는다. 요약 바 높이는 그대로 둔다. */
 html[data-page='userSmlt'] .summary__divider {
     flex: 0 0 auto;
     width: 1px;
@@ -909,10 +864,6 @@ html[data-page='userSmlt'] .panel--disabled .summary__map {
 }
 
 /* 패널 푸터 -------------------------------------------------------------- */
-/* 탭마다 본문이 높이를 다 쓰지 않을 수 있어(예: 체크인 카운터) 남는 높이는 전부
-   푸터 위쪽으로 몰아 저장 버튼이 항상 패널 바닥에 붙게 한다.
-   여백이 없을 때 margin-top:auto 는 0 이 되므로 최소 간격은 padding 으로 확보한다. */
-/* 저장 버튼은 가운데, 시뮬레이션 대상 스위치(.tswitch)는 오른쪽 끝에 절대배치한다 */
 html[data-page='userSmlt'] .panel__foot {
     position: relative;
     flex: 0 0 auto;
@@ -1121,12 +1072,8 @@ html[data-page='userSmlt'] .data-table td.is-num {
 }
 
 /* =====================================================================
-   7. 블럭 차트 (체크인 카운터 · 출국장 공용 — components/BlockChart.tsx)
-
-   블럭 1개 = 운영 단위 1개 × 1시간. 세로 높이가 곧 그 시간의 운영 규모다.
-   행 높이(--row-h) · 블럭 높이(--blk-h) · 글자 크기(--blk-fs)는 차트마다 다르므로
-   컴포넌트가 인라인으로 내려주고, 여기서는 그 변수를 쓰는 규칙만 둔다.
-   ===================================================================== */
+   7. 블럭 차트 (체크인 카운터/출국장 공용 — components/BlockChart.tsx)
+ ===================================================================== */
 html[data-page='userSmlt'] .bchart {
     flex: 0 0 auto;
     display: flex;
@@ -1164,7 +1111,6 @@ html[data-page='userSmlt'] .bchart__unit {
     white-space: nowrap;
 }
 
-/* "1블럭 = 부스 4석" 환산 문구 */
 html[data-page='userSmlt'] .bchart__unitnote {
     padding: 3px 9px;
     border-radius: 6px;
@@ -1185,9 +1131,6 @@ html[data-page='userSmlt'] .bchart--compact .bchart__head {
     margin-bottom: 10px;
 }
 
-/* 범례 -------------------------------------------------------------------
-   칩이 머리글 폭을 넘으면 줄바꿈해서 아래로 흐르는 대신 한 줄로 두고 좌우로 끌어 본다.
-   끌 수 있다는 신호는 셋 — 잡는 커서 · 잘린 쪽 페이드 · 오른쪽 끝 화살표. */
 html[data-page='userSmlt'] .legend-wrap {
     position: relative;
     display: flex;
@@ -1211,8 +1154,6 @@ html[data-page='userSmlt'] .legend::-webkit-scrollbar {
     display: none;
 }
 
-/* 넘칠 때만 — 화살표 자리를 비우고, 잘린 쪽을 흐리게 깎는다.
-   카드 배경이 그라데이션이라 덮개를 얹는 대신 마스크로 지운다. */
 html[data-page='userSmlt'] .legend-wrap.is-scrollable .legend {
     --fade-l: 0px;
     --fade-r: 26px;
@@ -1222,7 +1163,6 @@ html[data-page='userSmlt'] .legend-wrap.is-scrollable .legend {
     mask-image: linear-gradient(90deg, transparent 0, #000 var(--fade-l), #000 calc(100% - var(--fade-r)), transparent 100%);
 }
 
-/* 한 번이라도 밀었으면 왼쪽에도 잘린 게 있다 / 끝에 닿으면 오른쪽 페이드를 끈다 */
 html[data-page='userSmlt'] .legend-wrap.is-scrollable.is-scrolled .legend {
     --fade-l: 20px;
 }
@@ -1236,7 +1176,6 @@ html[data-page='userSmlt'] .legend-wrap.is-scrollable .legend.is-dragging {
     user-select: none;
 }
 
-/* 오른쪽 끝 화살표 — 아직 밀어 보지 않았으면 살짝 흔들어 알린다 */
 html[data-page='userSmlt'] .legend__grip {
     position: absolute;
     top: 50%;
@@ -1286,11 +1225,13 @@ html[data-page='userSmlt'] .legend-wrap.is-scrollable.is-end .legend__grip {
 }
 
 @keyframes legend-nudge {
+
     0%,
     70%,
     100% {
         transform: translate(0, -50%);
     }
+
     85% {
         transform: translate(3px, -50%);
     }
@@ -1357,8 +1298,6 @@ html[data-page='userSmlt'] .legend__line::after {
 
 /* 플롯 ------------------------------------------------------------------- */
 html[data-page='userSmlt'] .bchart__body {
-    /* 차트가 위아래로 조금 넉넉히 그리는 만큼(최댓값 말풍선 · 축 글자 절반) 되돌린다.
-       그래야 플롯 높이가 levels * rowH 로 원본과 같아진다. */
     margin: -18px 0 -7px;
 }
 
@@ -1434,16 +1373,9 @@ html[data-page='userSmlt'] .bchart__act:disabled {
 
 /* =====================================================================
    7-1. 검색대 격자 (출국장 — tabs/departure/components/ScGrid.tsx)
-
-   위 블럭 차트와 같은 시간 좌표(--gut / --col / --rgt)를 쓰는 DOM 격자다.
-   08시 블럭 바로 아래에 08시 칸이 서려면 칸 피치가 차트 플롯과 같아야 하므로
-   줄에 gap 을 두지 않고 셀 안쪽 여백(margin: 0 1px)으로 간격을 만든다.
-
-   줄은 출국장 전체로 고정 — 그 시간에 닫힌 출국장은 빗금 칸으로 자리를 지킨다.
    ===================================================================== */
 html[data-page='userSmlt'] .scgrid {
     flex: 0 0 auto;
-    /* 위 차트(.bchart)의 안쪽 여백 20px + 테두리 1px 과 같은 자리에 칸을 세운다 */
     padding: 0 21px;
     margin-top: clamp(6px, 1.2vh, 12px);
     user-select: none;
@@ -2271,9 +2203,6 @@ html[data-page='userSmlt'] .boothgrid.is-dragging {
     user-select: none;
 }
 
-/* 항공사 배정 팝오버 ------------------------------------------------------
-   선택한 칸 바로 아래에 붙어, 그 자리에서 배정할 항공사를 고르게 한다.
-   칩이 폭을 넘치면 범례(.legend)와 같은 방식으로 좌우로 끌어 본다. */
 html[data-page='userSmlt'] .airpop {
     position: absolute;
     left: var(--x);
@@ -2431,6 +2360,7 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
    9. 반응형 : 가로만 압축, 세로 스크롤은 만들지 않는다
    ===================================================================== */
 @media (max-width: 1500px) {
+
     /* 셸 */
     html[data-page='userSmlt'] .panels {
         gap: 16px;
@@ -2484,6 +2414,7 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
 }
 
 @media (max-width: 1200px) {
+
     /* 셸 여백(.body)은 세 화면이 같아야 하므로 여기서 줄이지 않는다 */
     html[data-page='userSmlt'] .panels {
         gap: 12px;

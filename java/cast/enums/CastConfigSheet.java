@@ -151,7 +151,6 @@ public enum CastConfigSheet {
 	}
 
 	private static List<CastConfigColumnDef> cknctTypeColumns() {
-		// CKNCT_VL/KOS_VL/MOBL_VL 은 Counter/Kiosk/Mobile 고정 라벨이라 화면에 내지 않는다
 		return List.of(
 				column("항공사코드", CastConfigColumnType.READONLY, "ALN_CD", false, true),
 				column("카운터비율", CastConfigColumnType.NUMBER, "CKNCT_RT", true, false),

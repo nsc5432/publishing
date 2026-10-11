@@ -26,6 +26,7 @@ public class BdpsgRsvtDto extends AomsDefaultDto {
 
 	private static final long serialVersionUID = 1L;
 
+	private String fltshId = "";
 	// 조회일자
 	private String bdpsgDate = "";
 	// 공항코드

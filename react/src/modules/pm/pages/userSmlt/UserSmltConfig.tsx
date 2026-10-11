@@ -50,9 +50,9 @@ function UserSmltConfig() {
 
     const smltIds = readOnly
         ? {
-              T1: !viewTmnlId || viewTmnlId === 'T1' ? viewSmltId : '',
-              T2: !viewTmnlId || viewTmnlId === 'T2' ? viewSmltId : '',
-          }
+            T1: !viewTmnlId || viewTmnlId === 'T1' ? viewSmltId : '',
+            T2: !viewTmnlId || viewTmnlId === 'T2' ? viewSmltId : '',
+        }
         : editSmltIds;
 
     const [activeTab, setActiveTab] = useState<SmltTabKey>('flightPax');
@@ -80,7 +80,6 @@ function UserSmltConfig() {
     };
 
     const handleRun = () => {
-        // 시뮬레이션은 공항 전체를 한 번에 돌린다. 편집 중인 draft 하나로 실행을 건다
         const runSmltId = targets.map((terminal) => smltIds[terminal]).find(Boolean);
         if (!runSmltId) return;
 
@@ -91,7 +90,7 @@ function UserSmltConfig() {
 
                 userSmltService
                     .execute(runSmltId)
-                    .then((dto) => unwrap(dto, EXEC_FAIL))
+                    .then(dto => unwrap(dto, EXEC_FAIL))
                     .then(() => navigate(MONITORING_PATH))
                     .catch((error: ApiError) => {
                         dialog
@@ -99,10 +98,10 @@ function UserSmltConfig() {
                                 title: '실행 실패',
                                 description: error?.message || EXEC_FAIL,
                             })
-                            .catch(() => {});
+                            .catch(() => { });
                     });
             })
-            .catch(() => {});
+            .catch(() => { });
     };
 
     return (

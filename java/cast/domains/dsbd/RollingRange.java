@@ -4,7 +4,7 @@ import java.time.LocalDateTime;
 
 /**
  * @Classname : RollingRange.java
- * @Description : 시설 카드 집계 구간 (선택 시각 ~ +60분, 자정에서 잘린다)
+ * @Description : 시설 카드 집계 구간 (선택 시각 ~ +60분)
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
@@ -18,19 +18,14 @@ import java.time.LocalDateTime;
  * </pre>
  */
 public final class RollingRange {
-	private static final int SERVICE_RATE_LOOKBACK_MIN = 60;
+	private static final int MIN_DIFF = 60;
 
 	private final LocalDateTime dayStart;
 	private final LocalDateTime bgnDt;
 	private final LocalDateTime endDt;
 	private final int actualMinutes;
 
-	public RollingRange(
-			LocalDateTime dayStart,
-			LocalDateTime bgnDt,
-			LocalDateTime endDt,
-			int actualMinutes
-	) {
+	public RollingRange(LocalDateTime dayStart, LocalDateTime bgnDt, LocalDateTime endDt, int actualMinutes) {
 		this.dayStart = dayStart;
 		this.bgnDt = bgnDt;
 		this.endDt = endDt;
@@ -38,8 +33,7 @@ public final class RollingRange {
 	}
 
 	public LocalDateTime getServiceRateLookbackBgn() {
-		LocalDateTime lookbackBgn = bgnDt.minusMinutes(SERVICE_RATE_LOOKBACK_MIN);
-
+		LocalDateTime lookbackBgn = bgnDt.minusMinutes(MIN_DIFF);
 		return lookbackBgn.isBefore(dayStart) ? dayStart : lookbackBgn;
 	}
 

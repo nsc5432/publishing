@@ -2,7 +2,6 @@ package aoms.pm.utils;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -18,37 +17,27 @@ import kr.dogfoot.hwpxlib.object.content.section_xml.paragraph.T;
 import kr.dogfoot.hwpxlib.object.content.section_xml.paragraph.TItem;
 import kr.dogfoot.hwpxlib.object.content.section_xml.paragraph.object.Picture;
 import kr.dogfoot.hwpxlib.object.content.section_xml.paragraph.object.Table;
+import kr.dogfoot.hwpxlib.object.content.section_xml.paragraph.object.shapeobject.ShapeObject;
 import kr.dogfoot.hwpxlib.object.content.section_xml.paragraph.object.table.Tc;
 import kr.dogfoot.hwpxlib.object.content.section_xml.paragraph.object.table.Tr;
 import kr.dogfoot.hwpxlib.object.content.section_xml.paragraph.t.NormalText;
 import kr.dogfoot.hwpxlib.writer.HWPXWriter;
 
 public class HwpxUtils {
-	/** 템플릿 본문 셀이 사용하는 글자모양 ID. 파란색 글자모양은 이걸 복제해서 만든다. */
 	private static final int BASE_CHAR_PR_INDEX = 9;
 	private static final String BLUE = "#0000FF";
 
 	private final HWPXFile hwpxFile;
 	private final Map<String, String> variables = new HashMap<>();
-	/** 치환될 때 파란색으로 표시할 변수 키 (예 "0-1-2-0") */
 	private final Set<String> highlightKeys = new HashSet<>();
-	// 파란색 강조는 현재 꺼져 있다 — 아래 주석과 replaceVariables 의 색 지정을 함께 살려야 동작한다
-//	private final CharPr blueText;
+	private final CharPr blueText;
 
 	public HwpxUtils(HWPXFile hwpxFile) {
 		this.hwpxFile = hwpxFile;
-//		this.blueText = createBlueCharPr(hwpxFile);
+		this.blueText = createBlueCharPr(hwpxFile);
 	}
 
-	/**
-	 * 템플릿의 기본 글자모양을 복제해 파란색 글자모양을 새로 등록한다.
-	 * ID 는 목록 개수 기준으로 채번하므로 템플릿의 글자모양이 늘어나도 충돌하지 않는다.
-	 */
 	private static CharPr createBlueCharPr(HWPXFile hwpxFile) {
-		if (hwpxFile == null) {
-			throw new NullPointerException("hwpxFile 파라미터 NULL 입니다.");
-		}
-
 		ObjectList<CharPr> charProperties = hwpxFile.headerXMLFile().refList().charProperties();
 		int baseIndex = charProperties.count() > BASE_CHAR_PR_INDEX ? BASE_CHAR_PR_INDEX : 0;
 
@@ -69,10 +58,6 @@ public class HwpxUtils {
 		return this;
 	}
 
-	/**
-	 * 파란색으로 표시할 변수 키 목록. {@link #process()} 이전에 지정해야 한다.
-	 * 지정하지 않으면 글자색은 템플릿 그대로 유지된다.
-	 */
 	public HwpxUtils setHighlightKeys(Set<String> keys) {
 		if (keys != null) {
 			highlightKeys.addAll(keys);
@@ -96,7 +81,7 @@ public class HwpxUtils {
 		for (int i = 1; i <= tableCnt; i++) {
 			Table targetTable = HwpxUtils.findTable(hwpxFile, i);
 			if (targetTable != null) {
-				clearEmptyContent(HwpxUtils.findTable(hwpxFile, i));
+				clearEmptyContent(targetTable);
 			}
 		}
 
@@ -119,24 +104,33 @@ public class HwpxUtils {
 	}
 
 	private void removeEmptyParasInCell(Tc tc) {
+		if (tc.subList() == null) {
+			return;
+		}
+
 		int paraCount = tc.subList().countOfPara();
 		for (int i = paraCount - 1; i >= 0; i--) {
 			Para para = tc.subList().getPara(i);
-			if (isParaEmpth(para)) {
+
+			if (tc.subList().countOfPara() > 1 && isParaEmpty(para)) {
 				tc.subList().removePara(para);
 			}
 		}
 	}
 
-	private boolean isParaEmpth(Para para) {
+	private boolean isParaEmpty(Para para) {
 		for (Run run : para.runs()) {
 			for (RunItem item : run.runItems()) {
-				if (item instanceof T) {
-					String text = ((T) item).onlyText();
-					if (!"".equals(text)) {
-						return false;
-					}
+
+				if (!(item instanceof T)) {
+					return false;
 				}
+
+				T text = (T) item;
+				if (!text.isEmpty() && (!text.isOnlyText() || !"".equals(text.onlyText())))	 {
+					return false;
+				}
+				
 			}
 		}
 		return true;
@@ -164,33 +158,126 @@ public class HwpxUtils {
 	}
 
 	public static void deleteLastN(Table table, int n) {
+		if (table == null || n < 0 || n >= table.countOfTr()) {
+			throw new IllegalArgumentException("Invalid number of table rows to delete: " + n);
+		}
+
+		for (int i = table.countOfTr() - n; i < table.countOfTr(); i++) {
+			validateRowDeletion(table, i);
+		}
+
 		for (int i = 0; i < n; i++) {
 			deleteLastRow(table);
 		}
 	}
 
 	public static void deleteLastRow(Table table) {
+		if (table == null) {
+			throw new IllegalArgumentException("Table must not be null.");
+		}
+
 		int lastIndex = table.countOfTr() - 1;
 		deleteRow(table, lastIndex);
 	}
 
 	public static void deleteRow(Table table, int rowIndex) {
-		int cnt = table.countOfTr();
+		validateRowDeletion(table, rowIndex);
+		table.removeTr(rowIndex);
+		for (int i = rowIndex; i < table.countOfTr(); i++) {
+			for (Tc tc : table.getTr(i).tcs()) {
+				tc.cellAddr().rowAddr((short) i);
+			}
 
-		if (cnt == 0) {
-			return;
+			normalizeTableHeight(table);
+		}
+	}
+
+	private static void validateRowDeletion(Table table, int rowIndex) {
+		if (table == null || table.countOfTr() <= 1 || rowIndex < 0 || rowIndex >= table.countOfTr()) {
+			throw new IllegalArgumentException("Invalid table row to delete: " + rowIndex);
 		}
 
-		((List<Tr>) table.trs()).remove(rowIndex);
+		for (Tr tr : table.trs()) {
+			for (Tc tc : tr.tcs()) {
+				int start = tc.cellAddr().rowAddr();
+				int span = tc.cellSpan().rowSpan();
 
-		table.rowCnt((short) (cnt - 1));
+				if (span > 1 && start <= rowIndex && rowIndex < start + span) {
+					throw new IllegalArgumentException("세로 병합을 삭제하면 구조가 깨집니다: " + rowIndex);
+				}
+			}
+		}
+	}
+
+	private static void normalizeTableHeight(Table table) {
+		int rowCount = table.countOfTr();
+		long[] bottom = new long[rowCount + 1];
+		int spacing = table.cellSpacing() == null ? 0 : table.cellSpacing();
+		
+		for (int row = 0; row < rowCount; row++) {
+			long top = bottom[row] + (row == 0 ? 0 : spacing);
+			bottom[row + 1] = Math.max(bottom[row + 1], top);
+			for (Tc tc : table.getTr(row).tcs()) {
+				int end = row + tc.cellSpan().rowSpan();
+				if (tc.cellAddr().rowAddr() != row || end <= row || end > rowCount) {
+					throw new IllegalArgumentException("Invalid table cell row address or span");
+				}
+
+				bottom[end] = Math.max(bottom[end], top + tc.cellSz().height());
+			}
+		}
+
+		table.rowCnt((short) rowCount);
+		table.sz().height(bottom[rowCount]);
 	}
 
 	public void save(String outputPath) throws Exception {
 		if (hwpxFile == null) {
 			throw new IllegalStateException("Load template file first.");
 		}
+
+		for (SectionXMLFile section : hwpxFile.sectionXMLFileList().items()) {
+			for (Para para : section.paras()) {
+				prepareParaForSave(para);
+			}
+		}
+
 		HWPXWriter.toFilepath(hwpxFile, outputPath);
+	}
+
+	private void prepareParaForSave(Para para) {
+		para.removeLineSegArray();
+
+		for (Run run : para.runs()) {
+			for (RunItem item : run.runItems()) {
+				if (item instanceof Table) {
+					Table table = (Table) item;
+					
+					for (Tr tr: table.trs()) {
+						for (Tc tc : tr.tcs()) {
+							prepareSubListForSave(tc.subList());
+						}
+					}
+
+					normalizeTableHeight(table);
+				}
+
+				if (item instanceof ShapeObject<?>) {
+					ShapeObject<?> shape = (ShapeObject<?>) item;
+					if (shape.caption() != null) {
+						prepareSubListForSave(shape.caption().subList());
+					}
+				}
+			}
+		}
+	}
+
+	private void prepareSubListForSave(SubList subList) {
+		if (subList != null) {
+			for (int i = 0; i < subList.countOfPara(); i++) {
+				prepareParaForSave(subList.getPara(i));
+			}
+		}
 	}
 
 	public HWPXFile getHwpxFile() {
@@ -313,10 +400,6 @@ public class HwpxUtils {
 		}
 	}
 
-	/**
-	 * "{키}" 를 값으로 치환한다. 치환된 키가 highlightKeys 에 있으면 해당 Run 의 글자모양을 파란색으로 바꾼다.
-	 * 템플릿은 셀의 한 줄(문단)당 Run 1개 구조이므로 Run 단위 색 지정이 셀 한 줄에 정확히 대응한다.
-	 */
 	private String replaceVariables(String text, Run run) {
 		String result = text;
 		for (Map.Entry<String, String> entry : variables.entrySet()) {
@@ -326,9 +409,9 @@ public class HwpxUtils {
 			}
 
 			result = result.replace(token, entry.getValue());
-//		if (run != null && highlightKeys.contains(entry.getKey())) {
-//			run.charPrIDRef(blueText.id());
-//		}
+			if (run != null && highlightKeys.contains(entry.getKey())) {
+				run.charPrIDRef(blueText.id());
+			}
 		}
 		return result;
 	}
