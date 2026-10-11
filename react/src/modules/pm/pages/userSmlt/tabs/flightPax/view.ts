@@ -64,19 +64,12 @@ export function toFlightPax(dto: UserSmltFltPsgDto, ajmtRt: number): TerminalFli
 export function toSaveReq(
     smltId: string,
     tmnlId: TmnlId,
-    dto: UserSmltFltPsgDto,
     ajmtRt: number,
 ): UserSmltFltPsgSaveReq {
     return {
         smltId,
         tmnlId,
-        ajmtTypeCd: 'RATIO',
         ajmtRt,
-        hourList: dto.hourList.map((hourRow) => ({
-            bgnTime: hourRow.bgnTime,
-            endTime: hourRow.endTime,
-            ajmtRt: hourRow.ajmtRt,
-        })),
     };
 }
 

@@ -75,7 +75,7 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
 2. **enum 문자열 값**
    `'T1'|'T2'` · `'Y'|'N'` · `'FREE'|'NORMAL'|'BUSY'|'VERY_BUSY'` ·
    `'CHKN'|'SLFCHKN'|'DEP'|'SC'|'CMRC'` · `'PSG'|'FLT'` · `'DAILY'|'USER'` ·
-   `'RATIO'|'HOURLY'` · `'DONE'|'RUNNING'` · `'WEEKDAY'|'PRE_WEEKEND'|'WEEKEND'|'HOLIDAY'`
+   `'RATIO'` · `'DONE'|'RUNNING'` · `'WEEKDAY'|'PRE_WEEKEND'|'WEEKEND'|'HOLIDAY'`
 3. **모든 `className` 문자열** — CSS 와 1:1로 묶여 있다
 4. **CSS 커스텀 프로퍼티** — `--i1`~`--i6`, `--gut`, `--col`, `--rgt`, `--x`, `--y`,
    `--stage-ar`, `--oper-cols`, `--pm-header-h`, `--line-wait`, `--val`, `--slots`
@@ -406,8 +406,7 @@ CAST 는 `REQ_GetResource` 요청에 날짜를 싣지 않는다 — 본문이 `@
 
 | 영역 | 테이블 | 저장 방식 |
 |---|---|---|
-| 운항·여객 | `TN_PM_SMLT_USER_FLT_PSG_AJMT` | `(SMLT_ID, TMNL_ID)` 헤더 upsert |
-| 〃 | `TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT` | 시간대별 조정률 전체 교체 |
+| 운항·여객 | `TN_PM_SMLT_USER_FLT_PSG_AJMT` | `(SMLT_ID, TMNL_ID)` 전체 조정률 upsert (`RATIO` 고정) |
 | 체크인 | `TN_PM_SMLT_USER_CHKN_ISL` | 아일랜드 기본값 전체 교체 |
 | 〃 | `TN_PM_SMLT_USER_CHKN_OPER_HR` | 운영시간 전체 교체 |
 | 〃 | `TN_PM_SMLT_USER_CHKN_BOOTH` | 부스별 항공사 배정 전체 교체 |
@@ -415,7 +414,9 @@ CAST 는 `REQ_GetResource` 요청에 날짜를 싣지 않는다 — 본문이 `@
 | 〃 | `TN_PM_SMLT_USER_DPTGT_OPER_HR` | 출국장 운영시간 전체 교체 |
 | 〃 | `TN_PM_SMLT_SCSH_OPER_PLAN` | 시간대별 보안검색대 운영계획 전체 교체 |
 
-- 운항·여객 저장은 개별 운항편을 직접 수정하지 않고 전체·시간대별 **조정률**만 저장한다.
+- 운항·여객은 전체 **조정률**만 저장한다. 저장 요청은 `smltId` · `tmnlId` · `ajmtRt`이며,
+  `AJMT_TYPE_CD`는 서버 SQL에서 `RATIO`로 고정한다. 시간대별 표는 조회용 원본 여객수에 전체
+  조정률을 적용하고, CAST 리소스 발행도 같은 전체 조정률을 운항별 여객수에 적용한다.
 - 체크인과 출국장은 `(SMLT_ID, TMNL_ID)` 범위의 자식 테이블을 먼저 삭제하고 부모를 삭제한 뒤,
   부모부터 자식을 다시 넣는 전체 교체 방식이다.
 - 세 탭 저장은 서로 다른 API·트랜잭션이다. 세 영역 전체를 한 번에 원자적으로 저장하지 않는다.

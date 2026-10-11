@@ -18,11 +18,6 @@ import { DepartureTab } from './tabs/departure/DepartureTab';
 import { FlightPaxTab } from './tabs/flightPax/FlightPaxTab';
 import { NO_TERMINAL, enabledTerminals, otherTerminal, type SmltTabKey, type SmltTabProps, type TerminalEnabled, type TerminalKind } from './types';
 
-const TITLE = 'PM 예측관리 / 사용자 시뮬레이션';
-const VIEW_TITLE = 'PM 예측관리 / 사용자 시뮬레이션 설정 조건 조회';
-
-const EXEC_FAIL = '시뮬레이션 실행에 실패했습니다.';
-const EXEC_CONFIRM = '시뮬레이션을 실행하시겠습니까?';
 const MONITORING_PATH = '/rui/pm/smlt-monitoring';
 
 interface TabContentProps extends SmltTabProps {
@@ -49,10 +44,7 @@ function UserSmltConfig() {
     const { smltIds: editSmltIds, ymd: baseYmd, error, token } = useSmltInfo(readOnly ? '' : ymd, reloadKey);
 
     const smltIds = readOnly
-        ? {
-            T1: !viewTmnlId || viewTmnlId === 'T1' ? viewSmltId : '',
-            T2: !viewTmnlId || viewTmnlId === 'T2' ? viewSmltId : '',
-        }
+        ? { T1: !viewTmnlId || viewTmnlId === 'T1' ? viewSmltId : '', T2: !viewTmnlId || viewTmnlId === 'T2' ? viewSmltId : '' }
         : editSmltIds;
 
     const [activeTab, setActiveTab] = useState<SmltTabKey>('flightPax');
@@ -84,30 +76,30 @@ function UserSmltConfig() {
         if (!runSmltId) return;
 
         dialog
-            .confirm({ title: '시뮬레이션 실행', description: EXEC_CONFIRM })
+            .confirm({ title: '시뮬레이션 실행', description: '시뮬레이션을 실행하시겠습니까?' })
             .then((confirmed) => {
                 if (!confirmed) return;
 
                 userSmltService
                     .execute(runSmltId)
-                    .then(dto => unwrap(dto, EXEC_FAIL))
+                    .then((dto) => unwrap(dto, '시뮬레이션 실행에 실패했습니다.'))
                     .then(() => navigate(MONITORING_PATH))
                     .catch((error: ApiError) => {
                         dialog
                             .alert({
                                 title: '실행 실패',
-                                description: error?.message || EXEC_FAIL,
+                                description: error?.message || '시뮬레이션 실행에 실패했습니다.',
                             })
-                            .catch(() => { });
+                            .catch(() => {});
                     });
             })
-            .catch(() => { });
+            .catch(() => {});
     };
 
     return (
         <>
             <SmltGnb
-                title={readOnly ? VIEW_TITLE : TITLE}
+                title={readOnly ? 'PM 예측관리 / 사용자 시뮬레이션 설정 조건 조회' : 'PM 예측관리 / 사용자 시뮬레이션'}
                 ymd={baseYmd || ymd}
                 steps={picked ? <SmltTabs activeTab={activeTab} onTabChange={setActiveTab} /> : undefined}
                 onBack={readOnly ? () => navigate(-1) : undefined}

@@ -2,8 +2,6 @@ package aoms.pm.cast.dto;
 
 import java.util.List;
 
-import aoms.pm.cast.enums.AdjType;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -13,12 +11,11 @@ public class UserSmltFltPsgDto extends JsonResponse {
 	private static final long serialVersionUID = 1L;
 
 	private String tmnlId; // T1 / T2
-	private int fltCnt; // 요약: 운항편
-	private int psgCnt; // 요약: 여객
+	private int fltCnt;
+	private int psgCnt;
 	private String peakTime; // 요약: 피크 HHmm
-	private AdjType ajmtTypeCd; // 저장된 수정 방식
 	private int ajmtRt; // 저장된 전체 비율 (%)
-	private FltPsgChartDto fltChart; // 운항편 수 막대 차트
-	private FltPsgChartDto psgChart; // 여객 수 막대 차트
+	private FltPsgChartDto fltChart;
+	private FltPsgChartDto psgChart;
 	private List<FltPsgHourDto> hourList; // 시간대별 목록 (24개)
 }

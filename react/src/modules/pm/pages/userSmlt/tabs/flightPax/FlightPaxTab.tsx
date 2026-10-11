@@ -12,18 +12,19 @@ import { EMPTY_FLIGHT_PAX, toFlightPax, toSaveReq } from './view';
 
 type RatioState = Record<TerminalKind, number>;
 
-const EMPTY_RATIO: RatioState = { T1: 0, T2: 0 };
-
-const FETCH_FAIL = '운항편/여객수 정보를 불러오지 못했습니다.';
-const SAVE_FAIL = '운항편/여객수 저장에 실패했습니다.';
-
 const fetchFltPsg = (smltId: string, tmnlId: TerminalKind) => userSmltService.getFltPsgInfo(smltId, tmnlId);
 
 const keepDto = (dto: UserSmltFltPsgDto) => dto;
 
 export function FlightPaxTab({ smltIds, reloadKey, enabled, onToggleTerminal, focusTerminal, onFocusChange, readOnly }: SmltTabProps) {
-    const { raw: dtoByTerminal, error, token } = useTerminalData(smltIds, reloadKey, fetchFltPsg, keepDto, FETCH_FAIL);
-    const [ratios, setRatios] = useState<RatioState>(EMPTY_RATIO);
+    const { raw: dtoByTerminal, error, token } = useTerminalData(
+        smltIds,
+        reloadKey,
+        fetchFltPsg,
+        keepDto,
+        '운항편/여객수 정보를 불러오지 못했습니다.',
+    );
+    const [ratios, setRatios] = useState<RatioState>({ T1: 0, T2: 0 });
 
     const panelDataByTerminal = useMemo(
         () => ({
@@ -51,7 +52,10 @@ export function FlightPaxTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
         const smltId = smltIds[terminal];
         if (!dto || !smltId) return;
 
-        runSave(userSmltService.saveFltPsgInfo(toSaveReq(smltId, terminal, dto, ratios[terminal])), SAVE_FAIL);
+        runSave(
+            userSmltService.saveFltPsgInfo(toSaveReq(smltId, terminal, ratios[terminal])),
+            '운항편/여객수 저장에 실패했습니다.',
+        );
     };
 
     const enabledCount = enabledTerminals(enabled).length;

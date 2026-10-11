@@ -448,11 +448,10 @@ export interface FltPsgChartDto {
     itemList: FltPsgChartItemDto[];
 }
 
-/** 시간대별 수정 1행 */
+/** 시간대별 원본 여객수 */
 export interface FltPsgHourDto {
     bgnTime: string; // HHmm
     endTime: string; // HHmm
-    ajmtRt: number; // 수정 비율 (%)
     psgCnt: number; // 승객 수 (명)
 }
 
@@ -462,7 +461,6 @@ export interface UserSmltFltPsgDto extends JsonResponse {
     fltCnt: number; // 요약: 운항편
     psgCnt: number; // 요약: 여객
     peakTime: string; // 요약: 피크 (HHmm)
-    ajmtTypeCd: 'RATIO' | 'HOURLY'; // 수정 방식
     ajmtRt: number; // 전체 비율 (%)
     fltChart: FltPsgChartDto;
     psgChart: FltPsgChartDto;
@@ -473,9 +471,7 @@ export interface UserSmltFltPsgDto extends JsonResponse {
 export interface UserSmltFltPsgSaveReq {
     smltId: string;
     tmnlId: TmnlId;
-    ajmtTypeCd: 'RATIO' | 'HOURLY';
-    ajmtRt: number; // 전체 비율 (%) — ajmtTypeCd=RATIO 일 때 사용
-    hourList: Array<Pick<FltPsgHourDto, 'bgnTime' | 'endTime' | 'ajmtRt'>>;
+    ajmtRt: number; // 전체 비율 (%)
 }
 
 /* --------- 조회 결과 공용 (체크인 카운터 · 출국장) --------- */

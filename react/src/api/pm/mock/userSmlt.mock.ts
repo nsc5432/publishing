@@ -26,7 +26,6 @@ import type {
 const YMD = '20260710';
 const SAVE_DT = '20260710093000';
 
-/** 편집 대상 시뮬레이션 ID — 터미널마다 따로 잡힌다 */
 const SMLT_ID: Record<TmnlId, string> = {
     T1: 'USMLT-20260710-T1-01',
     T2: 'USMLT-20260710-T2-01',
@@ -36,10 +35,8 @@ const OK: JsonResponse = { error: false, errorMessage: '' };
 
 /* ================= 운항편/여객수 ================= */
 
-/** 하단 시간 스케일 — 04시부터 2시간 단위 12구간 */
-const CHART_TIMES = ['04', '06', '08', '10', '12', '14', '16', '18', '20', '22', '00', '02'];
+const CHART_TIMES = ['00', '02', '04', '06', '08', '10', '12', '14', '16', '18', '20', '22'];
 
-/** 막대 비율(0~100)을 Y축 최댓값에 맞춘 값으로 편다 */
 function toChart(totCnt: number, maxCnt: number, ratios: number[]): FltPsgChartDto {
     return {
         totCnt,
@@ -51,14 +48,12 @@ function toChart(totCnt: number, maxCnt: number, ratios: number[]): FltPsgChartD
     };
 }
 
-/** 시간대별 수정 — [수정 비율(%), 승객 수] 를 04:00 부터 1시간 단위로 편다 */
-function toHourList(seed: Array<[number, number]>) {
+function toHourList(counts: number[]) {
     const pad = (hour: number) => `${String(hour).padStart(2, '0')}00`;
 
-    return seed.map(([ajmtRt, psgCnt], i) => ({
+    return counts.map((psgCnt, i) => ({
         bgnTime: pad(4 + i),
         endTime: pad(5 + i),
-        ajmtRt,
         psgCnt,
     }));
 }
@@ -70,23 +65,22 @@ const FLT_PSG: Record<TmnlId, UserSmltFltPsgDto> = {
         fltCnt: 15,
         psgCnt: 1234567,
         peakTime: '1400',
-        ajmtTypeCd: 'RATIO',
         ajmtRt: 10,
-        fltChart: toChart(1234, 300, [5, 8, 6, 33, 40, 67, 68, 67, 33, 33, 16, 6]),
-        psgChart: toChart(1234567, 90000, [6, 10, 7, 34, 39, 68, 68, 67, 34, 33, 15, 6]),
+        fltChart: toChart(1234, 300, [16, 6, 5, 8, 6, 33, 40, 67, 68, 67, 33, 33]),
+        psgChart: toChart(1234567, 90000, [15, 6, 6, 10, 7, 34, 39, 68, 68, 67, 34, 33]),
         hourList: toHourList([
-            [10, 12340],
-            [0, 18220],
-            [5, 24510],
-            [0, 31080],
-            [-5, 44760],
-            [0, 52300],
-            [15, 61940],
-            [0, 58120],
-            [0, 49870],
-            [10, 55430],
-            [0, 67210],
-            [0, 63050],
+            12340,
+            18220,
+            24510,
+            31080,
+            44760,
+            52300,
+            61940,
+            58120,
+            49870,
+            55430,
+            67210,
+            63050,
         ]),
     },
     T2: {
@@ -95,30 +89,28 @@ const FLT_PSG: Record<TmnlId, UserSmltFltPsgDto> = {
         fltCnt: 9,
         psgCnt: 842310,
         peakTime: '1600',
-        ajmtTypeCd: 'RATIO',
         ajmtRt: 0,
-        fltChart: toChart(842, 300, [4, 6, 9, 22, 31, 44, 52, 48, 27, 21, 11, 5]),
-        psgChart: toChart(842310, 90000, [5, 7, 10, 23, 30, 45, 53, 47, 26, 20, 12, 4]),
+        fltChart: toChart(842, 300, [11, 5, 4, 6, 9, 22, 31, 44, 52, 48, 27, 21]),
+        psgChart: toChart(842310, 90000, [12, 4, 5, 7, 10, 23, 30, 45, 53, 47, 26, 20]),
         hourList: toHourList([
-            [0, 8120],
-            [0, 11460],
-            [0, 16900],
-            [0, 21340],
-            [0, 29770],
-            [0, 35010],
-            [0, 41220],
-            [0, 39880],
-            [0, 33150],
-            [0, 37600],
-            [0, 45730],
-            [0, 42090],
+            8120,
+            11460,
+            16900,
+            21340,
+            29770,
+            35010,
+            41220,
+            39880,
+            33150,
+            37600,
+            45730,
+            42090,
         ]),
     },
 };
 
 /* ================= 조회 결과 공용 ================= */
 
-/** 시간대별 대기인원 (0~23시) */
 function toWaitList(counts: number[]): WaitPsgDto[] {
     return counts.map((waitPsgCnt, hour) => ({ hour, waitPsgCnt }));
 }
@@ -128,7 +120,6 @@ function toWaitList(counts: number[]): WaitPsgDto[] {
 /** 아일랜드 문자 — 원본 배정정보와 동일하게 I 를 건너뛴다 */
 const ISLAND_CD_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N'];
 
-/** 그날 배정된 항공사 — 터미널마다 다르다 */
 const ALN_CD_LIST: Record<TmnlId, string[]> = {
     T1: ['7C', 'BX', 'KE', 'LJ', 'OZ', 'RS', 'TG', 'TW', 'UA', 'YP', 'ZE'],
     T2: ['AF', 'CI', 'CZ', 'DL', 'GA', 'KE', 'KL', 'MU', 'VN'],
@@ -189,7 +180,6 @@ const CHKN_KPI: Record<TmnlId, SmltKpiDto> = {
     T2: { avgWaitMin: 9, p95WaitMin: 7, maxQueuePsgCnt: 11, utilRate: 61 },
 };
 
-/** 피크 카운터 = 시간대별 운영 부스 합의 최댓값 */
 function peakCounterCnt(islands: ChknIslandDto[]): number {
     const byHour: number[] = Array(24).fill(0);
 
@@ -342,7 +332,6 @@ const DPTGT_KPI: Record<TmnlId, SmltKpiDto> = {
     T2: { avgWaitMin: 6, p95WaitMin: 5, maxQueuePsgCnt: 8, utilRate: 47 },
 };
 
-/** 피크 검색대 = 시간대별 검색대 합의 최댓값 (미운영 출국장은 뺀다) */
 function peakScshCntom(dptgtList: UserSmltDepItemDto[]): number {
     const byHour: number[] = Array(24).fill(0);
 
@@ -392,7 +381,6 @@ const CHKN_MARKERS: Array<[string, number, number]> = [
     ['A', 80.75, 90.68],
 ];
 
-/** 출국장 마커 */
 const DPTGT_MARKERS: Record<TmnlId, Array<[string, number, number]>> = {
     T1: [
         ['6', 16.65, 79.59],
@@ -447,10 +435,8 @@ export const userSmltMock = {
         markerList: toMarkerList(tmnlId, fcltType, island),
     }),
 
-    /** 저장 — 목업은 성공만 돌려준다 */
     save: (): JsonResponse => OK,
 
-    /** 실행 — 비동기로 시작만 걸린다 */
     execute: (smltId: string): UserSmltExecDto => ({
         ...OK,
         smltId,

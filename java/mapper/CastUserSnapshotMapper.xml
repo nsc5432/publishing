@@ -61,22 +61,10 @@
                 A.RSVT_TRNS_BDPSG_CNT AS TRNS_BDPSG_CNT,
                 A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.GD_IRR_YN AS IRR_FLT_YN, A.TDFLT_YN,
                 NVL((
-                    SELECT 
-	                    CASE
-	                        WHEN F.AJMT_TYPE_CD = 'HOURLY' THEN NVL((
-		                        SELECT T.AJMT_RT
-		                        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
-		                        WHERE T.SMLT_ID = F.SMLT_ID
-		                        AND T.TMNL_ID = F.TMNL_ID
-		                        AND NVL(A.PREDC_HM, A.SCHDL_HM) >= T.BGNG_HM
-		                        AND NVL(A.PREDC_HM, A.SCHDL_HM) &lt; NVL(T.END_HM, '2400')
-		                        AND ROWNUM = 1
-	                        ), 0)
-	                        ELSE NVL(F.AJMT_RT, 0)
-	                    END
-	                FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT F
-	                WHERE F.SMLT_ID = #{smltId}
-	                AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')  
+                    SELECT NVL(F.AJMT_RT, 0)
+                    FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT F
+                    WHERE F.SMLT_ID = #{smltId}
+                    AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
                 ), 0) AS AJMT_RT,
                 ROW_NUMBER() OVER (
                     PARTITION BY A.ARR_DEP_SE_CD, A.FLTNM, A.GD_SE_YMD, A.SCHDL_HM
@@ -114,19 +102,7 @@
             A.ARR_DEP_ARPT_CD, A.ACST_NO, A.GATE_NO, A.GATE_TYPE, A.ARCFT_STGCP,
             ROUND(NVL(A.BDPSG_CNT, 0) * (100 +
                 NVL((
-                    SELECT
-                        CASE
-                            WHEN F.AJMT_TYPE_CD = 'HOURLY' THEN NVL((
-                                SELECT T.AJMT_RT
-                                FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT T
-                                WHERE T.SMLT_ID = F.SMLT_ID
-                                AND T.TMNL_ID = F.TMNL_ID
-                                AND NVL(A.PREDC_HM, A.DEP_ARR_HM) >= T.BGNG_HM
-                                AND NVL(A.PREDC_HM, A.DEP_ARR_HM) &lt; NVL(T.END_HM, '2400')
-                                AND ROWNUM = 1
-                            ), 0)
-                            ELSE NVL(F.AJMT_RT, 0)
-                        END
+                    SELECT NVL(F.AJMT_RT, 0)
                     FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT F
                     WHERE F.SMLT_ID = #{smltId}
                     AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
