@@ -48,7 +48,13 @@
             #{rsrcNo}, X.DOM_INTL_SE_CD, X.ARR_DEP_SE_CD, X.TMNL_ID, X.ALN_CD,
             X.FLTNM, X.DEP_ARR_YMD, X.DEP_ARR_HM, X.PREDC_HM, X.ACTL_HM,
             X.ARPT_CD, X.ACST_NO, X.GATE_NO, X.ARCFT_STGCP,
-            ROUND(NVL(X.BDPSG_CNT, 0) * (100 + X.AJMT_RT) / 100), X.TRNS_BDPSG_CNT,
+            NVL(X.BDPSG_CNT, 0) + ROUND(
+                CASE
+                    WHEN X.ARR_DEP_SE_CD = 'D' AND X.DOM_INTL_SE_CD != 'D'
+                    THEN GREATEST(NVL(X.BDPSG_CNT, 0) - NVL(X.TRNS_BDPSG_CNT, 0), 0)
+                    ELSE 0
+                END * X.AJMT_RT / 100
+            ), X.TRNS_BDPSG_CNT,
             X.CRSL_NO, X.ARCFT_SUBTYPE_CD,
             X.IRR_FLT_YN, X.TDFLT_YN,
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
@@ -57,8 +63,8 @@
                 A.DOM_INTL_SE_CD, A.ARR_DEP_SE_CD, A.TMNL_ID, A.ALN_CD,
                 A.FLTNM, A.GD_SE_YMD AS DEP_ARR_YMD, A.SCHDL_HM AS DEP_ARR_HM,
                 A.PREDC_HM, A.ACTL_HM, A.ARPT_CD, A.ACST_NO, A.GATE_NO,
-                A.ARCFT_STGCP, A.RSVT_BDPSG_CNT AS BDPSG_CNT,
-                A.RSVT_TRNS_BDPSG_CNT AS TRNS_BDPSG_CNT,
+                A.ARCFT_STGCP, TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)) AS BDPSG_CNT,
+                TO_NUMBER(TRIM(A.RSVT_TRNS_BDPSG_CNT)) AS TRNS_BDPSG_CNT,
                 A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.GD_IRR_YN AS IRR_FLT_YN, A.TDFLT_YN,
                 NVL((
                     SELECT NVL(F.AJMT_RT, 0)
@@ -100,14 +106,18 @@
             #{rsrcNo}, A.DOM_INTL_SE_CD, A.ARR_DEP_SE_CD, A.TMNL_ID, A.ALN_CD, A.ALN_CTGRY,
             A.FLTNM, A.DALY_FLTSH_ID, A.DEP_ARR_YMD, A.DEP_ARR_HM, A.PREDC_HM, A.ACTL_HM,
             A.ARR_DEP_ARPT_CD, A.ACST_NO, A.GATE_NO, A.GATE_TYPE, A.ARCFT_STGCP,
-            ROUND(NVL(A.BDPSG_CNT, 0) * (100 +
-                NVL((
+            NVL(A.BDPSG_CNT, 0) + ROUND(
+                CASE
+                    WHEN A.ARR_DEP_SE_CD = 'D' AND A.DOM_INTL_SE_CD != 'D'
+                    THEN GREATEST(NVL(A.BDPSG_CNT, 0) - NVL(A.TRNS_BDPSG_CNT, 0), 0)
+                    ELSE 0
+                END * NVL((
                     SELECT NVL(F.AJMT_RT, 0)
                     FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT F
                     WHERE F.SMLT_ID = #{smltId}
                     AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
-                ), 0)
-            ) / 100),
+                ), 0) / 100
+            ),
             A.TRNS_BDPSG_CNT, A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.CKNCT_RANGE_CN,
             A.SLF_CHKN_PSBLTY_YN, A.IRR_FLT_YN, A.TDFLT_YN, A.BUS_NEED_YN, A.WAYO_ID,
             A.FRST_BAG_INPUT_DT, A.LAST_BAG_INPUT_DT,

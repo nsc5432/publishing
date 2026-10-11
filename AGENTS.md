@@ -417,6 +417,11 @@ CAST 는 `REQ_GetResource` 요청에 날짜를 싣지 않는다 — 본문이 `@
 - 운항·여객은 전체 **조정률**만 저장한다. 저장 요청은 `smltId` · `tmnlId` · `ajmtRt`이며,
   `AJMT_TYPE_CD`는 서버 SQL에서 `RATIO`로 고정한다. 시간대별 표는 조회용 원본 여객수에 전체
   조정률을 적용하고, CAST 리소스 발행도 같은 전체 조정률을 운항별 여객수에 적용한다.
+- **조정 대상은 화면이 세는 여객과 같아야 한다** — 국제선 출발편의 `GREATEST(예약 − 환승, 0)` 이다.
+  발행은 `BDPSG_CNT + ROUND(대상 × AJMT_RT / 100)` 로 그 몫만 늘리고 환승·도착·국내선은 그대로 둔다.
+  운항편 필터와 중복 제거(`ROW_NUMBER`)도 `CastFltPsgMapper#retrieveFltPsgHourList` 와
+  `CastUserSnapshotMapper#insertSchdlAtrbFromDaily` 가 같아야 하며, 한쪽만 고치면 화면의 "+10%" 와
+  발행분이 어긋난다.
 - 체크인과 출국장은 `(SMLT_ID, TMNL_ID)` 범위의 자식 테이블을 먼저 삭제하고 부모를 삭제한 뒤,
   부모부터 자식을 다시 넣는 전체 교체 방식이다.
 - 세 탭 저장은 서로 다른 API·트랜잭션이다. 세 영역 전체를 한 번에 원자적으로 저장하지 않는다.
