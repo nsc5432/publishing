@@ -43,6 +43,9 @@ import org.xml.sax.SAXException;
 import aoms.framework.cmmn.config.CoreYamlRead;
 import aoms.framework.cmmn.service.SessionService;
 import aoms.framework.cmmn.util.FileUtil;
+import aoms.pm.cast.dto.UserSmltReqDto;
+import aoms.pm.cast.enums.UserSmltReqStatus;
+import aoms.pm.cast.mapper.CastSmltMapper;
 import aoms.pm.castrest.mapper.CastRestMapper;
 import aoms.pm.castrest.service.CastRestService;
 import aoms.pm.cmmn.dto.CastCheckInCounterServiceTimeDto;
@@ -70,10 +73,6 @@ import aoms.pm.cmmn.dto.PmAtchFileDto;
 import aoms.pm.cmmn.dto.SimRsltDto;
 import aoms.pm.cmmn.dto.SimRunStatDto;
 import aoms.pm.cmmn.dto.SmltMdlDto;
-import aoms.pm.cast.dto.UserSmltReqDto;
-import aoms.pm.cast.enums.SmltExecStatus;
-import aoms.pm.cast.enums.UserSmltReqStatus;
-import aoms.pm.cast.mapper.CastSmltMapper;
 import aoms.pm.cmmn.dto.SmltRsltDtlDto;
 import aoms.pm.utils.SessionUtils;
 import aoms.pm.utils.StringUtils;
@@ -725,10 +724,10 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 	String pName = "";
 	String pValue = "";
 
-	private static String resolveBaseYmd() {
+	private String resolveBaseYmd() {
 		return FIXED_BASE_YMD.isEmpty()
 				? LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
-				: FIXED_BASE_YMD;
+				: castRestMapper.selectBaseYmdForCalibration();
 	}
 
 	@Override
@@ -2554,17 +2553,14 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 	private int insertResult(CastResReqDto dto){
 		saveSimLog("19", "1");
 		int relatedEventCd = setupMasterDto(dto);
-
-		// 사용자 실행이면 CAST 가 실어 보낸 FS 번호로 요청을 되찾는다
-		UserSmltReqDto userReq = retrieveUserReq(dto);
-
-		if (userReq != null) {
-			// 같은 결과를 다시 받아도 결과 상세가 중복되지 않게 여기서 끊는다
-			if (!userReq.getRsltSmltId().isEmpty()) {
-				saveSimLog("19", "2");
-				return 1;
-			}
-		}
+//		UserSmltReqDto userReq = retrieveUserReq(dto);
+//
+//		if (userReq != null) {
+//			if (!userReq.getRsltSmltId().isEmpty()) {
+//				saveSimLog("19", "2");
+//				return 1;
+//			}
+//		}
 
 		String simId = castRestMapper.retrieveSimId(dto);
 		dto.setSimId(simId);
@@ -2582,35 +2578,35 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 			executeBatchInsert(datailList);
 		}
 
-		closeUserReq(userReq, simId, dto.getLoginIpAddr());
+//		closeUserReq(userReq, simId, dto.getLoginIpAddr());
 
 		saveSimLog("19", "2");
 		return rRslt;
 	}
 
 	// WhatIf 결과가 아니거나 요청을 못 찾으면 null. 그때는 일일 결과처럼 그대로 저장한다
-	private UserSmltReqDto retrieveUserReq(CastResReqDto dto) {
-		String fltSchdlRsrcId = dto.getFlightScheduleResourceID();
-
-		if (!WHAT_IF.equals(dto.getSmltType()) || fltSchdlRsrcId == null || fltSchdlRsrcId.isBlank()) {
-			return null;
-		}
-
-		return castRestMapper.retrieveUserReqByFsRsrcId(fltSchdlRsrcId.trim());
-	}
+//	private UserSmltReqDto retrieveUserReq(CastResReqDto dto) {
+//		String fltSchdlRsrcId = dto.getFlightScheduleResourceID();
+//
+//		if (!WHAT_IF.equals(dto.getSmltType()) || fltSchdlRsrcId == null || fltSchdlRsrcId.isBlank()) {
+//			return null;
+//		}
+//
+//		return castRestMapper.retrieveUserReqByFsRsrcId(fltSchdlRsrcId.trim());
+//	}
 
 	// 요청과 수행이력을 함께 닫는다. 결과 저장과 같은 트랜잭션이라 하나라도 실패하면 전부 롤백된다
-	private void closeUserReq(UserSmltReqDto userReq, String simId, String loginIpAddr) {
-		if (userReq == null) {
-			return;
-		}
-
-		userReq.setRsltSmltId(simId);
-		userReq.setLoginIpAddr(loginIpAddr);
-		castRestMapper.updateUserReqFinished(userReq);
-		castSmltMapper.updateSmltFlfmtClosed(
-				userReq.getSmltId(), userReq.getSmltFlfmtSn(), SmltExecStatus.DONE.getValue());
-	}
+//	private void closeUserReq(UserSmltReqDto userReq, String simId, String loginIpAddr) {
+//		if (userReq == null) {
+//			return;
+//		}
+//
+//		userReq.setRsltSmltId(simId);
+//		userReq.setLoginIpAddr(loginIpAddr);
+//		castRestMapper.updateUserReqFinished(userReq);
+//		castSmltMapper.updateSmltFlfmtClosed(
+//				userReq.getSmltId(), userReq.getSmltFlfmtSn(), SmltExecStatus.DONE.getValue());
+//	}
 	
 	private int setupMasterDto(CastResReqDto dto) {
 		int eventCd = 1;

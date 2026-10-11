@@ -99,4 +99,6 @@ public interface CastRestMapper {
 	UserSmltReqDto retrieveUserReqByFsRsrcId(@Param("fltSchdlRsrcId") String fltSchdlRsrcId);
 	UserSmltReqDto retrieveUserReqByKey(@Param("smltReqId") String smltReqId);
 	int updateUserReqFinished(UserSmltReqDto dto);
+	// 개발 중 검증 날자 선택을 위해 사용. deploy는 CURRENT_DATE
+	String selectBaseYmdForCalibration();
 }
