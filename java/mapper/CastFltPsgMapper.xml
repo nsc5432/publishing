@@ -3,8 +3,7 @@
 
 <mapper namespace="aoms.pm.cast.mapper.CastFltPsgMapper">
     <select id="retrieveFltPsgHourList" resultType="aoms.pm.cast.dto.FltPsgRawDto">
-        /* CastFltPsgMapper.retrieveFltPsgHourList */
-        <!-- 운항편 필터·조정 대상 여객은 CastUserSnapshotMapper.insertSchdlAtrbFromDaily 와 같아야 한다 -->
+
         SELECT
             SUBSTR(X.HM, 1, 2) AS HOUR,
             COUNT(*) AS FLT_CNT,
@@ -47,19 +46,20 @@
     </select>
 
     <select id="retrieveUserFltPsg" resultType="aoms.pm.cast.dto.UserFltPsgRawDto">
-        /* CastFltPsgMapper.retrieveUserFltPsg */
+
         SELECT
             NVL(A.AJMT_RT, 0) AS AJMT_RT
         FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT A
         WHERE 1 = 1
-        AND A.SMLT_ID = #{smltId}
-        AND A.TMNL_ID = #{tmnlId}
+        AND A.OWNER_USER_ID = #{loginUserId}
+        AND A.EXCN_YMD = #{ymd}
+        AND A.TMNL_ID = #{fcltTmnlId}
     </select>
 
     <insert id="insertUserFltPsg" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
-        /* CastFltPsgMapper.insertUserFltPsg */
-        INSERT INTO PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT (
-            SMLT_ID,
+
+        INSERT INTO <choose><when test="snapshotSmltId != null">PMOWN.TN_PM_SMLT_EX_FLT_PSG_AJMT</when><otherwise>PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT</otherwise></choose> (
+            <choose><when test="snapshotSmltId != null">SMLT_ID,</when><otherwise>OWNER_USER_ID, EXCN_YMD,</otherwise></choose>
             TMNL_ID,
             AJMT_TYPE_CD,
             AJMT_RT,
@@ -67,7 +67,7 @@
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
-            #{smltId},
+            <choose><when test="snapshotSmltId != null">#{snapshotSmltId},</when><otherwise>#{loginUserId}, #{ymd},</otherwise></choose>
             #{fcltTmnlId},
             'RATIO',
             #{ajmtRt},
@@ -78,7 +78,7 @@
     </insert>
 
     <update id="updateUserFltPsg" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
-        /* CastFltPsgMapper.updateUserFltPsg */
+
         UPDATE PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT
         SET AJMT_TYPE_CD = 'RATIO',
             AJMT_RT = #{ajmtRt},
@@ -86,7 +86,8 @@
             LAST_MDFR_IP_ADDR = #{loginIpAddr},
             LAST_MDFCN_DT = CURRENT_TIMESTAMP
         WHERE 1 = 1
-        AND SMLT_ID = #{smltId}
+        AND OWNER_USER_ID = #{loginUserId}
+        AND EXCN_YMD = #{ymd}
         AND TMNL_ID = #{fcltTmnlId}
     </update>
 </mapper>

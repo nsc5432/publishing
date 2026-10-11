@@ -3,7 +3,7 @@
 
 <mapper namespace="aoms.pm.cast.mapper.CastChknMapper">
     <select id="retrieveCknctCntList" resultType="aoms.pm.cast.dto.CknctCntRawDto">
-        /* CastChknMapper.retrieveCknctCntList */
+
         SELECT
             SUBSTR(A.CKNCT_ID, 1, 1) AS ISLAND,
             COUNT(A.CKNCT_ID) AS CKNCT_CNT
@@ -11,14 +11,14 @@
         WHERE 1 = 1
         AND A.TMNL_ID = #{tmnlId}
         AND A.USE_YN = 'Y'
-        <!-- A, B 유인 체크인카운터 / H 셀프백드랍 -->
+
         AND A.CKNCT_USE_CRG_APLCN_TYPE_CD IN (<foreach collection="useCrgTypeCdList" item="item" separator=",">#{item}</foreach>)
         GROUP BY SUBSTR(A.CKNCT_ID, 1, 1)
         ORDER BY ISLAND
     </select>
 
     <select id="retrieveChknQueueRawList" resultType="aoms.pm.cast.dto.ChknQueueRawDto">
-        /* CastChknMapper.retrieveChknQueueRawList */
+
         SELECT
             A.SMLT_ACTL_DT,
             B.PSG_FCLT_CD,
@@ -39,7 +39,7 @@
     </select>
 
     <select id="retrieveAlnCdList" resultType="java.lang.String">
-        /* CastChknMapper.retrieveAlnCdList */
+
         SELECT DISTINCT A.ALN_CD
         FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
         WHERE 1 = 1
@@ -50,7 +50,7 @@
     </select>
 
     <select id="retrieveUserChknIslandList" resultType="aoms.pm.cast.dto.ChknIslandDto">
-        /* CastChknMapper.retrieveUserChknIslandList */
+
         SELECT
             A.CHKN_ISL_CD AS ISLAND,
             NVL(A.BOOTH_CNT, 0) AS BOOTH_CNT,
@@ -58,26 +58,28 @@
             NVL(A.SBD_CNT, 0) AS BAG_DROP_CNT
         FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL A
         WHERE 1 = 1
-        AND A.SMLT_ID = #{smltId}
-        AND A.TMNL_ID = #{tmnlId}
+        AND A.OWNER_USER_ID = #{loginUserId}
+        AND A.EXCN_YMD = #{ymd}
+        AND A.TMNL_ID = #{fcltTmnlId}
         ORDER BY A.CHKN_ISL_CD
     </select>
 
     <select id="retrieveUserChknOperHrList" resultType="aoms.pm.cast.dto.UserChknOperHrRawDto">
-        /* CastChknMapper.retrieveUserChknOperHrList */
+
         SELECT
             A.CHKN_ISL_CD AS ISLAND,
             NVL(A.OPER_BGNG_HOUR, 0) AS OPER_BGNG_HOUR,
             NVL(A.OPER_END_HOUR, 0) AS OPER_END_HOUR
         FROM PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR A
         WHERE 1 = 1
-        AND A.SMLT_ID = #{smltId}
-        AND A.TMNL_ID = #{tmnlId}
+        AND A.OWNER_USER_ID = #{loginUserId}
+        AND A.EXCN_YMD = #{ymd}
+        AND A.TMNL_ID = #{fcltTmnlId}
         ORDER BY A.CHKN_ISL_CD, A.OPER_HR_SN
     </select>
 
     <select id="retrieveUserChknBoothList" resultType="aoms.pm.cast.dto.UserChknBoothRawDto">
-        /* CastChknMapper.retrieveUserChknBoothList */
+
         SELECT
             A.CHKN_ISL_CD AS ISLAND,
             A.BOOTH_NO,
@@ -85,41 +87,45 @@
             A.CSTM_ALTMNT_YN AS CSTM_ALTMNT_YN
         FROM PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH A
         WHERE 1 = 1
-        AND A.SMLT_ID = #{smltId}
-        AND A.TMNL_ID = #{tmnlId}
+        AND A.OWNER_USER_ID = #{loginUserId}
+        AND A.EXCN_YMD = #{ymd}
+        AND A.TMNL_ID = #{fcltTmnlId}
         ORDER BY A.CHKN_ISL_CD, A.BOOTH_NO
     </select>
 
     <delete id="deleteUserChknIslandList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
-        /* CastChknMapper.deleteUserChknIslandList */
+
         DELETE FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL
         WHERE 1 = 1
-        AND SMLT_ID = #{smltId}
+        AND OWNER_USER_ID = #{loginUserId}
+        AND EXCN_YMD = #{ymd}
         AND TMNL_ID = #{fcltTmnlId}
     </delete>
 
     <delete id="deleteUserChknOperHrList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
-        /* CastChknMapper.deleteUserChknOperHrList */
+
         DELETE FROM PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR
         WHERE 1 = 1
-        AND SMLT_ID = #{smltId}
+        AND OWNER_USER_ID = #{loginUserId}
+        AND EXCN_YMD = #{ymd}
         AND TMNL_ID = #{fcltTmnlId}
     </delete>
 
     <delete id="deleteUserChknBoothList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
-        /* CastChknMapper.deleteUserChknBoothList */
+
         DELETE FROM PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH
         WHERE 1 = 1
-        AND SMLT_ID = #{smltId}
+        AND OWNER_USER_ID = #{loginUserId}
+        AND EXCN_YMD = #{ymd}
         AND TMNL_ID = #{fcltTmnlId}
     </delete>
 
     <insert id="insertUserChknIslandList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
-        /* CastChknMapper.insertUserChknIslandList */
+
         INSERT ALL
         <foreach collection="islandList" item="island">
-        INTO PMOWN.TN_PM_SMLT_USER_CHKN_ISL (
-            SMLT_ID,
+        INTO <choose><when test="snapshotSmltId != null">PMOWN.TN_PM_SMLT_EX_CHKN_ISL</when><otherwise>PMOWN.TN_PM_SMLT_USER_CHKN_ISL</otherwise></choose> (
+            <choose><when test="snapshotSmltId != null">SMLT_ID,</when><otherwise>OWNER_USER_ID, EXCN_YMD,</otherwise></choose>
             TMNL_ID,
             CHKN_ISL_CD,
             BOOTH_CNT,
@@ -129,7 +135,7 @@
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
-            #{smltId},
+            <choose><when test="snapshotSmltId != null">#{snapshotSmltId},</when><otherwise>#{loginUserId}, #{ymd},</otherwise></choose>
             #{fcltTmnlId},
             #{island.island},
             #{island.boothCnt},
@@ -144,12 +150,12 @@
     </insert>
 
     <insert id="insertUserChknOperHrList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
-        /* CastChknMapper.insertUserChknOperHrList */
+
         INSERT ALL
         <foreach collection="islandList" item="island">
             <foreach collection="island.oprTimeList" item="oprTime" index="oprTimeIdx">
-        INTO PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR (
-            SMLT_ID,
+        INTO <choose><when test="snapshotSmltId != null">PMOWN.TN_PM_SMLT_EX_CHKN_OPER_HR</when><otherwise>PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR</otherwise></choose> (
+            <choose><when test="snapshotSmltId != null">SMLT_ID,</when><otherwise>OWNER_USER_ID, EXCN_YMD,</otherwise></choose>
             TMNL_ID,
             CHKN_ISL_CD,
             OPER_HR_SN,
@@ -159,7 +165,7 @@
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
-            #{smltId},
+            <choose><when test="snapshotSmltId != null">#{snapshotSmltId},</when><otherwise>#{loginUserId}, #{ymd},</otherwise></choose>
             #{fcltTmnlId},
             #{island.island},
             #{oprTimeIdx} + 1,
@@ -175,12 +181,12 @@
     </insert>
 
     <insert id="insertUserChknBoothList" parameterType="aoms.pm.cast.dto.UserSmltChknSaveDto">
-        /* CastChknMapper.insertUserChknBoothList */
+
         INSERT ALL
         <foreach collection="islandList" item="island">
             <foreach collection="island.boothList" item="booth">
-        INTO PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH (
-            SMLT_ID,
+        INTO <choose><when test="snapshotSmltId != null">PMOWN.TN_PM_SMLT_EX_CHKN_BOOTH</when><otherwise>PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH</otherwise></choose> (
+            <choose><when test="snapshotSmltId != null">SMLT_ID,</when><otherwise>OWNER_USER_ID, EXCN_YMD,</otherwise></choose>
             TMNL_ID,
             CHKN_ISL_CD,
             BOOTH_NO,
@@ -190,7 +196,7 @@
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
-            #{smltId},
+            <choose><when test="snapshotSmltId != null">#{snapshotSmltId},</when><otherwise>#{loginUserId}, #{ymd},</otherwise></choose>
             #{fcltTmnlId},
             #{island.island},
             #{booth.boothNo},

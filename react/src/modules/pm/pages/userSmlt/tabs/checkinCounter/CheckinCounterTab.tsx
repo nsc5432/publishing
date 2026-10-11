@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { UserSmltQuery } from '@/types/api.types';
 import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { BlockChart } from '../../components/BlockChart';
 import { TerminalPanel } from '../../components/TerminalPanel';
@@ -19,17 +20,18 @@ interface DockState {
     draft: CheckinIsland | null;
     target: string | null;
     selectedBooths: number[];
+    changed: boolean;
 }
 
 const EMPTY_EDIT: EditState = { T1: [], T2: [] };
-const EMPTY_DOCK: DockState = { terminal: 'T1', draft: null, target: null, selectedBooths: [] };
+const EMPTY_DOCK: DockState = { terminal: 'T1', draft: null, target: null, selectedBooths: [], changed: false };
 const FETCH_FAIL = '체크인 카운터 정보를 불러오지 못했습니다.';
 const SAVE_FAIL = '체크인 카운터 저장에 실패했습니다.';
 
 const CHART_LEVELS = 13;
 const CHART_ROW_H = 18;
 
-const fetchChkn = (smltId: string, tmnlId: TerminalKind) => userSmltService.getChknCounterInfo(smltId, tmnlId);
+const fetchChkn = (query: UserSmltQuery, tmnlId: TerminalKind) => userSmltService.getChknCounterInfo(query, tmnlId);
 
 function toBlockItems(islands: CheckinIsland[]): BlockItem[] {
     return islands.map((island) => ({
@@ -64,10 +66,24 @@ function newIsland(terminalData: TerminalCheckinCounter, label: string): Checkin
     };
 }
 
-export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTerminal, focusTerminal, onFocusChange, readOnly }: SmltTabProps) {
-    const { data: terminalData, error, token } = useTerminalData(smltIds, reloadKey, fetchChkn, toCheckinCounter, FETCH_FAIL);
+export function CheckinCounterTab({
+    query,
+    busy,
+    beginRequest,
+    endRequest,
+    onDraftChange,
+    reloadKey,
+    enabled,
+    onToggleTerminal,
+    focusTerminal,
+    onFocusChange,
+    readOnly,
+}: SmltTabProps) {
+    const { data: terminalData, error, token } = useTerminalData(query, reloadKey, fetchChkn, toCheckinCounter, FETCH_FAIL);
     const [islandsByTerminal, setIslandsByTerminal] = useState<EditState>(EMPTY_EDIT);
     const [dock, setDock] = useState<DockState>(EMPTY_DOCK);
+
+    const dirty = useRef<Record<TerminalKind, boolean>>({ T1: false, T2: false });
 
     useErrorAlert(error, token);
 
@@ -85,6 +101,12 @@ export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTermina
     const draft = dock.terminal === focusTerminal ? dock.draft : null;
 
     const openIsland = (terminal: TerminalKind, label: string) => {
+        if (busy || !terminalData[terminal]) return;
+        if (dock.terminal === terminal && dock.draft?.label === label) return;
+        if (dock.draft && dock.changed) {
+            const previous = collectIslands(dock.terminal);
+            setIslandsByTerminal((current) => ({ ...current, [dock.terminal]: previous }));
+        }
         onFocusChange(terminal);
         setDock((previousDock) => {
             if (previousDock.terminal === terminal && previousDock.draft?.label === label) {
@@ -99,17 +121,21 @@ export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTermina
                 draft: island ?? newIsland(source, label),
                 target: island ? label : null,
                 selectedBooths: [],
+                changed: false,
             };
         });
     };
 
     const patchDraft = (patch: Partial<CheckinIsland>) => {
-        setDock((previousDock) => (previousDock.draft ? { ...previousDock, draft: { ...previousDock.draft, ...patch } } : previousDock));
+        if (busy) return;
+        dirty.current[dock.terminal] = true;
+        setDock((previousDock) => (previousDock.draft ? { ...previousDock, changed: true, draft: { ...previousDock.draft, ...patch } } : previousDock));
     };
 
     const handleConfirm = () => {
         const { terminal, draft: edited, target } = dock;
-        if (!edited) return;
+        if (busy || !edited) return;
+        dirty.current[terminal] = true;
 
         setIslandsByTerminal((previousIslands) => ({
             ...previousIslands,
@@ -121,19 +147,41 @@ export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTermina
         setDock({ ...EMPTY_DOCK, terminal });
     };
 
-    const handleSave = (terminal: TerminalKind) => {
-        const smltId = smltIds[terminal];
-        if (!smltId) return;
+    const collectIslands = (terminal: TerminalKind) => {
+        const islands = islandsByTerminal[terminal];
+        if (dock.terminal !== terminal || !dock.draft || !dock.changed) return islands;
+        return dock.target === null ? [...islands, dock.draft] : islands.map((island) => (island.label === dock.target ? dock.draft! : island));
+    };
+    useEffect(() => {
+        onDraftChange('checkinCounter', () => ({
+            chknList: TERMINALS.filter((terminal) => dirty.current[terminal] && terminalData[terminal]).map((terminal) =>
+                toSaveReq(query.ymd, terminal, collectIslands(terminal)),
+            ),
+        }));
+    });
 
-        runSave(userSmltService.saveChknCounterInfo(toSaveReq(smltId, terminal, islandsByTerminal[terminal])), SAVE_FAIL);
+    const handleSave = async (terminal: TerminalKind) => {
+        if (busy) return;
+        const ymd = query.ymd;
+        if (!ymd || !terminalData[terminal]) return;
+
+        if (!beginRequest()) return;
+        const islands = collectIslands(terminal);
+        const saved = await runSave(userSmltService.saveChknCounterInfo(toSaveReq(ymd, terminal, islands)), SAVE_FAIL);
+        endRequest(saved);
+        if (saved) {
+            setIslandsByTerminal((previous) => ({ ...previous, [terminal]: islands }));
+            if (dock.terminal === terminal) setDock({ ...EMPTY_DOCK, terminal });
+            dirty.current[terminal] = false;
+        }
     };
 
     const handleMapClick = (terminal: TerminalKind) => {
-        const smltId = smltIds[terminal];
-        if (!smltId) return;
+        const ymd = query.ymd;
+        if (!ymd) return;
 
         userSmltService
-            .getFcltMap(smltId, terminal, 'CHKN')
+            .getFcltMap(query, terminal, 'CHKN')
             .then((dto) => console.log('[지도 보기]', dto.markerList))
             .catch(() => {});
     };
@@ -174,7 +222,7 @@ export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTermina
                             </>
                         }
                         footer={
-                            <button type="button" className="btn btn--save" onClick={() => handleSave(terminal)}>
+                            <button type="button" className="btn btn--save" disabled={busy || !terminalData[terminal]} onClick={() => handleSave(terminal)}>
                                 현재상태 저장
                             </button>
                         }
@@ -208,10 +256,10 @@ export function CheckinCounterTab({ smltIds, reloadKey, enabled, onToggleTermina
                 );
             })}
 
-            {/* 조회 전용이면 편집 도크를 아예 그리지 않는다 (도크를 여는 블럭 차트도 잠겨 있다) */}
             {!readOnly && (
                 <EditDock
                     terminal={focusTerminal}
+                    disabled={busy}
                     codes={focusData.islandCodes}
                     islands={focusIslands}
                     selected={draft ? [draft.label] : []}

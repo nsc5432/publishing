@@ -72,6 +72,9 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
    - `MapChknRsltDto` 에 `avgQueuePsgCnt` · `maxQueuePsgCnt` · `oprBoothCnt` · `reqCnt` ·
      `cgnClearMin`, `MapNoticeItemDto` 에 `reqCnt` · `cgnClearMin` 이 2026-09-04 에 늘었다
      (체크인 공용 Queue — §13). **새 이름도 이제 고정이다.**
+   - 2026-10-11 사용자 현재상태 요청은 `ymd + tmnlId`로 변경하고 편집용 `smltId`를 제거했다.
+     실행 요청에 `fltPsgList`·`chknList`·`depList`를 추가하고 `smltFlfmtSn`은 제거했다.
+     실행·공개 조건·결과의 `smltId`는 유지한다. 새 계약도 고정이며 상세는 §11과 API 문서를 따른다.
 2. **enum 문자열 값**
    `'T1'|'T2'` · `'Y'|'N'` · `'FREE'|'NORMAL'|'BUSY'|'VERY_BUSY'` ·
    `'CHKN'|'SLFCHKN'|'DEP'|'SC'|'CMRC'` · `'PSG'|'FLT'` · `'DAILY'|'USER'` ·
@@ -199,6 +202,7 @@ cd react
 npm run dev        # 개발 서버
 npx tsc -b         # 타입체크 (빌드 산출물 없이)
 npx eslint .       # lint
+npm run verify:user-smlt # 목업 저장 분리·자동 저장·불변 실행 시나리오
 npm run build      # tsc -b + vite build (dev 모드)
 npm run build:prd  # 운영 빌드
 ```
@@ -373,250 +377,93 @@ CAST 는 `REQ_GetResource` 요청에 날짜를 싣지 않는다 — 본문이 `@
 
 ---
 
-## 11. 사용자 시뮬레이션 저장·실행과 CastRest 연계
+## 11. 사용자 현재상태·공통 실행 마스터와 CAST 연계
 
-### 11.1 전체 흐름
+2026-10-11 재설계. 계획은 docs/plans/2026-10-11-user-smlt-master-redesign.md,
+API·적용·복구 절차는 docs/user-smlt-master-redesign.md를 따른다.
+이 저장소의 Java는 참조 사본이며 실DB 적용·실백엔드 빌드가 완료된 것으로 간주하지 않는다.
 
-사용자 시뮬레이션은 **편집 중인 현재상태**, **실행 요청**, **CAST 입력 리소스**, **수행이력·결과**를
-구분해야 한다.
+### 11.1 현재상태와 실행
 
-```text
-사용자 조건 저장
-  → TN_PM_SMLT_USER_* 편집 데이터
-  → 실행 시점의 불변 CAST 리소스 발행
-  → TN_PM_SMLT_USER_MSTR 실행 요청 등록
-  → 외부 CAST가 WhatIfDefinitionTable 조회
-  → FS/CA/SBD/PropertySet/시설운영 리소스 조회
-  → CAST 실행
-  → REQ_SetResource 결과·상태 수신
-  → TN_PM_SMLT_STNG / TN_PM_SMLT_RSLT_DTL 저장
-  → TH_PM_SMLT_FLFMT_HSTRY 완료 처리
-```
+- 편집용 7개 테이블의 키는 (OWNER_USER_ID, EXCN_YMD, TMNL_ID, 기존 시설·시간·부스 키)다.
+  OWNER_USER_ID는 세션 사용자로 강제하며 요청의 사용자 필드를 신뢰하지 않는다.
+- 현재상태 조회·저장은 ymd + tmnlId를 사용한다. 과거 결과 ID가 없어도 조회·저장한다.
+  비교 KPI만 별도 일일 결과 ID를 쓴다. 없는 영역은 해당 일자 운영자료, 운항 조정률은 0%다.
+- TN_PM_SMLT_CURRENT_SAVE가 영역별 저장 여부·시각을 관리한다. 빈 조건을 저장한 것과
+  저장한 적이 없는 것을 구분한다. 빈 저장을 운영자료로 되살리지 않는다.
+- 체크인·출국장은 세션 사용자·일자·터미널 범위의 자식부터 삭제하고 부모부터 다시 넣는다.
+  수동 저장은 탭별 독립 트랜잭션이다.
+- 실행 API는 변경한 영역만 자동 저장하고, 나머지는 저장 조건→운영자료 순으로 채운다.
+  두 터미널 확정·공통 ID·조건·입력 보존·이력·요청을 한 트랜잭션으로 처리한다.
+  실패하면 자동 저장까지 롤백한다. 프런트는 방문 탭과 양 터미널의 미확정 편집을 유지한다.
+- 화면의 터미널 선택은 편집 선택이다. 실행은 항상 T1·T2 전체다. 현재 HTTP 요청 처리 중만 잠그며
+  다른 실행의 RUNNING 상태로 추가 실행을 막지 않는다.
 
-`java/castrest` 는 CAST를 호출하는 클라이언트가 아니라 **외부 CAST가 호출하는 서버 도메인**이다.
-**주기의 주체는 CAST다. 서버는 요청을 등록해 두고 기다릴 뿐 아무것도 선점하지 않는다.**
+### 11.2 ID와 테이블
 
-- 일일 시뮬레이션: 약 30분 주기
-- 사용자 시뮬레이션: CAST가 약 1분 주기로 `REQ_GetResource.do` 를 polling 하고,
-  `SMLT_STTS = 'New'` 인 행이 보이면 `REQ_SetResource.do` 로 `Executing` 을 통보한다
-
-이 참조 사본에는 스케줄러가 없고, **앞으로도 두지 않는다** (§11.6 마지막 항목).
-
-### 11.2 사용자 현재상태 저장 테이블
-
-| 영역 | 테이블 | 저장 방식 |
-|---|---|---|
-| 운항·여객 | `TN_PM_SMLT_USER_FLT_PSG_AJMT` | `(SMLT_ID, TMNL_ID)` 전체 조정률 upsert (`RATIO` 고정) |
-| 체크인 | `TN_PM_SMLT_USER_CHKN_ISL` | 아일랜드 기본값 전체 교체 |
-| 〃 | `TN_PM_SMLT_USER_CHKN_OPER_HR` | 운영시간 전체 교체 |
-| 〃 | `TN_PM_SMLT_USER_CHKN_BOOTH` | 부스별 항공사 배정 전체 교체 |
-| 출국장 | `TN_PM_SMLT_USER_DPTGT` | 출국장 운영·검색대 수 전체 교체 |
-| 〃 | `TN_PM_SMLT_USER_DPTGT_OPER_HR` | 출국장 운영시간 전체 교체 |
-| 〃 | `TN_PM_SMLT_SCSH_OPER_PLAN` | 시간대별 보안검색대 운영계획 전체 교체 |
-
-- 운항·여객은 전체 **조정률**만 저장한다. 저장 요청은 `smltId` · `tmnlId` · `ajmtRt`이며,
-  `AJMT_TYPE_CD`는 서버 SQL에서 `RATIO`로 고정한다. 시간대별 표는 조회용 원본 여객수에 전체
-  조정률을 적용하고, CAST 리소스 발행도 같은 전체 조정률을 운항별 여객수에 적용한다.
-- **조정 대상은 화면이 세는 여객과 같아야 한다** — 국제선 출발편의 `GREATEST(예약 − 환승, 0)` 이다.
-  발행은 `BDPSG_CNT + ROUND(대상 × AJMT_RT / 100)` 로 그 몫만 늘리고 환승·도착·국내선은 그대로 둔다.
-  운항편 필터와 중복 제거(`ROW_NUMBER`)도 `CastFltPsgMapper#retrieveFltPsgHourList` 와
-  `CastUserSnapshotMapper#insertSchdlAtrbFromDaily` 가 같아야 하며, 한쪽만 고치면 화면의 "+10%" 와
-  발행분이 어긋난다.
-- 체크인과 출국장은 `(SMLT_ID, TMNL_ID)` 범위의 자식 테이블을 먼저 삭제하고 부모를 삭제한 뒤,
-  부모부터 자식을 다시 넣는 전체 교체 방식이다.
-- 세 탭 저장은 서로 다른 API·트랜잭션이다. 세 영역 전체를 한 번에 원자적으로 저장하지 않는다.
-- 위 테이블은 편집용 draft다. **실행 버튼을 누른 시점에 `CastUserSnapshotService.publish()` 가
-  CAST 리소스로 굳힌다.** 이후 draft 를 고쳐도 발행분은 변하지 않는다.
-
-### 11.3 CastRest 리소스 계약
-
-CAST 진입점 prefix 는 `/castrest/rest/json` 이다.
-
-| API | 역할 |
+| 이름 / 테이블 | 의미 |
 |---|---|
-| `REQ_GetResourceInformation.do` | CAST에 제공 가능한 리소스 목록 반환 |
-| `REQ_GetResource.do` | 선택한 ResourceType/ResourceID의 실제 데이터 반환 |
-| `REQ_SetResource.do` | CAST 모델·WhatIf 상태·시뮬레이션 결과 수신 |
+| TN_PM_SMLT_MSTR.SMLT_ID | 공통 실행 1건. 사용자 등록 시, 일일 결과 수신 시 발급 |
+| TN_PM_SMLT_ID_LOCK | 고정 EXECUTION 행을 FOR UPDATE한 후 공통 MAX+1 채번 |
+| TN_PM_SMLT_USER_MSTR | CAST WhatIf 요청. 신규 요청 ID는 WI + 공통 8자리 ID |
+| TH_PM_SMLT_FLFMT_HSTRY | 같은 실행 ID로 관리하는 수행이력 |
+| TN_PM_SMLT_STNG | 같은 실행 ID 아래의 모델별 설정. PK는 (SMLT_ID, SMLT_MDL_SN) |
+| TN_PM_SMLT_RSLT_DTL(_REG_EXCL) | 같은 실행 ID의 상세·미매핑 결과 |
+| TN_PM_SMLT_COND_SNAPSHOT | 실행별 양 터미널·세 영역 JSON 확정 조건 |
+| TN_PM_SMLT_EX_* | 발행용 정규화 확정 조건 7종 |
+| TN_PM_SMLT_INPUT_SNAPSHOT | 실행별 CAST 입력 XML 원문 |
+| TN_PM_SMLT_INPUT_BASE | 결과 유무와 무관한 날짜 유효 기본 리소스 설정 |
 
-`001` suffix 가 일일 운영자료를 뜻하는 exact 분기는 현재 `FS001`, `CA001`, `SBD001` 세 개다.
-비 `001` 리소스는 각각 다음 사용자/설정 리소스 테이블을 읽는다.
+공통 ID는 숫자 8자리 신규 값을 사용하며 99999999를 넘기면 실패한다. 이관된 기존 1~8자리 숫자
+ID는 보존한다. MAX에는 미완료 마스터도 포함한다. SQ1_TN_PM_SMLT_RSLT.NEXTVAL과 회차를 사용하지 않는다.
+RSLT_SMLT_ID는 호환 컬럼으로 남지만 결과 연결 후 공통 SMLT_ID와 같다.
+구 회차·요청·결과 ID는 이관 대응표와 원본 LGC에서만 보존한다.
 
-| 리소스 | `001` 소스 | 비 `001` 소스 |
-|---|---|---|
-| `FS` | GO/CA 운영계 운항자료 | `TN_PM_SMLT_SCHDL_MSTR/ATRB` |
-| `CA` | GO 일일 체크인 배정 | `TN_PM_SMLT_CKNCT_MSTR/ATRB` |
-| `SBD` | 셀프체크인·백드롭 운영자료 | `TN_PM_SMLT_SBD_MSTR/ATRB` |
+### 11.3 CAST 리소스와 불변 입력
 
-**`CA` · `SBD` 는 리소스 안에서 `BLCK_ID` 로 CAST 블록이 갈린다.** `CA` 는
-`DOM_INTL_SE_CD` 에 따라 `P01CKINInt` / `P01CKINDom` / `P03CKIN`, `SBD` 는 백드롭이
-`P01SBD` / `P03SBD` 이고 키오스크가 `P01Self` / `P03Self` 다. 발행(`CastUserSnapshotMapper.xml`)과
-조회(`CastRestMapper.xml`)가 같은 값을 써야 하며, 한쪽만 고치면 블록이 통째로 비거나 뒤바뀐다.
-`SBD` 의 `AirlineCode` 는 `ALN_CD` 가 아니라 **`CHKN_TYPE_DTL_INFO`** 에서 나온다.
-일일 `SBD001` 의 백드롭 운영시각은 운항편 출발시각에서
-`TN_PM_SBD_OPER_PLCY.SBD_STRT_HR` / `SBD_END_HR`(출발 전 시간)를 빼서 만든다. 항공사별 정책을
-각 운항시각에 먼저 적용한 뒤 카운터별 `MIN` / `MAX` 를 구해야 한다.
+CAST는 /castrest/rest/json/REQ_GetResourceInformation.do, REQ_GetResource.do,
+REQ_SetResource.do를 호출한다. 서버가 CAST를 호출하거나 선점하는 스케줄러를 두지 않는다.
+CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한다.
 
-PropertySet은 `TN_PM_SMLT_FIX_ATRB_GROUP`과 `TN_PM_SMLT_{PSG,SHOW_UP,SRVC}_ATRB`를 사용하고,
-시설운영 GenericTable은 각 시설운영 `MSTR/ATRB`를 사용한다. 결과의 일일/사용자 구분은 `001`이
-아니라 CAST 결과 ResourceID의 `Auto` / `WhatIf` 문자열로 판단하는 기존 코드가 있으므로 두 규칙을
-혼동하지 않는다.
+- FS001 / CA001 / SBD001은 일일 운영자료다. 사용자 자료는 002~999 번호를 FS·CA·SBD·시설운영이 공유한다.
+  출국장 운영일자 조회가 FS 그룹을 사용하므로 타입별 번호를 분리하지 않는다.
+- 현재는 TN_PM_SMLT_RSRC_LEASE와 기존 요청이 사용한 번호를 재사용하지 않는다. 가용 번호가 없으면
+  전체 실행 등록을 실패시킨다. 신규 환경 최대 998회 한도이며 번호 반환·순환 재사용은 별도 계약 검증 전까지 금지한다.
+- 전송 테이블을 과거 보존 수단으로 삼지 않는다. 입력 XML을 보존하고 공유 모델·PropertySet·설정은
+  원본ID_U실행ID로 고정한다. 입력 간 참조도 같은 실행의 보존 ID로 치환한다.
+- CA 블록은 P01CKINInt / P01CKINDom / P03CKIN, SBD는 P01SBD / P03SBD,
+  키오스크는 P01Self / P03Self다. 발행과 조회의 값이 같아야 한다.
+  SBD AirlineCode는 ALN_CD가 아니라 CHKN_TYPE_DTL_INFO다.
+- 운항 조정은 국제선 출발 GREATEST(예약-환승,0) 몫만 늘린다. 조회와 발행의 필터·ROW_NUMBER를 맞춘다.
+- 모델·PropertySet·서비스시간·체크인유형 설정 및 실제 입력이 없으면 실행 등록을 실패시킨다.
+  운영자료가 없는 것과 사용자가 저장한 미운영 조건을 구분한다.
 
-**사용자 리소스 번호는 `002 ~ 999` 를 도는 단순 증가 번호다.** `SQ1_TN_PM_SMLT_USER_RSRC`
-(`MINVALUE 2 MAXVALUE 999 CYCLE`) 하나를 **FS · CA · SBD · 시설운영이 공유**한다.
-한 요청이 `FS007 · CA007 · SBD007 · …DepartureGate007 · …SecurityControl007` 을 통째로 받는다.
+### 11.4 결과·상태·공개 조회
 
-> 타입별로 번호를 따로 돌리면 `CastRestMapper.xml#retrieveFcltyOpngTblDptg` 가 깨진다 —
-> 그 SQL 이 **출국장 번호로 `TN_PM_SMLT_SCHDL_ATRB.SCHDL_ATRB_GROUP_ID` 를 뒤져** 대상 일자를
-> 찾기 때문이다. FS 번호와 출국장 번호는 반드시 같아야 한다.
+- 현재상태는 사용자별 비공개, 권한 있는 실행이력·결과·확정 조건 조회는 공개다.
+  mode=view&smltId=...는 현재상태가 아닌 실행 당시 JSON을 읽는다.
+- 사용자 결과는 FS 번호 후보가 유일해야 하며, 확인 가능한 WI 식별자와 일자·모델·입력 리소스를 대조한다.
+  모호하거나 다른 입력이면 최신 요청에 임의 연결하지 않는다. 사용자 결과에 새 ID를 발급하지 않는다.
+- 일일·Manual 결과의 다중 모델 묶음 키는 RunID·계획/실제 시각·FS 조합이다. 실 CAST 계약 검증 후
+  TN_PM_SMLT_CAST_CONTRACT.RESULT_GROUP_V1에 근거와 VERIFIED_YN=Y를 등록해야 활성화된다.
+- 원문은 REQUIRES_NEW 수신함에 먼저 보존한다. 파싱·매칭·저장 실패 이유도 남긴다.
+  원천 식별키와 payload hash로 재수신을 판별하며, 같은 식별자의 다른 내용은 격리한다.
+- 결과 저장·마스터·이력·요청 완료는 같은 트랜잭션이다. Finished 통보만으로 결과 없는 마스터를
+  완료시키지 않는다. New/Executing→RUNNING, Finished→DONE, Failed→FAILED 매핑을 유지한다.
+- 상태는 이전 상태 조건의 CAS UPDATE다. 상태 응답에 없는 요청을 삭제하지 않는다.
+  활성 요청 부분 유니크 제약과 추가 실행 차단을 사용하지 않는다.
+- LISTAGG의 NULL 누락을 막는 NVL(' ')과 모든 컬럼의 동일 정렬 순서를 유지한다.
 
-번호가 한 바퀴 돌아 겹치면 발행 시 `DELETE → INSERT` 로 갈아 끼운다. 테이블은 타입당 998행으로
-유계라 누적되지 않는다.
+### 11.5 적용 전 확인할 사항
 
-### 11.4 실행·결과 테이블의 역할
+참조 DDL은 사진 판독본이다. java/ddl/2026-10-11-user-smlt-preflight.sql로 실스키마·인덱스·코드·ID를 대조한다.
+이전 2026-08-27-user-smlt-alter.sql을 새 환경에 순서대로 적용하지 않는다.
+이관은 stage→executions→verify→cutover 순서이며, stage부터 CAST 및 화면 쓰기를 중단한다.
+원본·대응표·미확정 사유를 보존하고, 모든 미확정 건과 별도 환경 검증을 해결하기 전 cutover하지 않는다.
 
-| 테이블 | 역할 |
-|---|---|
-| `TN_PM_SMLT_STNG` | 날짜·터미널·모델·입력 리소스 ID를 가진 실행 세트 |
-| `TN_PM_SMLT_USER_MSTR` | CAST가 읽는 사용자 WhatIf 실행 요청·상태 |
-| `TH_PM_SMLT_FLFMT_HSTRY` | 화면 모니터링용 수행이력과 시작·종료 상태 |
-| `TN_PM_SMLT_RSLT_DTL` | 시설·시각별 대기·처리 결과 |
-| `TN_PM_SMLT_RSLT_DTL_REG_EXCL` | 시설코드 매핑 제외 결과 |
-
-**"SMLT_ID" 라는 이름이 원래 네 가지를 가리켰다.** 지금은 각각 다른 이름을 쓴다.
-
-| 이름 | 무엇 | 타입 | 어디에 |
-|---|---|---|---|
-| `SMLT_REQ_ID` | 실행 요청 1건. CAST가 `WhatIfRunID` 로 읽어 간다 | `VARCHAR2(100)` | `TN_PM_SMLT_USER_MSTR` PK |
-| `SMLT_ID` | 편집 draft 묶음. 재실행해도 안 바뀐다 | `VARCHAR2(8)` | `TN_PM_SMLT_USER_*` |
-| `SMLT_FLFMT_SN` | `SMLT_ID` 안의 수행 회차 | `NUMBER(5)` | `TH_PM_SMLT_FLFMT_HSTRY` PK 후미 |
-| `RSLT_SMLT_ID` | CAST 결과가 만든 실행 세트 | `VARCHAR2(8)` | `TN_PM_SMLT_STNG` |
-
-```
-SMLT_ID (draft)
-  └─1:N─ SMLT_FLFMT_SN (수행 회차)
-           └─1:1─ SMLT_REQ_ID (실행 요청)
-                    └─0:1─ RSLT_SMLT_ID (결과 세트)
-```
-
-`SMLT_REQ_ID` 는 `'WI' + SMLT_ID + LPAD(SMLT_FLFMT_SN, 4, '0')` 로 `(draft, 회차)` 에서
-결정론적으로 만든다 — 예: `WI202608270001`. 그래서 유니크 제약이 그대로 중복 실행 방어가 된다.
-
-**실행 요청에는 터미널 축이 없다.** CAST 는 공항 전체(T1·T2)를 한 번에 돌리고 터미널별 수행
-옵션이 없다. 그래서 `TN_PM_SMLT_USER_MSTR` 에 `TMNL_ID` 를 두지 않고, 한 요청이 발행하는
-FS·CA·SBD·시설운영 리소스에 양 터미널 draft 가 함께 들어간다 (2026-09-09 결정).
-편집 draft(`TN_PM_SMLT_USER_*`)는 화면이 터미널 탭으로 나뉘어 있어 `TMNL_ID` 를 그대로 둔다.
-
-**결과와 요청은 리소스 번호로 잇는다.** CAST는 결과 XML 의 `Run` 섹션에 자기가 쓴 입력 리소스
-ID를 그대로 실어 보내고(`RUN_MAP` 이 파싱), 요청마다 새 FS 번호를 발행하므로
-`FlightScheduleResourceID` 가 곧 요청 식별자다. `SimulationResultSuffix` 왕복 같은 추가 계약을
-CAST에 요구하지 않는다.
-
-### 11.5 구현 현황
-
-연계 코드는 2026-08-27 에 작성했다. 설계 근거와 결정 이력은
-`docs/plans/2026-08-27-user-smlt-cast-linkage.md` 에 있다.
-
-**작성된 경로** — 관련 코드를 만질 때 참고할 진입점.
-
-| 흐름 | 어디 |
-|---|---|
-| 실행 등록 (조건검사 → snapshot → 이력 → 요청) | `CastUserSmltServiceImpl.executeUserSmlt()` |
-| snapshot 발행 | `CastUserSnapshotServiceImpl` + `CastUserSnapshotMapper.xml` |
-| CAST 조회 (`New` 건만) | `CastRestMapper.xml#retrieveWhatIfCntrl` |
-| 상태 전이 | `CastRestServiceImpl.updateWhatIf()` |
-| 결과 → 요청·이력 연결 | `CastRestServiceImpl.insertResult()` · `closeUserReq()` |
-| 상태 매핑 | `UserSmltReqStatus.toExecStatus()` |
-
-**아직 아닌 것 — 구현된 것으로 가정하지 말 것.**
-
-1. **`ddl/2026-08-27-user-smlt-alter.sql` 은 적용 전이다.** mapper 를 기준으로 썼으므로
-   실 스키마를 `ALL_TAB_COLUMNS` 로 조회해 §11.7 의 불일치를 먼저 확정해야 한다.
-2. FS snapshot(`insertSchdlAtrbFromDaily`)은 `GOOWN.TN_GO_GD_DATA` 원천에서 **부속 컬럼 9종**을
-   확인하지 못해 NULL 로 둔다 — `ALN_CTGRY` · `DALY_FLTSH_ID` · `GATE_TYPE` · `CKNCT_RANGE_CN` ·
-   `SLF_CHKN_PSBLTY_YN` · `BUS_NEED_YN` · `WAYO_ID` · `FRST_BAG_INPUT_DT` · `LAST_BAG_INPUT_DT`.
-   일일 리소스가 `FSxxx` 면 `insertSchdlAtrbFromSrc` 가 전 컬럼을 복사하므로 해당 없다.
-3. SBD snapshot 의 키오스크(`KOS_CNT`)는 `TN_PM_SLF_CHKN_OPER_PLCY` 에서 발행하지만,
-   그 테이블에 아일랜드 컬럼이 없어 `SLF_CHKN_ISTR_ID` 앞 한 자를 아일랜드로 가정한다.
-   실 기기 ID 체계가 다르면 키오스크가 0건으로 발행된다. `TN_PM_SMLT_SBD_ATRB.CKNCT_ID` 가
-   `VARCHAR2(4)` 라 기기 ID 가 4자를 넘어도 깨진다.
-   정책은 `PLCY_BGNG_YMD`~`PLCY_END_YMD` 유효기간으로 조회한다. 일별 배치는 신규 정책을
-   `99991231` 까지 열고, 다음 실행에서 원천에 없는 정책을 실행일 전날로 종료한다.
-4. WhatIf 설정이 없으면 사용자 화면이 일일 `SMLT_ID` 를 fallback 으로 쓴다.
-   사용자 실행용 `TN_PM_SMLT_STNG` 신규 채번은 아직 없다.
-5. `Executing` 상태로 멈춘 요청을 회수하는 경로가 없다 (§11.6 마지막 항목).
-
-### 11.6 상태 모델과 Polling 규칙
-
-`TN_PM_SMLT_USER_MSTR.SMLT_STTS` 는 **CAST가 보내는 문자열 4개를 그대로** 값으로 쓴다.
-자체 코드를 따로 두지 않는다. NOT NULL + CHECK 제약으로 강제한다.
-
-```
-New       → Executing | Failed
-Executing → Finished | Failed
-Finished  → (종착)
-Failed    → (종착)
-```
-
-세 축을 하나로 합치지 않는다. 접는 지점은 `UserSmltReqStatus.toExecStatus()` 한 곳뿐이다.
-
-| `SMLT_STTS` | `TH_PM_SMLT_FLFMT_HSTRY.SMLT_FLFMT_STTS_CD` | 화면 `SmltExecStatus` |
-|---|---|---|
-| `New` · `Executing` | `RUNNING` | `RUNNING` |
-| `Finished` | `DONE` | `DONE` |
-| `Failed` | `FAILED` | `FAILED` |
-
-지켜야 할 것.
-
-- 실행 등록은 요청 ID 채번, snapshot 발행, `New` 등록, 수행이력 연결을 **한 트랜잭션**으로 처리한다.
-- **서버는 선점하지 않는다.** CAST가 polling 하고 `Executing` 을 통보한다.
-  대신 `retrieveWhatIfCntrl` 에 `WHERE SMLT_STTS = 'New'` 를 반드시 건다 —
-  필터가 빠지면 완료 건까지 매번 다시 실행 대상이 된다.
-- **모든 전이는 이전 상태를 조건에 건 CAS UPDATE** 로 한다. 영향 0행은 이미 다른 경로가
-  전이시킨 것이므로 에러가 아니라 무시한다.
-- 중복 실행 방어는 사전 검사가 아니라 `TN_PM_SMLT_USER_MSTR_UX_ACTIVE` (미완료 건에만 걸리는
-  부분 유니크 인덱스) 가 한다. 사전 검사는 친절한 메시지용이다.
-- **상태 응답에 없는 master 행을 삭제하지 않는다.** full snapshot 계약이 확인되지 않았고,
-  방금 등록된 `New` 요청이 다음 응답에 못 들어가면 그대로 사라진다.
-- 결과 수신은 idempotent해야 한다. `RSLT_SMLT_ID` 가 이미 있으면 저장을 건너뛴다.
-  결과 저장과 요청·수행이력 완료 갱신은 같은 트랜잭션이다.
-- 완료 master와 리소스 snapshot은 보존 기간 전에 삭제하지 않는다 — 실행 조건을 재현해야 한다.
-- **`LISTAGG` 는 NULL 셀을 배열에서 통째로 빼 뒤 값을 한 칸 당긴다.** `NVL(…, ' ')` 로 자리를
-  채우고 정렬 기준을 전 컬럼 동일하게 맞춰야 행 대응이 유지된다.
-- **감시 배치를 두지 않는다.** CAST가 `Executing` 으로 바꾼 뒤 죽으면 `UX_ACTIVE` 때문에 그
-  draft 의 재실행이 막힌다. 수동 복구 SQL 은
-  `java/ddl/2026-08-27-user-smlt-alter.sql` 말미에 주석으로 있다.
-
-### 11.7 DDL과 Mapper 정합성 주의
-
-`java/ddl/cast-ddl.sql` 은 **원본 스키마가 아니라 사진 판독 + 표준단어 치환본**이다
-(`TN_PM_SMLT_USER_MSTR` 블록에는 `source photo … out of focus` 주석까지 있다).
-**DDL만 믿고 구현하지 않는다.**
-
-아래 불일치는 **mapper 기준으로 `java/ddl/2026-08-27-user-smlt-alter.sql` 에 반영했지만,
-실 스키마 조회로 확정하기 전에는 적용하면 안 된다.**
-
-| 불일치 | 처리 |
-|---|---|
-| `TN_PM_SMLT_USER_MSTR` 에 `FCLTY_OPNG_{SCRTY,TR_SCRTY}_CNTRL_RSRC_ID` 없음 | ALTER 로 추가 |
-| `TN_PM_SMLT_STNG` 에 `PRPT_SET_RSRC_ID`·`MDL_RSRC_ID`·`EXCN_ID`·`CKNCT_SRVC_HR_RSRC_ID`·`CHKN_TYPE_RSRC_ID`·`FCLTY_OPNG_TR_SCRTY_CNTRL_RSRC_ID` 없음 | ALTER 로 추가 |
-| `TN_PM_SMLT_RSLT_DTL` 에 `AVG/MIN/MAX_WTNG_LEN` 없음 + PK 에 `PSG_FCLT_CD` 누락 | ALTER 로 추가·재정의 |
-| 사용자 master `SMLT_ID` 가 `VARCHAR2(100)` (다른 곳은 `VARCHAR2(8)`) | `SMLT_REQ_ID` 로 개명해 분리 |
-| 사용자 상세·실행이력 FK 없음 | `UK1` + FK 추가 |
-
-**여전히 미해결.**
-
-- DDL의 `CKNCT_TYPE_CNTRL_RSRC_ID` 는 아무도 읽지 않는다. 컬럼만 유지하고 WhatIf 조회에는
-  넣지 않았다 — CAST가 안 쓰는 칸을 새로 내보내면 파싱이 깨질 수 있다.
-- **`EMI`/`IMMI` 의 의미가 두 DDL 주석에서 반대다.** `TN_PM_SMLT_STNG` 은 `EMI` 를 "입국심사"로,
-  `TN_PM_SMLT_USER_MSTR` 은 같은 원본명을 "출국(DPTCNY)"으로 적었다. 출국심사·입국심사는
-  사용자가 편집하지 않아 **일일 값을 그대로 승계**하므로 지금은 막히지 않지만,
-  그 축을 편집 대상으로 만들 때는 반드시 먼저 확정한다.
-- `SQ1_TN_PM_SMLT_RSLT` 의 정의를 확인하지 못했다. `TN_PM_SMLT_STNG.SMLT_ID` 가 `VARCHAR2(8)`
-  이라 시퀀스가 8자리를 넘기는 순간부터 INSERT 가 깨진다.
-
-**DTO 필드명이 컬럼명과 어긋나면 `mapUnderscoreToCamelCase` 가 못 채워 조용히 null 이 된다.**
-`SmltStngDto` 의 `fcltyOpngTbl*` 4종이 그랬고 출국장 검색대 수가 안 나왔다. 새 DTO를 만들 때
-컬럼 별칭과 필드명을 반드시 대조한다.
+실연계 검증 대상: GO FS 부속 9개 NULL 컬럼, 키오스크 기기 ID 앞 한 자=아일랜드 가정과 4자리 제약,
+EMI/IMMI 컬럼 의미, 모델/PropertySet 가상 ID 왕복, 결과 묶음 키·전체 완료 단위, 실제 시각/대상일자 의미다.
+Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증 DB에서 수행한다.
 
 ---
 

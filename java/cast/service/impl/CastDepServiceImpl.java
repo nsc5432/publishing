@@ -12,7 +12,6 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepGateDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
@@ -21,7 +20,7 @@ import aoms.pm.cast.dto.OprTimeDto;
 import aoms.pm.cast.dto.ScCntRawDto;
 import aoms.pm.cast.dto.ScPlanDto;
 import aoms.pm.cast.dto.SmltKpiDto;
-import aoms.pm.cast.dto.SmltStngDto;
+
 import aoms.pm.cast.dto.UserDepOperHrRawDto;
 import aoms.pm.cast.dto.UserScPlanRawDto;
 import aoms.pm.cast.dto.UserSmltDepDto;
@@ -33,326 +32,276 @@ import aoms.pm.cast.mapper.CastDepMapper;
 import aoms.pm.cast.service.CastDepService;
 import aoms.pm.cast.service.CastOperHrService;
 import aoms.pm.cast.service.CastSmltService;
-import aoms.pm.utils.SessionUtils;
+
 import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
 
 import lombok.RequiredArgsConstructor;
 
-/**
- * @Classname : CastDepServiceImpl.java
- * @Description : 출국장 ServiceImpl
- *
- * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
- * <pre>
- * -----------------------------------------------------------------------------------
- * Modification Information
- * -----------------------------------------------------------------------------------
- * 수정일 / 수정자 / 수정내용
- * 2026. 03. 12. / 노세찬 / 최초작성
- * -----------------------------------------------------------------------------------
- *
- * </pre>
- */
 @Service
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastDepServiceImpl implements CastDepService {
-	private static final List<String> UP_PSG_FCLT_CD_LIST = List.of("LGT"); // 출국장
-	private static final String OPR_YN_Y = "Y";
-	private static final String OPR_YN_N = "N";
-	private static final int HOUR_PER_DAY = 24;
-	private static final int PERCENT = 100;
-	private static final int FIRST_PLAN_SN = 1;
+    private static final List<String> UP_PSG_FCLT_CD_LIST = List.of("LGT");
+    private static final String OPR_YN_Y = "Y";
+    private static final String OPR_YN_N = "N";
+    private static final int HOUR_PER_DAY = 24;
+    private static final int PERCENT = 100;
+    private static final int FIRST_PLAN_SN = 1;
 
-	private final CastSmltService castSmltService;
-	private final CastOperHrService castOperHrService;
-	private final CastDepMapper castDepMapper;
-	private final SessionService sessionService;
+    private final CastSmltService castSmltService;
+    private final CastOperHrService castOperHrService;
+    private final CastDepMapper castDepMapper;
+    private final CastExecutionService executionService;
 
-	@Override
-	public UserSmltDepDto retrieveDepInfo(UserSmltDepSearchDto searchDto) {
-		UserSmltDepDto result = new UserSmltDepDto();
-		TerminalKind tmnlId = searchDto.getTmnlId();
-		String fcltTmnlId = tmnlId.getFcltTmnlId();
+    @Override
+    public UserSmltDepDto retrieveDepInfo(UserSmltDepSearchDto searchDto) {
+        if (searchDto.getSmltId() != null && !searchDto.getSmltId().isBlank()) {
+            return executionService.frozen(searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId(), "DEP", UserSmltDepDto.class);
+        }
+        executionService.scope(searchDto);
+        UserSmltDepDto result = new UserSmltDepDto();
+        TerminalKind tmnlId = searchDto.getTmnlId();
+        String fcltTmnlId = tmnlId.getFcltTmnlId();
 
-		List<DepGateDto> dptgtList = getGateList(searchDto.getSmltId(), fcltTmnlId);
-		List<Integer> oprScCntList = getOprScCntList(dptgtList);
-		List<WaitPsgDto> waitList = castSmltService.retrieveWaitPsgList(searchDto.getSmltId(), fcltTmnlId, UP_PSG_FCLT_CD_LIST);
+        List<DepGateDto> dptgtList = getGateList(searchDto, fcltTmnlId);
+        List<Integer> oprScCntList = getOprScCntList(dptgtList);
+        List<WaitPsgDto> waitList = castSmltService.retrieveWaitPsgList(executionService.baseId(searchDto.getYmd()), fcltTmnlId, UP_PSG_FCLT_CD_LIST);
 
-		SmltKpiDto kpi = castSmltService.retrieveSmltKpi(searchDto.getSmltId(), fcltTmnlId, UP_PSG_FCLT_CD_LIST);
-		kpi.setUtilRate(getUtilRate(dptgtList));
+        SmltKpiDto kpi = castSmltService.retrieveSmltKpi(executionService.baseId(searchDto.getYmd()), fcltTmnlId, UP_PSG_FCLT_CD_LIST);
+        kpi.setUtilRate(getUtilRate(dptgtList));
 
-		result.setTmnlId(tmnlId.getValue());
-		result.setPeakScshCntom(oprScCntList.stream().mapToInt(Integer::intValue).max().orElse(0));
-		result.setWaitMaxCnt(waitList.stream().mapToInt(WaitPsgDto::getWaitPsgCnt).max().orElse(0));
-		result.setDptgtList(dptgtList);
-		result.setWaitList(waitList);
-		result.setKpi(kpi);
+        result.setTmnlId(tmnlId.getValue());
+        result.setPeakScshCntom(oprScCntList.stream().mapToInt(Integer::intValue).max().orElse(0));
+        result.setWaitMaxCnt(waitList.stream().mapToInt(WaitPsgDto::getWaitPsgCnt).max().orElse(0));
+        result.setDptgtList(dptgtList);
+        result.setWaitList(waitList);
+        result.setKpi(kpi);
 
-		return result;
-	}
+        return result;
+    }
 
-	// 저장 전략 — 전체 교체(delete-then-insert)
-	@Override
-	public JsonResponse saveDepInfo(UserSmltDepSaveDto saveDto) {
-		SessionUtils.setUserContext(saveDto, sessionService);
+    @Override
+    public JsonResponse saveDepInfo(UserSmltDepSaveDto saveDto) {
+        executionService.scope(saveDto);
+        executionService.lock();
 
-		JsonResponse validationError = validate(saveDto);
+        JsonResponse validationError = validate(saveDto);
 
-		if (validationError != null) {
-			return validationError;
-		}
+        if (validationError != null) {
+            return validationError;
+        }
 
-		saveDto.setFcltTmnlId(saveDto.getTmnlId().getFcltTmnlId());
-		saveDto.setDptgtList(normalizeDepList(saveDto.getDptgtList()));
+        saveDto.setFcltTmnlId(saveDto.getTmnlId().getFcltTmnlId());
+        saveDto.setDptgtList(normalizeDepList(saveDto.getDptgtList()));
 
-		// 자식부터 지운다
-		castDepMapper.deleteUserScPlanList(saveDto);
-		castDepMapper.deleteUserDepOperHrList(saveDto);
-		castDepMapper.deleteUserDepList(saveDto);
+        castDepMapper.deleteUserScPlanList(saveDto);
+        castDepMapper.deleteUserDepOperHrList(saveDto);
+        castDepMapper.deleteUserDepList(saveDto);
 
-		if (saveDto.getDptgtList().isEmpty()) {
-			return new JsonResponse();
-		}
+        executionService.saved(saveDto, "DEP");
+        if (saveDto.getDptgtList().isEmpty()) {
+            return new JsonResponse();
+        }
 
-		castDepMapper.insertUserDepList(saveDto);
+        castDepMapper.insertUserDepList(saveDto);
 
-		// INSERT ALL 은 INTO 절이 0개면 문법 오류다. 비어 있으면 호출하지 않는다
-		if (saveDto.getDptgtList().stream().anyMatch(gate -> !gate.getOprTimeList().isEmpty())) {
-			castDepMapper.insertUserDepOperHrList(saveDto);
-		}
+        if (saveDto.getDptgtList().stream().anyMatch(gate -> !gate.getOprTimeList().isEmpty())) {
+            castDepMapper.insertUserDepOperHrList(saveDto);
+        }
 
-		if (saveDto.getDptgtList().stream().anyMatch(gate -> !gate.getPlanList().isEmpty())) {
-			castDepMapper.insertUserScPlanList(saveDto);
-		}
+        if (saveDto.getDptgtList().stream().anyMatch(gate -> !gate.getPlanList().isEmpty())) {
+            castDepMapper.insertUserScPlanList(saveDto);
+        }
 
-		return new JsonResponse();
-	}
+        return new JsonResponse();
+    }
 
-	/*
-	 * 화면 초기값은 기준 데이터 위에 사용자 저장분을 덮어쓴 결과다.
-	 * 마스터 목록(TN_PM_SMLT_PSG_FCLT)이 줄 순서와 시설명을 정하고, 저장분이 있는 출국장만
-	 * 운영여부 · 운영시간 · 검색대 구성 · 운영계획을 저장값으로 바꾼다.
-	 * 마스터에 없는 출국장(화면에서 새로 만든 것)은 뒤에 이어 붙인다.
-	 */
-	private List<DepGateDto> getGateList(String smltId, String fcltTmnlId) {
-		List<DepGateDto> baseList = getBaseGateList(smltId, fcltTmnlId);
-		Map<String, DepGateDto> savedMap = getSavedGateMap(smltId, fcltTmnlId);
+    private List<DepGateDto> getGateList(UserSmltDepSearchDto scope, String fcltTmnlId) {
+        if (!executionService.hasSaved(scope, "DEP")) return getBaseGateList(scope.getYmd(), fcltTmnlId);
+        Map<String, String> names = castDepMapper.retrieveDepFcltList(fcltTmnlId).stream()
+            .collect(Collectors.toMap(DepFcltRawDto::getDptgtNo, DepFcltRawDto::getDptgtNm));
+        List<DepGateDto> saved = new ArrayList<>(getSavedGateMap(scope).values());
+        saved.forEach(gate -> gate.setDptgtNm(names.getOrDefault(gate.getDptgtNo(), gate.getDptgtNo())));
+        return saved;
+    }
 
-		if (savedMap.isEmpty()) {
-			return baseList;
-		}
+    private List<DepGateDto> getBaseGateList(String ymd, String fcltTmnlId) {
 
-		List<DepGateDto> result = new ArrayList<>();
+        List<DepFcltRawDto> fcltList = castDepMapper.retrieveDepFcltList(fcltTmnlId);
+        Map<String, List<DepOperHrRawDto>> operHrMap = castOperHrService
+                .retrieveDepOperHrMap(fcltTmnlId, ymd);
+        Map<String, Integer> scCntMap = castDepMapper
+                .retrieveScCntList(fcltTmnlId, "FacilityOpeningTable_SecurityControl001")
+                .stream().collect(Collectors.toMap(ScCntRawDto::getDptgtNo, ScCntRawDto::getScshCntom, (first, ignored) -> first));
 
-		for (DepGateDto base : baseList) {
-			DepGateDto saved = savedMap.remove(base.getDptgtNo());
+        for (DepFcltRawDto facility : fcltList) {
+            if (operHrMap.containsKey(facility.getDptgtNo()) && !scCntMap.containsKey(facility.getDptgtNo())) throw new IllegalStateException("출국장 " + facility.getDptgtNo() + " 기본 보안검색대 운영자료가 없습니다.");
+        }
+        return toGateList(fcltList, operHrMap, scCntMap);
+    }
 
-			if (saved == null) {
-				result.add(base);
-				continue;
-			}
+    private Map<String, DepGateDto> getSavedGateMap(UserSmltDepSearchDto scope) {
+        Map<String, DepGateDto> result = new LinkedHashMap<>();
+        List<DepGateDto> savedList = castDepMapper.retrieveUserDepList(scope);
 
-			// 시설명은 사용자 테이블에 없다 — 마스터 값을 그대로 물려준다
-			saved.setDptgtNm(base.getDptgtNm());
-			result.add(saved);
-		}
+        if (savedList.isEmpty()) {
+            return result;
+        }
 
-		result.addAll(savedMap.values());
+        Map<String, List<UserDepOperHrRawDto>> operHrMap = castDepMapper.retrieveUserDepOperHrList(scope)
+                .stream().collect(Collectors.groupingBy(UserDepOperHrRawDto::getDptgtNo));
+        Map<String, List<UserScPlanRawDto>> planMap = castDepMapper.retrieveUserScPlanList(scope)
+                .stream().collect(Collectors.groupingBy(UserScPlanRawDto::getDptgtNo));
 
-		return result;
-	}
+        for (DepGateDto saved : savedList) {
+            saved.setDptgtNm(saved.getDptgtNo());
+            saved.setOprTimeList(operHrMap.getOrDefault(saved.getDptgtNo(), new ArrayList<>()).stream()
+                    .map(operHr -> new OprTimeDto()
+                            .withOperBgngHour(operHr.getOperBgngHour())
+                            .withOperEndHour(operHr.getOperEndHour()))
+                    .collect(toList()));
+            saved.setPlanList(planMap.getOrDefault(saved.getDptgtNo(), new ArrayList<>()).stream()
+                    .map(plan -> new ScPlanDto()
+                            .withPlanSn(plan.getPlanSn())
+                            .withOperBgngHour(plan.getOperBgngHour())
+                            .withOperEndHour(plan.getOperEndHour())
+                            .withScshCntom(plan.getScshCntom()))
+                    .collect(toList()));
 
-	private List<DepGateDto> getBaseGateList(String smltId, String fcltTmnlId) {
-		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(smltId);
+            result.put(saved.getDptgtNo(), saved);
+        }
 
-		List<DepFcltRawDto> fcltList = castDepMapper.retrieveDepFcltList(fcltTmnlId);
-		Map<String, List<DepOperHrRawDto>> operHrMap = castOperHrService
-				.retrieveDepOperHrMap(fcltTmnlId, smltStng.getExcnYmd());
-		Map<String, Integer> scCntMap = castDepMapper
-				.retrieveScCntList(fcltTmnlId, smltStng.getFcltyOpngScrtyCntrlRsrcId())
-				.stream().collect(Collectors.toMap(ScCntRawDto::getDptgtNo, ScCntRawDto::getScshCntom, (first, ignored) -> first));
+        return result;
+    }
 
-		return toGateList(fcltList, operHrMap, scCntMap);
-	}
+    private List<DepGateDto> toGateList(
+            List<DepFcltRawDto> fcltList,
+            Map<String, List<DepOperHrRawDto>> operHrMap,
+            Map<String, Integer> scCntMap
+    ) {
+        List<DepGateDto> result = new ArrayList<>();
 
-	// 키 순서는 조회 SQL 의 DPTGT_NO 오름차순을 그대로 따른다
-	private Map<String, DepGateDto> getSavedGateMap(String smltId, String fcltTmnlId) {
-		Map<String, DepGateDto> result = new LinkedHashMap<>();
-		List<DepGateDto> savedList = castDepMapper.retrieveUserDepList(smltId, fcltTmnlId);
+        for (DepFcltRawDto fclt : fcltList) {
+            String dptgtNo = fclt.getDptgtNo();
+            List<OprTimeDto> oprTimeList = toOprTimeList(operHrMap.getOrDefault(dptgtNo, new ArrayList<>()));
+            int scshCntom = scCntMap.getOrDefault(dptgtNo, 0);
 
-		if (savedList.isEmpty()) {
-			return result;
-		}
+            DepGateDto gate = new DepGateDto();
+            gate.setDptgtNo(dptgtNo);
+            gate.setDptgtNm(fclt.getDptgtNm());
+            gate.setOprYn(fclt.getUseYn());
+            gate.setScshCntom(scshCntom);
 
-		Map<String, List<UserDepOperHrRawDto>> operHrMap = castDepMapper.retrieveUserDepOperHrList(smltId, fcltTmnlId)
-				.stream().collect(Collectors.groupingBy(UserDepOperHrRawDto::getDptgtNo));
-		Map<String, List<UserScPlanRawDto>> planMap = castDepMapper.retrieveUserScPlanList(smltId, fcltTmnlId)
-				.stream().collect(Collectors.groupingBy(UserScPlanRawDto::getDptgtNo));
+            gate.setGnrlSrchCntom(0);
+            gate.setSmartPassSrchCntom(0);
+            gate.setOprTimeList(oprTimeList);
+            gate.setPlanList(toPlanList(oprTimeList, scshCntom));
 
-		for (DepGateDto saved : savedList) {
-			saved.setDptgtNm(saved.getDptgtNo());
-			saved.setOprTimeList(operHrMap.getOrDefault(saved.getDptgtNo(), new ArrayList<>()).stream()
-					.map(operHr -> new OprTimeDto()
-							.withOperBgngHour(operHr.getOperBgngHour())
-							.withOperEndHour(operHr.getOperEndHour()))
-					.collect(toList()));
-			saved.setPlanList(planMap.getOrDefault(saved.getDptgtNo(), new ArrayList<>()).stream()
-					.map(plan -> new ScPlanDto()
-							.withPlanSn(plan.getPlanSn())
-							.withOperBgngHour(plan.getOperBgngHour())
-							.withOperEndHour(plan.getOperEndHour())
-							.withScshCntom(plan.getScshCntom()))
-					.collect(toList()));
+            result.add(gate);
+        }
 
-			result.put(saved.getDptgtNo(), saved);
-		}
+        return result;
+    }
 
-		return result;
-	}
+    private List<OprTimeDto> toOprTimeList(List<DepOperHrRawDto> operHrList) {
+        return operHrList.stream()
+                .map(operHr -> new OprTimeDto()
+                        .withOperBgngHour(SmltUtils.toBgnHour(operHr.getBgnHm()))
+                        .withOperEndHour(SmltUtils.toEndHour(operHr.getBgnHm(), operHr.getEndHm())))
+                .sorted(Comparator.comparingInt(OprTimeDto::getOperBgngHour))
+                .collect(toList());
+    }
 
-	private List<DepGateDto> toGateList(
-			List<DepFcltRawDto> fcltList,
-			Map<String, List<DepOperHrRawDto>> operHrMap,
-			Map<String, Integer> scCntMap
-	) {
-		List<DepGateDto> result = new ArrayList<>();
+    private List<ScPlanDto> toPlanList(List<OprTimeDto> oprTimeList, int scshCntom) {
+        List<ScPlanDto> result = new ArrayList<>();
 
-		for (DepFcltRawDto fclt : fcltList) {
-			String dptgtNo = fclt.getDptgtNo();
-			List<OprTimeDto> oprTimeList = toOprTimeList(operHrMap.getOrDefault(dptgtNo, new ArrayList<>()));
-			int scshCntom = scCntMap.getOrDefault(dptgtNo, 0);
+        if (oprTimeList.isEmpty()) {
+            return result;
+        }
 
-			DepGateDto gate = new DepGateDto();
-			gate.setDptgtNo(dptgtNo);
-			gate.setDptgtNm(fclt.getDptgtNm());
-			gate.setOprYn(fclt.getUseYn());
-			gate.setScshCntom(scshCntom);
-			// 일반/스마트패스 구분 컬럼이 없다 — 4단계에서 컬럼 신설 후 채운다
-			gate.setGnrlSrchCntom(0);
-			gate.setSmartPassSrchCntom(0);
-			gate.setOprTimeList(oprTimeList);
-			gate.setPlanList(toPlanList(oprTimeList, scshCntom));
+        int operBgngHour = oprTimeList.stream().mapToInt(OprTimeDto::getOperBgngHour).min().orElse(0);
+        int operEndHour = oprTimeList.stream().mapToInt(OprTimeDto::getOperEndHour).max().orElse(0);
 
-			result.add(gate);
-		}
+        result.add(new ScPlanDto()
+                .withPlanSn(FIRST_PLAN_SN)
+                .withScshCntom(scshCntom)
+                .withOperBgngHour(operBgngHour)
+                .withOperEndHour(operEndHour));
 
-		return result;
-	}
+        return result;
+    }
 
-	private List<OprTimeDto> toOprTimeList(List<DepOperHrRawDto> operHrList) {
-		return operHrList.stream()
-				.map(operHr -> new OprTimeDto()
-						.withOperBgngHour(SmltUtils.toBgnHour(operHr.getBgnHm()))
-						.withOperEndHour(SmltUtils.toEndHour(operHr.getBgnHm(), operHr.getEndHm())))
-				.sorted(Comparator.comparingInt(OprTimeDto::getOperBgngHour))
-				.collect(toList());
-	}
+    private List<Integer> getOprScCntList(List<DepGateDto> dptgtList) {
+        List<Integer> result = new ArrayList<>();
 
-	/*
-	 * 기준 데이터의 검색대 대수는 시간축이 없는 단일 값이라, 저장 이력이 없을 때의 초기값은
-	 * 운영시간 전체를 덮는 구간 1개다 (G7). 시간대별로 갈라지는 것은 사용자가 격자에서
-	 * 편집해 저장한 뒤부터이며 그때는 TN_PM_SMLT_SCSH_OPER_PLAN 을 읽는다.
-	 */
-	private List<ScPlanDto> toPlanList(List<OprTimeDto> oprTimeList, int scshCntom) {
-		List<ScPlanDto> result = new ArrayList<>();
+        for (String hour : TimeBucketUtils.hourList()) {
+            int hourValue = Integer.parseInt(hour);
+            result.add(dptgtList.stream()
+                    .filter(gate -> isOpr(gate, hourValue))
+                    .mapToInt(gate -> getScshCntom(gate, hourValue))
+                    .sum());
+        }
 
-		if (oprTimeList.isEmpty()) {
-			return result;
-		}
+        return result;
+    }
 
-		int operBgngHour = oprTimeList.stream().mapToInt(OprTimeDto::getOperBgngHour).min().orElse(0);
-		int operEndHour = oprTimeList.stream().mapToInt(OprTimeDto::getOperEndHour).max().orElse(0);
+    private int getScshCntom(DepGateDto gate, int hour) {
+        return gate.getPlanList().stream()
+                .filter(plan -> plan.getOperBgngHour() <= hour && hour < plan.getOperEndHour())
+                .mapToInt(ScPlanDto::getScshCntom)
+                .findFirst()
+                .orElse(0);
+    }
 
-		result.add(new ScPlanDto()
-				.withPlanSn(FIRST_PLAN_SN)
-				.withScshCntom(scshCntom)
-				.withOperBgngHour(operBgngHour)
-				.withOperEndHour(operEndHour));
+    private boolean isOpr(DepGateDto gate, int hour) {
+        return OPR_YN_Y.equals(gate.getOprYn())
+                && gate.getOprTimeList().stream()
+                        .anyMatch(oprTime -> oprTime.getOperBgngHour() <= hour && hour < oprTime.getOperEndHour());
+    }
 
-		return result;
-	}
+    private int getUtilRate(List<DepGateDto> dptgtList) {
+        if (dptgtList.isEmpty()) {
+            return 0;
+        }
 
-	/*
-	 * 시간대별 검색대 대수 — 그 시간의 운영계획 구간 값을 쓴다.
-	 * scshCntom(피크 고정값)를 시간마다 그대로 더하면 시간대별 조정이 요약에 전혀 반영되지 않는다.
-	 * 화면 격자(ScGrid)의 합계 줄과 같은 계산이어야 두 숫자가 어긋나지 않는다.
-	 */
-	private List<Integer> getOprScCntList(List<DepGateDto> dptgtList) {
-		List<Integer> result = new ArrayList<>();
+        int oprGateHour = 0;
 
-		for (String hour : TimeBucketUtils.hourList()) {
-			int hourValue = Integer.parseInt(hour);
-			result.add(dptgtList.stream()
-					.filter(gate -> isOpr(gate, hourValue))
-					.mapToInt(gate -> getScshCntom(gate, hourValue))
-					.sum());
-		}
+        for (String hour : TimeBucketUtils.hourList()) {
+            int hourValue = Integer.parseInt(hour);
+            oprGateHour += (int) dptgtList.stream().filter(gate -> isOpr(gate, hourValue)).count();
+        }
 
-		return result;
-	}
+        return oprGateHour * PERCENT / (dptgtList.size() * HOUR_PER_DAY);
+    }
 
-	// 운영시간 안인데 운영계획이 없는 시간은 0 대다 — 화면은 이것을 붉은 0 으로 그린다
-	private int getScshCntom(DepGateDto gate, int hour) {
-		return gate.getPlanList().stream()
-				.filter(plan -> plan.getOperBgngHour() <= hour && hour < plan.getOperEndHour())
-				.mapToInt(ScPlanDto::getScshCntom)
-				.findFirst()
-				.orElse(0);
-	}
+    private JsonResponse validate(UserSmltDepSaveDto saveDto) {
+        if (saveDto.getLoginUserId() == null) {
+            return new JsonResponse().error("로그인을 진행해주세요.");
+        }
 
-	private boolean isOpr(DepGateDto gate, int hour) {
-		return OPR_YN_Y.equals(gate.getOprYn())
-				&& gate.getOprTimeList().stream()
-						.anyMatch(oprTime -> oprTime.getOperBgngHour() <= hour && hour < oprTime.getOperEndHour());
-	}
+        if (saveDto.getYmd() == null || saveDto.getYmd().isEmpty() || saveDto.getTmnlId() == null) {
+            return new JsonResponse().error("저장 대상 시뮬레이션이 지정되지 않았습니다.");
+        }
 
-	// 가동률 = 운영 출국장·시간 합 / (전체 출국장 수 × 24시간)
-	private int getUtilRate(List<DepGateDto> dptgtList) {
-		if (dptgtList.isEmpty()) {
-			return 0;
-		}
+        return null;
+    }
 
-		int oprGateHour = 0;
+    private List<DepGateDto> normalizeDepList(List<DepGateDto> dptgtList) {
+        if (dptgtList == null) {
+            return new ArrayList<>();
+        }
 
-		for (String hour : TimeBucketUtils.hourList()) {
-			int hourValue = Integer.parseInt(hour);
-			oprGateHour += (int) dptgtList.stream().filter(gate -> isOpr(gate, hourValue)).count();
-		}
+        List<DepGateDto> result = dptgtList.stream()
+                .filter(gate -> gate.getDptgtNo() != null && !gate.getDptgtNo().isEmpty())
+                .collect(toList());
 
-		return oprGateHour * PERCENT / (dptgtList.size() * HOUR_PER_DAY);
-	}
+        for (DepGateDto gate : result) {
+            gate.setOprYn(OPR_YN_Y.equals(gate.getOprYn()) ? OPR_YN_Y : OPR_YN_N);
+            gate.setOprTimeList(gate.getOprTimeList() != null ? gate.getOprTimeList() : new ArrayList<>());
+            gate.setPlanList(gate.getPlanList() != null ? gate.getPlanList() : new ArrayList<>());
+        }
 
-	// 통과하면 null
-	private JsonResponse validate(UserSmltDepSaveDto saveDto) {
-		if (saveDto.getLoginUserId() == null) {
-			return new JsonResponse().error("로그인을 진행해주세요.");
-		}
-
-		if (saveDto.getSmltId() == null || saveDto.getSmltId().isEmpty() || saveDto.getTmnlId() == null) {
-			return new JsonResponse().error("저장 대상 시뮬레이션이 지정되지 않았습니다.");
-		}
-
-		return null;
-	}
-
-	// null 을 그대로 바인딩하면 Oracle 이 JdbcType 을 못 정한다. 빈 목록·기본값으로 채워 넘긴다
-	private List<DepGateDto> normalizeDepList(List<DepGateDto> dptgtList) {
-		if (dptgtList == null) {
-			return new ArrayList<>();
-		}
-
-		List<DepGateDto> result = dptgtList.stream()
-				.filter(gate -> gate.getDptgtNo() != null && !gate.getDptgtNo().isEmpty())
-				.collect(toList());
-
-		for (DepGateDto gate : result) {
-			gate.setOprYn(OPR_YN_Y.equals(gate.getOprYn()) ? OPR_YN_Y : OPR_YN_N);
-			gate.setOprTimeList(gate.getOprTimeList() != null ? gate.getOprTimeList() : new ArrayList<>());
-			gate.setPlanList(gate.getPlanList() != null ? gate.getPlanList() : new ArrayList<>());
-		}
-
-		return result;
-	}
+        return result;
+    }
 }

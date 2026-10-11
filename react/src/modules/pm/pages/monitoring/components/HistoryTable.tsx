@@ -5,20 +5,20 @@ interface HistoryTableProps {
     kind: HistoryKind;
     rows: HistoryRow[];
     onView?: (row: HistoryRow) => void;
+    onViewConfig?: (row: HistoryRow) => void;
 }
 
-/** 표준 시뮬레이션은 사용자가 돌린 게 아니라서 '부서'/'성명' 컬럼이 없다 */
 const COLUMNS: Record<HistoryKind, string[]> = {
     standard: ['번호', '시작일시', '종료일시', '소요시간', '상태', '결과'],
-    user: ['번호', '부서', '성명', '시작일시', '종료일시', '소요시간', '상태', '결과'],
+    user: ['번호', '부서', '성명', '시작일시', '종료일시', '소요시간', '상태', '조건', '결과'],
 };
 
 const TBL_COLS: Record<HistoryKind, string> = {
     standard: '54px 1.7fr 1.7fr 0.85fr 0.8fr 74px',
-    user: '54px 1.15fr 0.9fr 1.7fr 1.7fr 0.85fr 0.8fr 74px',
+    user: '54px 1.15fr 0.9fr 1.7fr 1.7fr 0.85fr 0.8fr 74px 74px',
 };
 
-export function HistoryTable({ kind, rows, onView }: HistoryTableProps) {
+export function HistoryTable({ kind, rows, onView, onViewConfig }: HistoryTableProps) {
     const showUser = kind === 'user';
 
     return (
@@ -40,24 +40,23 @@ export function HistoryTable({ kind, rows, onView }: HistoryTableProps) {
                         const hasResult = row.status === 'done';
 
                         return (
-                            <div className="tbl__row" key={row.rowNo}>
+                            <div className="tbl__row" key={row.smltId}>
                                 <div>{row.rowNo}</div>
                                 {showUser && <div>{row.dept}</div>}
                                 {showUser && <div>{row.name}</div>}
                                 <div>{row.startAt}</div>
                                 <div>{row.endAt}</div>
                                 <div>{row.duration}</div>
-                                <div className={`tbl__state is-${row.status}`}>
-                                    {RUN_STATUS_LABEL[row.status]}
-                                </div>
+                                <div className={`tbl__state is-${row.status}`}>{RUN_STATUS_LABEL[row.status]}</div>
+                                {showUser && (
+                                    <div>
+                                        <button type="button" className="btn-view" onClick={() => onViewConfig?.(row)}>
+                                            보기
+                                        </button>
+                                    </div>
+                                )}
                                 <div>
-                                    {/* 진행중이거나 실패한 시뮬레이션은 볼 결과가 없다 */}
-                                    <button
-                                        type="button"
-                                        className="btn-view"
-                                        disabled={!hasResult}
-                                        onClick={() => onView?.(row)}
-                                    >
+                                    <button type="button" className="btn-view" disabled={!hasResult} onClick={() => onView?.(row)}>
                                         보기
                                     </button>
                                 </div>

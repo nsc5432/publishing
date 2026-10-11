@@ -1,43 +1,25 @@
-import type {
-    SmltCastExecDto,
-    SmltExecDetailDto,
-    SmltExecListDto,
-    SmltExecSmryDto,
-    SmltExecStatus,
-    SmltType,
-} from '@/types/api.types';
+import { mockExecutions, seedExecution } from './userSmlt.mock';
+import { todayYmd } from '@/lib/format';
+import type { SmltCastExecDto, SmltExecDetailDto, SmltExecListDto, SmltExecSmryDto, SmltExecStatus, SmltType } from '@/types/api.types';
 
-/**
- * 시뮬레이션 모니터링 목업 응답 (VITE_ENABLE_MOCK=true 일 때 사용).
- *
- * 이력은 조회 기간의 시작일에 맞춰 만든다. 값이 조회 조건과 무관하게 고정이면
- * 조회가 실제로 다시 걸렸는지 화면에서 구분할 수 없다.
- */
-
-/** 이력 건수 (표준 / 사용자 각각) */
 const ROW_COUNT = 30;
 
-/** 진행중으로 둘 행 번호 */
 const RUNNING_NOS: Record<SmltType, number[]> = {
     DAILY: [3, 4, 19, 20],
     USER: [3, 4, 22],
 };
 
-/** 실패로 둘 행 번호 */
 const FAILED_NOS: Record<SmltType, number[]> = {
     DAILY: [12],
     USER: [7, 25],
 };
 
-/** 소요시간 (분) */
 const EXEC_MIN = 15;
 
-/** yyyyMMddHHmm(조회 조건) → yyyyMMdd. 형식이 어긋나면 기준일로 되돌린다. */
 function toYmd(bgnDt: string): string {
-    return bgnDt.length >= 8 ? bgnDt.slice(0, 8) : '20260723';
+    return bgnDt.length >= 8 ? bgnDt.slice(0, 8) : todayYmd();
 }
 
-/** 시작 시각을 13:00 부터 행마다 1분씩 밀어 준다 (같은 시각이 30줄 이어지지 않도록) */
 function toDateTime(ymd: string, minutes: number): string {
     const total = 13 * 60 + minutes;
     const hh = String(Math.floor(total / 60) % 24).padStart(2, '0');
@@ -74,30 +56,38 @@ function toSttsCd(running: boolean, failed: boolean): SmltExecStatus {
     return failed ? 'FAILED' : 'DONE';
 }
 
+function rows(bgnDt: string, endDt: string) {
+    const ymd = toYmd(bgnDt);
+    const demos = buildRows('USER', ymd);
+    demos.forEach((row) => seedExecution({ ...row, error: false, errorMessage: '', ymd, tmnlId: 'T1' }));
+    const within = (stamp: string) => stamp.slice(0, 12) >= bgnDt && stamp.slice(0, 12) <= endDt;
+    return {
+        stdList: buildRows('DAILY', ymd).filter((row) => within(row.smltFlfmtBgngDt)),
+        userList: [...mockExecutions.values()]
+            .filter((item) => within(item.requestedDt))
+            .map<SmltCastExecDto>(({ detail }, index) => ({ ...detail, rowNum: index + 1, rgtrId: detail.userNm })),
+    };
+}
 export const monitoringMock = {
-    getExecSmry: (): SmltExecSmryDto => ({
-        error: false,
-        errorMessage: '',
-        totCnt: 50,
-        doneCnt: 13,
-        runningCnt: 37,
-        avgExecMin: 15,
-        avgExecSec: 0,
-    }),
-
-    getExecList: (bgnDt: string): SmltExecListDto => {
-        const ymd = toYmd(bgnDt);
-
+    getExecSmry: (bgnDt: string, endDt: string): SmltExecSmryDto => {
+        const list = rows(bgnDt, endDt);
+        const all = [...list.stdList, ...list.userList];
+        const done = all.filter((row) => row.smltFlfmtSttsCd === 'DONE');
+        const average = done.length ? done.reduce((sum, row) => sum + row.execMin, 0) / done.length : 0;
         return {
             error: false,
             errorMessage: '',
-            stdList: buildRows('DAILY', ymd),
-            userList: buildRows('USER', ymd),
+            totCnt: all.length,
+            doneCnt: done.length,
+            runningCnt: all.filter((row) => row.smltFlfmtSttsCd === 'RUNNING').length,
+            avgExecMin: Math.floor(average),
+            avgExecSec: Math.round((average % 1) * 60),
         };
     },
-
-    /** 이력 1건 결과 보기 — 목록에서 만든 ID 규칙(구분-기준일자-순번)을 되짚는다 */
+    getExecList: (bgnDt: string, endDt: string): SmltExecListDto => ({ error: false, errorMessage: '', ...rows(bgnDt, endDt) }),
     getExecDetail: (smltId: string): SmltExecDetailDto => {
+        const execution = mockExecutions.get(smltId);
+        if (execution) return structuredClone(execution.detail);
         const [prefix, ymd = '20260723', no = '0001'] = smltId.split('-');
         const smltType: SmltType = prefix === 'USR' ? 'USER' : 'DAILY';
         const rowNum = Number(no) || 1;

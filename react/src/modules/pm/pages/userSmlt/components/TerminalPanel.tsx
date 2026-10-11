@@ -4,26 +4,26 @@ import type { PanelKpi, TerminalKind } from '../types';
 
 interface TerminalPanelProps {
     terminal: TerminalKind;
-    /** 시뮬레이션 대상으로 켰는가 — 끄면 회색 패널이 되고 편집이 잠긴다 */
+
     enabled: boolean;
-    /** 편집 도크·드로어가 이 패널을 보고 있는가 (둘 다 켜져 있을 때만 갈린다) */
+
     focused: boolean;
-    /** 끌 수 있는가 — 마지막 남은 1개는 끄지 못한다 */
+
     canDisable: boolean;
-    /** 헤드 스위치 — 이 터미널을 켜고 끈다 */
+
     onToggle: () => void;
-    /** 패널을 눌렀을 때 — 켜져 있으면 편집 초점을 가져온다 */
+
     onFocus: () => void;
     summary: ReactNode;
     kpis?: PanelKpi[];
     onMapClick?: () => void;
     footer?: ReactNode;
-    /** 조회 전용 — 저장 버튼과 대상 스위치를 그리지 않는다 */
+
     readOnly?: boolean;
     children: ReactNode;
 }
 
-const LOCKED_HINT = '터미널 1개는 시뮬레이션 대상으로 남겨 둬야 합니다.';
+const LOCKED_HINT = '편집할 터미널을 한 개 이상 선택해주세요.';
 
 export function TerminalPanel({
     terminal,
@@ -49,17 +49,12 @@ export function TerminalPanel({
 
     return (
         <section
-            className={`panel ${enabled ? 'panel--active' : 'panel--disabled'}${
-                enabled && focused ? ' panel--focus' : ''
-            }`}
+            className={`panel ${enabled ? 'panel--active' : 'panel--disabled'}${enabled && focused ? ' panel--focus' : ''}`}
             aria-disabled={enabled ? undefined : true}
             onClick={enabled || readOnly ? onFocus : onToggle}
         >
             <div className="panel__head">
-                <div
-                    className={`terminal-badge terminal-badge--${terminal.toLowerCase()}`}
-                    aria-hidden="true"
-                >
+                <div className={`terminal-badge terminal-badge--${terminal.toLowerCase()}`} aria-hidden="true">
                     <BadgeIcon />
                 </div>
 
@@ -84,13 +79,7 @@ export function TerminalPanel({
                     )}
 
                     {onMapClick && (
-                        <button
-                            type="button"
-                            className="summary__map"
-                            aria-label="지도 보기"
-                            disabled={!enabled}
-                            onClick={onMapClick}
-                        >
+                        <button type="button" className="summary__map" aria-label="지도 보기" disabled={!enabled} onClick={onMapClick}>
                             <MapWhiteIcon aria-hidden="true" />
                         </button>
                     )}
@@ -109,7 +98,7 @@ export function TerminalPanel({
                             className={`tswitch${enabled ? ' is-on' : ''}`}
                             role="switch"
                             aria-checked={enabled}
-                            aria-label={`${terminal} 시뮬레이션 대상`}
+                            aria-label={`${terminal} 편집 선택`}
                             disabled={locked}
                             title={locked ? LOCKED_HINT : undefined}
                             onClick={handleToggle}
@@ -118,7 +107,7 @@ export function TerminalPanel({
                                 <i className="tswitch__knob" />
                             </span>
                             <span className="tswitch__text">
-                                {terminal} {enabled ? '사용' : '미사용'}
+                                {terminal} {enabled ? '편집' : '선택 안 함'}
                             </span>
                         </button>
                     </>

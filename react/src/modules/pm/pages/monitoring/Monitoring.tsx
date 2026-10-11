@@ -21,6 +21,7 @@ function filterByStatus(rows: HistoryRow[], filter: StatusFilter): HistoryRow[] 
 
 const DETAIL_FAIL = '시뮬레이션 결과를 불러오지 못했습니다.';
 const DASHBOARD_PATH = '/rui/pm/daily-smlt/dashboard';
+const USER_SMLT_CONFIG_PATH = '/rui/pm/user-smlt/config';
 
 function toQuery(range: RangeCondition): MonitoringQuery {
     return {
@@ -58,10 +59,26 @@ function Monitoring() {
                     smltId: execDetail.smltId,
                     smltType: execDetail.smltType,
                     ymd: execDetail.ymd,
-                    tmnlId: execDetail.tmnlId,
                 });
 
                 navigate(`${DASHBOARD_PATH}?${dashboardParams.toString()}`);
+            })
+            .catch((error: ApiError) => {
+                dialog.alert({ title: '조회 실패', description: error?.message || DETAIL_FAIL }).catch(() => {});
+            });
+    };
+
+    const handleViewConfig = (row: HistoryRow) => {
+        monitoringService
+            .getExecDetail(row.smltId)
+            .then((dto) => unwrap(dto, DETAIL_FAIL))
+            .then((execDetail) => {
+                const configParams = new URLSearchParams({
+                    mode: 'view',
+                    smltId: execDetail.smltId,
+                    ymd: execDetail.ymd,
+                });
+                navigate(`${USER_SMLT_CONFIG_PATH}?${configParams.toString()}`);
             })
             .catch((error: ApiError) => {
                 dialog.alert({ title: '조회 실패', description: error?.message || DETAIL_FAIL }).catch(() => {});
@@ -80,7 +97,7 @@ function Monitoring() {
 
                     <div className="history">
                         <HistoryTable kind="standard" rows={standardRows} onView={handleView} />
-                        <HistoryTable kind="user" rows={userRows} onView={handleView} />
+                        <HistoryTable kind="user" rows={userRows} onView={handleView} onViewConfig={handleViewConfig} />
                     </div>
                 </main>
             </div>

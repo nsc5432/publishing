@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useRef, useMemo, useState } from 'react';
+import type { UserSmltQuery } from '@/types/api.types';
 import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import type { UserSmltFltPsgDto } from '@/types/api.types';
@@ -12,18 +13,24 @@ import { EMPTY_FLIGHT_PAX, toFlightPax, toSaveReq } from './view';
 
 type RatioState = Record<TerminalKind, number>;
 
-const fetchFltPsg = (smltId: string, tmnlId: TerminalKind) => userSmltService.getFltPsgInfo(smltId, tmnlId);
+const fetchFltPsg = (query: UserSmltQuery, tmnlId: TerminalKind) => userSmltService.getFltPsgInfo(query, tmnlId);
 
 const keepDto = (dto: UserSmltFltPsgDto) => dto;
 
-export function FlightPaxTab({ smltIds, reloadKey, enabled, onToggleTerminal, focusTerminal, onFocusChange, readOnly }: SmltTabProps) {
-    const { raw: dtoByTerminal, error, token } = useTerminalData(
-        smltIds,
-        reloadKey,
-        fetchFltPsg,
-        keepDto,
-        '운항편/여객수 정보를 불러오지 못했습니다.',
-    );
+export function FlightPaxTab({
+    query,
+    busy,
+    beginRequest,
+    endRequest,
+    onDraftChange,
+    reloadKey,
+    enabled,
+    onToggleTerminal,
+    focusTerminal,
+    onFocusChange,
+    readOnly,
+}: SmltTabProps) {
+    const { raw: dtoByTerminal, error, token } = useTerminalData(query, reloadKey, fetchFltPsg, keepDto, '운항편/여객수 정보를 불러오지 못했습니다.');
     const [ratios, setRatios] = useState<RatioState>({ T1: 0, T2: 0 });
 
     const panelDataByTerminal = useMemo(
@@ -33,6 +40,8 @@ export function FlightPaxTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
         }),
         [dtoByTerminal, ratios],
     );
+
+    const dirty = useRef<Record<TerminalKind, boolean>>({ T1: false, T2: false });
 
     useErrorAlert(error, token);
 
@@ -44,19 +53,30 @@ export function FlightPaxTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
     }, [dtoByTerminal]);
 
     const handleRatioChange = (terminal: TerminalKind, ratio: number) => {
+        if (busy) return;
+        dirty.current[terminal] = true;
         setRatios((previousRatios) => ({ ...previousRatios, [terminal]: ratio }));
     };
 
-    const handleSave = (terminal: TerminalKind) => {
+    const handleSave = async (terminal: TerminalKind) => {
+        if (busy) return;
         const dto = dtoByTerminal[terminal];
-        const smltId = smltIds[terminal];
-        if (!dto || !smltId) return;
+        const ymd = query.ymd;
+        if (!dto || !ymd) return;
 
-        runSave(
-            userSmltService.saveFltPsgInfo(toSaveReq(smltId, terminal, ratios[terminal])),
-            '운항편/여객수 저장에 실패했습니다.',
-        );
+        if (!beginRequest()) return;
+        const saved = await runSave(userSmltService.saveFltPsgInfo(toSaveReq(ymd, terminal, ratios[terminal])), '운항편/여객수 저장에 실패했습니다.');
+        endRequest(saved);
+        if (saved) dirty.current[terminal] = false;
     };
+
+    useEffect(() => {
+        onDraftChange('flightPax', () => ({
+            fltPsgList: TERMINALS.filter((terminal) => dirty.current[terminal] && dtoByTerminal[terminal]).map((terminal) =>
+                toSaveReq(query.ymd, terminal, ratios[terminal]),
+            ),
+        }));
+    }, [dtoByTerminal, onDraftChange, query.ymd, ratios]);
 
     const enabledCount = enabledTerminals(enabled).length;
 
@@ -93,7 +113,7 @@ export function FlightPaxTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
                             </>
                         }
                         footer={
-                            <button type="button" className="btn btn--save" onClick={() => handleSave(terminal)}>
+                            <button type="button" className="btn btn--save" disabled={busy || !dtoByTerminal[terminal]} onClick={() => handleSave(terminal)}>
                                 현재상태 저장
                             </button>
                         }
@@ -105,7 +125,7 @@ export function FlightPaxTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
                             ratio={ratios[terminal]}
                             onRatioChange={(ratio) => handleRatioChange(terminal, ratio)}
                             rows={panelData.rows}
-                            disabled={!terminalEnabled || Boolean(readOnly)}
+                            disabled={busy || !terminalEnabled || Boolean(readOnly)}
                         />
                     </TerminalPanel>
                 );

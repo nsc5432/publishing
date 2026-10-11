@@ -3,26 +3,20 @@
 
 <mapper namespace="aoms.pm.cast.mapper.CastUserSnapshotMapper">
 
-    <select id="retrieveNextRsrcNo" resultType="java.lang.String">
-        /* CastUserSnapshotMapper.retrieveNextRsrcNo */
-        SELECT LPAD(PMOWN.SQ1_TN_PM_SMLT_USER_RSRC.NEXTVAL, 3, '0') AS RSRC_NO
-        FROM DUAL
-    </select>
+<delete id="deleteRsrcAtrb">
 
-    <delete id="deleteRsrcAtrb">
-        /* CastUserSnapshotMapper.deleteRsrcAtrb */
         DELETE FROM PMOWN.${atrbTableNm}
         WHERE ${atrbIdColumnNm} = #{rsrcNo}
     </delete>
 
     <delete id="deleteRsrcMstr">
-        /* CastUserSnapshotMapper.deleteRsrcMstr */
+
         DELETE FROM PMOWN.${mstrTableNm}
         WHERE ${mstrIdColumnNm} = #{rsrcNo}
     </delete>
 
     <insert id="insertRsrcMstr">
-        /* CastUserSnapshotMapper.insertRsrcMstr */
+
         INSERT INTO PMOWN.${mstrTableNm} (
             ${mstrIdColumnNm}, ${mstrNmColumnNm}, PRCS_STTS_CD, CFMTN_YN, USE_YN,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
@@ -35,7 +29,7 @@
     </insert>
 
     <insert id="insertSchdlAtrbFromDaily" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertSchdlAtrbFromDaily */
+
         INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB (
             SCHDL_ATRB_GROUP_ID, DOM_INTL_SE_CD, ARR_DEP_SE_CD, TMNL_ID, ALN_CD,
             FLTNM, DEP_ARR_YMD, DEP_ARR_HM, PREDC_HM, ACTL_HM,
@@ -68,7 +62,7 @@
                 A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.GD_IRR_YN AS IRR_FLT_YN, A.TDFLT_YN,
                 NVL((
                     SELECT NVL(F.AJMT_RT, 0)
-                    FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT F
+                    FROM PMOWN.TN_PM_SMLT_EX_FLT_PSG_AJMT F
                     WHERE F.SMLT_ID = #{smltId}
                     AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
                 ), 0) AS AJMT_RT,
@@ -92,7 +86,7 @@
     </insert>
 
     <insert id="insertSchdlAtrbFromSrc" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertSchdlAtrbFromSrc */
+
         INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB (
             SCHDL_ATRB_GROUP_ID, DOM_INTL_SE_CD, ARR_DEP_SE_CD, TMNL_ID, ALN_CD, ALN_CTGRY,
             FLTNM, DALY_FLTSH_ID, DEP_ARR_YMD, DEP_ARR_HM, PREDC_HM, ACTL_HM,
@@ -113,7 +107,7 @@
                     ELSE 0
                 END * NVL((
                     SELECT NVL(F.AJMT_RT, 0)
-                    FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT F
+                    FROM PMOWN.TN_PM_SMLT_EX_FLT_PSG_AJMT F
                     WHERE F.SMLT_ID = #{smltId}
                     AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
                 ), 0) / 100
@@ -127,7 +121,7 @@
     </insert>
 
     <insert id="insertCknctAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertCknctAtrb */
+
         INSERT INTO PMOWN.TN_PM_SMLT_CKNCT_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, CHKN_OPEN_PRNMNT_DT, CHKN_CLOSE_PRNMNT_DT, CHKN_TYPE_CD,
@@ -152,8 +146,8 @@
             'M',
             B.ALN_CD,
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH B
-            INNER JOIN PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR H
+        FROM PMOWN.TN_PM_SMLT_EX_CHKN_BOOTH B
+            INNER JOIN PMOWN.TN_PM_SMLT_EX_CHKN_OPER_HR H
                 ON  H.SMLT_ID = B.SMLT_ID
                 AND H.TMNL_ID = B.TMNL_ID
                 AND H.CHKN_ISL_CD = B.CHKN_ISL_CD
@@ -176,7 +170,7 @@
     </insert>
 
     <insert id="insertSbdAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertSbdAtrb */
+
         INSERT INTO PMOWN.TN_PM_SMLT_SBD_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD, CHKN_TYPE_DTL_INFO,
@@ -196,8 +190,8 @@
             'C',
             SUBSTR(A.ALN_CD_LIST, 1, 200),
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL I
-            INNER JOIN PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR H
+        FROM PMOWN.TN_PM_SMLT_EX_CHKN_ISL I
+            INNER JOIN PMOWN.TN_PM_SMLT_EX_CHKN_OPER_HR H
                 ON  H.SMLT_ID = I.SMLT_ID
                 AND H.TMNL_ID = I.TMNL_ID
                 AND H.CHKN_ISL_CD = I.CHKN_ISL_CD
@@ -222,7 +216,7 @@
                     LISTAGG(ALN_CD, ',') WITHIN GROUP (ORDER BY ALN_CD) AS ALN_CD_LIST
                 FROM (
                     SELECT DISTINCT SMLT_ID, TMNL_ID, CHKN_ISL_CD, ALN_CD
-                    FROM PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH
+                    FROM PMOWN.TN_PM_SMLT_EX_CHKN_BOOTH
                     WHERE ALN_CD IS NOT NULL
                 )
                 GROUP BY SMLT_ID, TMNL_ID, CHKN_ISL_CD
@@ -234,7 +228,7 @@
     </insert>
 
     <insert id="insertSbdAtrbKiosk" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertSbdAtrbKiosk */
+
         INSERT INTO PMOWN.TN_PM_SMLT_SBD_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD, CHKN_TYPE_DTL_INFO,
@@ -254,8 +248,8 @@
             'C',
             SUBSTR(C.ALN_CD_LIST, 1, 200),
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL I
-            INNER JOIN PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR H
+        FROM PMOWN.TN_PM_SMLT_EX_CHKN_ISL I
+            INNER JOIN PMOWN.TN_PM_SMLT_EX_CHKN_OPER_HR H
                 ON  H.SMLT_ID = I.SMLT_ID
                 AND H.TMNL_ID = I.TMNL_ID
                 AND H.CHKN_ISL_CD = I.CHKN_ISL_CD
@@ -278,7 +272,7 @@
     </insert>
 
     <insert id="insertDptgtAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertDptgtAtrb */
+
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB (
             DPTGT_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, FCLTY_CNT,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
@@ -291,13 +285,13 @@
             D.DPTGT_NO,
             NVL(D.GNRL_SRCH_CNTOM, 0) + NVL(D.SMART_PASS_SRCH_CNTOM, 0),
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM PMOWN.TN_PM_SMLT_USER_DPTGT D
+        FROM PMOWN.TN_PM_SMLT_EX_DPTGT D
         WHERE D.SMLT_ID = #{smltId}
         AND D.OPER_YN = 'Y'
     </insert>
 
     <insert id="insertScrtyCntrlAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertScrtyCntrlAtrb */
+
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB (
             SCRTY_CNTRL_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, FCLTY_CNT,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
@@ -312,17 +306,17 @@
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM (
             SELECT P.TMNL_ID, P.DPTGT_NO, P.OPER_BGNG_HOUR, NVL(P.SCSH_CNTOM, 0) AS SCSH_CNTOM
-            FROM PMOWN.TN_PM_SMLT_SCSH_OPER_PLAN P
+            FROM PMOWN.TN_PM_SMLT_EX_SCSH_OPER_PLAN P
             WHERE P.SMLT_ID = #{smltId}
-            
+
             UNION ALL
-            
+
             SELECT D.TMNL_ID, D.DPTGT_NO, 0 AS OPER_BGNG_HOUR, NVL(D.SCSH_CNTOM, 0) AS SCSH_CNTOM
-            FROM PMOWN.TN_PM_SMLT_USER_DPTGT D
+            FROM PMOWN.TN_PM_SMLT_EX_DPTGT D
             WHERE D.SMLT_ID = #{smltId}
             AND D.OPER_YN = 'Y'
             AND NOT EXISTS (
-                SELECT 1 FROM PMOWN.TN_PM_SMLT_SCSH_OPER_PLAN P
+                SELECT 1 FROM PMOWN.TN_PM_SMLT_EX_SCSH_OPER_PLAN P
                 WHERE P.SMLT_ID = D.SMLT_ID AND P.TMNL_ID = D.TMNL_ID AND P.DPTGT_NO = D.DPTGT_NO
             )
         ) X

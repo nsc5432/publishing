@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { unwrap } from '@/api/pm/result';
 import { useFetched } from '@/hooks/useFetched';
-import type { JsonResponse } from '@/types/api.types';
+import type { JsonResponse, UserSmltQuery } from '@/types/api.types';
 import { TERMINALS, type TerminalKind } from '../types';
 
 export interface TerminalData<D, V> {
@@ -12,36 +12,28 @@ export interface TerminalData<D, V> {
 }
 
 interface TerminalPairQuery {
-    smltIds: Record<TerminalKind, string>;
+    source: UserSmltQuery;
     reloadKey: number;
 }
 
 const EMPTY_PAIR = { T1: null, T2: null };
 
 export function useTerminalData<D extends JsonResponse, V>(
-    smltIds: Record<TerminalKind, string>,
+    source: UserSmltQuery,
     reloadKey: number,
-    fetcher: (smltId: string, tmnlId: TerminalKind) => Promise<D>,
+    fetcher: (query: UserSmltQuery, tmnlId: TerminalKind) => Promise<D>,
     toView: (dto: D) => V,
     failMessage: string,
 ): TerminalData<D, V> {
-    const t1SmltId = smltIds.T1;
-    const t2SmltId = smltIds.T2;
-
-    const query = useMemo<TerminalPairQuery | null>(
-        () => (t1SmltId || t2SmltId ? { smltIds: { T1: t1SmltId, T2: t2SmltId }, reloadKey } : null),
-        [t1SmltId, t2SmltId, reloadKey],
-    );
+    const { ymd, smltId } = source;
+    const query = useMemo<TerminalPairQuery | null>(() => (ymd || smltId ? { source: { ymd, smltId }, reloadKey } : null), [ymd, smltId, reloadKey]);
 
     const fetched = useFetched(
         query,
-        ({ smltIds: smltIdByTerminal }) =>
+        ({ source }) =>
             Promise.all(
                 TERMINALS.map((tmnlId) => {
-                    const smltId = smltIdByTerminal[tmnlId];
-                    if (!smltId) return Promise.resolve(null);
-
-                    return fetcher(smltId, tmnlId).then((dto) => unwrap(dto, failMessage));
+                    return fetcher(source, tmnlId).then((dto) => unwrap(dto, failMessage));
                 }),
             ).then((dtoList) => {
                 const dtoByTerminal = { ...EMPTY_PAIR } as Record<TerminalKind, D | null>;

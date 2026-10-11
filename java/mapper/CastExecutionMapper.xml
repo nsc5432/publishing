@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="aoms.pm.cast.mapper.CastExecutionMapper">
+    <select id="isResultGroupingVerified" resultType="int">
+        SELECT COUNT(*) FROM PMOWN.TN_PM_SMLT_CAST_CONTRACT WHERE CONTRACT_ID = 'RESULT_GROUP_V1' AND VERIFIED_YN = 'Y' AND EVIDENCE IS NOT NULL
+    </select>
+    <select id="lockAllocator" resultType="string">
+        SELECT LOCK_ID FROM PMOWN.TN_PM_SMLT_ID_LOCK WHERE LOCK_ID = 'EXECUTION' FOR UPDATE
+    </select>
+    <select id="nextSmltId" resultType="string">
+        SELECT TO_CHAR(NVL(MAX(TO_NUMBER(SMLT_ID)), 0) + 1, 'FM00000000') FROM PMOWN.TN_PM_SMLT_MSTR
+    </select>
+    <insert id="insertMaster">
+        INSERT INTO PMOWN.TN_PM_SMLT_MSTR (SMLT_ID, SMLT_TYPE, EXCN_YMD, SMLT_STTS, SMLT_REQ_DT, SMLT_BGNG_DT, SMLT_END_DT, FRST_RGTR_ID, FRST_REG_DT)
+        VALUES (#{smltId}, #{smltType}, #{excnYmd}, #{smltStts},
+            CASE WHEN #{smltType} = 'WhatIf' THEN CURRENT_TIMESTAMP ELSE NULL END,
+            TO_TIMESTAMP(#{smltBgngDt,jdbcType=VARCHAR}, 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP(#{smltEndDt,jdbcType=VARCHAR}, 'YYYY-MM-DD HH24:MI:SS'),
+            #{loginUserId}, CURRENT_TIMESTAMP)
+    </insert>
+    <select id="retrieveSaveDt" resultType="string">
+        SELECT TO_CHAR(MAX(SAVE_DT), 'YYYYMMDDHH24MISS') FROM PMOWN.TN_PM_SMLT_CURRENT_SAVE
+        WHERE OWNER_USER_ID = #{loginUserId} AND EXCN_YMD = #{ymd} AND TMNL_ID = #{fcltTmnlId}
+    </select>
+    <select id="hasSaved" resultType="int">
+        SELECT COUNT(*) FROM PMOWN.TN_PM_SMLT_CURRENT_SAVE
+        WHERE OWNER_USER_ID = #{scope.loginUserId} AND EXCN_YMD = #{scope.ymd} AND TMNL_ID = #{scope.fcltTmnlId} AND AREA_CD = #{area}
+    </select>
+    <update id="markSaved">
+        MERGE INTO PMOWN.TN_PM_SMLT_CURRENT_SAVE T
+        USING (SELECT #{scope.loginUserId} OWNER_USER_ID, #{scope.ymd} EXCN_YMD, #{scope.fcltTmnlId} TMNL_ID, #{area} AREA_CD FROM DUAL) S
+        ON (T.OWNER_USER_ID = S.OWNER_USER_ID AND T.EXCN_YMD = S.EXCN_YMD AND T.TMNL_ID = S.TMNL_ID AND T.AREA_CD = S.AREA_CD)
+        WHEN MATCHED THEN UPDATE SET SAVE_DT = CURRENT_TIMESTAMP
+        WHEN NOT MATCHED THEN INSERT (OWNER_USER_ID, EXCN_YMD, TMNL_ID, AREA_CD, SAVE_DT) VALUES (S.OWNER_USER_ID, S.EXCN_YMD, S.TMNL_ID, S.AREA_CD, CURRENT_TIMESTAMP)
+    </update>
+    <insert id="storeCondition">
+        INSERT INTO PMOWN.TN_PM_SMLT_COND_SNAPSHOT (SMLT_ID, TMNL_ID, AREA_CD, PAYLOAD) VALUES (#{smltId}, #{tmnlId}, #{area}, #{payload,jdbcType=CLOB})
+    </insert>
+    <select id="retrieveCondition" resultType="string">
+        SELECT PAYLOAD FROM PMOWN.TN_PM_SMLT_COND_SNAPSHOT WHERE SMLT_ID = #{smltId} AND TMNL_ID = #{tmnlId} AND AREA_CD = #{area}
+    </select>
+    <select id="retrieveBaseSmltId" resultType="string">
+        SELECT MAX(SMLT_ID) FROM PMOWN.TN_PM_SMLT_STNG WHERE EXCN_YMD = #{ymd} AND SMLT_TYPE = 'Auto'
+    </select>
+    <select id="reserveRsrcNo" resultType="string">
+        SELECT MIN(RSRC_NO) FROM (
+            SELECT TO_CHAR(LEVEL + 1, 'FM000') RSRC_NO FROM DUAL CONNECT BY LEVEL &lt;= 998
+        ) N WHERE NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_RSRC_LEASE L WHERE L.RSRC_NO = N.RSRC_NO)
+        AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U WHERE U.FLT_SCHDL_RSRC_ID = 'FS' || N.RSRC_NO)
+    </select>
+    <insert id="assignRsrcNo">
+        INSERT INTO PMOWN.TN_PM_SMLT_RSRC_LEASE (RSRC_NO, SMLT_ID) VALUES (#{rsrcNo}, #{smltId})
+    </insert>
+    <select id="retrieveResultId" resultType="string">
+        SELECT SMLT_ID FROM PMOWN.TN_PM_SMLT_RESULT_IDENTITY WHERE SOURCE_KEY = #{sourceKey}
+    </select>
+    <select id="retrieveResultHash" resultType="string">
+        SELECT PAYLOAD_HASH FROM PMOWN.TN_PM_SMLT_RESULT_IDENTITY WHERE SOURCE_KEY = #{sourceKey}
+    </select>
+    <insert id="insertResultIdentity">
+        INSERT INTO PMOWN.TN_PM_SMLT_RESULT_IDENTITY (SOURCE_KEY, SMLT_ID, PAYLOAD_HASH) VALUES (#{sourceKey}, #{smltId}, #{payloadHash})
+    </insert>
+    <select id="hasModel" resultType="int">
+        SELECT COUNT(*) FROM PMOWN.TN_PM_SMLT_STNG WHERE SMLT_ID = #{smltId} AND SMLT_MDL_SN = #{mdlSn}
+    </select>
+    <update id="completeMaster">
+        UPDATE PMOWN.TN_PM_SMLT_MSTR SET SMLT_STTS = 'Finished',
+            SMLT_BGNG_DT = LEAST(NVL(SMLT_BGNG_DT, TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')), TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')),
+            SMLT_END_DT = GREATEST(NVL(SMLT_END_DT, TO_TIMESTAMP(#{stopTime}, 'YYYY-MM-DD HH24:MI:SS')), TO_TIMESTAMP(#{stopTime}, 'YYYY-MM-DD HH24:MI:SS'))
+        WHERE SMLT_ID = #{smltId} AND SMLT_STTS != 'Failed'
+    </update>
+    <update id="updateStatus">
+        UPDATE PMOWN.TN_PM_SMLT_MSTR SET SMLT_STTS = #{status},
+            SMLT_BGNG_DT = CASE WHEN #{status} = 'Executing' THEN NVL(SMLT_BGNG_DT, CURRENT_TIMESTAMP) ELSE SMLT_BGNG_DT END,
+            SMLT_END_DT = CASE WHEN #{status} = 'Failed' THEN CURRENT_TIMESTAMP ELSE SMLT_END_DT END
+        WHERE SMLT_ID = #{smltId} AND SMLT_STTS IN ('New', 'Executing')
+        AND (#{status} != 'Finished')
+    </update>
+    <select id="retrieveInputBase" resultType="aoms.pm.cast.dto.SmltStngDto">
+        SELECT B.* FROM PMOWN.TN_PM_SMLT_INPUT_BASE B
+        WHERE #{ymd} BETWEEN B.VALID_BGN_YMD AND B.VALID_END_YMD AND B.USE_YN = 'Y'
+    </select>
+    <insert id="archiveInput">
+        INSERT INTO PMOWN.TN_PM_SMLT_INPUT_SNAPSHOT (SMLT_ID, RESOURCE_TYPE, RESOURCE_ID, SOURCE_ID, PAYLOAD)
+        VALUES (#{smltId}, #{type}, #{resourceId}, #{sourceId}, #{payload,jdbcType=CLOB})
+    </insert>
+    <select id="retrieveInput" resultType="string">
+        SELECT PAYLOAD FROM PMOWN.TN_PM_SMLT_INPUT_SNAPSHOT WHERE RESOURCE_ID = #{resourceId} AND (RESOURCE_TYPE = #{type} OR (#{type} IN ('CASTModel', 'CASTExpressModel') AND RESOURCE_TYPE IN ('CASTModel', 'CASTExpressModel')))
+    </select>
+    <select id="retrieveResultGroup" resultType="string">
+        SELECT SMLT_ID FROM PMOWN.TN_PM_SMLT_RESULT_GROUP WHERE GROUP_KEY = #{groupKey}
+    </select>
+    <insert id="insertResultGroup">
+        INSERT INTO PMOWN.TN_PM_SMLT_RESULT_GROUP (GROUP_KEY, SMLT_ID) VALUES (#{groupKey}, #{smltId})
+    </insert>
+    <update id="syncHistory">
+        MERGE INTO PMOWN.TH_PM_SMLT_FLFMT_HSTRY H USING (SELECT * FROM PMOWN.TN_PM_SMLT_MSTR WHERE SMLT_ID = #{smltId}) M ON (H.SMLT_ID = M.SMLT_ID)
+        WHEN MATCHED THEN UPDATE SET H.SMLT_FLFMT_STTS_CD = CASE M.SMLT_STTS WHEN 'Finished' THEN 'DONE' WHEN 'Failed' THEN 'FAILED' ELSE 'RUNNING' END,
+            H.SMLT_FLFMT_BGNG_DT = M.SMLT_BGNG_DT, H.SMLT_FLFMT_END_DT = M.SMLT_END_DT
+        WHEN NOT MATCHED THEN INSERT (SMLT_ID, SMLT_TYPE, SMLT_FLFMT_STTS_CD, SMLT_FLFMT_BGNG_DT, SMLT_FLFMT_END_DT, FRST_RGTR_ID, FRST_REG_DT)
+            VALUES (M.SMLT_ID, M.SMLT_TYPE, CASE M.SMLT_STTS WHEN 'Finished' THEN 'DONE' WHEN 'Failed' THEN 'FAILED' ELSE 'RUNNING' END, M.SMLT_BGNG_DT, M.SMLT_END_DT, M.FRST_RGTR_ID, CURRENT_TIMESTAMP)
+    </update>
+</mapper>

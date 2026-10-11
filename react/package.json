@@ -13,7 +13,8 @@
         "build:dev": "tsc -b && vite build --mode dev",
         "build:prd": "tsc -b && vite build --mode prd",
         "lint": "eslint .",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "verify:user-smlt": "node scripts/verify-user-smlt.mjs"
     },
     "dependencies": {
         "@radix-ui/react-alert-dialog": "1.1.4",

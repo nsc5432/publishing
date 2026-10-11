@@ -2,10 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { unwrap } from '@/api/pm/result';
 import type { ApiError } from '@/types/api.types';
-import { TERMINALS, type TerminalKind } from '../types';
+import { TERMINALS } from '../types';
 
 export interface SmltInfoState {
-    smltIds: Record<TerminalKind, string>;
     ymd: string;
     saveDt: string;
     error: string;
@@ -15,7 +14,6 @@ export interface SmltInfoState {
 const FAIL_MESSAGE = '사용자 시뮬레이션 정보를 불러오지 못했습니다.';
 
 const EMPTY: SmltInfoState = {
-    smltIds: { T1: '', T2: '' },
     ymd: '',
     saveDt: '',
     error: '',
@@ -38,15 +36,13 @@ export function useSmltInfo(ymd: string, reloadKey = 0): SmltInfoState {
             .then((infoList) => {
                 if (!isCurrent) return;
 
-                const smltIds = { T1: '', T2: '' } as Record<TerminalKind, string>;
-                TERMINALS.forEach((tmnlId, index) => {
-                    smltIds[tmnlId] = infoList[index].smltId;
-                });
-
                 setState({
-                    smltIds,
                     ymd: infoList[0].ymd,
-                    saveDt: infoList[0].saveDt,
+                    saveDt:
+                        infoList
+                            .map((info) => info.saveDt)
+                            .sort()
+                            .at(-1) ?? '',
                     error: '',
                     token: ++tokenRef.current,
                 });

@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lnb } from '@/components/lnb';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
-import type { DsbdCategory, SmltType, TmnlId } from '@/types/api.types';
+import type { DsbdCategory, SmltType } from '@/types/api.types';
 import { HeaderSummary } from './components/HeaderSummary';
 import { TerminalSummary } from './components/TerminalSummary';
 import { Topbar } from './components/Topbar';
@@ -25,7 +25,6 @@ function Dashboard() {
     const [searchParams, setSearchParams] = useSearchParams();
     const targetSmltId = searchParams.get('smltId') ?? '';
     const targetSmltType = (searchParams.get('smltType') as SmltType | null) ?? null;
-    const targetTmnlId = (searchParams.get('tmnlId') as TmnlId | null) ?? null;
 
     const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
     const [draftYmd, setDraftYmd] = useState(ymd);
@@ -39,8 +38,7 @@ function Dashboard() {
     const [draftTime, setDraftTime] = useState('');
     const [query, setQuery] = useState<DashboardQuery | null>(null);
     const [category, setCategory] = useState<DsbdCategory>(DEFAULT_CATEGORY);
-    const [activePrimeCategory, setActivePrimeCategory] =
-        useState<DsbdCategory | null>(DEFAULT_CATEGORY);
+    const [activePrimeCategory, setActivePrimeCategory] = useState<DsbdCategory | null>(DEFAULT_CATEGORY);
 
     useEffect(() => {
         if (!baseInfo) return;
@@ -93,9 +91,6 @@ function Dashboard() {
             ymd: baseInfo?.ymd || ymd,
         });
 
-        const tmnlId = targetTmnlId ?? execDetail?.tmnlId;
-        if (tmnlId) configParams.set('tmnlId', tmnlId);
-
         navigate(`${USER_SMLT_CONFIG_PATH}?${configParams.toString()}`);
     };
 
@@ -127,16 +122,8 @@ function Dashboard() {
                     onCategoryChange={handleCategoryChange}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary
-                            terminal="T1"
-                            data={terminal1View}
-                            titleCategory={activePrimeCategory}
-                        />
-                        <TerminalSummary
-                            terminal="T2"
-                            data={terminal2View}
-                            titleCategory={activePrimeCategory}
-                        />
+                        <TerminalSummary terminal="T1" data={terminal1View} titleCategory={activePrimeCategory} />
+                        <TerminalSummary terminal="T2" data={terminal2View} titleCategory={activePrimeCategory} />
                     </section>
                 </HeaderSummary>
             </div>

@@ -1,12 +1,5 @@
 @charset "utf-8";
 
-/* =====================================================================
-   PM 예측관리 / 사용자 시뮬레이션
-   ===================================================================== */
-
-/* =====================================================================
-   0. 화면 기본값
-   ===================================================================== */
 html[data-page='userSmlt'] {
     --pm-primary: #4441cc;
     --pm-primary-dark: #3a37b8;
@@ -49,9 +42,6 @@ html[data-page='userSmlt'] body {
     background: linear-gradient(180deg, #f1eff7 0%, #f5f6fa 22%, #f8f9fb 60%, #f3f6f8 100%);
 }
 
-/* =====================================================================
-   2. GNB
-   ===================================================================== */
 html[data-page='userSmlt'] .gnb {
     position: relative;
     z-index: 2;
@@ -137,7 +127,6 @@ html[data-page='userSmlt'] .gnb__link:hover {
     text-decoration: underline;
 }
 
-/* 기준일자 --------------------------------------------------------------- */
 html[data-page='userSmlt'] .date-picker {
     display: flex;
     align-items: center;
@@ -217,7 +206,6 @@ html[data-page='userSmlt'] .date-picker__search svg {
     height: 16px;
 }
 
-/* 버튼 ------------------------------------------------------------------- */
 html[data-page='userSmlt'] .btn {
     display: inline-flex;
     align-items: center;
@@ -261,9 +249,6 @@ html[data-page='userSmlt'] .btn--save:hover {
     background: var(--pm-primary-dark);
 }
 
-/* =====================================================================
-   3. 본문/탭바
-   ===================================================================== */
 html[data-page='userSmlt'] .body {
     position: relative;
     z-index: 1;
@@ -326,7 +311,6 @@ html[data-page='userSmlt'] .tabs__item {
         background 0.15s;
 }
 
-/* 단계 번호 / 완료 체크 */
 html[data-page='userSmlt'] .tabs__no {
     display: inline-flex;
     align-items: center;
@@ -348,7 +332,6 @@ html[data-page='userSmlt'] .tabs__no svg {
     height: 12px;
 }
 
-/* 지나갈 수 있는 단계라는 신호 — 눌리는 알약처럼 배경이 떠오른다 */
 html[data-page='userSmlt'] .tabs__item:not(.is-active):hover {
     background: rgba(255, 255, 255, 0.6);
     color: var(--pm-primary);
@@ -359,7 +342,6 @@ html[data-page='userSmlt'] .tabs__item:not(.is-active):not(.is-done):hover .tabs
     color: var(--pm-primary);
 }
 
-/* 지나온 단계 — 알약 배경 없이 체크만 채운다 */
 html[data-page='userSmlt'] .tabs__item.is-done {
     color: var(--pm-primary);
     font-weight: 600;
@@ -369,7 +351,6 @@ html[data-page='userSmlt'] .tabs__item.is-done .tabs__no {
     background: var(--pm-primary-light);
 }
 
-/* 현재 단계 */
 html[data-page='userSmlt'] .tabs__item.is-active {
     background: #fff;
     color: var(--pm-primary);
@@ -426,8 +407,6 @@ html[data-page='userSmlt'] .tabs__next:hover::after {
     transform: rotate(45deg) translate(1.5px, -1.5px);
 }
 
-/* 좁은 폭에서는 스테퍼가 흐름 배치로 돌아간다(위 .gnb__center 참고).
-   버튼도 같이 흐름으로 돌려야 남는 자리 안에서 함께 가운데를 잡는다 */
 @media screen and (max-width: 1800px) {
     html[data-page='userSmlt'] .steps {
         gap: 10px;
@@ -512,13 +491,11 @@ html[data-page='userSmlt'] .intro__card:focus-visible {
     transform: translateY(-2px);
 }
 
-/* 고른 카드 — 테두리와 체크로 표시한다 (고르지 않은 카드는 그대로 둔다) */
 html[data-page='userSmlt'] .intro__card.is-on {
     border-color: var(--pm-primary);
     box-shadow: 0 12px 30px rgba(68, 65, 204, 0.22);
 }
 
-/* 좌상단 체크 — 꺼져 있으면 빈 동그라미 */
 html[data-page='userSmlt'] .intro__check {
     display: flex;
     position: absolute;
@@ -546,7 +523,6 @@ html[data-page='userSmlt'] .intro__check svg {
     height: 14px;
 }
 
-/* 안내 문구 + 시작 버튼 */
 html[data-page='userSmlt'] .intro__foot {
     flex: 0 0 auto;
     display: flex;
@@ -608,9 +584,6 @@ html[data-page='userSmlt'] .tab-placeholder {
     color: var(--text-mute);
 }
 
-/* =====================================================================
-   4. 패널
-   ===================================================================== */
 html[data-page='userSmlt'] .panels {
     position: relative;
     display: flex;
@@ -639,7 +612,6 @@ html[data-page='userSmlt'] .panel {
     box-shadow: 0 6px 24px rgba(94, 100, 130, 0.07);
 }
 
-/* 비활성 (미선택) 패널 */
 html[data-page='userSmlt'] .panel--disabled {
     filter: grayscale(1);
     opacity: 0.9;
@@ -660,7 +632,6 @@ html[data-page='userSmlt'] .panels:has(.panel--active + .panel--active) .panel--
         0 6px 24px rgba(94, 100, 130, 0.1);
 }
 
-/* 패널 헤드 -------------------------------------------------------------- */
 html[data-page='userSmlt'] .panel__head {
     flex: 0 0 auto;
     display: flex;
@@ -694,7 +665,6 @@ html[data-page='userSmlt'] .terminal-badge--t2 {
     box-shadow: 0 6px 16px rgba(70, 161, 146, 0.28);
 }
 
-/* 미선택 터미널 뱃지는 회색 (활성화되면 위의 고유 색으로 돌아온다) */
 html[data-page='userSmlt'] .panel--disabled .terminal-badge {
     background: linear-gradient(160deg, #cfd1d3 0%, #bfc2c4 100%);
     box-shadow: none;
@@ -837,7 +807,6 @@ html[data-page='userSmlt'] .summary__kpi b em {
     color: #6a707c;
 }
 
-/* 요약 우측 지도 버튼 */
 html[data-page='userSmlt'] .summary__map {
     display: flex;
     align-items: center;
@@ -863,24 +832,18 @@ html[data-page='userSmlt'] .panel--disabled .summary__map {
     background: #c3c3c3;
 }
 
-/* 패널 푸터 -------------------------------------------------------------- */
 html[data-page='userSmlt'] .panel__foot {
     position: relative;
     flex: 0 0 auto;
     display: flex;
     align-items: center;
     justify-content: center;
-    /* 버튼이 없는(미선택) 패널도 같은 높이를 차지해야 T1/T2 의 본문 바닥이 맞는다 */
+
     min-height: calc(clamp(38px, 4.3vh, 46px) + clamp(10px, 1.8vh, 20px));
     margin-top: auto;
     padding-top: clamp(10px, 1.8vh, 20px);
 }
 
-/* =====================================================================
-   5. 공용 폼 요소
-   ===================================================================== */
-
-/* 스테퍼 (운항편/여객수 편집기 · 드로어 CountStepper 공용) ------------------ */
 html[data-page='userSmlt'] .stepper {
     flex: 0 0 auto;
     display: flex;
@@ -923,11 +886,6 @@ html[data-page='userSmlt'] .stepper__value {
     color: var(--pm-primary);
 }
 
-/* =====================================================================
-   6. 탭 — 운항편/여객수 (tabs/flightPax)
-   ===================================================================== */
-
-/* 차트 ------------------------------------------------------------------- */
 html[data-page='userSmlt'] .chart {
     flex: 1 1 0;
     display: flex;
@@ -977,11 +935,10 @@ html[data-page='userSmlt'] .chart__total strong {
 html[data-page='userSmlt'] .chart__body {
     flex: 1 1 auto;
     min-height: 0;
-    /* recharts 의 ResponsiveContainer 가 부모 높이를 재므로 자리를 확정해 둔다 */
+
     position: relative;
 }
 
-/* 편집 영역 -------------------------------------------------------------- */
 html[data-page='userSmlt'] .editor {
     flex: 1 1 auto;
     display: flex;
@@ -1005,7 +962,6 @@ html[data-page='userSmlt'] .editor__opts {
     margin-bottom: clamp(6px, 0.9vh, 10px);
 }
 
-/* 수정 방식 라벨 — 고를 방식이 하나뿐이라 라디오 대신 마크를 앞에 둔다 */
 html[data-page='userSmlt'] .editor__label {
     display: inline-flex;
     align-items: center;
@@ -1026,7 +982,6 @@ html[data-page='userSmlt'] .editor__label::before {
     box-shadow: 0 0 0 3.5px rgba(68, 65, 204, 0.16);
 }
 
-/* 표 */
 html[data-page='userSmlt'] .table-wrap {
     flex: 1 1 auto;
     min-height: 0;
@@ -1071,9 +1026,6 @@ html[data-page='userSmlt'] .data-table td.is-num {
     font-weight: 500;
 }
 
-/* =====================================================================
-   7. 블럭 차트 (체크인 카운터/출국장 공용 — components/BlockChart.tsx)
- ===================================================================== */
 html[data-page='userSmlt'] .bchart {
     flex: 0 0 auto;
     display: flex;
@@ -1121,7 +1073,6 @@ html[data-page='userSmlt'] .bchart__unitnote {
     white-space: nowrap;
 }
 
-/* 보조 차트(보안검색대) — 라벨 없는 저프로필 변형 */
 html[data-page='userSmlt'] .bchart--compact {
     margin-top: clamp(8px, 1.5vh, 14px);
     padding: clamp(10px, 1.5vh, 14px) 20px clamp(8px, 1.3vh, 12px);
@@ -1219,7 +1170,6 @@ html[data-page='userSmlt'] .legend-wrap.is-scrollable:not(.is-scrolled) .legend_
     animation: legend-nudge 1.8s ease-in-out infinite;
 }
 
-/* 오른쪽 끝까지 밀었으면 더 볼 게 없다 — 화살표를 흐리게 */
 html[data-page='userSmlt'] .legend-wrap.is-scrollable.is-end .legend__grip {
     opacity: 0.35;
 }
@@ -1269,7 +1219,6 @@ html[data-page='userSmlt'] .legend__dot {
     border-radius: 3px;
 }
 
-/* 대기인원수 라인 범례 — 짧은 선 + 가운데 점 */
 html[data-page='userSmlt'] .legend__chip--line {
     border-color: rgba(242, 118, 46, 0.4);
     background: rgba(242, 118, 46, 0.08);
@@ -1296,12 +1245,10 @@ html[data-page='userSmlt'] .legend__line::after {
     background: #fff;
 }
 
-/* 플롯 ------------------------------------------------------------------- */
 html[data-page='userSmlt'] .bchart__body {
     margin: -18px 0 -7px;
 }
 
-/* X축 ------------------------------------------------------------------- */
 html[data-page='userSmlt'] .bchart__scale {
     position: relative;
     display: grid;
@@ -1321,7 +1268,6 @@ html[data-page='userSmlt'] .bchart__scale span:last-child {
     transform: translateX(50%);
 }
 
-/* 차트 하단 안내 + 액션 --------------------------------------------------- */
 html[data-page='userSmlt'] .bchart__foot {
     display: flex;
     align-items: center;
@@ -1371,9 +1317,6 @@ html[data-page='userSmlt'] .bchart__act:disabled {
     cursor: default;
 }
 
-/* =====================================================================
-   7-1. 검색대 격자 (출국장 — tabs/departure/components/ScGrid.tsx)
-   ===================================================================== */
 html[data-page='userSmlt'] .scgrid {
     flex: 0 0 auto;
     padding: 0 21px;
@@ -1407,19 +1350,16 @@ html[data-page='userSmlt'] .scgrid__hint {
     color: var(--text-mute);
 }
 
-/* 팝오버가 이 안에서 줄 위치를 잡는다 */
 html[data-page='userSmlt'] .scgrid__body {
     position: relative;
 }
 
-/* 한 줄 = 라벨(--gut) + 24칸 + 행 피크(--rgt) */
 html[data-page='userSmlt'] .scgrid__ln {
     display: flex;
     align-items: center;
     margin-bottom: 1px;
 }
 
-/* 위 차트에서 고른 출국장 — 아래 같은 줄이 켜진다 */
 html[data-page='userSmlt'] .scgrid__ln.is-sel {
     border-radius: 6px;
     background: rgba(68, 65, 204, 0.08);
@@ -1447,7 +1387,6 @@ html[data-page='userSmlt'] button.scgrid__lbl:not(:disabled):hover {
     color: var(--pm-primary);
 }
 
-/* 출국장 정체성 — 위 차트 블럭과 같은 색이다 (칸 농도는 값이 맡는다) */
 html[data-page='userSmlt'] .scgrid__bar {
     flex: 0 0 auto;
     width: 4px;
@@ -1479,7 +1418,7 @@ html[data-page='userSmlt'] .sccell {
     align-items: center;
     justify-content: center;
     height: 20px;
-    /* 칸 피치를 차트와 맞추려고 간격을 셀 안쪽에서 만든다 */
+
     margin: 0 1px;
     border-radius: 4px;
     background: #f2f3f7;
@@ -1493,18 +1432,15 @@ html[data-page='userSmlt'] button.sccell:not(:disabled):hover {
     box-shadow: inset 0 0 0 1px rgba(68, 65, 204, 0.45);
 }
 
-/* 진한 농도 — 바탕이 어두워 글자를 뒤집는다 */
 html[data-page='userSmlt'] .sccell.is-hi {
     color: #fff;
 }
 
-/* 문이 열렸는데 검색대가 없다 — 눈에 걸리게 둔다 */
 html[data-page='userSmlt'] .sccell.is-zero {
     background: #fdeceb;
     color: #d2453a;
 }
 
-/* 미운영 — 값을 넣을 수 없다 */
 html[data-page='userSmlt'] .sccell.is-off {
     background: repeating-linear-gradient(45deg, #eceef4 0 3px, #f7f8fb 3px 6px);
 }
@@ -1517,7 +1453,6 @@ html[data-page='userSmlt'] .sccell.is-pick {
         0 0 0 1px rgba(255, 255, 255, 0.9);
 }
 
-/* 시간별 합계 — 농도까지 입혀 그 줄 자체가 24칸짜리 막대그래프로 읽힌다 */
 html[data-page='userSmlt'] .scgrid__sum {
     margin-top: 6px;
     padding-top: 6px;
@@ -1528,7 +1463,6 @@ html[data-page='userSmlt'] .scgrid__sum .sccell.is-pk {
     box-shadow: inset 0 0 0 2px var(--line-wait);
 }
 
-/* 선택한 칸 팝오버 — 선택 영역 바로 아래에 붙는다 */
 html[data-page='userSmlt'] .scgrid__pop {
     position: absolute;
     z-index: 15;
@@ -1585,9 +1519,6 @@ html[data-page='userSmlt'] .scgrid__warn {
     color: #d2453a;
 }
 
-/* =====================================================================
-   8. 상세 드로어 (체크인 카운터 · 출국장 공용 — components/DetailDrawer.tsx)
-   ===================================================================== */
 html[data-page='userSmlt'] .drawer {
     position: absolute;
     top: 0;
@@ -1667,8 +1598,6 @@ html[data-page='userSmlt'] .drawer__close svg {
     height: 18px;
 }
 
-/* 출국장 상세는 조작 항목이 많다. 넘치면 잘라내지 말고 스크롤시킨다
-   (.scroll-area — src/common.css) */
 html[data-page='userSmlt'] .drawer__body {
     flex: 1 1 auto;
     min-height: 0;
@@ -1711,7 +1640,6 @@ html[data-page='userSmlt'] .btn--primary:hover {
     background: var(--pm-primary-dark);
 }
 
-/* 드로어 섹션 ------------------------------------------------------------ */
 html[data-page='userSmlt'] .dsec {
     padding: 11px 0;
     border-bottom: 1px solid var(--line);
@@ -1741,7 +1669,6 @@ html[data-page='userSmlt'] .dsec__hint {
     color: var(--text-mute);
 }
 
-/* 라벨 + 조작부 한 줄 */
 html[data-page='userSmlt'] .drow {
     display: flex;
     align-items: center;
@@ -1763,7 +1690,6 @@ html[data-page='userSmlt'] .drow__label small {
     color: var(--text-mute);
 }
 
-/* 드로어 스테퍼 — 공용 .stepper 를 둥근 버튼 형태로 쓴다 */
 html[data-page='userSmlt'] .drow .stepper {
     gap: 2px;
     height: 34px;
@@ -1787,7 +1713,6 @@ html[data-page='userSmlt'] .drow .stepper__value {
     color: var(--text);
 }
 
-/* 항공사 칩 -------------------------------------------------------------- */
 html[data-page='userSmlt'] .airchip {
     flex: 0 0 auto;
     display: inline-flex;
@@ -1817,7 +1742,6 @@ html[data-page='userSmlt'] .airchip--ghost:hover {
     background: #f6f6fa;
 }
 
-/* 출국장 고르기 --------------------------------------------------- */
 html[data-page='userSmlt'] .gatepick {
     display: flex;
     flex-wrap: wrap;
@@ -1874,7 +1798,6 @@ html[data-page='userSmlt'] .gatepick__dot {
     background: #d3d5dd;
 }
 
-/* 사용 / 미사용 세그먼트 --------------------------------------------------- */
 html[data-page='userSmlt'] .seg {
     display: inline-flex;
     padding: 4px;
@@ -1901,7 +1824,6 @@ html[data-page='userSmlt'] .seg__item.is-on {
     box-shadow: 0 2px 6px rgba(80, 78, 140, 0.14);
 }
 
-/* 값이 찍히는 운영시간 바 — 시간대별 보안검색대 대수 (components/TimeBar.tsx) */
 html[data-page='userSmlt'] .timebar--valued .timebar__track {
     --slot-gap: 2px;
 }
@@ -1913,7 +1835,6 @@ html[data-page='userSmlt'] .timebar--valued .timebar__slot {
     height: 24px;
 }
 
-/* 슬롯 폭이 13px 남짓이라 두 자리 수까지만 들어간다 */
 html[data-page='userSmlt'] .timebar--valued .timebar__slot b {
     font-size: 9px;
     font-weight: 700;
@@ -1925,7 +1846,6 @@ html[data-page='userSmlt'] .timebar--valued .timebar__slot.is-on {
     background: var(--pm-primary);
 }
 
-/* 부스 ↔ 항공사 배정 그리드 (드로어 380px 폭에 맞춘 3열) -------------------- */
 html[data-page='userSmlt'] .boothgrid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1970,7 +1890,6 @@ html[data-page='userSmlt'] .bcell__no {
     font-weight: 700;
 }
 
-/* 미배정 부스 */
 html[data-page='userSmlt'] .bcell--empty {
     border-style: dashed;
     border-color: #bfd9a8;
@@ -1979,7 +1898,6 @@ html[data-page='userSmlt'] .bcell--empty {
     font-weight: 500;
 }
 
-/* 균등 배치 (검색대 격자 머리 — 구 차트 헤드 / 드로어 두 곳을 여기로 합쳤다) --- */
 html[data-page='userSmlt'] .btn--even {
     display: inline-flex;
     align-items: center;
@@ -2006,9 +1924,6 @@ html[data-page='userSmlt'] .btn--even:disabled {
     cursor: default;
 }
 
-/* =====================================================================
-   8-1. 편집 도크 (체크인 카운터 — tabs/checkinCounter/components/EditDock.tsx)
-   ===================================================================== */
 html[data-page='userSmlt'] .dock {
     position: absolute;
     left: 0;
@@ -2023,13 +1938,13 @@ html[data-page='userSmlt'] .dock {
     padding: 14px 22px 18px;
     border: 1px solid rgba(255, 255, 255, 0.9);
     border-top: 2px solid var(--pm-primary);
-    /* 패널 바닥에 붙으므로 아래 모서리도 패널과 같은 곡률이어야 흰 각이 밖으로 삐져나오지 않는다 */
+
     border-radius: var(--panel-radius);
     background: linear-gradient(180deg, #f4f3f9 0%, #fbfbfd 40%, #ffffff 100%);
     box-shadow: 0 -18px 44px rgba(35, 45, 90, 0.16);
 }
 
-html[data-page='userSmlt'] .panels:has(> .dock) .panel {
+html[data-page='userSmlt'] .panels:has(> .dock, > fieldset:not([hidden]) > .dock) .panel {
     padding-bottom: calc(clamp(16px, 2.4vh, 26px) + 104px);
 }
 
@@ -2069,7 +1984,6 @@ html[data-page='userSmlt'] .dock__empty {
     color: var(--text-mute);
 }
 
-/* 아일랜드 칩 줄 — 하루 종일 닫혀 차트에 없는 아일랜드를 여기서 붙잡는다 */
 html[data-page='userSmlt'] .isles {
     display: flex;
     flex-wrap: wrap;
@@ -2083,7 +1997,7 @@ html[data-page='userSmlt'] .isle {
     width: 32px;
     height: 28px;
     border-radius: 8px;
-    /* 기본은 미운영 — 점선 회색 */
+
     border: 1px dashed #c5c9d6;
     background: #f2f3f8;
     color: #8b909c;
@@ -2101,7 +2015,6 @@ html[data-page='userSmlt'] .isle.is-sel {
     box-shadow: 0 0 0 2px var(--pm-primary);
 }
 
-/* 3열 — 부스 배정 / 운영시간 / 셀프 서비스 */
 html[data-page='userSmlt'] .dock__cols {
     display: grid;
     grid-template-columns: 56fr 23fr 21fr;
@@ -2133,7 +2046,6 @@ html[data-page='userSmlt'] .dock__foot .btn {
     height: 38px;
 }
 
-/* 좌우 스트립 2줄 + 가운데 스파인 — 항공사 팝오버의 기준면이다 */
 html[data-page='userSmlt'] .booths {
     position: relative;
     display: flex;
@@ -2161,7 +2073,6 @@ html[data-page='userSmlt'] .booths__side {
     font-weight: 700;
 }
 
-/* 아일랜드 몸통 — 좌우 면을 가르는 선 */
 html[data-page='userSmlt'] .booths__spine {
     height: 3px;
     margin-left: 26px;
@@ -2169,7 +2080,6 @@ html[data-page='userSmlt'] .booths__spine {
     background: linear-gradient(90deg, #d7dae6 0%, #eef0f6 100%);
 }
 
-/* 18칸 스트립 변형 — 드로어의 3열 그리드(.boothgrid)와 같은 셀을 가로로 편다 */
 html[data-page='userSmlt'] .boothgrid--strip {
     display: flex;
     flex: 1 1 auto;
@@ -2198,7 +2108,6 @@ html[data-page='userSmlt'] .boothgrid--strip .bcell__no {
     font-size: 9px;
 }
 
-/* 끌어서 여러 석을 잡는 중 — 지나가는 칸의 글자가 잡히면 안 된다 */
 html[data-page='userSmlt'] .boothgrid.is-dragging {
     user-select: none;
 }
@@ -2356,12 +2265,9 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
     }
 }
 
-/* =====================================================================
-   9. 반응형 : 가로만 압축, 세로 스크롤은 만들지 않는다
-   ===================================================================== */
 @media (max-width: 1500px) {
 
-    /* 셸 */
+
     html[data-page='userSmlt'] .panels {
         gap: 16px;
     }
@@ -2371,7 +2277,7 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
         padding-left: 18px;
     }
 
-    /* GNB 한 줄에 타이틀 + 스테퍼 + 기준일자 + 실행이 함께 서므로 가로만 조인다 */
+
     html[data-page='userSmlt'] .gnb {
         gap: 12px;
     }
@@ -2380,7 +2286,7 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
         padding: 0 12px 0 6px;
     }
 
-    /* 운항편/여객수 */
+
     html[data-page='userSmlt'] .chart {
         padding-left: 12px;
         padding-right: 12px;
@@ -2391,7 +2297,7 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
         padding-right: 12px;
     }
 
-    /* 블럭 차트 */
+
     html[data-page='userSmlt'] .bchart {
         padding-left: 14px;
         padding-right: 14px;
@@ -2401,7 +2307,7 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
         gap: 8px;
     }
 
-    /* 격자는 차트 안쪽 여백(14px) + 테두리 1px 을 따라가야 칸이 블럭 아래에 선다 */
+
     html[data-page='userSmlt'] .scgrid {
         padding-left: 15px;
         padding-right: 15px;
@@ -2415,7 +2321,7 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
 
 @media (max-width: 1200px) {
 
-    /* 셸 여백(.body)은 세 화면이 같아야 하므로 여기서 줄이지 않는다 */
+
     html[data-page='userSmlt'] .panels {
         gap: 12px;
     }
@@ -2458,7 +2364,7 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
         font-size: 11px;
     }
 
-    /* 기준일자 — 아이콘과 값만 남기고 라벨은 접는다 */
+
     html[data-page='userSmlt'] .date-picker {
         gap: 8px;
         padding-left: 14px;
@@ -2477,7 +2383,7 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
         font-size: 12px;
     }
 
-    /* 운항편/여객수 */
+
     html[data-page='userSmlt'] .chart__scale {
         margin-left: 30px;
         font-size: 9px;
@@ -2487,7 +2393,7 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
         min-width: 42px;
     }
 
-    /* 블럭 차트 — 좁은 화면에서 범례를 끌어야 하는 경우를 줄이려고 한 단계 작게 */
+
     html[data-page='userSmlt'] .legend__chip {
         height: 22px;
         padding: 0 8px 0 6px;

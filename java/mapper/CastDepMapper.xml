@@ -3,7 +3,7 @@
 
 <mapper namespace="aoms.pm.cast.mapper.CastDepMapper">
     <select id="retrieveDepFcltList" resultType="aoms.pm.cast.dto.DepFcltRawDto">
-        /* CastDepMapper.retrieveDepFcltList */
+
         SELECT
             SUBSTR(B.PSG_FCLT_CD, 4, 1) AS DPTGT_NO,
             B.PSG_FCLT_NM AS DPTGT_NM,
@@ -11,13 +11,13 @@
         FROM PMOWN.TN_PM_SMLT_PSG_FCLT B
         WHERE 1 = 1
         AND B.TMNL_ID = #{tmnlId}
-        <!-- 미운영 출국장도 화면 하단 칩으로 내려가므로 USE_YN 으로 거르지 않는다 -->
+
         AND B.UP_PSG_FCLT_CD IN ('LGT')
         ORDER BY DPTGT_NO
     </select>
 
     <select id="retrieveScCntList" resultType="aoms.pm.cast.dto.ScCntRawDto">
-        /* CastDepMapper.retrieveScCntList */
+
         SELECT
             A.GATE_NO AS DPTGT_NO,
             A.FCLTY_CNT AS SCSH_CNTOM
@@ -29,7 +29,7 @@
     </select>
 
     <select id="retrieveUserDepList" resultType="aoms.pm.cast.dto.DepGateDto">
-        /* CastDepMapper.retrieveUserDepList */
+
         SELECT
             A.DPTGT_NO,
             A.OPER_YN AS OPR_YN,
@@ -38,26 +38,28 @@
             NVL(A.SMART_PASS_SRCH_CNTOM, 0) AS SMART_PASS_SRCH_CNTOM
         FROM PMOWN.TN_PM_SMLT_USER_DPTGT A
         WHERE 1 = 1
-        AND A.SMLT_ID = #{smltId}
-        AND A.TMNL_ID = #{tmnlId}
+        AND A.OWNER_USER_ID = #{loginUserId}
+        AND A.EXCN_YMD = #{ymd}
+        AND A.TMNL_ID = #{fcltTmnlId}
         ORDER BY A.DPTGT_NO
     </select>
 
     <select id="retrieveUserDepOperHrList" resultType="aoms.pm.cast.dto.UserDepOperHrRawDto">
-        /* CastDepMapper.retrieveUserDepOperHrList */
+
         SELECT
             A.DPTGT_NO,
             NVL(A.OPER_BGNG_HOUR, 0) AS OPER_BGNG_HOUR,
             NVL(A.OPER_END_HOUR, 0) AS OPER_END_HOUR
         FROM PMOWN.TN_PM_SMLT_USER_DPTGT_OPER_HR A
         WHERE 1 = 1
-        AND A.SMLT_ID = #{smltId}
-        AND A.TMNL_ID = #{tmnlId}
+        AND A.OWNER_USER_ID = #{loginUserId}
+        AND A.EXCN_YMD = #{ymd}
+        AND A.TMNL_ID = #{fcltTmnlId}
         ORDER BY A.DPTGT_NO, A.OPER_HR_SN
     </select>
 
     <select id="retrieveUserScPlanList" resultType="aoms.pm.cast.dto.UserScPlanRawDto">
-        /* CastDepMapper.retrieveUserScPlanList */
+
         SELECT
             A.DPTGT_NO,
             A.PLAN_SN,
@@ -66,41 +68,45 @@
             NVL(A.SCSH_CNTOM, 0) AS SCSH_CNTOM
         FROM PMOWN.TN_PM_SMLT_SCSH_OPER_PLAN A
         WHERE 1 = 1
-        AND A.SMLT_ID = #{smltId}
-        AND A.TMNL_ID = #{tmnlId}
+        AND A.OWNER_USER_ID = #{loginUserId}
+        AND A.EXCN_YMD = #{ymd}
+        AND A.TMNL_ID = #{fcltTmnlId}
         ORDER BY A.DPTGT_NO, A.OPER_BGNG_HOUR
     </select>
 
     <delete id="deleteUserDepList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
-        /* CastDepMapper.deleteUserDepList */
+
         DELETE FROM PMOWN.TN_PM_SMLT_USER_DPTGT
         WHERE 1 = 1
-        AND SMLT_ID = #{smltId}
+        AND OWNER_USER_ID = #{loginUserId}
+        AND EXCN_YMD = #{ymd}
         AND TMNL_ID = #{fcltTmnlId}
     </delete>
 
     <delete id="deleteUserDepOperHrList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
-        /* CastDepMapper.deleteUserDepOperHrList */
+
         DELETE FROM PMOWN.TN_PM_SMLT_USER_DPTGT_OPER_HR
         WHERE 1 = 1
-        AND SMLT_ID = #{smltId}
+        AND OWNER_USER_ID = #{loginUserId}
+        AND EXCN_YMD = #{ymd}
         AND TMNL_ID = #{fcltTmnlId}
     </delete>
 
     <delete id="deleteUserScPlanList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
-        /* CastDepMapper.deleteUserScPlanList */
+
         DELETE FROM PMOWN.TN_PM_SMLT_SCSH_OPER_PLAN
         WHERE 1 = 1
-        AND SMLT_ID = #{smltId}
+        AND OWNER_USER_ID = #{loginUserId}
+        AND EXCN_YMD = #{ymd}
         AND TMNL_ID = #{fcltTmnlId}
     </delete>
 
     <insert id="insertUserDepList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
-        /* CastDepMapper.insertUserDepList */
+
         INSERT ALL
         <foreach collection="dptgtList" item="dep">
-        INTO PMOWN.TN_PM_SMLT_USER_DPTGT (
-            SMLT_ID,
+        INTO <choose><when test="snapshotSmltId != null">PMOWN.TN_PM_SMLT_EX_DPTGT</when><otherwise>PMOWN.TN_PM_SMLT_USER_DPTGT</otherwise></choose> (
+            <choose><when test="snapshotSmltId != null">SMLT_ID,</when><otherwise>OWNER_USER_ID, EXCN_YMD,</otherwise></choose>
             TMNL_ID,
             DPTGT_NO,
             OPER_YN,
@@ -111,7 +117,7 @@
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
-            #{smltId},
+            <choose><when test="snapshotSmltId != null">#{snapshotSmltId},</when><otherwise>#{loginUserId}, #{ymd},</otherwise></choose>
             #{fcltTmnlId},
             #{dep.dptgtNo},
             #{dep.oprYn},
@@ -127,12 +133,12 @@
     </insert>
 
     <insert id="insertUserDepOperHrList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
-        /* CastDepMapper.insertUserDepOperHrList */
+
         INSERT ALL
         <foreach collection="dptgtList" item="dep">
             <foreach collection="dep.oprTimeList" item="oprTime" index="oprTimeIdx">
-        INTO PMOWN.TN_PM_SMLT_USER_DPTGT_OPER_HR (
-            SMLT_ID,
+        INTO <choose><when test="snapshotSmltId != null">PMOWN.TN_PM_SMLT_EX_DPTGT_OPER_HR</when><otherwise>PMOWN.TN_PM_SMLT_USER_DPTGT_OPER_HR</otherwise></choose> (
+            <choose><when test="snapshotSmltId != null">SMLT_ID,</when><otherwise>OWNER_USER_ID, EXCN_YMD,</otherwise></choose>
             TMNL_ID,
             DPTGT_NO,
             OPER_HR_SN,
@@ -142,7 +148,7 @@
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
-            #{smltId},
+            <choose><when test="snapshotSmltId != null">#{snapshotSmltId},</when><otherwise>#{loginUserId}, #{ymd},</otherwise></choose>
             #{fcltTmnlId},
             #{dep.dptgtNo},
             #{oprTimeIdx} + 1,
@@ -158,12 +164,12 @@
     </insert>
 
     <insert id="insertUserScPlanList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
-        /* CastDepMapper.insertUserScPlanList */
+
         INSERT ALL
         <foreach collection="dptgtList" item="dep">
             <foreach collection="dep.planList" item="plan" index="planIdx">
-        INTO PMOWN.TN_PM_SMLT_SCSH_OPER_PLAN (
-            SMLT_ID,
+        INTO <choose><when test="snapshotSmltId != null">PMOWN.TN_PM_SMLT_EX_SCSH_OPER_PLAN</when><otherwise>PMOWN.TN_PM_SMLT_SCSH_OPER_PLAN</otherwise></choose> (
+            <choose><when test="snapshotSmltId != null">SMLT_ID,</when><otherwise>OWNER_USER_ID, EXCN_YMD,</otherwise></choose>
             TMNL_ID,
             DPTGT_NO,
             PLAN_SN,
@@ -174,7 +180,7 @@
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
-            #{smltId},
+            <choose><when test="snapshotSmltId != null">#{snapshotSmltId},</when><otherwise>#{loginUserId}, #{ymd},</otherwise></choose>
             #{fcltTmnlId},
             #{dep.dptgtNo},
             #{planIdx} + 1,

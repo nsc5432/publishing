@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { UserSmltQuery } from '@/types/api.types';
 import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { BlockChart, GUTTER } from '../../components/BlockChart';
 import { CountStepper } from '../../components/CountStepper';
@@ -15,11 +16,8 @@ import type { DepartureGate } from './types';
 import { EMPTY_DEPARTURE, toDeparture, toHourArray, toPlans, toSaveReq } from './view';
 
 type EditState = Record<TerminalKind, DepartureGate[]>;
-
 type ScState = Record<TerminalKind, Record<number, number[]>>;
-
 type SelectState = Record<TerminalKind, number | null>;
-
 type GateDrafts = Record<number, DepartureGate>;
 
 interface DrawerState {
@@ -37,12 +35,7 @@ const GATE_NOS: Record<TerminalKind, number[]> = {
     T2: [1, 2],
 };
 
-const FETCH_FAIL = '출국장 정보를 불러오지 못했습니다.';
-const SAVE_FAIL = '출국장 저장에 실패했습니다.';
-
-const CHART_ROW_H = 18;
-
-const fetchDep = (smltId: string, tmnlId: TerminalKind) => userSmltService.getDepInfo(smltId, tmnlId);
+const fetchDep = (query: UserSmltQuery, tmnlId: TerminalKind) => userSmltService.getDepInfo(query, tmnlId);
 
 function toScState(gates: DepartureGate[]): Record<number, number[]> {
     return Object.fromEntries(gates.map((gate) => [gate.no, toHourArray(gate)]));
@@ -75,12 +68,26 @@ function pickGate(gates: DepartureGate[], drafts: GateDrafts, no: number): Depar
     return drafts[no] ?? gates.find((gate) => gate.no === no);
 }
 
-export function DepartureTab({ smltIds, reloadKey, enabled, onToggleTerminal, focusTerminal, onFocusChange, readOnly }: SmltTabProps) {
-    const { data: terminalData, error, token } = useTerminalData(smltIds, reloadKey, fetchDep, toDeparture, FETCH_FAIL);
+export function DepartureTab({
+    query,
+    busy,
+    beginRequest,
+    endRequest,
+    onDraftChange,
+    reloadKey,
+    enabled,
+    onToggleTerminal,
+    focusTerminal,
+    onFocusChange,
+    readOnly,
+}: SmltTabProps) {
+    const { data: terminalData, error, token } = useTerminalData(query, reloadKey, fetchDep, toDeparture, '출국장 정보를 불러오지 못했습니다.');
     const [gatesByTerminal, setGatesByTerminal] = useState<EditState>(EMPTY_EDIT);
     const [scCountsByTerminal, setScCountsByTerminal] = useState<ScState>(EMPTY_SC);
     const [drawer, setDrawer] = useState<DrawerState | null>(null);
     const [selected, setSelected] = useState<SelectState>(EMPTY_SELECT);
+
+    const dirty = useRef<Record<TerminalKind, boolean>>({ T1: false, T2: false });
 
     useErrorAlert(error, token);
 
@@ -101,7 +108,7 @@ export function DepartureTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
 
     const openGate = (terminal: TerminalKind, no: number) => {
         const gate = gatesByTerminal[terminal].find((candidate) => candidate.no === no);
-        if (!gate) return;
+        if (busy || !gate) return;
 
         onFocusChange(terminal);
         setSelected((previousSelection) => ({ ...previousSelection, [terminal]: no }));
@@ -126,6 +133,8 @@ export function DepartureTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
     };
 
     const patchDraft = (patch: Partial<DepartureGate>) => {
+        if (busy) return;
+        if (drawer) dirty.current[drawer.terminal] = true;
         setDrawer((previousDrawer) => {
             if (!previousDrawer) return previousDrawer;
 
@@ -145,36 +154,52 @@ export function DepartureTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
     };
 
     const handleConfirm = () => {
-        if (!drawer) return;
+        if (busy || !drawer) return;
 
-        const { terminal, drafts } = drawer;
+        const { drafts } = drawer;
         setGatesByTerminal((previousGates) => ({
             ...previousGates,
-            [terminal]: previousGates[terminal].map((gate) => drafts[terminal][gate.no] ?? gate),
+            T1: previousGates.T1.map((gate) => drafts.T1[gate.no] ?? gate),
+            T2: previousGates.T2.map((gate) => drafts.T2[gate.no] ?? gate),
         }));
         setDrawer(null);
     };
 
-    const handleSave = (terminal: TerminalKind) => {
-        const smltId = smltIds[terminal];
-        if (!smltId) return;
-
-        const gates = gatesByTerminal[terminal].map((gate) => {
+    const collectGates = (terminal: TerminalKind) =>
+        gatesByTerminal[terminal].map((original) => {
+            const gate = drawer?.drafts[terminal][original.no] ?? original;
             const openHours = new Set(gate.off ? [] : toHourList(gate.ranges));
-            const scCountsByHour = Array.from({ length: 24 }, (_, hour) => (openHours.has(hour) ? (scCountsByTerminal[terminal][gate.no]?.[hour] ?? 0) : 0));
-
-            return { ...gate, plans: toPlans(scCountsByHour, gate.plans) };
+            const counts = Array.from({ length: 24 }, (_, hour) => (openHours.has(hour) ? (scCountsByTerminal[terminal][gate.no]?.[hour] ?? 0) : 0));
+            return { ...gate, plans: toPlans(counts, gate.plans) };
         });
 
-        runSave(userSmltService.saveDepInfo(toSaveReq(smltId, terminal, gates)), SAVE_FAIL);
+    useEffect(() => {
+        onDraftChange('departure', () => ({
+            depList: TERMINALS.filter((terminal) => dirty.current[terminal] && terminalData[terminal]).map((terminal) =>
+                toSaveReq(query.ymd, terminal, collectGates(terminal)),
+            ),
+        }));
+    });
+
+    const handleSave = async (terminal: TerminalKind) => {
+        if (busy || !terminalData[terminal]) return;
+        if (!beginRequest()) return;
+        const gates = collectGates(terminal);
+        const saved = await runSave(userSmltService.saveDepInfo(toSaveReq(query.ymd, terminal, gates)), '출국장 저장에 실패했습니다.');
+        endRequest(saved);
+        if (saved) {
+            setGatesByTerminal((previous) => ({ ...previous, [terminal]: gates }));
+            setDrawer((previous) => (previous ? { ...previous, drafts: { ...previous.drafts, [terminal]: {} } } : null));
+            dirty.current[terminal] = false;
+        }
     };
 
     const handleMapClick = (terminal: TerminalKind) => {
-        const smltId = smltIds[terminal];
-        if (!smltId) return;
+        const ymd = query.ymd;
+        if (!ymd) return;
 
         userSmltService
-            .getFcltMap(smltId, terminal, 'DEP')
+            .getFcltMap(query, terminal, 'DEP')
             .then((dto) => console.log('[지도 보기]', dto.markerList))
             .catch(() => {});
     };
@@ -217,7 +242,7 @@ export function DepartureTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
                             </>
                         }
                         footer={
-                            <button type="button" className="btn btn--save" onClick={() => handleSave(terminal)}>
+                            <button type="button" className="btn btn--save" disabled={busy || !terminalData[terminal]} onClick={() => handleSave(terminal)}>
                                 현재상태 저장
                             </button>
                         }
@@ -227,7 +252,7 @@ export function DepartureTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
                             title="시간대별 운영 출국장"
                             unit="1블럭 = 출국장 1개"
                             levels={8}
-                            rowH={CHART_ROW_H}
+                            rowH={18}
                             gridLeft={GUTTER}
                             blockFontSize={13}
                             line={panelData.wait}
@@ -264,12 +289,14 @@ export function DepartureTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
                         <ScGrid
                             gates={gates}
                             value={scCountsByGate}
-                            onChange={(nextCounts) =>
+                            onChange={(nextCounts) => {
+                                if (busy) return;
+                                dirty.current[terminal] = true;
                                 setScCountsByTerminal((previousCounts) => ({
                                     ...previousCounts,
                                     [terminal]: nextCounts,
-                                }))
-                            }
+                                }));
+                            }}
                             selected={selected[terminal]}
                             onSelect={(no) =>
                                 setSelected((previousSelection) => ({
@@ -278,13 +305,12 @@ export function DepartureTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
                                 }))
                             }
                             onLabelClick={(no) => openGate(terminal, no)}
-                            disabled={!terminalEnabled || readOnly}
+                            disabled={busy || !terminalEnabled || readOnly}
                         />
                     </TerminalPanel>
                 );
             })}
 
-            {/* 조회 전용이면 편집 드로어를 아예 열지 않는다 (여는 길인 격자 라벨도 잠겨 있다) */}
             {!readOnly && openDrawer && draft && (
                 <DetailDrawer
                     badge={String(draft.no)}
@@ -342,7 +368,7 @@ export function DepartureTab({ smltIds, reloadKey, enabled, onToggleTerminal, fo
                     </DrawerSection>
 
                     <DrawerSection title="운영시간" hint="1시간 단위">
-                        <TimeBar label="선택 범위" ranges={draft.ranges} onChange={(ranges) => patchDraft({ ranges })} disabled={draft.off} />
+                        <TimeBar label="선택 범위" ranges={draft.ranges} onChange={(ranges) => patchDraft({ ranges })} disabled={busy || draft.off} />
                     </DrawerSection>
 
                     <DrawerSection title="검색대 구성" hint={`${draft.no}번 출국장 소속`}>

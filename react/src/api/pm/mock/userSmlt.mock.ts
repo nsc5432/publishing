@@ -1,3 +1,4 @@
+import { commonMock } from './common.mock';
 import type {
     ChknIslandDto,
     FcltType,
@@ -13,27 +14,16 @@ import type {
     UserSmltFcltMapDto,
     UserSmltFltPsgDto,
     UserSmltInfoDto,
+    UserSmltQuery,
+    UserSmltExecReq,
+    UserSmltFltPsgSaveReq,
+    UserSmltChknSaveReq,
+    UserSmltDepSaveReq,
+    SmltExecDetailDto,
     WaitPsgDto,
 } from '@/types/api.types';
 
-/**
- * 사용자 시뮬레이션 - 조건 설정 목업 응답 (VITE_ENABLE_MOCK=true 일 때 사용).
- *
- * 저장/실행은 서버 상태를 바꾸는 호출이라 목업에서는 성공만 돌려준다.
- * (저장한 값이 다음 조회에 반영되는 것처럼 보이면 실제 연동에서 어긋난다)
- */
-
-const YMD = '20260710';
-const SAVE_DT = '20260710093000';
-
-const SMLT_ID: Record<TmnlId, string> = {
-    T1: 'USMLT-20260710-T1-01',
-    T2: 'USMLT-20260710-T2-01',
-};
-
 const OK: JsonResponse = { error: false, errorMessage: '' };
-
-/* ================= 운항편/여객수 ================= */
 
 const CHART_TIMES = ['00', '02', '04', '06', '08', '10', '12', '14', '16', '18', '20', '22'];
 
@@ -68,20 +58,7 @@ const FLT_PSG: Record<TmnlId, UserSmltFltPsgDto> = {
         ajmtRt: 10,
         fltChart: toChart(1234, 300, [16, 6, 5, 8, 6, 33, 40, 67, 68, 67, 33, 33]),
         psgChart: toChart(1234567, 90000, [15, 6, 6, 10, 7, 34, 39, 68, 68, 67, 34, 33]),
-        hourList: toHourList([
-            12340,
-            18220,
-            24510,
-            31080,
-            44760,
-            52300,
-            61940,
-            58120,
-            49870,
-            55430,
-            67210,
-            63050,
-        ]),
+        hourList: toHourList([12340, 18220, 24510, 31080, 44760, 52300, 61940, 58120, 49870, 55430, 67210, 63050]),
     },
     T2: {
         ...OK,
@@ -92,32 +69,14 @@ const FLT_PSG: Record<TmnlId, UserSmltFltPsgDto> = {
         ajmtRt: 0,
         fltChart: toChart(842, 300, [11, 5, 4, 6, 9, 22, 31, 44, 52, 48, 27, 21]),
         psgChart: toChart(842310, 90000, [12, 4, 5, 7, 10, 23, 30, 45, 53, 47, 26, 20]),
-        hourList: toHourList([
-            8120,
-            11460,
-            16900,
-            21340,
-            29770,
-            35010,
-            41220,
-            39880,
-            33150,
-            37600,
-            45730,
-            42090,
-        ]),
+        hourList: toHourList([8120, 11460, 16900, 21340, 29770, 35010, 41220, 39880, 33150, 37600, 45730, 42090]),
     },
 };
-
-/* ================= 조회 결과 공용 ================= */
 
 function toWaitList(counts: number[]): WaitPsgDto[] {
     return counts.map((waitPsgCnt, hour) => ({ hour, waitPsgCnt }));
 }
 
-/* ================= 체크인 카운터 ================= */
-
-/** 아일랜드 문자 — 원본 배정정보와 동일하게 I 를 건너뛴다 */
 const ISLAND_CD_LIST = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N'];
 
 const ALN_CD_LIST: Record<TmnlId, string[]> = {
@@ -125,17 +84,9 @@ const ALN_CD_LIST: Record<TmnlId, string[]> = {
     T2: ['AF', 'CI', 'CZ', 'DL', 'GA', 'KE', 'KL', 'MU', 'VN'],
 };
 
-/** [문자, 시작시, 종료시, 부스별 항공사(''=미배정), 키오스크, 백드롭] */
 type IslandSeed = [string, number, number, string[], number, number];
 
-function toIsland([
-    island,
-    operBgngHour,
-    operEndHour,
-    alnCds,
-    kioskCnt,
-    bagDropCnt,
-]: IslandSeed): ChknIslandDto {
+function toIsland([island, operBgngHour, operEndHour, alnCds, kioskCnt, bagDropCnt]: IslandSeed): ChknIslandDto {
     return {
         island,
         boothCnt: alnCds.length,
@@ -165,14 +116,8 @@ const CHKN_ISLANDS: Record<TmnlId, IslandSeed[]> = {
 };
 
 const CHKN_WAIT: Record<TmnlId, number[]> = {
-    T1: [
-        0, 0, 0, 0, 0, 40, 120, 230, 340, 300, 250, 280, 320, 360, 300, 240, 200, 170, 140, 100, 60,
-        20, 0, 0,
-    ],
-    T2: [
-        0, 0, 0, 0, 0, 20, 60, 110, 150, 130, 110, 120, 140, 160, 130, 100, 80, 60, 45, 30, 15, 5,
-        0, 0,
-    ],
+    T1: [0, 0, 0, 0, 0, 40, 120, 230, 340, 300, 250, 280, 320, 360, 300, 240, 200, 170, 140, 100, 60, 20, 0, 0],
+    T2: [0, 0, 0, 0, 0, 20, 60, 110, 150, 130, 110, 120, 140, 160, 130, 100, 80, 60, 45, 30, 15, 5, 0, 0],
 };
 
 const CHKN_KPI: Record<TmnlId, SmltKpiDto> = {
@@ -194,8 +139,7 @@ function peakCounterCnt(islands: ChknIslandDto[]): number {
 
 function buildChkn(tmnlId: TmnlId): UserSmltChknDto {
     const islandList = CHKN_ISLANDS[tmnlId].map(toIsland);
-    const sum = (pick: (island: ChknIslandDto) => number) =>
-        islandList.reduce((total, island) => total + pick(island), 0);
+    const sum = (pick: (island: ChknIslandDto) => number) => islandList.reduce((total, island) => total + pick(island), 0);
 
     return {
         ...OK,
@@ -213,30 +157,9 @@ function buildChkn(tmnlId: TmnlId): UserSmltChknDto {
     };
 }
 
-/* ================= 출국장 ================= */
+type DepSeed = [string, number, number, boolean, number, number, number, Array<[number, number, number]>];
 
-/** [번호, 시작시, 종료시, 미운영, 검색대, 일반, 스마트패스, 운영계획[시작, 종료, 대수]] */
-type DepSeed = [
-    string,
-    number,
-    number,
-    boolean,
-    number,
-    number,
-    number,
-    Array<[number, number, number]>,
-];
-
-function toDptgt([
-    dptgtNo,
-    operBgngHour,
-    operEndHour,
-    off,
-    scshCntom,
-    gnrlSrchCntom,
-    smartPassSrchCntom,
-    plans,
-]: DepSeed): UserSmltDepItemDto {
+function toDptgt([dptgtNo, operBgngHour, operEndHour, off, scshCntom, gnrlSrchCntom, smartPassSrchCntom, plans]: DepSeed): UserSmltDepItemDto {
     return {
         dptgtNo,
         dptgtNm: `출국장 ${dptgtNo}`,
@@ -320,10 +243,7 @@ const DPTGT_GATES: Record<TmnlId, DepSeed[]> = {
 };
 
 const DPTGT_WAIT: Record<TmnlId, number[]> = {
-    T1: [
-        0, 0, 0, 0, 0, 25, 90, 180, 260, 230, 190, 210, 240, 270, 220, 180, 150, 120, 95, 65, 35,
-        12, 0, 0,
-    ],
+    T1: [0, 0, 0, 0, 0, 25, 90, 180, 260, 230, 190, 210, 240, 270, 220, 180, 150, 120, 95, 65, 35, 12, 0, 0],
     T2: [0, 0, 0, 0, 0, 0, 0, 30, 55, 48, 40, 44, 50, 58, 47, 38, 30, 24, 18, 12, 6, 0, 0, 0],
 };
 
@@ -362,9 +282,6 @@ function buildDep(tmnlId: TmnlId): UserSmltDepDto {
     };
 }
 
-/* ================= 지도 보기 ================= */
-
-/** 체크인 카운터 — 아일랜드 마커 (도면 무대 기준 비율 %) */
 const CHKN_MARKERS: Array<[string, number, number]> = [
     ['N', 19.21, 90.68],
     ['M', 22.93, 87.19],
@@ -397,10 +314,7 @@ const DPTGT_MARKERS: Record<TmnlId, Array<[string, number, number]>> = {
 };
 
 function toMarkerList(tmnlId: TmnlId, fcltType: FcltType, island: string): MapMarkerDto[] {
-    const seeds =
-        fcltType === 'CHKN' || fcltType === 'SLFCHKN'
-            ? CHKN_MARKERS
-            : DPTGT_MARKERS[tmnlId];
+    const seeds = fcltType === 'CHKN' || fcltType === 'SLFCHKN' ? CHKN_MARKERS : DPTGT_MARKERS[tmnlId];
 
     return seeds
         .filter(([label]) => !island || label === island)
@@ -412,21 +326,85 @@ function toMarkerList(tmnlId: TmnlId, fcltType: FcltType, island: string): MapMa
         }));
 }
 
+interface Conditions {
+    flt: UserSmltFltPsgDto;
+    chkn: UserSmltChknDto;
+    dep: UserSmltDepDto;
+    saveDt: string;
+}
+interface Execution {
+    detail: SmltExecDetailDto;
+    requestedDt: string;
+    conditions: Record<TmnlId, Conditions>;
+}
+const current = new Map<string, Conditions>();
+export const mockExecutions = new Map<string, Execution>();
+let nextId = 10000000;
+const stamp = () => {
+    const now = new Date();
+    return [now.getFullYear(), now.getMonth() + 1, now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()]
+        .map((value, index) => String(value).padStart(index === 0 ? 4 : 2, '0'))
+        .join('');
+};
+const key = (ymd: string, terminal: TmnlId) => [commonMock.getUserInfoBySession().userId, ymd, terminal].join(':');
+function defaults(terminal: TmnlId): Conditions {
+    return { flt: { ...structuredClone(FLT_PSG[terminal]), ajmtRt: 0 }, chkn: buildChkn(terminal), dep: buildDep(terminal), saveDt: '' };
+}
+function conditions(query: UserSmltQuery, terminal: TmnlId): Conditions {
+    if (query.smltId) {
+        const execution = mockExecutions.get(query.smltId);
+        if (!execution) throw new Error('해당 실행의 확정 조건이 없습니다.');
+        return structuredClone(execution.conditions[terminal]);
+    }
+    return structuredClone(current.get(key(query.ymd, terminal)) ?? defaults(terminal));
+}
+function validateYmd(ymd: string): void {
+    const iso = ymd.slice(0, 4) + '-' + ymd.slice(4, 6) + '-' + ymd.slice(6, 8);
+    const date = new Date(iso + 'T00:00:00Z');
+    if (!/^\d{8}$/.test(ymd) || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== iso) throw new Error('대상 일자를 확인해주세요.');
+}
+function saveFlt(request: UserSmltFltPsgSaveReq, state: Map<string, Conditions>) {
+    validateYmd(request.ymd);
+    const id = key(request.ymd, request.tmnlId);
+    const value = structuredClone(state.get(id) ?? defaults(request.tmnlId));
+    if (!Number.isFinite(request.ajmtRt) || request.ajmtRt < -100 || request.ajmtRt > 100) throw new Error('수정 비율은 -100 ~ 100 사이여야 합니다.');
+    value.flt.ajmtRt = request.ajmtRt;
+    value.saveDt = stamp();
+    state.set(id, value);
+}
+function saveChkn(request: UserSmltChknSaveReq, state: Map<string, Conditions>) {
+    validateYmd(request.ymd);
+    const id = key(request.ymd, request.tmnlId);
+    const value = structuredClone(state.get(id) ?? defaults(request.tmnlId));
+    value.chkn.islandList = structuredClone(request.islandList).map((island) => ({
+        ...island,
+        boothCnt: island.boothList.filter((booth) => booth.alnCd).length,
+    }));
+    value.saveDt = stamp();
+    state.set(id, value);
+}
+function saveDep(request: UserSmltDepSaveReq, state: Map<string, Conditions>) {
+    validateYmd(request.ymd);
+    const id = key(request.ymd, request.tmnlId);
+    const value = structuredClone(state.get(id) ?? defaults(request.tmnlId));
+    value.dep.dptgtList = structuredClone(request.dptgtList).map((gate) => ({ ...gate, dptgtNm: '출국장 ' + gate.dptgtNo }));
+    value.dep.peakScshCntom = peakScshCntom(value.dep.dptgtList);
+    value.saveDt = stamp();
+    state.set(id, value);
+}
+export function seedExecution(detail: SmltExecDetailDto): void {
+    if (mockExecutions.has(detail.smltId)) return;
+    mockExecutions.set(detail.smltId, {
+        detail: structuredClone(detail),
+        requestedDt: detail.smltFlfmtBgngDt,
+        conditions: { T1: structuredClone(defaults('T1')), T2: structuredClone(defaults('T2')) },
+    });
+}
 export const userSmltMock = {
-    getInfo: (ymd: string, tmnlId: TmnlId): UserSmltInfoDto => ({
-        ...OK,
-        smltId: SMLT_ID[tmnlId],
-        ymd: ymd || YMD,
-        saveDt: SAVE_DT,
-        smltFlfmtSttsCd: 'DONE',
-    }),
-
-    getFltPsgInfo: (tmnlId: TmnlId): UserSmltFltPsgDto => FLT_PSG[tmnlId],
-
-    getChknCounterInfo: (tmnlId: TmnlId): UserSmltChknDto => buildChkn(tmnlId),
-
-    getDepInfo: (tmnlId: TmnlId): UserSmltDepDto => buildDep(tmnlId),
-
+    getInfo: (ymd: string, tmnlId: TmnlId): UserSmltInfoDto => ({ ...OK, ymd, saveDt: current.get(key(ymd, tmnlId))?.saveDt ?? '', smltFlfmtSttsCd: '' }),
+    getFltPsgInfo: (query: UserSmltQuery, tmnlId: TmnlId) => conditions(query, tmnlId).flt,
+    getChknCounterInfo: (query: UserSmltQuery, tmnlId: TmnlId) => conditions(query, tmnlId).chkn,
+    getDepInfo: (query: UserSmltQuery, tmnlId: TmnlId) => conditions(query, tmnlId).dep,
     getFcltMap: (tmnlId: TmnlId, fcltType: FcltType, island = ''): UserSmltFcltMapDto => ({
         ...OK,
         tmnlId,
@@ -434,15 +412,50 @@ export const userSmltMock = {
         island,
         markerList: toMarkerList(tmnlId, fcltType, island),
     }),
-
-    save: (): JsonResponse => OK,
-
-    execute: (smltId: string): UserSmltExecDto => ({
-        ...OK,
-        smltId,
-        smltReqId: `WI${smltId}0001`,
-        smltFlfmtSn: 1,
-        smltFlfmtSttsCd: 'RUNNING',
-        smltFlfmtBgngDt: SAVE_DT,
-    }),
+    saveFltPsgInfo: (request: UserSmltFltPsgSaveReq): JsonResponse => {
+        saveFlt(request, current);
+        return { ...OK };
+    },
+    saveChknCounterInfo: (request: UserSmltChknSaveReq): JsonResponse => {
+        saveChkn(request, current);
+        return { ...OK };
+    },
+    saveDepInfo: (request: UserSmltDepSaveReq): JsonResponse => {
+        saveDep(request, current);
+        return { ...OK };
+    },
+    execute: (request: UserSmltExecReq): UserSmltExecDto => {
+        validateYmd(request.ymd);
+        for (const edits of [request.fltPsgList, request.chknList, request.depList]) {
+            if (new Set(edits.map((edit) => edit.tmnlId)).size !== edits.length) throw new Error('변경 영역의 터미널이 중복됐습니다.');
+        }
+        const staged = new Map(current);
+        request.fltPsgList.forEach((item) => saveFlt({ ...item, ymd: request.ymd }, staged));
+        request.chknList.forEach((item) => saveChkn({ ...item, ymd: request.ymd }, staged));
+        request.depList.forEach((item) => saveDep({ ...item, ymd: request.ymd }, staged));
+        const frozen = Object.fromEntries(
+            (['T1', 'T2'] as const).map((terminal) => [terminal, structuredClone(staged.get(key(request.ymd, terminal)) ?? defaults(terminal))]),
+        ) as Record<TmnlId, Conditions>;
+        const smltId = String(++nextId);
+        const user = commonMock.getUserInfoBySession();
+        mockExecutions.set(smltId, {
+            conditions: frozen,
+            requestedDt: stamp(),
+            detail: {
+                ...OK,
+                smltId,
+                smltType: 'USER',
+                ymd: request.ymd,
+                tmnlId: 'T1',
+                deptNm: user.deptNm,
+                userNm: user.userNm,
+                smltFlfmtBgngDt: '',
+                smltFlfmtEndDt: '',
+                execMin: 0,
+                smltFlfmtSttsCd: 'RUNNING',
+            },
+        });
+        staged.forEach((value, id) => current.set(id, value));
+        return { ...OK, smltId, smltReqId: 'WI' + smltId, smltFlfmtSttsCd: 'RUNNING', smltFlfmtBgngDt: '' };
+    },
 };

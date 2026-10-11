@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="aoms.pm.castrest.mapper.CastRestMapper">
     <insert id="insertSimRunStat"  parameterType="aoms.pm.cmmn.dto.SimRunStatDto" >
-        /* CastRestTestMapper.insertSimRunStat(SimRunStatDto dto) */
+
     INSERT INTO PMOWN.TH_PM_SMLT_EXCN_LOG
     (
           SMLT_EXCN_DT
@@ -22,7 +22,7 @@
         , CURRENT_TIMESTAMP)
     </insert>
     <select id="retrieveResourceInformation" parameterType="aoms.pm.cmmn.dto.CastResourceInformationDto" resultType="aoms.pm.cmmn.dto.CastResourceInformationDto">
-        /* CastRestMapper.retrieveResourceInformation(CastResourceInformationDto dto) */
+
         SELECT 'CASTModel' ResourceType
                   , A.SMLT_MDL_EXPLN ResourceID
                   , 'SYSTEM' Author
@@ -35,7 +35,7 @@
         WHERE A.DEL_YN = 'N'
              AND A.SMLT_MDL_TYPE_CD = '1'
              AND #{modelYn} = 1
-        UNION ALL    
+        UNION ALL
         SELECT 'CASTExpressModel' ResourceType
                   , A.SMLT_MDL_EXPLN ResourceID
                   , 'SYSTEM' Author
@@ -48,7 +48,7 @@
         WHERE A.DEL_YN = 'N'
              AND A.SMLT_MDL_TYPE_CD = '2'
              AND #{exModelYn} = 1
-        UNION ALL    
+        UNION ALL
         SELECT 'FlightSchedule' ResourceType
                   , 'FS001' ResourceID
                   , 'SYSTEM' Author
@@ -72,8 +72,8 @@
              ON A.SCHDL_ATRB_ID = B.SCHDL_ATRB_GROUP_ID
         WHERE A.USE_YN = 'Y'
             AND #{flightYn} = 1
-        GROUP BY A.SCHDL_ATRB_ID,A.LAST_MDFCN_DT,A.FRST_REG_DT        
-        UNION ALL    
+        GROUP BY A.SCHDL_ATRB_ID,A.LAST_MDFCN_DT,A.FRST_REG_DT
+        UNION ALL
         SELECT 'CounterAllocation' ResourceType
                   , 'CA001' ResourceID
                   , 'SYSTEM' Author
@@ -96,7 +96,7 @@
              ON A.CKNCT_ATRB_ID = B.SCHDL_ATRB_GROUP_ID
         WHERE A.USE_YN = 'Y'
              AND #{counterYn} = 1
-        GROUP BY A.CKNCT_ATRB_ID,A.LAST_MDFCN_DT,A.FRST_REG_DT        
+        GROUP BY A.CKNCT_ATRB_ID,A.LAST_MDFCN_DT,A.FRST_REG_DT
         UNION ALL
         SELECT 'CounterAllocation' ResourceType
                   , 'SBD001' ResourceID
@@ -131,7 +131,7 @@
            FROM PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP A
         WHERE DEL_YN = 'N'
              AND #{handleYn} = 1
-        UNION ALL            
+        UNION ALL
         SELECT 'GenericTable' ResourceType
                   , 'CheckinType'||A.CKNCT_TYPE_ATRB_ID ResourceID
                   , 'SYSTEM' Author
@@ -139,7 +139,7 @@
                   , TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') LastModified
                   , 'cols_Type' tableID
            FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_MSTR A
-        WHERE A.USE_YN = 'Y'        
+        WHERE A.USE_YN = 'Y'
              AND #{ctYn} = 1
         UNION ALL
         SELECT 'GenericTable' ResourceType
@@ -224,9 +224,9 @@
     </select>
 
     <select id="retrieveFlightSchedule" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFlightScheduleDto">
-        /* CastRestTestMapper.retrieveFlightSchedule(CastReqGetResourceDto dto) */
-       SELECT 
-            LISTAGG(NVL(X.domStatus, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS domStatus               
+
+       SELECT
+            LISTAGG(NVL(X.domStatus, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS domStatus
             , LISTAGG(NVL(X.flightDirection, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightDirection
             , LISTAGG(NVL(X.depArrTerminal, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS depArrTerminal
             , LISTAGG(NVL(X.airlineCode, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS airlineCode
@@ -258,7 +258,7 @@
             <if test="resourceID == 'FS001'">
             <![CDATA[
 WITH
-/* 2) 기준 운항 집합 */
+
 BASE_GD AS (
     SELECT
         'FS001' AS RESOURCE_ID,
@@ -338,7 +338,7 @@ BASE_GD AS (
       AND A.LCRFT_YN = 'N'
       AND A.GD_SE_YMD = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
 ),
-/* 3) 항공사 카테고리 */
+
 ALN_INFO AS (
     SELECT
         ALN_CD,
@@ -346,7 +346,7 @@ ALN_INFO AS (
     FROM CAOWN.TN_CA_ALN
     GROUP BY ALN_CD
 ),
-/* 4) 게이트 -> 터미널/CRS 그룹 */
+
 GATE_INFO AS (
     SELECT
         GATE_NO,
@@ -355,7 +355,7 @@ GATE_INFO AS (
     FROM CAOWN.TN_CA_GATE
     GROUP BY GATE_NO
 ),
-/* 5) 게이트 타입 */
+
 ACST_INFO AS (
     SELECT
         GATE_NO,
@@ -364,21 +364,21 @@ ACST_INFO AS (
     WHERE USE_YN = 'Y'
     GROUP BY GATE_NO
 ),
-/* 6) 셀프체크인 가능 항공사 -> 영어 이름대로 셀프백드랍으로 변경 */
+
 SBD_INFO AS (
     SELECT DISTINCT
         ALN_CD AS ALN_IATA_CD
     FROM PMOWN.TN_PM_SBD_OPER_PLCY
     WHERE SYSTIMESTAMP BETWEEN TO_TIMESTAMP(PLCY_BGNG_DT, 'YYYY-MM-DD HH24:MI:SS') AND TO_TIMESTAMP(PLCY_END_DT, 'YYYY-MM-DD HH24:MI:SS')
 ),
-/* 7) 당일 CIC 배정이 존재하는 항공사 */
+
 CIC_ALLOC_ALN AS (
     SELECT DISTINCT
         A.ALN_CD
     FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
     WHERE A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
 ),
-/* 8) FP 원본 - 당일/익일 04시 이전 */
+
 FP_DAY AS (
     SELECT
         B.FLTNM AS FLT_NM,
@@ -395,7 +395,7 @@ FP_DAY AS (
     GROUP BY
         B.FLTNM, B.SCHDL_YMD, B.SCHDL_HM
 ),
-/* 9) CIC_RANGE_CTT - ACT_FLT_ID 기준 */
+
 FP_CIC_BY_ACT AS (
     SELECT
         DALY_FLTSH_ID AS ACT_FLT_ID,
@@ -404,7 +404,7 @@ FP_CIC_BY_ACT AS (
     WHERE CKNCT_RANGE_CN IS NOT NULL
     GROUP BY DALY_FLTSH_ID
 ),
-/* 10) CIC_RANGE_CTT - FLT_NM/SCHD_DT/SCHD_HM 기준 fallback */
+
 FP_CIC_BY_FLT AS (
     SELECT
         FLTNM AS FLT_NM,
@@ -416,7 +416,7 @@ FP_CIC_BY_FLT AS (
     GROUP BY
         FLTNM, SCHDL_YMD, SCHDL_HM
 ),
-/* 11) RS 캐로셀 정보 */
+
 RS_CRS_DAILY AS (
     SELECT
         ARR_DALY_FLTSH_ID AS ARR_ACT_FLT_ID,
@@ -424,7 +424,7 @@ RS_CRS_DAILY AS (
     FROM GOOWN.TI_GO_CRSL_DALY_OPER
     GROUP BY ARR_DALY_FLTSH_ID
 ),
-/* 12) 최근 3개월 기준 closing_flt_nm별 대표 gate/stnd/ter */
+
 PAST_GATE_RANK AS (
     SELECT
         A.DDLN_FLTNM AS CLOSING_FLT_NM,
@@ -463,7 +463,7 @@ PAST_GATE AS (
     FROM PAST_GATE_RANK
     WHERE RN = 1
 ),
-/* 13) 최근 1개월 도착편 기준 대표 캐로셀 */
+
 ARR_CRS_HIST_RANK AS (
     SELECT
         A.DDLN_FLTNM AS CLOSING_FLT_NM,
@@ -501,7 +501,7 @@ ARR_CRS_HIST AS (
     FROM ARR_CRS_HIST_RANK
     WHERE RN = 1
 ),
-/* 13-2) 최근 3개월 기준 편명별 / 항공사별 평균 승객 수 및 환승객 수 추정 */
+
 PAST_PAX_AVG AS (
     SELECT
         A.DDLN_FLTNM AS CLOSING_FLT_NM,
@@ -549,7 +549,7 @@ PAST_PAX_AVG AS (
                          AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
     GROUP BY A.DDLN_FLTNM, A.ALN_CD
 ),
-/* 14) CA_CRS fallback - TER_ID(+P02->P01), CRS_GRP_CD별 1건 */
+
 CA_CRS_PICK AS (
     SELECT
         CASE WHEN TMNL_ID = 'P02' THEN 'P01' ELSE TMNL_ID END AS TER_ID_ADJ,
@@ -561,7 +561,7 @@ CA_CRS_PICK AS (
         ) AS RN
     FROM CAOWN.TN_CA_CRSL
 ),
-/* ★ [추가] 14-2) 최근 6개월 항공사별 가장 많이 할당된 카운터 범위 (최빈값 구하기) */
+
 PAST_CIC_RANK AS (
     SELECT
         B.ALN_CD,
@@ -584,7 +584,7 @@ PAST_CIC AS (
     FROM PAST_CIC_RANK
     WHERE RN = 1
 ),
-/* 15) 기준 운항 + 과거 대표값 + FP/RS/CIC 결합 */
+
 BASE_PRE AS (
     SELECT
         B.RESOURCE_ID,
@@ -605,13 +605,13 @@ BASE_PRE AS (
         CASE
             WHEN B.INPUT_YN = 'Y' AND (B.TOT_CRG_PAX_CNT + B.TOT_FREE_PAX_CNT + B.TOT_TRPAX_CNT) BETWEEN 1 AND 1000
                 THEN B.TOT_CRG_PAX_CNT + B.TOT_FREE_PAX_CNT + B.TOT_TRPAX_CNT
-            WHEN B.INPUT_YN = 'N' AND B.RSRV_PAX_CNT <> 0 
+            WHEN B.INPUT_YN = 'N' AND B.RSRV_PAX_CNT <> 0
                 THEN B.RSRV_PAX_CNT
-            ELSE 
+            ELSE
                 COALESCE(
-                    PPA.AVG_PAX_BY_FLT,  
-                    PPA.AVG_PAX_BY_ALN,  
-                    ROUND(NVL(B.AC_SEAT_CNT, 200) * 0.75) 
+                    PPA.AVG_PAX_BY_FLT,
+                    PPA.AVG_PAX_BY_ALN,
+                    ROUND(NVL(B.AC_SEAT_CNT, 200) * 0.75)
                 )
         END AS PAX_CNT,
         B.TR_PAX_CNT,
@@ -634,7 +634,7 @@ BASE_PRE AS (
             B.CRS_NO_RAW,
             RCD.CRS_NO
         ) AS CRS_NO_BASE,
-        /* ★ [수정] 당일 CIC 데이터가 없을 경우 6개월 통계치(PC.CIC_RANGE_CTT)를 Fallback으로 연결 */
+
         CASE WHEN B.ARR_DEP_SE_CD = 'D' AND B.TRDOMFLT_YN = 'N' THEN
             CASE
                 WHEN CA.ALN_CD IS NULL THEN ''
@@ -644,7 +644,7 @@ BASE_PRE AS (
         END AS CIC_RANGE_CTT
     FROM BASE_GD B
     LEFT JOIN PAST_GATE PG ON B.FLT_NM = PG.CLOSING_FLT_NM
-    LEFT JOIN PAST_PAX_AVG PPA ON B.CLOSING_FLT_NM = PPA.CLOSING_FLT_NM AND B.ALN_CD = PPA.ALN_CD   /* [추가] 과거 평균 여객수 Join */
+    LEFT JOIN PAST_PAX_AVG PPA ON B.CLOSING_FLT_NM = PPA.CLOSING_FLT_NM AND B.ALN_CD = PPA.ALN_CD
     LEFT JOIN FP_DAY FD
         ON B.FLT_NM  = FD.FLT_NM
        AND B.SCHD_DT = FD.SCHD_DT
@@ -659,11 +659,11 @@ BASE_PRE AS (
         ON B.CLOSING_FLT_NM = F2.FLT_NM
        AND B.SCHD_DT        = F2.SCHD_DT
        AND B.SCHD_HM        = F2.SCHD_HM
-    /* ★ [추가] 과거 대표 카운터 Join */
+
     LEFT JOIN PAST_CIC PC
         ON B.ALN_CD = PC.ALN_CD
 ),
-/* 16) 최종 FFF */
+
 FFF AS (
     SELECT
         BP.DOM_INT_SE_CD AS DomStatus,
@@ -687,9 +687,9 @@ FFF AS (
         NVL(AC.ACST_TYPE_CD, 'E') AS ContactRemote,
         BP.AC_SEAT_CNT AS Seats,
         BP.PAX_CNT AS PaxCount,
-        CASE 
+        CASE
             WHEN BP.TR_PAX_CNT > BP.PAX_CNT THEN BP.PAX_CNT -- 환승객이 전체 승객보다 많으면 전체 승객수로 제한
-            ELSE BP.TR_PAX_CNT 
+            ELSE BP.TR_PAX_CNT
         END AS TransferPax,
         CASE
             WHEN BP.ARR_DEP_SE_CD = 'A' THEN
@@ -790,8 +790,8 @@ ORDER BY
                            WHEN A.DOM_INTL_SE_CD = 'D' AND A.TDFLT_YN = 'Y' THEN 'Int'
                            WHEN A.DOM_INTL_SE_CD = 'D' AND (A.TDFLT_YN != 'Y' OR A.TDFLT_YN IS NULL) THEN 'Dom'
                            ELSE ''
-                           END AS domStatus               
-                         , A.ARR_DEP_SE_CD AS flightDirection               
+                           END AS domStatus
+                         , A.ARR_DEP_SE_CD AS flightDirection
                          , A.TMNL_ID AS depArrTerminal
                          , A.TMNL_ID AS CF_TER_ID_X
                          , A.ALN_CD AS airlineCode
@@ -846,7 +846,7 @@ ORDER BY
                            WHEN IRR_FLT_YN IN ('1', 'Y')
                            THEN 'Charter'
                            ELSE ''
-                           END AS flightType         
+                           END AS flightType
                          , A.TDFLT_YN AS triangle
                          , A.BUS_NEED_YN AS bus
                          , A.WAYO_ID AS arrivalGate
@@ -857,7 +857,7 @@ ORDER BY
                          , CASE
                            WHEN A.LAST_BAG_INPUT_DT IS NULL OR A.LAST_BAG_INPUT_DT = '' THEN NULL
                            ELSE TO_CHAR(A.LAST_BAG_INPUT_DT, 'YYYY-MM-DD"T"HH24:MI":00.000"')
-                           END AS baggageT2       -- 최종수하물투입일시(RS의 운항편자원 정보)                         
+                           END AS baggageT2       -- 최종수하물투입일시(RS의 운항편자원 정보)
                   FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB A
                   WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceID}, 'FS', '')
                   ORDER BY domStatus, flightDirection, depArrTerminal, flightNumber
@@ -866,7 +866,7 @@ ORDER BY
     </select>
 
     <select id="retrieveCounterAllocation" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastCounterAllocationDto">
-        /* CastRestTestMapper.retrieveCounterAllocation(CastReqGetResourceDto dto) */
+
     SELECT LISTAGG(resourceID2,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS blockID          -- BlockID
          , LISTAGG(tmnlId,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS depArrTerminal  -- 터미널아이디
          , LISTAGG(cknctId,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS resourceID    -- 체크인카운터번호
@@ -883,8 +883,8 @@ ORDER BY
          , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
       FROM (
         <if test="resourceID == 'CA001'">
-            SELECT 
-                   CASE 
+            SELECT
+                   CASE
                    WHEN TER_ID = 'P03'
                    THEN 'P03CKIN'
                    ELSE CASE
@@ -906,17 +906,17 @@ ORDER BY
                   , (SELECT D.COM_CD_NM FROM CAOWN.TC_CA_COM_CD D WHERE D.COM_CD_SE_CD = 'CA265' AND D.COM_CD = cicType)        AS cicType          -- 체크인종류코드
                   , (SELECT D.COM_CD_NM FROM CAOWN.TC_CA_COM_CD D WHERE D.COM_CD_SE_CD = 'CA266' AND D.COM_CD = nonfuncStat)    AS nonfuncStat  -- 체크인기능코드
                   , CHKIN_TY_CD                             AS chknTypeCd   -- 체크인유형코드
-                  , CASE 
-                    WHEN CHKIN_TY_CD = 'C' THEN 
+                  , CASE
+                    WHEN CHKIN_TY_CD = 'C' THEN
                         (
                             SELECT '"' || LISTAGG(ALN_CD, ',') WITHIN GROUP (ORDER BY ALN_CD) || '"'
                             FROM (
                                 SELECT DISTINCT C.ALN_CD
                                 FROM CAOWN.TN_CA_ALN_PGE C
-                                WHERE C.ALN_CD = ALN_CD 
-                                AND C.PGE_NO = CHKIN_PG_NO 
-                                AND C.TMNL_ID = TER_ID 
-                                AND C.PGE_SE_CD = 'C' 
+                                WHERE C.ALN_CD = ALN_CD
+                                AND C.PGE_NO = CHKIN_PG_NO
+                                AND C.TMNL_ID = TER_ID
+                                AND C.PGE_SE_CD = 'C'
                                 AND C.UNIT_SYS_ID = UNIT_SYS_ID
                             )
                         )
@@ -924,7 +924,7 @@ ORDER BY
                     ELSE CHKIN_TY_CD
                     END  AS chknTypeDtlInfo  -- 체크인유형상세정보
               FROM (
-                 SELECT 
+                 SELECT
                         Y.TER_ID
                         , Y.CIC_ID
                         , Y.ALN_CD
@@ -936,7 +936,7 @@ ORDER BY
                         , TO_CHAR(TO_DATE(
                             CASE WHEN Y.RON_YN = 'N' THEN Y.OPR_DT
                                 ELSE TO_CHAR(TO_DATE(Y.OPR_DT, 'YYYYMMDD') + 1, 'YYYYMMDD')
-                            END || Y.END_HM, 'YYYYMMDDHH24MI' 
+                            END || Y.END_HM, 'YYYYMMDDHH24MI'
                         ), 'YYYY-MM-DD"T"HH24:MI":00"') AS t2
                         , Y.TRVL_CLSS AS trvlClss
                         , Y.GRP_STAT AS grpStat
@@ -1020,7 +1020,7 @@ ORDER BY
             ORDER BY Z.TER_ID, Z.CIC_ID, Z.T1
         </if>
         <if test="resourceID != 'CA001'">
-            SELECT CASE 
+            SELECT CASE
                    WHEN Y.TMNL_ID = 'P03'
                    THEN 'P03CKIN'
                    ELSE CASE
@@ -1081,15 +1081,15 @@ ORDER BY
             ORDER BY tmnlId, cknctId, crtrYmd, staDt, endDt
         </if>
         ) Z
-    </select> 
+    </select>
 
     <select id="retrieveSelfCheckInCountAndBagDrop" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastSelfCheckInCountAndBagDropDto">
-        /* CastRestTestMapper.retrieveSelfCheckInCountAndBagDrop(CastReqGetResourceDto dto) */
+
     SELECT LISTAGG(BlockID,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS BlockID                  -- BlockID
          , LISTAGG(resourceID,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS resourceID            -- 체크인카운터번호
          , LISTAGG(DepArrTerminal,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS DepArrTerminal    -- 터미널아이디
-         , LISTAGG(AirlineCode,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS AirlineCode          -- 항공사코드         
-         , LISTAGG(DomStatus,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS DomStatus    -- 국내국제구분코드         
+         , LISTAGG(AirlineCode,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS AirlineCode          -- 항공사코드
+         , LISTAGG(DomStatus,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS DomStatus    -- 국내국제구분코드
          , LISTAGG(t1,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS t1                            -- 체크인오픈예정시분
          , LISTAGG(t2,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS t2                            -- 체크인클로즈예정시분
          , REPLACE(LISTAGG(TravelClass,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2),' ','') AS TravelClass           -- 체크인등급코드
@@ -1099,8 +1099,8 @@ ORDER BY
          , REPLACE(LISTAGG(CheckinAllocType,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2),' ','') AS CheckinAllocType -- 체크인유형코드
          , REPLACE(LISTAGG(CheckInAllocDescryption,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2),' ','') AS CheckInAllocDescryption-- 체크인유형상세정보
          , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
-      FROM (    
-        <if test="resourceID == 'SBD001'">    
+      FROM (
+        <if test="resourceID == 'SBD001'">
              <![CDATA[
 SELECT
     CASE
@@ -1122,8 +1122,8 @@ SELECT
 FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY PLCY
 WHERE #{baseYmd} BETWEEN PLCY.PLCY_BGNG_YMD AND PLCY.PLCY_END_YMD
 GROUP BY PLCY.TMNL_ID, PLCY.SLF_CHKN_ISTR_ID
-UNION ALL 
-SELECT 
+UNION ALL
+SELECT
     BlockID
     , DepArrTerminal
     , resourceID
@@ -1138,8 +1138,8 @@ SELECT
     , 'C' AS CheckinAllocType -- 체크인유형코드
     , '"' ||(SELECT LISTAGG(ALN, ',') WITHIN GROUP (ORDER BY ALN) FROM (SELECT DISTINCT REGEXP_SUBSTR(SBD.AirlineCode, '[^,]+', 1,LEVEL) AS ALN FROM DUAL CONNECT BY REGEXP_SUBSTR(SBD.AirlineCode, '[^,]+', 1 , LEVEL) IS NOT NULL)) || '"' AS CheckInAllocDescryption -- 체크인유형상세정보
 FROM (
-    SELECT 
-        CASE 
+    SELECT
+        CASE
             WHEN CIC.TMNL_ID = 'P03' THEN 'P03SBD'
             ELSE 'P01SBD'
         END                                       AS BlockID          -- BlockID
@@ -1154,12 +1154,12 @@ FROM (
         , TO_CHAR(TO_DATE(MAX(GD.CLOSE_TM), 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD"T"HH24:MI:SS".000"')                           AS t2
     FROM CAOWN.TN_CA_CKNCT CIC
         LEFT JOIN PMOWN.TN_PM_SBD_OPER_PLCY PLCY
-        ON CIC.TMNL_ID = PLCY.TMNL_ID 
+        ON CIC.TMNL_ID = PLCY.TMNL_ID
         AND SUBSTR(CIC.CKNCT_ID, 1, 1) = PLCY.SBD_CTR_NM
         LEFT JOIN (
                     SELECT
                         A.GD_SE_YMD
-                        , A.TMNL_ID 
+                        , A.TMNL_ID
                         , A.ALN_CD
                         , MIN(TO_CHAR(TO_DATE(A.GD_SE_YMD || A.SCHDL_HM, 'YYYYMMDDHH24MISS') - 5/24, 'YYYYMMDDHH24MISS')) AS OPEN_TM
                         , MAX(TO_CHAR(TO_DATE(A.GD_SE_YMD || A.SCHDL_HM, 'YYYYMMDDHH24MISS') - 1/24, 'YYYYMMDDHH24MISS')) AS CLOSE_TM
@@ -1201,7 +1201,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
                  , TO_CHAR(TO_DATE(
                      CASE WHEN Y.RON_YN = 'N' THEN Y.OPR_DT
                          ELSE TO_CHAR(TO_DATE(Y.OPR_DT, 'YYYYMMDD') + 1, 'YYYYMMDD')
-                     END || SUBSTR(Y.END_DT,9,2), 'YYYYMMDDHH24MI' 
+                     END || SUBSTR(Y.END_DT,9,2), 'YYYYMMDDHH24MI'
                  ), 'YYYY-MM-DD"T"HH24:MI":00"') AS t2
                  , Y.TRVL_CLSS AS TravelClass
                  , Y.GRP_STAT AS GroupStatus
@@ -1235,7 +1235,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
    <select id="retrievePropertySetMst" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastPropertySetDto">
-        /* CastRestTestMapper.retrievePropertySetMst(CastReqGetResourceDto dto) */
+
     SELECT 'PS'||FIX_ATRB_GROUP_ID AS resourceID
              , FRST_RGTR_ID AS author
              , TO_CHAR(A.FRST_REG_DT, 'YYYY-MM-DD"T"HH24:MI":00"') AS created
@@ -1247,7 +1247,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
    <select id="retrievePropertySetSvc" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastPropertySetDto">
-        /* CastRestTestMapper.retrievePropertySetSvc(CastReqGetResourceDto dto) */
+
       SELECT AA.FCLTY_SE_CD cd
          , BB.USER_DEF_COL_NM pName
          , BB.USER_DEF_COL_EXPLN pFriendlyName
@@ -1282,7 +1282,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrievePropertySetPax" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastPropertySetDto">
-        /* CastRestTestMapper.retrievePropertySetPax(CastReqGetResourceDto dto) */
+
         SELECT AA.PSG_ATRB_CD cd
                  , BB.PSG_SMLT_APLCN_NM pName
                  , BB.PSG_FIX_PARA_CND_VL pFriendlyName
@@ -1300,14 +1300,14 @@ ORDER BY BlockID, DepArrTerminal, resourceID
                        FROM PMOWN.TN_PM_SMLT_PSG_ATRB A
                      WHERE A.FIX_ATRB_GROUP_ID = REPLACE(#{resourceID},'PS','')
                                    ) AA
-          INNER JOIN (SELECT PSG_FIX_PARA_CD 
-                                       , PSG_FIX_PARA_GROUP_CD 
+          INNER JOIN (SELECT PSG_FIX_PARA_CD
+                                       , PSG_FIX_PARA_GROUP_CD
                                        , PSG_FIX_PARA_CND_TYPE_CD
-                                       , PSG_SMLT_APLCN_NM 
+                                       , PSG_SMLT_APLCN_NM
                                        , PSG_FIX_PARA_CND_VL
                                        , VL_TYPE
                                 FROM PMOWN.TN_PM_SMLT_PSG_FIX_PARA_CD
-                              WHERE USE_YN='Y') BB 
+                              WHERE USE_YN='Y') BB
                ON AA.PSG_ATRB_CD = BB.PSG_FIX_PARA_CD
         GROUP BY AA.PSG_ATRB_CD,BB.PSG_SMLT_APLCN_NM,BB.PSG_FIX_PARA_CND_VL,BB.PSG_FIX_PARA_CD,PSG_FIX_PARA_GROUP_CD,BB.PSG_FIX_PARA_CD,BB.PSG_FIX_PARA_CND_TYPE_CD,FIX_ATRB_GROUP_ID, BB.VL_TYPE
          UNION ALL
@@ -1328,21 +1328,21 @@ ORDER BY BlockID, DepArrTerminal, resourceID
                        FROM PMOWN.TN_PM_SMLT_SHOW_UP_ATRB A
                      WHERE A.FIX_ATRB_GROUP_ID = REPLACE(#{resourceID},'PS','')
                                    ) AA
-          INNER JOIN (SELECT PSG_FIX_PARA_CD 
-                                       , PSG_FIX_PARA_GROUP_CD 
+          INNER JOIN (SELECT PSG_FIX_PARA_CD
+                                       , PSG_FIX_PARA_GROUP_CD
                                        , PSG_FIX_PARA_CND_TYPE_CD
-                                       , PSG_SMLT_APLCN_NM 
+                                       , PSG_SMLT_APLCN_NM
                                        , PSG_FIX_PARA_CND_VL
                                        , VL_TYPE
                                 FROM PMOWN.TN_PM_SMLT_PSG_FIX_PARA_CD
-                              WHERE USE_YN='Y') BB 
+                              WHERE USE_YN='Y') BB
                ON AA.PSG_ATRB_CD = BB.PSG_FIX_PARA_CD
-        GROUP BY AA.PSG_ATRB_CD,BB.PSG_SMLT_APLCN_NM,BB.PSG_FIX_PARA_CND_VL,BB.PSG_FIX_PARA_CD,PSG_FIX_PARA_GROUP_CD,BB.PSG_FIX_PARA_CD,BB.PSG_FIX_PARA_CND_TYPE_CD,FIX_ATRB_GROUP_ID, BB.VL_TYPE        
+        GROUP BY AA.PSG_ATRB_CD,BB.PSG_SMLT_APLCN_NM,BB.PSG_FIX_PARA_CND_VL,BB.PSG_FIX_PARA_CD,PSG_FIX_PARA_GROUP_CD,BB.PSG_FIX_PARA_CD,BB.PSG_FIX_PARA_CND_TYPE_CD,FIX_ATRB_GROUP_ID, BB.VL_TYPE
         ORDER BY cd
     </select>
 
     <select id="retrievePropertySetId" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastPropertySetDto">
-        /* CastRestTestMapper.retrievePropertySetId(CastReqGetResourceDto dto) */
+
         SELECT 'SBDCounterAllocationResourceID' AS pName
                   , 'SBDCounterAllocation Resource ID' AS pFriendlyName
                   , 'String' AS vlType
@@ -1409,7 +1409,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrievePropertySetPaxDtl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastProPertySetDtlDto">
-        /* CastRestTestMapper.retrievePropertySetPaxDtl(CastReqGetResourceDto dto) */
+
          SELECT A.INPT_VL AS shares
               , B.PSG_SMLT_APLCN_NM AS role
               , B.PSG_FIX_PARA_CND_VL AS value1
@@ -1434,12 +1434,12 @@ ORDER BY BlockID, DepArrTerminal, resourceID
                ON A.PSG_DTL_SE_CD = B.PSG_FIX_PARA_CD
         WHERE A.FIX_ATRB_GROUP_ID = REPLACE(#{resourceID},'PS','')
             AND B.USE_YN='Y'
-            AND A.PSG_ATRB_CD = #{cd}    
+            AND A.PSG_ATRB_CD = #{cd}
         ORDER BY role
     </select>
 
     <select id="retrieveCASTExModel" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastModelDto">
-        /* CastRestTestMapper.retrieveCASTExModel(CastReqGetResourceDto dto) */
+
         SELECT 'CASTModel' ResourceType
           , A.SMLT_MDL_EXPLN ResourceID
           , 'SYSTEM' Author
@@ -1456,7 +1456,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveCASTModel" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastModelDto">
-        /* CastRestTestMapper.retrieveCASTModel(CastReqGetResourceDto dto) */
+
         SELECT 'CASTModel' ResourceType
           , A.SMLT_MDL_EXPLN ResourceID
           , 'SYSTEM' Author
@@ -1473,7 +1473,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="checkCASTModel" parameterType="aoms.pm.cmmn.dto.CastModelDto" resultType="aoms.pm.cmmn.dto.CastModelDto">
-        /* CastRestTestMapper.checkCASTModel(CastModelDto dto) */
+
     SELECT B.STRG_FILE_NM AS fileNm
     FROM PMOWN.TN_PM_SMLT_MDL A
     LEFT OUTER JOIN PMOWN.TN_PM_PSG_MNG_ATFL B
@@ -1483,13 +1483,13 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveNewCastModelId" parameterType="aoms.pm.cmmn.dto.CastModelDto" resultType="String">
-        /* CastRestTestMapper.retrieveNewCastModelId(CastModelDto dto) */
+
     SELECT NVL(MAX(TO_NUMBER(SMLT_MDL_SN)),0)+1 AS smltMdlSn
       FROM PMOWN.TN_PM_SMLT_MDL
     </select>
 
     <insert  id="insertCASTModel" parameterType="aoms.pm.cmmn.dto.SmltMdlDto" >
-        /* CastRestTestMapper.insertCASTModel(SmltMdlDto dto) */
+
         INSERT INTO PMOWN.TN_PM_SMLT_MDL
         (
             SMLT_MDL_SN
@@ -1513,7 +1513,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </insert>
 
     <update  id="updateCASTModel" parameterType="aoms.pm.cmmn.dto.CastModelDto" >
-        /* CastRestTestMapper.updateCASTModel(CastModelDto dto) */
+
        UPDATE PMOWN.TN_PM_SMLT_MDL SET
               LAST_MDFR_ID = 'SYSTEM'
            , LAST_MDFR_IP_ADDR = #{loginIpAddr}
@@ -1522,7 +1522,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </update>
 
     <update  id="deleteCASTModel" parameterType="aoms.pm.cmmn.dto.CastResReqDto" >
-        /* CastRestTestMapper.deleteCASTModel(CastResReqDto dto) */
+
        UPDATE PMOWN.TN_PM_SMLT_MDL SET
              DEL_YN = 'Y'
            , LAST_MDFR_ID = 'SYSTEM'
@@ -1532,22 +1532,16 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </update>
 
     <select id="retrieveModelInfo" parameterType="aoms.pm.cmmn.dto.CastModelDto" resultType="aoms.pm.cmmn.dto.SmltMdlDto">
-        /* CastRestTestMapper.retrieveModelInfo(CastModelDto dto) */
+
     SELECT SMLT_MDL_SN AS smltMdlSn
         , SMLT_MDL_TYPE_CD AS smltMdlTypeCd
         , SMLT_EXCN_SE_CD smltExcnSeCd
       FROM PMOWN.TN_PM_SMLT_MDL
-      WHERE SMLT_MDL_EXPLN = #{modelResourceID}
+      WHERE SMLT_MDL_EXPLN = NVL((SELECT SOURCE_ID FROM PMOWN.TN_PM_SMLT_INPUT_SNAPSHOT WHERE RESOURCE_TYPE IN ('CASTModel', 'CASTExpressModel') AND RESOURCE_ID = #{modelResourceID}), #{modelResourceID})
     </select>
 
-    <select id="retrieveSimId" parameterType="aoms.pm.cmmn.dto.CastResReqDto" resultType="String">
-        /* CastRestTestMapper.retrieveSimId(CastResReqDto dto) */
-        SELECT PMOWN.SQ1_TN_PM_SMLT_RSLT.NEXTVAL
-          FROM DUAL
-    </select>
+<select id="checkFcltCd" parameterType="aoms.pm.cmmn.dto.SimRsltDto" resultType="String">
 
-    <select id="checkFcltCd" parameterType="aoms.pm.cmmn.dto.SimRsltDto" resultType="String">
-        /* CastRestTestMapper.checkFcltCd(SimRsltDto dto) */
     SELECT PSG_FCLT_CD AS psgFcltCd
     FROM PMOWN.TN_PM_SMLT_PSG_FCLT
     WHERE USE_YN = 'Y'
@@ -1555,7 +1549,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="checkFcltCdList" parameterType="aoms.pm.cmmn.dto.SimRsltDto" resultType="aoms.pm.cmmn.dto.CastRsltFcltCdDto">
-        /* CastRestTestMapper.checkFcltCdList(SimRsltDto dto) */
+
     SELECT PSG_FCLT_CD AS psgFcltCd
          , SMLT_FCLT_NM AS smltFcltNm
       FROM PMOWN.TN_PM_SMLT_PSG_FCLT
@@ -1563,7 +1557,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <insert id="insertSimSet" parameterType="aoms.pm.cmmn.dto.CastResReqDto">
-        /* CastRestTestMapper.insertSimSet(CastResReqDto dto) */
+
     INSERT INTO PMOWN.TN_PM_SMLT_STNG
              (  SMLT_ID
               , SMLT_MDL_SN
@@ -1571,7 +1565,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
               , SMLT_TYPE
               , CRTR_DT
               , EXCN_YMD
-              , TMNL_ID              
+              , TMNL_ID
               , SLF_ID
               , PRNT_ID
               , FLT_SCHDL_RSRC_ID
@@ -1591,7 +1585,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
               , PLAN_BGNG_DT
               , PLAN_END_DT
               , SMLT_BGNG_DT
-              , SMLT_END_DT              
+              , SMLT_END_DT
               , BDPSG_ANCE_YN
               , FRST_RGTR_ID
               , FRST_RGTR_IP_ADDR
@@ -1605,7 +1599,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
               -- 사용자 실행이면 요청의 터미널을 따른다. 일일은 예전대로 P01
               , NVL(#{tmnlId}, 'P01')
               , #{selfID}
-              , #{parentID}              
+              , #{parentID}
               , #{flightScheduleResourceID}
               , #{bagAllocationResourceID}
               , #{checkInAllocationResourceID}
@@ -1620,10 +1614,10 @@ ORDER BY BlockID, DepArrTerminal, resourceID
               , #{facilityOpeningTableSecurityControlResourceID}
               , #{facilityOpeningTableTransferSecurityControlResourceID}
               , #{sbdCounterAllocationResourceID}
-              , substr(replace(#{startTime},'T',' '),1,19)              
+              , substr(replace(#{startTime},'T',' '),1,19)
               , substr(replace(#{stopTime},'T',' '),1,19)
-              , substr(replace(#{simulationStartTime},'T',' '),1,19)              
-              , substr(replace(#{simulationStopTime},'T',' '),1,19)              
+              , substr(replace(#{simulationStartTime},'T',' '),1,19)
+              , substr(replace(#{simulationStopTime},'T',' '),1,19)
               , #{paxAnnceYn}
               , 'CAST'
               , #{loginIpAddr}
@@ -1631,7 +1625,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </insert>
 
     <insert id="insertSimResultDtl" parameterType="java.util.HashMap">
-        /* CastRestTestMapper.insertSimResultDtl(HashMap dto) */
+
     INSERT INTO PMOWN.TN_PM_SMLT_RSLT_DTL
              ( SMLT_ID
             , SMLT_MDL_SN
@@ -1685,7 +1679,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </insert>
 
     <insert id="insertSimResultDtlRegExcl" parameterType="aoms.pm.cmmn.dto.SmltRsltDtlDto">
-        /* CastRestTestMapper.insertSimResultDtlRegExcl(SmltRsltDtlDto dto) */
+
     INSERT INTO PMOWN.TN_PM_SMLT_RSLT_DTL_REG_EXCL
              ( SMLT_ID
             , SMLT_SN
@@ -1704,7 +1698,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </insert>
 
     <select id="retrieveDelSetInfo" resultType="aoms.pm.cmmn.dto.SimSetDto">
-        /* CastRestTestMapper.retrieveDelSetInfo(SimSetDto dto) */
+
         SELECT A.SMLT_ID AS smltId
           FROM PMOWN.TN_PM_SMLT_STNG A
          WHERE A.SMLT_ID NOT IN
@@ -1729,19 +1723,19 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <delete id="deleteSimRsltDtl" parameterType="String">
-        /* CastRestTestMapper.deleteSimRsltDtl() */
+
         DELETE FROM PMOWN.TN_PM_SMLT_RSLT_DTL
          WHERE SMLT_ID = #{smltId}
     </delete>
 
     <delete id="deleteSimSetMst" parameterType="String">
-        /* CastRestTestMapper.deleteSimSetMst() */
+
         DELETE FROM PMOWN.TN_PM_SMLT_STNG A
          WHERE A.SMLT_ID = #{smltId}
     </delete>
 
     <select id="retrieveSimSetByPk" parameterType="aoms.pm.cmmn.dto.CastResReqDto" resultType="aoms.pm.cmmn.dto.CastResReqDto">
-        /* CastRestTestMapper.retrieveSimSetByPk(CastResReqDto dto) */
+
     SELECT COUNT(SIM_ID) rsltCnt
     FROM PMOWN.TN_PM_SMLT_STNG
     WHERE SMLT_ID = #{smltId}
@@ -1749,14 +1743,14 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <delete id="deleteSimResultDtl" parameterType="aoms.pm.cmmn.dto.CastResReqDto">
-        /* CastRestTestMapper.deleteSimResultDtl(CastResReqDto dto) */
+
     DELETE FROM PMOWN.TN_PM_SMLT_RSLT_DTL
     WHERE SMLT_ID = REPLACE(#{smltId},'_','')
        AND SMLT_MDL_SN = (SELECT SMLT_MDL_SN FROM PMOWN.TN_PM_SMLT_MDL WHERE SMLT_MDL_EXPLN = #{smltMdlExpln})
     </delete>
 
     <update id="updateSimResultDtl" parameterType="aoms.pm.cmmn.dto.CastResReqDto">
-        /* CastRestTestMapper.updateSimResultDtl(CastResReqDto dto) */
+
     UPDATE INTO PMOWN.TN_PM_SMLT_RSLT_DTL SET
               WTNG_PSG_CNT = INT(WTNG_PSG_CNT)+TO_NUMBER(#{wtngPsgCnt})
             , TRNST_PSG_CNT = INT(TRNST_PSG_CNT)+TO_NUMBER(#{trnstPsgCnt})
@@ -1766,7 +1760,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </update>
 
     <insert id="insertDwDelKeyValHst" parameterType = "aoms.pm.cmmn.dto.DwDelKeyValHstDto">
-        /* CastRestTestMapper.insertDwDelKeyValHst(DwDelKeyValHstDto dto) */
+
     INSERT INTO PMOWN.TH_PM_DW_DEL_KEY_HSTRY
          ( DEL_YMD
          , TBL_NM
@@ -1805,100 +1799,95 @@ ORDER BY BlockID, DepArrTerminal, resourceID
          )
     </insert>
 
-    <!-- 첨부파일 리스트 조회 -->
     <select id="retrieveAtchFileList" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto" resultType="aoms.pm.cmmn.dto.PmAtchFileDto">
-        /* CastRestTestMapper.retrieveAtchFileList(PmAtchFileDto dto) */
-        SELECT ATCH_FILE_ID AS atchFileId                           /* 첨부파일ID */
-             , ATCH_FILE_SN AS atchFileSn                         /* 첨부파일일련번호 */
-             , ATCH_FILE_TASK_SE_CD AS atchFileTaskSeCd               /* 첨부파일업무구분코드 */
-             , ATCH_FILE_TYPE_CD AS atchFileTypeCd                      /* 첨부파일유형코드 */
-             , STRG_FILE_NM AS atchFileNm                           /* to-be에는 별도 첨부파일명 컬럼이 없어 저장파일명 사용 */
-             , STRG_FILE_NM AS strgFileNm                         /* 저장파일명 */          
-             , ATCH_FILE_PATH_NM AS atchFilePathNm                  /* 첨부파일경로명 */            
-             , ATCH_FILE_SZ AS atchFileSz                           /* 첨부파일사이즈 */
-             , ATCH_FILE_EXTN_NM AS atchFileExtnNm                /* 첨부파일확장자명 */
-             , ATCH_FILE_EXPLN AS atchFileExpln                       /* 첨부파일설명 */
-          FROM PMOWN.TN_PM_PSG_MNG_ATFL                 /* 첨부파일 */
+
+        SELECT ATCH_FILE_ID AS atchFileId
+             , ATCH_FILE_SN AS atchFileSn
+             , ATCH_FILE_TASK_SE_CD AS atchFileTaskSeCd
+             , ATCH_FILE_TYPE_CD AS atchFileTypeCd
+             , STRG_FILE_NM AS atchFileNm
+             , STRG_FILE_NM AS strgFileNm
+             , ATCH_FILE_PATH_NM AS atchFilePathNm
+             , ATCH_FILE_SZ AS atchFileSz
+             , ATCH_FILE_EXTN_NM AS atchFileExtnNm
+             , ATCH_FILE_EXPLN AS atchFileExpln
+          FROM PMOWN.TN_PM_PSG_MNG_ATFL
         <where>
             <if test="atchFileIdSrch == ''.toString()">
                 AND 1 = 2
             </if>
-            <if test="atchFileIdSrch != null and atchFileIdSrch != ''">                                                                               
-                AND ATCH_FILE_ID = #{atchFileId}          /* 첨부파일ID */
+            <if test="atchFileIdSrch != null and atchFileIdSrch != ''">
+                AND ATCH_FILE_ID = #{atchFileId}
             </if>
-            <if test="atchFileSnoSrch != null and atchFileSnoSrch != ''">                                                                                 
-                AND ATCH_FILE_SN = #{atchFileSn}            /* 첨부파일일련번호 */
+            <if test="atchFileSnoSrch != null and atchFileSnoSrch != ''">
+                AND ATCH_FILE_SN = #{atchFileSn}
             </if>
         </where>
     </select>
 
-    <!-- 첨부파일 저장 -->
     <insert id="insertAtchFile" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto">
-        /* CastRestTestMapper.insertAtchFile(PmAtchFileDto dto) */
-        INSERT INTO PMOWN.TN_PM_PSG_MNG_ATFL            /* 첨부파일 */
-            (ATCH_FILE_ID                   /* 첨부파일ID */
-            , ATCH_FILE_SN                 /* 첨부파일일련번호 */
-            , ATCH_FILE_TASK_SE_CD           /* 첨부파일업무구분코드 */
-            , ATCH_FILE_TYPE_CD               /* 첨부파일유형코드 */
-            , STRG_FILE_NM                 /* 저장파일명 */
-            , ATCH_FILE_PATH_NM             /* 첨부파일경로명 */
-            , ATCH_FILE_SZ                  /* 첨부파일사이즈 */
-            , ATCH_FILE_EXTN_NM            /* 첨부파일확장자명 */
-            , ATCH_FILE_EXPLN                /* 첨부파일설명 */
-            , FRST_RGTR_ID                   /* 최초등록자ID */
-            , FRST_RGTR_IP_ADDR                   /* 최초등록자IP */
-            , FRST_REG_DT)                 /* 최초등록타임스탬프 */
-        VALUES 
-            ( #{atchFileId}                   /* 첨부파일ID */
-            , #{atchFileSn}              /* 첨부파일일련번호 */
-            , #{atchFileTaskSeCd}          /* 첨부파일업무구분코드 */
-            , #{atchFileTypeCd}             /* 첨부파일유형코드 */
-            , #{strgFileNm}              /* 저장파일명 */
-            , #{atchFilePathNm}               /* 첨부파일경로명 */
-            , #{atchFileSz}                   /* 첨부파일사이즈 */
-            , 'txt'                                /* 첨부파일확장자명 */           
-            , '----'                                 /* 첨부파일설명 */
-            , #{loginUserId}              /* 최초등록자ID */
-            , #{loginIpAddr}                   /* 최초등록자IP */
-            , CURRENT_TIMESTAMP)            /* 최초등록타임스탬프 */ 
+
+        INSERT INTO PMOWN.TN_PM_PSG_MNG_ATFL
+            (ATCH_FILE_ID
+            , ATCH_FILE_SN
+            , ATCH_FILE_TASK_SE_CD
+            , ATCH_FILE_TYPE_CD
+            , STRG_FILE_NM
+            , ATCH_FILE_PATH_NM
+            , ATCH_FILE_SZ
+            , ATCH_FILE_EXTN_NM
+            , ATCH_FILE_EXPLN
+            , FRST_RGTR_ID
+            , FRST_RGTR_IP_ADDR
+            , FRST_REG_DT)
+        VALUES
+            ( #{atchFileId}
+            , #{atchFileSn}
+            , #{atchFileTaskSeCd}
+            , #{atchFileTypeCd}
+            , #{strgFileNm}
+            , #{atchFilePathNm}
+            , #{atchFileSz}
+            , 'txt'
+            , '----'
+            , #{loginUserId}
+            , #{loginIpAddr}
+            , CURRENT_TIMESTAMP)
     </insert>
-    
-    <!-- 첨부파일 수정 -->
+
     <update id="updateAtchFile" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto">
-        /* CastRestTestMapper.updateAtchFile(PmAtchFileDto dto) */
-        UPDATE PMOWN.TN_PM_PSG_MNG_ATFL                 /* 첨부파일 */
-           SET ATCH_FILE_TASK_SE_CD = #{atchFileTaskSeCd}           /* 첨부파일업무구분코드 */
-             , ATCH_FILE_TYPE_CD = #{atchFileTypeCd}              /* 첨부파일유형코드 */
-             , STRG_FILE_NM = #{strgFileNm}                 /* 저장파일명 */
-             , ATCH_FILE_PATH_NM = #{atchFilePathNm}          /* 첨부파일경로명 */
-             , ATCH_FILE_SZ = #{atchFileSz}                       /* 첨부파일사이즈 */
-             , ATCH_FILE_EXTN_NM = #{atchFileExtnNm}            /* 첨부파일확장자명 */  
-             , LAST_MDFR_ID = #{loginUserId}                       /* 최종수정자ID */
-             , LAST_MDFR_IP_ADDR = #{loginIpAddr}                           /* 최종수정자IP */
-             , LAST_MDFCN_DT = CURRENT_TIMESTAMP                  /* 최종수정일시 */
-         WHERE ATCH_FILE_ID = #{atchFileId}                   /* 첨부파일ID */
-           AND ATCH_FILE_SN = #{atchFileSn}              /* 첨부파일일련번호 */
+
+        UPDATE PMOWN.TN_PM_PSG_MNG_ATFL
+           SET ATCH_FILE_TASK_SE_CD = #{atchFileTaskSeCd}
+             , ATCH_FILE_TYPE_CD = #{atchFileTypeCd}
+             , STRG_FILE_NM = #{strgFileNm}
+             , ATCH_FILE_PATH_NM = #{atchFilePathNm}
+             , ATCH_FILE_SZ = #{atchFileSz}
+             , ATCH_FILE_EXTN_NM = #{atchFileExtnNm}
+             , LAST_MDFR_ID = #{loginUserId}
+             , LAST_MDFR_IP_ADDR = #{loginIpAddr}
+             , LAST_MDFCN_DT = CURRENT_TIMESTAMP
+         WHERE ATCH_FILE_ID = #{atchFileId}
+           AND ATCH_FILE_SN = #{atchFileSn}
     </update>
 
-    <!-- 첨부파일 ATCH_FILE_ID PK 채번 -->
     <select id="retrieveIdMaxPk" resultType="String">
-        /* CastRestTestMapper.retrieveIdMaxPk() */
+
         SELECT DECODE(SUBSTR(MAX(ATCH_FILE_ID), 1, 8)
                     , TO_CHAR(SYSDATE, 'YYYYMMDD'), SUBSTR(MAX(ATCH_FILE_ID), 1, 8) || LPAD(TO_NUMBER(SUBSTR(MAX(ATCH_FILE_ID), 9, 11)) + 1, 3, '0')
                     , TO_CHAR(SYSDATE, 'YYYYMMDD') || '001') AS atchFileId
           FROM PMOWN.TN_PM_PSG_MNG_ATFL
-    </select>   
-    
-    <!-- 첨부파일 ATCH_FILE_ID 별 ATCH_FILE_SNO PK 채번 -->
+    </select>
+
     <select id="retrieveSnoMaxPk" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto" resultType="String">
-        /* CastRestTestMapper.retrieveSnoMaxPk(PmAtchFileDto dto) */
-        SELECT NVL(MAX(TO_NUMBER(ATCH_FILE_SN)), 0) + 1 AS atchFileSn             /* 첨부파일일련번호 */
+
+        SELECT NVL(MAX(TO_NUMBER(ATCH_FILE_SN)), 0) + 1 AS atchFileSn
           FROM PMOWN.TN_PM_PSG_MNG_ATFL
-         WHERE ATCH_FILE_ID = #{atchFileId}                       /* 첨부파일ID */
+         WHERE ATCH_FILE_ID = #{atchFileId}
     </select>
 
     <select id="retrieveCheckInCounterServiceTime" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastCheckInCounterServiceTimeDto">
-        /* CastRestTestMapper.retrieveCheckInCounterServiceTime(CastReqGetResourceDto dto) */
+
          SELECT LISTAGG(CASE WHEN A.ALN_CD = 'Default' THEN '&lt;default&gt;' ELSE A.ALN_CD END,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS airline
              , LISTAGG(A.AVG_VL,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS serviceTime
              , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_CKNCT_SRVC_MSTR A WHERE USE_YN = 'Y' AND A.CKNCT_SRVC_ATRB_ID = REGEXP_REPLACE(#{resourceID},'CCST|CheckinCounterServiceTime','')) AS LastModified
@@ -1907,7 +1896,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveCheckinType" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastCheckinTypeDto">
-        /* CastRestTestMapper.retrieveCheckinType(CastReqGetResourceDto dto) */
+
         SELECT LISTAGG(CASE WHEN A.ALN_CD = 'Default' THEN '&lt;default&gt;' ELSE A.ALN_CD END,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS airlineCode
              , LISTAGG(A.CKNCT_RT,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS counterShare
              , LISTAGG(A.CKNCT_VL,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS counterValue
@@ -1915,13 +1904,13 @@ ORDER BY BlockID, DepArrTerminal, resourceID
              , LISTAGG(A.KOS_VL,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS kioskValue
              , LISTAGG(A.MOBL_RT,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS mobileShare
              , LISTAGG(A.MOBL_VL,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS mobileValue
-             , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_MSTR A WHERE USE_YN = 'Y' AND A.CKNCT_TYPE_ATRB_ID = REGEXP_REPLACE(#{resourceID},'CT|CheckinType','')) AS LastModified                              
+             , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_MSTR A WHERE USE_YN = 'Y' AND A.CKNCT_TYPE_ATRB_ID = REGEXP_REPLACE(#{resourceID},'CT|CheckinType','')) AS LastModified
           FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB A
          WHERE A.CKNCT_TYPE_ATRB_ID = REGEXP_REPLACE(#{resourceID},'CT|CheckinType','')
     </select>
 
     <select id="retrieveFcltyOpngTblDptg" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblDptgDto">
-        /* CastRestTestMapper.retrieveFcltyOpngTblDptg(CastReqGetResourceDto dto) */
+
         SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS terminal
              , LISTAGG(A.FCLT_SE_CD || 'G' || A.GATE_NO || CASE
                                                            WHEN A.FCLTY_TYPE_ID IS NOT NULL AND A.FCLTY_TYPE_ID = 'W'
@@ -1949,7 +1938,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
                        WHEN B.OPER_END_1_HR IS NOT NULL
                        THEN '1899-12-30T' || TO_CHAR(TO_DATE(B.OPER_END_1_HR || '00', 'HH24:MI:SS'),'HH24:MI:SS') || '.000'
                        ELSE '1899-12-30T23:59:00.000'
-                       END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID), ' ', '') AS endTime  
+                       END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID), ' ', '') AS endTime
              , LISTAGG(A.SD_DR,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS sideDoor
              , LISTAGG(A.FCLT_RCG,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS facialRecognition
              , LISTAGG(A.FCLTY_CNT,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS currentNumberofLanes
@@ -1958,8 +1947,8 @@ ORDER BY BlockID, DepArrTerminal, resourceID
           INNER JOIN (
             SELECT *
             FROM (
-                SELECT 
-                    C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                SELECT
+                    C.OPER_HR_CRLTN_SN,  C.ELMNT_SN,
                     B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
                     C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD AS BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
                 FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
@@ -1973,8 +1962,8 @@ ORDER BY BlockID, DepArrTerminal, resourceID
             AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
                 SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
                 FROM (
-                    SELECT 
-                        C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                    SELECT
+                        C.OPER_HR_CRLTN_SN,  C.ELMNT_SN,
                         B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
                         C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') OPER_END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
                     FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
@@ -1995,7 +1984,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveFcltyOpngTblEmig" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblEmigDto">
-        /* CastRestTestMapper.retrieveFcltyOpngTblEmig(CastReqGetResourceDto dto) */
+
     SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO) AS terminal
          , LISTAGG(A.FCLT_SE_CD || 'G' || A.GATE_NO,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO) AS location
          , LISTAGG(CASE WHEN A.DPTCNY_TYPE_CD = '1' THEN 'Normal' WHEN A.DPTCNY_TYPE_CD = '2' THEN 'Automatic' ELSE '' END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO) AS immigrationType
@@ -2006,7 +1995,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveFcltyOpngTblImmig" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblImmigDto">
-        /* CastRestTestMapper.retrieveFcltyOpngTblImmig(CastReqGetResourceDto dto) */
+
     SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS terminal
          , LISTAGG(A.FCLTY_TYPE_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS location
          , REPLACE(LISTAGG(CASE
@@ -2023,13 +2012,13 @@ ORDER BY BlockID, DepArrTerminal, resourceID
                    WHEN B.OPER_END_1_HR IS NOT NULL
                    THEN TO_CHAR(TO_DATE(NVL(B.END_YMD,'21001231'), 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T00:00:00.000'
                    ELSE '2100-12-31T00:00:00.000'
-                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS endDate     
+                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS endDate
          , REPLACE(LISTAGG(CASE
                    WHEN B.OPER_END_1_HR IS NOT NULL
                    THEN '1899-12-30T' || TO_CHAR(TO_DATE(B.OPER_END_1_HR || '00', 'HH24:MI:SS'),'HH24:MI:SS') || '.000'
                    ELSE '1899-12-30T23:59:00.000'
-                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS endTime       
-         , LISTAGG(CASE WHEN A.PSPRT LIKE '%,%' THEN '&quot;' ELSE '' END  || A.PSPRT || CASE WHEN A.PSPRT LIKE '%,%' THEN '&quot;' ELSE '' END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS passport          
+                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS endTime
+         , LISTAGG(CASE WHEN A.PSPRT LIKE '%,%' THEN '&quot;' ELSE '' END  || A.PSPRT || CASE WHEN A.PSPRT LIKE '%,%' THEN '&quot;' ELSE '' END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS passport
          , LISTAGG(CASE WHEN A.ENTCNY_TYPE_CD = '1' THEN 'Normal' WHEN A.ENTCNY_TYPE_CD = '2' THEN 'Automatic' ELSE '' END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS immigrationType
          , LISTAGG(A.FCLTY_CNT,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS currentNumberofLanes
          , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_ENTCNY_MSTR A WHERE USE_YN = 'Y' AND A.ENTCNY_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTI|FacilityOpeningTable_Immigration','')) AS LastModified
@@ -2037,8 +2026,8 @@ ORDER BY BlockID, DepArrTerminal, resourceID
       INNER JOIN (
           SELECT *
             FROM (
-                SELECT 
-                    C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                SELECT
+                    C.OPER_HR_CRLTN_SN,  C.ELMNT_SN,
                     B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
                     C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD AS BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
                 FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
@@ -2052,8 +2041,8 @@ ORDER BY BlockID, DepArrTerminal, resourceID
             AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
                 SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
                 FROM (
-                    SELECT 
-                        C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                    SELECT
+                        C.OPER_HR_CRLTN_SN,  C.ELMNT_SN,
                         B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
                         C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') OPER_END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
                     FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
@@ -2074,7 +2063,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveFcltyOpngTblScrtyCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblScrtyCntrlDto">
-        /* CastRestTestMapper.retrieveFcltyOpngTblScrtyCntrl(CastReqGetResourceDto dto) */
+
     SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.GATE_NO) AS terminal
          , LISTAGG(A.FCLT_SE_CD || 'G' || A.GATE_NO,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.GATE_NO) AS location
          , LISTAGG(A.FCLTY_CNT,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.GATE_NO) AS currentNumberofLanes
@@ -2084,7 +2073,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveFcltyOpngTblTrnstScrtyCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblTrnstScrtyCntrlDto">
-        /* CastRestTestMapper.retrieveFcltyOpngTblTrnstScrtyCntrl(CastReqGetResourceDto dto) */
+
     SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS terminal
          , LISTAGG(CASE WHEN A.FCLTY_TYPE_ID = 'W' THEN 'West' WHEN A.FCLTY_TYPE_ID = 'E' THEN 'East' ELSE '' END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS location
          , REPLACE(LISTAGG(CASE
@@ -2101,20 +2090,20 @@ ORDER BY BlockID, DepArrTerminal, resourceID
                    WHEN B.OPER_END_1_HR IS NOT NULL
                    THEN TO_CHAR(TO_DATE(NVL(B.END_YMD,'21001231'), 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T00:00:00.000'
                    ELSE '2100-12-31T00:00:00.000'
-                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS endDate      
+                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS endDate
          , REPLACE(LISTAGG(CASE
                    WHEN B.OPER_END_1_HR IS NOT NULL
                    THEN '1899-12-30T' || TO_CHAR(TO_DATE(B.OPER_END_1_HR || '00', 'HH24:MI:SS'),'HH24:MI:SS') || '.000'
                    ELSE '1899-12-30T23:59:00.000'
-                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS endTime   
+                   END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID), ' ', '') AS endTime
          , LISTAGG(A.FCLTY_CNT,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS currentNumberofLanes
          , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_MSTR A WHERE USE_YN = 'Y' AND A.TRNST_SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTTSC|FacilityOpeningTable_TransferSecurityControl','')) AS LastModified
       FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_ATRB A
       INNER JOIN (
           SELECT *
             FROM (
-                SELECT 
-                    C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                SELECT
+                    C.OPER_HR_CRLTN_SN,  C.ELMNT_SN,
                     B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
                     C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD AS BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
                 FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
@@ -2128,8 +2117,8 @@ ORDER BY BlockID, DepArrTerminal, resourceID
             AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
                 SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
                 FROM (
-                    SELECT 
-                        C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                    SELECT
+                        C.OPER_HR_CRLTN_SN,  C.ELMNT_SN,
                         B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
                         C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') OPER_END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
                     FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
@@ -2143,10 +2132,10 @@ ORDER BY BlockID, DepArrTerminal, resourceID
                 GROUP BY TMNL_ID, FCLT_SE_CD
             )
             UNION ALL
-                SELECT OPER_HR_CRLTN_SN , ELMNT_SN , 'P02' AS TMNL_ID, FCLT_SE_CD , SORT_SEQ, PRD_SN , FCLTY_TYPE_ID , BSC_OPER_HR_YN , BGNG_YMD , END_YMD, OPER_BGNG_1_HR , OPER_END_1_HR 
+                SELECT OPER_HR_CRLTN_SN , ELMNT_SN , 'P02' AS TMNL_ID, FCLT_SE_CD , SORT_SEQ, PRD_SN , FCLTY_TYPE_ID , BSC_OPER_HR_YN , BGNG_YMD , END_YMD, OPER_BGNG_1_HR , OPER_END_1_HR
             FROM (
-                SELECT 
-                    C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                SELECT
+                    C.OPER_HR_CRLTN_SN,  C.ELMNT_SN,
                     B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
                     C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD AS BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
                 FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
@@ -2161,8 +2150,8 @@ ORDER BY BlockID, DepArrTerminal, resourceID
             AND (TMNL_ID, FCLT_SE_CD, OPER_HR_CRLTN_SN) IN (
                 SELECT TMNL_ID, FCLT_SE_CD, MAX(OPER_HR_CRLTN_SN) OPER_HR_CRLTN_SN
                 FROM (
-                    SELECT 
-                        C.OPER_HR_CRLTN_SN,  C.ELMNT_SN, 
+                    SELECT
+                        C.OPER_HR_CRLTN_SN,  C.ELMNT_SN,
                         B.TMNL_ID, B.FCLT_SE_CD, B.SORT_SEQ,
                         C.PRD_SN, C.FCLTY_TYPE_ID, C.BSC_OPER_HR_YN, C.OPER_BGNG_YMD, NVL(C.OPER_END_YMD, '21001231') OPER_END_YMD, C.OPER_BGNG_1_HR, C.OPER_END_1_HR
                     FROM PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_INFO A
@@ -2183,7 +2172,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
      WHERE A.TRNST_SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTTSC|FacilityOpeningTable_TransferSecurityControl','')
     </select>
     <select id="retrieveRptStngHrGroupCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastRptStngHrGroupCntrlDto">
-        /* CastRestTestMapper.retrieveRptProfHrGroupCntrl(CastReqGetResourceDto dto) */
+
         SELECT LISTAGG(A.SCHDL_HR,',') WITHIN GROUP (ORDER BY A.SCHDL_HR, A.GROUP_NM) AS scheduledHour
              , LISTAGG(A.GROUP_NM,',') WITHIN GROUP (ORDER BY A.SCHDL_HR, A.GROUP_NM) AS groupName
              , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_RPT_STNG_HR_GROUP_MSTR A WHERE USE_YN = 'Y' AND A.RPT_STNG_ATRB_ID = REGEXP_REPLACE(#{resourceID},'RPTG|ReportingProfilesTimeGroups','')) AS LastModified
@@ -2191,7 +2180,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
          WHERE A.RPT_STNG_ATRB_ID = REGEXP_REPLACE(#{resourceID},'RPTG|ReportingProfilesTimeGroups','')
     </select>
     <select id="retrieveWhatIfCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
-        /* CastRestTestMapper.retrieveWhatIfCntrl(CastReqGetResourceDto dto) */
+
     -- 대기(New) 건만 내보낸다. 필터가 없으면 완료·실패 건까지 매번 다시 실행 대상이 된다.
     -- LISTAGG 는 NULL 셀을 배열에서 통째로 빼 뒤 값을 한 칸 당긴다. NVL 로 자리를 채우고
     -- 정렬 기준도 전부 SMLT_REQ_ID 로 통일해야 컬럼 간 행 대응이 유지된다.
@@ -2214,12 +2203,12 @@ ORDER BY BlockID, DepArrTerminal, resourceID
          , LISTAGG(NVL(TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'YYYY-MM-DD"T"HH24:MI:SS'),' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS lastChange
          , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
       FROM PMOWN.TN_PM_SMLT_USER_MSTR
-     WHERE 1=1
+     WHERE SMLT_STTS = 'New'
      ORDER BY whatIfRunId
     </select>
-    
+
     <update id="updateWhatIfDefinitionTableStts" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
-        /* CastRestMapper.updateWhatIfDefinitionTable(CastWhatIfCntrlDto dto) */
+
         -- 이전 상태를 조건에 걸어 전이 방향을 강제한다. 영향 0행은 이미 다른 경로가
         -- 전이시킨 것이므로 호출자가 무시한다 (New → Executing → Finished/Failed)
         UPDATE PMOWN.TN_PM_SMLT_USER_MSTR
@@ -2239,41 +2228,31 @@ ORDER BY BlockID, DepArrTerminal, resourceID
         AND SMLT_STTS = #{fromStatus}
     </update>
     <select id="checkWhatIfIdList" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto" resultType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
-        /* CastRestMapper.checkWhatIfIdList(CastWhatIfCntrlDto dto) */
+
     SELECT SMLT_REQ_ID AS whatIfRunId
          , SMLT_STTS AS status
       FROM PMOWN.TN_PM_SMLT_USER_MSTR
     </select>
     <delete  id="deleteWhatIfDefinitionTable" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto" >
-        /* CastRestMapper.deleteWhatIfDefinitionTable(CastWhatIfCntrlDto dto) */
+
        DELETE FROM PMOWN.TN_PM_SMLT_USER_MSTR
        WHERE SMLT_REQ_ID = #{whatIfRunId}
     </delete>
 
     <select id="retrieveUserReqByFsRsrcId" resultType="aoms.pm.cast.dto.UserSmltReqDto">
-        /* CastRestMapper.retrieveUserReqByFsRsrcId */
-        SELECT SMLT_REQ_ID AS smltReqId
-             , SMLT_ID AS smltId
-             , SMLT_FLFMT_SN AS smltFlfmtSn
-             , NVL(RSLT_SMLT_ID, '') AS rsltSmltId
-             , SMLT_STTS AS smltStts
+        SELECT *
         FROM PMOWN.TN_PM_SMLT_USER_MSTR
         WHERE FLT_SCHDL_RSRC_ID = #{fltSchdlRsrcId}
     </select>
 
     <select id="retrieveUserReqByKey" resultType="aoms.pm.cast.dto.UserSmltReqDto">
-        /* CastRestMapper.retrieveUserReqByKey */
-        SELECT SMLT_REQ_ID AS smltReqId
-             , SMLT_ID AS smltId
-             , SMLT_FLFMT_SN AS smltFlfmtSn
-             , NVL(RSLT_SMLT_ID, '') AS rsltSmltId
-             , SMLT_STTS AS smltStts
+        SELECT *
         FROM PMOWN.TN_PM_SMLT_USER_MSTR
         WHERE SMLT_REQ_ID = #{smltReqId}
     </select>
 
     <update id="updateUserReqFinished" parameterType="aoms.pm.cast.dto.UserSmltReqDto">
-        /* CastRestMapper.updateUserReqFinished */
+
         UPDATE PMOWN.TN_PM_SMLT_USER_MSTR
         SET    SMLT_STTS = 'Finished'
              , RSLT_SMLT_ID = #{rsltSmltId}
@@ -2282,11 +2261,11 @@ ORDER BY BlockID, DepArrTerminal, resourceID
              , LAST_MDFR_IP_ADDR = #{loginIpAddr}
              , LAST_MDFCN_DT = CURRENT_TIMESTAMP
         WHERE SMLT_REQ_ID = #{smltReqId}
-        AND SMLT_STTS IN ('New', 'Executing')
+        AND SMLT_STTS IN ('New', 'Executing', 'Finished') AND RSLT_SMLT_ID IS NULL
     </update>
 
     <select id="selectBaseYmdForCalibration" resultType="String">
-        /* CastRestMapper.selectBaseYmdForCalibration */
+
         SELECT NVL(TO_CHAR(MAX(BASE_DT), 'YYYYMMDD'), TO_CHAR(SYSDATE, 'YYYYMMDD')) AS V_BASE_DT FROM PMOWN.DROP_TMP
     </select>
 

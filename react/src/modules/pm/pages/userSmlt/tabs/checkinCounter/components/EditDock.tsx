@@ -8,6 +8,7 @@ import { AirlinePopover } from './AirlinePopover';
 import { BoothGrid } from './BoothGrid';
 
 interface EditDockProps {
+    disabled: boolean;
     terminal: TerminalKind;
     codes: string[];
     islands: CheckinIsland[];
@@ -32,6 +33,7 @@ interface PopoverPos {
 
 export function EditDock({
     terminal,
+    disabled,
     codes,
     islands,
     selected,
@@ -100,7 +102,6 @@ export function EditDock({
                 <span className="dock__tmnl">{terminal}</span>
                 <div className="isles">
                     {codes.map((code) => {
-                        // 편집 목록에 없는 문자 = 하루 종일 미운영 (점선 회색 칩)
                         const island = islands.find((it) => it.label === code);
 
                         return (
@@ -150,7 +151,7 @@ export function EditDock({
                             <p className="dsec__title">
                                 운영시간<span className="dsec__hint">1시간 단위</span>
                             </p>
-                            <TimeBar label="운영시간" ranges={draft.ranges} onChange={(ranges) => onPatch({ ranges })} />
+                            <TimeBar disabled={disabled} label="운영시간" ranges={draft.ranges} onChange={(ranges) => onPatch({ ranges })} />
                         </section>
 
                         <section className="dock__col">

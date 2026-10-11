@@ -12,43 +12,19 @@ import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.SmltStngSearchDto;
 import aoms.pm.cast.dto.WaitPsgDto;
 
-/**
- * @Classname   : CastSmltMapper.java
- * @Description :  Cast 시뮬레이션 Mapper
- *
- * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
- * <pre>
- *------------------------------------------------------------------------------
- * Modification Information
- *------------------------------------------------------------------------------
- * 수정일 / 수정자 /수정내용
- * ----------  ------  ---------------------------------------------------------
- * 2026. 03. 12 / 노세찬 / 최초작성
- *------------------------------------------------------------------------------
- *
- * </pre>
- */
 @Mapper
 public interface CastSmltMapper {
-	List<SmltStngDto> retrieveSmltStng(SmltStngSearchDto searchDto);
+    List<SmltStngDto> retrieveSmltStng(SmltStngSearchDto searchDto);
 
-	List<WaitPsgDto> retrieveWaitPsgList(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId, @Param("upPsgFcltCdList") List<String> upPsgFcltCdList);
+    List<WaitPsgDto> retrieveWaitPsgList(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId, @Param("upPsgFcltCdList") List<String> upPsgFcltCdList);
 
-	SmltKpiRawDto retrieveSmltKpiRaw(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId, @Param("upPsgFcltCdList") List<String> upPsgFcltCdList);
+    SmltKpiRawDto retrieveSmltKpiRaw(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId, @Param("upPsgFcltCdList") List<String> upPsgFcltCdList);
 
-	int retrieveUserSmltCondFilledCnt(@Param("smltId") String smltId);
+    void insertSmltFlfmtHstry(SmltExcnDto dto);
 
-	String retrieveUserSmltSaveDt(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
+    SmltExcnDto retrieveSmltFlfmt(@Param("smltId") String smltId);
 
-	int retrieveNextSmltFlfmtSn(@Param("smltId") String smltId);
+    List<SmltExcnDto> retrieveSmltFlfmtList(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);
 
-	void insertSmltFlfmtHstry(SmltExcnDto dto);
-
-	int updateSmltFlfmtClosed(@Param("smltId") String smltId, @Param("smltFlfmtSn") int smltFlfmtSn, @Param("smltFlfmtSttsCd") String smltFlfmtSttsCd);
-
-	SmltExcnDto retrieveSmltFlfmt(@Param("smltId") String smltId, @Param("smltFlfmtSn") Integer smltFlfmtSn);
-
-	List<SmltExcnDto> retrieveSmltFlfmtList(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);
-
-	SmltExcnCntRawDto retrieveSmltFlfmtSmry(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);
+    SmltExcnCntRawDto retrieveSmltFlfmtSmry(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);
 }
