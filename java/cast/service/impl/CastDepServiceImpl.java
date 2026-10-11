@@ -119,16 +119,22 @@ public class CastDepServiceImpl implements CastDepService {
 
     private List<DepGateDto> getGateList(UserSmltDepSearchDto scope, String fcltTmnlId) {
         if (!executionService.hasSaved(scope, "DEP")) return getBaseGateList(scope.getYmd(), fcltTmnlId);
-        Map<String, String> names = castDepMapper.retrieveDepFcltList(fcltTmnlId).stream()
+        Map<String, String> names = getDepFcltList(fcltTmnlId).stream()
             .collect(Collectors.toMap(DepFcltRawDto::getDptgtNo, DepFcltRawDto::getDptgtNm));
         List<DepGateDto> saved = new ArrayList<>(getSavedGateMap(scope).values());
         saved.forEach(gate -> gate.setDptgtNm(names.getOrDefault(gate.getDptgtNo(), gate.getDptgtNo())));
         return saved;
     }
 
-    private List<DepGateDto> getBaseGateList(String ymd, String fcltTmnlId) {
+    // LGT 시설은 출국장 아래 레인 단위로 등록돼 같은 DPTGT_NO 가 여러 행 나온다. 출국장 화면과 같이 첫 행을 쓴다.
+    private List<DepFcltRawDto> getDepFcltList(String fcltTmnlId) {
+        return new ArrayList<>(castDepMapper.retrieveDepFcltList(fcltTmnlId).stream()
+                .collect(Collectors.toMap(DepFcltRawDto::getDptgtNo, fclt -> fclt, (first, ignored) -> first, LinkedHashMap::new))
+                .values());
+    }
 
-        List<DepFcltRawDto> fcltList = castDepMapper.retrieveDepFcltList(fcltTmnlId);
+    private List<DepGateDto> getBaseGateList(String ymd, String fcltTmnlId) {
+        List<DepFcltRawDto> fcltList = getDepFcltList(fcltTmnlId);
         Map<String, List<DepOperHrRawDto>> operHrMap = castOperHrService
                 .retrieveDepOperHrMap(fcltTmnlId, ymd);
         Map<String, Integer> scCntMap = castDepMapper
