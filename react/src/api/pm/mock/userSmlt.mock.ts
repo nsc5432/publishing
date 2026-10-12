@@ -157,9 +157,9 @@ function buildChkn(tmnlId: TmnlId): UserSmltChknDto {
     };
 }
 
-type DepSeed = [string, number, number, boolean, number, number, number, Array<[number, number, number]>];
+type DepSeed = [string, number, number, boolean, number, number, number];
 
-function toDptgt([dptgtNo, operBgngHour, operEndHour, off, scshCntom, gnrlSrchCntom, smartPassSrchCntom, plans]: DepSeed): UserSmltDepItemDto {
+function toDptgt([dptgtNo, operBgngHour, operEndHour, off, scshCntom, gnrlSrchCntom, smartPassSrchCntom]: DepSeed): UserSmltDepItemDto {
     return {
         dptgtNo,
         dptgtNm: `출국장 ${dptgtNo}`,
@@ -168,77 +168,21 @@ function toDptgt([dptgtNo, operBgngHour, operEndHour, off, scshCntom, gnrlSrchCn
         gnrlSrchCntom,
         smartPassSrchCntom,
         oprTimeList: [{ operBgngHour, operEndHour }],
-        planList: plans.map(([planBgn, planEnd, cnt], i) => ({
-            planSn: i + 1,
-            operBgngHour: planBgn,
-            operEndHour: planEnd,
-            scshCntom: cnt,
-        })),
     };
 }
 
 const DPTGT_GATES: Record<TmnlId, DepSeed[]> = {
     T1: [
-        [
-            '1',
-            5,
-            18,
-            false,
-            8,
-            3,
-            2,
-            [
-                [5, 12, 6],
-                [12, 18, 8],
-            ],
-        ],
-        ['2', 6, 21, true, 6, 2, 1, [[6, 21, 6]]],
-        [
-            '3',
-            6,
-            21,
-            false,
-            6,
-            2,
-            2,
-            [
-                [6, 14, 4],
-                [14, 21, 6],
-            ],
-        ],
-        [
-            '4',
-            6,
-            20,
-            false,
-            10,
-            3,
-            2,
-            [
-                [6, 8, 4],
-                [8, 12, 10],
-                [12, 16, 8],
-                [16, 20, 6],
-            ],
-        ],
-        ['5', 7, 20, true, 4, 2, 1, [[7, 20, 4]]],
-        ['6', 7, 19, false, 4, 2, 1, [[7, 19, 4]]],
+        ['1', 5, 18, false, 8, 3, 2],
+        ['2', 6, 21, true, 6, 2, 1],
+        ['3', 6, 21, false, 6, 2, 2],
+        ['4', 6, 20, false, 10, 3, 2],
+        ['5', 7, 20, true, 4, 2, 1],
+        ['6', 7, 19, false, 4, 2, 1],
     ],
     T2: [
-        [
-            '1',
-            7,
-            21,
-            false,
-            5,
-            3,
-            1,
-            [
-                [7, 13, 4],
-                [13, 21, 5],
-            ],
-        ],
-        ['2', 7, 20, true, 4, 2, 1, [[7, 20, 4]]],
+        ['1', 7, 21, false, 5, 3, 1],
+        ['2', 7, 20, true, 4, 2, 1],
     ],
 };
 
@@ -258,9 +202,9 @@ function peakScshCntom(dptgtList: UserSmltDepItemDto[]): number {
     dptgtList
         .filter((dep) => dep.oprYn === 'Y')
         .forEach((dep) => {
-            dep.planList.forEach((plan) => {
-                for (let hour = plan.operBgngHour; hour < plan.operEndHour; hour += 1) {
-                    byHour[hour] += plan.scshCntom;
+            dep.oprTimeList.forEach((time) => {
+                for (let hour = time.operBgngHour; hour < time.operEndHour; hour += 1) {
+                    byHour[hour] += dep.scshCntom;
                 }
             });
         });

@@ -18,6 +18,8 @@
 | executeUserSmlt | ymd, fltPsgList, chknList, depList | 새 smltId, smltReqId, RUNNING, 빈 실제 시작 시각 |
 
 저장 요청의 smltId와 실행 응답의 smltFlfmtSn을 제거했다. 나머지 기존 DTO 필드·enum 값은 유지한다.
+2026-10-12에 출국장 조회·저장의 planList(ScPlanDto)를 삭제했다. 보안검색대는 출국장별 scshCntom 하나이고
+peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓값이다.
 실행의 세 배열은 **변경한 터미널·영역만** 담는다. 빠진 영역은 기존 저장 조건 또는 운영자료를 읽는다.
 같은 배열에 터미널을 중복 전달하면 실패한다. 각 편집 항목의 날짜는 실행의 ymd로 강제한다.
 
@@ -41,20 +43,40 @@
 - 현재상태 키: OWNER_USER_ID + EXCN_YMD + TMNL_ID + 기존 시설 식별축.
 - TN_PM_SMLT_CURRENT_SAVE는 영역별 저장 사실과 시각을 보존한다. 저장한 빈 배열과 미저장을 구분한다.
 - 공통 채번은 TN_PM_SMLT_ID_LOCK의 EXECUTION 행을 FOR UPDATE하고 마스터 전체 MAX+1을 읽는다.
+  같은 잠금 안에서 RSRC_FS·RSRC_PS 행의 LAST_NO로 리소스 번호를 순환 할당한다.
   신규 번호는 00000001부터 99999999까지이며, 빈 테이블·상한 초과를 처리한다.
   이관 시 기존 숫자 1~8자리 ID는 그대로 보존하고 신규 번호만 8자리로 정규화한다.
 - 신규 사용자 요청 ID는 WI + 공통 ID다. 호환 RSLT_SMLT_ID도 결과 연결 후 같은 ID를 가리킨다.
   회차는 런타임 DTO·mapper·목업에서 제거했다. 구 회차는 이관 감사 대응표에서만 남긴다.
-- 양 터미널의 조건을 JSON과 정규화 EX_* 7종에 고정한다. 이후 편집은 과거 실행을 바꾸지 않는다.
+- 양 터미널의 조건을 JSON(TN_PM_SMLT_COND_SNAPSHOT)에 고정하고, 같은 확정 DTO를 발행에 직접 넘긴다.
+  발행 SQL은 DTO를 인라인 행(WITH … FROM DUAL UNION ALL)으로 받아 전송 테이블에 넣고, 발행 중
+  USER_* 를 다시 읽지 않는다. 중간 정규화 테이블은 두지 않는다. 이후 편집은 과거 실행을 바꾸지 않는다.
+- 항공사 없는 체크인 부스는 발행용 행에서만 뺀다. 조건 JSON은 화면이 본 값 그대로다.
+- 사용자 DepartureGate는 확정 DEP 조건의 운영구간마다 1행이다(운영 Y). 시각은 ATRB의
+  OPER_BGNG_HM·OPER_END_HM(HHMM, 24시는 2359), 날짜는 FS 그룹 일자다. 이 칸이 빈 일일(001) 행만
+  운영계 출국장 운영시간을 조인한다. sideDoor·facialRecognition은 NVL(' ')로 배열 길이를 맞춘다.
+- SecurityControl은 일일·사용자 모두 시각 없이 수량만 보낸다. 사용자는 운영 Y이고 scshCntom > 0인
+  출국장마다 1행이다. 시간별 계획(TN_PM_SMLT_SCSH_OPER_PLAN)은 화면·계약·저장에서 폐지했다.
 - TN_PM_SMLT_INPUT_BASE는 이전 결과 조회를 대체하는 날짜 유효 설정이다. 동일 날짜의 활성 행이
   여러 개면 selectOne이 실패하므로 운영자가 유효기간을 겹치지 않게 등록해야 한다.
-  모델·PropertySet·서비스시간·체크인유형은 필수이며 실제 모델 파일·XML 입력 내용도 검사한다.
-- 입력 XML은 실행별로 보존한다. 공유 입력은 원본ID_U실행ID로 제공하고 입력 사이의 참조도 치환한다.
-  REQ_GetResource는 먼저 보존 XML을 읽는다. regular / express 모델을 구분하여 capture한다.
-- 002~999는 실행 ID와 별개인 전송 번호다. 한 요청이 FS·CA·SBD·시설운영에 같은 번호를 쓴다.
-  기존 요청 또는 lease에 등장한 번호는 반환하지 않는다. 기존 실행을 덮어쓰지 않기 위한 보수 정책이다.
-  신규 환경에서도 총 998회 이후 등록이 실패한다. 영구 운영 전에 아래 재사용 계약을 먼저 확정해야 한다.
-- 사용자 결과는 영구 점유 FS 후보와 확인 가능한 WI 토큰으로 유일하게 식별하고 날짜·모델·입력 ID를 대조한다.
+  모델·PropertySet·서비스시간·체크인유형·입국심사·환승보안은 필수이며 실제 모델 파일·XML 입력 내용도 검사한다.
+  원천 ID는 일일 Auto 조합과 같게 둔다. 초기 행은 2026-10-11-user-smlt-input-base-seed.sql로 등록한다.
+- 002~999는 실행 ID와 별개인 전송 번호다. 한 요청이 FS·CA·SBD·DepartureGate·SecurityControl·
+  Immigration·TransferSecurityControl 7종에 같은 번호를 쓴다. 입국심사·환승보안은 INPUT_BASE 원천(001) 행을
+  번호로 복사한다(렌더 SQL이 번호로 FS 그룹 일자를 찾기 때문).
+- 번호는 마지막 할당 번호 다음부터 002→…→999→002로 순환한다. 소유 실행(lease, lease 없는 기존 요청은
+  FLT_SCHDL_RSRC_ID)이 New/Executing이면 건너뛰고 Finished/Failed면 lease 소유 실행을 UPDATE해 재사용한다.
+  재사용 번호의 전송 7쌍은 상세→마스터 DELETE 후 INSERT한다. 전 번호가 진행 중일 때만 등록이 실패한다.
+  New/Executing에 멈춘 실행은 번호를 계속 점유하며 자동 해제하지 않는다.
+- PropertySet은 실행마다 PS500~998 중 하나를 FS와 독립 순환으로 받는다(001 기준정보, 002~499 Cast 설정
+  카테고리, 999 전처리 결과와 분리). INPUT_BASE 원천 PS를 렌더해 SBD·DepartureGate·SecurityControl·Immigration·
+  TransferSecurityControl 참조만 이 실행의 FS 번호로 바꾸고 ID를 PS5xx로 바꿔 XML로만 보관한다.
+- 모델·서비스시간·체크인유형·출국심사·리포팅은 원본 ID 그대로 요청에 넣는다. 등록~CAST 수집 사이 원본이
+  바뀌지 않는다는 운영 가정(2026-10-12)으로 `_U` 가상 ID를 폐지했다. INPUT_SNAPSHOT에는 원본 ID 리소스도
+  실행별 기록으로 남기지만(PK SMLT_ID+유형+ID) REQ_GetResource 응답에는 **현재 lease 소유 실행의 번호 리소스·
+  PS5xx 행만** 쓴다. 리소스 목록은 PS lease의 PS5xx만 추가로 내보낸다.
+- 사용자 결과는 FS 후보를 WI 토큰으로 먼저 좁혀 유일하게 식별하고 날짜·모델·입력 ID를 대조한다.
+  번호가 순환하므로 FS 번호나 현재 lease만으로 실행을 고르지 않는다.
   입력 누락·불일치, 여러 WI 토큰, 여러 후보, 실패 종료 요청은 임의로 연결하지 않는다.
 - 원문과 SHA-256 hash를 REQUIRES_NEW 수신함에 먼저 저장한다. 결과 저장이 롤백되어도 원문·오류는 남는다.
   원천 식별키가 같고 hash가 같으면 재수신 성공으로 처리하고, hash가 다르면 격리한다.
@@ -72,14 +94,14 @@
 
 1. 같은 실행의 모델·터미널 결과가 RunID·계획/실제 시각·FS를 공유하는지, 다른 실행이 같은 키를 쓰지 않는지.
    RunID가 모델마다 다르면 현재 키는 분리 실행이 되므로 적용 전에 그룹 함수를 고쳐야 한다.
-2. ModelResourceID 및 모든 입력 ID가 발행한 가상 ID 그대로 돌아오는지.
-   PropertySet의 체크인유형 참조, 모델 안의 입력 참조, ResourceInformation 목록 요구 여부도 확인한다.
+2. ModelResourceID 및 모든 입력 ID(PS5xx, 번호 입국심사·환승보안 포함)가 발행한 ID 그대로 돌아오는지.
+   PropertySet의 체크인유형 참조, 모델 안의 입력 참조, ResourceInformation 목록 대조 여부도 확인한다.
 3. StartTime은 대상일자, SimulationStart/StopTime은 실제 수행시각이라는 의미와 시간대.
 4. 사용자 요청이 단일 모델 전체 결과인지, 다중 모델 각각인지와 전체 완료를 판정할 수 있는 신호.
    현재 사용자 설정은 요청당 모델 하나다. 다중 모델 요청 계약이 확인되면 기대 모델 집합·완료 집계를 추가한다.
 5. 상태 통보 후 결과 지연·중복·역순·부분 응답과 재전송 결과의 문자열 차이.
-6. 전송 번호 재사용 시 늦은 결과가 새 요청과 혼동되지 않을 식별자가 반드시 왕복하는지.
-   확인 전 lease를 지우거나 요청 기록을 지워 번호를 반환하지 않는다.
+6. 전송 번호가 순환 재사용되므로 늦은 결과가 새 요청과 혼동되지 않게 WI 식별자가 결과에 왕복하는지.
+   WI 없이 FS 후보가 여럿이면 결과는 연결되지 않고 수신함에 실패 사유가 남는다.
 7. GO FS 부속 컬럼 9개의 NULL 처리, 키오스크 기기 ID 앞 한 자=아일랜드 가정 및 4자리 한도,
    EMI/IMMI 실제 의미와 운영자료 날짜 범위.
 
@@ -95,6 +117,10 @@
 2. 기존 New/Executing 요청을 정상 완료시킨다. 화면 저장·실행뿐 아니라 CAST polling·상태·결과 수신을
    모두 중단하고 DB 쓰기가 정지했음을 확인한다. **stage 시작부터 새 서비스 개방까지 정지를 유지한다.**
 3. master-stage.sql을 실행한다. 원본 7종·요청·회차 이력을 *_LGC에 보관하고 *_V2를 만든다.
+   보안검색대 시간별 계획은 *_LGC 백업만 하고 *_V2·이관을 하지 않는다(기존 scshCntom을 그대로 쓴다).
+   전송 7쌍의 사용자 번호(002~999) 행도 *_LGC로 백업한다. 기존 실행은 보관 XML이 없어 전송 테이블이
+   입력의 유일한 사본이고 번호 순환이 언젠가 덮기 때문이다. RSRC_FS 시작점은 기존 요청의 최대 FS 번호다.
+   preflight 로그에 FIX_ATRB_GROUP 500~998 행이 있었다면 cutover 전에 처리 방침을 정한다.
    조건은 최초 저장자·유일한 대상일자별로 분류하고 영역별 숫자 최대 ID의 부모·자식을 함께 선택한다.
    선택되지 않은 후보도 LGC와 LEGACY_COND_MAP에 남긴다.
 4. master-executions.sql을 실행한다. 기존 결과 ID는 보존하고, 결과 없는 요청은 잠금 하에서 새 공통 ID를
@@ -104,13 +130,15 @@
    V2 행도 함께 보정하고 실제 해결 내용·근거를 RESOLUTION에 기록한다.
    기존 사용자 실행의 확정 조건·불변 입력을 신뢰할 원본에서 복원한다. 현재 draft를 과거 조건이라고 복사하지 않는다.
    복원이 불가능하면 미확정 상태를 유지하며 cutover하지 않는다.
-6. INPUT_BASE를 모델·속성·설정의 실 ID와 날짜 유효기간으로 등록한다. 기존 결과에서 자동 추정하지 않는다.
+6. input-base-seed.sql로 INPUT_BASE를 등록한다. 모델·리포팅 ID는 실 DB·CAST 설정에서 확인한 값을 바인드한다.
    필요한 CAST 계약 검증을 마친다.
 7. master-verify.sql을 실행한다. 현재상태의 양방향 MINUS, 요청 전체 컬럼, master FK 후보,
-   양 터미널 6개 조건, 미확정 목록과 원본 합계를 검증한다. 별도 환경에서 API·CAST까지 검증한다.
+   양 터미널 6개 조건, 미확정 목록과 원본 합계, 리소스 번호 잠금 행, INPUT_BASE 3종(원천 생존·
+   전 기간 활성 1건·최근 일일 Auto 설정과 일치)을 검증한다. 별도 환경에서 API·CAST까지 검증한다.
 8. 검증 로그·백업·복구 리허설·계약 근거를 보존하고 MIGRATION_GATE의 CUTOVER에 근거 및 Y를 기록한다.
    master-cutover.sql은 미확정·활성 요청·원본 변경·매핑 누락이 있으면 중단한다.
    정상 시 원본을 *_OLD로 남기고 V2를 런타임 이름으로 전환한 뒤 FK를 추가한다.
+   TN_PM_SMLT_SCSH_OPER_PLAN은 대체 테이블 없이 *_OLD로만 남는다.
 9. 새 백엔드를 빌드·기동하고 화면/API를 검증한다. 비교 결과가 일치한 뒤 화면과 CAST 연계를 다시 개방한다.
    *_LGC, *_OLD, 대응표, 미확정 근거, 원천 수신함·입력 스냅샷은 삭제하지 않는다.
 

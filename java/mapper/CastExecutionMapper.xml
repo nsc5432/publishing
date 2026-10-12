@@ -41,15 +41,40 @@
     <select id="retrieveBaseSmltId" resultType="string">
         SELECT MAX(SMLT_ID) FROM PMOWN.TN_PM_SMLT_STNG WHERE EXCN_YMD = #{ymd} AND SMLT_TYPE = 'Auto'
     </select>
+    <!-- 마지막 번호 다음부터 순환하며 소유 실행이 New/Executing 이 아닌 첫 번호. lease 가 없는 기존 요청은 요청의 리소스 ID 로 판정한다 -->
     <select id="reserveRsrcNo" resultType="string">
-        SELECT MIN(RSRC_NO) FROM (
-            SELECT TO_CHAR(LEVEL + 1, 'FM000') RSRC_NO FROM DUAL CONNECT BY LEVEL &lt;= 998
-        ) N WHERE NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_RSRC_LEASE L WHERE L.RSRC_NO = N.RSRC_NO)
-        AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U WHERE U.FLT_SCHDL_RSRC_ID = 'FS' || N.RSRC_NO)
+        SELECT RSRC_NO FROM (
+            SELECT N.RSRC_NO
+            FROM (
+                SELECT TO_CHAR(#{minNo} + LEVEL - 1, 'FM000') RSRC_NO FROM DUAL CONNECT BY LEVEL &lt;= #{maxNo} - #{minNo} + 1
+            ) N
+            CROSS JOIN (
+                SELECT NVL(MAX(TO_NUMBER(LAST_NO)), #{minNo} - 1) LAST_NO FROM PMOWN.TN_PM_SMLT_ID_LOCK WHERE LOCK_ID = 'RSRC_' || #{kind}
+            ) P
+            WHERE NOT EXISTS (
+                SELECT 1 FROM PMOWN.TN_PM_SMLT_RSRC_LEASE L
+                INNER JOIN PMOWN.TN_PM_SMLT_MSTR M ON M.SMLT_ID = L.SMLT_ID
+                WHERE L.RSRC_KIND = #{kind} AND L.RSRC_NO = N.RSRC_NO AND M.SMLT_STTS IN ('New', 'Executing')
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U
+                INNER JOIN PMOWN.TN_PM_SMLT_MSTR M ON M.SMLT_ID = U.SMLT_ID
+                WHERE DECODE(#{kind}, 'FS', U.FLT_SCHDL_RSRC_ID, 'PS', U.PRPT_STNG_RSRC_ID) = #{kind} || N.RSRC_NO
+                AND M.SMLT_STTS IN ('New', 'Executing')
+            )
+            ORDER BY MOD(MOD(TO_NUMBER(N.RSRC_NO) - P.LAST_NO - 1, #{maxNo} - #{minNo} + 1) + #{maxNo} - #{minNo} + 1, #{maxNo} - #{minNo} + 1)
+        ) WHERE ROWNUM = 1
     </select>
-    <insert id="assignRsrcNo">
-        INSERT INTO PMOWN.TN_PM_SMLT_RSRC_LEASE (RSRC_NO, SMLT_ID) VALUES (#{rsrcNo}, #{smltId})
-    </insert>
+    <update id="assignRsrcNo">
+        MERGE INTO PMOWN.TN_PM_SMLT_RSRC_LEASE T
+        USING (SELECT #{kind} RSRC_KIND, #{rsrcNo} RSRC_NO, #{smltId} SMLT_ID FROM DUAL) S
+        ON (T.RSRC_KIND = S.RSRC_KIND AND T.RSRC_NO = S.RSRC_NO)
+        WHEN MATCHED THEN UPDATE SET T.SMLT_ID = S.SMLT_ID
+        WHEN NOT MATCHED THEN INSERT (RSRC_KIND, RSRC_NO, SMLT_ID) VALUES (S.RSRC_KIND, S.RSRC_NO, S.SMLT_ID)
+    </update>
+    <update id="updateLastRsrcNo">
+        UPDATE PMOWN.TN_PM_SMLT_ID_LOCK SET LAST_NO = #{rsrcNo} WHERE LOCK_ID = 'RSRC_' || #{kind}
+    </update>
     <select id="retrieveResultId" resultType="string">
         SELECT SMLT_ID FROM PMOWN.TN_PM_SMLT_RESULT_IDENTITY WHERE SOURCE_KEY = #{sourceKey}
     </select>
@@ -83,8 +108,25 @@
         INSERT INTO PMOWN.TN_PM_SMLT_INPUT_SNAPSHOT (SMLT_ID, RESOURCE_TYPE, RESOURCE_ID, SOURCE_ID, PAYLOAD)
         VALUES (#{smltId}, #{type}, #{resourceId}, #{sourceId}, #{payload,jdbcType=CLOB})
     </insert>
+    <!-- 원본 ID 로 남긴 기록용 행은 내보내지 않는다. 번호 리소스·PS 는 현재 lease 소유 실행의 것만 -->
     <select id="retrieveInput" resultType="string">
-        SELECT PAYLOAD FROM PMOWN.TN_PM_SMLT_INPUT_SNAPSHOT WHERE RESOURCE_ID = #{resourceId} AND (RESOURCE_TYPE = #{type} OR (#{type} IN ('CASTModel', 'CASTExpressModel') AND RESOURCE_TYPE IN ('CASTModel', 'CASTExpressModel')))
+        SELECT S.PAYLOAD
+        FROM PMOWN.TN_PM_SMLT_INPUT_SNAPSHOT S
+        INNER JOIN PMOWN.TN_PM_SMLT_RSRC_LEASE L
+            ON  L.SMLT_ID = S.SMLT_ID
+            AND L.RSRC_KIND = DECODE(S.RESOURCE_TYPE, 'PropertySet', 'PS', 'FS')
+        WHERE S.RESOURCE_ID = #{resourceId}
+        AND S.RESOURCE_TYPE = #{type}
+        AND (
+            (L.RSRC_KIND = 'PS' AND S.RESOURCE_ID = 'PS' || L.RSRC_NO)
+            OR (L.RSRC_KIND = 'FS' AND S.RESOURCE_ID IN (
+                'FS' || L.RSRC_NO, 'CA' || L.RSRC_NO, 'SBD' || L.RSRC_NO,
+                'FacilityOpeningTable_DepartureGate' || L.RSRC_NO,
+                'FacilityOpeningTable_SecurityControl' || L.RSRC_NO,
+                'FacilityOpeningTable_Immigration' || L.RSRC_NO,
+                'FacilityOpeningTable_TransferSecurityControl' || L.RSRC_NO
+            ))
+        )
     </select>
     <select id="retrieveResultGroup" resultType="string">
         SELECT SMLT_ID FROM PMOWN.TN_PM_SMLT_RESULT_GROUP WHERE GROUP_KEY = #{groupKey}

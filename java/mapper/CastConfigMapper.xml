@@ -68,12 +68,13 @@
         )
     </insert>
 
+    <!-- 002~499 만 쓴다. 500~998 은 사용자 실행 전용 PropertySet(PS5xx) 번호다 -->
     <select id="retrieveAvailableCategoryId" resultType="string">
         SELECT LPAD(MIN(C.CATEGORY_NO), 3, '0')
         FROM (
             SELECT LEVEL + 1 AS CATEGORY_NO
             FROM DUAL
-            CONNECT BY LEVEL &lt;= 997
+            CONNECT BY LEVEL &lt;= 498
         ) C
         WHERE NOT EXISTS (
             SELECT 1

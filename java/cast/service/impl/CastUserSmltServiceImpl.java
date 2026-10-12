@@ -28,9 +28,6 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
     private final CastFltPsgService fltService;
     private final CastChknService chknService;
     private final CastDepService depService;
-    private final CastFltPsgMapper fltMapper;
-    private final CastChknMapper chknMapper;
-    private final CastDepMapper depMapper;
     private final SessionService sessionService;
 
     @Override
@@ -72,8 +69,9 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         master.setExcnYmd(request.getYmd());
         master.setSmltStts("New");
         executionMapper.insertMaster(master);
-        for (TerminalKind terminal : List.of(TerminalKind.T1, TerminalKind.T2)) freezeTerminal(id, request.getYmd(), terminal);
-        UserSmltRsrcSnapshotDto snapshot = castUserSnapshotService.publish(id, request.getYmd());
+        List<UserSmltFrozenDto> frozenList = new ArrayList<>();
+        for (TerminalKind terminal : List.of(TerminalKind.T1, TerminalKind.T2)) frozenList.add(freezeTerminal(id, request.getYmd(), terminal));
+        UserSmltRsrcSnapshotDto snapshot = castUserSnapshotService.publish(id, request.getYmd(), frozenList);
         SmltExcnDto history = new SmltExcnDto();
         SessionUtils.setUserContext(history, sessionService);
         history.setSmltId(id);
@@ -89,7 +87,7 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         result.setSmltFlfmtBgngDt(EMPTY);
         return result;
     }
-    private void freezeTerminal(String id, String ymd, TerminalKind terminal) {
+    private UserSmltFrozenDto freezeTerminal(String id, String ymd, TerminalKind terminal) {
         UserSmltFltPsgSearchDto fq = new UserSmltFltPsgSearchDto();
         fq.setYmd(ymd); fq.setTmnlId(terminal);
         UserSmltChknSearchDto cq = new UserSmltChknSearchDto();
@@ -106,27 +104,7 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         executionService.freeze(id, terminal.getFcltTmnlId(), "FLT_PSG", flt);
         executionService.freeze(id, terminal.getFcltTmnlId(), "CHKN", chkn);
         executionService.freeze(id, terminal.getFcltTmnlId(), "DEP", dep);
-        UserSmltFltPsgSaveDto fs = new UserSmltFltPsgSaveDto();
-        snapshotScope(fs, id, ymd, terminal); fs.setAjmtRt(flt.getAjmtRt());
-        fltMapper.insertUserFltPsg(fs);
-        UserSmltChknSaveDto cs = new UserSmltChknSaveDto();
-        snapshotScope(cs, id, ymd, terminal); cs.setIslandList(chkn.getIslandList());
-        for (ChknIslandDto island : cs.getIslandList()) {
-            island.setBoothList(island.getBoothList().stream().filter(booth -> booth.getAlnCd() != null && !booth.getAlnCd().isBlank()).collect(java.util.stream.Collectors.toList()));
-            island.setBoothCnt(island.getBoothList().size());
-        }
-        if (!cs.getIslandList().isEmpty()) chknMapper.insertUserChknIslandList(cs);
-        if (cs.getIslandList().stream().anyMatch(island -> !island.getOprTimeList().isEmpty())) chknMapper.insertUserChknOperHrList(cs);
-        if (cs.getIslandList().stream().anyMatch(island -> !island.getBoothList().isEmpty())) chknMapper.insertUserChknBoothList(cs);
-        UserSmltDepSaveDto ds = new UserSmltDepSaveDto();
-        snapshotScope(ds, id, ymd, terminal); ds.setDptgtList(dep.getDptgtList());
-        if (!ds.getDptgtList().isEmpty()) depMapper.insertUserDepList(ds);
-        if (ds.getDptgtList().stream().anyMatch(gate -> !gate.getOprTimeList().isEmpty())) depMapper.insertUserDepOperHrList(ds);
-        if (ds.getDptgtList().stream().anyMatch(gate -> !gate.getPlanList().isEmpty())) depMapper.insertUserScPlanList(ds);
-    }
-    private void snapshotScope(UserSmltCurrentDto dto, String id, String ymd, TerminalKind terminal) {
-        dto.setYmd(ymd); dto.setTmnlId(terminal);
-        executionService.scope(dto); dto.setSnapshotSmltId(id);
+        return new UserSmltFrozenDto(terminal, flt, chkn, dep);
     }
     private <T> List<T> list(List<T> values) { return values == null ? List.of() : values; }
     private void validateEdits(List<? extends UserSmltCurrentDto> edits, String ymd) {

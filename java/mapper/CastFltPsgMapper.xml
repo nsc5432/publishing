@@ -58,8 +58,8 @@
 
     <insert id="insertUserFltPsg" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
 
-        INSERT INTO <choose><when test="snapshotSmltId != null">PMOWN.TN_PM_SMLT_EX_FLT_PSG_AJMT</when><otherwise>PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT</otherwise></choose> (
-            <choose><when test="snapshotSmltId != null">SMLT_ID,</when><otherwise>OWNER_USER_ID, EXCN_YMD,</otherwise></choose>
+        INSERT INTO PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT (
+            OWNER_USER_ID, EXCN_YMD,
             TMNL_ID,
             AJMT_TYPE_CD,
             AJMT_RT,
@@ -67,7 +67,7 @@
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
-            <choose><when test="snapshotSmltId != null">#{snapshotSmltId},</when><otherwise>#{loginUserId}, #{ymd},</otherwise></choose>
+            #{loginUserId}, #{ymd},
             #{fcltTmnlId},
             'RATIO',
             #{ajmtRt},

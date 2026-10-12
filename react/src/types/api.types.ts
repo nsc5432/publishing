@@ -433,13 +433,6 @@ export interface UserSmltChknSaveReq {
 
 /* --------- 출국장 탭 (보안 검색대 흡수) --------- */
 
-export interface ScPlanDto {
-    planSn: number;
-    operBgngHour: number;
-    operEndHour: number;
-    scshCntom: number;
-}
-
 export interface UserSmltDepItemDto {
     dptgtNo: string;
     dptgtNm: string;
@@ -448,7 +441,6 @@ export interface UserSmltDepItemDto {
     gnrlSrchCntom: number;
     smartPassSrchCntom: number;
     oprTimeList: OprTimeDto[];
-    planList: ScPlanDto[];
 }
 
 export interface UserSmltDepDto extends JsonResponse {
@@ -463,7 +455,7 @@ export interface UserSmltDepDto extends JsonResponse {
 export interface UserSmltDepSaveReq {
     ymd: string;
     tmnlId: TmnlId;
-    dptgtList: Array<Pick<UserSmltDepItemDto, 'dptgtNo' | 'oprYn' | 'oprTimeList' | 'gnrlSrchCntom' | 'smartPassSrchCntom' | 'scshCntom' | 'planList'>>;
+    dptgtList: Array<Pick<UserSmltDepItemDto, 'dptgtNo' | 'oprYn' | 'oprTimeList' | 'gnrlSrchCntom' | 'smartPassSrchCntom' | 'scshCntom'>>;
 }
 
 /* --------- 지도 보기 / 시뮬레이션 실행 --------- */

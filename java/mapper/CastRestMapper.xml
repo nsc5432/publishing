@@ -132,6 +132,22 @@
         WHERE DEL_YN = 'N'
              AND #{handleYn} = 1
         UNION ALL
+        SELECT 'PropertySet' ResourceType
+                  , S.RESOURCE_ID ResourceID
+                  , 'SYSTEM' Author
+                  , 'Property Set' Description
+                  , TO_CHAR(M.FRST_REG_DT,'YYYY-MM-DD')||'T'||TO_CHAR(M.FRST_REG_DT,'HH24:MI:SS') AS LastModified
+                  , 'cols_PropertySet' tableID
+           FROM PMOWN.TN_PM_SMLT_RSRC_LEASE L
+        INNER JOIN PMOWN.TN_PM_SMLT_INPUT_SNAPSHOT S
+             ON S.SMLT_ID = L.SMLT_ID
+            AND S.RESOURCE_TYPE = 'PropertySet'
+            AND S.RESOURCE_ID = 'PS'||L.RSRC_NO
+        INNER JOIN PMOWN.TN_PM_SMLT_MSTR M
+             ON M.SMLT_ID = L.SMLT_ID
+        WHERE L.RSRC_KIND = 'PS'
+             AND #{handleYn} = 1
+        UNION ALL
         SELECT 'GenericTable' ResourceType
                   , 'CheckinType'||A.CKNCT_TYPE_ATRB_ID ResourceID
                   , 'SYSTEM' Author
@@ -1537,7 +1553,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
         , SMLT_MDL_TYPE_CD AS smltMdlTypeCd
         , SMLT_EXCN_SE_CD smltExcnSeCd
       FROM PMOWN.TN_PM_SMLT_MDL
-      WHERE SMLT_MDL_EXPLN = NVL((SELECT SOURCE_ID FROM PMOWN.TN_PM_SMLT_INPUT_SNAPSHOT WHERE RESOURCE_TYPE IN ('CASTModel', 'CASTExpressModel') AND RESOURCE_ID = #{modelResourceID}), #{modelResourceID})
+      WHERE SMLT_MDL_EXPLN = #{modelResourceID}
     </select>
 
 <select id="checkFcltCd" parameterType="aoms.pm.cmmn.dto.SimRsltDto" resultType="String">
@@ -1911,40 +1927,52 @@ ORDER BY BlockID, DepArrTerminal, resourceID
 
     <select id="retrieveFcltyOpngTblDptg" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblDptgDto">
 
-        SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS terminal
+        SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID, A.FCLTY_OPNG_SN) AS terminal
              , LISTAGG(A.FCLT_SE_CD || 'G' || A.GATE_NO || CASE
                                                            WHEN A.FCLTY_TYPE_ID IS NOT NULL AND A.FCLTY_TYPE_ID = 'W'
                                                            THEN '-' || 'West'
                                                            WHEN A.FCLTY_TYPE_ID IS NOT NULL AND A.FCLTY_TYPE_ID = 'E'
                                                            THEN '-' || 'East'
                                                            ELSE ''
-                                                           END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS location
+                                                           END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID, A.FCLTY_OPNG_SN) AS location
              , REPLACE(LISTAGG(CASE
+                       WHEN A.OPER_BGNG_HM IS NOT NULL
+                       THEN TO_CHAR(TO_DATE(D.EXCN_YMD, 'YYYYMMDD'), 'YYYY-MM-DD') || 'T00:00:00.000'
                        WHEN B.OPER_BGNG_1_HR IS NOT NULL
                        THEN TO_CHAR(TO_DATE(B.BGNG_YMD, 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T00:00:00.000'
                        ELSE '1900-01-01T00:00:00.000'
-                       END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID), ' ', '') AS startDate
+                       END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID, A.FCLTY_OPNG_SN), ' ', '') AS startDate
             , REPLACE(LISTAGG(CASE
+                       WHEN A.OPER_BGNG_HM IS NOT NULL
+                       THEN '1899-12-30T' || TO_CHAR(TO_DATE(A.OPER_BGNG_HM || '00', 'HH24MISS'),'HH24:MI:SS') || '.000'
                        WHEN B.OPER_BGNG_1_HR IS NOT NULL
                        THEN '1899-12-30T' || TO_CHAR(TO_DATE(B.OPER_BGNG_1_HR || '00', 'HH24:MI:SS'),'HH24:MI:SS') || '.000'
                        ELSE '1899-12-30T00:00:00.000'
-                       END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID), ' ', '') AS startTime
+                       END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID, A.FCLTY_OPNG_SN), ' ', '') AS startTime
              , REPLACE(LISTAGG(CASE
+                       WHEN A.OPER_END_HM IS NOT NULL
+                       THEN TO_CHAR(TO_DATE(D.EXCN_YMD, 'YYYYMMDD'), 'YYYY-MM-DD') || 'T00:00:00.000'
                        WHEN B.OPER_END_1_HR IS NOT NULL
                        THEN TO_CHAR(TO_DATE(NVL(B.END_YMD,'21001231'), 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T00:00:00.000'
                        ELSE '2100-12-31T00:00:00.000'
-                       END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID), ' ', '') AS endDate
+                       END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID, A.FCLTY_OPNG_SN), ' ', '') AS endDate
              , REPLACE(LISTAGG(CASE
+                       WHEN A.OPER_END_HM IS NOT NULL
+                       THEN '1899-12-30T' || TO_CHAR(TO_DATE(A.OPER_END_HM || '00', 'HH24MISS'),'HH24:MI:SS') || '.000'
                        WHEN B.OPER_END_1_HR IS NOT NULL
                        THEN '1899-12-30T' || TO_CHAR(TO_DATE(B.OPER_END_1_HR || '00', 'HH24:MI:SS'),'HH24:MI:SS') || '.000'
                        ELSE '1899-12-30T23:59:00.000'
-                       END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID), ' ', '') AS endTime
-             , LISTAGG(A.SD_DR,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS sideDoor
-             , LISTAGG(A.FCLT_RCG,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS facialRecognition
-             , LISTAGG(A.FCLTY_CNT,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID) AS currentNumberofLanes
+                       END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID, A.FCLTY_OPNG_SN), ' ', '') AS endTime
+             , LISTAGG(NVL(A.SD_DR, ' '),',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID, A.FCLTY_OPNG_SN) AS sideDoor
+             , LISTAGG(NVL(A.FCLT_RCG, ' '),',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID, A.FCLTY_OPNG_SN) AS facialRecognition
+             , LISTAGG(A.FCLTY_CNT,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID, A.FCLTY_OPNG_SN) AS currentNumberofLanes
              , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_MSTR A WHERE USE_YN = 'Y' AND A.DPTGT_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTDG|FacilityOpeningTable_DepartureGate','')) AS LastModified
           FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB A
-          INNER JOIN (
+          CROSS JOIN (
+            SELECT REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{resourceID},'FOTDG|FacilityOpeningTable_DepartureGate','') GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '') AS EXCN_YMD
+            FROM DUAL
+          ) D
+          LEFT OUTER JOIN (
             SELECT *
             FROM (
                 SELECT
@@ -1977,10 +2005,12 @@ ORDER BY BlockID, DepArrTerminal, resourceID
                 GROUP BY TMNL_ID, FCLT_SE_CD
             )
           ) B
-            ON A.TMNL_ID = B.TMNL_ID
+            ON A.OPER_BGNG_HM IS NULL
+           AND A.TMNL_ID = B.TMNL_ID
            AND A.FCLT_SE_CD = B.FCLT_SE_CD
            AND A.GATE_NO = B.FCLTY_TYPE_ID
          WHERE A.DPTGT_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTDG|FacilityOpeningTable_DepartureGate','')
+           AND (A.OPER_BGNG_HM IS NOT NULL OR B.TMNL_ID IS NOT NULL)
     </select>
 
     <select id="retrieveFcltyOpngTblEmig" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblEmigDto">

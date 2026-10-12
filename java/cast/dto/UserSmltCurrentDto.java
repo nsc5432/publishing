@@ -13,5 +13,4 @@ public class UserSmltCurrentDto extends AomsDefaultDto {
     private String ymd;
     private TerminalKind tmnlId;
     @JsonIgnore private String fcltTmnlId;
-    @JsonIgnore private String snapshotSmltId;
 }

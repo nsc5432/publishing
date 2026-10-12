@@ -29,7 +29,6 @@ public class CastExecutionService {
         if (dto.getTmnlId() == null) throw new IllegalStateException("터미널을 지정해주세요.");
         validateYmd(dto.getYmd());
         dto.setFcltTmnlId(dto.getTmnlId().getFcltTmnlId());
-        dto.setSnapshotSmltId(null);
     }
     public void validateYmd(String ymd) {
         if (ymd == null || !ymd.matches("[0-9]{8}")) throw new IllegalStateException("대상 일자를 확인해주세요.");

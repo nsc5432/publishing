@@ -6,17 +6,15 @@ import { CountStepper } from '../../components/CountStepper';
 import { DetailDrawer, DrawerSection } from '../../components/DetailDrawer';
 import { TimeBar } from '../../components/TimeBar';
 import { TerminalPanel } from '../../components/TerminalPanel';
-import { formatHour, formatOperating, toHourList } from '../../format';
+import { formatHour, formatOperating } from '../../format';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
 import { TERMINALS, enabledTerminals, type BlockItem, type SmltTabProps, type TerminalKind } from '../../types';
-import { ScGrid } from './components/ScGrid';
 import type { DepartureGate } from './types';
-import { EMPTY_DEPARTURE, toDeparture, toHourArray, toPlans, toSaveReq } from './view';
+import { EMPTY_DEPARTURE, toDeparture, toSaveReq } from './view';
 
 type EditState = Record<TerminalKind, DepartureGate[]>;
-type ScState = Record<TerminalKind, Record<number, number[]>>;
 type SelectState = Record<TerminalKind, number | null>;
 type GateDrafts = Record<number, DepartureGate>;
 
@@ -27,7 +25,6 @@ interface DrawerState {
 }
 
 const EMPTY_EDIT: EditState = { T1: [], T2: [] };
-const EMPTY_SC: ScState = { T1: {}, T2: {} };
 const EMPTY_SELECT: SelectState = { T1: null, T2: null };
 const EMPTY_DRAFTS: Record<TerminalKind, GateDrafts> = { T1: {}, T2: {} };
 const GATE_NOS: Record<TerminalKind, number[]> = {
@@ -36,24 +33,6 @@ const GATE_NOS: Record<TerminalKind, number[]> = {
 };
 
 const fetchDep = (query: UserSmltQuery, tmnlId: TerminalKind) => userSmltService.getDepInfo(query, tmnlId);
-
-function toScState(gates: DepartureGate[]): Record<number, number[]> {
-    return Object.fromEntries(gates.map((gate) => [gate.no, toHourArray(gate)]));
-}
-
-function peakSc(gates: DepartureGate[], scCountsByGate: Record<number, number[]>): number {
-    const scByHour: number[] = Array(24).fill(0);
-    gates
-        .filter((gate) => !gate.off)
-        .forEach((gate) => {
-            const countsByHour = scCountsByGate[gate.no] ?? [];
-            toHourList(gate.ranges).forEach((hour) => {
-                scByHour[hour] += countsByHour[hour] ?? 0;
-            });
-        });
-
-    return Math.max(0, ...scByHour);
-}
 
 function toGateItems(gates: DepartureGate[]): BlockItem[] {
     return gates.map((gate) => ({
@@ -83,7 +62,6 @@ export function DepartureTab({
 }: SmltTabProps) {
     const { data: terminalData, error, token } = useTerminalData(query, reloadKey, fetchDep, toDeparture, '출국장 정보를 불러오지 못했습니다.');
     const [gatesByTerminal, setGatesByTerminal] = useState<EditState>(EMPTY_EDIT);
-    const [scCountsByTerminal, setScCountsByTerminal] = useState<ScState>(EMPTY_SC);
     const [drawer, setDrawer] = useState<DrawerState | null>(null);
     const [selected, setSelected] = useState<SelectState>(EMPTY_SELECT);
 
@@ -97,11 +75,7 @@ export function DepartureTab({
     const draft = openDrawer ? openDrawer.drafts[openDrawer.terminal][openDrawer.no] : null;
 
     useEffect(() => {
-        const t1Gates = terminalData.T1?.gates ?? [];
-        const t2Gates = terminalData.T2?.gates ?? [];
-
-        setGatesByTerminal({ T1: t1Gates, T2: t2Gates });
-        setScCountsByTerminal({ T1: toScState(t1Gates), T2: toScState(t2Gates) });
+        setGatesByTerminal({ T1: terminalData.T1?.gates ?? [], T2: terminalData.T2?.gates ?? [] });
         setDrawer(null);
         setSelected(EMPTY_SELECT);
     }, [terminalData]);
@@ -165,13 +139,7 @@ export function DepartureTab({
         setDrawer(null);
     };
 
-    const collectGates = (terminal: TerminalKind) =>
-        gatesByTerminal[terminal].map((original) => {
-            const gate = drawer?.drafts[terminal][original.no] ?? original;
-            const openHours = new Set(gate.off ? [] : toHourList(gate.ranges));
-            const counts = Array.from({ length: 24 }, (_, hour) => (openHours.has(hour) ? (scCountsByTerminal[terminal][gate.no]?.[hour] ?? 0) : 0));
-            return { ...gate, plans: toPlans(counts, gate.plans) };
-        });
+    const collectGates = (terminal: TerminalKind) => gatesByTerminal[terminal].map((gate) => drawer?.drafts[terminal][gate.no] ?? gate);
 
     useEffect(() => {
         onDraftChange('departure', () => ({
@@ -209,7 +177,6 @@ export function DepartureTab({
             {TERMINALS.map((terminal) => {
                 const panelData = terminalData[terminal] ?? EMPTY_DEPARTURE;
                 const gates = gatesByTerminal[terminal];
-                const scCountsByGate = scCountsByTerminal[terminal];
                 const terminalEnabled = enabled[terminal];
                 const operatingGates = gates.filter((gate) => !gate.off);
 
@@ -235,10 +202,6 @@ export function DepartureTab({
                                     <span className="summary__label">운영</span>
                                     <strong className="summary__value summary__value--accent">{operatingGates.length}</strong>
                                 </div>
-                                <div className="summary__group">
-                                    <span className="summary__label">피크 검색대</span>
-                                    <strong className="summary__value summary__value--accent">{peakSc(gates, scCountsByGate)}</strong>
-                                </div>
                             </>
                         }
                         footer={
@@ -256,11 +219,7 @@ export function DepartureTab({
                             gridLeft={GUTTER}
                             blockFontSize={13}
                             line={panelData.wait}
-                            footText={
-                                readOnly
-                                    ? '블럭을 클릭하면 아래 격자에서 그 출국장 줄이 켜집니다.'
-                                    : '블럭을 클릭하면 아래 격자에서 그 출국장 줄이 켜집니다. 줄 라벨을 클릭하면 출국장 속성을 편집합니다.'
-                            }
+                            footText={readOnly ? undefined : '블럭을 클릭해 출국장을 고르면 세부 설정이 그 출국장부터 열립니다.'}
                             actions={
                                 readOnly ? undefined : (
                                     <button type="button" className="bchart__act" disabled={!terminalEnabled} onClick={() => openDetail(terminal)}>
@@ -278,34 +237,11 @@ export function DepartureTab({
                             formatTip={(item, hour) => {
                                 const gate = gates.find((it) => String(it.no) === item.label);
                                 const range = gate?.ranges.find((it) => hour >= it.start && hour < it.end);
-                                const count = scCountsByGate[Number(item.label)]?.[hour] ?? 0;
                                 const when = range ? `${range.start}~${range.end}시` : `${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
 
-                                return `${item.label}번 출국장 · ${when} · 검색대 ${count}대`;
+                                return `${item.label}번 출국장 · ${when} · 보안검색대 ${gate?.scshCntom ?? 0}대`;
                             }}
                             disabled={!terminalEnabled}
-                        />
-
-                        <ScGrid
-                            gates={gates}
-                            value={scCountsByGate}
-                            onChange={(nextCounts) => {
-                                if (busy) return;
-                                dirty.current[terminal] = true;
-                                setScCountsByTerminal((previousCounts) => ({
-                                    ...previousCounts,
-                                    [terminal]: nextCounts,
-                                }));
-                            }}
-                            selected={selected[terminal]}
-                            onSelect={(no) =>
-                                setSelected((previousSelection) => ({
-                                    ...previousSelection,
-                                    [terminal]: no,
-                                }))
-                            }
-                            onLabelClick={(no) => openGate(terminal, no)}
-                            disabled={busy || !terminalEnabled || readOnly}
                         />
                     </TerminalPanel>
                 );
@@ -378,7 +314,7 @@ export function DepartureTab({
                             value={draft.smartPassSrchCntom}
                             onChange={(smartPassSrchCntom) => patchDraft({ smartPassSrchCntom })}
                         />
-                        <CountStepper label="보안검색대" sub="피크 시간대 기준" value={draft.scshCntom} onChange={(scshCntom) => patchDraft({ scshCntom })} />
+                        <CountStepper label="보안검색대" value={draft.scshCntom} onChange={(scshCntom) => patchDraft({ scshCntom })} />
                     </DrawerSection>
                 </DetailDrawer>
             )}

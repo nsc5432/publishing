@@ -8,12 +8,11 @@ import lombok.Setter;
 @Getter
 @Setter
 public class DepGateDto {
-	private String dptgtNo; // 출국장 번호
-	private String dptgtNm; // 출국장 표시명
-	private String oprYn; // 사용 / 미사용
-	private int scshCntom; // 검색대 대수 (피크 기준)
-	private int gnrlSrchCntom; // 일반 검색대 대수
-	private int smartPassSrchCntom; // 스마트패스 검색대 대수
-	private List<OprTimeDto> oprTimeList; // 출국장 운영시간 구간
-	private List<ScPlanDto> planList; // 보안검색대 운영계획 구간
+	private String dptgtNo;
+	private String dptgtNm;
+	private String oprYn;
+	private int scshCntom; // 출국장별 최종 보안검색대 수량. 시간 구분 없이 SC 리소스로 나간다
+	private int gnrlSrchCntom;
+	private int smartPassSrchCntom;
+	private List<OprTimeDto> oprTimeList;
 }

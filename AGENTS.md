@@ -75,6 +75,9 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
    - 2026-10-11 사용자 현재상태 요청은 `ymd + tmnlId`로 변경하고 편집용 `smltId`를 제거했다.
      실행 요청에 `fltPsgList`·`chknList`·`depList`를 추가하고 `smltFlfmtSn`은 제거했다.
      실행·공개 조건·결과의 `smltId`는 유지한다. 새 계약도 고정이며 상세는 §11과 API 문서를 따른다.
+   - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
+     삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
+     `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).
 2. **enum 문자열 값**
    `'T1'|'T2'` · `'Y'|'N'` · `'FREE'|'NORMAL'|'BUSY'|'VERY_BUSY'` ·
    `'CHKN'|'SLFCHKN'|'DEP'|'SC'|'CMRC'` · `'PSG'|'FLT'` · `'DAILY'|'USER'` ·
@@ -255,12 +258,13 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
 `TN_PM_SMLT_{PSG,SHOW_UP,SRVC}_ATRB` 를 따른다 — 이 세 테이블은 `FIX_ATRB_GROUP_ID` 가 PK 선두라
 **카테고리가 데이터의 1차 축**이고, '기준정보'와 '테스트정보'는 서로 다른 그룹 ID 일 뿐이다.
 
-**속성그룹 ID 중 두 개는 예약값이다.**
+**속성그룹 ID 중 두 개와 한 구간은 예약값이다.**
 
 | ID | 뜻 | 누가 쓰나 |
 |---|---|---|
 | `001` | 기준정보. CAST 가 `PS001` 로 읽어 가는 **일일 시뮬레이션의 실제 입력** | 화면에서 셀 직접 편집 불가. 운영 반영으로만 바뀐다 |
 | `999` | 전처리 결과. `data-processing/run_pipeline.py` 가 주단위로 전량 교체 | 읽기전용. 화면은 비교·반영에만 쓴다 |
+| `500~998` | 사용자 실행 전용 PropertySet `PS5xx` (§11.3). 그룹 행 없이 실행별 XML 로만 존재 | 카테고리 채번(`retrieveAvailableCategoryId`)은 `002~499` 만 쓴다 |
 
 - 체크인유형도 `TN_PM_SMLT_CKNCT_TYPE_ATRB` 하나에서 관리한다. `CKNCT_TYPE_ATRB_ID` 가 카테고리
   축이며 전처리 결과는 `999`, 운영 기준정보는 `001` 이다. `_PRC` 별도 테이블은 사용하지 않는다.
@@ -396,6 +400,9 @@ API·적용·복구 절차는 docs/user-smlt-master-redesign.md를 따른다.
 - 실행 API는 변경한 영역만 자동 저장하고, 나머지는 저장 조건→운영자료 순으로 채운다.
   두 터미널 확정·공통 ID·조건·입력 보존·이력·요청을 한 트랜잭션으로 처리한다.
   실패하면 자동 저장까지 롤백한다. 프런트는 방문 탭과 양 터미널의 미확정 편집을 유지한다.
+- 확정 조건은 JSON(COND_SNAPSHOT)으로만 남기고, **같은 DTO를 발행에 직접 넘긴다**. 발행 SQL은 DTO를
+  `<foreach>` 인라인 행(WITH … FROM DUAL UNION ALL)으로 받는다. 중간 정규화 테이블·GTT를 두지 않으며,
+  `EX_*`를 `USER_*`로 단순 치환하면 미저장 영역의 운영자료가 빠진다 (2026-10-12).
 - 화면의 터미널 선택은 편집 선택이다. 실행은 항상 T1·T2 전체다. 현재 HTTP 요청 처리 중만 잠그며
   다른 실행의 RUNNING 상태로 추가 실행을 막지 않는다.
 
@@ -404,14 +411,14 @@ API·적용·복구 절차는 docs/user-smlt-master-redesign.md를 따른다.
 | 이름 / 테이블 | 의미 |
 |---|---|
 | TN_PM_SMLT_MSTR.SMLT_ID | 공통 실행 1건. 사용자 등록 시, 일일 결과 수신 시 발급 |
-| TN_PM_SMLT_ID_LOCK | 고정 EXECUTION 행을 FOR UPDATE한 후 공통 MAX+1 채번 |
+| TN_PM_SMLT_ID_LOCK | 고정 EXECUTION 행을 FOR UPDATE한 후 공통 MAX+1 채번. RSRC_FS·RSRC_PS 행의 LAST_NO가 마지막 리소스 번호 |
+| TN_PM_SMLT_RSRC_LEASE | (RSRC_KIND FS/PS, RSRC_NO) → 현재 소유 실행. 번호 재사용 시 소유 실행을 UPDATE |
 | TN_PM_SMLT_USER_MSTR | CAST WhatIf 요청. 신규 요청 ID는 WI + 공통 8자리 ID |
 | TH_PM_SMLT_FLFMT_HSTRY | 같은 실행 ID로 관리하는 수행이력 |
 | TN_PM_SMLT_STNG | 같은 실행 ID 아래의 모델별 설정. PK는 (SMLT_ID, SMLT_MDL_SN) |
 | TN_PM_SMLT_RSLT_DTL(_REG_EXCL) | 같은 실행 ID의 상세·미매핑 결과 |
 | TN_PM_SMLT_COND_SNAPSHOT | 실행별 양 터미널·세 영역 JSON 확정 조건 |
-| TN_PM_SMLT_EX_* | 발행용 정규화 확정 조건 7종 |
-| TN_PM_SMLT_INPUT_SNAPSHOT | 실행별 CAST 입력 XML 원문 |
+| TN_PM_SMLT_INPUT_SNAPSHOT | 실행별 CAST 입력 XML 원문. PK (SMLT_ID, RESOURCE_TYPE, RESOURCE_ID) |
 | TN_PM_SMLT_INPUT_BASE | 결과 유무와 무관한 날짜 유효 기본 리소스 설정 |
 
 공통 ID는 숫자 8자리 신규 값을 사용하며 99999999를 넘기면 실패한다. 이관된 기존 1~8자리 숫자
@@ -425,17 +432,27 @@ CAST는 /castrest/rest/json/REQ_GetResourceInformation.do, REQ_GetResource.do,
 REQ_SetResource.do를 호출한다. 서버가 CAST를 호출하거나 선점하는 스케줄러를 두지 않는다.
 CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한다.
 
-- FS001 / CA001 / SBD001은 일일 운영자료다. 사용자 자료는 002~999 번호를 FS·CA·SBD·시설운영이 공유한다.
-  출국장 운영일자 조회가 FS 그룹을 사용하므로 타입별 번호를 분리하지 않는다.
-- 현재는 TN_PM_SMLT_RSRC_LEASE와 기존 요청이 사용한 번호를 재사용하지 않는다. 가용 번호가 없으면
-  전체 실행 등록을 실패시킨다. 신규 환경 최대 998회 한도이며 번호 반환·순환 재사용은 별도 계약 검증 전까지 금지한다.
-- 전송 테이블을 과거 보존 수단으로 삼지 않는다. 입력 XML을 보존하고 공유 모델·PropertySet·설정은
-  원본ID_U실행ID로 고정한다. 입력 간 참조도 같은 실행의 보존 ID로 치환한다.
+- FS001 / CA001 / SBD001은 일일 운영자료다. 사용자 자료는 002~999 번호를 FS·CA·SBD·DepartureGate·
+  SecurityControl·Immigration·TransferSecurityControl 7종이 공유한다. 출국장·입국심사·환승보안 렌더 SQL이
+  번호로 FS 그룹 일자를 찾으므로 타입별 번호를 분리하지 않는다. 입국심사·환승보안은 INPUT_BASE 원천(001)을 번호로 복사한다.
+- 번호는 002→…→999→002로 순환한다(2026-10-12). 소유 실행이 Finished/Failed면 재사용, New/Executing이면
+  건너뛴다. lease 없는 기존 요청은 FLT_SCHDL_RSRC_ID로 같은 판정을 한다. 전 번호가 진행 중일 때만 실패한다.
+  멈춘 실행은 번호를 계속 점유하며 자동 해제하지 않는다. 재사용 번호의 전송 7쌍은 DELETE 후 INSERT한다.
+- PropertySet은 실행마다 PS500~998 하나를 FS와 독립 순환으로 받는다. 원천 PS(001)를 렌더해 SBD·DepartureGate·
+  SecurityControl·Immigration·TransferSecurityControl 참조만 그 실행의 FS 번호로 바꾼 XML로만 보관한다
+  (FIX_ATRB_GROUP 행을 만들지 않는다). 모델·서비스시간·체크인유형·출국심사·리포팅은 원본 ID 그대로 요청에 넣는다.
+  원본(001 계열·모델)이 등록~CAST 수집 사이 바뀌지 않는다는 운영 가정으로 `_U` 가상 ID를 폐지했다.
+- REQ_GetResource는 INPUT_SNAPSHOT 중 **현재 lease 소유 실행의 번호 리소스·PS5xx 행만** 반환한다. 원본 ID로
+  남긴 기록용 행은 반환하지 않는다. 리소스 목록은 PS lease의 PS5xx만 추가로 내보낸다(LastModified = 마스터 등록시각).
 - CA 블록은 P01CKINInt / P01CKINDom / P03CKIN, SBD는 P01SBD / P03SBD,
   키오스크는 P01Self / P03Self다. 발행과 조회의 값이 같아야 한다.
   SBD AirlineCode는 ALN_CD가 아니라 CHKN_TYPE_DTL_INFO다.
 - 운항 조정은 국제선 출발 GREATEST(예약-환승,0) 몫만 늘린다. 조회와 발행의 필터·ROW_NUMBER를 맞춘다.
-- 모델·PropertySet·서비스시간·체크인유형 설정 및 실제 입력이 없으면 실행 등록을 실패시킨다.
+- 사용자 DepartureGate는 운영 Y 출국장의 운영구간마다 1행이고 시각을 ATRB의 OPER_BGNG_HM·OPER_END_HM
+  (HHMM, 24시는 2359)에 싣는다. 이 칸이 빈 행(일일 001)만 운영계 출국장 운영시간을 조인한다.
+  sideDoor·facialRecognition은 NVL(' ')로 감싸 배열 길이를 맞춘다.
+- SecurityControl은 일일·사용자 모두 시각 없이 수량만 보낸다. 사용자는 운영 Y·scshCntom > 0 출국장마다 1행.
+- 모델·PropertySet·서비스시간·체크인유형·입국심사·환승보안 설정 및 실제 입력이 없으면 실행 등록을 실패시킨다.
   운영자료가 없는 것과 사용자가 저장한 미운영 조건을 구분한다.
 
 ### 11.4 결과·상태·공개 조회
@@ -458,11 +475,13 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 
 참조 DDL은 사진 판독본이다. java/ddl/2026-10-11-user-smlt-preflight.sql로 실스키마·인덱스·코드·ID를 대조한다.
 이전 2026-08-27-user-smlt-alter.sql을 새 환경에 순서대로 적용하지 않는다.
-이관은 stage→executions→verify→cutover 순서이며, stage부터 CAST 및 화면 쓰기를 중단한다.
+이관은 stage→executions→input-base-seed→verify→cutover 순서이며, stage부터 CAST 및 화면 쓰기를 중단한다.
+stage는 전송 7쌍의 002~999 행을 *_LGC로 백업하고 RSRC_FS 시작점을 기존 요청의 최대 FS 번호로 둔다.
 원본·대응표·미확정 사유를 보존하고, 모든 미확정 건과 별도 환경 검증을 해결하기 전 cutover하지 않는다.
 
 실연계 검증 대상: GO FS 부속 9개 NULL 컬럼, 키오스크 기기 ID 앞 한 자=아일랜드 가정과 4자리 제약,
-EMI/IMMI 컬럼 의미, 모델/PropertySet 가상 ID 왕복, 결과 묶음 키·전체 완료 단위, 실제 시각/대상일자 의미다.
+EMI/IMMI 컬럼 의미, PS5xx·번호 입국심사/환승보안 리소스 왕복과 리소스 목록 대조 여부,
+결과 묶음 키·전체 완료 단위, 실제 시각/대상일자 의미다.
 Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증 DB에서 수행한다.
 
 ---

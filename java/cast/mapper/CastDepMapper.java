@@ -10,7 +10,6 @@ import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepGateDto;
 import aoms.pm.cast.dto.ScCntRawDto;
 import aoms.pm.cast.dto.UserDepOperHrRawDto;
-import aoms.pm.cast.dto.UserScPlanRawDto;
 import aoms.pm.cast.dto.UserSmltDepSaveDto;
 
 @Mapper
@@ -25,17 +24,11 @@ public interface CastDepMapper {
 
     List<UserDepOperHrRawDto> retrieveUserDepOperHrList(UserSmltCurrentDto scope);
 
-    List<UserScPlanRawDto> retrieveUserScPlanList(UserSmltCurrentDto scope);
-
     void deleteUserDepList(UserSmltDepSaveDto saveDto);
 
     void deleteUserDepOperHrList(UserSmltDepSaveDto saveDto);
 
-    void deleteUserScPlanList(UserSmltDepSaveDto saveDto);
-
     void insertUserDepList(UserSmltDepSaveDto saveDto);
 
     void insertUserDepOperHrList(UserSmltDepSaveDto saveDto);
-
-    void insertUserScPlanList(UserSmltDepSaveDto saveDto);
 }

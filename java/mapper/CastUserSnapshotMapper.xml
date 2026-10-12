@@ -28,6 +28,59 @@
         )
     </insert>
 
+    <!-- 확정 조건 인라인 행. 목록이 비어도 SQL 이 성립하도록 0행 seed 로 시작한다 -->
+    <sql id="fltAjmtRows">
+        SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS NUMBER) AS AJMT_RT FROM DUAL WHERE 1 = 0
+        <foreach collection="fltAjmtList" item="row">
+        UNION ALL SELECT #{row.tmnlId}, #{row.ajmtRt} FROM DUAL
+        </foreach>
+    </sql>
+
+    <sql id="chknIslRows">
+        SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
+               CAST(NULL AS NUMBER) AS KOS_CNT, CAST(NULL AS NUMBER) AS SBD_CNT
+        FROM DUAL WHERE 1 = 0
+        <foreach collection="chknIslList" item="row">
+        UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.kosCnt}, #{row.sbdCnt} FROM DUAL
+        </foreach>
+    </sql>
+
+    <sql id="chknOperHrRows">
+        SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
+               CAST(NULL AS NUMBER) AS OPER_HR_SN, CAST(NULL AS NUMBER) AS OPER_BGNG_HOUR, CAST(NULL AS NUMBER) AS OPER_END_HOUR
+        FROM DUAL WHERE 1 = 0
+        <foreach collection="chknOperHrList" item="row">
+        UNION ALL SELECT #{row.tmnlId}, #{row.fcltCd}, #{row.operHrSn}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
+        </foreach>
+    </sql>
+
+    <sql id="chknBoothRows">
+        SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
+               CAST(NULL AS NUMBER) AS BOOTH_NO, CAST(NULL AS VARCHAR2(3)) AS ALN_CD
+        FROM DUAL WHERE 1 = 0
+        <foreach collection="chknBoothList" item="row">
+        UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.boothNo}, #{row.alnCd} FROM DUAL
+        </foreach>
+    </sql>
+
+    <sql id="dptgtRows">
+        SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(2)) AS DPTGT_NO, CAST(NULL AS VARCHAR2(1)) AS OPER_YN,
+               CAST(NULL AS NUMBER) AS SCSH_CNTOM, CAST(NULL AS NUMBER) AS GNRL_SRCH_CNTOM, CAST(NULL AS NUMBER) AS SMART_PASS_SRCH_CNTOM
+        FROM DUAL WHERE 1 = 0
+        <foreach collection="dptgtList" item="row">
+        UNION ALL SELECT #{row.tmnlId}, #{row.dptgtNo}, #{row.oprYn}, #{row.scshCntom}, #{row.gnrlSrchCntom}, #{row.smartPassSrchCntom} FROM DUAL
+        </foreach>
+    </sql>
+
+    <sql id="dptgtOperHrRows">
+        SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(2)) AS DPTGT_NO,
+               CAST(NULL AS NUMBER) AS OPER_HR_SN, CAST(NULL AS NUMBER) AS OPER_BGNG_HOUR, CAST(NULL AS NUMBER) AS OPER_END_HOUR
+        FROM DUAL WHERE 1 = 0
+        <foreach collection="dptgtOperHrList" item="row">
+        UNION ALL SELECT #{row.tmnlId}, #{row.fcltCd}, #{row.operHrSn}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
+        </foreach>
+    </sql>
+
     <insert id="insertSchdlAtrbFromDaily" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
 
         INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB (
@@ -37,6 +90,9 @@
             BDPSG_CNT, TRNS_BDPSG_CNT, CRSL_NO, ARCFT_SUBTYPE_CD,
             IRR_FLT_YN, TDFLT_YN,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
+        )
+        WITH AJMT AS (
+            <include refid="fltAjmtRows"/>
         )
         SELECT
             #{rsrcNo}, X.DOM_INTL_SE_CD, X.ARR_DEP_SE_CD, X.TMNL_ID, X.ALN_CD,
@@ -62,9 +118,8 @@
                 A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.GD_IRR_YN AS IRR_FLT_YN, A.TDFLT_YN,
                 NVL((
                     SELECT NVL(F.AJMT_RT, 0)
-                    FROM PMOWN.TN_PM_SMLT_EX_FLT_PSG_AJMT F
-                    WHERE F.SMLT_ID = #{smltId}
-                    AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
+                    FROM AJMT F
+                    WHERE F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
                 ), 0) AS AJMT_RT,
                 ROW_NUMBER() OVER (
                     PARTITION BY A.ARR_DEP_SE_CD, A.FLTNM, A.GD_SE_YMD, A.SCHDL_HM
@@ -96,6 +151,9 @@
             FRST_BAG_INPUT_DT, LAST_BAG_INPUT_DT,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
+        WITH AJMT AS (
+            <include refid="fltAjmtRows"/>
+        )
         SELECT
             #{rsrcNo}, A.DOM_INTL_SE_CD, A.ARR_DEP_SE_CD, A.TMNL_ID, A.ALN_CD, A.ALN_CTGRY,
             A.FLTNM, A.DALY_FLTSH_ID, A.DEP_ARR_YMD, A.DEP_ARR_HM, A.PREDC_HM, A.ACTL_HM,
@@ -107,9 +165,8 @@
                     ELSE 0
                 END * NVL((
                     SELECT NVL(F.AJMT_RT, 0)
-                    FROM PMOWN.TN_PM_SMLT_EX_FLT_PSG_AJMT F
-                    WHERE F.SMLT_ID = #{smltId}
-                    AND F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
+                    FROM AJMT F
+                    WHERE F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
                 ), 0) / 100
             ),
             A.TRNS_BDPSG_CNT, A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.CKNCT_RANGE_CN,
@@ -127,6 +184,11 @@
             CRTR_YMD, CHKN_OPEN_PRNMNT_DT, CHKN_CLOSE_PRNMNT_DT, CHKN_TYPE_CD,
             CHKN_TYPE_DTL_INFO,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
+        )
+        WITH BOOTH AS (
+            <include refid="chknBoothRows"/>
+        ), OPER_HR AS (
+            <include refid="chknOperHrRows"/>
         )
         SELECT
             #{rsrcNo},
@@ -146,10 +208,9 @@
             'M',
             B.ALN_CD,
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM PMOWN.TN_PM_SMLT_EX_CHKN_BOOTH B
-            INNER JOIN PMOWN.TN_PM_SMLT_EX_CHKN_OPER_HR H
-                ON  H.SMLT_ID = B.SMLT_ID
-                AND H.TMNL_ID = B.TMNL_ID
+        FROM BOOTH B
+            INNER JOIN OPER_HR H
+                ON  H.TMNL_ID = B.TMNL_ID
                 AND H.CHKN_ISL_CD = B.CHKN_ISL_CD
             INNER JOIN (
                 SELECT
@@ -165,8 +226,7 @@
                 ON  C.TMNL_ID = B.TMNL_ID
                 AND C.CHKN_ISL_CD = B.CHKN_ISL_CD
                 AND C.BOOTH_NO = B.BOOTH_NO
-        WHERE B.SMLT_ID = #{smltId}
-        AND B.ALN_CD IS NOT NULL
+        WHERE B.ALN_CD IS NOT NULL
     </insert>
 
     <insert id="insertSbdAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
@@ -175,6 +235,13 @@
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD, CHKN_TYPE_DTL_INFO,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
+        )
+        WITH ISL AS (
+            <include refid="chknIslRows"/>
+        ), OPER_HR AS (
+            <include refid="chknOperHrRows"/>
+        ), BOOTH AS (
+            <include refid="chknBoothRows"/>
         )
         SELECT
             #{rsrcNo},
@@ -190,10 +257,9 @@
             'C',
             SUBSTR(A.ALN_CD_LIST, 1, 200),
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM PMOWN.TN_PM_SMLT_EX_CHKN_ISL I
-            INNER JOIN PMOWN.TN_PM_SMLT_EX_CHKN_OPER_HR H
-                ON  H.SMLT_ID = I.SMLT_ID
-                AND H.TMNL_ID = I.TMNL_ID
+        FROM ISL I
+            INNER JOIN OPER_HR H
+                ON  H.TMNL_ID = I.TMNL_ID
                 AND H.CHKN_ISL_CD = I.CHKN_ISL_CD
             INNER JOIN (
                 SELECT
@@ -211,20 +277,18 @@
                 AND C.DEVICE_NO &lt;= NVL(I.SBD_CNT, 0)
             LEFT OUTER JOIN (
                 SELECT
-                    SMLT_ID, TMNL_ID, CHKN_ISL_CD,
+                    TMNL_ID, CHKN_ISL_CD,
                     MIN(ALN_CD) AS ALN_CD,
                     LISTAGG(ALN_CD, ',') WITHIN GROUP (ORDER BY ALN_CD) AS ALN_CD_LIST
                 FROM (
-                    SELECT DISTINCT SMLT_ID, TMNL_ID, CHKN_ISL_CD, ALN_CD
-                    FROM PMOWN.TN_PM_SMLT_EX_CHKN_BOOTH
+                    SELECT DISTINCT TMNL_ID, CHKN_ISL_CD, ALN_CD
+                    FROM BOOTH
                     WHERE ALN_CD IS NOT NULL
                 )
-                GROUP BY SMLT_ID, TMNL_ID, CHKN_ISL_CD
+                GROUP BY TMNL_ID, CHKN_ISL_CD
             ) A
-                ON  A.SMLT_ID = I.SMLT_ID
-                AND A.TMNL_ID = I.TMNL_ID
+                ON  A.TMNL_ID = I.TMNL_ID
                 AND A.CHKN_ISL_CD = I.CHKN_ISL_CD
-        WHERE I.SMLT_ID = #{smltId}
     </insert>
 
     <insert id="insertSbdAtrbKiosk" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
@@ -233,6 +297,11 @@
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD, CHKN_TYPE_DTL_INFO,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
+        )
+        WITH ISL AS (
+            <include refid="chknIslRows"/>
+        ), OPER_HR AS (
+            <include refid="chknOperHrRows"/>
         )
         SELECT
             #{rsrcNo},
@@ -248,10 +317,9 @@
             'C',
             SUBSTR(C.ALN_CD_LIST, 1, 200),
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM PMOWN.TN_PM_SMLT_EX_CHKN_ISL I
-            INNER JOIN PMOWN.TN_PM_SMLT_EX_CHKN_OPER_HR H
-                ON  H.SMLT_ID = I.SMLT_ID
-                AND H.TMNL_ID = I.TMNL_ID
+        FROM ISL I
+            INNER JOIN OPER_HR H
+                ON  H.TMNL_ID = I.TMNL_ID
                 AND H.CHKN_ISL_CD = I.CHKN_ISL_CD
             INNER JOIN (
                 SELECT
@@ -268,26 +336,35 @@
                 ON C.TMNL_ID = I.TMNL_ID
                 AND C.CHKN_ISL_CD = I.CHKN_ISL_CD
                 AND C.DEVICE_NO &lt;= NVL(I.KOS_CNT, 0)
-        WHERE I.SMLT_ID = #{smltId}
     </insert>
 
     <insert id="insertDptgtAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
 
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB (
             DPTGT_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, FCLTY_CNT,
+            OPER_BGNG_HM, OPER_END_HM,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
+        )
+        WITH DPTGT AS (
+            <include refid="dptgtRows"/>
+        ), OPER_HR AS (
+            <include refid="dptgtOperHrRows"/>
         )
         SELECT
             #{rsrcNo},
-            ROW_NUMBER() OVER (ORDER BY D.TMNL_ID, D.DPTGT_NO),
+            ROW_NUMBER() OVER (ORDER BY D.TMNL_ID, D.DPTGT_NO, H.OPER_HR_SN),
             D.TMNL_ID,
             'D',
             D.DPTGT_NO,
             NVL(D.GNRL_SRCH_CNTOM, 0) + NVL(D.SMART_PASS_SRCH_CNTOM, 0),
+            LPAD(H.OPER_BGNG_HOUR, 2, '0') || '00',
+            LPAD(DECODE(H.OPER_END_HOUR, 24, 23, H.OPER_END_HOUR), 2, '0') || DECODE(H.OPER_END_HOUR, 24, '59', '00'),
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM PMOWN.TN_PM_SMLT_EX_DPTGT D
-        WHERE D.SMLT_ID = #{smltId}
-        AND D.OPER_YN = 'Y'
+        FROM DPTGT D
+            INNER JOIN OPER_HR H
+                ON  H.TMNL_ID = D.TMNL_ID
+                AND H.DPTGT_NO = D.DPTGT_NO
+        WHERE D.OPER_YN = 'Y'
     </insert>
 
     <insert id="insertScrtyCntrlAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
@@ -296,29 +373,48 @@
             SCRTY_CNTRL_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, FCLTY_CNT,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
+        WITH DPTGT AS (
+            <include refid="dptgtRows"/>
+        )
         SELECT
             #{rsrcNo},
-            ROW_NUMBER() OVER (ORDER BY X.TMNL_ID, X.DPTGT_NO, X.OPER_BGNG_HOUR),
-            X.TMNL_ID,
+            ROW_NUMBER() OVER (ORDER BY D.TMNL_ID, D.DPTGT_NO),
+            D.TMNL_ID,
             'D',
-            X.DPTGT_NO,
-            X.SCSH_CNTOM,
+            D.DPTGT_NO,
+            D.SCSH_CNTOM,
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM (
-            SELECT P.TMNL_ID, P.DPTGT_NO, P.OPER_BGNG_HOUR, NVL(P.SCSH_CNTOM, 0) AS SCSH_CNTOM
-            FROM PMOWN.TN_PM_SMLT_EX_SCSH_OPER_PLAN P
-            WHERE P.SMLT_ID = #{smltId}
+        FROM DPTGT D
+        WHERE D.OPER_YN = 'Y'
+        AND D.SCSH_CNTOM > 0
+    </insert>
 
-            UNION ALL
+    <!-- 입국심사·환승보안은 편집 영역이 아니지만 렌더 SQL 이 번호로 FS 그룹 일자를 찾으므로 원천을 번호로 복사한다 -->
+    <insert id="insertEntcnyAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
 
-            SELECT D.TMNL_ID, D.DPTGT_NO, 0 AS OPER_BGNG_HOUR, NVL(D.SCSH_CNTOM, 0) AS SCSH_CNTOM
-            FROM PMOWN.TN_PM_SMLT_EX_DPTGT D
-            WHERE D.SMLT_ID = #{smltId}
-            AND D.OPER_YN = 'Y'
-            AND NOT EXISTS (
-                SELECT 1 FROM PMOWN.TN_PM_SMLT_EX_SCSH_OPER_PLAN P
-                WHERE P.SMLT_ID = D.SMLT_ID AND P.TMNL_ID = D.TMNL_ID AND P.DPTGT_NO = D.DPTGT_NO
-            )
-        ) X
+        INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_ENTCNY_ATRB (
+            ENTCNY_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, FCLTY_TYPE_ID,
+            PSPRT, ENTCNY_TYPE_CD, FCLTY_CNT,
+            FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
+        )
+        SELECT
+            #{rsrcNo}, A.FCLTY_OPNG_SN, A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID,
+            A.PSPRT, A.ENTCNY_TYPE_CD, A.FCLTY_CNT,
+            #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
+        FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_ENTCNY_ATRB A
+        WHERE A.ENTCNY_ATRB_ID = REGEXP_REPLACE(#{srcFcltyOpngEntcnyRsrcId}, 'FOTI|FacilityOpeningTable_Immigration', '')
+    </insert>
+
+    <insert id="insertTrnstScrtyCntrlAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
+
+        INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_ATRB (
+            TRNST_SCRTY_CNTRL_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, FCLTY_TYPE_ID, FCLTY_CNT,
+            FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
+        )
+        SELECT
+            #{rsrcNo}, A.FCLTY_OPNG_SN, A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID, A.FCLTY_CNT,
+            #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
+        FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_ATRB A
+        WHERE A.TRNST_SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{srcFcltyOpngTrScrtyCntrlRsrcId}, 'FOTTSC|FacilityOpeningTable_TransferSecurityControl', '')
     </insert>
 </mapper>

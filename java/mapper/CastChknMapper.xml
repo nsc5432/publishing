@@ -124,8 +124,8 @@
 
         INSERT ALL
         <foreach collection="islandList" item="island">
-        INTO <choose><when test="snapshotSmltId != null">PMOWN.TN_PM_SMLT_EX_CHKN_ISL</when><otherwise>PMOWN.TN_PM_SMLT_USER_CHKN_ISL</otherwise></choose> (
-            <choose><when test="snapshotSmltId != null">SMLT_ID,</when><otherwise>OWNER_USER_ID, EXCN_YMD,</otherwise></choose>
+        INTO PMOWN.TN_PM_SMLT_USER_CHKN_ISL (
+            OWNER_USER_ID, EXCN_YMD,
             TMNL_ID,
             CHKN_ISL_CD,
             BOOTH_CNT,
@@ -135,7 +135,7 @@
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
-            <choose><when test="snapshotSmltId != null">#{snapshotSmltId},</when><otherwise>#{loginUserId}, #{ymd},</otherwise></choose>
+            #{loginUserId}, #{ymd},
             #{fcltTmnlId},
             #{island.island},
             #{island.boothCnt},
@@ -154,8 +154,8 @@
         INSERT ALL
         <foreach collection="islandList" item="island">
             <foreach collection="island.oprTimeList" item="oprTime" index="oprTimeIdx">
-        INTO <choose><when test="snapshotSmltId != null">PMOWN.TN_PM_SMLT_EX_CHKN_OPER_HR</when><otherwise>PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR</otherwise></choose> (
-            <choose><when test="snapshotSmltId != null">SMLT_ID,</when><otherwise>OWNER_USER_ID, EXCN_YMD,</otherwise></choose>
+        INTO PMOWN.TN_PM_SMLT_USER_CHKN_OPER_HR (
+            OWNER_USER_ID, EXCN_YMD,
             TMNL_ID,
             CHKN_ISL_CD,
             OPER_HR_SN,
@@ -165,7 +165,7 @@
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
-            <choose><when test="snapshotSmltId != null">#{snapshotSmltId},</when><otherwise>#{loginUserId}, #{ymd},</otherwise></choose>
+            #{loginUserId}, #{ymd},
             #{fcltTmnlId},
             #{island.island},
             #{oprTimeIdx} + 1,
@@ -185,8 +185,8 @@
         INSERT ALL
         <foreach collection="islandList" item="island">
             <foreach collection="island.boothList" item="booth">
-        INTO <choose><when test="snapshotSmltId != null">PMOWN.TN_PM_SMLT_EX_CHKN_BOOTH</when><otherwise>PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH</otherwise></choose> (
-            <choose><when test="snapshotSmltId != null">SMLT_ID,</when><otherwise>OWNER_USER_ID, EXCN_YMD,</otherwise></choose>
+        INTO PMOWN.TN_PM_SMLT_USER_CHKN_BOOTH (
+            OWNER_USER_ID, EXCN_YMD,
             TMNL_ID,
             CHKN_ISL_CD,
             BOOTH_NO,
@@ -196,7 +196,7 @@
             FRST_RGTR_IP_ADDR,
             FRST_REG_DT
         ) VALUES (
-            <choose><when test="snapshotSmltId != null">#{snapshotSmltId},</when><otherwise>#{loginUserId}, #{ymd},</otherwise></choose>
+            #{loginUserId}, #{ymd},
             #{fcltTmnlId},
             #{island.island},
             #{booth.boothNo},

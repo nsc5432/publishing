@@ -23,8 +23,9 @@ public interface CastExecutionMapper {
     void storeCondition(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId, @Param("area") String area, @Param("payload") String payload);
     String retrieveCondition(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId, @Param("area") String area);
     String retrieveBaseSmltId(@Param("ymd") String ymd);
-    String reserveRsrcNo(@Param("smltId") String smltId);
-    void assignRsrcNo(@Param("smltId") String smltId, @Param("rsrcNo") String rsrcNo);
+    String reserveRsrcNo(@Param("kind") String kind, @Param("minNo") int minNo, @Param("maxNo") int maxNo);
+    void assignRsrcNo(@Param("kind") String kind, @Param("rsrcNo") String rsrcNo, @Param("smltId") String smltId);
+    int updateLastRsrcNo(@Param("kind") String kind, @Param("rsrcNo") String rsrcNo);
     String retrieveResultId(@Param("sourceKey") String sourceKey);
     void insertResultIdentity(@Param("sourceKey") String sourceKey, @Param("smltId") String smltId, @Param("payloadHash") String payloadHash);
     String retrieveResultHash(@Param("sourceKey") String sourceKey);

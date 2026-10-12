@@ -18,11 +18,9 @@ import aoms.pm.cast.dto.DepOperHrRawDto;
 import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.OprTimeDto;
 import aoms.pm.cast.dto.ScCntRawDto;
-import aoms.pm.cast.dto.ScPlanDto;
 import aoms.pm.cast.dto.SmltKpiDto;
 
 import aoms.pm.cast.dto.UserDepOperHrRawDto;
-import aoms.pm.cast.dto.UserScPlanRawDto;
 import aoms.pm.cast.dto.UserSmltDepDto;
 import aoms.pm.cast.dto.UserSmltDepSaveDto;
 import aoms.pm.cast.dto.UserSmltDepSearchDto;
@@ -47,7 +45,6 @@ public class CastDepServiceImpl implements CastDepService {
     private static final String OPR_YN_N = "N";
     private static final int HOUR_PER_DAY = 24;
     private static final int PERCENT = 100;
-    private static final int FIRST_PLAN_SN = 1;
 
     private final CastSmltService castSmltService;
     private final CastOperHrService castOperHrService;
@@ -95,7 +92,6 @@ public class CastDepServiceImpl implements CastDepService {
         saveDto.setFcltTmnlId(saveDto.getTmnlId().getFcltTmnlId());
         saveDto.setDptgtList(normalizeDepList(saveDto.getDptgtList()));
 
-        castDepMapper.deleteUserScPlanList(saveDto);
         castDepMapper.deleteUserDepOperHrList(saveDto);
         castDepMapper.deleteUserDepList(saveDto);
 
@@ -108,10 +104,6 @@ public class CastDepServiceImpl implements CastDepService {
 
         if (saveDto.getDptgtList().stream().anyMatch(gate -> !gate.getOprTimeList().isEmpty())) {
             castDepMapper.insertUserDepOperHrList(saveDto);
-        }
-
-        if (saveDto.getDptgtList().stream().anyMatch(gate -> !gate.getPlanList().isEmpty())) {
-            castDepMapper.insertUserScPlanList(saveDto);
         }
 
         return new JsonResponse();
@@ -157,8 +149,6 @@ public class CastDepServiceImpl implements CastDepService {
 
         Map<String, List<UserDepOperHrRawDto>> operHrMap = castDepMapper.retrieveUserDepOperHrList(scope)
                 .stream().collect(Collectors.groupingBy(UserDepOperHrRawDto::getDptgtNo));
-        Map<String, List<UserScPlanRawDto>> planMap = castDepMapper.retrieveUserScPlanList(scope)
-                .stream().collect(Collectors.groupingBy(UserScPlanRawDto::getDptgtNo));
 
         for (DepGateDto saved : savedList) {
             saved.setDptgtNm(saved.getDptgtNo());
@@ -166,13 +156,6 @@ public class CastDepServiceImpl implements CastDepService {
                     .map(operHr -> new OprTimeDto()
                             .withOperBgngHour(operHr.getOperBgngHour())
                             .withOperEndHour(operHr.getOperEndHour()))
-                    .collect(toList()));
-            saved.setPlanList(planMap.getOrDefault(saved.getDptgtNo(), new ArrayList<>()).stream()
-                    .map(plan -> new ScPlanDto()
-                            .withPlanSn(plan.getPlanSn())
-                            .withOperBgngHour(plan.getOperBgngHour())
-                            .withOperEndHour(plan.getOperEndHour())
-                            .withScshCntom(plan.getScshCntom()))
                     .collect(toList()));
 
             result.put(saved.getDptgtNo(), saved);
@@ -202,7 +185,6 @@ public class CastDepServiceImpl implements CastDepService {
             gate.setGnrlSrchCntom(0);
             gate.setSmartPassSrchCntom(0);
             gate.setOprTimeList(oprTimeList);
-            gate.setPlanList(toPlanList(oprTimeList, scshCntom));
 
             result.add(gate);
         }
@@ -219,25 +201,6 @@ public class CastDepServiceImpl implements CastDepService {
                 .collect(toList());
     }
 
-    private List<ScPlanDto> toPlanList(List<OprTimeDto> oprTimeList, int scshCntom) {
-        List<ScPlanDto> result = new ArrayList<>();
-
-        if (oprTimeList.isEmpty()) {
-            return result;
-        }
-
-        int operBgngHour = oprTimeList.stream().mapToInt(OprTimeDto::getOperBgngHour).min().orElse(0);
-        int operEndHour = oprTimeList.stream().mapToInt(OprTimeDto::getOperEndHour).max().orElse(0);
-
-        result.add(new ScPlanDto()
-                .withPlanSn(FIRST_PLAN_SN)
-                .withScshCntom(scshCntom)
-                .withOperBgngHour(operBgngHour)
-                .withOperEndHour(operEndHour));
-
-        return result;
-    }
-
     private List<Integer> getOprScCntList(List<DepGateDto> dptgtList) {
         List<Integer> result = new ArrayList<>();
 
@@ -245,19 +208,11 @@ public class CastDepServiceImpl implements CastDepService {
             int hourValue = Integer.parseInt(hour);
             result.add(dptgtList.stream()
                     .filter(gate -> isOpr(gate, hourValue))
-                    .mapToInt(gate -> getScshCntom(gate, hourValue))
+                    .mapToInt(DepGateDto::getScshCntom)
                     .sum());
         }
 
         return result;
-    }
-
-    private int getScshCntom(DepGateDto gate, int hour) {
-        return gate.getPlanList().stream()
-                .filter(plan -> plan.getOperBgngHour() <= hour && hour < plan.getOperEndHour())
-                .mapToInt(ScPlanDto::getScshCntom)
-                .findFirst()
-                .orElse(0);
     }
 
     private boolean isOpr(DepGateDto gate, int hour) {
@@ -305,7 +260,6 @@ public class CastDepServiceImpl implements CastDepService {
         for (DepGateDto gate : result) {
             gate.setOprYn(OPR_YN_Y.equals(gate.getOprYn()) ? OPR_YN_Y : OPR_YN_N);
             gate.setOprTimeList(gate.getOprTimeList() != null ? gate.getOprTimeList() : new ArrayList<>());
-            gate.setPlanList(gate.getPlanList() != null ? gate.getPlanList() : new ArrayList<>());
         }
 
         return result;
