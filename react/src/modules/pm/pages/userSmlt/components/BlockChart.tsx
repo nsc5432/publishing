@@ -30,7 +30,6 @@ interface BlockChartProps {
     legend?: BlockLegend[];
     line?: WaitLineData;
     showScale?: boolean;
-    footText?: string;
     actions?: ReactNode;
     headExtra?: ReactNode;
     headActions?: ReactNode;
@@ -388,7 +387,6 @@ export function BlockChart({
     legend,
     line,
     showScale = true,
-    footText,
     actions,
     headExtra,
     headActions,
@@ -541,10 +539,9 @@ export function BlockChart({
                 </div>
             )}
 
-            {footText && (
+            {actions && (
                 <div className="bchart__foot">
-                    <strong>{footText}</strong>
-                    {actions && <div className="bchart__acts">{actions}</div>}
+                    <div className="bchart__acts">{actions}</div>
                 </div>
             )}
         </div>

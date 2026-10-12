@@ -79,3 +79,9 @@ export interface PanelKpi {
     value: string;
     unit: string;
 }
+
+export interface FlightDemandSummary {
+    reservationPsgCount: number;
+    departureFlightCount: number;
+    peakDepartureLabel: string;
+}

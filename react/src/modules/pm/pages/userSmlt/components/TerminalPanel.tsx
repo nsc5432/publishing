@@ -1,5 +1,5 @@
 import type { MouseEvent as ReactMouseEvent, ReactNode } from 'react';
-import { MapWhiteIcon, T1WhiteIcon, T2WhiteIcon } from '@/components/icons';
+import { T1WhiteIcon, T2WhiteIcon } from '@/components/icons';
 import type { PanelKpi, TerminalKind } from '../types';
 
 interface TerminalPanelProps {
@@ -16,7 +16,7 @@ interface TerminalPanelProps {
     onFocus: () => void;
     summary: ReactNode;
     kpis?: PanelKpi[];
-    onMapClick?: () => void;
+    summaryLayout?: 'stacked';
     footer?: ReactNode;
 
     readOnly?: boolean;
@@ -34,7 +34,7 @@ export function TerminalPanel({
     onFocus,
     summary,
     kpis,
-    onMapClick,
+    summaryLayout,
     footer,
     readOnly,
     children,
@@ -58,7 +58,7 @@ export function TerminalPanel({
                     <BadgeIcon />
                 </div>
 
-                <div className="summary">
+                <div className="summary" data-layout={summaryLayout}>
                     {summary}
 
                     {kpis && kpis.length > 0 && (
@@ -78,11 +78,6 @@ export function TerminalPanel({
                         </>
                     )}
 
-                    {onMapClick && (
-                        <button type="button" className="summary__map" aria-label="지도 보기" disabled={!enabled} onClick={onMapClick}>
-                            <MapWhiteIcon aria-hidden="true" />
-                        </button>
-                    )}
                 </div>
             </div>
 

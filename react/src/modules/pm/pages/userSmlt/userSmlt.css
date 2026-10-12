@@ -775,7 +775,7 @@ html[data-page='userSmlt'] .summary__divider {
 
 html[data-page='userSmlt'] .summary__kpis {
     display: flex;
-    align-items: center;
+    align-items: stretch;
     gap: clamp(10px, 1vw, 16px);
 }
 
@@ -784,12 +784,22 @@ html[data-page='userSmlt'] .summary__kpi {
     flex-direction: column;
     gap: 3px;
     margin: 0;
+    padding: 6px 10px;
+    border: 1px solid #d4dfed;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.72);
     white-space: nowrap;
 }
 
 html[data-page='userSmlt'] .summary__kpi span {
     font-size: 11px;
+    font-weight: 500;
     color: #6a707c;
+}
+
+html[data-page='userSmlt'] .panel--disabled .summary__kpi {
+    border-color: var(--line);
+    background: rgba(255, 255, 255, 0.5);
 }
 
 html[data-page='userSmlt'] .summary__kpi b {
@@ -807,29 +817,30 @@ html[data-page='userSmlt'] .summary__kpi b em {
     color: #6a707c;
 }
 
-html[data-page='userSmlt'] .summary__map {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    margin-left: auto;
-    border-radius: 50%;
-    background: var(--pm-primary);
-    transition: background 0.15s;
+html[data-page='userSmlt'] .summary[data-layout='stacked'] {
+    flex-wrap: wrap;
+    gap: 10px 24px;
+    height: auto;
+    min-width: 0;
+    padding: 12px 18px;
 }
 
-html[data-page='userSmlt'] .summary__map:hover {
-    background: var(--pm-primary-dark);
+html[data-page='userSmlt'] .summary[data-layout='stacked'] .summary__divider {
+    display: none;
 }
 
-html[data-page='userSmlt'] .summary__map svg {
-    width: 17px;
-    height: 17px;
+html[data-page='userSmlt'] .summary[data-layout='stacked'] .summary__kpis {
+    flex: 1 0 100%;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    align-items: stretch;
+    gap: 12px;
 }
 
-html[data-page='userSmlt'] .panel--disabled .summary__map {
-    background: #c3c3c3;
+html[data-page='userSmlt'] .summary[data-layout='stacked'] .summary__kpi {
+    min-width: 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }
 
 html[data-page='userSmlt'] .panel__foot {
@@ -1931,7 +1942,7 @@ html[data-page='userSmlt'] .airpop {
 html[data-page='userSmlt'] .airpop::before {
     content: '';
     position: absolute;
-    left: 50%;
+    left: var(--airpop-arrow-x, 50%);
     top: -5px;
     width: 8px;
     height: 8px;
@@ -2073,6 +2084,10 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
     html[data-page='userSmlt'] .summary {
         gap: 18px;
         padding-left: 18px;
+    }
+
+    html[data-page='userSmlt'] .summary[data-layout='stacked'] .summary__kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
 

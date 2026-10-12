@@ -1,8 +1,19 @@
-import type { ChknBoothDto, TmnlId, UserSmltChknDto, UserSmltChknSaveReq } from '@/types/api.types';
-import { BLOCK_COLORS } from '../../types';
-import { EMPTY_WAIT_LINE, toKpis, toWaitLine } from '../../view';
+import type {
+    ChknBoothDto,
+    TmnlId,
+    UserSmltChknDto,
+    UserSmltChknSaveReq,
+    UserSmltFltPsgDto,
+} from '@/types/api.types';
+import { formatCount } from '@/lib/format';
+import { BLOCK_COLORS, type PanelKpi } from '../../types';
+import { EMPTY_WAIT_LINE, toFlightDemand, toFlightDemandKpis, toWaitLine } from '../../view';
 import { ISLAND_BOOTHS, SIDE_BOOTHS } from './constants';
 import type { Booth, BoothSide, CheckinIsland, TerminalCheckinCounter } from './types';
+
+interface CheckinCounterSource extends UserSmltChknDto {
+    flightPax: UserSmltFltPsgDto;
+}
 
 export function toSide(boothNo: number): BoothSide {
     return boothNo <= SIDE_BOOTHS ? 'L' : 'R';
@@ -18,7 +29,6 @@ export function toBooths(boothList: ChknBoothDto[]): Booth[] {
     });
 }
 
-// 배정된 부스 수
 export function assignedBoothCount(island: CheckinIsland): number {
     return island.booths.filter((booth) => booth.airline).length;
 }
@@ -34,15 +44,33 @@ function toIslands(dto: UserSmltChknDto): CheckinIsland[] {
     }));
 }
 
-export function toCheckinCounter(dto: UserSmltChknDto): TerminalCheckinCounter {
+export function toCheckinCounter(dto: CheckinCounterSource): TerminalCheckinCounter {
     return {
         total: dto.totCnt,
         airlines: dto.alnCdList,
         islandCodes: dto.islandCdList,
         islands: toIslands(dto),
         wait: toWaitLine(dto.waitList, dto.waitMaxCnt),
-        kpis: toKpis(dto.kpi),
+        ...toFlightDemand(dto.flightPax),
     };
+}
+
+export function toCheckinCounterKpis(
+    data: TerminalCheckinCounter,
+    islands: CheckinIsland[],
+): PanelKpi[] {
+    const boothCount = islands.reduce(
+        (total, island) =>
+            island.ranges.some((range) => range.end > range.start)
+                ? total + assignedBoothCount(island)
+                : total,
+        0,
+    );
+
+    return [
+        ...toFlightDemandKpis(data),
+        { label: '체크인카운터 부스 운영 대수', value: formatCount(boothCount), unit: '대' },
+    ];
 }
 
 export function toSaveReq(ymd: string, tmnlId: TmnlId, islands: CheckinIsland[]): UserSmltChknSaveReq {
@@ -75,5 +103,7 @@ export const EMPTY_CHECKIN_COUNTER: TerminalCheckinCounter = {
     islandCodes: [],
     islands: [],
     wait: EMPTY_WAIT_LINE,
-    kpis: [],
+    reservationPsgCount: 0,
+    departureFlightCount: 0,
+    peakDepartureLabel: '-',
 };

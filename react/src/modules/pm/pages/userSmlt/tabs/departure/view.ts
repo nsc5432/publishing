@@ -1,7 +1,17 @@
-import type { TmnlId, UserSmltDepDto, UserSmltDepSaveReq } from '@/types/api.types';
-import { BLOCK_COLORS } from '../../types';
-import { EMPTY_WAIT_LINE, toKpis, toWaitLine } from '../../view';
+import type {
+    TmnlId,
+    UserSmltDepDto,
+    UserSmltDepSaveReq,
+    UserSmltFltPsgDto,
+} from '@/types/api.types';
+import { formatCount } from '@/lib/format';
+import { BLOCK_COLORS, type PanelKpi } from '../../types';
+import { EMPTY_WAIT_LINE, toFlightDemand, toFlightDemandKpis, toWaitLine } from '../../view';
 import type { DepartureGate, TerminalDeparture } from './types';
+
+interface DepartureSource extends UserSmltDepDto {
+    flightPax: UserSmltFltPsgDto;
+}
 
 function toGates(dto: UserSmltDepDto): DepartureGate[] {
     return dto.dptgtList.map((dep, i) => ({
@@ -15,12 +25,27 @@ function toGates(dto: UserSmltDepDto): DepartureGate[] {
     }));
 }
 
-export function toDeparture(dto: UserSmltDepDto): TerminalDeparture {
+export function toDeparture(dto: DepartureSource): TerminalDeparture {
     return {
         gates: toGates(dto),
         wait: toWaitLine(dto.waitList, dto.waitMaxCnt),
-        kpis: toKpis(dto.kpi),
+        ...toFlightDemand(dto.flightPax),
     };
+}
+
+export function toDepartureKpis(data: TerminalDeparture, gates: DepartureGate[]): PanelKpi[] {
+    const securityCount = gates.reduce(
+        (total, gate) =>
+            !gate.off && gate.ranges.some((range) => range.end > range.start)
+                ? total + gate.scshCntom
+                : total,
+        0,
+    );
+
+    return [
+        ...toFlightDemandKpis(data),
+        { label: '보안검색대 운영 대수', value: formatCount(securityCount), unit: '대' },
+    ];
 }
 
 export function toSaveReq(ymd: string, tmnlId: TmnlId, gates: DepartureGate[]): UserSmltDepSaveReq {
@@ -41,5 +66,7 @@ export function toSaveReq(ymd: string, tmnlId: TmnlId, gates: DepartureGate[]): 
 export const EMPTY_DEPARTURE: TerminalDeparture = {
     gates: [],
     wait: EMPTY_WAIT_LINE,
-    kpis: [],
+    reservationPsgCount: 0,
+    departureFlightCount: 0,
+    peakDepartureLabel: '-',
 };

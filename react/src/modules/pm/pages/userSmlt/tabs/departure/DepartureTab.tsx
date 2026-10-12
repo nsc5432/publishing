@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { UserSmltQuery } from '@/types/api.types';
 import { userSmltService } from '@/api/pm/services/userSmlt.service';
+import { unwrap } from '@/api/pm/result';
 import { BlockChart, GUTTER } from '../../components/BlockChart';
 import { CountStepper } from '../../components/CountStepper';
 import { DetailDrawer, DrawerSection } from '../../components/DetailDrawer';
@@ -12,7 +13,7 @@ import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
 import { TERMINALS, enabledTerminals, type BlockItem, type SmltTabProps, type TerminalKind } from '../../types';
 import type { DepartureGate } from './types';
-import { EMPTY_DEPARTURE, toDeparture, toSaveReq } from './view';
+import { EMPTY_DEPARTURE, toDeparture, toDepartureKpis, toSaveReq } from './view';
 
 type EditState = Record<TerminalKind, DepartureGate[]>;
 type SelectState = Record<TerminalKind, number | null>;
@@ -32,7 +33,17 @@ const GATE_NOS: Record<TerminalKind, number[]> = {
     T2: [1, 2],
 };
 
-const fetchDep = (query: UserSmltQuery, tmnlId: TerminalKind) => userSmltService.getDepInfo(query, tmnlId);
+async function fetchDep(query: UserSmltQuery, tmnlId: TerminalKind) {
+    const [departure, flightPax] = await Promise.all([
+        userSmltService.getDepInfo(query, tmnlId),
+        userSmltService.getFltPsgInfo(query, tmnlId),
+    ]);
+
+    return {
+        ...unwrap(departure, '출국장 정보를 불러오지 못했습니다.'),
+        flightPax: unwrap(flightPax, '운항 및 여객 정보를 불러오지 못했습니다.'),
+    };
+}
 
 function toGateItems(gates: DepartureGate[]): BlockItem[] {
     return gates.map((gate) => ({
@@ -45,6 +56,12 @@ function toGateItems(gates: DepartureGate[]): BlockItem[] {
 
 function pickGate(gates: DepartureGate[], drafts: GateDrafts, no: number): DepartureGate | undefined {
     return drafts[no] ?? gates.find((gate) => gate.no === no);
+}
+
+function getDrawerView(readOnly: boolean | undefined, drawer: DrawerState | null, draft: DepartureGate | null) {
+    if (readOnly || !drawer || !draft) return null;
+
+    return { drawer, draft };
 }
 
 export function DepartureTab({
@@ -65,17 +82,21 @@ export function DepartureTab({
     const [drawer, setDrawer] = useState<DrawerState | null>(null);
     const [selected, setSelected] = useState<SelectState>(EMPTY_SELECT);
 
-    const dirty = useRef<Record<TerminalKind, boolean>>({ T1: false, T2: false });
+    const edited = useRef<Record<TerminalKind, boolean>>({ T1: false, T2: false });
 
     useErrorAlert(error, token);
 
     const enabledCount = enabledTerminals(enabled).length;
-    const openDrawer = drawer && drawer.terminal === focusTerminal ? drawer : null;
+    const openDrawer = drawer?.terminal === focusTerminal ? drawer : null;
     const gateNos = openDrawer ? GATE_NOS[openDrawer.terminal] : [];
     const draft = openDrawer ? openDrawer.drafts[openDrawer.terminal][openDrawer.no] : null;
+    const drawerView = getDrawerView(readOnly, openDrawer, draft);
 
     useEffect(() => {
-        setGatesByTerminal({ T1: terminalData.T1?.gates ?? [], T2: terminalData.T2?.gates ?? [] });
+        const t1Gates = terminalData.T1?.gates ?? [];
+        const t2Gates = terminalData.T2?.gates ?? [];
+
+        setGatesByTerminal({ T1: t1Gates, T2: t2Gates });
         setDrawer(null);
         setSelected(EMPTY_SELECT);
     }, [terminalData]);
@@ -108,7 +129,7 @@ export function DepartureTab({
 
     const patchDraft = (patch: Partial<DepartureGate>) => {
         if (busy) return;
-        if (drawer) dirty.current[drawer.terminal] = true;
+        if (drawer) edited.current[drawer.terminal] = true;
         setDrawer((previousDrawer) => {
             if (!previousDrawer) return previousDrawer;
 
@@ -143,7 +164,7 @@ export function DepartureTab({
 
     useEffect(() => {
         onDraftChange('departure', () => ({
-            depList: TERMINALS.filter((terminal) => dirty.current[terminal] && terminalData[terminal]).map((terminal) =>
+            depList: TERMINALS.filter((terminal) => edited.current[terminal] && terminalData[terminal]).map((terminal) =>
                 toSaveReq(query.ymd, terminal, collectGates(terminal)),
             ),
         }));
@@ -158,18 +179,8 @@ export function DepartureTab({
         if (saved) {
             setGatesByTerminal((previous) => ({ ...previous, [terminal]: gates }));
             setDrawer((previous) => (previous ? { ...previous, drafts: { ...previous.drafts, [terminal]: {} } } : null));
-            dirty.current[terminal] = false;
+            edited.current[terminal] = false;
         }
-    };
-
-    const handleMapClick = (terminal: TerminalKind) => {
-        const ymd = query.ymd;
-        if (!ymd) return;
-
-        userSmltService
-            .getFcltMap(query, terminal, 'DEP')
-            .then((dto) => console.log('[지도 보기]', dto.markerList))
-            .catch(() => {});
     };
 
     return (
@@ -179,6 +190,7 @@ export function DepartureTab({
                 const gates = gatesByTerminal[terminal];
                 const terminalEnabled = enabled[terminal];
                 const operatingGates = gates.filter((gate) => !gate.off);
+                const selectedGateNo = selected[terminal];
 
                 return (
                     <TerminalPanel
@@ -189,8 +201,8 @@ export function DepartureTab({
                         canDisable={enabledCount > 1}
                         onToggle={() => onToggleTerminal(terminal)}
                         onFocus={() => onFocusChange(terminal)}
-                        kpis={panelData.kpis}
-                        onMapClick={() => handleMapClick(terminal)}
+                        kpis={terminalData[terminal] ? toDepartureKpis(panelData, gates) : []}
+                        summaryLayout="stacked"
                         readOnly={readOnly}
                         summary={
                             <>
@@ -219,21 +231,26 @@ export function DepartureTab({
                             gridLeft={GUTTER}
                             blockFontSize={13}
                             line={panelData.wait}
-                            footText={readOnly ? undefined : '블럭을 클릭해 출국장을 고르면 세부 설정이 그 출국장부터 열립니다.'}
                             actions={
                                 readOnly ? undefined : (
                                     <button type="button" className="bchart__act" disabled={!terminalEnabled} onClick={() => openDetail(terminal)}>
-                                        세부 운영시간 직접 설정 →
+                                        세부 운영시간 직접 설정
                                     </button>
                                 )
                             }
-                            selected={selected[terminal] !== null ? [String(selected[terminal])] : []}
-                            onBlockSelect={(label) =>
-                                setSelected((previousSelection) => ({
-                                    ...previousSelection,
-                                    [terminal]: Number(label),
-                                }))
-                            }
+                            selected={selectedGateNo !== null ? [String(selectedGateNo)] : []}
+                            onBlockSelect={(label) => {
+                                if (busy) return;
+
+                                const no = Number(label);
+                                if (selectedGateNo === no) {
+                                    setSelected((previousSelection) => ({ ...previousSelection, [terminal]: null }));
+                                    setDrawer(null);
+                                    return;
+                                }
+
+                                openGate(terminal, no);
+                            }}
                             formatTip={(item, hour) => {
                                 const gate = gates.find((it) => String(it.no) === item.label);
                                 const range = gate?.ranges.find((it) => hour >= it.start && hour < it.end);
@@ -247,20 +264,20 @@ export function DepartureTab({
                 );
             })}
 
-            {!readOnly && openDrawer && draft && (
+            {drawerView && (
                 <DetailDrawer
-                    badge={String(draft.no)}
-                    badgeColor={draft.color}
-                    title={`${draft.no}번 출국장`}
-                    subtitle={formatOperating(openDrawer.terminal, draft.ranges)}
+                    badge={String(drawerView.draft.no)}
+                    badgeColor={drawerView.draft.color}
+                    title={`${drawerView.draft.no}번 출국장`}
+                    subtitle={formatOperating(drawerView.drawer.terminal, drawerView.draft.ranges)}
                     onClose={() => setDrawer(null)}
                     onConfirm={handleConfirm}
                 >
-                    <DrawerSection title="출국장 선택" hint={`${openDrawer.terminal} ${gateNos.length}개`}>
+                    <DrawerSection title="출국장 선택" hint={`${drawerView.drawer.terminal} ${gateNos.length}개`}>
                         <div className="gatepick">
                             {gateNos.map((no) => {
-                                const gate = pickGate(gatesByTerminal[openDrawer.terminal], openDrawer.drafts[openDrawer.terminal], no);
-                                const selectedGate = no === openDrawer.no;
+                                const gate = pickGate(gatesByTerminal[drawerView.drawer.terminal], drawerView.drawer.drafts[drawerView.drawer.terminal], no);
+                                const selectedGate = no === drawerView.drawer.no;
 
                                 return (
                                     <button
@@ -269,7 +286,7 @@ export function DepartureTab({
                                         className={`gatepick__item${selectedGate ? ' is-on' : ''}` + `${gate?.off ? ' is-off' : ''}`}
                                         aria-pressed={selectedGate}
                                         disabled={!gate}
-                                        onClick={() => openGate(openDrawer.terminal, no)}
+                                        onClick={() => openGate(drawerView.drawer.terminal, no)}
                                     >
                                         <i className="gatepick__dot" style={gate && !gate.off ? { background: `var(--${gate.color})` } : undefined} />
                                         {no}번
@@ -285,16 +302,16 @@ export function DepartureTab({
                             <div className="seg">
                                 <button
                                     type="button"
-                                    className={`seg__item${draft.off ? '' : ' is-on'}`}
-                                    aria-pressed={!draft.off}
+                                    className={`seg__item${drawerView.draft.off ? '' : ' is-on'}`}
+                                    aria-pressed={!drawerView.draft.off}
                                     onClick={() => patchDraft({ off: false })}
                                 >
                                     사용
                                 </button>
                                 <button
                                     type="button"
-                                    className={`seg__item${draft.off ? ' is-on' : ''}`}
-                                    aria-pressed={draft.off}
+                                    className={`seg__item${drawerView.draft.off ? ' is-on' : ''}`}
+                                    aria-pressed={drawerView.draft.off}
                                     onClick={() => patchDraft({ off: true })}
                                 >
                                     미사용
@@ -304,17 +321,22 @@ export function DepartureTab({
                     </DrawerSection>
 
                     <DrawerSection title="운영시간" hint="1시간 단위">
-                        <TimeBar label="선택 범위" ranges={draft.ranges} onChange={(ranges) => patchDraft({ ranges })} disabled={busy || draft.off} />
+                        <TimeBar
+                            label="선택 범위"
+                            ranges={drawerView.draft.ranges}
+                            onChange={(ranges) => patchDraft({ ranges })}
+                            disabled={busy || drawerView.draft.off}
+                        />
                     </DrawerSection>
 
-                    <DrawerSection title="검색대 구성" hint={`${draft.no}번 출국장 소속`}>
-                        <CountStepper label="일반" value={draft.gnrlSrchCntom} onChange={(gnrlSrchCntom) => patchDraft({ gnrlSrchCntom })} />
+                    <DrawerSection title="검색대 구성" hint={`${drawerView.draft.no}번 출국장 소속`}>
+                        <CountStepper label="일반" value={drawerView.draft.gnrlSrchCntom} onChange={(gnrlSrchCntom) => patchDraft({ gnrlSrchCntom })} />
                         <CountStepper
                             label="스마트패스"
-                            value={draft.smartPassSrchCntom}
+                            value={drawerView.draft.smartPassSrchCntom}
                             onChange={(smartPassSrchCntom) => patchDraft({ smartPassSrchCntom })}
                         />
-                        <CountStepper label="보안검색대" value={draft.scshCntom} onChange={(scshCntom) => patchDraft({ scshCntom })} />
+                        <CountStepper label="보안검색대" value={drawerView.draft.scshCntom} onChange={(scshCntom) => patchDraft({ scshCntom })} />
                     </DrawerSection>
                 </DetailDrawer>
             )}
