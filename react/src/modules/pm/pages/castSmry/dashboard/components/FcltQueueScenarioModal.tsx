@@ -4,6 +4,7 @@ import { formatCount } from '@/lib/format';
 import { useFcltQueueScenario, type FcltQueueResultState } from '../hooks/useFcltQueueScenario';
 import { FCLT_QUEUE_LABEL, type FcltQueueContextView, type FcltQueueTarget, type QueueClearView, type QueueErlangView } from '../types';
 import { toSeoulClock } from '../view';
+import { resolveAxisNameOverlapDefault } from 'echarts/types/src/component/axis/AxisBuilder.js';
 
 interface FcltQueueScenarioModalProps {
     target: FcltQueueTarget;
@@ -37,9 +38,9 @@ const TARGET_STEP_MIN = 10;
 const CLEAR_EMPTY: QueueClearView = {
     kind: 'unavailable',
     minutes: null,
-    mainText: '—',
+    mainText: '-',
     unitText: '',
-    clockText: '—',
+    clockText: '-',
     note: '',
 };
 
@@ -64,6 +65,8 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
     const context = scenario.context;
     const isCount = scenario.mode === 'COUNT';
     const { result } = scenario;
+    const readyView = result.status === 'ready' ? result.view : null;
+    const scenarioErlang = readyView?.scenarioErlang ?? null;
 
     return (
         <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -99,10 +102,10 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                         <div>
                             <span className="fqs-k">{label.current}</span>
                             <div className="fqs-v">
-                                <strong>{context?.currentCnt ?? '—'}</strong>
+                                <strong>{context?.currentCnt ?? '-'}</strong>
                                 <span>개</span>
                             </div>
-                            <span className="fqs-sub">대기인원 {context?.queueText ?? '—'}명</span>
+                            <span className="fqs-sub">대기인원 {context?.queueText ?? '-'}명</span>
                         </div>
                         <div>
                             <span className="fqs-k">현재 조건의 혼잡해소 예상</span>
@@ -119,12 +122,6 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                             목표 해소시간 설정
                         </button>
                     </div>
-
-                    {scenario.ctxChanged && (
-                        <p className="fqs-notice" role="status">
-                            원천 결과가 바뀌어 기준을 다시 불러왔습니다. 입력값은 새 기준으로 초기화했습니다.
-                        </p>
-                    )}
 
                     <div className="fqs-workspace">
                         <section className="fqs-editor">
@@ -173,60 +170,34 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                     </div>
 
                     <Comparison
-                        rows={
-                            result.status !== 'ready'
-                                ? []
-                                : isCount
-                                  ? [
-                                        { label: '현재', clear: context?.current ?? null },
-                                        { label: '조정 후', clear: result.view.scenario, accent: true },
-                                    ]
-                                  : [
-                                        { label: '현재', clear: context?.current ?? null },
-                                        {
-                                            label: result.view.recommend?.clearLabel || '추천 배정 시',
-                                            clear: result.view.recommend?.clear ?? null,
-                                            accent: true,
-                                        },
-                                    ]
-                        }
+                        rows={[
+                            { label: '현재', clear: context?.current ?? null },
+                            isCount
+                                ? { label: '조정 후', clear: readyView?.scenario ?? null, accent: true }
+                                : {
+                                      label: readyView?.recommend?.clearLabel || '조정 후',
+                                      clear: readyView?.recommend?.clear ?? null,
+                                      accent: true,
+                                  },
+                        ]}
                     />
 
                     <details className="fqs-basis">
                         <summary>
-                            계산 기준 <span>M/M/s 가정 · 혼잡해소 시간은 유입/처리 차이 계산</span>
+                            계산 기준 <span>M/M/s 가정 / 혼잡해소 시간은 유입/처리 차이 계산</span>
                         </summary>
-                        {context && (
-                            <dl>
-                                <BasisItem term="해소 기준">{context.targetQueueText}</BasisItem>
-                                <BasisItem term="관측구간">
-                                    {context.obsText} · {context.dataSrcText}
-                                </BasisItem>
-                                <BasisItem term="유입률 λ">{context.arvlText}</BasisItem>
-                                <BasisItem term="처리율 μ">{context.srvcText}</BasisItem>
-                                <BasisItem term={`정상상태 · 현재 ${context.currentCnt ?? '—'}개`}>
-                                    <ErlangText erlang={context.currentErlang} />
-                                </BasisItem>
-                                {result.status === 'ready' && result.view.scenarioErlang && (
-                                    <BasisItem term={`정상상태 · ${isCount ? '조정 후' : '추천 수량'}`}>
-                                        <ErlangText erlang={result.view.scenarioErlang} />
-                                    </BasisItem>
-                                )}
-                                {result.status === 'ready' && result.view.recommend?.policyNote && (
-                                    <BasisItem term="추천 정책">{result.view.recommend.policyNote}</BasisItem>
-                                )}
-                                <BasisItem term="적용 가정">
-                                    <ul>
-                                        {context.asmpList.map((asmp) => (
-                                            <li key={asmp}>{asmp}</li>
-                                        ))}
-                                    </ul>
-                                </BasisItem>
-                            </dl>
-                        )}
-                        <p className="fqs-basis-foot">
-                            Erlang C 평균 대기시간은 여객 한 명의 정상상태 평균이며, 지금 쌓인 대기열이 줄어드는 혼잡해소 시간과 다른 지표입니다.
-                        </p>
+                        <dl>
+                            <BasisItem term="해소 기준">{context?.targetQueueText ?? '-'}</BasisItem>
+                            <BasisItem term="관측구간">{context ? `${context.obsText} / ${context.dataSrcText}` : '-'}</BasisItem>
+                            <BasisItem term="유입률 λ">{context?.arvlText ?? '-'}</BasisItem>
+                            <BasisItem term="처리율 μ">{context?.srvcText ?? '-'}</BasisItem>
+                            <BasisItem term={`정상상태 / 현재 ${context?.currentCnt ?? '-'}개`}>
+                                {context ? <ErlangText erlang={context.currentErlang} /> : '-'}
+                            </BasisItem>
+                            <BasisItem term={`정상상태 / ${isCount ? '조정 후' : '추천 수량'}`}>
+                                {scenarioErlang ? <ErlangText erlang={scenarioErlang} /> : '-'}
+                            </BasisItem>
+                        </dl>
                     </details>
                 </div>
 
@@ -318,76 +289,74 @@ function Stepper({ label, unit, text, value, min, max, step, disabled, error, no
 }
 
 function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState; isCount: boolean; onRetry: () => void }) {
-    if (result.status === 'loading') return <p className="fqs-state">계산 중…</p>;
-    if (result.status === 'invalid') return <p className="fqs-state">입력값을 확인하세요.</p>;
-    if (result.status === 'error') {
-        return (
-            <div className="fqs-state err">
-                <p>{result.message}</p>
-                <button type="button" className="fqs-retry" onClick={onRetry}>
-                    다시 계산
-                </button>
-            </div>
+    let main: ReactNode = null;
+    let mainWarn = false;
+    let detail: ReactNode = null;
+    let sub: ReactNode = null;
+    let subWarn = false;
+    let diff: ReactNode = null;
+
+    if (result.status === 'loading') detail = '계산 중…';
+    else if (result.status === 'invalid') detail = '입력값을 확인하세요.';
+    else if (result.status === 'error') {
+        detail = <span className="fqs-state-err">{result.message}</span>;
+        diff = (
+            <button type="button" className="fqs-retry" onClick={onRetry}>
+                다시 계산
+            </button>
         );
-    }
+    } else {
+        const { scenario, diffNote, recommend } = result.view;
 
-    const { scenario, diffNote, recommend } = result.view;
-
-    if (isCount) {
-        if (!scenario) return <p className="fqs-state">—</p>;
-
-        return (
-            <>
-                <ResultMain clear={scenario} />
-                <p className="fqs-result-detail">
-                    해소 예상 시각 <b>{scenario.clockText}</b>
-                </p>
-                <p className="fqs-result-sub">{scenario.note}</p>
-                {diffNote && <p className="fqs-result-diff">{diffNote}</p>}
-            </>
-        );
-    }
-
-    if (!recommend || recommend.reqCnt === null) {
-        return (
-            <>
-                <div className="fqs-result-main">
-                    <strong className="fqs-result-value">—</strong>
-                </div>
-                <p className="fqs-result-sub">{recommend?.countNote}</p>
-            </>
-        );
+        if (isCount) {
+            if (scenario) {
+                mainWarn = scenario.kind === 'unreachable';
+                main = (
+                    <>
+                        <strong className="fqs-result-value">{scenario.mainText}</strong>
+                        {scenario.unitText && <span className="fqs-result-unit">{scenario.unitText}</span>}
+                    </>
+                );
+                detail = (
+                    <>
+                        해소 예상 시각 <b>{scenario.clockText}</b>
+                    </>
+                );
+                sub = scenario.note;
+                diff = diffNote;
+            }
+        } else if (recommend && recommend.reqCnt !== null) {
+            main = (
+                <>
+                    <span className="fqs-result-unit">총</span>
+                    <strong className="fqs-result-value">{formatCount(recommend.reqCnt)}</strong>
+                    <span className="fqs-result-unit">개</span>
+                </>
+            );
+            detail = recommend.countNote;
+            sub = recommend.capaNote;
+            subWarn = recommend.capaShort;
+            if (recommend.clear) {
+                diff = `${recommend.clearLabel} 해소 ${
+                    recommend.clear.kind === 'value'
+                        ? `${recommend.clear.mainText}${recommend.clear.unitText} (${recommend.clear.clockText})`
+                        : recommend.clear.kind === 'none'
+                          ? '- 이미 목표 이하'
+                          : recommend.clear.mainText
+                }`;
+            }
+        } else {
+            sub = recommend?.countNote;
+        }
     }
 
     return (
         <>
-            <div className="fqs-result-main">
-                <span className="fqs-result-unit">총</span>
-                <strong className="fqs-result-value">{formatCount(recommend.reqCnt)}</strong>
-                <span className="fqs-result-unit">개</span>
-            </div>
-            <p className="fqs-result-detail">{recommend.countNote}</p>
-            <p className={`fqs-result-sub${recommend.capaShort ? ' warn' : ''}`}>{recommend.capaNote}</p>
-            {recommend.clear && (
-                <p className="fqs-result-diff">
-                    {recommend.clearLabel} 해소{' '}
-                    {recommend.clear.kind === 'value'
-                        ? `${recommend.clear.mainText}${recommend.clear.unitText} (${recommend.clear.clockText})`
-                        : recommend.clear.kind === 'none'
-                          ? '— 이미 목표 이하'
-                          : recommend.clear.mainText}
-                </p>
-            )}
+            <div className={`fqs-result-main${mainWarn ? ' warn' : ''}`}>{main}</div>
+            <p className="fqs-result-detail">{detail}</p>
+            <p className={`fqs-result-sub${subWarn ? ' warn' : ''}`}>{sub}</p>
+            <div className="fqs-result-diff">{diff}</div>
         </>
-    );
-}
-
-function ResultMain({ clear }: { clear: QueueClearView }) {
-    return (
-        <div className={`fqs-result-main${clear.kind === 'unreachable' ? ' warn' : ''}`}>
-            <strong className="fqs-result-value">{clear.mainText}</strong>
-            {clear.unitText && <span className="fqs-result-unit">{clear.unitText}</span>}
-        </div>
     );
 }
 
@@ -431,11 +400,11 @@ function BasisItem({ term, children }: { term: string; children: ReactNode }) {
 }
 
 function ErlangText({ erlang }: { erlang: QueueErlangView }) {
-    if (erlang.note) return <>— ({erlang.note})</>;
+    if (erlang.note) return <>- ({erlang.note})</>;
 
     return (
         <>
-            대기확률 {erlang.wtngProb} · 이론 평균 대기 {erlang.thryWtng} · 부하율 ρ {erlang.load}
+            대기확률 {erlang.wtngProb} / 이론 평균 대기 {erlang.thryWtng} / 부하율 ρ {erlang.load}
         </>
     );
 }

@@ -350,7 +350,7 @@ function toQueueRecommendView(dto: FcltQueueScenarioDto, recommend: FcltQueueRec
         capaShort: recommend.capaAvlYn === 'N',
         policyNote: recommend.goalMetYn === 'N' ? `${policyNote} · 목표시간 검증 실패` : policyNote,
         clear: clearSource ? toQueueClearView(clearSource, dto.baseDt) : null,
-        clearLabel: dto.scenario ? '추천 수량 배정 시' : dto.totScenario ? `보유 ${formatCount(dto.totCnt ?? 0)}개 모두 배정 시` : '',
+        clearLabel: dto.scenario ? '조정 후' : dto.totScenario ? `보유 ${formatCount(dto.totCnt ?? 0)}개 모두 배정 시` : '',
     };
 }
 

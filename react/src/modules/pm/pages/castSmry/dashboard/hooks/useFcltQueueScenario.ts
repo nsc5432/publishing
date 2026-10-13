@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { isNotNullOrUndefined } from '@/components/utils/commonUtils';
 import { dashboardService } from '@/api/pm/services/dashboard.service';
 import { unwrap } from '@/api/pm/result';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
@@ -85,7 +86,6 @@ export function useFcltQueueScenario(target: FcltQueueTarget) {
         targetText: String(context?.dfltTargetMin ?? ''),
     };
     const inputs = draft && draft.version === version ? draft : defaults;
-    const ctxChanged = draft !== null && version !== '' && draft.version !== version;
 
     const countValue = parseInteger(inputs.countText);
     const targetValue = parseInteger(inputs.targetText);
@@ -141,7 +141,7 @@ export function useFcltQueueScenario(target: FcltQueueTarget) {
 
     const stepCount = (delta: number) => {
         const next = Math.max(0, (countValue ?? contextView?.currentCnt ?? 0) + delta);
-        const capped = contextView?.totCnt !== null && contextView?.totCnt !== undefined ? Math.min(next, contextView.totCnt) : next;
+        const capped = isNotNullOrUndefined(contextView?.totCnt) ? Math.min(next, contextView.totCnt) : next;
         updateDraft({ countText: String(capped) });
     };
 
@@ -157,7 +157,6 @@ export function useFcltQueueScenario(target: FcltQueueTarget) {
 
     return {
         context: contextView,
-        ctxChanged,
         mode,
         setMode,
         countText: inputs.countText,
