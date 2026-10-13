@@ -1,5 +1,4 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import t1White from '@/assets/svg/t1-white.svg';
 import t2White from '@/assets/svg/t2-white.svg';
 import t1Blue from '@/assets/svg/t1-blue.svg';
@@ -17,6 +16,7 @@ interface TerminalSummaryProps {
     terminal: TerminalKind;
     data: TerminalView | null;
     titleCategory: DsbdCategory | null;
+    onFcltDetail: (fcltType: FcltCardType, unitCd: string) => void;
 }
 
 interface TerminalImages {
@@ -36,11 +36,6 @@ const TITLE_LEAD: Record<DsbdCategory, string> = {
     DEP: '출국장에 대기인원이',
 };
 
-const FCLT_CARD_DETAIL_PATH: Record<FcltCardType, string> = {
-    CHKN: '/rui/pm/daily-smlt/checkinCounter',
-    DEP: '/rui/pm/daily-smlt/departureHall',
-};
-
 const TERMINAL_IMAGES: Record<TerminalKind, TerminalImages> = {
     T1: { big: t1White, watermark: t1Blue },
     T2: { big: t2White, watermark: t2Teal },
@@ -53,11 +48,10 @@ const CONGESTION_THEMES: Record<CongestionStatus, CongestionTheme> = {
     VERY_BUSY: { panelClass: 'panel-red', gauge: '#d92626' },
 };
 
-export function TerminalSummary({ terminal, data, titleCategory }: TerminalSummaryProps) {
+export function TerminalSummary({ terminal, data, titleCategory, onFcltDetail }: TerminalSummaryProps) {
     const view = data ?? EMPTY_TERMINAL_VIEW;
     const images = TERMINAL_IMAGES[terminal];
     const theme = CONGESTION_THEMES[view.cgnStatus];
-    const navigate = useNavigate();
 
     const [viewKind, setViewKind] = useState<ViewKind>('summary');
     const [selectedRow, setSelectedRow] = useState(view.defaultSelectedRow);
@@ -224,13 +218,12 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
                             key={fcltCard.fcltType}
                             data={fcltCard}
                             gauge={theme.gauge}
-                            onDetail={() => navigate(FCLT_CARD_DETAIL_PATH[fcltCard.fcltType])}
+                            onDetail={(unitCd) => onFcltDetail(fcltCard.fcltType, unitCd)}
                         />
                     ))}
                 </div>
             </div>
 
-            {/* 상세정보 */}
             <div className="view" hidden={viewKind !== 'table'}>
                 <div className="table scroll-area">
                     <div className="thead">
@@ -273,7 +266,7 @@ function Multiline({ text }: { text: string }) {
     );
 }
 
-function FcltCard({ data, gauge, onDetail }: { data: FcltCardData; gauge: string; onDetail: () => void }) {
+function FcltCard({ data, gauge, onDetail }: { data: FcltCardData; gauge: string; onDetail: (unitCd: string) => void }) {
     const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
     const variantIndex = Math.max(
         0,
@@ -294,7 +287,7 @@ function FcltCard({ data, gauge, onDetail }: { data: FcltCardData; gauge: string
                 <b>{data.title}</b>
                 <div className="warn">
                     <span>{data.warn}</span>
-                    <button type="button" className="plus" aria-label={`${data.title} 상세`} onClick={onDetail}>
+                    <button type="button" className="plus" aria-label={`${data.title} ${variant.unitCd} 혼잡해소 시뮬레이션`} aria-haspopup="dialog" onClick={() => onDetail(variant.unitCd)}>
                         <Icon name="plus" />
                     </button>
                 </div>

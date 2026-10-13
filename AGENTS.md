@@ -104,7 +104,7 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
 react/src/
   api/pm/
     client.ts        axios 인스턴스 + 인터셉터(로딩바 · 에러 정규화)
-    endpoints.ts     API_ENDPOINTS (31개)
+    endpoints.ts     API_ENDPOINTS (38개)
     result.ts        unwrap() — 본문 error 플래그를 catch 경로로 던진다
     services/*.service.ts   도메인별 서비스 객체 (목업/실통신 분기도 여기서)
     mock/            USE_MOCK 토글 + 화면별 목업 데이터
@@ -113,7 +113,7 @@ react/src/
     icons/index.tsx          SVGR 배럴 (<SearchIcon /> 형태, 55개)
     icons/InlineIcon.tsx     인라인 SVG 레지스트리 (<Icon name="search" /> 형태)
     lnb/                     좌측 네비게이션 (배럴 있음)
-    ui/                      kebab-case: alert-dialog, dialog-provider,
+    ui/                      kebab-case: alert-dialog, dialog, dialog-provider,
                              loading-bar, pill-select, time-range-selector
   config/env.ts      ENV (import.meta.env 래핑)
   hooks/             usePageScope, useUserInfo, useBaseInfo, useErrorAlert, useFetched
@@ -231,6 +231,7 @@ npm run build:prd  # 운영 빌드
 | 〃 | `DSBD_TMNL_SMRY` | `/smry/retrieveDailySmltTmnlSmry` |
 | 〃 | `DSBD_TMNL_RSLT` | `/smry/retrieveDailySmltTmnlRsltByTime` |
 | 〃 | `DSBD_FCLT_CARD` | `/smry/retrieveDailySmltFcltCard` |
+| 〃 | `DSBD_FCLT_QUEUE_SCENARIO` | `/smry/retrieveFcltQueueScenario` |
 | 맵형태보기 | `MAP_INFO` | `/map/retrieveSmltMap` |
 | 체크인카운터 | `CHKN_COUNTER_INFO` | `/chkn-counter/retrieveChknCounter` |
 | 출국장 | `DEP_HALL_INFO` | `/dep-hall/retrieveDepHall` |
@@ -556,3 +557,24 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 - 마지막 결과 시각 뒤에는 **유입 0 인 꼬리 구간**을 붙여 남은 Queue 를 배정 부스로 흘려보낸다.
   이 구간을 빼면 마지막 Queue 가 24:00 까지 그대로 남아 미운영 시각에 대기인원이 서 있게 된다.
 - 공용 `CastMapMapper#retrieveMapRsltDayList` 는 **고치지 않는다** — 출국장 등 다른 화면이 같이 쓴다.
+
+---
+
+## 14. 시설 카드 혼잡해소 시나리오 팝업
+
+요약보기 체크인카운터·출국장 카드의 `+` 는 상세 화면 이동이 아니라 **중앙 팝업**을 연다
+(2026-10-13, `docs/plans/2026-10-13-fclt-card-queue-popup.md`). 운영 검토용이며 저장·CAST 실행은 없다.
+
+| 무엇 | 어디 |
+|---|---|
+| 원천 어댑터 · 계산 · 정책 | `CastFcltQueueScenarioServiceImpl` (계산은 `domains/queue` 클래스만 호출) |
+| 팝업 · 요청 경쟁 처리 | `dashboard/components/FcltQueueScenarioModal.tsx` · `hooks/useFcltQueueScenario.ts` |
+| 일반 Dialog (포커스 트랩 · 복귀) | `components/ui/dialog.tsx` (`@radix-ui/react-dialog`) |
+
+- **혼잡해소 시간은 유체근사, 대기확률·이론 대기시간은 M/M/s 정상상태값**이다. 둘을 같은 라벨로 보여주지 않는다.
+- λ·μ·Q0·s 는 **카드와 같은 30분 슬롯 `[hhmm, hhmm+30)`** 에서 뽑고, 계산 기준시각은 슬롯 끝(Q0 스냅샷)이다.
+  화면은 기준시각에 30분을 더하지 않는다 — 서버가 `baseDt` 로 내려준다.
+- 해소 기준 `Q*` 는 혼잡등급 **NORMAL 상한(양끝 포함)** 이다. 기준정보가 없으면 실패로 내린다.
+- 출국장은 기존 카드 추천과 같이 **SC+SR 합산을 한 큐**로 본다. 직렬·병렬 관계는 미검증이라 응답의 적용 가정에 싣는다.
+- 추천 총수량은 `max(유체근사 소요, floor(λ/μ)+1)` (정책 `STABLE_MMS_FLUID_TARGET`). 기존 fluid 메서드의 반환 의미는 바꾸지 않는다.
+- `contextVersion` 은 원천 스냅샷 해시다. 입력만 바꾼 재요청은 같은 버전이어야 하고, 다르면 `ctxChgYn = 'Y'` 로 새 기준만 내린다.

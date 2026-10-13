@@ -7,7 +7,7 @@
    1. 디자인 토큰 (화면 셸 규격)
    2. 기본 타이포그래피
    3. 공용 유틸 (.blind / .scroll-area / 애니메이션)
-   4. 공용 컴포넌트 (앱 셸 / LNB 레일 / 시간대 선택바 / 확인 다이얼로그)
+   4. 공용 컴포넌트 (앱 셸 / LNB 레일 / 시간대 선택바 / 확인 다이얼로그 / 일반 다이얼로그)
 
    화면 전용 스타일은 modules/pm/<화면>/<화면>.css 에서 관리한다.
      - dashboard   : modules/pm/dashboard/dashboard.css
@@ -821,4 +821,50 @@ td {
         opacity: 0;
         transform: translate(-50%, -50%) scale(0.95);
     }
+}
+
+/* ---------------------------------------------------------------------
+   4-5. Dialog — 입력 폼을 담는 일반 다이얼로그 (components/ui/dialog.tsx)
+   폭 · 내부 배치는 화면 클래스가 정한다. 낮은 화면에서는 내용 영역만 스크롤하도록
+   높이를 뷰포트 안에 묶어 둔다.
+   --------------------------------------------------------------------- */
+.dialog__overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(36, 37, 60, 0.36);
+}
+
+.dialog__overlay[data-state='open'] {
+    animation: alert-dialog-fade-in 0.2s ease-out;
+}
+
+.dialog__overlay[data-state='closed'] {
+    animation: alert-dialog-fade-out 0.2s ease-in;
+}
+
+.dialog__content {
+    display: flex;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    z-index: 50;
+    flex-direction: column;
+    width: calc(100% - 32px);
+    max-height: calc(100dvh - 32px);
+    overflow: hidden;
+    background: #ffffff;
+    transform: translate(-50%, -50%);
+}
+
+.dialog__content:focus {
+    outline: none;
+}
+
+.dialog__content[data-state='open'] {
+    animation: alert-dialog-zoom-in 0.2s ease-out;
+}
+
+.dialog__content[data-state='closed'] {
+    animation: alert-dialog-zoom-out 0.2s ease-in;
 }

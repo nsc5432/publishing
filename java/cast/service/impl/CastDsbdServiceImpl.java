@@ -41,6 +41,8 @@ import aoms.pm.cast.dto.DsbdFcltCardDto;
 import aoms.pm.cast.dto.DsbdHeaderDto;
 import aoms.pm.cast.dto.DsbdRsltDto;
 import aoms.pm.cast.dto.DsbdSearchDto;
+import aoms.pm.cast.dto.FcltQueueScenarioDto;
+import aoms.pm.cast.dto.FcltQueueScenarioSearchDto;
 import aoms.pm.cast.dto.FcltRecommendDto;
 import aoms.pm.cast.dto.FcltUnitDto;
 import aoms.pm.cast.dto.FcltUnitRawDto;
@@ -66,6 +68,7 @@ import aoms.pm.cast.mapper.CastFltPsgMapper;
 import aoms.pm.cast.service.CastCgnGradeService;
 import aoms.pm.cast.service.CastChknQueueService;
 import aoms.pm.cast.service.CastDsbdService;
+import aoms.pm.cast.service.CastFcltQueueScenarioService;
 import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.cast.service.FcltRecommendationCalculator;
 import aoms.pm.utils.SmltUtils;
@@ -105,6 +108,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private final CastSmltService castSmltService;
 	private final CastChknQueueService castChknQueueService;
 	private final CastCgnGradeService castCgnGradeService;
+	private final CastFcltQueueScenarioService castFcltQueueScenarioService;
 
 	@Override
 	public DsbdBaseInfoDto retrieveDailySmltBaseInfo(DsbdSearchDto searchDto) {
@@ -318,6 +322,11 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		}
 
 		return result;
+	}
+
+	@Override
+	public FcltQueueScenarioDto retrieveFcltQueueScenario(FcltQueueScenarioSearchDto searchDto) {
+		return castFcltQueueScenarioService.retrieveFcltQueueScenario(searchDto);
 	}
 
 	private List<DsbdFcltCardDto> getChknFcltCardList(DsbdSearchDto searchDto) {

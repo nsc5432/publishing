@@ -1,0 +1,437 @@
+import { useId, useState, type ReactNode } from 'react';
+import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { formatCount } from '@/lib/format';
+import { useFcltQueueScenario, type FcltQueueResultState } from '../hooks/useFcltQueueScenario';
+import { FCLT_QUEUE_LABEL, type FcltQueueContextView, type FcltQueueTarget, type QueueClearView, type QueueErlangView } from '../types';
+import { toSeoulClock } from '../view';
+
+interface FcltQueueScenarioModalProps {
+    target: FcltQueueTarget;
+    onClose: () => void;
+}
+
+interface StepperProps {
+    label: string;
+    unit: string;
+    text: string;
+    value: number | null;
+    min: number;
+    max: number | null;
+    disabled: boolean;
+    error: string;
+    note: string;
+    boundText: string;
+    onChange: (text: string) => void;
+    onStep: (delta: number) => void;
+}
+
+interface CompareRow {
+    label: string;
+    clear: QueueClearView | null;
+    accent?: boolean;
+}
+
+const CLEAR_EMPTY: QueueClearView = {
+    kind: 'unavailable',
+    minutes: null,
+    mainText: '—',
+    unitText: '',
+    clockText: '—',
+    note: '',
+};
+
+function toCountNote(context: FcltQueueContextView | null, value: number | null, locked: boolean): string {
+    if (!context) return '';
+    if (locked) return context.countLockReason;
+    if (value === null || context.currentCnt === null) return '';
+
+    const diff = value - context.currentCnt;
+
+    if (diff > 0) return `현재보다 ${formatCount(diff)}개 추가 배정`;
+    if (diff < 0) return `현재보다 ${formatCount(-diff)}개 축소`;
+
+    return '현재 운영 수량과 같음';
+}
+
+export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioModalProps) {
+    const scenario = useFcltQueueScenario(target);
+    const [nowText] = useState(() => toSeoulClock(new Date()));
+
+    const label = FCLT_QUEUE_LABEL[target.fcltType];
+    const context = scenario.context;
+    const isCount = scenario.mode === 'COUNT';
+    const { result } = scenario;
+
+    return (
+        <Dialog open onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="fqs" aria-describedby={undefined}>
+                <header className="fqs-head">
+                    <div>
+                        <p className="fqs-eyebrow">시설 운영 검토</p>
+                        <DialogTitle className="fqs-title">혼잡해소 시뮬레이션</DialogTitle>
+                    </div>
+                    <DialogClose className="fqs-x" aria-label="팝업 닫기">
+                        ×
+                    </DialogClose>
+                </header>
+
+                <div className="fqs-body">
+                    <div className="fqs-context">
+                        <div className="fqs-target">
+                            <span className="fqs-tmnl">{target.tmnlId}</span>
+                            <strong>{label.title}</strong>
+                            <span className="fqs-muted">{context?.fcltNm ?? target.unitCd}</span>
+                        </div>
+                        <div className="fqs-clock">
+                            <span>
+                                현재 시각 <b>{nowText}</b>
+                            </span>
+                            <span>
+                                계산 기준 <b>{context?.baseText ?? '-'}</b>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="fqs-baseline">
+                        <div>
+                            <span className="fqs-k">{label.current}</span>
+                            <div className="fqs-v">
+                                <strong>{context?.currentCnt ?? '—'}</strong>
+                                <span>개</span>
+                            </div>
+                            <span className="fqs-sub">대기인원 {context?.queueText ?? '—'}명</span>
+                        </div>
+                        <div>
+                            <span className="fqs-k">현재 조건의 혼잡해소 예상</span>
+                            <ClearInline clear={context?.current ?? CLEAR_EMPTY} />
+                            <span className="fqs-sub">{context?.current.note}</span>
+                        </div>
+                    </div>
+
+                    <div className="fqs-modes" role="group" aria-label="계산 방식">
+                        <button type="button" aria-pressed={isCount} onClick={() => scenario.setMode('COUNT')}>
+                            {label.countTab}
+                        </button>
+                        <button type="button" aria-pressed={!isCount} onClick={() => scenario.setMode('TIME')}>
+                            목표 해소시간 설정
+                        </button>
+                    </div>
+
+                    {scenario.ctxChanged && (
+                        <p className="fqs-notice" role="status">
+                            원천 결과가 바뀌어 기준을 다시 불러왔습니다. 입력값은 새 기준으로 초기화했습니다.
+                        </p>
+                    )}
+
+                    <div className="fqs-workspace">
+                        <section className="fqs-editor">
+                            {isCount ? (
+                                <Stepper
+                                    label={label.input}
+                                    unit="개"
+                                    text={scenario.countText}
+                                    value={scenario.countValue}
+                                    min={0}
+                                    max={context?.totCnt ?? null}
+                                    disabled={scenario.countLocked}
+                                    error={scenario.countError}
+                                    note={toCountNote(context, scenario.countValue, scenario.countLocked)}
+                                    boundText={context?.totCnt != null ? `보유 ${context.totCnt}개` : '보유 미확인'}
+                                    onChange={scenario.setCountText}
+                                    onStep={scenario.stepCount}
+                                />
+                            ) : (
+                                <Stepper
+                                    label="목표 혼잡해소 시간"
+                                    unit="분"
+                                    text={scenario.targetText}
+                                    value={scenario.targetValue}
+                                    min={context?.targetMin.min ?? 1}
+                                    max={context?.targetMin.max ?? null}
+                                    disabled={!context}
+                                    error={scenario.targetError}
+                                    note={context ? `기본 ${context.targetMin.dflt}분` : ''}
+                                    boundText={context ? `${context.targetMin.max}분` : ''}
+                                    onChange={scenario.setTargetText}
+                                    onStep={scenario.stepTarget}
+                                />
+                            )}
+                        </section>
+
+                        <section className="fqs-result" aria-live="polite" aria-busy={result.status === 'loading'}>
+                            <div className="fqs-section-label">
+                                <span className="fqs-step">2</span>
+                                <span>{isCount ? '조정 후 혼잡해소 예상' : label.recommend}</span>
+                            </div>
+                            <ResultBody result={result} isCount={isCount} onRetry={scenario.retry} />
+                        </section>
+                    </div>
+
+                    <Comparison
+                        rows={
+                            result.status !== 'ready'
+                                ? []
+                                : isCount
+                                  ? [
+                                        { label: '현재', clear: context?.current ?? null },
+                                        { label: '조정 후', clear: result.view.scenario, accent: true },
+                                    ]
+                                  : [
+                                        { label: '현재', clear: context?.current ?? null },
+                                        {
+                                            label: result.view.recommend?.clearLabel || '추천 배정 시',
+                                            clear: result.view.recommend?.clear ?? null,
+                                            accent: true,
+                                        },
+                                    ]
+                        }
+                    />
+
+                    <details className="fqs-basis">
+                        <summary>
+                            계산 기준 <span>M/M/s 가정 · 혼잡해소 시간은 유체근사</span>
+                        </summary>
+                        {context && (
+                            <dl>
+                                <BasisItem term="해소 기준">{context.targetQueueText}</BasisItem>
+                                <BasisItem term="관측구간">
+                                    {context.obsText} · {context.dataSrcText}
+                                </BasisItem>
+                                <BasisItem term="유입률 λ">{context.arvlText}</BasisItem>
+                                <BasisItem term="처리율 μ">{context.srvcText}</BasisItem>
+                                <BasisItem term={`정상상태 · 현재 ${context.currentCnt ?? '—'}개`}>
+                                    <ErlangText erlang={context.currentErlang} />
+                                </BasisItem>
+                                {result.status === 'ready' && result.view.scenarioErlang && (
+                                    <BasisItem term={`정상상태 · ${isCount ? '조정 후' : '추천 수량'}`}>
+                                        <ErlangText erlang={result.view.scenarioErlang} />
+                                    </BasisItem>
+                                )}
+                                {result.status === 'ready' && result.view.recommend?.policyNote && (
+                                    <BasisItem term="추천 정책">{result.view.recommend.policyNote}</BasisItem>
+                                )}
+                                <BasisItem term="적용 가정">
+                                    <ul>
+                                        {context.asmpList.map((asmp) => (
+                                            <li key={asmp}>{asmp}</li>
+                                        ))}
+                                    </ul>
+                                </BasisItem>
+                            </dl>
+                        )}
+                        <p className="fqs-basis-foot">
+                            Erlang C 평균 대기시간은 여객 한 명의 정상상태 평균이며, 지금 쌓인 대기열이 줄어드는 혼잡해소 시간과 다른 지표입니다.
+                        </p>
+                    </details>
+                </div>
+
+                <footer className="fqs-foot">
+                    <span>운영 검토용 · 실제 배정이나 CAST 실행에 반영되지 않습니다</span>
+                    <DialogClose className="fqs-close">닫기</DialogClose>
+                </footer>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+function ClearInline({ clear }: { clear: QueueClearView }) {
+    return (
+        <div className={`fqs-v${clear.kind === 'unreachable' ? ' warn' : ''}`}>
+            <strong>{clear.mainText}</strong>
+            {clear.unitText && <span>{clear.unitText}</span>}
+            {clear.kind !== 'unreachable' && clear.kind !== 'unavailable' && <span className="fqs-clock-at">{clear.clockText}</span>}
+        </div>
+    );
+}
+
+function Stepper({ label, unit, text, value, min, max, disabled, error, note, boundText, onChange, onStep }: StepperProps) {
+    const id = useId();
+    const noteId = `${id}-note`;
+
+    return (
+        <>
+            <div className="fqs-section-label">
+                <span className="fqs-step">1</span>
+                <label htmlFor={id}>{label}</label>
+            </div>
+            <div className="fqs-stepper">
+                <button
+                    type="button"
+                    aria-label={`${label} 1${unit} 줄이기`}
+                    disabled={disabled || (value !== null && value <= min)}
+                    onClick={() => onStep(-1)}
+                >
+                    −
+                </button>
+                <div>
+                    <input
+                        id={id}
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="off"
+                        value={text}
+                        disabled={disabled}
+                        aria-invalid={error !== ''}
+                        aria-describedby={noteId}
+                        onChange={(event) => onChange(event.target.value.trim())}
+                    />
+                    <span>{unit}</span>
+                </div>
+                <button
+                    type="button"
+                    aria-label={`${label} 1${unit} 늘리기`}
+                    disabled={disabled || (max !== null && value !== null && value >= max)}
+                    onClick={() => onStep(1)}
+                >
+                    +
+                </button>
+            </div>
+            {max !== null && (
+                <input
+                    className="fqs-range"
+                    type="range"
+                    min={min}
+                    max={max}
+                    step={1}
+                    value={Math.min(max, Math.max(min, value ?? min))}
+                    disabled={disabled}
+                    aria-label={`${label} 슬라이더`}
+                    onChange={(event) => onChange(event.target.value)}
+                />
+            )}
+            <div className="fqs-range-labels">
+                <span>
+                    {min}
+                    {unit}
+                </span>
+                <span>{boundText}</span>
+            </div>
+            <p id={noteId} className={`fqs-note${error ? ' err' : ''}`}>
+                {error || note}
+            </p>
+        </>
+    );
+}
+
+function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState; isCount: boolean; onRetry: () => void }) {
+    if (result.status === 'loading') return <p className="fqs-state">계산 중…</p>;
+    if (result.status === 'invalid') return <p className="fqs-state">입력값을 확인하세요.</p>;
+    if (result.status === 'error') {
+        return (
+            <div className="fqs-state err">
+                <p>{result.message}</p>
+                <button type="button" className="fqs-retry" onClick={onRetry}>
+                    다시 계산
+                </button>
+            </div>
+        );
+    }
+
+    const { scenario, diffNote, recommend } = result.view;
+
+    if (isCount) {
+        if (!scenario) return <p className="fqs-state">—</p>;
+
+        return (
+            <>
+                <ResultMain clear={scenario} />
+                <p className="fqs-result-detail">
+                    해소 예상 시각 <b>{scenario.clockText}</b>
+                </p>
+                <p className="fqs-result-sub">{scenario.note}</p>
+                {diffNote && <p className="fqs-result-diff">{diffNote}</p>}
+            </>
+        );
+    }
+
+    if (!recommend || recommend.reqCnt === null) {
+        return (
+            <>
+                <div className="fqs-result-main">
+                    <strong className="fqs-result-value">—</strong>
+                </div>
+                <p className="fqs-result-sub">{recommend?.countNote}</p>
+            </>
+        );
+    }
+
+    return (
+        <>
+            <div className="fqs-result-main">
+                <span className="fqs-result-unit">총</span>
+                <strong className="fqs-result-value">{formatCount(recommend.reqCnt)}</strong>
+                <span className="fqs-result-unit">개</span>
+            </div>
+            <p className="fqs-result-detail">{recommend.countNote}</p>
+            <p className={`fqs-result-sub${recommend.capaShort ? ' warn' : ''}`}>{recommend.capaNote}</p>
+            {recommend.clear && (
+                <p className="fqs-result-diff">
+                    {recommend.clearLabel} 해소{' '}
+                    {recommend.clear.kind === 'value'
+                        ? `${recommend.clear.mainText}${recommend.clear.unitText} (${recommend.clear.clockText})`
+                        : recommend.clear.kind === 'none'
+                          ? '— 이미 목표 이하'
+                          : recommend.clear.mainText}
+                </p>
+            )}
+        </>
+    );
+}
+
+function ResultMain({ clear }: { clear: QueueClearView }) {
+    return (
+        <div className={`fqs-result-main${clear.kind === 'unreachable' ? ' warn' : ''}`}>
+            <strong className="fqs-result-value">{clear.mainText}</strong>
+            {clear.unitText && <span className="fqs-result-unit">{clear.unitText}</span>}
+        </div>
+    );
+}
+
+function Comparison({ rows }: { rows: CompareRow[] }) {
+    if (rows.length === 0) return null;
+
+    const maxMinutes = Math.max(1, ...rows.map((row) => row.clear?.minutes ?? 0));
+
+    return (
+        <div className="fqs-compare">
+            <div className="fqs-compare-head">
+                <span>혼잡해소 소요시간 비교</span>
+                <span>분</span>
+            </div>
+            {rows.map((row) => {
+                const clear = row.clear ?? CLEAR_EMPTY;
+                const unreachable = clear.kind === 'unreachable';
+                const width = unreachable ? 100 : ((clear.minutes ?? 0) / maxMinutes) * 100;
+
+                return (
+                    <div className="fqs-bar-row" key={row.label}>
+                        <span>{row.label}</span>
+                        <div className="fqs-track">
+                            <div className={`fqs-bar${row.accent ? ' accent' : ''}${unreachable ? ' over' : ''}`} style={{ width: `${width}%` }} />
+                        </div>
+                        <b>{clear.minutes === null ? clear.mainText : `${formatCount(clear.minutes)}분`}</b>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+function BasisItem({ term, children }: { term: string; children: ReactNode }) {
+    return (
+        <div className="fqs-basis-row">
+            <dt>{term}</dt>
+            <dd>{children}</dd>
+        </div>
+    );
+}
+
+function ErlangText({ erlang }: { erlang: QueueErlangView }) {
+    if (erlang.note) return <>— ({erlang.note})</>;
+
+    return (
+        <>
+            대기확률 {erlang.wtngProb} · 이론 평균 대기 {erlang.thryWtng} · 부하율 ρ {erlang.load}
+        </>
+    );
+}

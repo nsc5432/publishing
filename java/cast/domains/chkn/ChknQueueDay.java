@@ -54,6 +54,19 @@ public final class ChknQueueDay {
 		return series == null ? ChknQueueSlot.EMPTY : series.slotOf(bgnMinute, minutes);
 	}
 
+	public int queueAt(String island, int minute) {
+		ChknQueueSeries series = seriesMap.get(island);
+
+		return series == null ? 0 : series.queueAt(minute);
+	}
+
+	/** 부스 1개의 분당 처리용량. 처리용량이 있던 분이 없으면 null */
+	public BigDecimal serviceRateOf(String island, int bgnMinute, int minutes) {
+		ChknQueueSeries series = seriesMap.get(island);
+
+		return series == null ? null : series.serviceRateOf(bgnMinute, minutes);
+	}
+
 	public CongestionStatus statusOf(int queuePsgCnt, String context) {
 		return gradeScale.statusOf(queuePsgCnt, context);
 	}

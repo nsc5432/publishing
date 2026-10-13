@@ -2,7 +2,12 @@ import type {
     CongestionStatus,
     DsbdFcltCardDto,
     DsbdRsltDto,
+    FcltQueueClearDto,
+    FcltQueueRecommendDto,
+    FcltQueueScenarioDto,
     FcltUnitDto,
+    QueueCalcMethod,
+    QueueDataSrc,
     SmltType,
     TmnlSmryDto,
 } from '@/types/api.types';
@@ -15,22 +20,21 @@ import {
     formatYmd,
     pad2,
 } from '@/lib/format';
-import type {
-    FcltCardChip,
-    FcltCardData,
-    FcltCardType,
-    FcltCardVariant,
-    SimulationType,
-    TableRow,
-    TerminalView,
+import {
+    FCLT_QUEUE_LABEL,
+    type FcltCardChip,
+    type FcltCardData,
+    type FcltCardType,
+    type FcltCardVariant,
+    type FcltQueueContextView,
+    type FcltQueueResultView,
+    type QueueClearView,
+    type QueueErlangView,
+    type QueueRecommendView,
+    type SimulationType,
+    type TableRow,
+    type TerminalView,
 } from './types';
-
-/**
- * 터미널 패널 DTO → 화면 뷰 모델.
- *
- * 단위·부호·시각 형식을 여기서 한 번에 정한다. 컴포넌트가 저마다 toLocaleString 을
- * 부르기 시작하면 같은 값이 화면마다 다르게 보이기 시작한다.
- */
 
 interface TerminalViewInput {
     ymd: string;
@@ -41,10 +45,7 @@ interface TerminalViewInput {
     dptgtCards: DsbdFcltCardDto[];
 }
 
-/**
- * 혼잡도 → 칩 색상(dashboard.css).
- * 칩 팔레트가 3색이라 여유/보통은 같은 초록을 쓴다.
- */
+// 칩 팔레트가 3색이라 여유/보통은 같은 초록을 쓴다
 const CONGESTION_CHIP_CLASS: Record<CongestionStatus, string> = {
     FREE: 'g',
     NORMAL: 'g',
@@ -54,13 +55,30 @@ const CONGESTION_CHIP_CLASS: Record<CongestionStatus, string> = {
 
 const BUSY_STATUS: CongestionStatus[] = ['BUSY', 'VERY_BUSY'];
 
-/** 시설 카드 제목 */
 const FCLT_CARD_TITLE: Record<FcltCardType, string> = {
     CHKN: '체크인카운터',
     DEP: '출국장',
 };
 
-/** 서버 시뮬레이션 구분 → 화면 뱃지 구분 */
+const QUEUE_DATA_SRC_LABEL: Record<QueueDataSrc, string> = {
+    CAST: 'CAST 예측',
+    XOVIS: 'Xovis 실적',
+    MANUAL: '수동 입력',
+};
+
+const QUEUE_METHOD_LABEL: Record<QueueCalcMethod, string> = {
+    DIRECT: '직접 계산',
+    EXTERNAL_INPUT: '외부 입력',
+    SERVICE_TIME: '처리시간 역수',
+    LITTLE_LAW: "Little's Law 추정",
+    CAPACITY_MODEL: '처리능력 모형',
+    FLUID_APPROXIMATION: '유체근사',
+    OBSERVED_FLOW: '관측 통과율',
+    CONSERVATION: '인원 보존식 추정',
+    CAPACITY_COMPARISON: '보유량 비교',
+    ERLANG_C: 'Erlang C',
+};
+
 export function toSimulationType(smltType: SmltType): SimulationType {
     return smltType === 'USER' ? 'user' : 'daily';
 }
@@ -185,7 +203,225 @@ export function toTerminalView({
     };
 }
 
-/** 아직 응답이 없을 때 그릴 빈 패널 (골격은 그대로 두고 값만 비운다) */
+/* ================= 혼잡해소 시나리오 팝업 ================= */
+
+function formatDtClock(dt: string): string {
+    return formatHhmm(dt.slice(8, 12));
+}
+
+function formatDtFull(dt: string): string {
+    return dt.length === 14 ? `${formatYmd(dt.slice(0, 8), '-')} ${formatDtClock(dt)}` : '-';
+}
+
+// 자정을 넘긴 해소 시각이 같은 날 이른 시각처럼 읽히지 않게 날짜 차이를 붙인다
+function toClockText(dt: string, baseDt: string): string {
+    if (dt.length !== 14) return '—';
+
+    const dayDiff = Math.round(
+        (Date.UTC(+dt.slice(0, 4), +dt.slice(4, 6) - 1, +dt.slice(6, 8)) -
+            Date.UTC(+baseDt.slice(0, 4), +baseDt.slice(4, 6) - 1, +baseDt.slice(6, 8))) /
+            86_400_000,
+    );
+
+    if (dayDiff === 0) return formatDtClock(dt);
+    if (dayDiff === 1) return `다음 날 ${formatDtClock(dt)}`;
+
+    return `${dt.slice(4, 6)}-${dt.slice(6, 8)} ${formatDtClock(dt)}`;
+}
+
+// 15분이 부동소수 오차로 15.0000001분이 되어 16분으로 올라가지 않게 한다
+function ceilMinutes(minutes: number): number {
+    return Math.ceil(minutes - 1e-9);
+}
+
+function formatSeconds(seconds: number): string {
+    const rounded = Math.round(seconds);
+
+    if (rounded < 60) return `${rounded}초`;
+
+    const rest = rounded % 60;
+
+    return rest === 0 ? `${rounded / 60}분` : `${Math.floor(rounded / 60)}분 ${rest}초`;
+}
+
+function formatPercent(ratio: number): string {
+    return `${(ratio * 100).toFixed(1)}%`;
+}
+
+export function toSeoulClock(date: Date): string {
+    return new Intl.DateTimeFormat('ko-KR', {
+        timeZone: 'Asia/Seoul',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    }).format(date);
+}
+
+export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string): QueueClearView {
+    const { status, reason } = clear.clearMetric;
+
+    if (status === 'UNREACHABLE') {
+        return {
+            kind: 'unreachable',
+            minutes: null,
+            mainText: '해소 불가',
+            unitText: '',
+            clockText: '—',
+            note: '처리능력이 유입 이하라 대기열이 줄지 않습니다',
+        };
+    }
+
+    if (clear.cgnClearMin === null) {
+        return { kind: 'unavailable', minutes: null, mainText: '—', unitText: '', clockText: '—', note: reason };
+    }
+
+    if (clear.cgnClearMin === 0) {
+        return {
+            kind: 'none',
+            minutes: 0,
+            mainText: '0',
+            unitText: '분',
+            clockText: formatDtClock(baseDt),
+            note: '이미 목표 인원 이하',
+        };
+    }
+
+    const minutes = ceilMinutes(clear.cgnClearMin);
+
+    return {
+        kind: 'value',
+        minutes,
+        mainText: formatCount(minutes),
+        unitText: '분 후',
+        clockText: toClockText(clear.cgnClearDt, baseDt),
+        note: `계산 기준 대비 ${formatCount(minutes)}분 후`,
+    };
+}
+
+function toQueueErlangView(clear: FcltQueueClearDto): QueueErlangView {
+    if (clear.wtngProb === null || clear.loadRatio === null || clear.thryWtngSec === null) {
+        return { wtngProb: '—', thryWtng: '—', load: '—', note: clear.erlangMetric.reason };
+    }
+
+    return {
+        wtngProb: formatPercent(clear.wtngProb),
+        thryWtng: formatSeconds(clear.thryWtngSec),
+        load: formatPercent(clear.loadRatio),
+        note: '',
+    };
+}
+
+function toDiffNote(current: QueueClearView, scenario: QueueClearView): string {
+    if (scenario.kind === 'unreachable') return '조정 후에도 해소 불가';
+    if (current.minutes === null || scenario.minutes === null) {
+        return current.kind === 'unreachable' && scenario.minutes !== null ? '현재 조건에서는 해소 불가 → 조정 시 해소' : '';
+    }
+
+    const diff = current.minutes - scenario.minutes;
+
+    if (diff > 0) return `현재 조건보다 ${formatCount(diff)}분 단축`;
+    if (diff < 0) return `현재 조건보다 ${formatCount(-diff)}분 늘어남`;
+
+    return '현재 조건과 같음';
+}
+
+function toQueueRecommendView(dto: FcltQueueScenarioDto, recommend: FcltQueueRecommendDto): QueueRecommendView {
+    const { reqCnt, extraCnt, reduceCnt, fluidReqCnt, stableMinCnt } = recommend;
+
+    if (reqCnt === null) {
+        return {
+            reqCnt: null,
+            countNote: recommend.reqMetric.reason,
+            capaNote: '',
+            capaShort: false,
+            policyNote: '',
+            clear: null,
+            clearLabel: '',
+        };
+    }
+
+    const current = dto.oprFcltCnt === null ? '' : `현재 ${formatCount(dto.oprFcltCnt)}개 · `;
+    const countNote =
+        extraCnt !== null && extraCnt > 0
+            ? `${current}${formatCount(extraCnt)}개 추가 필요`
+            : reduceCnt !== null && reduceCnt > 0
+              ? `${current}${formatCount(reduceCnt)}개 감소 가능`
+              : `${current}현재 수량으로 충분`;
+    const capaNote =
+        recommend.capaAvlYn === 'N'
+            ? `보유 ${formatCount(dto.totCnt ?? 0)}개 초과 — 보유 수량으로 목표 달성 불가`
+            : recommend.capaAvlYn === 'Y'
+              ? `보유 ${formatCount(dto.totCnt ?? 0)}개 이내`
+              : dto.totCntRsn || '배정 가능한 최대 수량 미확인';
+    const policyNote =
+        recommend.stableAplyYn === 'Y'
+            ? `유체근사 ${fluidReqCnt}개 → 안정조건(ρ<1) 최소 ${stableMinCnt}개 적용`
+            : `유체근사 ${fluidReqCnt}개 · 안정조건(ρ<1) 최소 ${stableMinCnt ?? '—'}개`;
+    const clearSource = dto.scenario ?? dto.totScenario;
+
+    return {
+        reqCnt,
+        countNote,
+        capaNote,
+        capaShort: recommend.capaAvlYn === 'N',
+        policyNote: recommend.goalMetYn === 'N' ? `${policyNote} · 목표시간 검증 실패` : policyNote,
+        clear: clearSource ? toQueueClearView(clearSource, dto.baseDt) : null,
+        clearLabel: dto.scenario
+            ? '추천 수량 배정 시'
+            : dto.totScenario
+              ? `보유 ${formatCount(dto.totCnt ?? 0)}개 모두 배정 시`
+              : '',
+    };
+}
+
+export function toFcltQueueContextView(dto: FcltQueueScenarioDto): FcltQueueContextView {
+    const label = FCLT_QUEUE_LABEL[dto.fcltType];
+    const countLockReason =
+        dto.oprFcltCnt === null
+            ? '현재 운영 수량이 확인되지 않아 수량을 조정할 수 없습니다.'
+            : dto.totCnt === null
+              ? `${dto.totCntRsn || '배정 가능한 최대 수량이 확인되지 않았습니다.'} 수량 조정을 할 수 없습니다.`
+              : '';
+
+    return {
+        label,
+        tmnlId: dto.tmnlId,
+        fcltNm: dto.fcltNm,
+        baseText: formatDtFull(dto.baseDt),
+        obsText: `${formatDtClock(dto.obsBgnDt)} ~ ${toClockText(dto.obsEndDt, dto.obsBgnDt)}`,
+        dataSrcText: QUEUE_DATA_SRC_LABEL[dto.dataSrc],
+        queueText: dto.wtngPsgCnt === null ? '—' : formatCount(dto.wtngPsgCnt),
+        targetQueueText: `대기인원 ${formatCount(dto.targetQueueCnt)}명 이하 기준 (혼잡등급 NORMAL 상한)`,
+        arvlText:
+            dto.arvlRate === null
+                ? `— (${dto.arvlMetric.reason})`
+                : `${dto.arvlRate.toFixed(1)}명/분 · ${QUEUE_METHOD_LABEL[dto.arvlMetric.method]}`,
+        srvcText:
+            dto.srvcRate === null
+                ? `— (${dto.srvcMetric.reason})`
+                : `${label.resource} 1개당 ${dto.srvcRate.toFixed(2)}명/분`,
+        asmpList: dto.asmpList,
+        currentCnt: dto.oprFcltCnt,
+        totCnt: dto.totCnt,
+        countLockReason,
+        targetMin: { dflt: dto.dfltTargetMin, min: dto.minTargetMin, max: dto.maxTargetMin },
+        current: toQueueClearView(dto.current, dto.baseDt),
+        currentErlang: toQueueErlangView(dto.current),
+    };
+}
+
+export function toFcltQueueResultView(dto: FcltQueueScenarioDto): FcltQueueResultView {
+    const current = toQueueClearView(dto.current, dto.baseDt);
+    const scenario = dto.scenario ? toQueueClearView(dto.scenario, dto.baseDt) : null;
+
+    return {
+        scenario,
+        scenarioErlang: dto.scenario ? toQueueErlangView(dto.scenario) : null,
+        diffNote: dto.mode === 'COUNT' && scenario ? toDiffNote(current, scenario) : '',
+        recommend: dto.mode === 'TIME' && dto.recommend ? toQueueRecommendView(dto, dto.recommend) : null,
+    };
+}
+
 export const EMPTY_TERMINAL_VIEW: TerminalView = {
     barText: '-',
     cgnStatus: 'FREE',

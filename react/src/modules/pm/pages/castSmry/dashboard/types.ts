@@ -1,7 +1,6 @@
 import type { CongestionStatus, DsbdRsltDto, FcltType } from '@/types/api.types';
 import type { IconName } from '@/components/icons/InlineIcon';
 
-/** 일일 시뮬레이션 / 사용자 시뮬레이션 두 가지 버전 */
 export type SimulationType = 'daily' | 'user';
 
 export const SIMULATION_LABEL: Record<SimulationType, string> = {
@@ -21,18 +20,12 @@ export type TerminalKind = 'T1' | 'T2';
 /** 요약 블록이 세는 구간 길이(분) — 조회 시각부터 이만큼 안에 출발하는 편만 센다 */
 export const SMRY_ITVL_MIN = 60;
 
-/* ================= 터미널 패널 뷰 모델 =================
- *
- * 서버 DTO 를 화면이 그대로 쓰기엔 표기 규칙(단위 · 부호 · 시각 형식)이 섞여 있다.
- * view.ts 에서 한 번 옮겨 두고, 컴포넌트는 아래 모양만 그린다.
- */
+/* ================= 터미널 패널 뷰 모델 ================= */
 
 export interface GaugeData {
     /** 도넛 게이지 채움 비율 (0~1) */
     value: number;
-    /** 도넛 가운데 큰 글씨 */
     centerText: string;
-    /** 그 아래 작은 글씨 (단위 / 부연) */
     captionText: string;
 }
 
@@ -42,7 +35,6 @@ export interface FcltCardChip {
     kind: string;
 }
 
-/** 시설 카드 가운데 줄의 '라벨 값' 한 쌍 */
 export interface FcltCardMeta {
     label: string;
     value: string;
@@ -50,7 +42,6 @@ export interface FcltCardMeta {
     accent?: boolean;
 }
 
-/** 시설 카드의 추천 조치 블록 */
 export interface FcltCardRecommend {
     tag: string;
     name: string;
@@ -72,11 +63,9 @@ export interface FcltCardVariant {
     recommend: FcltCardRecommend;
 }
 
-/** 대시보드 시설 카드로 올라오는 시설 (상세 화면이 따로 있는 둘) */
 export type FcltCardType = Extract<FcltType, 'CHKN' | 'DEP'>;
 
 export interface FcltCardData {
-    /** 상세(+) 버튼이 어느 화면을 여는지 가른다 */
     fcltType: FcltCardType;
     title: string;
     warn: string;
@@ -109,7 +98,106 @@ export interface TableRow {
     ratio: string;
 }
 
-/** 터미널 패널 1개분 */
+/* ================= 혼잡해소 시나리오 팝업 뷰 모델 ================= */
+
+/** 카드에서 실제 선택한 단위 + 확정 조회조건 (조회 전 draft 조건은 섞지 않는다) */
+export interface FcltQueueTarget {
+    smltId: string;
+    ymd: string;
+    hhmm: string;
+    tmnlId: TerminalKind;
+    fcltType: FcltCardType;
+    unitCd: string;
+}
+
+export interface FcltQueueLabel {
+    title: string;
+    resource: string;
+    current: string;
+    input: string;
+    countTab: string;
+    recommend: string;
+}
+
+export const FCLT_QUEUE_LABEL: Record<FcltCardType, FcltQueueLabel> = {
+    CHKN: {
+        title: '체크인카운터',
+        resource: '부스',
+        current: '현재 배정 부스',
+        input: '배정 부스 수',
+        countTab: '부스 수 조정',
+        recommend: '추천 부스 수(총)',
+    },
+    DEP: {
+        title: '출국장',
+        resource: '보안검색대',
+        current: '현재 운영 보안검색대',
+        input: '운영 보안검색대 수',
+        countTab: '보안검색대 수 조정',
+        recommend: '추천 보안검색대 수(총)',
+    },
+};
+
+/** value 는 해소 소요시간이 있는 경우, none 은 이미 목표 이하(0분) */
+export type QueueClearKind = 'value' | 'none' | 'unreachable' | 'unavailable';
+
+export interface QueueClearView {
+    kind: QueueClearKind;
+    /** 화면 표기용 올림 분. 소요시간이 없으면 null */
+    minutes: number | null;
+    mainText: string;
+    unitText: string;
+    clockText: string;
+    note: string;
+}
+
+export interface QueueErlangView {
+    wtngProb: string;
+    thryWtng: string;
+    load: string;
+    note: string;
+}
+
+export interface QueueRecommendView {
+    reqCnt: number | null;
+    countNote: string;
+    capaNote: string;
+    capaShort: boolean;
+    policyNote: string;
+    /** 추천 수량(또는 보유 최대수) 배정 시 해소 예상 */
+    clear: QueueClearView | null;
+    clearLabel: string;
+}
+
+/** 응답 하나에서 정해지는 기준 정보 — 수량 · 목표시간 입력과 무관하다 */
+export interface FcltQueueContextView {
+    label: FcltQueueLabel;
+    tmnlId: TerminalKind;
+    fcltNm: string;
+    baseText: string;
+    obsText: string;
+    dataSrcText: string;
+    queueText: string;
+    targetQueueText: string;
+    arvlText: string;
+    srvcText: string;
+    asmpList: string[];
+    currentCnt: number | null;
+    totCnt: number | null;
+    /** 수량 조정을 막는 사유 (빈 값이면 조정 가능) */
+    countLockReason: string;
+    targetMin: { dflt: number; min: number; max: number };
+    current: QueueClearView;
+    currentErlang: QueueErlangView;
+}
+
+export interface FcltQueueResultView {
+    scenario: QueueClearView | null;
+    scenarioErlang: QueueErlangView | null;
+    diffNote: string;
+    recommend: QueueRecommendView | null;
+}
+
 export interface TerminalView {
     /** 기준시각 바 문구 (예: 2026-07-10 FRI 10:00 AM) */
     barText: string;

@@ -1,8 +1,5 @@
 const prefix = '/pm/cast';
 
-/**
- * PM 예측관리 API 엔드포인트.
- */
 export const API_ENDPOINTS = {
     // 공통 - 사용자 정보
     USER_INFO_BY_SESSION: prefix + '/user/retrieveUserInfoBySession',
@@ -13,6 +10,7 @@ export const API_ENDPOINTS = {
     DSBD_TMNL_SMRY: prefix + '/smry/retrieveDailySmltTmnlSmry',
     DSBD_TMNL_RSLT: prefix + '/smry/retrieveDailySmltTmnlRsltByTime',
     DSBD_FCLT_CARD: prefix + '/smry/retrieveDailySmltFcltCard',
+    DSBD_FCLT_QUEUE_SCENARIO: prefix + '/smry/retrieveFcltQueueScenario',
 
     // 일일 시뮬레이션 결과 조회 - 맵형태보기 (하루치를 한 번에 받는다)
     MAP_INFO: prefix + '/map/retrieveSmltMap',

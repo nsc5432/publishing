@@ -1,10 +1,12 @@
 import './dashboard.css';
+import './fclt-queue-scenario.css';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lnb } from '@/components/lnb';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
 import type { DsbdCategory, SmltType } from '@/types/api.types';
+import { FcltQueueScenarioModal } from './components/FcltQueueScenarioModal';
 import { HeaderSummary } from './components/HeaderSummary';
 import { TerminalSummary } from './components/TerminalSummary';
 import { Topbar } from './components/Topbar';
@@ -13,6 +15,12 @@ import { useBaseInfo } from '@/hooks/useBaseInfo';
 import { toSimulationType } from './view';
 import { useDashboardHeader, useTerminalPanel, type DashboardQuery } from './hooks/useDashboardData';
 import { useExecDetail } from './hooks/useExecDetail';
+import type { FcltCardType, FcltQueueTarget, TerminalKind } from './types';
+
+interface FcltQueuePopup {
+    query: DashboardQuery;
+    target: FcltQueueTarget;
+}
 
 const USER_SMLT_CONFIG_PATH = '/rui/pm/user-smlt/config';
 
@@ -39,6 +47,7 @@ function Dashboard() {
     const [query, setQuery] = useState<DashboardQuery | null>(null);
     const [category, setCategory] = useState<DsbdCategory>(DEFAULT_CATEGORY);
     const [activePrimeCategory, setActivePrimeCategory] = useState<DsbdCategory | null>(DEFAULT_CATEGORY);
+    const [fcltQueuePopup, setFcltQueuePopup] = useState<FcltQueuePopup | null>(null);
 
     useEffect(() => {
         if (!baseInfo) return;
@@ -94,6 +103,12 @@ function Dashboard() {
         navigate(`${USER_SMLT_CONFIG_PATH}?${configParams.toString()}`);
     };
 
+    const handleFcltDetail = (tmnlId: TerminalKind) => (fcltType: FcltCardType, unitCd: string) => {
+        if (!query) return;
+
+        setFcltQueuePopup({ query, target: { ...query, tmnlId, fcltType, unitCd } });
+    };
+
     const executor = execDetail ? { dept: execDetail.deptNm, name: execDetail.userNm } : undefined;
 
     return (
@@ -122,11 +137,26 @@ function Dashboard() {
                     onCategoryChange={handleCategoryChange}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary terminal="T1" data={terminal1View} titleCategory={activePrimeCategory} />
-                        <TerminalSummary terminal="T2" data={terminal2View} titleCategory={activePrimeCategory} />
+                        <TerminalSummary
+                            terminal="T1"
+                            data={terminal1View}
+                            titleCategory={activePrimeCategory}
+                            onFcltDetail={handleFcltDetail('T1')}
+                        />
+                        <TerminalSummary
+                            terminal="T2"
+                            data={terminal2View}
+                            titleCategory={activePrimeCategory}
+                            onFcltDetail={handleFcltDetail('T2')}
+                        />
                     </section>
                 </HeaderSummary>
             </div>
+
+            {/* 조회 조건이 바뀌면 이전 조건으로 연 팝업은 닫는다 */}
+            {fcltQueuePopup && fcltQueuePopup.query === query && (
+                <FcltQueueScenarioModal target={fcltQueuePopup.target} onClose={() => setFcltQueuePopup(null)} />
+            )}
         </>
     );
 }

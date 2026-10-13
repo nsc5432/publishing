@@ -8,6 +8,8 @@ import type {
     DsbdFcltCardDto,
     DsbdHeaderDto,
     DsbdRsltDto,
+    FcltQueueScenarioDto,
+    FcltQueueScenarioReq,
     TmnlId,
     TmnlSmryDto,
 } from '@/types/api.types';
@@ -88,6 +90,17 @@ export const dashboardService = {
             hhmm,
             fcltType,
         });
+
+        return response.data;
+    },
+
+    getFcltQueueScenario: async (req: FcltQueueScenarioReq): Promise<FcltQueueScenarioDto> => {
+        if (USE_MOCK) return mockResponse(dashboardMock.getFcltQueueScenario(req));
+
+        const response = await apiClient.post<FcltQueueScenarioDto>(
+            API_ENDPOINTS.DSBD_FCLT_QUEUE_SCENARIO,
+            req,
+        );
 
         return response.data;
     },

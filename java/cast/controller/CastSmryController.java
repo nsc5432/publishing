@@ -13,6 +13,8 @@ import aoms.pm.cast.dto.DsbdFcltCardDto;
 import aoms.pm.cast.dto.DsbdHeaderDto;
 import aoms.pm.cast.dto.DsbdRsltDto;
 import aoms.pm.cast.dto.DsbdSearchDto;
+import aoms.pm.cast.dto.FcltQueueScenarioDto;
+import aoms.pm.cast.dto.FcltQueueScenarioSearchDto;
 import aoms.pm.cast.dto.TmnlSmryDto;
 import aoms.pm.cast.service.CastDsbdService;
 import aoms.pm.utils.ResponseUtils;
@@ -51,5 +53,10 @@ public class CastSmryController {
 	@PostMapping(value = "/retrieveDailySmltFcltCard")
 	public ResponseEntity<List<DsbdFcltCardDto>> retrieveDailySmltFcltCard(@RequestBody DsbdSearchDto searchDto) {
 		return ResponseUtils.res(castDsbdService.retrieveDailySmltFcltCard(searchDto));
+	}
+
+	@PostMapping(value = "/retrieveFcltQueueScenario")
+	public ResponseEntity<FcltQueueScenarioDto> retrieveFcltQueueScenario(@RequestBody FcltQueueScenarioSearchDto searchDto) {
+		return ResponseUtils.res(castDsbdService.retrieveFcltQueueScenario(searchDto));
 	}
 }

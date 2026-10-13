@@ -157,6 +157,100 @@ export interface DsbdFcltCardDto {
     unitList: FcltUnitDto[];
 }
 
+export type FcltQueueScenarioMode = 'COUNT' | 'TIME';
+
+export type QueueMetricStatus = 'CALCULATED' | 'ESTIMATED' | 'UNAVAILABLE' | 'UNREACHABLE';
+
+export type QueueCalcMethod =
+    | 'DIRECT'
+    | 'EXTERNAL_INPUT'
+    | 'SERVICE_TIME'
+    | 'LITTLE_LAW'
+    | 'CAPACITY_MODEL'
+    | 'FLUID_APPROXIMATION'
+    | 'OBSERVED_FLOW'
+    | 'CONSERVATION'
+    | 'CAPACITY_COMPARISON'
+    | 'ERLANG_C';
+
+export type QueueDataSrc = 'CAST' | 'XOVIS' | 'MANUAL';
+
+export interface QueueMetricDto {
+    status: QueueMetricStatus;
+    method: QueueCalcMethod;
+    reason: string;
+}
+
+export interface FcltQueueScenarioReq {
+    smltId: string;
+    ymd: string;
+    hhmm: string;
+    tmnlId: TmnlId;
+    fcltType: Extract<FcltType, 'CHKN' | 'DEP'>;
+    unitCd: string;
+    mode: FcltQueueScenarioMode;
+    oprFcltCnt?: number;
+    targetMinutes?: number;
+    contextVersion?: string;
+}
+
+export interface FcltQueueClearDto {
+    fcltCnt: number | null;
+    cgnClearMin: number | null;
+    cgnClearDt: string;
+    clearMetric: QueueMetricDto;
+    wtngProb: number | null;
+    loadRatio: number | null;
+    thryWtngSec: number | null;
+    thryWtngPsgCnt: number | null;
+    erlangMetric: QueueMetricDto;
+}
+
+export interface FcltQueueRecommendDto {
+    targetMin: number;
+    reqCnt: number | null;
+    extraCnt: number | null;
+    reduceCnt: number | null;
+    fluidReqCnt: number | null;
+    stableMinCnt: number | null;
+    stableAplyYn: YnFlag | null;
+    capaAvlYn: YnFlag | null;
+    goalMetYn: YnFlag | null;
+    policyCd: string;
+    reqMetric: QueueMetricDto;
+}
+
+export interface FcltQueueScenarioDto extends JsonResponse {
+    tmnlId: TmnlId;
+    fcltType: Extract<FcltType, 'CHKN' | 'DEP'>;
+    unitCd: string;
+    fcltNm: string;
+    mode: FcltQueueScenarioMode;
+    baseDt: string;
+    obsBgnDt: string;
+    obsEndDt: string;
+    dataSrc: QueueDataSrc;
+    contextVersion: string;
+    ctxChgYn: YnFlag;
+    wtngPsgCnt: number | null;
+    targetQueueCnt: number;
+    oprFcltCnt: number | null;
+    totCnt: number | null;
+    totCntRsn: string;
+    arvlRate: number | null;
+    srvcRate: number | null;
+    arvlMetric: QueueMetricDto;
+    srvcMetric: QueueMetricDto;
+    dfltTargetMin: number;
+    minTargetMin: number;
+    maxTargetMin: number;
+    asmpList: string[];
+    current: FcltQueueClearDto;
+    scenario: FcltQueueClearDto | null;
+    totScenario: FcltQueueClearDto | null;
+    recommend: FcltQueueRecommendDto | null;
+}
+
 /* ================= 일일 시뮬레이션 - 맵형태보기 ================= */
 
 export interface MapSmryDto {
