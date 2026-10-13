@@ -4,19 +4,19 @@
 <mapper namespace="aoms.pm.cast.mapper.CastUserSnapshotMapper">
 
 <delete id="deleteRsrcAtrb">
-
+        /* CastUserSnapshotMapper.deleteRsrcAtrb */
         DELETE FROM PMOWN.${atrbTableNm}
         WHERE ${atrbIdColumnNm} = #{rsrcNo}
     </delete>
 
     <delete id="deleteRsrcMstr">
-
+        /* CastUserSnapshotMapper.deleteRsrcMstr */
         DELETE FROM PMOWN.${mstrTableNm}
         WHERE ${mstrIdColumnNm} = #{rsrcNo}
     </delete>
 
     <insert id="insertRsrcMstr">
-
+        /* CastUserSnapshotMapper.insertRsrcMstr */
         INSERT INTO PMOWN.${mstrTableNm} (
             ${mstrIdColumnNm}, ${mstrNmColumnNm}, PRCS_STTS_CD, CFMTN_YN, USE_YN,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
@@ -82,7 +82,7 @@
     </sql>
 
     <insert id="insertSchdlAtrbFromDaily" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-
+        /* CastUserSnapshotMapper.insertSchdlAtrbFromDaily */
         INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB (
             SCHDL_ATRB_GROUP_ID, DOM_INTL_SE_CD, ARR_DEP_SE_CD, TMNL_ID, ALN_CD,
             FLTNM, DEP_ARR_YMD, DEP_ARR_HM, PREDC_HM, ACTL_HM,
@@ -141,7 +141,7 @@
     </insert>
 
     <insert id="insertSchdlAtrbFromSrc" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-
+        /* CastUserSnapshotMapper.insertSchdlAtrbFromSrc */
         INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB (
             SCHDL_ATRB_GROUP_ID, DOM_INTL_SE_CD, ARR_DEP_SE_CD, TMNL_ID, ALN_CD, ALN_CTGRY,
             FLTNM, DALY_FLTSH_ID, DEP_ARR_YMD, DEP_ARR_HM, PREDC_HM, ACTL_HM,
@@ -178,7 +178,7 @@
     </insert>
 
     <insert id="insertCknctAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-
+        /* CastUserSnapshotMapper.insertCknctAtrb */
         INSERT INTO PMOWN.TN_PM_SMLT_CKNCT_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, CHKN_OPEN_PRNMNT_DT, CHKN_CLOSE_PRNMNT_DT, CHKN_TYPE_CD,
@@ -230,7 +230,7 @@
     </insert>
 
     <insert id="insertSbdAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-
+        /* CastUserSnapshotMapper.insertSbdAtrb */
         INSERT INTO PMOWN.TN_PM_SMLT_SBD_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD, CHKN_TYPE_DTL_INFO,
@@ -292,7 +292,7 @@
     </insert>
 
     <insert id="insertSbdAtrbKiosk" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-
+        /* CastUserSnapshotMapper.insertSbdAtrbKiosk */
         INSERT INTO PMOWN.TN_PM_SMLT_SBD_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD, CHKN_TYPE_DTL_INFO,
@@ -339,7 +339,7 @@
     </insert>
 
     <insert id="insertDptgtAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-
+        /* CastUserSnapshotMapper.insertDptgtAtrb */
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB (
             DPTGT_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, FCLTY_CNT,
             OPER_BGNG_HM, OPER_END_HM,
@@ -368,7 +368,7 @@
     </insert>
 
     <insert id="insertScrtyCntrlAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-
+        /* CastUserSnapshotMapper.insertScrtyCntrlAtrb */
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB (
             SCRTY_CNTRL_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, FCLTY_CNT,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
@@ -391,7 +391,7 @@
 
     <!-- 입국심사·환승보안은 편집 영역이 아니지만 렌더 SQL 이 번호로 FS 그룹 일자를 찾으므로 원천을 번호로 복사한다 -->
     <insert id="insertEntcnyAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-
+        /* CastUserSnapshotMapper.insertEntcnyAtrb */
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_ENTCNY_ATRB (
             ENTCNY_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, FCLTY_TYPE_ID,
             PSPRT, ENTCNY_TYPE_CD, FCLTY_CNT,
@@ -406,7 +406,7 @@
     </insert>
 
     <insert id="insertTrnstScrtyCntrlAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-
+        /* CastUserSnapshotMapper.insertTrnstScrtyCntrlAtrb */
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_ATRB (
             TRNST_SCRTY_CNTRL_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, FCLTY_TYPE_ID, FCLTY_CNT,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT

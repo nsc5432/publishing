@@ -70,6 +70,7 @@
 
     <!-- 002~499 만 쓴다. 500~998 은 사용자 실행 전용 PropertySet(PS5xx) 번호다 -->
     <select id="retrieveAvailableCategoryId" resultType="string">
+        /* CastConfigMapper.retrieveAvailableCategoryId */
         SELECT LPAD(MIN(C.CATEGORY_NO), 3, '0')
         FROM (
             SELECT LEVEL + 1 AS CATEGORY_NO
@@ -84,6 +85,7 @@
     </select>
 
     <insert id="insertClonedCategory">
+        /* CastConfigMapper.insertClonedCategory */
         INSERT INTO PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP (
             FIX_ATRB_GROUP_ID, ATRB_GROUP_NM, CFMTN_YN, GROUP_PRCS_STTS_CD, DEL_YN,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
@@ -263,6 +265,7 @@
     </insert>
 
     <insert id="insertFromGroup">
+        /* CastConfigMapper.insertFromGroup */
         INSERT INTO PMOWN.${tableNm} (
             ${groupColumnNm},
             ${keyColumnNm},
@@ -298,10 +301,12 @@
     </select>
 
     <select id="retrieveAplySetSn" resultType="long">
+        /* CastConfigMapper.retrieveAplySetSn */
         SELECT PMOWN.SQ1_TN_PM_SMLT_ATRB_APLY_SET.NEXTVAL FROM DUAL
     </select>
 
     <insert id="insertAplySetHstry" parameterType="aoms.pm.cast.dto.CastConfigAplySetHstryDto">
+        /* CastConfigMapper.insertAplySetHstry */
         INSERT INTO PMOWN.TH_PM_SMLT_ATRB_APLY_SET_HSTRY (
             APLY_SET_SN, SRC_FIX_ATRB_GROUP_ID, TGT_FIX_ATRB_GROUP_ID, APLY_ROW_CNT,
             CNCL_YN, FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
@@ -312,6 +317,7 @@
     </insert>
 
     <update id="updateAplySetRowCnt">
+        /* CastConfigMapper.updateAplySetRowCnt */
         UPDATE PMOWN.TH_PM_SMLT_ATRB_APLY_SET_HSTRY
         SET APLY_ROW_CNT = #{aplyRowCnt}
         WHERE APLY_SET_SN = #{aplySetSn}
@@ -466,6 +472,7 @@
     </update>
 
     <select id="retrieveAplySetHstryList" resultType="aoms.pm.cast.dto.CastConfigAplySetHstryDto">
+        /* CastConfigMapper.retrieveAplySetHstryList */
         SELECT
             A.APLY_SET_SN AS APLY_SET_SN,
             A.SRC_FIX_ATRB_GROUP_ID AS SRC_FIX_ATRB_GROUP_ID,
@@ -491,6 +498,7 @@
     </select>
 
     <select id="retrieveAplySetHstryForUpdate" resultType="aoms.pm.cast.dto.CastConfigAplySetHstryDto">
+        /* CastConfigMapper.retrieveAplySetHstryForUpdate */
         SELECT
             A.APLY_SET_SN AS APLY_SET_SN,
             A.SRC_FIX_ATRB_GROUP_ID AS SRC_FIX_ATRB_GROUP_ID,
@@ -503,6 +511,7 @@
     </select>
 
     <select id="retrieveAplyHstryListBySet" resultType="aoms.pm.cast.dto.CastConfigAplyHstryDto">
+        /* CastConfigMapper.retrieveAplyHstryListBySet */
         SELECT
             A.APLY_SN AS APLY_SN,
             A.APLY_SET_SN AS APLY_SET_SN,
@@ -519,6 +528,7 @@
     </select>
 
     <update id="updateAplySetHstryCancel">
+        /* CastConfigMapper.updateAplySetHstryCancel */
         UPDATE PMOWN.TH_PM_SMLT_ATRB_APLY_SET_HSTRY A
         SET CNCL_YN = 'Y',
             CNCL_DT = CURRENT_TIMESTAMP,
@@ -535,6 +545,7 @@
     </update>
 
     <update id="updateAplyHstryCancelBySet">
+        /* CastConfigMapper.updateAplyHstryCancelBySet */
         UPDATE PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY
         SET CNCL_YN = 'Y',
             CNCL_DT = CURRENT_TIMESTAMP,

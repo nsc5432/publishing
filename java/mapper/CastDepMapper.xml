@@ -3,7 +3,7 @@
 
 <mapper namespace="aoms.pm.cast.mapper.CastDepMapper">
     <select id="retrieveDepFcltList" resultType="aoms.pm.cast.dto.DepFcltRawDto">
-
+        /* CastDepMapper.retrieveDepFcltList */
         SELECT
             SUBSTR(B.PSG_FCLT_CD, 4, 1) AS DPTGT_NO,
             B.PSG_FCLT_NM AS DPTGT_NM,
@@ -17,7 +17,7 @@
     </select>
 
     <select id="retrieveScCntList" resultType="aoms.pm.cast.dto.ScCntRawDto">
-
+        /* CastDepMapper.retrieveScCntList */
         SELECT
             A.GATE_NO AS DPTGT_NO,
             A.FCLTY_CNT AS SCSH_CNTOM
@@ -29,7 +29,7 @@
     </select>
 
     <select id="retrieveUserDepList" resultType="aoms.pm.cast.dto.DepGateDto">
-
+        /* CastDepMapper.retrieveUserDepList */
         SELECT
             A.DPTGT_NO,
             A.OPER_YN AS OPR_YN,
@@ -45,7 +45,7 @@
     </select>
 
     <select id="retrieveUserDepOperHrList" resultType="aoms.pm.cast.dto.UserDepOperHrRawDto">
-
+        /* CastDepMapper.retrieveUserDepOperHrList */
         SELECT
             A.DPTGT_NO,
             NVL(A.OPER_BGNG_HOUR, 0) AS OPER_BGNG_HOUR,
@@ -59,7 +59,7 @@
     </select>
 
     <delete id="deleteUserDepList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
-
+        /* CastDepMapper.deleteUserDepList */
         DELETE FROM PMOWN.TN_PM_SMLT_USER_DPTGT
         WHERE 1 = 1
         AND OWNER_USER_ID = #{loginUserId}
@@ -68,7 +68,7 @@
     </delete>
 
     <delete id="deleteUserDepOperHrList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
-
+        /* CastDepMapper.deleteUserDepOperHrList */
         DELETE FROM PMOWN.TN_PM_SMLT_USER_DPTGT_OPER_HR
         WHERE 1 = 1
         AND OWNER_USER_ID = #{loginUserId}
@@ -77,7 +77,7 @@
     </delete>
 
     <insert id="insertUserDepList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
-
+        /* CastDepMapper.insertUserDepList */
         INSERT ALL
         <foreach collection="dptgtList" item="dep">
         INTO PMOWN.TN_PM_SMLT_USER_DPTGT (
@@ -108,7 +108,7 @@
     </insert>
 
     <insert id="insertUserDepOperHrList" parameterType="aoms.pm.cast.dto.UserSmltDepSaveDto">
-
+        /* CastDepMapper.insertUserDepOperHrList */
         INSERT ALL
         <foreach collection="dptgtList" item="dep">
             <foreach collection="dep.oprTimeList" item="oprTime" index="oprTimeIdx">

@@ -3,7 +3,7 @@
 
 <mapper namespace="aoms.pm.cast.mapper.CastSmltMapper">
     <select id="retrieveSmltStng" parameterType="aoms.pm.cast.dto.SmltStngSearchDto" resultType="aoms.pm.cast.dto.SmltStngDto">
-
+        /* CastSmltMapper.retrieveSmltStng */
         SELECT
             SMLT_ID, SMLT_MDL_SN, SMLT_NM, SMLT_TYPE, CRTR_DT, EXCN_YMD, TMNL_ID, SLF_ID, PRNT_ID,
             FLT_SCHDL_RSRC_ID, BAG_ALCTN_RSRC_ID, CKNCT_ALCTN_RSRC_ID, PRPT_SET_RSRC_ID, MDL_RSRC_ID,
@@ -25,7 +25,7 @@
     </select>
 
     <select id="retrieveWaitPsgList" resultType="aoms.pm.cast.dto.WaitPsgDto">
-
+        /* CastSmltMapper.retrieveWaitPsgList */
         SELECT
             TO_NUMBER(TO_CHAR(A.SMLT_ACTL_DT, 'HH24')) AS HOUR,
             SUM(A.WTNG_PSG_CNT) AS WAIT_PSG_CNT
@@ -43,7 +43,7 @@
     </select>
 
     <select id="retrieveSmltKpiRaw" resultType="aoms.pm.cast.dto.SmltKpiRawDto">
-
+        /* CastSmltMapper.retrieveSmltKpiRaw */
         SELECT
             ROUND(AVG(A.AVG_WTNG_HR)) AS AVG_WTNG_HR,
             ROUND(PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY A.AVG_WTNG_HR)) AS P95_WTNG_HR,
@@ -60,10 +60,12 @@
     </select>
 
     <insert id="insertSmltFlfmtHstry">
+        /* CastSmltMapper.insertSmltFlfmtHstry */
         INSERT INTO PMOWN.TH_PM_SMLT_FLFMT_HSTRY (SMLT_ID, SMLT_TYPE, SMLT_FLFMT_STTS_CD, FRST_RGTR_ID, FRST_REG_DT)
         VALUES (#{smltId}, #{smltType}, #{smltFlfmtSttsCd}, #{loginUserId}, CURRENT_TIMESTAMP)
     </insert>
     <select id="retrieveSmltFlfmt" resultType="aoms.pm.cast.dto.SmltExcnDto">
+        /* CastSmltMapper.retrieveSmltFlfmt */
         SELECT A.SMLT_ID, A.SMLT_TYPE, A.EXCN_YMD, NVL((SELECT MIN(S.TMNL_ID) FROM PMOWN.TN_PM_SMLT_STNG S WHERE S.SMLT_ID=A.SMLT_ID), 'P01') AS TMNL_ID,
             CASE A.SMLT_STTS WHEN 'Finished' THEN 'DONE' WHEN 'Failed' THEN 'FAILED' ELSE 'RUNNING' END AS SMLT_FLFMT_STTS_CD,
             TO_CHAR(A.SMLT_BGNG_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_BGNG_DT,
@@ -75,6 +77,7 @@
         LEFT JOIN CAOWN.TN_CA_DEPT D ON C.DEPT_CD = D.DEPT_CD WHERE A.SMLT_ID = #{smltId}
     </select>
     <select id="retrieveSmltFlfmtList" resultType="aoms.pm.cast.dto.SmltExcnDto">
+        /* CastSmltMapper.retrieveSmltFlfmtList */
         SELECT A.SMLT_ID, A.SMLT_TYPE, A.EXCN_YMD, NVL((SELECT MIN(S.TMNL_ID) FROM PMOWN.TN_PM_SMLT_STNG S WHERE S.SMLT_ID=A.SMLT_ID), 'P01') AS TMNL_ID,
             CASE A.SMLT_STTS WHEN 'Finished' THEN 'DONE' WHEN 'Failed' THEN 'FAILED' ELSE 'RUNNING' END AS SMLT_FLFMT_STTS_CD,
             TO_CHAR(A.SMLT_BGNG_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_BGNG_DT,
@@ -88,6 +91,7 @@
         ORDER BY NVL(A.SMLT_REQ_DT, A.SMLT_BGNG_DT) DESC, A.SMLT_ID DESC
     </select>
     <select id="retrieveSmltFlfmtSmry" resultType="aoms.pm.cast.dto.SmltExcnCntRawDto">
+        /* CastSmltMapper.retrieveSmltFlfmtSmry */
         SELECT COUNT(*) TOT_CNT,
             NVL(SUM(CASE WHEN SMLT_STTS = 'Finished' THEN 1 ELSE 0 END), 0) DONE_CNT,
             NVL(SUM(CASE WHEN SMLT_STTS IN ('New', 'Executing') THEN 1 ELSE 0 END), 0) RUNNING_CNT,

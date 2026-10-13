@@ -9,31 +9,26 @@ import { GaugeDonut } from './GaugeDonut';
 import { TerminalChart } from './TerminalChart';
 import { EMPTY_TERMINAL_VIEW } from '../view';
 import type { CongestionStatus, DsbdCategory } from '@/types/api.types';
-import type { GateData, GateFcltType, TerminalKind, TerminalView } from '../types';
+import type { FcltCardData, FcltCardType, TerminalKind, TerminalView } from '../types';
 
 type ViewKind = 'summary' | 'table';
 
 interface TerminalSummaryProps {
     terminal: TerminalKind;
-    /** 아직 못 받았으면 null — 골격만 그리고 값은 비운다 */
     data: TerminalView | null;
-    /** Prime Time 타일로 고른 지표 — Top Bar 검색으로 조회했으면 null (제목 공란) */
     titleCategory: DsbdCategory | null;
 }
 
-/** 터미널별 큰 아이콘 / 워터마크 (터미널 고정, 혼잡도와 무관) */
 interface TerminalImages {
     big: string;
     watermark: string;
 }
 
-/** 혼잡도 → 패널 색 / 게이지 색 (dashboard.css 의 .panel-blue/-green/-orange/-red) */
 interface CongestionTheme {
     panelClass: string;
     gauge: string;
 }
 
-/** 제목 앞부분 — 퀵 타일에서 고른 지표를 그대로 문장에 넣는다 ('… 가장 많을 때') */
 const TITLE_LEAD: Record<DsbdCategory, string> = {
     PSG: '터미널 여객수가',
     FLT: '운항편이',
@@ -41,8 +36,7 @@ const TITLE_LEAD: Record<DsbdCategory, string> = {
     DEP: '출국장에 대기인원이',
 };
 
-/** 게이트 카드 상세(+) 버튼이 여는 화면 */
-const GATE_DETAIL_PATH: Record<GateFcltType, string> = {
+const FCLT_CARD_DETAIL_PATH: Record<FcltCardType, string> = {
     CHKN: '/rui/pm/daily-smlt/checkinCounter',
     DEP: '/rui/pm/daily-smlt/departureHall',
 };
@@ -52,7 +46,6 @@ const TERMINAL_IMAGES: Record<TerminalKind, TerminalImages> = {
     T2: { big: t2White, watermark: t2Teal },
 };
 
-/** FREE=원활(blue) · NORMAL=보통(yellow) · BUSY=혼잡(orange) · VERY_BUSY=매우혼잡(red) */
 const CONGESTION_THEMES: Record<CongestionStatus, CongestionTheme> = {
     FREE: { panelClass: 'panel-blue', gauge: '#2f7ff0' },
     NORMAL: { panelClass: 'panel-green', gauge: '#2f7ff0' },
@@ -70,12 +63,10 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
     const [selectedRow, setSelectedRow] = useState(view.defaultSelectedRow);
     const selectedRowRef = useRef<HTMLDivElement>(null);
 
-    // 조회 시각이 바뀌면 그 시각의 행으로 선택을 옮긴다.
     useEffect(() => {
         setSelectedRow(view.defaultSelectedRow);
     }, [view.defaultSelectedRow]);
 
-    // 표 보기는 행이 넘치면 스크롤된다 — 숨어 있는 동안은 no-op 이라 전환 시점에 다시 맞춘다.
     useEffect(() => {
         if (viewKind === 'table') selectedRowRef.current?.scrollIntoView({ block: 'nearest' });
     }, [viewKind, selectedRow]);
@@ -118,11 +109,11 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
                     <div className="p-peak">
                         <div className="peak-title">피크시간</div>
                         <div className="peak-body">
-                            <div className="peak-badge">
-                                <div className="k">{view.peak.ampm}</div>
-                                <div className="v">{view.peak.time}</div>
-                            </div>
                             <div className="peak-cells">
+                                <div className="peak-badge">
+                                    <div className="k">{view.peak.ampm}</div>
+                                    <div className="v">{view.peak.time}</div>
+                                </div>
                                 <div className="cell">
                                     <div className="k">대기인원</div>
                                     <div>
@@ -138,11 +129,7 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
                                     </div>
                                 </div>
                                 <div className="cell">
-                                    <div className="k">
-                                        시간당
-                                        <br />
-                                        처리인원
-                                    </div>
+                                    <div className="k">처리인원</div>
                                     <div>
                                         <b>{view.peak.hourlyProcess}</b>
                                         <span className="u">명</span>
@@ -231,13 +218,19 @@ export function TerminalSummary({ terminal, data, titleCategory }: TerminalSumma
                     </div>
                 </div>
 
-                <div className="gates">
-                    {view.gates.map((gate) => (
-                        <Gate key={gate.fcltType} data={gate} gauge={theme.gauge} onDetail={() => navigate(GATE_DETAIL_PATH[gate.fcltType])} />
+                <div className="fclt-cards">
+                    {view.fcltCards.map((fcltCard) => (
+                        <FcltCard
+                            key={fcltCard.fcltType}
+                            data={fcltCard}
+                            gauge={theme.gauge}
+                            onDetail={() => navigate(FCLT_CARD_DETAIL_PATH[fcltCard.fcltType])}
+                        />
                     ))}
                 </div>
             </div>
 
+            {/* 상세정보 */}
             <div className="view" hidden={viewKind !== 'table'}>
                 <div className="table scroll-area">
                     <div className="thead">
@@ -280,11 +273,11 @@ function Multiline({ text }: { text: string }) {
     );
 }
 
-function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDetail: () => void }) {
+function FcltCard({ data, gauge, onDetail }: { data: FcltCardData; gauge: string; onDetail: () => void }) {
     const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
     const variantIndex = Math.max(
         0,
-        data.variants.findIndex((gateVariant) => gateVariant.unitCd === selectedUnit),
+        data.variants.findIndex((FcltCardVariant) => FcltCardVariant.unitCd === selectedUnit),
     );
     const variant = data.variants[variantIndex];
 
@@ -296,8 +289,8 @@ function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDeta
     if (!variant) return null;
 
     return (
-        <div className="gate">
-            <div className="gate-head">
+        <div className="fclt-card">
+            <div className="fclt-card-head">
                 <b>{data.title}</b>
                 <div className="warn">
                     <span>{data.warn}</span>
@@ -306,7 +299,7 @@ function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDeta
                     </button>
                 </div>
             </div>
-            <div className="gate-mid">
+            <div className="fclt-card-mid">
                 <div className="isl">{variant.island ?? ' '}</div>
                 <div className="num">{variant.num}</div>
                 <div className="meta">
@@ -353,17 +346,17 @@ function Gate({ data, gauge, onDetail }: { data: GateData; gauge: string; onDeta
                         key={chip.label}
                         className={`chip ${chip.kind}${chip.label === variant.unitCd ? ' sel' : ''}`}
                         aria-pressed={chip.label === variant.unitCd}
-                        disabled={!data.variants.some((gateVariant) => gateVariant.unitCd === chip.label)}
+                        disabled={!data.variants.some((FcltCardVariant) => FcltCardVariant.unitCd === chip.label)}
                         onClick={() => setSelectedUnit(chip.label)}
                     >
                         {chip.label}
                     </button>
                 ))}
             </div>
-            <button type="button" className="gate-arrow prev" onClick={() => cycleVariant(-1)}>
+            <button type="button" className="fclt-card-arrow prev" onClick={() => cycleVariant(-1)}>
                 <Icon name="chevL" />
             </button>
-            <button type="button" className="gate-arrow next" onClick={() => cycleVariant(1)}>
+            <button type="button" className="fclt-card-arrow next" onClick={() => cycleVariant(1)}>
                 <Icon name="chevR" />
             </button>
         </div>

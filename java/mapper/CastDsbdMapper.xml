@@ -29,6 +29,7 @@
     </select>
 
     <select id="retrieveFltSmry" resultType="aoms.pm.cast.dto.FltSmryRawDto">
+        /* CastDsbdMapper.retrieveFltSmry */
         SELECT
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN 1 ELSE 0 END), 0) AS DEP_FLT_CNT,
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN 1 ELSE 0 END), 0) AS ARR_FLT_CNT,

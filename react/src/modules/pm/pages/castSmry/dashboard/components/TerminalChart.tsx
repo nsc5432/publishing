@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import type { DsbdRsltDto } from '@/types/api.types';
@@ -8,6 +8,22 @@ import { AXIS_LABEL, toTooltipItems, TOOLTIP_TEXT_STYLE } from '@/lib/chart';
 const GRID = { left: 40, right: 16, top: 26, bottom: 14 };
 const Y_TICK_COUNT = 6;
 const X_LABEL_INTERVAL = 3;
+const SERIES_STAGGER_MS = 40;
+const REPLAY_INTERVAL_MS = 10 * 1000; // 10초
+
+function toAreaGradient(rgb: string) {
+    return {
+        type: 'linear' as const,
+        x: 0,
+        y: 0,
+        x2: 0,
+        y2: 1,
+        colorStops: [
+            { offset: 0, color: `rgba(${rgb}, 0.28)` },
+            { offset: 1, color: `rgba(${rgb}, 0)` },
+        ],
+    };
+}
 
 interface TerminalChartProps {
     rsltList: DsbdRsltDto[];
@@ -24,20 +40,32 @@ function roundUpAxisMax(value: number): number {
 }
 
 export function TerminalChart({ rsltList }: TerminalChartProps) {
+    const [replayTick, setReplayTick] = useState(0);
+
+    useEffect(() => {
+        const timer = window.setInterval(() => setReplayTick((tick) => tick + 1), REPLAY_INTERVAL_MS);
+        return () => window.clearInterval(timer);
+    }, []);
+
     const option = useMemo<EChartsOption>(() => {
         const axisMax = roundUpAxisMax(Math.max(1, ...rsltList.map((rslt) => Math.max(rslt.fcstWtngPsgCnt, rslt.wtngPsgCnt ?? 0))));
 
         return {
             animation: true,
-            animationDuration: 500,
+            animationDuration: 1200,
             animationEasing: 'cubicOut',
-            animationDurationUpdate: 500,
-            animationEasingUpdate: 'cubicOut',
+            animationDelay: (index: number) => index * SERIES_STAGGER_MS,
+            animationDurationUpdate: 600,
+            animationEasingUpdate: 'cubicInOut',
             grid: { ...GRID, outerBoundsMode: 'none' },
             tooltip: {
                 trigger: 'axis',
                 confine: true,
                 textStyle: TOOLTIP_TEXT_STYLE,
+                axisPointer: {
+                    type: 'line',
+                    lineStyle: { color: '#c7cdda', width: 1, type: 'dashed' },
+                },
                 formatter: (params) => {
                     const tooltipItems = toTooltipItems(params);
                     const seriesItems = tooltipItems.filter(
@@ -63,7 +91,6 @@ export function TerminalChart({ rsltList }: TerminalChartProps) {
                     interval: (index: number) => {
                         const last = rsltList.length - 1;
                         if (index === last) return true;
-                        // 마지막 라벨 바로 앞 눈금은 끝 라벨과 붙어 겹친다
                         return index % X_LABEL_INTERVAL === 0 && last - index >= X_LABEL_INTERVAL;
                     },
                 },
@@ -93,8 +120,21 @@ export function TerminalChart({ rsltList }: TerminalChartProps) {
                     type: 'line',
                     symbol: 'circle',
                     symbolSize: 5.4,
-                    itemStyle: { color: '#f43f3f' },
-                    lineStyle: { color: '#f43f3f', width: 1.8, join: 'round' },
+                    itemStyle: { color: '#f43f3f', borderColor: '#fff', borderWidth: 1.5 },
+                    lineStyle: {
+                        color: '#f43f3f',
+                        width: 2.2,
+                        join: 'round',
+                        shadowColor: 'rgba(244, 63, 63, 0.45)',
+                        shadowBlur: 8,
+                        shadowOffsetY: 3,
+                    },
+                    areaStyle: { color: toAreaGradient('244, 63, 63') },
+                    emphasis: {
+                        focus: 'series',
+                        scale: 1.9,
+                        itemStyle: { shadowColor: 'rgba(244, 63, 63, 0.6)', shadowBlur: 10 },
+                    },
                     data: rsltList.map((rslt) => rslt.fcstWtngPsgCnt),
                 },
                 {
@@ -102,13 +142,28 @@ export function TerminalChart({ rsltList }: TerminalChartProps) {
                     type: 'line',
                     symbol: 'circle',
                     symbolSize: 5.4,
-                    itemStyle: { color: '#3b82f6' },
-                    lineStyle: { color: '#3b82f6', width: 1.5, type: [4, 3], join: 'round' },
+                    animationDelay: (index: number) => index * SERIES_STAGGER_MS + 250,
+                    itemStyle: { color: '#3b82f6', borderColor: '#fff', borderWidth: 1.5 },
+                    lineStyle: {
+                        color: '#3b82f6',
+                        width: 1.8,
+                        type: [4, 3],
+                        join: 'round',
+                        shadowColor: 'rgba(59, 130, 246, 0.4)',
+                        shadowBlur: 6,
+                        shadowOffsetY: 2,
+                    },
+                    areaStyle: { color: toAreaGradient('59, 130, 246') },
+                    emphasis: {
+                        focus: 'series',
+                        scale: 1.9,
+                        itemStyle: { shadowColor: 'rgba(59, 130, 246, 0.6)', shadowBlur: 10 },
+                    },
                     data: rsltList.map((rslt) => rslt.wtngPsgCnt),
                 },
             ],
         };
     }, [rsltList]);
 
-    return <EChart className="chartbox__chart" option={option} />;
+    return <EChart key={replayTick} className="chartbox__chart" option={option} />;
 }

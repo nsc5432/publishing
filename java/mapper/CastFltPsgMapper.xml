@@ -3,7 +3,7 @@
 
 <mapper namespace="aoms.pm.cast.mapper.CastFltPsgMapper">
     <select id="retrieveFltPsgHourList" resultType="aoms.pm.cast.dto.FltPsgRawDto">
-
+        /* CastFltPsgMapper.retrieveFltPsgHourList */
         SELECT
             SUBSTR(X.HM, 1, 2) AS HOUR,
             COUNT(*) AS FLT_CNT,
@@ -46,7 +46,7 @@
     </select>
 
     <select id="retrieveUserFltPsg" resultType="aoms.pm.cast.dto.UserFltPsgRawDto">
-
+        /* CastFltPsgMapper.retrieveUserFltPsg */
         SELECT
             NVL(A.AJMT_RT, 0) AS AJMT_RT
         FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT A
@@ -57,7 +57,7 @@
     </select>
 
     <insert id="insertUserFltPsg" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
-
+        /* CastFltPsgMapper.insertUserFltPsg */
         INSERT INTO PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT (
             OWNER_USER_ID, EXCN_YMD,
             TMNL_ID,
@@ -78,7 +78,7 @@
     </insert>
 
     <update id="updateUserFltPsg" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
-
+        /* CastFltPsgMapper.updateUserFltPsg */
         UPDATE PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT
         SET AJMT_TYPE_CD = 'RATIO',
             AJMT_RT = #{ajmtRt},

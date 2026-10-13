@@ -65,7 +65,6 @@ html[data-page='dashboard'] {
     --panel-min-h: 660px;
 }
 
-/* icon sizing helpers */
 html[data-page='dashboard'] .i-26 > svg {
     width: 26px;
     height: 26px;
@@ -84,10 +83,7 @@ html[data-page='dashboard'] .i-teal {
     color: var(--teal);
 }
 
-/* ============ layout skeleton ============
-   기본 배치는 T1/T2 가로 2단 = 한 화면. overflow:hidden 으로 스크롤을 구조적으로
-   막고, 모자란 높이는 --lost 예산이 여백에서 걷어 온다.
-   폭·높이가 예산 밖이면 세로 1단 + 스크롤로 내려간다 — 파일 맨 아래 '반응형' 절. */
+/* ============ layout skeleton ============ */
 html[data-page='dashboard'] .app {
     flex: 1;
     min-height: 0;
@@ -203,8 +199,7 @@ html[data-page='dashboard'] .datebox .val {
     letter-spacing: -0.4px;
 }
 
-/* 기준일자 달력 : 날짜 입력(input[type=date])을 표기 위에 투명하게 겹쳐 둔다.
-   display:none 으로 감추면 showPicker() 가 달력을 열지 못하므로 opacity 로만 지운다. */
+/* display:none 이면 showPicker() 가 열리지 않아 opacity 로 감춘다. */
 html[data-page='dashboard'] .datepick {
     display: flex;
     position: relative;
@@ -228,7 +223,6 @@ html[data-page='dashboard'] .datepick__btn:hover:not(:disabled) {
     background: #eff2fb;
 }
 
-/* 사용자 시뮬레이션 — 기준일자 고정 */
 html[data-page='dashboard'] .datepick__btn:disabled {
     cursor: default;
 }
@@ -285,7 +279,6 @@ html[data-page='dashboard'] .btn-primary {
     font-family: inherit;
 }
 
-/* 설정 조건 보기 — 뱃지(.btn-primary)의 아웃라인 변형 */
 html[data-page='dashboard'] .btn-config {
     display: inline-flex;
     align-items: center;
@@ -307,8 +300,6 @@ html[data-page='dashboard'] .btn-config:hover {
     background: #f2f2fc;
 }
 
-/* 실행자(부서 · 성명) — 사용자 시뮬레이션에서 계산 시각(.calc) 자리에 선다.
-   부서/사람을 각각 아이콘으로 갈라 두 칸으로 읽히게 한다 */
 html[data-page='dashboard'] .exec {
     display: flex;
     align-items: center;
@@ -398,8 +389,6 @@ html[data-page='dashboard'] .sidebar {
 }
 
 /* ============ row 1 : cards ============ */
-/* 4개 정보 카드(c-plan/c-hourly/c-dow/c-wx)의 스타일은 공용 컴포넌트
-   @/modules/pm/components/HeaderInfoCards 가 자체 CSS로 들고 있다. */
 html[data-page='dashboard'] .c-quick {
     flex: 237 0 0;
 }
@@ -449,7 +438,6 @@ html[data-page='dashboard'] .qtile {
     padding: 0;
 }
 
-/* 퀵 타일 아이콘은 HeaderSummary 에 인라인으로 들어간 svg 다(래퍼 <i> 없음). */
 html[data-page='dashboard'] .qtile svg {
     width: 30px;
     height: 30px;
@@ -525,7 +513,6 @@ html[data-page='dashboard'] .panel > * {
 html[data-page='dashboard'] .panel-blue {
     --acc: #1c6ff0;
     --acc-soft: #12b0b8;
-    /* 제목 테두리 — 기준시각 바 그라데이션의 첫 색을 그대로 쓴다 */
     --title: #4441cc;
 }
 
@@ -570,7 +557,6 @@ html[data-page='dashboard'] .p-iconbox {
         0 8px 18px rgba(46, 50, 94, 0.16);
 }
 
-/* 상단에 부드러운 광택을 더해 입체감 부여 */
 html[data-page='dashboard'] .p-iconbox::before {
     content: '';
     position: absolute;
@@ -633,7 +619,6 @@ html[data-page='dashboard'] .p-stat-main {
     gap: 10px;
 }
 
-/* 항공편/여객 아이콘은 탑승률 박스 왼쪽에 세로로 모아 둔다 */
 html[data-page='dashboard'] .p-stat-icons {
     display: flex;
     flex-direction: column;
@@ -755,16 +740,11 @@ html[data-page='dashboard'] .peak-body {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 4px;
 }
 
 html[data-page='dashboard'] .peak-badge {
-    width: 70px;
-    flex-shrink: 0;
     background: #d7f0ee;
     border-radius: 10px;
-    padding: 8px 0 10px;
-    text-align: center;
 }
 
 html[data-page='dashboard'] .panel-green .peak-badge {
@@ -779,46 +759,40 @@ html[data-page='dashboard'] .panel-red .peak-badge {
     background: #fadcdc;
 }
 
-html[data-page='dashboard'] .peak-badge .k {
-    font-size: 13px;
-    color: #2b313d;
-    line-height: 1.3;
-}
-
-html[data-page='dashboard'] .peak-badge .v {
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--acc-soft);
-    letter-spacing: -1px;
-    line-height: 1.2;
-}
-
 html[data-page='dashboard'] .peak-cells {
     flex: 1;
-    display: flex;
-    align-items: center;
+    min-width: 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
 }
 
+html[data-page='dashboard'] .peak-cells .peak-badge,
 html[data-page='dashboard'] .peak-cells .cell {
-    flex: 1;
+    min-width: 0;
+    padding: 8px 0 10px;
     text-align: center;
 }
 
-/* 1줄/2줄 라벨이 섞여도 아래 수치는 같은 높이에 오도록 라벨 영역을 2줄로 고정 */
 html[data-page='dashboard'] .peak-cells .k {
     font-size: 12.5px;
     color: #7c8698;
-    line-height: 1.3;
+    line-height: 18px;
     white-space: nowrap;
-    height: 2.6em;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
 }
 
+html[data-page='dashboard'] .peak-cells .peak-badge > :last-child,
+html[data-page='dashboard'] .peak-cells .cell > :last-child {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    line-height: 24px;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .peak-cells .v,
 html[data-page='dashboard'] .peak-cells b {
-    font-size: 19px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--acc-soft);
     letter-spacing: -1px;
@@ -883,7 +857,6 @@ html[data-page='dashboard'] .legend > span > i::after {
     background: inherit;
 }
 
-/* 차트 뒷배경 — 터미널 로고를 은은하게 (요구사항) */
 html[data-page='dashboard'] .chart-bg {
     position: absolute;
     inset: 6px 8px 2px;
@@ -897,7 +870,6 @@ html[data-page='dashboard'] .chart-bg {
     mask: radial-gradient(72% 72% at 50% 52%, #000 55%, transparent 92%);
 }
 
-/* 터미널 차트(ECharts) — 뒷배경 로고(.chart-bg) 위에 올린다 */
 html[data-page='dashboard'] .chartbox > .chartbox__chart {
     width: 100%;
     height: 100%;
@@ -915,12 +887,6 @@ html[data-page='dashboard'] .p-title-row {
     flex-shrink: 0;
 }
 
-/* 제목 — 비스듬한 상자 두 겹.
-   바깥은 기준시각 바 첫 색의 테두리, 안쪽은 흰 바탕에 검은 글자.
-   지표에 따라 문구 길이가 달라지므로 폭은 내용에 맞추고 줄바꿈만 막는다.
-   기준시각 바(.p-bar)와 같은 flex 행에 두어, 제목이 길어질수록 바 쪽이 실제로 줄어들게 한다
-   (예전엔 absolute 로 바 위에 얹어 실제 폭과 무관하게 항상 24px 만 비워 뒀더니,
-   문구가 길면 바 텍스트가 제목 상자 밑에 가려 잘려 보였다). */
 html[data-page='dashboard'] .p-title {
     flex: 0 1 auto;
     max-width: 52%;
@@ -935,17 +901,14 @@ html[data-page='dashboard'] .p-title {
     padding-bottom: 7px;
     border-radius: 6px;
     background: var(--title);
-    /* 상자를 비스듬히 눕혀 포인트를 준다. 기운 만큼 좌우가 삐져나오므로 자리를 둔다 */
     transform: skewX(-10deg);
     position: relative;
     top: -1px;
     left: -6px;
     z-index: 1;
-    /* 기준시각 바 쪽으로 살짝 겹쳐 얹는 이음매만큼만 당긴다 */
     margin-right: -14px;
 }
 
-/* 안쪽 흰 상자 — 바깥 상자의 기울기를 그대로 물려받는다 */
 html[data-page='dashboard'] .p-title-in {
     flex: 1;
     min-width: 0;
@@ -956,7 +919,6 @@ html[data-page='dashboard'] .p-title-in {
     background: #fff;
 }
 
-/* 글자만 되돌려 똑바로 세운다 */
 html[data-page='dashboard'] .p-title-txt {
     min-width: 0;
     overflow: hidden;
@@ -973,7 +935,6 @@ html[data-page='dashboard'] .p-bar {
     align-items: center;
     justify-content: center;
     position: relative;
-    /* 왼쪽은 제목 상자가 겹쳐 오는 만큼, 오른쪽은 스위치 자리만큼 비워 둔다 */
     padding: 0 92px 0 24px;
     font-size: 20px;
     font-weight: 700;
@@ -987,8 +948,6 @@ html[data-page='dashboard'] .p-bar-txt {
     text-overflow: ellipsis;
 }
 
-/* 요약 / 상세 뷰 전환 스위치 — 기준시각 바 오른쪽에 얹는다.
-   켜짐이면 손잡이가 왼쪽('요약'), 꺼짐이면 오른쪽('상세')으로 미끄러진다 */
 html[data-page='dashboard'] .p-switch {
     position: absolute;
     right: 12px;
@@ -1009,7 +968,6 @@ html[data-page='dashboard'] .p-switch {
     cursor: pointer;
 }
 
-/* 손잡이 — 켜짐 왼쪽 / 꺼짐 오른쪽 */
 html[data-page='dashboard'] .p-switch > i {
     position: absolute;
     top: 4px;
@@ -1025,7 +983,6 @@ html[data-page='dashboard'] .p-switch.on > i {
     left: 4px;
 }
 
-/* 글자는 손잡이 반대쪽 남은 칸의 가운데 */
 html[data-page='dashboard'] .p-switch > span {
     position: absolute;
     top: 0;
@@ -1050,7 +1007,7 @@ html[data-page='dashboard'] .panel-blue .p-bar {
 }
 
 html[data-page='dashboard'] .panel-green .p-bar {
-    background: linear-gradient(90deg, #ffff00 0%, #ffff00 32%, #8ecf56 66%, #42af8e 86%, #0294bf 100%);
+    background: linear-gradient(90deg, #d7d700 0%, #d7d700 32%, #8ecf56 66%, #42af8e 86%, #0294bf 100%);
 }
 
 html[data-page='dashboard'] .panel-orange .p-bar {
@@ -1081,7 +1038,6 @@ html[data-page='dashboard'] .sum-top {
     flex-shrink: 0;
 }
 
-/* 운항편 / 여객수를 두 줄로 쌓고, 전일 대비는 각 줄 오른쪽에 붙인다 */
 html[data-page='dashboard'] .sum-two {
     flex: 0 0 300px;
     background: var(--box-blue);
@@ -1203,8 +1159,8 @@ html[data-page='dashboard'] .sum-info .sep {
     margin: 0 4px;
 }
 
-/* --- gates --- */
-html[data-page='dashboard'] .gates {
+/* --- fclt cards --- */
+html[data-page='dashboard'] .fclt-cards {
     display: flex;
     gap: 38px;
     flex: 1;
@@ -1212,7 +1168,7 @@ html[data-page='dashboard'] .gates {
     margin-top: 9px;
 }
 
-html[data-page='dashboard'] .gate {
+html[data-page='dashboard'] .fclt-card {
     flex: 1;
     min-width: 0;
     border-radius: 16px;
@@ -1227,32 +1183,32 @@ html[data-page='dashboard'] .gate {
     position: relative;
 }
 
-html[data-page='dashboard'] .gate-head {
+html[data-page='dashboard'] .fclt-card-head {
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-shrink: 0;
 }
 
-html[data-page='dashboard'] .gate-head b {
+html[data-page='dashboard'] .fclt-card-head b {
     font-size: 17px;
     font-weight: 700;
     letter-spacing: -0.5px;
 }
 
-html[data-page='dashboard'] .gate-head .warn {
+html[data-page='dashboard'] .fclt-card-head .warn {
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
-html[data-page='dashboard'] .gate-head .warn > span {
+html[data-page='dashboard'] .fclt-card-head .warn > span {
     font-size: 14px;
     color: var(--red);
     font-weight: 600;
 }
 
-html[data-page='dashboard'] .gate-head .plus {
+html[data-page='dashboard'] .fclt-card-head .plus {
     width: 25px;
     height: 25px;
     background: #fff;
@@ -1271,42 +1227,45 @@ html[data-page='dashboard'] .gate-head .plus {
         box-shadow 0.15s ease;
 }
 
-html[data-page='dashboard'] .panel-green .gate-head .plus {
+html[data-page='dashboard'] .panel-green .fclt-card-head .plus {
     background: #eceefb;
 }
 
-html[data-page='dashboard'] .panel-orange .gate-head .plus {
+html[data-page='dashboard'] .panel-orange .fclt-card-head .plus {
     background: #fdecdc;
 }
 
-html[data-page='dashboard'] .panel-red .gate-head .plus {
+html[data-page='dashboard'] .panel-red .fclt-card-head .plus {
     background: #fbe0e0;
 }
 
-html[data-page='dashboard'] .gate-head .plus:hover {
+html[data-page='dashboard'] .fclt-card-head .plus:hover {
     box-shadow: 0 2px 7px rgba(59, 57, 201, 0.28);
 }
 
-html[data-page='dashboard'] .gate-head .plus > i > svg {
+html[data-page='dashboard'] .fclt-card-head .plus > i > svg {
     width: 14px;
     height: 14px;
 }
 
-html[data-page='dashboard'] .gate-mid {
+html[data-page='dashboard'] .fclt-card-mid {
     background: rgba(255, 255, 255, 0.7);
     border-radius: 14px;
     margin-top: 6px;
-    padding: 7px 0 9px;
     text-align: center;
-    flex-shrink: 0;
+    flex: 1 1 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
-html[data-page='dashboard'] .gate-mid .isl {
+html[data-page='dashboard'] .fclt-card-mid .isl {
     font-size: 15px;
     color: #3c4350;
 }
 
-html[data-page='dashboard'] .gate-mid .num {
+html[data-page='dashboard'] .fclt-card-mid .num {
     font-size: 30px;
     font-weight: 700;
     color: #ee1111;
@@ -1314,27 +1273,27 @@ html[data-page='dashboard'] .gate-mid .num {
     line-height: 1.3;
 }
 
-html[data-page='dashboard'] .gate-mid .meta {
+html[data-page='dashboard'] .fclt-card-mid .meta {
     font-size: 15px;
     color: #6c7688;
     margin-top: 1px;
 }
 
-html[data-page='dashboard'] .gate-mid .meta > span {
+html[data-page='dashboard'] .fclt-card-mid .meta > span {
     margin: 0 8px;
 }
 
-html[data-page='dashboard'] .gate-mid .meta b {
+html[data-page='dashboard'] .fclt-card-mid .meta b {
     color: #23272f;
     font-weight: 600;
     margin-left: 6px;
 }
 
-html[data-page='dashboard'] .gate-mid .meta b.acc {
+html[data-page='dashboard'] .fclt-card-mid .meta b.acc {
     color: #4a56d8;
 }
 
-html[data-page='dashboard'] .gate-arrow {
+html[data-page='dashboard'] .fclt-card-arrow {
     position: absolute;
     top: 49%;
     width: 27px;
@@ -1353,15 +1312,15 @@ html[data-page='dashboard'] .gate-arrow {
     padding: 0;
 }
 
-html[data-page='dashboard'] .gate-arrow.prev {
+html[data-page='dashboard'] .fclt-card-arrow.prev {
     left: 0;
 }
 
-html[data-page='dashboard'] .gate-arrow.next {
+html[data-page='dashboard'] .fclt-card-arrow.next {
     left: 100%;
 }
 
-html[data-page='dashboard'] .gate-arrow > i > svg {
+html[data-page='dashboard'] .fclt-card-arrow > i > svg {
     width: 17px;
     height: 17px;
 }
@@ -1370,7 +1329,7 @@ html[data-page='dashboard'] .gauge-row {
     display: flex;
     gap: 9px;
     margin-top: 5px;
-    flex: 1;
+    flex: 1 1 0;
     min-height: 0;
 }
 
@@ -1593,19 +1552,9 @@ html[data-page='dashboard'] .trow.sel {
     background: rgba(236, 237, 249, 0.6);
 }
 
-/* =====================================================================
-   반응형
-   기본(가로 2단 · 한 화면)에서 한 단계씩 풀어 나간다.
+/* ============ 반응형 ============ */
 
-     1600w  패널 가로 2단 → 세로 1단 + 스크롤, 동시에 상단도 두 줄로
-     1350w  정보카드 4장을 2열 그리드로
-      830w  그 그리드를 1열로
-      860w  패널 안(차트 · 게이트)까지 세로로 푼다
-   ===================================================================== */
-
-/* 2단을 포기하는 조건은 폭 하나뿐이다 — 패널이 아이콘(79) + 지표(298) + 차트를
-   나란히 담으려면 좌우로 1600px 이 든다. 세로는 아무리 낮아도 2단을 유지한다.
-   여기서는 스크롤이 목적이므로 여백을 원래 값으로 되돌린다(--lost: 0). */
+/* 패널 두 개의 최소 내용 폭 때문에 1600px 미만에서 세로로 배치한다. */
 @media (max-width: 1599px) {
     html[data-page='dashboard'] {
         --lost: 0px;
@@ -1616,8 +1565,7 @@ html[data-page='dashboard'] .trow.sel {
         overflow-y: auto;
     }
 
-    /* min-height:0 이면 내용의 min-content 높이가 위로 전달되지 않아
-       스크롤 대신 눌린다 — 스크롤 구간에서는 auto 로 되돌린다. */
+    /* min-height:0 이면 내용 높이가 전달되지 않아 스크롤 대신 눌린다. */
     html[data-page='dashboard'] .body,
     html[data-page='dashboard'] .row--panels {
         min-height: auto;
@@ -1632,34 +1580,30 @@ html[data-page='dashboard'] .trow.sel {
     }
 }
 
-/* 가로 2단인데 세로 여백 예산(--lost)이 바닥나 .gates 가 게이트 카드의 실제
-   높이(약 301px) 아래로 눌리는 구간. 그대로 두면 '배정 필요' 문구가 아래 칩 줄과
-   겹친다. 글자·게이지를 한 단계 낮춰 카드를 약 261px 로 줄인다.
-   진입점 1002px 은 브라우저에서 겹침이 시작되는 높이를 재서 잡았다. */
+/* 1002px 아래에서는 여백 압축만으로 추천 문구와 칩의 겹침을 막을 수 없다. */
 @media (min-width: 1600px) and (max-height: 1001px) {
     html[data-page='dashboard'] {
         --donut-size: 58px;
     }
 
-    html[data-page='dashboard'] .gate {
+    html[data-page='dashboard'] .fclt-card {
         padding: 8px 12px 6px;
     }
 
-    html[data-page='dashboard'] .gate-head b {
+    html[data-page='dashboard'] .fclt-card-head b {
         font-size: 15px;
     }
 
-    html[data-page='dashboard'] .gate-mid {
+    html[data-page='dashboard'] .fclt-card-mid {
         margin-top: 4px;
-        padding: 5px 0 6px;
     }
 
-    html[data-page='dashboard'] .gate-mid .isl,
-    html[data-page='dashboard'] .gate-mid .meta {
+    html[data-page='dashboard'] .fclt-card-mid .isl,
+    html[data-page='dashboard'] .fclt-card-mid .meta {
         font-size: 13px;
     }
 
-    html[data-page='dashboard'] .gate-mid .num {
+    html[data-page='dashboard'] .fclt-card-mid .num {
         font-size: 25px;
     }
 
@@ -1685,21 +1629,7 @@ html[data-page='dashboard'] .trow.sel {
     }
 }
 
-/* 촘촘 모드로도 안 되는 구간(뷰포트 930px 미만 — 브라우저에서 겹침이 시작되는
-   높이를 재서 잡았다). 여백도 글자도 더 줄일 게 없으므로 본문을 통째로 zoom 으로
-   낮춘다 — 2단 · 무스크롤 · 잘림 없음을 셋 다 지키는 유일한 수단이다.
-   transform:scale 이 아니라 zoom 인 이유는 레이아웃이 축소된 크기로 다시
-   계산되기 때문이다(스케일 좌표계를 되돌리는 --scale 나눗셈이 필요 없다).
-
-   본문(.main)이 930px 화면에서 쓰는 높이가 824px 이고, 실제로 쥐어지는 높이는
-   (뷰포트 − 헤더 − 본문 여백) 이다. 각 단계는 그 구간에서 가장 불리한 지점의
-   비율보다 낮게 잡았다. 헤더·여백이 한 번 줄어드는 900px 경계가 그 지점이다.
-   1600px 이상에서 뷰포트가 646px 보다 낮으면 단계를 더 두어야 한다.
-
-   ⚠ --lost 를 여기서 최대값으로 못박는다. 그 값이 100vh 로 정의돼 있어 zoom 안에서
-   다시 계산되면 (100vh 가 1/zoom 배로 커져) 여백 압축이 도로 풀리고, zoom 으로 번
-   높이를 그만큼 도로 까먹는다. 못박아야 .main 이 쓰는 높이가 824px 로 고정돼
-   위 단계 계산이 성립한다. */
+/* zoom 안에서 100vh 가 커져 여백 압축이 풀리지 않도록 --lost 를 고정한다. */
 @media (min-width: 1600px) and (max-height: 929px) {
     html[data-page='dashboard'] {
         --lost: 120px;
@@ -1746,8 +1676,7 @@ html[data-page='dashboard'] .trow.sel {
         overflow-y: auto;
     }
 
-    /* min-height:0 이면 내용의 min-content 높이가 위로 전달되지 않아
-       스크롤 대신 눌린다 — 스크롤 구간에서는 auto 로 되돌린다. */
+    /* min-height:0 이면 내용 높이가 전달되지 않아 스크롤 대신 눌린다. */
     html[data-page='dashboard'] .body,
     html[data-page='dashboard'] .row--panels {
         min-height: auto;
@@ -1762,9 +1691,7 @@ html[data-page='dashboard'] .trow.sel {
     }
 }
 
-/* 정보카드 4장 + PRIME TIME 을 한 줄에 두면 이 폭부터 카드 안 숫자가 겹친다
-   (1700px 에서 출발/도착 여객수가 먼저 넘친다). 패널이 세로로 서는 시점과
-   같은 자리에서 상단도 두 줄로 접는다. */
+/* 패널이 세로로 서는 폭에서 상단도 나눠 여객수의 겹침을 막는다. */
 @media (max-width: 1599px) {
     html[data-page='dashboard'] .row--top {
         flex-wrap: wrap;
@@ -1779,7 +1706,6 @@ html[data-page='dashboard'] .trow.sel {
         min-height: var(--top-row-h);
     }
 
-    /* 한 줄을 통째로 쓰므로 2×2 타일을 가로 4칸으로 눕힌다 */
     html[data-page='dashboard'] .quick-grid {
         grid-template-columns: repeat(4, 1fr);
         grid-template-rows: 1fr;
@@ -1792,9 +1718,7 @@ html[data-page='dashboard'] .trow.sel {
     }
 }
 
-/* 한 줄을 다 써도 4장은 이 폭부터 숫자가 겹친다(측정값 1350px).
-   flex-wrap 으로 접으면 폭에 따라 한 줄에 서는 카드 수가 4→3→2 로 요동쳐
-   어떤 폭에서만 다시 겹친다. 항상 2열인 그리드가 예측 가능하다. */
+/* flex-wrap 은 일부 폭에서 3열이 되어 숫자가 겹치므로 2열을 고정한다. */
 @media (max-width: 1349px) {
     html[data-page='dashboard'] .header-info-cards {
         display: grid;
@@ -1834,7 +1758,7 @@ html[data-page='dashboard'] .trow.sel {
         flex: 0 1 300px;
     }
 
-    html[data-page='dashboard'] .gates {
+    html[data-page='dashboard'] .fclt-cards {
         flex-direction: column;
         gap: 16px;
     }

@@ -16,10 +16,10 @@ import {
     pad2,
 } from '@/lib/format';
 import type {
-    GateChip,
-    GateData,
-    GateFcltType,
-    GateVariant,
+    FcltCardChip,
+    FcltCardData,
+    FcltCardType,
+    FcltCardVariant,
     SimulationType,
     TableRow,
     TerminalView,
@@ -54,8 +54,8 @@ const CONGESTION_CHIP_CLASS: Record<CongestionStatus, string> = {
 
 const BUSY_STATUS: CongestionStatus[] = ['BUSY', 'VERY_BUSY'];
 
-/** 게이트 카드 제목 */
-const GATE_TITLE: Record<GateFcltType, string> = {
+/** 시설 카드 제목 */
+const FCLT_CARD_TITLE: Record<FcltCardType, string> = {
     CHKN: '체크인카운터',
     DEP: '출국장',
 };
@@ -65,7 +65,7 @@ export function toSimulationType(smltType: SmltType): SimulationType {
     return smltType === 'USER' ? 'user' : 'daily';
 }
 
-function toGateVariant(card: DsbdFcltCardDto): GateVariant {
+function toFcltCardVariant(card: DsbdFcltCardDto): FcltCardVariant {
     const isCheckin = card.fcltType === 'CHKN';
 
     return {
@@ -100,22 +100,22 @@ function toGateVariant(card: DsbdFcltCardDto): GateVariant {
 }
 
 // 미운영 칩은 혼잡도와 무관하게 회색으로 눕힌다.
-function toGateChip(unit: FcltUnitDto): GateChip {
+function toFcltCardChip(unit: FcltUnitDto): FcltCardChip {
     return {
         label: unit.unitCd,
         kind: unit.useYn === 'N' ? 'gray' : CONGESTION_CHIP_CLASS[unit.cgnStatus],
     };
 }
 
-function toGateData(fcltType: GateFcltType, cards: DsbdFcltCardDto[]): GateData {
+function toFcltCardData(fcltType: FcltCardType, cards: DsbdFcltCardDto[]): FcltCardData {
     const busyCount = cards.filter((card) => BUSY_STATUS.includes(card.cgnStatus)).length;
 
     return {
         fcltType,
-        title: GATE_TITLE[fcltType],
+        title: FCLT_CARD_TITLE[fcltType],
         warn: busyCount > 0 ? `혼잡 ${busyCount}개` : '원활',
-        variants: cards.map(toGateVariant),
-        chips: (cards[0]?.unitList ?? []).map(toGateChip),
+        variants: cards.map(toFcltCardVariant),
+        chips: (cards[0]?.unitList ?? []).map(toFcltCardChip),
     };
 }
 
@@ -178,7 +178,7 @@ export function toTerminalView({
             { label: '최대\n대기시간', value: String(smry.peak.maxWtngHr), unit: '분' },
             { label: '시간당\n처리인원', value: formatCount(smry.peak.hrlyPrcsPsgCnt), unit: '명' },
         ],
-        gates: [toGateData('CHKN', chknCards), toGateData('DEP', dptgtCards)],
+        fcltCards: [toFcltCardData('CHKN', chknCards), toFcltCardData('DEP', dptgtCards)],
         chart: { rsltList },
         tableRows: rsltList.map(toTableRow),
         defaultSelectedRow: Math.max(0, currentIndex),
@@ -197,7 +197,7 @@ export const EMPTY_TERMINAL_VIEW: TerminalView = {
     peak: { ampm: '', time: '-', totalWait: '-', maxWait: '-', hourlyProcess: '-' },
     summaryStats: [],
     summaryInfo: [],
-    gates: [],
+    fcltCards: [],
     chart: { rsltList: [] },
     tableRows: [],
     defaultSelectedRow: 0,

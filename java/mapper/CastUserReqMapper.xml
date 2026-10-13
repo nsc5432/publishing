@@ -4,7 +4,7 @@
 <mapper namespace="aoms.pm.cast.mapper.CastUserReqMapper">
 
     <insert id="insertUserReq" parameterType="aoms.pm.cast.dto.UserSmltReqDto">
-
+        /* CastUserReqMapper.insertUserReq */
         INSERT INTO PMOWN.TN_PM_SMLT_USER_MSTR (
             SMLT_REQ_ID,
             SMLT_ID,
@@ -55,7 +55,7 @@
     </insert>
 
 <select id="retrieveUserReqByKey" resultType="aoms.pm.cast.dto.UserSmltReqDto">
-
+        /* CastUserReqMapper.retrieveUserReqByKey */
         SELECT
             SMLT_REQ_ID,
             SMLT_ID,

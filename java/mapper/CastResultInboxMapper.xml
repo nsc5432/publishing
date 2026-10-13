@@ -2,10 +2,12 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="aoms.pm.cast.mapper.CastResultInboxMapper">
     <update id="receive">
+        /* CastResultInboxMapper.receive */
         MERGE INTO PMOWN.TN_PM_SMLT_RESULT_INBOX T USING (SELECT #{hash} PAYLOAD_HASH FROM DUAL) S ON (T.PAYLOAD_HASH = S.PAYLOAD_HASH)
         WHEN NOT MATCHED THEN INSERT (PAYLOAD_HASH, PAYLOAD, RECEIVED_DT) VALUES (S.PAYLOAD_HASH, #{payload,jdbcType=CLOB}, CURRENT_TIMESTAMP)
     </update>
     <update id="failed">
+        /* CastResultInboxMapper.failed */
         UPDATE PMOWN.TN_PM_SMLT_RESULT_INBOX SET ERROR_REASON = #{reason,jdbcType=VARCHAR} WHERE PAYLOAD_HASH = #{hash}
     </update>
 </mapper>

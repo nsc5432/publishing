@@ -36,22 +36,22 @@ export interface GaugeData {
     captionText: string;
 }
 
-export interface GateChip {
+export interface FcltCardChip {
     label: string;
     /** dashboard.css 의 .chip.r/.g/.o/.gray 등 */
     kind: string;
 }
 
-/** 게이트 카드 가운데 줄의 '라벨 값' 한 쌍 */
-export interface GateMeta {
+/** 시설 카드 가운데 줄의 '라벨 값' 한 쌍 */
+export interface FcltCardMeta {
     label: string;
     value: string;
     /** 값을 강조색으로 (dashboard.css 의 .acc) */
     accent?: boolean;
 }
 
-/** 게이트 카드의 추천 조치 블록 */
-export interface GateRecommend {
+/** 시설 카드의 추천 조치 블록 */
+export interface FcltCardRecommend {
     tag: string;
     name: string;
     count: string;
@@ -60,29 +60,29 @@ export interface GateRecommend {
     countNoteAccent?: boolean;
 }
 
-/** 게이트 캐러셀의 한 페이지(아일랜드/출국장 1개 상태) */
-export interface GateVariant {
+/** 시설 카드 캐러셀의 한 페이지(아일랜드/출국장 1개 상태) */
+export interface FcltCardVariant {
     /** 하단 칩(FcltUnitDto.unitCd)과 카드를 잇는 키 — 아일랜드 문자 / 출국장 번호 */
     unitCd: string;
     island?: string;
     num: string;
-    meta: GateMeta[];
+    meta: FcltCardMeta[];
     processRate: GaugeData;
     clearTime: GaugeData;
-    recommend: GateRecommend;
+    recommend: FcltCardRecommend;
 }
 
-/** 대시보드 게이트 카드로 올라오는 시설 (상세 화면이 따로 있는 둘) */
-export type GateFcltType = Extract<FcltType, 'CHKN' | 'DEP'>;
+/** 대시보드 시설 카드로 올라오는 시설 (상세 화면이 따로 있는 둘) */
+export type FcltCardType = Extract<FcltType, 'CHKN' | 'DEP'>;
 
-export interface GateData {
+export interface FcltCardData {
     /** 상세(+) 버튼이 어느 화면을 여는지 가른다 */
-    fcltType: GateFcltType;
+    fcltType: FcltCardType;
     title: string;
     warn: string;
-    variants: GateVariant[];
+    variants: FcltCardVariant[];
     /** 카드가 아니라 시설 전체의 유닛 목록 — 카드를 넘겨도 바뀌지 않는다 */
-    chips: GateChip[];
+    chips: FcltCardChip[];
 }
 
 export interface SummaryStat {
@@ -125,7 +125,7 @@ export interface TerminalView {
     /** 요약 뷰 상단 2셀 */
     summaryStats: SummaryStat[];
     summaryInfo: SummaryInfoCell[];
-    gates: GateData[];
+    fcltCards: FcltCardData[];
     /** 큰 차트 — 좌표 계산은 그리는 쪽(TerminalChart)이 한다 */
     chart: { rsltList: DsbdRsltDto[] };
     tableRows: TableRow[];
