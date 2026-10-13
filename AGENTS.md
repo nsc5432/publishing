@@ -571,10 +571,10 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 | 팝업 · 요청 경쟁 처리 | `dashboard/components/FcltQueueScenarioModal.tsx` · `hooks/useFcltQueueScenario.ts` |
 | 일반 Dialog (포커스 트랩 · 복귀) | `components/ui/dialog.tsx` (`@radix-ui/react-dialog`) |
 
-- **혼잡해소 시간은 유체근사, 대기확률·이론 대기시간은 M/M/s 정상상태값**이다. 둘을 같은 라벨로 보여주지 않는다.
+- **혼잡해소 시간은 유입/처리 차이 계산, 대기확률·이론 대기시간은 M/M/s 정상상태값**이다. 둘을 같은 라벨로 보여주지 않는다.
 - λ·μ·Q0·s 는 **카드와 같은 30분 슬롯 `[hhmm, hhmm+30)`** 에서 뽑고, 계산 기준시각은 슬롯 끝(Q0 스냅샷)이다.
   화면은 기준시각에 30분을 더하지 않는다 — 서버가 `baseDt` 로 내려준다.
 - 해소 기준 `Q*` 는 혼잡등급 **NORMAL 상한(양끝 포함)** 이다. 기준정보가 없으면 실패로 내린다.
 - 출국장은 기존 카드 추천과 같이 **SC+SR 합산을 한 큐**로 본다. 직렬·병렬 관계는 미검증이라 응답의 적용 가정에 싣는다.
-- 추천 총수량은 `max(유체근사 소요, floor(λ/μ)+1)` (정책 `STABLE_MMS_FLUID_TARGET`). 기존 fluid 메서드의 반환 의미는 바꾸지 않는다.
+- 추천 총수량은 `max(유입/처리 차이 계산 소요, floor(λ/μ)+1)` (정책 `STABLE_MMS_FLUID_TARGET`). 기존 fluid 메서드의 반환 의미는 바꾸지 않는다.
 - `contextVersion` 은 원천 스냅샷 해시다. 입력만 바꾼 재요청은 같은 버전이어야 하고, 다르면 `ctxChgYn = 'Y'` 로 새 기준만 내린다.

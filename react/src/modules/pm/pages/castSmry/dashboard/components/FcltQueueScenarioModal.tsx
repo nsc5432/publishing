@@ -17,6 +17,7 @@ interface StepperProps {
     value: number | null;
     min: number;
     max: number | null;
+    step: number;
     disabled: boolean;
     error: string;
     note: string;
@@ -30,6 +31,8 @@ interface CompareRow {
     clear: QueueClearView | null;
     accent?: boolean;
 }
+
+const TARGET_STEP_MIN = 10;
 
 const CLEAR_EMPTY: QueueClearView = {
     kind: 'unavailable',
@@ -133,6 +136,7 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                                     value={scenario.countValue}
                                     min={0}
                                     max={context?.totCnt ?? null}
+                                    step={1}
                                     disabled={scenario.countLocked}
                                     error={scenario.countError}
                                     note={toCountNote(context, scenario.countValue, scenario.countLocked)}
@@ -148,6 +152,7 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                                     value={scenario.targetValue}
                                     min={context?.targetMin.min ?? 1}
                                     max={context?.targetMin.max ?? null}
+                                    step={TARGET_STEP_MIN}
                                     disabled={!context}
                                     error={scenario.targetError}
                                     note={context ? `기본 ${context.targetMin.dflt}분` : ''}
@@ -189,7 +194,7 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
 
                     <details className="fqs-basis">
                         <summary>
-                            계산 기준 <span>M/M/s 가정 · 혼잡해소 시간은 유체근사</span>
+                            계산 기준 <span>M/M/s 가정 · 혼잡해소 시간은 유입/처리 차이 계산</span>
                         </summary>
                         {context && (
                             <dl>
@@ -226,7 +231,6 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                 </div>
 
                 <footer className="fqs-foot">
-                    <span>운영 검토용 · 실제 배정이나 CAST 실행에 반영되지 않습니다</span>
                     <DialogClose className="fqs-close">닫기</DialogClose>
                 </footer>
             </DialogContent>
@@ -244,7 +248,7 @@ function ClearInline({ clear }: { clear: QueueClearView }) {
     );
 }
 
-function Stepper({ label, unit, text, value, min, max, disabled, error, note, boundText, onChange, onStep }: StepperProps) {
+function Stepper({ label, unit, text, value, min, max, step, disabled, error, note, boundText, onChange, onStep }: StepperProps) {
     const id = useId();
     const noteId = `${id}-note`;
 
@@ -257,9 +261,9 @@ function Stepper({ label, unit, text, value, min, max, disabled, error, note, bo
             <div className="fqs-stepper">
                 <button
                     type="button"
-                    aria-label={`${label} 1${unit} 줄이기`}
+                    aria-label={`${label} ${step}${unit} 줄이기`}
                     disabled={disabled || (value !== null && value <= min)}
-                    onClick={() => onStep(-1)}
+                    onClick={() => onStep(-step)}
                 >
                     −
                 </button>
@@ -279,9 +283,9 @@ function Stepper({ label, unit, text, value, min, max, disabled, error, note, bo
                 </div>
                 <button
                     type="button"
-                    aria-label={`${label} 1${unit} 늘리기`}
+                    aria-label={`${label} ${step}${unit} 늘리기`}
                     disabled={disabled || (max !== null && value !== null && value >= max)}
-                    onClick={() => onStep(1)}
+                    onClick={() => onStep(step)}
                 >
                     +
                 </button>

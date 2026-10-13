@@ -54,14 +54,8 @@ const BASE_INFO: DsbdBaseInfoDto = {
 
 /** 터미널별 시간대(00~23시) 출발여객 — 새벽에 낮고 오전·저녁에 두 번 솟는 모양 */
 const HOURLY_PSG: Record<TmnlId, number[]> = {
-    T1: [
-        60, 20, 10, 0, 30, 420, 1580, 2240, 2680, 2510, 2080, 1760, 1640, 1520, 1730, 1980, 2210,
-        2380, 2090, 1620, 1080, 720, 400, 180,
-    ],
-    T2: [
-        40, 10, 0, 0, 20, 360, 1320, 1980, 2320, 2180, 1820, 1560, 1420, 1330, 1510, 1720, 1930,
-        2060, 1810, 1400, 940, 610, 340, 150,
-    ],
+    T1: [60, 20, 10, 0, 30, 420, 1580, 2240, 2680, 2510, 2080, 1760, 1640, 1520, 1730, 1980, 2210, 2380, 2090, 1620, 1080, 720, 400, 180],
+    T2: [40, 10, 0, 0, 20, 360, 1320, 1980, 2320, 2180, 1820, 1560, 1420, 1330, 1510, 1720, 1930, 2060, 1810, 1400, 940, 610, 340, 150],
 };
 
 const sum = (values: number[]): number => values.reduce((acc, v) => acc + v, 0);
@@ -128,10 +122,7 @@ const HEADER: DsbdHeaderDto = {
 /* ================= 터미널 패널 요약 ================= */
 
 /** 조회 시각과 무관한 부분 — 구간 4필드는 buildTmnlSmry 가 얹는다 */
-type TmnlSmryBase = Omit<
-    TmnlSmryDto,
-    'itvlMin' | 'itvlFltCnt' | 'itvlPsgCnt' | 'itvlBefFltDiffCnt' | 'itvlBefPsgDiffCnt'
->;
+type TmnlSmryBase = Omit<TmnlSmryDto, 'itvlMin' | 'itvlFltCnt' | 'itvlPsgCnt' | 'itvlBefFltDiffCnt' | 'itvlBefPsgDiffCnt'>;
 
 const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
     T1: {
@@ -197,8 +188,7 @@ function sumByItvl(hourly: number[], bgnHhmm: string, itvlMin: number): number {
     const endMin = Math.min(bgnMin + itvlMin, MIN_PER_DAY);
 
     const total = hourly.reduce((acc, count, hour) => {
-        const overlap =
-            Math.min(endMin, (hour + 1) * MIN_PER_HOUR) - Math.max(bgnMin, hour * MIN_PER_HOUR);
+        const overlap = Math.min(endMin, (hour + 1) * MIN_PER_HOUR) - Math.max(bgnMin, hour * MIN_PER_HOUR);
 
         return overlap > 0 ? acc + (count * overlap) / MIN_PER_HOUR : acc;
     }, 0);
@@ -247,10 +237,7 @@ function buildRsltList(tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] {
         return {
             time: `${String(hour).padStart(2, '0')}00`,
             psgCnt,
-            wtngPsgCnt:
-                hour <= MEASURED_UNTIL_HOUR
-                    ? Math.round(fcstWtngPsgCnt * (0.85 + ((hour * 13) % 6) / 20))
-                    : null,
+            wtngPsgCnt: hour <= MEASURED_UNTIL_HOUR ? Math.round(fcstWtngPsgCnt * (0.85 + ((hour * 13) % 6) / 20)) : null,
             wtngHr: Math.min(40, Math.round(fcstWtngPsgCnt / 8)),
             prcsPsgCnt: Math.round(psgCnt * 0.9),
             prcsHr: Math.min(30, Math.round(fcstWtngPsgCnt / 12)),
@@ -266,13 +253,7 @@ function buildRsltList(tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] {
 /** 칩 목록 — 혼잡도는 코드 순서대로 돌려 쓴다 (목업이라 규칙만 보이면 된다) */
 function buildUnits(labels: string[], busyLabels: string[], closedLabels: string[] = []) {
     return labels.map<FcltUnitDto>((unitCd, i) => {
-        const cgnStatus: CongestionStatus = busyLabels.includes(unitCd)
-            ? i % 2 === 0
-                ? 'VERY_BUSY'
-                : 'BUSY'
-            : i % 3 === 0
-              ? 'FREE'
-              : 'NORMAL';
+        const cgnStatus: CongestionStatus = busyLabels.includes(unitCd) ? (i % 2 === 0 ? 'VERY_BUSY' : 'BUSY') : i % 3 === 0 ? 'FREE' : 'NORMAL';
 
         return {
             unitCd,
@@ -474,25 +455,13 @@ function toFcltStatus(fcltType: 'CHKN' | 'DEP', waitingCount: number): Congestio
     return waitingCount <= busyMax ? 'BUSY' : 'VERY_BUSY';
 }
 
-function buildRollingCard(
-    card: DsbdFcltCardDto,
-    hhmm: string,
-    fcltType: 'CHKN' | 'DEP',
-    index: number,
-): DsbdFcltCardDto {
+function buildRollingCard(card: DsbdFcltCardDto, hhmm: string, fcltType: 'CHKN' | 'DEP', index: number): DsbdFcltCardDto {
     const bgnMinute = toMinuteOfDay(hhmm);
     const endMinute = Math.min(bgnMinute + MIN_PER_HOUR, MIN_PER_DAY);
     const actualMinutes = endMinute - bgnMinute;
     const seed = index + (card.cardId.charCodeAt(card.cardId.length - 1) % 7);
-    const queueAt = (minute: number) =>
-        Math.max(
-            0,
-            Math.round(
-                card.wtngPsgCnt * (0.78 + 0.2 * Math.sin((minute + seed * 31) / 95) + seed * 0.012),
-            ),
-        );
-    const rateAt = (minute: number) =>
-        Math.max(1, card.hrlyPrcsPsgCnt * (0.88 + 0.16 * Math.cos((minute + seed * 17) / 80)));
+    const queueAt = (minute: number) => Math.max(0, Math.round(card.wtngPsgCnt * (0.78 + 0.2 * Math.sin((minute + seed * 31) / 95) + seed * 0.012)));
+    const rateAt = (minute: number) => Math.max(1, card.hrlyPrcsPsgCnt * (0.88 + 0.16 * Math.cos((minute + seed * 17) / 80)));
     const slotMinutes: number[] = [];
 
     for (let minute = bgnMinute; minute < endMinute; minute += 10) {
@@ -501,30 +470,18 @@ function buildRollingCard(
 
     // 종료 시각 한 칸은 피크 탐색 상한이다. 자정에서는 그 칸이 없다 (서버와 같은 규칙)
     const hasEndSnapshot = endMinute < MIN_PER_DAY;
-    const trajectory = (hasEndSnapshot ? [...slotMinutes, endMinute] : slotMinutes).map(
-        (minute) => ({ minute, queue: queueAt(minute) }),
-    );
-    const processedPsgCnt = sum(
-        slotMinutes.map((minute) => rateAt(minute) * Math.min(10, endMinute - minute)),
-    );
+    const trajectory = (hasEndSnapshot ? [...slotMinutes, endMinute] : slotMinutes).map((minute) => ({ minute, queue: queueAt(minute) }));
+    const processedPsgCnt = sum(slotMinutes.map((minute) => rateAt(minute) * Math.min(10, endMinute - minute)));
     const paxPerMin = Math.round(processedPsgCnt / actualMinutes);
     const openCount = Math.max(1, card.oprCnt);
     const serviceRate = processedPsgCnt / openCount / actualMinutes;
     const targetQueue = FCLT_NORMAL_MAX[fcltType];
 
     const window = trajectory.filter((point) => point.minute >= bgnMinute + RECOMMEND_LEAD_MIN);
-    const peak = window.reduce(
-        (best, point) => (point.queue > best.queue ? point : best),
-        window[0] ?? trajectory[trajectory.length - 1],
-    );
+    const peak = window.reduce((best, point) => (point.queue > best.queue ? point : best), window[0] ?? trajectory[trajectory.length - 1]);
     const leadMinutes = Math.max(RECOMMEND_LEAD_MIN, peak.minute - bgnMinute);
-    const extraCnt = Math.max(
-        0,
-        Math.ceil((peak.queue - targetQueue) / (serviceRate * leadMinutes)),
-    );
-    const clearPoint = trajectory.find(
-        (point) => point.queue - extraCnt * serviceRate * (point.minute - bgnMinute) <= targetQueue,
-    );
+    const extraCnt = Math.max(0, Math.ceil((peak.queue - targetQueue) / (serviceRate * leadMinutes)));
+    const clearPoint = trajectory.find((point) => point.queue - extraCnt * serviceRate * (point.minute - bgnMinute) <= targetQueue);
     const clearMinutes = clearPoint ? clearPoint.minute - bgnMinute : leadMinutes;
     const displayPeak = Math.max(...slotMinutes.map(queueAt));
 
@@ -545,11 +502,7 @@ function buildRollingCard(
     };
 }
 
-function buildFcltCardList(
-    tmnlId: TmnlId,
-    hhmm: string,
-    fcltType: 'CHKN' | 'DEP',
-): DsbdFcltCardDto[] {
+function buildFcltCardList(tmnlId: TmnlId, hhmm: string, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto[] {
     const cards = fcltType === 'CHKN' ? CHKN_CARDS[tmnlId] : DPTGT_CARDS[tmnlId];
     return cards.map((card, index) => buildRollingCard(card, hhmm, fcltType, index));
 }
@@ -599,34 +552,18 @@ const QUEUE_ASMP_LIST: Record<'CHKN' | 'DEP', string[]> = {
     ],
 };
 
-function queueMetric(
-    status: QueueMetricDto['status'],
-    method: QueueMetricDto['method'],
-    reason: string,
-): QueueMetricDto {
+function queueMetric(status: QueueMetricDto['status'], method: QueueMetricDto['method'], reason: string): QueueMetricDto {
     return { status, method, reason };
 }
 
 function toDt(ymd: string, minuteOfDay: number, plusSec = 0): string {
-    const date = new Date(
-        Number(ymd.slice(0, 4)),
-        Number(ymd.slice(4, 6)) - 1,
-        Number(ymd.slice(6, 8)),
-        0,
-        minuteOfDay,
-        Math.ceil(plusSec),
-    );
+    const date = new Date(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8)), 0, minuteOfDay, Math.ceil(plusSec));
     const pad = (value: number) => String(value).padStart(2, '0');
 
     return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
-function toQueueClear(
-    profile: QueueScenarioProfile,
-    fcltCnt: number,
-    ymd: string,
-    baseMinute: number,
-): FcltQueueClearDto {
+function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: string, baseMinute: number): FcltQueueClearDto {
     const lambda = profile.arvlPerHour;
     const mu = profile.prcsSec === null ? null : 3600 / profile.prcsSec;
     const excess = Math.max(0, profile.wtngPsgCnt - profile.targetQueueCnt);
@@ -641,14 +578,10 @@ function toQueueClear(
     } else if (capacity === null) {
         clearMetric = queueMetric('UNAVAILABLE', 'FLUID_APPROXIMATION', '양수인 단일 시설 평균 처리시간이 필요합니다.');
     } else if (capacity - lambda <= 0) {
-        clearMetric = queueMetric(
-            'UNREACHABLE',
-            'FLUID_APPROXIMATION',
-            '처리능력이 유입률 이하라 현재 조건으로 목표까지 감소하지 않습니다.',
-        );
+        clearMetric = queueMetric('UNREACHABLE', 'FLUID_APPROXIMATION', '처리능력이 유입률 이하라 현재 조건으로 목표까지 감소하지 않습니다.');
     } else {
         clearSec = (excess / (capacity - lambda)) * 3600;
-        clearMetric = queueMetric('ESTIMATED', 'FLUID_APPROXIMATION', '유입률·처리능력이 일정한 유체근사');
+        clearMetric = queueMetric('ESTIMATED', 'FLUID_APPROXIMATION', '유입률·처리능력이 일정한 유입/처리 차이 계산');
     }
 
     const clear: FcltQueueClearDto = {
@@ -666,11 +599,7 @@ function toQueueClear(
     if (mu === null || capacity === null || capacity === 0) return clear;
 
     if (lambda >= capacity) {
-        clear.erlangMetric = queueMetric(
-            'UNAVAILABLE',
-            'ERLANG_C',
-            '유입률이 총 처리능력 이상이라 유한한 정상상태 대기값이 없습니다.',
-        );
+        clear.erlangMetric = queueMetric('UNAVAILABLE', 'ERLANG_C', '유입률이 총 처리능력 이상이라 유한한 정상상태 대기값이 없습니다.');
         return clear;
     }
 
@@ -824,21 +753,15 @@ export const dashboardMock = {
      * 시뮬레이션 구분을 정한다 — 그래야 일일/사용자 두 경로를 목업으로 다 볼 수 있다.
      */
     getBaseInfo: (smltId?: string): DsbdBaseInfoDto =>
-        smltId
-            ? { ...BASE_INFO, smltId, smltType: smltId.startsWith('USR') ? 'USER' : 'DAILY' }
-            : { ...BASE_INFO, smltType: 'DAILY' },
+        smltId ? { ...BASE_INFO, smltId, smltType: smltId.startsWith('USR') ? 'USER' : 'DAILY' } : { ...BASE_INFO, smltType: 'DAILY' },
 
     getHeader: (): DsbdHeaderDto => HEADER,
 
-    getTmnlSmry: (tmnlId: TmnlId, hhmm: string, itvlMin: number): TmnlSmryDto =>
-        buildTmnlSmry(tmnlId, hhmm, itvlMin),
+    getTmnlSmry: (tmnlId: TmnlId, hhmm: string, itvlMin: number): TmnlSmryDto => buildTmnlSmry(tmnlId, hhmm, itvlMin),
 
-    getTmnlRsltByTime: (tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] =>
-        buildRsltList(tmnlId, category),
+    getTmnlRsltByTime: (tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] => buildRsltList(tmnlId, category),
 
-    getFcltCardList: (tmnlId: TmnlId, hhmm: string, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto[] =>
-        buildFcltCardList(tmnlId, hhmm, fcltType),
+    getFcltCardList: (tmnlId: TmnlId, hhmm: string, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto[] => buildFcltCardList(tmnlId, hhmm, fcltType),
 
-    getFcltQueueScenario: (req: FcltQueueScenarioReq): FcltQueueScenarioDto =>
-        buildFcltQueueScenario(req),
+    getFcltQueueScenario: (req: FcltQueueScenarioReq): FcltQueueScenarioDto => buildFcltQueueScenario(req),
 };

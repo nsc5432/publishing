@@ -3,7 +3,7 @@ package aoms.pm.cast.dto;
 import lombok.Getter;
 import lombok.Setter;
 
-/** 한 운영 수량 조건의 혼잡해소 예상(유체근사)과 M/M/s 정상상태 참고지표 */
+/** 한 운영 수량 조건의 혼잡해소 예상(유입/처리 차이 계산)과 M/M/s 정상상태 참고지표 */
 @Getter
 @Setter
 public class FcltQueueClearDto {

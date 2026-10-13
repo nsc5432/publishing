@@ -11,15 +11,7 @@ import type {
     SmltType,
     TmnlSmryDto,
 } from '@/types/api.types';
-import {
-    dowLabel,
-    formatCount,
-    formatDiff,
-    formatHhmm,
-    formatMinutes,
-    formatYmd,
-    pad2,
-} from '@/lib/format';
+import { dowLabel, formatCount, formatDiff, formatHhmm, formatMinutes, formatYmd, pad2 } from '@/lib/format';
 import {
     FCLT_QUEUE_LABEL,
     type FcltCardChip,
@@ -72,7 +64,7 @@ const QUEUE_METHOD_LABEL: Record<QueueCalcMethod, string> = {
     SERVICE_TIME: '처리시간 역수',
     LITTLE_LAW: "Little's Law 추정",
     CAPACITY_MODEL: '처리능력 모형',
-    FLUID_APPROXIMATION: '유체근사',
+    FLUID_APPROXIMATION: '유입/처리 차이 계산',
     OBSERVED_FLOW: '관측 통과율',
     CONSERVATION: '인원 보존식 추정',
     CAPACITY_COMPARISON: '보유량 비교',
@@ -147,14 +139,7 @@ function toTableRow(rslt: DsbdRsltDto): TableRow {
     };
 }
 
-export function toTerminalView({
-    ymd,
-    hhmm,
-    smry,
-    rsltList,
-    chknCards,
-    dptgtCards,
-}: TerminalViewInput): TerminalView {
+export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCards }: TerminalViewInput): TerminalView {
     // 시간대별 결과는 정시(HH00) 단위라 조회 시각과 같은 '시'를 찾는다.
     const currentIndex = rsltList.findIndex((rslt) => rslt.time.slice(0, 2) === hhmm.slice(0, 2));
 
@@ -218,8 +203,7 @@ function toClockText(dt: string, baseDt: string): string {
     if (dt.length !== 14) return '—';
 
     const dayDiff = Math.round(
-        (Date.UTC(+dt.slice(0, 4), +dt.slice(4, 6) - 1, +dt.slice(6, 8)) -
-            Date.UTC(+baseDt.slice(0, 4), +baseDt.slice(4, 6) - 1, +baseDt.slice(6, 8))) /
+        (Date.UTC(+dt.slice(0, 4), +dt.slice(4, 6) - 1, +dt.slice(6, 8)) - Date.UTC(+baseDt.slice(0, 4), +baseDt.slice(4, 6) - 1, +baseDt.slice(6, 8))) /
             86_400_000,
     );
 
@@ -355,8 +339,8 @@ function toQueueRecommendView(dto: FcltQueueScenarioDto, recommend: FcltQueueRec
               : dto.totCntRsn || '배정 가능한 최대 수량 미확인';
     const policyNote =
         recommend.stableAplyYn === 'Y'
-            ? `유체근사 ${fluidReqCnt}개 → 안정조건(ρ<1) 최소 ${stableMinCnt}개 적용`
-            : `유체근사 ${fluidReqCnt}개 · 안정조건(ρ<1) 최소 ${stableMinCnt ?? '—'}개`;
+            ? `유입/처리 차이 계산 ${fluidReqCnt}개 → 안정조건(ρ<1) 최소 ${stableMinCnt}개 적용`
+            : `유입/처리 차이 계산 ${fluidReqCnt}개 · 안정조건(ρ<1) 최소 ${stableMinCnt ?? '—'}개`;
     const clearSource = dto.scenario ?? dto.totScenario;
 
     return {
@@ -366,11 +350,7 @@ function toQueueRecommendView(dto: FcltQueueScenarioDto, recommend: FcltQueueRec
         capaShort: recommend.capaAvlYn === 'N',
         policyNote: recommend.goalMetYn === 'N' ? `${policyNote} · 목표시간 검증 실패` : policyNote,
         clear: clearSource ? toQueueClearView(clearSource, dto.baseDt) : null,
-        clearLabel: dto.scenario
-            ? '추천 수량 배정 시'
-            : dto.totScenario
-              ? `보유 ${formatCount(dto.totCnt ?? 0)}개 모두 배정 시`
-              : '',
+        clearLabel: dto.scenario ? '추천 수량 배정 시' : dto.totScenario ? `보유 ${formatCount(dto.totCnt ?? 0)}개 모두 배정 시` : '',
     };
 }
 
@@ -392,14 +372,8 @@ export function toFcltQueueContextView(dto: FcltQueueScenarioDto): FcltQueueCont
         dataSrcText: QUEUE_DATA_SRC_LABEL[dto.dataSrc],
         queueText: dto.wtngPsgCnt === null ? '—' : formatCount(dto.wtngPsgCnt),
         targetQueueText: `대기인원 ${formatCount(dto.targetQueueCnt)}명 이하 기준 (혼잡등급 NORMAL 상한)`,
-        arvlText:
-            dto.arvlRate === null
-                ? `— (${dto.arvlMetric.reason})`
-                : `${dto.arvlRate.toFixed(1)}명/분 · ${QUEUE_METHOD_LABEL[dto.arvlMetric.method]}`,
-        srvcText:
-            dto.srvcRate === null
-                ? `— (${dto.srvcMetric.reason})`
-                : `${label.resource} 1개당 ${dto.srvcRate.toFixed(2)}명/분`,
+        arvlText: dto.arvlRate === null ? `— (${dto.arvlMetric.reason})` : `${dto.arvlRate.toFixed(1)}명/분 · ${QUEUE_METHOD_LABEL[dto.arvlMetric.method]}`,
+        srvcText: dto.srvcRate === null ? `— (${dto.srvcMetric.reason})` : `${label.resource} 1개당 ${dto.srvcRate.toFixed(2)}명/분`,
         asmpList: dto.asmpList,
         currentCnt: dto.oprFcltCnt,
         totCnt: dto.totCnt,

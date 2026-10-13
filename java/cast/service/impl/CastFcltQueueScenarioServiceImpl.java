@@ -66,7 +66,7 @@ import lombok.RequiredArgsConstructor;
  *
  * </pre>
  *
- * 혼잡해소 시간은 유체근사, 대기확률·이론 대기시간은 M/M/s 정상상태값이다
+ * 혼잡해소 시간은 유입/처리 차이 계산, 대기확률·이론 대기시간은 M/M/s 정상상태값이다
  * (docs/plans/2026-10-13-fclt-card-queue-popup.md). 카드 · 맵 · 체크인 상세의 기존 추천 산식과는 별개다.
  */
 @Service

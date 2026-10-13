@@ -243,7 +243,7 @@ public final class FacilityQueueMetrics {
     }
 
     /**
-     * 현재 종료 스냅샷 Q에서 목표 인원까지 감소하는 시간(초)을 유체근사한다.
+     * 현재 종료 스냅샷 Q에서 목표 인원까지 감소하는 시간(초)을 유입/처리 차이 계산한다.
      * t=max(0,Q-target)/(C-lambda)*3600. 조건이 미래에도 일정해야 한다.
      * 이미 목표 이하이면 0초, 목표 초과인데 {@code C <= lambda}이면 현재 조건으로는 달성 불가이다.
      * 현재 여객 한 명의 평균 대기시간이나 실제 해소시각을 이 식으로 확정할 수는 없다.
@@ -266,7 +266,7 @@ public final class FacilityQueueMetrics {
             return MetricResult.unreachable(CalculationMethod.FLUID_APPROXIMATION, "처리능력이 유입률 이하라 현재 조건으로 목표까지 감소하지 않습니다.");
         }
         return number((queuePsgCntAtEnd - (double) targetQueueCnt) / drain.getValue() * SECONDS_PER_HOUR,
-                true, CalculationMethod.FLUID_APPROXIMATION, "현재 대기인원에서 목표까지 유입률·처리능력이 일정한 유체근사");
+                true, CalculationMethod.FLUID_APPROXIMATION, "현재 대기인원에서 목표까지 유입률·처리능력이 일정한 유입/처리 차이 계산");
     }
 
     /**
@@ -332,7 +332,7 @@ public final class FacilityQueueMetrics {
         MetricResult<Integer> required = estimateRequiredServerCnt(context, targetQueueCnt, targetTimeSec);
         if (!required.hasValue()) return failure(required, CalculationMethod.CAPACITY_COMPARISON);
         return MetricResult.estimated(required.getValue() <= context.getTotServerCnt(),
-                CalculationMethod.CAPACITY_COMPARISON, "필요 총 시설 수와 배정 가능 최대 수를 비교한 유체근사 기준 판단");
+                CalculationMethod.CAPACITY_COMPARISON, "필요 총 시설 수와 배정 가능 최대 수를 비교한 유입/처리 차이 계산 기준 판단");
     }
 
     /** 구간 완료인원/구간초*3600. 실제 관측 통과율이며 잠재 처리능력을 뜻하지 않는다. */
