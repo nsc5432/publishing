@@ -363,12 +363,11 @@ html[data-page='userSmlt'] .tabs__item.is-active .tabs__no {
     color: #fff;
 }
 
+html[data-page='userSmlt'] .tabs__prev,
 html[data-page='userSmlt'] .tabs__next {
     position: absolute;
     top: 50%;
-    left: 100%;
     transform: translateY(-50%);
-    margin-left: 10px;
     display: inline-flex;
     align-items: center;
     gap: 8px;
@@ -387,6 +386,17 @@ html[data-page='userSmlt'] .tabs__next {
         box-shadow 0.15s;
 }
 
+html[data-page='userSmlt'] .tabs__prev {
+    right: 100%;
+    margin-right: 10px;
+}
+
+html[data-page='userSmlt'] .tabs__next {
+    left: 100%;
+    margin-left: 10px;
+}
+
+html[data-page='userSmlt'] .tabs__prev::before,
 html[data-page='userSmlt'] .tabs__next::after {
     content: '';
     flex: 0 0 auto;
@@ -398,9 +408,18 @@ html[data-page='userSmlt'] .tabs__next::after {
     transition: transform 0.15s;
 }
 
+html[data-page='userSmlt'] .tabs__prev::before {
+    transform: rotate(-135deg);
+}
+
+html[data-page='userSmlt'] .tabs__prev:hover,
 html[data-page='userSmlt'] .tabs__next:hover {
     background: #f4f4fc;
     box-shadow: 0 4px 12px rgba(68, 65, 204, 0.2);
+}
+
+html[data-page='userSmlt'] .tabs__prev:hover::before {
+    transform: rotate(-135deg) translate(1.5px, -1.5px);
 }
 
 html[data-page='userSmlt'] .tabs__next:hover::after {
@@ -412,8 +431,10 @@ html[data-page='userSmlt'] .tabs__next:hover::after {
         gap: 10px;
     }
 
+    html[data-page='userSmlt'] .tabs__prev,
     html[data-page='userSmlt'] .tabs__next {
         position: static;
+        margin-right: 0;
         margin-left: 0;
         transform: none;
     }

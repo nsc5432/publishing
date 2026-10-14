@@ -5,7 +5,7 @@ import { HeaderInfoCards } from '@/modules/pm/components/HeaderInfoCards';
 
 interface HeaderSummaryProps {
     planDate: string;
-    header: DsbdHeaderDto | null;
+    dayOverview: DsbdHeaderDto | null;
     activePrimeCategory: DsbdCategory | null;
     onCategoryChange: (category: DsbdCategory) => void;
     children: ReactNode;
@@ -20,7 +20,7 @@ const QUICK_TILES: { category: DsbdCategory; label: string; Icon: typeof QuickPa
 
 export function HeaderSummary({
     planDate,
-    header,
+    dayOverview,
     activePrimeCategory,
     onCategoryChange,
     children,
@@ -29,7 +29,7 @@ export function HeaderSummary({
         <div className="body">
             <main className="main">
                 <section className="row row--top">
-                    <HeaderInfoCards planDate={planDate} header={header} />
+                    <HeaderInfoCards planDate={planDate} header={dayOverview} />
 
                     <div className="quick c-quick">
                         <div className="quick-title">PRIME TIME</div>

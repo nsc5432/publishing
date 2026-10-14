@@ -9,10 +9,22 @@ interface SmltTabsProps {
 
 export function SmltTabs({ activeTab, onTabChange }: SmltTabsProps) {
     const activeIndex = SMLT_TABS.indexOf(activeTab);
+    const previousTab: SmltTabKey | undefined = SMLT_TABS[activeIndex - 1];
     const nextTab: SmltTabKey | undefined = SMLT_TABS[activeIndex + 1];
 
     return (
         <div className="steps">
+            {previousTab && (
+                <button
+                    type="button"
+                    className="tabs__prev"
+                    title={`이전 단계 — ${SMLT_TAB_LABEL[previousTab]}`}
+                    onClick={() => onTabChange(previousTab)}
+                >
+                    이전 단계
+                </button>
+            )}
+
             <nav className="tabs" aria-label="시뮬레이션 조건 설정 단계">
                 {SMLT_TABS.map((tab, index) => {
                     const done = index < activeIndex;
@@ -39,7 +51,6 @@ export function SmltTabs({ activeTab, onTabChange }: SmltTabsProps) {
                 })}
             </nav>
 
-            {/* 마지막 단계(출국장)에서는 넘어갈 곳이 없다 — 이후는 GNB 의 시뮬레이션 실행 */}
             {nextTab && (
                 <button
                     type="button"

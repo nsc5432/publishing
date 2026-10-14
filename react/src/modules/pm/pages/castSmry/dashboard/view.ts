@@ -11,7 +11,16 @@ import type {
     SmltType,
     TmnlSmryDto,
 } from '@/types/api.types';
-import { dowLabel, formatCount, formatDiff, formatHhmm, formatMinutes, formatYmd, pad2 } from '@/lib/format';
+import {
+    dowLabel,
+    formatCount,
+    formatDateTime,
+    formatDiff,
+    formatHhmm,
+    formatMinutes,
+    formatYmd,
+    pad2,
+} from '@/lib/format';
 import {
     FCLT_QUEUE_LABEL,
     type FcltCardChip,
@@ -74,6 +83,14 @@ const QUEUE_METHOD_LABEL: Record<QueueCalcMethod, string> = {
 
 export function toSimulationType(smltType: SmltType): SimulationType {
     return smltType === 'USER' ? 'user' : 'daily';
+}
+
+export function toPlanDate(headerYmd?: string, baseYmd?: string): string {
+    return formatYmd(headerYmd ?? baseYmd ?? '', '-');
+}
+
+export function toCalcDateTime(calcDt?: string): string {
+    return formatDateTime(calcDt ?? '');
 }
 
 function toFcltCardVariant(card: DsbdFcltCardDto): FcltCardVariant {

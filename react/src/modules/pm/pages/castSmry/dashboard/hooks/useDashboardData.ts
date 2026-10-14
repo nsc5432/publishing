@@ -28,12 +28,16 @@ interface RsltQuery extends PanelQuery {
     category: DsbdCategory;
 }
 
-const HEADER_FAIL = '상단 요약 정보를 불러오지 못했습니다.';
+const DAY_OVERVIEW_FAIL = '상단 요약 정보를 불러오지 못했습니다.';
 const PANEL_FAIL = '터미널 요약 정보를 불러오지 못했습니다.';
 const RSLT_FAIL = '시간대별 결과를 불러오지 못했습니다.';
 
-export function useDashboardHeader(query: DashboardQuery | null): Fetched<DsbdHeaderDto> {
-    return useFetched(query, ({ ymd, hhmm }) => dashboardService.getHeader(ymd, hhmm).then((dto) => unwrap(dto, HEADER_FAIL)), HEADER_FAIL);
+export function useDayOverview(query: DashboardQuery | null): Fetched<DsbdHeaderDto> {
+    return useFetched(
+        query,
+        ({ ymd, hhmm }) => dashboardService.getHeader(ymd, hhmm).then((dto) => unwrap(dto, DAY_OVERVIEW_FAIL)),
+        DAY_OVERVIEW_FAIL,
+    );
 }
 
 export function useTerminalPanel(query: DashboardQuery | null, tmnlId: TerminalKind, category: DsbdCategory): Fetched<TerminalView> {

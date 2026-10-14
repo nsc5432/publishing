@@ -4,7 +4,6 @@ import { Icon } from '@/components/icons/InlineIcon';
 import { HOUR_OPTIONS, MINUTE_OPTIONS, formatYmd, toDateInputValue, toYmd } from '@/lib/format';
 import { SIMULATION_LABEL, SIMULATION_TITLE, type SimulationType } from '../types';
 
-/** 사용자 시뮬레이션을 실행한 사람 — 일일 시뮬레이션에는 없다 */
 export interface Executor {
     dept: string;
     name: string;
@@ -12,16 +11,13 @@ export interface Executor {
 
 interface TopbarProps {
     simulationType: SimulationType;
-    /** 기준일자 (yyyyMMdd) — 달력에서 고른 값 */
     baseYmd: string;
     hour: string;
     minute: string;
     lastCalc: string;
     nextCalc: string;
-    /** 사용자 시뮬레이션일 때만 넘어온다 */
-    executor?: Executor;
-    /** 사용자 시뮬레이션일 때만 넘어온다 — 실행에 쓴 설정 조건을 조회용으로 연다 */
-    onViewConfig?: () => void;
+    executor?: Executor; // 사용자 시뮬레이션 일때만
+    onViewConfig?: () => void; // 사용자 시뮬레이션 일때만
     onDateChange: (ymd: string) => void;
     onHourChange: (hour: string) => void;
     onMinuteChange: (minute: string) => void;
@@ -135,7 +131,7 @@ export function Topbar({
                     </div>
                 )}
 
-                {onViewConfig && (
+                {isUserSmlt && onViewConfig && (
                     <button type="button" className="btn-config" onClick={onViewConfig}>
                         설정 조건 보기
                     </button>

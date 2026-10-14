@@ -10,10 +10,10 @@ import { FcltQueueScenarioModal } from './components/FcltQueueScenarioModal';
 import { HeaderSummary } from './components/HeaderSummary';
 import { TerminalSummary } from './components/TerminalSummary';
 import { Topbar } from './components/Topbar';
-import { defaultTime, formatDateTime, formatYmd, todayYmd } from '@/lib/format';
+import { defaultTime, todayYmd } from '@/lib/format';
 import { useBaseInfo } from '@/hooks/useBaseInfo';
-import { toSimulationType } from './view';
-import { useDashboardHeader, useTerminalPanel, type DashboardQuery } from './hooks/useDashboardData';
+import { toCalcDateTime, toPlanDate, toSimulationType } from './view';
+import { useDayOverview, useTerminalPanel, type DashboardQuery } from './hooks/useDashboardData';
 import { useExecDetail } from './hooks/useExecDetail';
 import type { FcltCardType, FcltQueueTarget, TerminalKind } from './types';
 
@@ -57,13 +57,13 @@ function Dashboard() {
         setQuery({ smltId: baseInfo.smltId, ymd: baseInfo.ymd, hhmm });
     }, [baseInfo]);
 
-    const { data: header, error: headerError, token: headerToken } = useDashboardHeader(query);
+    const { data: dayOverview, error: dayOverviewError, token: dayOverviewToken } = useDayOverview(query);
     const { data: terminal1View, error: t1Error, token: t1Token } = useTerminalPanel(query, 'T1', category);
     const { data: terminal2View, error: t2Error, token: t2Token } = useTerminalPanel(query, 'T2', category);
 
-    const error = baseError || headerError || t1Error || t2Error;
+    const error = baseError || dayOverviewError || t1Error || t2Error;
 
-    useErrorAlert(error, baseToken + headerToken + t1Token + t2Token);
+    useErrorAlert(error, baseToken + dayOverviewToken + t1Token + t2Token);
 
     const hour = draftTime.slice(0, 2);
     const minute = draftTime.slice(2, 4);
@@ -118,10 +118,10 @@ function Dashboard() {
                 baseYmd={draftYmd}
                 hour={hour}
                 minute={minute}
-                lastCalc={formatDateTime(baseInfo?.lastCalcDt ?? '')}
-                nextCalc={formatDateTime(baseInfo?.nextCalcDt ?? '')}
+                lastCalc={toCalcDateTime(baseInfo?.lastCalcDt)}
+                nextCalc={toCalcDateTime(baseInfo?.nextCalcDt)}
                 executor={executor}
-                onViewConfig={isUserSmlt && targetSmltId ? handleViewConfig : undefined}
+                onViewConfig={handleViewConfig}
                 onDateChange={handleDateChange}
                 onHourChange={(nextHour) => setDraftTime(nextHour + (minute || '00'))}
                 onMinuteChange={(nextMinute) => setDraftTime((hour || '00') + nextMinute)}
@@ -131,8 +131,8 @@ function Dashboard() {
 
             <div className="app">
                 <HeaderSummary
-                    planDate={formatYmd(header?.ymd ?? baseInfo?.ymd ?? '', '-')}
-                    header={header}
+                    planDate={toPlanDate(dayOverview?.ymd, baseInfo?.ymd)}
+                    dayOverview={dayOverview}
                     activePrimeCategory={activePrimeCategory}
                     onCategoryChange={handleCategoryChange}
                 >
