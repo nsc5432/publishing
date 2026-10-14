@@ -18,6 +18,8 @@ public enum DsbdCategory {
 	// 여객대기정보(Xovis)는 시설 구분: Queue 체크인 대기열, DG 출국장, SC 보안검색대
 	private static final List<String> CHKN_WTNG_TYPE_CD_LIST = List.of("Queue");
 	private static final List<String> DEP_WTNG_TYPE_CD_LIST = List.of("DG", "SC");
+	// 빈 리스트를 넘기면 mapper 가 유형 필터를 건너뛰어 미정의 유형까지 MAX 에 섞인다
+	private static final List<String> ALL_WTNG_TYPE_CD_LIST = List.of("Queue", "DG", "SC");
 
 	private final String value;
 
@@ -51,7 +53,7 @@ public enum DsbdCategory {
 			return DEP_WTNG_TYPE_CD_LIST;
 		}
 
-		return List.of();
+		return ALL_WTNG_TYPE_CD_LIST;
 	}
 
 	public static List<DsbdCategory> getList() {
