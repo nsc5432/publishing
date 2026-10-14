@@ -8,7 +8,7 @@ import { EMPTY_CAST_CONFIG_CATEGORIES, toCastConfigCategories } from '../view';
 export interface FetchedCategories {
     data: Category[];
     error: string;
-    token: number;
+    responseSeq: number;
 }
 
 export interface CastConfigCategoryQuery {
@@ -24,7 +24,7 @@ export function useCastConfigCategories(query: CastConfigCategoryQuery | null): 
         () => ({
             data: categories.data ? toCastConfigCategories(categories.data) : EMPTY_CAST_CONFIG_CATEGORIES,
             error: categories.error,
-            token: categories.token,
+            responseSeq: categories.responseSeq,
         }),
         [categories],
     );

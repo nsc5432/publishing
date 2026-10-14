@@ -36,7 +36,7 @@ function UserSmltConfig() {
     const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
     const [reloadKey, setReloadKey] = useState(0);
     const [infoVersion, setInfoVersion] = useState(0);
-    const { saveDt, error, token } = useSmltInfo(readOnly ? '' : ymd, reloadKey + infoVersion);
+    const { saveDt, error, responseSeq } = useSmltInfo(readOnly ? '' : ymd, reloadKey + infoVersion);
 
     const query = { ymd, smltId: readOnly ? viewSmltId : undefined };
     const collectors = useRef<Partial<Record<SmltTabKey, () => Partial<UserSmltExecReq>>>>({});
@@ -50,7 +50,7 @@ function UserSmltConfig() {
     const [enabled, setEnabled] = useState<TerminalEnabled>(() => (readOnly ? { T1: true, T2: true } : NO_TERMINAL));
     const [focusTerminal, setFocusTerminal] = useState<TerminalKind>(viewTmnlId ?? 'T1');
 
-    useErrorAlert(error, token);
+    useErrorAlert(error, responseSeq);
 
     const targets = enabledTerminals(enabled);
     const picked = targets.length > 0;

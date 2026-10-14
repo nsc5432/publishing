@@ -30,7 +30,7 @@ export function FlightPaxTab({
     onFocusChange,
     readOnly,
 }: SmltTabProps) {
-    const { raw: dtoByTerminal, error, token } = useTerminalData(query, reloadKey, fetchFltPsg, keepDto, '운항편/여객수 정보를 불러오지 못했습니다.');
+    const { raw: dtoByTerminal, error, responseSeq } = useTerminalData(query, reloadKey, fetchFltPsg, keepDto, '운항편/여객수 정보를 불러오지 못했습니다.');
     const [ratios, setRatios] = useState<RatioState>({ T1: 0, T2: 0 });
 
     const panelDataByTerminal = useMemo(
@@ -43,7 +43,7 @@ export function FlightPaxTab({
 
     const dirty = useRef<Record<TerminalKind, boolean>>({ T1: false, T2: false });
 
-    useErrorAlert(error, token);
+    useErrorAlert(error, responseSeq);
 
     useEffect(() => {
         setRatios({

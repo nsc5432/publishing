@@ -68,7 +68,7 @@ export function DataConfigModal({ terminal, group, category, draft, reloadToken,
     const pageRows = filteredRows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
     const sheetChangeCount = Object.keys(drafts).length;
 
-    useErrorAlert(fetched.error, fetched.token);
+    useErrorAlert(fetched.error, fetched.responseSeq);
 
     useEffect(() => {
         const previousFocus = document.activeElement as HTMLElement | null;

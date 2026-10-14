@@ -71,8 +71,8 @@ export function useTerminalPanel(query: DashboardQuery | null, tmnlId: TerminalK
 
     return useMemo(() => {
         const error = panelBase.error || hourlyResults.error;
-        const token = panelBase.token + hourlyResults.token;
-        if (!panelBase.data || !hourlyResults.data) return { data: null, error, token };
+        const responseSeq = panelBase.responseSeq + hourlyResults.responseSeq;
+        if (!panelBase.data || !hourlyResults.data) return { data: null, error, responseSeq };
 
         return {
             data: toTerminalView({
@@ -84,7 +84,7 @@ export function useTerminalPanel(query: DashboardQuery | null, tmnlId: TerminalK
                 dptgtCards: panelBase.data.dptgtCards,
             }),
             error,
-            token,
+            responseSeq,
         };
     }, [panelBase, hourlyResults]);
 }

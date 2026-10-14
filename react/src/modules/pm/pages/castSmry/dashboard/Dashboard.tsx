@@ -17,11 +17,6 @@ import { useDayOverview, useTerminalPanel, type DashboardQuery } from './hooks/u
 import { useExecDetail } from './hooks/useExecDetail';
 import type { FcltCardType, FcltQueueTarget, TerminalKind } from './types';
 
-interface FcltQueuePopup {
-    query: DashboardQuery;
-    target: FcltQueueTarget;
-}
-
 const USER_SMLT_CONFIG_PATH = '/rui/pm/user-smlt/config';
 
 const DEFAULT_CATEGORY: DsbdCategory = 'PSG';
@@ -36,7 +31,7 @@ function Dashboard() {
 
     const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
     const [draftYmd, setDraftYmd] = useState(ymd);
-    const { data: baseInfo, error: baseError, token: baseToken } = useBaseInfo(ymd, targetSmltId);
+    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd, targetSmltId);
 
     const simulationType = toSimulationType(targetSmltType ?? baseInfo?.smltType ?? 'DAILY');
     const isUserSmlt = simulationType === 'user';
@@ -47,7 +42,11 @@ function Dashboard() {
     const [query, setQuery] = useState<DashboardQuery | null>(null);
     const [category, setCategory] = useState<DsbdCategory>(DEFAULT_CATEGORY);
     const [activePrimeCategory, setActivePrimeCategory] = useState<DsbdCategory | null>(DEFAULT_CATEGORY);
-    const [fcltQueuePopup, setFcltQueuePopup] = useState<FcltQueuePopup | null>(null);
+    const [fcltQueueTarget, setFcltQueueTarget] = useState<FcltQueueTarget | null>(null);
+
+    useEffect(() => {
+        setFcltQueueTarget(null);
+    }, [query]);
 
     useEffect(() => {
         if (!baseInfo) return;
@@ -57,13 +56,13 @@ function Dashboard() {
         setQuery({ smltId: baseInfo.smltId, ymd: baseInfo.ymd, hhmm });
     }, [baseInfo]);
 
-    const { data: dayOverview, error: dayOverviewError, token: dayOverviewToken } = useDayOverview(query);
-    const { data: terminal1View, error: t1Error, token: t1Token } = useTerminalPanel(query, 'T1', category);
-    const { data: terminal2View, error: t2Error, token: t2Token } = useTerminalPanel(query, 'T2', category);
+    const { data: dayOverview, error: dayOverviewError, responseSeq: dayOverviewResponseSeq } = useDayOverview(query);
+    const { data: terminal1View, error: t1Error, responseSeq: t1ResponseSeq } = useTerminalPanel(query, 'T1', category);
+    const { data: terminal2View, error: t2Error, responseSeq: t2ResponseSeq } = useTerminalPanel(query, 'T2', category);
 
     const error = baseError || dayOverviewError || t1Error || t2Error;
 
-    useErrorAlert(error, baseToken + dayOverviewToken + t1Token + t2Token);
+    useErrorAlert(error, baseResponseSeq + dayOverviewResponseSeq + t1ResponseSeq + t2ResponseSeq);
 
     const hour = draftTime.slice(0, 2);
     const minute = draftTime.slice(2, 4);
@@ -97,7 +96,7 @@ function Dashboard() {
         const configParams = new URLSearchParams({
             mode: 'view',
             smltId: targetSmltId,
-            ymd: baseInfo?.ymd || ymd,
+            ymd: query?.ymd ?? ymd,
         });
 
         navigate(`${USER_SMLT_CONFIG_PATH}?${configParams.toString()}`);
@@ -106,7 +105,7 @@ function Dashboard() {
     const handleFcltDetail = (tmnlId: TerminalKind) => (fcltType: FcltCardType, unitCd: string) => {
         if (!query) return;
 
-        setFcltQueuePopup({ query, target: { ...query, tmnlId, fcltType, unitCd } });
+        setFcltQueueTarget({ ...query, tmnlId, fcltType, unitCd });
     };
 
     const executor = execDetail ? { dept: execDetail.deptNm, name: execDetail.userNm } : undefined;
@@ -131,7 +130,7 @@ function Dashboard() {
 
             <div className="app">
                 <HeaderSummary
-                    planDate={toPlanDate(dayOverview?.ymd, baseInfo?.ymd)}
+                    planDate={toPlanDate(query?.ymd)}
                     dayOverview={dayOverview}
                     activePrimeCategory={activePrimeCategory}
                     onCategoryChange={handleCategoryChange}
@@ -153,9 +152,8 @@ function Dashboard() {
                 </HeaderSummary>
             </div>
 
-            {/* 조회 조건이 바뀌면 이전 조건으로 연 팝업은 닫는다 */}
-            {fcltQueuePopup && fcltQueuePopup.query === query && (
-                <FcltQueueScenarioModal target={fcltQueuePopup.target} onClose={() => setFcltQueuePopup(null)} />
+            {fcltQueueTarget && (
+                <FcltQueueScenarioModal target={fcltQueueTarget} onClose={() => setFcltQueueTarget(null)} />
             )}
         </>
     );

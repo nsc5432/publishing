@@ -8,7 +8,7 @@ export interface SmltInfoState {
     ymd: string;
     saveDt: string;
     error: string;
-    token: number;
+    responseSeq: number;
 }
 
 const FAIL_MESSAGE = '사용자 시뮬레이션 정보를 불러오지 못했습니다.';
@@ -17,12 +17,12 @@ const EMPTY: SmltInfoState = {
     ymd: '',
     saveDt: '',
     error: '',
-    token: 0,
+    responseSeq: 0,
 };
 
 export function useSmltInfo(ymd: string, reloadKey = 0): SmltInfoState {
     const [state, setState] = useState<SmltInfoState>(EMPTY);
-    const tokenRef = useRef(0);
+    const responseSeqRef = useRef(0);
 
     useEffect(() => {
         if (!ymd) {
@@ -44,7 +44,7 @@ export function useSmltInfo(ymd: string, reloadKey = 0): SmltInfoState {
                             .sort()
                             .at(-1) ?? '',
                     error: '',
-                    token: ++tokenRef.current,
+                    responseSeq: ++responseSeqRef.current,
                 });
             })
             .catch((error: ApiError) => {
@@ -52,7 +52,7 @@ export function useSmltInfo(ymd: string, reloadKey = 0): SmltInfoState {
                     setState({
                         ...EMPTY,
                         error: error?.message || FAIL_MESSAGE,
-                        token: ++tokenRef.current,
+                        responseSeq: ++responseSeqRef.current,
                     });
                 }
             });

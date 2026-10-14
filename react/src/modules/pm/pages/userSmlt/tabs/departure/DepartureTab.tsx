@@ -77,14 +77,14 @@ export function DepartureTab({
     onFocusChange,
     readOnly,
 }: SmltTabProps) {
-    const { data: terminalData, error, token } = useTerminalData(query, reloadKey, fetchDep, toDeparture, '출국장 정보를 불러오지 못했습니다.');
+    const { data: terminalData, error, responseSeq } = useTerminalData(query, reloadKey, fetchDep, toDeparture, '출국장 정보를 불러오지 못했습니다.');
     const [gatesByTerminal, setGatesByTerminal] = useState<EditState>(EMPTY_EDIT);
     const [drawer, setDrawer] = useState<DrawerState | null>(null);
     const [selected, setSelected] = useState<SelectState>(EMPTY_SELECT);
 
     const edited = useRef<Record<TerminalKind, boolean>>({ T1: false, T2: false });
 
-    useErrorAlert(error, token);
+    useErrorAlert(error, responseSeq);
 
     const enabledCount = enabledTerminals(enabled).length;
     const openDrawer = drawer?.terminal === focusTerminal ? drawer : null;

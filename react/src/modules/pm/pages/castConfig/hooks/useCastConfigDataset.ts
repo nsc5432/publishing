@@ -8,7 +8,7 @@ import { EMPTY_CAST_CONFIG_DATASET, toCastConfigDataset } from '../view';
 export interface FetchedDataset {
     data: Dataset;
     error: string;
-    token: number;
+    responseSeq: number;
 }
 
 export interface CastConfigDatasetQuery {
@@ -33,7 +33,7 @@ export function useCastConfigDataset(query: CastConfigDatasetQuery | null): Fetc
         () => ({
             data: dataset.data ? toCastConfigDataset(dataset.data) : EMPTY_CAST_CONFIG_DATASET,
             error: dataset.error,
-            token: dataset.token,
+            responseSeq: dataset.responseSeq,
         }),
         [dataset],
     );

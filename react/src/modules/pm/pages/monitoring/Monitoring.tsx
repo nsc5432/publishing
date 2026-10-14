@@ -38,9 +38,9 @@ function Monitoring() {
     const [query, setQuery] = useState<MonitoringQuery>(() => toQuery(defaultRange()));
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
-    const { data, error, token } = useMonitoring(query);
+    const { data, error, responseSeq } = useMonitoring(query);
 
-    useErrorAlert(error, token);
+    useErrorAlert(error, responseSeq);
 
     const handleSearch = () => {
         setQuery(toQuery(range));

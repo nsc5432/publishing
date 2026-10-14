@@ -1,9 +1,6 @@
 @charset "utf-8";
 
-/* =====================================================================
-   요약보기 시설 카드 — 혼잡해소 시나리오 팝업
-   body 로 포털되므로 .app 의 zoom · overflow 를 받지 않는다. 틀(.dialog__content)은 common.css.
-   ===================================================================== */
+/* body 포털은 .app의 zoom·overflow 영향을 받지 않는다. */
 .fqs {
     --fqs-surface: #ffffff;
     --fqs-soft: #f6f6fa;
@@ -15,6 +12,7 @@
     --fqs-warn: #d92626;
 
     max-width: 640px;
+    min-height: min(820px, calc(100dvh - 32px));
     border-radius: 16px;
     color: var(--fqs-ink);
     background: var(--fqs-surface);
@@ -86,6 +84,7 @@
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    scrollbar-gutter: stable;
 }
 
 .fqs-context {
@@ -97,6 +96,14 @@
     margin: 0 26px;
     padding-bottom: 16px;
     border-bottom: 1px solid var(--fqs-line);
+}
+
+.fqs-guide {
+    flex: 1 1 260px;
+    max-width: 310px;
+    margin: 0;
+    color: var(--fqs-muted);
+    font-size: 12px;
 }
 
 .fqs-target,
@@ -126,7 +133,11 @@
 }
 
 .fqs-clock {
-    gap: 12px;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    margin-left: auto;
+    text-align: right;
 }
 
 .fqs-clock b {
@@ -137,7 +148,7 @@
 
 .fqs-baseline {
     display: grid;
-    grid-template-columns: 1fr 1.35fr;
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 0.75fr);
     gap: 16px;
     padding: 18px 26px 20px;
 }
@@ -199,6 +210,7 @@
 .fqs-workspace {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 280px;
     gap: 14px;
     padding: 22px 26px 18px;
 }
@@ -206,7 +218,11 @@
 .fqs-editor,
 .fqs-result {
     min-width: 0;
+    min-height: 0;
     padding: 16px;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+    scrollbar-gutter: stable;
     border-radius: 10px;
 }
 
@@ -551,8 +567,13 @@
     }
 
     .fqs-baseline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 8px;
         padding: 16px 18px;
+    }
+
+    .fqs-baseline > :last-child {
+        grid-column: 1 / -1;
     }
 
     .fqs-workspace {

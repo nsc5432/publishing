@@ -8,7 +8,7 @@ import { EMPTY_APPLY_SET_HISTORIES, toApplySetHistories } from '../view';
 export interface FetchedApplyHistory {
     data: ApplySetHistory[];
     error: string;
-    token: number;
+    responseSeq: number;
 }
 
 export interface ApplyHistoryQuery {
@@ -24,7 +24,7 @@ export function useCastConfigApplyHistory(query: ApplyHistoryQuery | null): Fetc
         () => ({
             data: history.data ? toApplySetHistories(history.data) : EMPTY_APPLY_SET_HISTORIES,
             error: history.error,
-            token: history.token,
+            responseSeq: history.responseSeq,
         }),
         [history],
     );

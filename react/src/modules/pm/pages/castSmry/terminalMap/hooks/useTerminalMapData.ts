@@ -19,7 +19,7 @@ export function useSmltMap(query: MapQuery | null): Fetched<MapDay> {
         () => ({
             data: fetched.data ? toMapDay(fetched.data) : null,
             error: fetched.error,
-            token: fetched.token,
+            responseSeq: fetched.responseSeq,
         }),
         [fetched],
     );

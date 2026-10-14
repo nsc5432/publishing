@@ -19,7 +19,7 @@ export function useFacilityMap(query: FacilityMapQuery | null): Fetched<Facility
         () => ({
             data: list.data ? toFacilityMapData(list.data) : EMPTY_FACILITY_MAP,
             error: list.error,
-            token: list.token,
+            responseSeq: list.responseSeq,
         }),
         [list],
     );

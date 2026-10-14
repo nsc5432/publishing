@@ -23,7 +23,7 @@ export function useDepHall(query: DepHallQuery | null): Fetched<DepDay> {
         () => ({
             data: fetched.data ? toDepDay(fetched.data) : null,
             error: fetched.error,
-            token: fetched.token,
+            responseSeq: fetched.responseSeq,
         }),
         [fetched],
     );

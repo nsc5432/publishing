@@ -72,7 +72,7 @@ function FacilityMap() {
     const [selectedCode, setSelectedCode] = useState('');
     const [drafts, setDrafts] = useState<CastDrafts>({});
 
-    const { data, error, token } = useFacilityMap(query);
+    const { data, error, responseSeq } = useFacilityMap(query);
 
     const editedRows = useMemo(() => applyCastDrafts(data?.rows ?? [], drafts), [data, drafts]);
 
@@ -106,7 +106,7 @@ function FacilityMap() {
     const markerName = activeMarker ? (activeMarker.kind === 'depGate' ? `출국장 ${activeMarker.label}` : `${activeMarker.label} 아일랜드`) : '';
     const markerNote = markerName ? `도면에서 고른 ${markerName}의 시설만 보고 있습니다.` : '';
 
-    useErrorAlert(error, token);
+    useErrorAlert(error, responseSeq);
 
     useEffect(() => {
         if (dirtyCodes.size === 0) return;

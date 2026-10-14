@@ -4,10 +4,10 @@ import type { ApiError } from '@/types/api.types';
 export interface Fetched<T> {
     data: T | null;
     error: string;
-    token: number;
+    responseSeq: number;
 }
 
-export const EMPTY_FETCHED = { data: null, error: '', token: 0 };
+export const EMPTY_FETCHED = { data: null, error: '', responseSeq: 0 };
 
 export function toErrorMessage(error: ApiError, fallback: string): string {
     return error?.message || fallback;
@@ -17,7 +17,7 @@ export function useFetched<Q, T>(query: Q | null, load: (query: Q) => Promise<T>
     const [state, setState] = useState<Fetched<T>>(EMPTY_FETCHED);
 
     const loadRef = useRef(load);
-    const tokenRef = useRef(0);
+    const responseSeqRef = useRef(0);
 
     useEffect(() => {
         loadRef.current = load;
@@ -34,14 +34,14 @@ export function useFetched<Q, T>(query: Q | null, load: (query: Q) => Promise<T>
         loadRef
             .current(query)
             .then((data) => {
-                if (isCurrent) setState({ data, error: '', token: ++tokenRef.current });
+                if (isCurrent) setState({ data, error: '', responseSeq: ++responseSeqRef.current });
             })
             .catch((error: ApiError) => {
                 if (isCurrent) {
                     setState({
                         data: null,
                         error: toErrorMessage(error, failMessage),
-                        token: ++tokenRef.current,
+                        responseSeq: ++responseSeqRef.current,
                     });
                 }
             });

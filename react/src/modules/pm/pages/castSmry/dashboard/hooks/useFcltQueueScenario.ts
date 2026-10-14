@@ -129,7 +129,7 @@ export function useFcltQueueScenario(target: FcltQueueTarget) {
         return () => window.clearTimeout(timer);
     }, [nextReq, nextKey, resultKey, request.key, context]);
 
-    useErrorAlert(latest?.error ?? '', fetched.token);
+    useErrorAlert(latest?.error ?? '', fetched.responseSeq);
 
     let result: FcltQueueResultState = { status: 'loading' };
     if (!context && latest?.error) result = { status: 'error', message: latest.error };

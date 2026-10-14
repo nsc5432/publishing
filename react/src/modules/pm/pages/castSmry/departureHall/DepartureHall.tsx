@@ -23,7 +23,7 @@ function DepartureHall() {
     usePageScope('departureHall');
 
     const [ymd] = useState(todayYmd);
-    const { data: baseInfo, error: baseError, token: baseToken } = useBaseInfo(ymd);
+    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd);
 
     const [terminal, setTerminal] = useState<TerminalKind>('T1');
     const [view, setView] = useState<ViewMode>('map');
@@ -36,11 +36,11 @@ function DepartureHall() {
         if (baseInfo) setQuery({ smltId: baseInfo.smltId, tmnlId: terminal });
     }, [baseInfo, terminal]);
 
-    const { data: dptgtDay, error: depHallError, token: depHallToken } = useDepHall(query);
+    const { data: dptgtDay, error: depHallError, responseSeq: depHallResponseSeq } = useDepHall(query);
 
     const error = baseError || depHallError;
 
-    useErrorAlert(error, baseToken + depHallToken);
+    useErrorAlert(error, baseResponseSeq + depHallResponseSeq);
 
     const slot = dptgtDay?.slots[timeline.hhmm] ?? EMPTY_DEP_SLOT;
     const FloorPlan = terminal === 'T1' ? Terminal1Icon : Terminal2Plan;

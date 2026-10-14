@@ -8,7 +8,7 @@ import { AXIS_LABEL, toTooltipItems, TOOLTIP_TEXT_STYLE } from '@/lib/chart';
 const GRID = { left: 40, right: 16, top: 26, bottom: 14 };
 const Y_TICK_COUNT = 6;
 const X_LABEL_INTERVAL = 3;
-const SERIES_STAGGER_MS = 40;
+const POINT_ANIMATION_DELAY_MS = 40;
 const REPLAY_INTERVAL_MS = 10 * 1000; // 10초
 
 function toAreaGradient(rgb: string) {
@@ -54,7 +54,7 @@ export function TerminalChart({ rsltList }: TerminalChartProps) {
             animation: true,
             animationDuration: 1200,
             animationEasing: 'cubicOut',
-            animationDelay: (index: number) => index * SERIES_STAGGER_MS,
+            animationDelay: (index: number) => index * POINT_ANIMATION_DELAY_MS,
             animationDurationUpdate: 600,
             animationEasingUpdate: 'cubicInOut',
             grid: { ...GRID, outerBoundsMode: 'none' },
@@ -142,7 +142,7 @@ export function TerminalChart({ rsltList }: TerminalChartProps) {
                     type: 'line',
                     symbol: 'circle',
                     symbolSize: 5.4,
-                    animationDelay: (index: number) => index * SERIES_STAGGER_MS + 250,
+                    animationDelay: (index: number) => index * POINT_ANIMATION_DELAY_MS + 250,
                     itemStyle: { color: '#3b82f6', borderColor: '#fff', borderWidth: 1.5 },
                     lineStyle: {
                         color: '#3b82f6',

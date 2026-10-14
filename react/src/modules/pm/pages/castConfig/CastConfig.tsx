@@ -56,10 +56,10 @@ function CastConfig() {
     const activeGroups = active?.terminal === 'T2' ? groupsT2.data : groupsT1.data;
     const activeGroup = active ? (activeGroups?.find((group) => group.id === active.groupId) ?? null) : null;
 
-    useErrorAlert(groupsT1.error, groupsT1.token);
-    useErrorAlert(groupsT2.error, groupsT2.token);
-    useErrorAlert(fetchedCategories.error, fetchedCategories.token);
-    useErrorAlert(fetchedHistory.error, fetchedHistory.token);
+    useErrorAlert(groupsT1.error, groupsT1.responseSeq);
+    useErrorAlert(groupsT2.error, groupsT2.responseSeq);
+    useErrorAlert(fetchedCategories.error, fetchedCategories.responseSeq);
+    useErrorAlert(fetchedHistory.error, fetchedHistory.responseSeq);
 
     useEffect(() => {
         if (draft.totalCount === 0) return;

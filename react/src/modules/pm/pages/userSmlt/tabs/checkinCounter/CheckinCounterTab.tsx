@@ -85,13 +85,13 @@ export function CheckinCounterTab({
     onFocusChange,
     readOnly,
 }: SmltTabProps) {
-    const { data: terminalData, error, token } = useTerminalData(query, reloadKey, fetchChkn, toCheckinCounter, FETCH_FAIL);
+    const { data: terminalData, error, responseSeq } = useTerminalData(query, reloadKey, fetchChkn, toCheckinCounter, FETCH_FAIL);
     const [islandsByTerminal, setIslandsByTerminal] = useState<EditState>(EMPTY_EDIT);
     const [dock, setDock] = useState<DockState>(EMPTY_DOCK);
 
     const dirty = useRef<Record<TerminalKind, boolean>>({ T1: false, T2: false });
 
-    useErrorAlert(error, token);
+    useErrorAlert(error, responseSeq);
 
     useEffect(() => {
         setIslandsByTerminal({

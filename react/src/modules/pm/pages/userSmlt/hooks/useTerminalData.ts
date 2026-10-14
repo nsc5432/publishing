@@ -8,7 +8,7 @@ export interface TerminalData<D, V> {
     data: Record<TerminalKind, V | null>;
     raw: Record<TerminalKind, D | null>;
     error: string;
-    token: number;
+    responseSeq: number;
 }
 
 interface TerminalPairQuery {
@@ -58,7 +58,7 @@ export function useTerminalData<D extends JsonResponse, V>(
             data: viewByTerminal,
             raw: dtoByTerminal,
             error: fetched.error,
-            token: fetched.token,
+            responseSeq: fetched.responseSeq,
         };
     }, [fetched, toView]);
 }

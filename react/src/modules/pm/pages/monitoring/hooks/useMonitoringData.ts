@@ -26,7 +26,7 @@ export function useMonitoring(query: MonitoringQuery | null): Fetched<Monitoring
 
     return useMemo(() => {
         const error = execSmry.error || execList.error;
-        const token = execSmry.token + execList.token;
+        const responseSeq = execSmry.responseSeq + execList.responseSeq;
 
         return {
             data: {
@@ -39,7 +39,7 @@ export function useMonitoring(query: MonitoringQuery | null): Fetched<Monitoring
                     : EMPTY_HISTORY,
             },
             error,
-            token,
+            responseSeq,
         };
     }, [execSmry, execList]);
 }

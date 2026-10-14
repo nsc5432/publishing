@@ -16,6 +16,6 @@ export function useCastConfigGroups(query: CastConfigGroupQuery | null): Fetched
     return {
         data: groups.data ? toCastConfigGroups(groups.data) : EMPTY_CAST_CONFIG_GROUPS,
         error: groups.error,
-        token: groups.token,
+        responseSeq: groups.responseSeq,
     };
 }

@@ -1,9 +1,8 @@
-import { useId, useState, type ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { formatCount } from '@/lib/format';
 import { useFcltQueueScenario, type FcltQueueResultState } from '../hooks/useFcltQueueScenario';
 import { FCLT_QUEUE_LABEL, type FcltQueueContextView, type FcltQueueTarget, type QueueClearView, type QueueErlangView } from '../types';
-import { toSeoulClock } from '../view';
 
 interface FcltQueueScenarioModalProps {
     target: FcltQueueTarget;
@@ -63,7 +62,6 @@ function toCountNote(context: FcltQueueContextView | null, value: number | null,
 
 export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioModalProps) {
     const scenario = useFcltQueueScenario(target);
-    const [nowText] = useState(() => toSeoulClock(new Date()));
 
     const label = FCLT_QUEUE_LABEL[target.fcltType];
     const context = scenario.context;
@@ -71,14 +69,21 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
     const { result } = scenario;
     const readyView = result.status === 'ready' ? result.view : null;
     const scenarioErlang = readyView?.scenarioErlang ?? null;
+    const availableCnt =
+        context?.totCnt != null && context.currentCnt != null
+            ? Math.max(0, context.totCnt - context.currentCnt)
+            : null;
 
     return (
         <Dialog open onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="fqs" aria-describedby={undefined}>
                 <header className="fqs-head">
-                    <div>
-                        <p className="fqs-eyebrow">시설 운영 검토</p>
-                        <DialogTitle className="fqs-title">혼잡해소 시뮬레이션</DialogTitle>
+                    <div className="fqs-target">
+                        <span className="fqs-tmnl">{target.tmnlId}</span>
+                        <DialogTitle asChild>
+                            <strong>{label.title}</strong>
+                        </DialogTitle>
+                        <span className="fqs-muted">{context?.fcltNm ?? target.unitCd}</span>
                     </div>
                     <DialogClose className="fqs-x" aria-label="팝업 닫기">
                         ×
@@ -87,15 +92,10 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
 
                 <div className="fqs-body">
                     <div className="fqs-context">
-                        <div className="fqs-target">
-                            <span className="fqs-tmnl">{target.tmnlId}</span>
-                            <strong>{label.title}</strong>
-                            <span className="fqs-muted">{context?.fcltNm ?? target.unitCd}</span>
-                        </div>
+                        <p className="fqs-guide">
+                            {label.resource} 수를 조정해 혼잡 해소시간의 변화를 확인하세요.
+                        </p>
                         <div className="fqs-clock">
-                            <span>
-                                현재 시각 <b>{nowText}</b>
-                            </span>
                             <span>
                                 계산 기준 <b>{context?.baseText ?? '-'}</b>
                             </span>
@@ -117,6 +117,18 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                             <span className="fqs-k">현재 조건의 혼잡해소 예상</span>
                             <ClearInline clear={context?.current ?? CLEAR_EMPTY} />
                             <span className="fqs-sub">{context?.current.note}</span>
+                        </div>
+                        <div>
+                            <span className="fqs-k">추가 운영 가능</span>
+                            <div className="fqs-v">
+                                <strong>{availableCnt === null ? '-' : formatCount(availableCnt)}</strong>
+                                <span>개</span>
+                            </div>
+                            <span className="fqs-sub">
+                                {context?.totCnt != null && context.currentCnt != null
+                                    ? `보유 ${formatCount(context.totCnt)}개 중 현재 ${formatCount(context.currentCnt)}개 운영`
+                                    : '보유·운영 수량 미확인'}
+                            </span>
                         </div>
                     </div>
 

@@ -22,7 +22,7 @@ function TerminalMap() {
     usePageScope('terminalMap');
 
     const [ymd] = useState(todayYmd);
-    const { data: baseInfo, error: baseError, token: baseToken } = useBaseInfo(ymd);
+    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd);
 
     const [terminal, setTerminal] = useState<TerminalKind>('T1');
     const [selectedIsland, setSelectedIsland] = useState<IslandMarker | null>(null);
@@ -37,11 +37,11 @@ function TerminalMap() {
         setQuery({ smltId: baseInfo.smltId, tmnlId: terminal });
     }, [baseInfo, terminal]);
 
-    const { data: mapDay, error: mapError, token: mapToken } = useSmltMap(query);
+    const { data: mapDay, error: mapError, responseSeq: mapResponseSeq } = useSmltMap(query);
 
     const error = baseError || mapError;
 
-    useErrorAlert(error, baseToken + mapToken);
+    useErrorAlert(error, baseResponseSeq + mapResponseSeq);
 
     const slot = mapDay?.slots[timeline.hhmm] ?? EMPTY_MAP_SLOT;
     const islandDetail = selectedIsland ? slot.islandDetails[selectedIsland.label] : null;

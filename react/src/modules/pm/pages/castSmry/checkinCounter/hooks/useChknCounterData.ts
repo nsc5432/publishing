@@ -23,7 +23,7 @@ export function useChknCounter(query: ChknCounterQuery | null): Fetched<ChknDay>
         () => ({
             data: fetched.data ? toChknDay(fetched.data) : null,
             error: fetched.error,
-            token: fetched.token,
+            responseSeq: fetched.responseSeq,
         }),
         [fetched],
     );

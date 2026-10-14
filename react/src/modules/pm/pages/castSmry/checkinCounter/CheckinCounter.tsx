@@ -22,7 +22,7 @@ function CheckinCounter() {
     usePageScope('checkinCounter');
 
     const [ymd] = useState(todayYmd);
-    const { data: baseInfo, error: baseError, token: baseToken } = useBaseInfo(ymd);
+    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd);
 
     const [terminal, setTerminal] = useState<TerminalKind>('T1');
     const [view, setView] = useState<ViewMode>('chart');
@@ -34,11 +34,11 @@ function CheckinCounter() {
         if (baseInfo) setQuery({ smltId: baseInfo.smltId, tmnlId: terminal });
     }, [baseInfo, terminal]);
 
-    const { data: chknDay, error: chknError, token: chknToken } = useChknCounter(query);
+    const { data: chknDay, error: chknError, responseSeq: chknResponseSeq } = useChknCounter(query);
 
     const error = baseError || chknError;
 
-    useErrorAlert(error, baseToken + chknToken);
+    useErrorAlert(error, baseResponseSeq + chknResponseSeq);
 
     const slot = chknDay?.slots[timeline.hhmm] ?? EMPTY_CHKN_SLOT;
 

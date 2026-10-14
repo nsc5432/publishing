@@ -85,8 +85,8 @@ export function toSimulationType(smltType: SmltType): SimulationType {
     return smltType === 'USER' ? 'user' : 'daily';
 }
 
-export function toPlanDate(headerYmd?: string, baseYmd?: string): string {
-    return formatYmd(headerYmd ?? baseYmd ?? '', '-');
+export function toPlanDate(ymd?: string): string {
+    return formatYmd(ymd ?? '', '-');
 }
 
 export function toCalcDateTime(calcDt?: string): string {
