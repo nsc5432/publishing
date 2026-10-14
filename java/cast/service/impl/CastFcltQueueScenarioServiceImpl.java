@@ -304,7 +304,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 				.obsEndDt(dayStart.plusMinutes(endMinute))
 				.queueAtStart(queueDay.queueAt(unitCd, bgnMinute - 1))
 				.queueAtEnd(slot.getCurrentQueue())
-				.serviceStartPsgCnt(slot.getPrcsPsgCnt())
+				.wtngEndPsgCnt(slot.getPrcsPsgCnt())
 				.avgPrcsSec(boothRatePerMin == null ? null : SEC_PER_MIN / boothRatePerMin.doubleValue())
 				.avgQueuePsgCnt((double) slot.getAvgQueue())
 				.avgWtngSec(slot.getPrcsPsgCnt() > 0 ? (double) slot.getAvgWaitSec() : null)
@@ -356,7 +356,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 				.obsEndDt(last == null ? windowEnd : last.dt)
 				.queueAtStart(contiguous ? start.wtngPsgCnt : null)
 				.queueAtEnd(last == null ? null : last.wtngPsgCnt)
-				.serviceStartPsgCnt(contiguous ? windowList.stream().mapToInt(slot -> slot.trnstPsgCnt).sum() : null)
+				.wtngEndPsgCnt(contiguous ? windowList.stream().mapToInt(slot -> slot.trnstPsgCnt).sum() : null)
 				.avgPrcsSec(weightedAvg(windowList, slot -> slot.prcsSecSum, slot -> slot.prcsPsgCnt))
 				.avgQueuePsgCnt(windowList.isEmpty() ? null : windowList.stream().mapToInt(slot -> slot.wtngPsgCnt).average().getAsDouble())
 				.avgWtngSec(weightedAvg(windowList, slot -> slot.wtngSecSum, slot -> slot.wtngWeightCnt))
@@ -455,7 +455,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 	private MetricResult<Double> estimateArrivalRate(FacilityQueueMetrics metrics, FcltQueueSource source) {
 		FacilityQueueContext conservation = FacilityQueueContext.builder()
 				.queuePsgCntAtStart(source.getQueueAtStart())
-				.serviceStartPsgCnt(source.getServiceStartPsgCnt())
+				.wtngEndPsgCnt(source.getWtngEndPsgCnt())
 				.noAbandonmentOrTransfers(true)
 				.build();
 		MetricResult<Integer> arrivals = metrics.estimateArrivalPsgCnt(conservation);
@@ -482,6 +482,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 	private FcltQueueClearDto toClear(FacilityQueueMetrics metrics, FacilityQueueContext context, int targetQueueCnt, LocalDateTime baseDt) {
 		MetricResult<Double> clear = metrics.estimateClearTimeSec(context, targetQueueCnt);
+		MetricResult<Double> nextWtng = metrics.estimateNextArrivalWaitSec(context);
 		MetricResult<ErlangCResult> erlang = metrics.analyzeErlangC(context);
 
 		FcltQueueClearDto result = new FcltQueueClearDto();
@@ -489,14 +490,16 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		result.setCgnClearMin(clear.hasValue() ? clear.getValue() / SEC_PER_MIN : null);
 		result.setCgnClearDt(clear.hasValue() ? toClearDt(baseDt, clear.getValue()) : EMPTY);
 		result.setClearMetric(QueueMetricDto.of(clear));
+		result.setNextWtngSec(nextWtng.hasValue() ? nextWtng.getValue() : null);
+		result.setNextWtngMetric(QueueMetricDto.of(nextWtng));
 		result.setErlangMetric(QueueMetricDto.of(erlang));
 
 		if (erlang.hasValue()) {
 			ErlangCResult value = erlang.getValue();
 			result.setWtngProb(value.getWaitProbability());
 			result.setLoadRatio(value.getLoadRatio());
-			result.setThryWtngSec(value.getTheoreticalAvgWtngTimeSec());
-			result.setThryWtngPsgCnt(value.getTheoreticalAvgQueuePsgCnt());
+			result.setThryWtngSec(value.getModelAvgWtngTimeSec());
+			result.setThryWtngPsgCnt(value.getModelAvgQueuePsgCnt());
 		}
 
 		return result;
@@ -631,7 +634,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 				formatDt(source.getObsEndDt()),
 				String.valueOf(source.getQueueAtStart()),
 				String.valueOf(source.getQueueAtEnd()),
-				String.valueOf(source.getServiceStartPsgCnt()),
+				String.valueOf(source.getWtngEndPsgCnt()),
 				String.valueOf(source.getAvgPrcsSec()),
 				String.valueOf(source.getAvgQueuePsgCnt()),
 				String.valueOf(source.getAvgWtngSec()),

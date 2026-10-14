@@ -4,7 +4,6 @@ import { formatCount } from '@/lib/format';
 import { useFcltQueueScenario, type FcltQueueResultState } from '../hooks/useFcltQueueScenario';
 import { FCLT_QUEUE_LABEL, type FcltQueueContextView, type FcltQueueTarget, type QueueClearView, type QueueErlangView } from '../types';
 import { toSeoulClock } from '../view';
-import { resolveAxisNameOverlapDefault } from 'echarts/types/src/component/axis/AxisBuilder.js';
 
 interface FcltQueueScenarioModalProps {
     target: FcltQueueTarget;
@@ -42,7 +41,12 @@ const CLEAR_EMPTY: QueueClearView = {
     unitText: '',
     clockText: '-',
     note: '',
+    nextWtngText: '',
 };
+
+function joinNotes(...notes: (string | undefined)[]): string {
+    return notes.filter(Boolean).join(' · ');
+}
 
 function toCountNote(context: FcltQueueContextView | null, value: number | null, locked: boolean): string {
     if (!context) return '';
@@ -105,7 +109,9 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                                 <strong>{context?.currentCnt ?? '-'}</strong>
                                 <span>개</span>
                             </div>
-                            <span className="fqs-sub">대기인원 {context?.queueText ?? '-'}명</span>
+                            <span className="fqs-sub">
+                                {joinNotes(`대기인원 ${context?.queueText ?? '-'}명`, context?.current.nextWtngText)}
+                            </span>
                         </div>
                         <div>
                             <span className="fqs-k">현재 조건의 혼잡해소 예상</span>
@@ -322,7 +328,7 @@ function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState
                         해소 예상 시각 <b>{scenario.clockText}</b>
                     </>
                 );
-                sub = scenario.note;
+                sub = joinNotes(scenario.note, scenario.nextWtngText);
                 diff = diffNote;
             }
         } else if (recommend && recommend.reqCnt !== null) {
@@ -337,13 +343,16 @@ function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState
             sub = recommend.capaNote;
             subWarn = recommend.capaShort;
             if (recommend.clear) {
-                diff = `${recommend.clearLabel} 해소 ${
-                    recommend.clear.kind === 'value'
-                        ? `${recommend.clear.mainText}${recommend.clear.unitText} (${recommend.clear.clockText})`
-                        : recommend.clear.kind === 'none'
-                          ? '- 이미 목표 이하'
-                          : recommend.clear.mainText
-                }`;
+                diff = joinNotes(
+                    `${recommend.clearLabel} 해소 ${
+                        recommend.clear.kind === 'value'
+                            ? `${recommend.clear.mainText}${recommend.clear.unitText} (${recommend.clear.clockText})`
+                            : recommend.clear.kind === 'none'
+                              ? '- 이미 목표 이하'
+                              : recommend.clear.mainText
+                    }`,
+                    recommend.clear.nextWtngText,
+                );
             }
         } else {
             sub = recommend?.countNote;

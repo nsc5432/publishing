@@ -563,6 +563,27 @@ function toDt(ymd: string, minuteOfDay: number, plusSec = 0): string {
     return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
+function toQueueNextWtng(
+    profile: QueueScenarioProfile,
+    fcltCnt: number,
+    capacity: number | null,
+): Pick<FcltQueueClearDto, 'nextWtngSec' | 'nextWtngMetric'> {
+    if (fcltCnt === 0) {
+        return { nextWtngSec: null, nextWtngMetric: queueMetric('UNREACHABLE', 'QUEUE_POSITION', '운영 처리시설이 0개라 대기가 끝나지 않습니다.') };
+    }
+    if (capacity === null) {
+        return { nextWtngSec: null, nextWtngMetric: queueMetric('UNAVAILABLE', 'QUEUE_POSITION', '양수인 단일 시설 평균 처리시간이 필요합니다.') };
+    }
+    if (profile.wtngPsgCnt === 0) {
+        return { nextWtngSec: 0, nextWtngMetric: queueMetric('CALCULATED', 'QUEUE_POSITION', '대기열이 비어 있어 바로 처리를 시작한다고 봅니다.') };
+    }
+
+    return {
+        nextWtngSec: ((profile.wtngPsgCnt + 1) / capacity) * 3600,
+        nextWtngMetric: queueMetric('ESTIMATED', 'QUEUE_POSITION', '(종료 시점 대기인원 + 1) / 총 처리능력 × 3600. 이후 유입과 무관'),
+    };
+}
+
 function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: string, baseMinute: number): FcltQueueClearDto {
     const lambda = profile.arvlPerHour;
     const mu = profile.prcsSec === null ? null : 3600 / profile.prcsSec;
@@ -589,6 +610,7 @@ function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: strin
         cgnClearMin: clearSec === null ? null : clearSec / 60,
         cgnClearDt: clearSec === null ? '' : toDt(ymd, baseMinute, clearSec),
         clearMetric,
+        ...toQueueNextWtng(profile, fcltCnt, capacity),
         wtngProb: null,
         loadRatio: null,
         thryWtngSec: null,

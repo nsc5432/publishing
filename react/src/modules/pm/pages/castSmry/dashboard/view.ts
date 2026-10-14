@@ -69,6 +69,7 @@ const QUEUE_METHOD_LABEL: Record<QueueCalcMethod, string> = {
     CONSERVATION: '인원 보존식 추정',
     CAPACITY_COMPARISON: '보유량 비교',
     ERLANG_C: 'Erlang C',
+    QUEUE_POSITION: '대기 순번 계산',
 };
 
 export function toSimulationType(smltType: SmltType): SimulationType {
@@ -241,8 +242,17 @@ export function toSeoulClock(date: Date): string {
     }).format(date);
 }
 
+function toNextWtngText(clear: FcltQueueClearDto): string {
+    if (clear.nextWtngMetric.status === 'UNREACHABLE') return '새로 줄 서면 대기가 끝나지 않음';
+    if (clear.nextWtngSec === null) return '';
+    if (clear.nextWtngSec === 0) return '새로 줄 서면 대기 없음';
+
+    return `새로 줄 서면 약 ${formatSeconds(clear.nextWtngSec)} 대기`;
+}
+
 export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string): QueueClearView {
     const { status, reason } = clear.clearMetric;
+    const nextWtngText = toNextWtngText(clear);
 
     if (status === 'UNREACHABLE') {
         return {
@@ -252,11 +262,12 @@ export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string): Queu
             unitText: '',
             clockText: '—',
             note: '처리능력이 유입 이하라 대기열이 줄지 않습니다',
+            nextWtngText,
         };
     }
 
     if (clear.cgnClearMin === null) {
-        return { kind: 'unavailable', minutes: null, mainText: '—', unitText: '', clockText: '—', note: reason };
+        return { kind: 'unavailable', minutes: null, mainText: '—', unitText: '', clockText: '—', note: reason, nextWtngText };
     }
 
     if (clear.cgnClearMin === 0) {
@@ -267,6 +278,7 @@ export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string): Queu
             unitText: '분',
             clockText: formatDtClock(baseDt),
             note: '이미 목표 인원 이하',
+            nextWtngText,
         };
     }
 
@@ -279,6 +291,7 @@ export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string): Queu
         unitText: '분 후',
         clockText: toClockText(clear.cgnClearDt, baseDt),
         note: `계산 기준 대비 ${formatCount(minutes)}분 후`,
+        nextWtngText,
     };
 }
 

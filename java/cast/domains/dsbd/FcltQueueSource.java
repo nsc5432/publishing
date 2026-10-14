@@ -33,7 +33,7 @@ public final class FcltQueueSource {
 	private final LocalDateTime obsEndDt;
 	private final Integer queueAtStart;
 	private final Integer queueAtEnd;
-	private final Integer serviceStartPsgCnt;
+	private final Integer wtngEndPsgCnt;
 	private final Double avgPrcsSec;
 	private final Double avgQueuePsgCnt;
 	private final Double avgWtngSec;

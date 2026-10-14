@@ -171,7 +171,8 @@ export type QueueCalcMethod =
     | 'OBSERVED_FLOW'
     | 'CONSERVATION'
     | 'CAPACITY_COMPARISON'
-    | 'ERLANG_C';
+    | 'ERLANG_C'
+    | 'QUEUE_POSITION';
 
 export type QueueDataSrc = 'CAST' | 'XOVIS' | 'MANUAL';
 
@@ -199,6 +200,8 @@ export interface FcltQueueClearDto {
     cgnClearMin: number | null;
     cgnClearDt: string;
     clearMetric: QueueMetricDto;
+    nextWtngSec: number | null;
+    nextWtngMetric: QueueMetricDto;
     wtngProb: number | null;
     loadRatio: number | null;
     thryWtngSec: number | null;

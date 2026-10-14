@@ -20,9 +20,6 @@ import java.util.Objects;
  * 잘못된 입력(음수, NaN, 무한대)은 생성 시 예외로 거부한다. 도출값이 없다는 이유로
  * 0을 넣거나 음수로 역산된 유입인원을 임의로 0으로 보정하지 않는다.</p>
  *
- * <p>학습 근거: Little's Law https://web.mit.edu/urban_or_book/www/book/chapter4/4.4.html
- * 및 MIT Queueing Systems Lecture 2의 M/M/m 모형이다. 운영 적용 전에는 원천 지표의
- * 의미·집계 모집단·큐와 시설의 연결·모형 가정을 별도로 검증해야 한다.</p>
  */
 public final class FacilityQueueMetrics {
     private static final double SECONDS_PER_HOUR = 3600.0;
@@ -270,6 +267,32 @@ public final class FacilityQueueMetrics {
     }
 
     /**
+     * 종료 스냅샷 시각에 줄 끝에 선 여객의 예상 대기시간 (Q+1)/C*3600(초).
+     * 공용 FIFO 큐에서는 앞사람 Q명이 모두 서비스에 들어간 뒤 시설 하나가 더 비어야 차례가 온다.
+     * 이후 유입은 뒤에 서므로 lambda와 무관하고 rho >= 1에서도 정의된다. 지수 처리시간이면 정확한 기대값이다.
+     * Q=0이면 빈 시설이 있다고 보고 0초다. 모든 시설이 처리 중이었다면 최대 1/C만큼 과소평가한다.
+     */
+    public MetricResult<Double> estimateNextArrivalWaitSec(FacilityQueueContext context) {
+        Objects.requireNonNull(context, "context");
+        if (queuePsgCntAtEnd == null) {
+            return MetricResult.unavailable(CalculationMethod.QUEUE_POSITION, "종료 시점 대기인원이 없습니다.");
+        }
+        if (!context.isConstantRates()) {
+            return MetricResult.unavailable(CalculationMethod.QUEUE_POSITION, "대기하는 동안 처리율·운영 수가 유지된다는 가정이 필요합니다.");
+        }
+        MetricResult<Double> capacity = estimateCapacityPerHour(context);
+        if (!capacity.hasValue()) return failure(capacity, CalculationMethod.QUEUE_POSITION);
+        if (capacity.getValue() == 0) {
+            return MetricResult.unreachable(CalculationMethod.QUEUE_POSITION, "운영 처리시설이 0개라 대기가 끝나지 않습니다.");
+        }
+        if (queuePsgCntAtEnd == 0) {
+            return number(0, false, CalculationMethod.QUEUE_POSITION, "대기열이 비어 있어 바로 처리를 시작한다고 봅니다.");
+        }
+        return number((queuePsgCntAtEnd + 1.0) / capacity.getValue() * SECONDS_PER_HOUR, true,
+                CalculationMethod.QUEUE_POSITION, "(종료 시점 대기인원 + 1) / 총 처리능력 × 3600. 이후 유입과 무관");
+    }
+
+    /**
      * 목표시간 T초 안에 목표 대기인원까지 줄이는 데 필요한 총 처리시설 수를 구한다.
      * required=ceil((lambda+max(0,Q-target)*3600/T)/mu).
      * 추가 수가 아니라 현재 운영분을 포함한 총 수이다. 0.2개 시설은 운영할 수 없어 올림한다.
@@ -382,10 +405,10 @@ public final class FacilityQueueMetrics {
             return MetricResult.unavailable(CalculationMethod.CONSERVATION, "큐 이탈·다른 큐 이동·측정영역 변경이 없다는 확인이 필요합니다.");
         }
         if (queuePsgCntAtEnd == null || context.getQueuePsgCntAtStart() == null
-                || context.getServiceStartPsgCnt() == null) {
+                || context.getWtngEndPsgCnt() == null) {
             return MetricResult.unavailable(CalculationMethod.CONSERVATION, "시작·종료 대기인원과 서비스 시작인원이 필요합니다.");
         }
-        long arrivals = (long) queuePsgCntAtEnd - context.getQueuePsgCntAtStart() + context.getServiceStartPsgCnt();
+        long arrivals = (long) queuePsgCntAtEnd - context.getQueuePsgCntAtStart() + context.getWtngEndPsgCnt();
         if (arrivals < 0 || arrivals > Integer.MAX_VALUE) {
             return MetricResult.unavailable(CalculationMethod.CONSERVATION, "역산 유입인원이 음수이거나 정수 범위를 초과합니다. 원천과 경계를 확인해야 합니다.");
         }
@@ -394,50 +417,79 @@ public final class FacilityQueueMetrics {
     }
 
     /**
-     * M/M/s 정상상태의 대기확률 C, 이론 평균 대기시간·대기인원을 산출한다.
-     * 실제 관측 대기시간을 이 값으로 덮어쓰지 않는다. lambda>=s*mu이면 유한 정상상태가 없다.
-     * 유입률을 관측 Wq에서 역산했다면 이론 Wq와의 비교는 독립적인 검증이 될 수 없다.
-     *
-     * <p>팩토리얼과 a의 거듭제곱 대신 Erlang B 재귀를 사용해 큰 시설 수의 오버플로를 줄인다.
-     * B_0=1, B_n=a*B_(n-1)/(n+a*B_(n-1));
-     * C=B_s/(1-rho+rho*B_s), rho=lambda/(s*mu).</p>
+     * M/M/s 정상상태의 대기확률 C, 평균 대기시간/대기인원을 산출한다.
+     * B_0 = 1
+     * B_n = a * B_(n-1) / (n + a * B_(n-1))
+     * C= B_s / ( 1 - rho + rho*B_s )
+     * rho = lambda / (s*mu)
      */
     public MetricResult<ErlangCResult> analyzeErlangC(FacilityQueueContext context) {
         Objects.requireNonNull(context, "context");
         if (!context.isMmSApplicable() || !context.isConstantRates() || !context.isSharedHomogeneousServers()) {
             return MetricResult.unavailable(CalculationMethod.ERLANG_C, "M/M/s 가정과 일정한 유입률·동일 속도 공용 처리시설 가정 확인이 필요합니다.");
         }
+
         MetricResult<Double> capacity = estimateCapacityPerHour(context);
         if (!capacity.hasValue()) return failure(capacity, CalculationMethod.ERLANG_C);
+        
         if (capacity.getValue() == 0) {
             return MetricResult.unavailable(CalculationMethod.ERLANG_C, "M/M/s에는 양수인 운영 수와 처리율이 필요합니다.");
         }
+        
+        // 람다 - 유입률
         MetricResult<Double> arrival = estimateArrivalRatePerHour(context);
+        
         if (!arrival.hasValue()) return failure(arrival, CalculationMethod.ERLANG_C);
+        
+        // 뮤 - 시설 하나의 처리율
         MetricResult<Double> service = estimateServiceRatePerHour();
+        
         if (!service.hasValue()) return failure(service, CalculationMethod.ERLANG_C);
-        double netRate = capacity.getValue() - arrival.getValue();
-        if (netRate <= 0) {
+        
+        // 처리 여유 용량
+        double spareCapacity = capacity.getValue() - arrival.getValue();
+        if (spareCapacity <= 0) {
             return MetricResult.unavailable(CalculationMethod.ERLANG_C, "유입률이 총 처리능력 이상이라 유한한 정상상태 대기값이 없습니다.");
         }
+        
+        // 부하율
         double load = arrival.getValue() / capacity.getValue();
+        // Erlang
         double offeredLoad = arrival.getValue() / service.getValue();
         double erlangB = 1.0;
+        
         for (int index = 0; index < context.getOprServerCnt(); index++) {
             double weighted = offeredLoad * erlangB;
             erlangB = weighted / (index + 1.0 + weighted);
         }
+        
+        // 대기확률 (C)
         double waitProbability = erlangB / (1.0 - load + load * erlangB);
-        double avgWaitSec = waitProbability / netRate * SECONDS_PER_HOUR;
+        // 평균 대기시간
+        double avgWaitSec = waitProbability / spareCapacity * SECONDS_PER_HOUR;
+        // 평균 대기인원
         double avgQueue = arrival.getValue() / SECONDS_PER_HOUR * avgWaitSec;
+        
         if (!Double.isFinite(avgWaitSec) || !Double.isFinite(avgQueue)) {
             return MetricResult.unavailable(CalculationMethod.ERLANG_C, "정상상태 값이 수치 표현 범위를 초과합니다.");
         }
-        ErlangCResult result = new ErlangCResult(arrival.getValue(), service.getValue(),
-                context.getOprServerCnt(), load, waitProbability, avgWaitSec, avgQueue, netRate);
-        return MetricResult.estimated(result, CalculationMethod.ERLANG_C,
-                "M/M/s 정상상태 모형값. 유입 근거: " + arrival.getMethod()
-                        + ". Little's Law 역산 유입이면 관측 대기시간과 독립적인 검증이 아닙니다.");
+        
+        ErlangCResult result = new ErlangCResult(
+            arrival.getValue(), 
+            service.getValue(),
+            context.getOprServerCnt(), 
+            load, 
+            waitProbability, 
+            avgWaitSec, 
+            avgQueue, 
+            spareCapacity
+        );
+        
+        return MetricResult.estimated(
+            result, 
+            CalculationMethod.ERLANG_C,
+            "M/M/s 정상상태 모형값. 유입 근거: " + arrival.getMethod()
+        );
     }
 
     private String comparableTimesIssue() {
@@ -498,7 +550,6 @@ public final class FacilityQueueMetrics {
     /** 평균 처리시간과 평균 대기시간이 같은 여객 모집단·관측 기준을 대표하는지 확인한 값. 기본은 false이다. */
     public boolean isSamePassengerPopulation() { return samePassengerPopulation; }
 
-    /** 선택값을 null로 유지하고, 실제 숫자 0과 자료 없음을 구분하는 생성용 빌더이다. */
     public static final class Builder {
         private String tmnlId;
         private String fcltType;
@@ -512,46 +563,19 @@ public final class FacilityQueueMetrics {
         private Double avgQueuePsgCnt;
         private Integer queuePsgCntAtEnd;
         private boolean samePassengerPopulation;
-
         private Builder() { }
-
-        /** 터미널 ID. 기존 T1/T2 등의 서버 코드값을 그대로 사용한다. */
         public Builder tmnlId(String value) { this.tmnlId = value; return this; }
-
-        /** 시설유형 코드. 기존 CHKN/DEP/SC 등의 값이며 이 클래스가 DTO 계약을 변경하지 않는다. */
         public Builder fcltType(String value) { this.fcltType = value; return this; }
-
-        /** 아일랜드·출국장 등 시설 ID. 같은 유형에 여러 시설이 있으므로 유형만으로 식별하지 않는다. */
         public Builder fcltId(String value) { this.fcltId = value; return this; }
-
-        /** 시설 내 큐 ID. 하나의 아일랜드에 큐가 여러 개이면 각각 다른 객체를 만든다. */
         public Builder queueId(String value) { this.queueId = value; return this; }
-
-        /** 공항 현지시각 기준 관측 구간 시작. CAST/Xovis의 시간대를 먼저 맞춰야 한다. */
         public Builder intervalStart(LocalDateTime value) { this.intervalStart = value; return this; }
-
-        /** 관측 구간 종료. 기본은 시작 후 10분이며, 다른 구간 길이도 명시할 수 있다. */
         public Builder intervalEnd(LocalDateTime value) { this.intervalEnd = value; return this; }
-
-        /** CAST 예측·Xovis 실적·수동 입력을 구분하는 출처. */
         public Builder source(QueueDataSource value) { this.source = value; return this; }
-
-        /** 단일 처리시설에서 여객 1명을 처리한 평균시간(초). 자료 없음은 null, 0은 유효 처리율을 계산할 수 없는 값이다. */
         public Builder avgPrcsTimeSec(Double value) { this.avgPrcsTimeSec = value; return this; }
-
-        /** 서비스 시작 전까지의 여객평균 대기시간(초). 체류시간을 넣으면 처리시간이 중복된다. */
         public Builder avgWtngTimeSec(Double value) { this.avgWtngTimeSec = value; return this; }
-
-        /** 시간평균 대기인원 Lq(명). 구간 종료 스냅샷과 다르며 소수도 가능하다. */
         public Builder avgQueuePsgCnt(Double value) { this.avgQueuePsgCnt = value; return this; }
-
-        /** 구간 종료 시점 대기인원 Q(명). 혼잡 해소시간의 초기 상태로 사용한다. */
         public Builder queuePsgCntAtEnd(Integer value) { this.queuePsgCntAtEnd = value; return this; }
-
-        /** 평균 처리시간과 평균 대기시간이 같은 여객 모집단·관측 기준을 대표하는지 확인한 값. 기본은 false이다. */
         public Builder samePassengerPopulation(boolean value) { this.samePassengerPopulation = value; return this; }
-
-        /** 식별정보·시각·출처를 확인하고 음수와 비유한 숫자를 거부한 뒤 불변 객체를 만든다. */
         public FacilityQueueMetrics build() { return new FacilityQueueMetrics(this); }
     }
 }

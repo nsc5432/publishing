@@ -149,6 +149,8 @@ export interface QueueClearView {
     unitText: string;
     clockText: string;
     note: string;
+    /** 계산 기준 시각에 새로 줄 선 여객의 예상 대기. 산정할 수 없으면 '' */
+    nextWtngText: string;
 }
 
 export interface QueueErlangView {

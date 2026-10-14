@@ -50,7 +50,7 @@ public final class FacilityQueueExample {
                 .oprServerCnt(8)
                 .totServerCnt(10)
                 .queuePsgCntAtStart(35)
-                .serviceStartPsgCnt(25)
+                .wtngEndPsgCnt(25)
                 .prcsPsgCnt(30)
                 .busyServerTimeSec(3600.0)
                 .availableServerTimeSec(4800.0)
@@ -69,6 +69,7 @@ public final class FacilityQueueExample {
         print("실제 가동률, 기대값 0.75", metrics.getObservedUtilization(current));
         print("구간 유입인원(명), 기대값 30", metrics.estimateArrivalPsgCnt(current));
         print("40명에서 10명까지 해소(초), 기대값 1800", metrics.estimateClearTimeSec(current, 10));
+        print("지금 줄 선 여객 예상 대기(초), 기대값 615", metrics.estimateNextArrivalWaitSec(current));
 
         print("10분 목표 필요 총 수, 기대값 12", metrics.estimateRequiredServerCnt(current, 10, 600));
         print("10분 목표 추가 수, 기대값 4", metrics.estimateAdditionalServerCnt(current, 10, 600));
@@ -81,6 +82,7 @@ public final class FacilityQueueExample {
                 .constantRates(true)
                 .build();
         print("처리능력=유입률이면 해소 불가", metrics.estimateClearTimeSec(overloaded, 10));
+        print("처리능력=유입률이어도 지금 줄 선 여객 대기(초), 기대값 820", metrics.estimateNextArrivalWaitSec(overloaded));
 
         print("가정 미확인 시 유입 추정 불가",
                 metrics.estimateArrivalRatePerHour(FacilityQueueContext.builder().build()));
@@ -98,7 +100,7 @@ public final class FacilityQueueExample {
         if (theory.hasValue()) {
             ErlangCResult result = theory.getValue();
             System.out.println("모형상 대기 발생 확률: " + result.getWaitProbability());
-            System.out.println("모형상 평균 대기시간(초): " + result.getTheoreticalAvgWtngTimeSec());
+            System.out.println("모형상 평균 대기시간(초): " + result.getModelAvgWtngTimeSec());
             print("모형상 5분 이내 서비스 시작 확률", result.estimateServiceLevel(300));
         } else {
             print("M/M/s 분석 불가", theory);
