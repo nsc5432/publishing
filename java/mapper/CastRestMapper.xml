@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="aoms.pm.castrest.mapper.CastRestMapper">
     <insert id="insertSimRunStat"  parameterType="aoms.pm.cmmn.dto.SimRunStatDto" >
-    /* CastRestMapper.insertSimRunStat */
+        /* CastRestTestMapper.insertSimRunStat(SimRunStatDto dto) */
     INSERT INTO PMOWN.TH_PM_SMLT_EXCN_LOG
     (
           SMLT_EXCN_DT
@@ -22,7 +22,7 @@
         , CURRENT_TIMESTAMP)
     </insert>
     <select id="retrieveResourceInformation" parameterType="aoms.pm.cmmn.dto.CastResourceInformationDto" resultType="aoms.pm.cmmn.dto.CastResourceInformationDto">
-        /* CastRestMapper.retrieveResourceInformation */
+        /* CastRestMapper.retrieveResourceInformation(CastResourceInformationDto dto) */
         SELECT 'CASTModel' ResourceType
                   , A.SMLT_MDL_EXPLN ResourceID
                   , 'SYSTEM' Author
@@ -240,7 +240,7 @@
     </select>
 
     <select id="retrieveFlightSchedule" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFlightScheduleDto">
-       /* CastRestMapper.retrieveFlightSchedule */
+        /* CastRestTestMapper.retrieveFlightSchedule(CastReqGetResourceDto dto) */
        SELECT
             LISTAGG(NVL(X.domStatus, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS domStatus
             , LISTAGG(NVL(X.flightDirection, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightDirection
@@ -274,6 +274,7 @@
             <if test="resourceID == 'FS001'">
             <![CDATA[
 WITH
+/* 2) 기준 운항 집합 */
 
 BASE_GD AS (
     SELECT
@@ -354,6 +355,7 @@ BASE_GD AS (
       AND A.LCRFT_YN = 'N'
       AND A.GD_SE_YMD = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
 ),
+/* 3) 항공사 카테고리 */
 
 ALN_INFO AS (
     SELECT
@@ -362,6 +364,7 @@ ALN_INFO AS (
     FROM CAOWN.TN_CA_ALN
     GROUP BY ALN_CD
 ),
+/* 4) 게이트 -> 터미널/CRS 그룹 */
 
 GATE_INFO AS (
     SELECT
@@ -371,6 +374,7 @@ GATE_INFO AS (
     FROM CAOWN.TN_CA_GATE
     GROUP BY GATE_NO
 ),
+/* 5) 게이트 타입 */
 
 ACST_INFO AS (
     SELECT
@@ -380,6 +384,7 @@ ACST_INFO AS (
     WHERE USE_YN = 'Y'
     GROUP BY GATE_NO
 ),
+/* 6) 셀프체크인 가능 항공사 -> 영어 이름대로 셀프백드랍으로 변경 */
 
 SBD_INFO AS (
     SELECT DISTINCT
@@ -387,6 +392,7 @@ SBD_INFO AS (
     FROM PMOWN.TN_PM_SBD_OPER_PLCY
     WHERE SYSTIMESTAMP BETWEEN TO_TIMESTAMP(PLCY_BGNG_DT, 'YYYY-MM-DD HH24:MI:SS') AND TO_TIMESTAMP(PLCY_END_DT, 'YYYY-MM-DD HH24:MI:SS')
 ),
+/* 7) 당일 CIC 배정이 존재하는 항공사 */
 
 CIC_ALLOC_ALN AS (
     SELECT DISTINCT
@@ -394,6 +400,7 @@ CIC_ALLOC_ALN AS (
     FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
     WHERE A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
 ),
+/* 8) FP 원본 - 당일/익일 04시 이전 */
 
 FP_DAY AS (
     SELECT
@@ -411,6 +418,7 @@ FP_DAY AS (
     GROUP BY
         B.FLTNM, B.SCHDL_YMD, B.SCHDL_HM
 ),
+/* 9) CIC_RANGE_CTT - ACT_FLT_ID 기준 */
 
 FP_CIC_BY_ACT AS (
     SELECT
@@ -420,6 +428,7 @@ FP_CIC_BY_ACT AS (
     WHERE CKNCT_RANGE_CN IS NOT NULL
     GROUP BY DALY_FLTSH_ID
 ),
+/* 10) CIC_RANGE_CTT - FLT_NM/SCHD_DT/SCHD_HM 기준 fallback */
 
 FP_CIC_BY_FLT AS (
     SELECT
@@ -432,6 +441,7 @@ FP_CIC_BY_FLT AS (
     GROUP BY
         FLTNM, SCHDL_YMD, SCHDL_HM
 ),
+/* 11) RS 캐로셀 정보 */
 
 RS_CRS_DAILY AS (
     SELECT
@@ -440,6 +450,7 @@ RS_CRS_DAILY AS (
     FROM GOOWN.TI_GO_CRSL_DALY_OPER
     GROUP BY ARR_DALY_FLTSH_ID
 ),
+/* 12) 최근 3개월 기준 closing_flt_nm별 대표 gate/stnd/ter */
 
 PAST_GATE_RANK AS (
     SELECT
@@ -479,6 +490,7 @@ PAST_GATE AS (
     FROM PAST_GATE_RANK
     WHERE RN = 1
 ),
+/* 13) 최근 1개월 도착편 기준 대표 캐로셀 */
 
 ARR_CRS_HIST_RANK AS (
     SELECT
@@ -517,6 +529,7 @@ ARR_CRS_HIST AS (
     FROM ARR_CRS_HIST_RANK
     WHERE RN = 1
 ),
+/* 13-2) 최근 3개월 기준 편명별 / 항공사별 평균 승객 수 및 환승객 수 추정 */
 
 PAST_PAX_AVG AS (
     SELECT
@@ -565,6 +578,7 @@ PAST_PAX_AVG AS (
                          AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
     GROUP BY A.DDLN_FLTNM, A.ALN_CD
 ),
+/* 14) CA_CRS fallback - TER_ID(+P02->P01), CRS_GRP_CD별 1건 */
 
 CA_CRS_PICK AS (
     SELECT
@@ -577,6 +591,7 @@ CA_CRS_PICK AS (
         ) AS RN
     FROM CAOWN.TN_CA_CRSL
 ),
+/* ★ [추가] 14-2) 최근 6개월 항공사별 가장 많이 할당된 카운터 범위 (최빈값 구하기) */
 
 PAST_CIC_RANK AS (
     SELECT
@@ -600,6 +615,7 @@ PAST_CIC AS (
     FROM PAST_CIC_RANK
     WHERE RN = 1
 ),
+/* 15) 기준 운항 + 과거 대표값 + FP/RS/CIC 결합 */
 
 BASE_PRE AS (
     SELECT
@@ -650,6 +666,7 @@ BASE_PRE AS (
             B.CRS_NO_RAW,
             RCD.CRS_NO
         ) AS CRS_NO_BASE,
+        /* ★ [수정] 당일 CIC 데이터가 없을 경우 6개월 통계치(PC.CIC_RANGE_CTT)를 Fallback으로 연결 */
 
         CASE WHEN B.ARR_DEP_SE_CD = 'D' AND B.TRDOMFLT_YN = 'N' THEN
             CASE
@@ -660,7 +677,7 @@ BASE_PRE AS (
         END AS CIC_RANGE_CTT
     FROM BASE_GD B
     LEFT JOIN PAST_GATE PG ON B.FLT_NM = PG.CLOSING_FLT_NM
-    LEFT JOIN PAST_PAX_AVG PPA ON B.CLOSING_FLT_NM = PPA.CLOSING_FLT_NM AND B.ALN_CD = PPA.ALN_CD
+    LEFT JOIN PAST_PAX_AVG PPA ON B.CLOSING_FLT_NM = PPA.CLOSING_FLT_NM AND B.ALN_CD = PPA.ALN_CD   /* [추가] 과거 평균 여객수 Join */
     LEFT JOIN FP_DAY FD
         ON B.FLT_NM  = FD.FLT_NM
        AND B.SCHD_DT = FD.SCHD_DT
@@ -675,10 +692,12 @@ BASE_PRE AS (
         ON B.CLOSING_FLT_NM = F2.FLT_NM
        AND B.SCHD_DT        = F2.SCHD_DT
        AND B.SCHD_HM        = F2.SCHD_HM
+    /* ★ [추가] 과거 대표 카운터 Join */
 
     LEFT JOIN PAST_CIC PC
         ON B.ALN_CD = PC.ALN_CD
 ),
+/* 16) 최종 FFF */
 
 FFF AS (
     SELECT
@@ -882,7 +901,7 @@ ORDER BY
     </select>
 
     <select id="retrieveCounterAllocation" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastCounterAllocationDto">
-    /* CastRestMapper.retrieveCounterAllocation */
+        /* CastRestTestMapper.retrieveCounterAllocation(CastReqGetResourceDto dto) */
     SELECT LISTAGG(resourceID2,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS blockID          -- BlockID
          , LISTAGG(tmnlId,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS depArrTerminal  -- 터미널아이디
          , LISTAGG(cknctId,',') WITHIN GROUP (ORDER BY tmnlId, cknctId, t1, t2) AS resourceID    -- 체크인카운터번호
@@ -1100,7 +1119,7 @@ ORDER BY
     </select>
 
     <select id="retrieveSelfCheckInCountAndBagDrop" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastSelfCheckInCountAndBagDropDto">
-    /* CastRestMapper.retrieveSelfCheckInCountAndBagDrop */
+        /* CastRestTestMapper.retrieveSelfCheckInCountAndBagDrop(CastReqGetResourceDto dto) */
     SELECT LISTAGG(BlockID,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS BlockID                  -- BlockID
          , LISTAGG(resourceID,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS resourceID            -- 체크인카운터번호
          , LISTAGG(DepArrTerminal,',') WITHIN GROUP (ORDER BY DepArrTerminal, resourceID, t1, t2) AS DepArrTerminal    -- 터미널아이디
@@ -1251,7 +1270,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
    <select id="retrievePropertySetMst" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastPropertySetDto">
-    /* CastRestMapper.retrievePropertySetMst */
+        /* CastRestTestMapper.retrievePropertySetMst(CastReqGetResourceDto dto) */
     SELECT 'PS'||FIX_ATRB_GROUP_ID AS resourceID
              , FRST_RGTR_ID AS author
              , TO_CHAR(A.FRST_REG_DT, 'YYYY-MM-DD"T"HH24:MI":00"') AS created
@@ -1263,7 +1282,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
    <select id="retrievePropertySetSvc" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastPropertySetDto">
-      /* CastRestMapper.retrievePropertySetSvc */
+        /* CastRestTestMapper.retrievePropertySetSvc(CastReqGetResourceDto dto) */
       SELECT AA.FCLTY_SE_CD cd
          , BB.USER_DEF_COL_NM pName
          , BB.USER_DEF_COL_EXPLN pFriendlyName
@@ -1298,7 +1317,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrievePropertySetPax" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastPropertySetDto">
-        /* CastRestMapper.retrievePropertySetPax */
+        /* CastRestTestMapper.retrievePropertySetPax(CastReqGetResourceDto dto) */
         SELECT AA.PSG_ATRB_CD cd
                  , BB.PSG_SMLT_APLCN_NM pName
                  , BB.PSG_FIX_PARA_CND_VL pFriendlyName
@@ -1358,7 +1377,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrievePropertySetId" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastPropertySetDto">
-        /* CastRestMapper.retrievePropertySetId */
+        /* CastRestTestMapper.retrievePropertySetId(CastReqGetResourceDto dto) */
         SELECT 'SBDCounterAllocationResourceID' AS pName
                   , 'SBDCounterAllocation Resource ID' AS pFriendlyName
                   , 'String' AS vlType
@@ -1425,7 +1444,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrievePropertySetPaxDtl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastProPertySetDtlDto">
-         /* CastRestMapper.retrievePropertySetPaxDtl */
+        /* CastRestTestMapper.retrievePropertySetPaxDtl(CastReqGetResourceDto dto) */
          SELECT A.INPT_VL AS shares
               , B.PSG_SMLT_APLCN_NM AS role
               , B.PSG_FIX_PARA_CND_VL AS value1
@@ -1455,7 +1474,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveCASTExModel" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastModelDto">
-        /* CastRestMapper.retrieveCASTExModel */
+        /* CastRestTestMapper.retrieveCASTExModel(CastReqGetResourceDto dto) */
         SELECT 'CASTModel' ResourceType
           , A.SMLT_MDL_EXPLN ResourceID
           , 'SYSTEM' Author
@@ -1472,7 +1491,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveCASTModel" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastModelDto">
-        /* CastRestMapper.retrieveCASTModel */
+        /* CastRestTestMapper.retrieveCASTModel(CastReqGetResourceDto dto) */
         SELECT 'CASTModel' ResourceType
           , A.SMLT_MDL_EXPLN ResourceID
           , 'SYSTEM' Author
@@ -1489,7 +1508,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="checkCASTModel" parameterType="aoms.pm.cmmn.dto.CastModelDto" resultType="aoms.pm.cmmn.dto.CastModelDto">
-    /* CastRestMapper.checkCASTModel */
+        /* CastRestTestMapper.checkCASTModel(CastModelDto dto) */
     SELECT B.STRG_FILE_NM AS fileNm
     FROM PMOWN.TN_PM_SMLT_MDL A
     LEFT OUTER JOIN PMOWN.TN_PM_PSG_MNG_ATFL B
@@ -1499,13 +1518,13 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveNewCastModelId" parameterType="aoms.pm.cmmn.dto.CastModelDto" resultType="String">
-    /* CastRestMapper.retrieveNewCastModelId */
+        /* CastRestTestMapper.retrieveNewCastModelId(CastModelDto dto) */
     SELECT NVL(MAX(TO_NUMBER(SMLT_MDL_SN)),0)+1 AS smltMdlSn
       FROM PMOWN.TN_PM_SMLT_MDL
     </select>
 
     <insert  id="insertCASTModel" parameterType="aoms.pm.cmmn.dto.SmltMdlDto" >
-        /* CastRestMapper.insertCASTModel */
+        /* CastRestTestMapper.insertCASTModel(SmltMdlDto dto) */
         INSERT INTO PMOWN.TN_PM_SMLT_MDL
         (
             SMLT_MDL_SN
@@ -1529,7 +1548,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </insert>
 
     <update  id="updateCASTModel" parameterType="aoms.pm.cmmn.dto.CastModelDto" >
-       /* CastRestMapper.updateCASTModel */
+        /* CastRestTestMapper.updateCASTModel(CastModelDto dto) */
        UPDATE PMOWN.TN_PM_SMLT_MDL SET
               LAST_MDFR_ID = 'SYSTEM'
            , LAST_MDFR_IP_ADDR = #{loginIpAddr}
@@ -1538,7 +1557,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </update>
 
     <update  id="deleteCASTModel" parameterType="aoms.pm.cmmn.dto.CastResReqDto" >
-       /* CastRestMapper.deleteCASTModel */
+        /* CastRestTestMapper.deleteCASTModel(CastResReqDto dto) */
        UPDATE PMOWN.TN_PM_SMLT_MDL SET
              DEL_YN = 'Y'
            , LAST_MDFR_ID = 'SYSTEM'
@@ -1548,7 +1567,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </update>
 
     <select id="retrieveModelInfo" parameterType="aoms.pm.cmmn.dto.CastModelDto" resultType="aoms.pm.cmmn.dto.SmltMdlDto">
-    /* CastRestMapper.retrieveModelInfo */
+        /* CastRestTestMapper.retrieveModelInfo(CastModelDto dto) */
     SELECT SMLT_MDL_SN AS smltMdlSn
         , SMLT_MDL_TYPE_CD AS smltMdlTypeCd
         , SMLT_EXCN_SE_CD smltExcnSeCd
@@ -1556,8 +1575,9 @@ ORDER BY BlockID, DepArrTerminal, resourceID
       WHERE SMLT_MDL_EXPLN = #{modelResourceID}
     </select>
 
+        /* CastRestTestMapper.retrieveSimId(CastResReqDto dto) */
 <select id="checkFcltCd" parameterType="aoms.pm.cmmn.dto.SimRsltDto" resultType="String">
-    /* CastRestMapper.checkFcltCd */
+        /* CastRestTestMapper.checkFcltCd(SimRsltDto dto) */
     SELECT PSG_FCLT_CD AS psgFcltCd
     FROM PMOWN.TN_PM_SMLT_PSG_FCLT
     WHERE USE_YN = 'Y'
@@ -1565,7 +1585,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="checkFcltCdList" parameterType="aoms.pm.cmmn.dto.SimRsltDto" resultType="aoms.pm.cmmn.dto.CastRsltFcltCdDto">
-    /* CastRestMapper.checkFcltCdList */
+        /* CastRestTestMapper.checkFcltCdList(SimRsltDto dto) */
     SELECT PSG_FCLT_CD AS psgFcltCd
          , SMLT_FCLT_NM AS smltFcltNm
       FROM PMOWN.TN_PM_SMLT_PSG_FCLT
@@ -1573,7 +1593,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <insert id="insertSimSet" parameterType="aoms.pm.cmmn.dto.CastResReqDto">
-    /* CastRestMapper.insertSimSet */
+        /* CastRestTestMapper.insertSimSet(CastResReqDto dto) */
     INSERT INTO PMOWN.TN_PM_SMLT_STNG
              (  SMLT_ID
               , SMLT_MDL_SN
@@ -1641,7 +1661,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </insert>
 
     <insert id="insertSimResultDtl" parameterType="java.util.HashMap">
-    /* CastRestMapper.insertSimResultDtl */
+        /* CastRestTestMapper.insertSimResultDtl(HashMap dto) */
     INSERT INTO PMOWN.TN_PM_SMLT_RSLT_DTL
              ( SMLT_ID
             , SMLT_MDL_SN
@@ -1695,7 +1715,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </insert>
 
     <insert id="insertSimResultDtlRegExcl" parameterType="aoms.pm.cmmn.dto.SmltRsltDtlDto">
-    /* CastRestMapper.insertSimResultDtlRegExcl */
+        /* CastRestTestMapper.insertSimResultDtlRegExcl(SmltRsltDtlDto dto) */
     INSERT INTO PMOWN.TN_PM_SMLT_RSLT_DTL_REG_EXCL
              ( SMLT_ID
             , SMLT_SN
@@ -1714,7 +1734,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </insert>
 
     <select id="retrieveDelSetInfo" resultType="aoms.pm.cmmn.dto.SimSetDto">
-        /* CastRestMapper.retrieveDelSetInfo */
+        /* CastRestTestMapper.retrieveDelSetInfo(SimSetDto dto) */
         SELECT A.SMLT_ID AS smltId
           FROM PMOWN.TN_PM_SMLT_STNG A
          WHERE A.SMLT_ID NOT IN
@@ -1739,19 +1759,19 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <delete id="deleteSimRsltDtl" parameterType="String">
-        /* CastRestMapper.deleteSimRsltDtl */
+        /* CastRestTestMapper.deleteSimRsltDtl() */
         DELETE FROM PMOWN.TN_PM_SMLT_RSLT_DTL
          WHERE SMLT_ID = #{smltId}
     </delete>
 
     <delete id="deleteSimSetMst" parameterType="String">
-        /* CastRestMapper.deleteSimSetMst */
+        /* CastRestTestMapper.deleteSimSetMst() */
         DELETE FROM PMOWN.TN_PM_SMLT_STNG A
          WHERE A.SMLT_ID = #{smltId}
     </delete>
 
     <select id="retrieveSimSetByPk" parameterType="aoms.pm.cmmn.dto.CastResReqDto" resultType="aoms.pm.cmmn.dto.CastResReqDto">
-    /* CastRestMapper.retrieveSimSetByPk */
+        /* CastRestTestMapper.retrieveSimSetByPk(CastResReqDto dto) */
     SELECT COUNT(SIM_ID) rsltCnt
     FROM PMOWN.TN_PM_SMLT_STNG
     WHERE SMLT_ID = #{smltId}
@@ -1759,14 +1779,14 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <delete id="deleteSimResultDtl" parameterType="aoms.pm.cmmn.dto.CastResReqDto">
-    /* CastRestMapper.deleteSimResultDtl */
+        /* CastRestTestMapper.deleteSimResultDtl(CastResReqDto dto) */
     DELETE FROM PMOWN.TN_PM_SMLT_RSLT_DTL
     WHERE SMLT_ID = REPLACE(#{smltId},'_','')
        AND SMLT_MDL_SN = (SELECT SMLT_MDL_SN FROM PMOWN.TN_PM_SMLT_MDL WHERE SMLT_MDL_EXPLN = #{smltMdlExpln})
     </delete>
 
     <update id="updateSimResultDtl" parameterType="aoms.pm.cmmn.dto.CastResReqDto">
-    /* CastRestMapper.updateSimResultDtl */
+        /* CastRestTestMapper.updateSimResultDtl(CastResReqDto dto) */
     UPDATE INTO PMOWN.TN_PM_SMLT_RSLT_DTL SET
               WTNG_PSG_CNT = INT(WTNG_PSG_CNT)+TO_NUMBER(#{wtngPsgCnt})
             , TRNST_PSG_CNT = INT(TRNST_PSG_CNT)+TO_NUMBER(#{trnstPsgCnt})
@@ -1776,7 +1796,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </update>
 
     <insert id="insertDwDelKeyValHst" parameterType = "aoms.pm.cmmn.dto.DwDelKeyValHstDto">
-    /* CastRestMapper.insertDwDelKeyValHst */
+        /* CastRestTestMapper.insertDwDelKeyValHst(DwDelKeyValHstDto dto) */
     INSERT INTO PMOWN.TH_PM_DW_DEL_KEY_HSTRY
          ( DEL_YMD
          , TBL_NM
@@ -1815,95 +1835,100 @@ ORDER BY BlockID, DepArrTerminal, resourceID
          )
     </insert>
 
+    <!-- 첨부파일 리스트 조회 -->
     <select id="retrieveAtchFileList" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto" resultType="aoms.pm.cmmn.dto.PmAtchFileDto">
-        /* CastRestMapper.retrieveAtchFileList */
-        SELECT ATCH_FILE_ID AS atchFileId
-             , ATCH_FILE_SN AS atchFileSn
-             , ATCH_FILE_TASK_SE_CD AS atchFileTaskSeCd
-             , ATCH_FILE_TYPE_CD AS atchFileTypeCd
-             , STRG_FILE_NM AS atchFileNm
-             , STRG_FILE_NM AS strgFileNm
-             , ATCH_FILE_PATH_NM AS atchFilePathNm
-             , ATCH_FILE_SZ AS atchFileSz
-             , ATCH_FILE_EXTN_NM AS atchFileExtnNm
-             , ATCH_FILE_EXPLN AS atchFileExpln
-          FROM PMOWN.TN_PM_PSG_MNG_ATFL
+        /* CastRestTestMapper.retrieveAtchFileList(PmAtchFileDto dto) */
+        SELECT ATCH_FILE_ID AS atchFileId                           /* 첨부파일ID */
+             , ATCH_FILE_SN AS atchFileSn                         /* 첨부파일일련번호 */
+             , ATCH_FILE_TASK_SE_CD AS atchFileTaskSeCd               /* 첨부파일업무구분코드 */
+             , ATCH_FILE_TYPE_CD AS atchFileTypeCd                      /* 첨부파일유형코드 */
+             , STRG_FILE_NM AS atchFileNm                           /* to-be에는 별도 첨부파일명 컬럼이 없어 저장파일명 사용 */
+             , STRG_FILE_NM AS strgFileNm                         /* 저장파일명 */
+             , ATCH_FILE_PATH_NM AS atchFilePathNm                  /* 첨부파일경로명 */
+             , ATCH_FILE_SZ AS atchFileSz                           /* 첨부파일사이즈 */
+             , ATCH_FILE_EXTN_NM AS atchFileExtnNm                /* 첨부파일확장자명 */
+             , ATCH_FILE_EXPLN AS atchFileExpln                       /* 첨부파일설명 */
+          FROM PMOWN.TN_PM_PSG_MNG_ATFL                 /* 첨부파일 */
         <where>
             <if test="atchFileIdSrch == ''.toString()">
                 AND 1 = 2
             </if>
             <if test="atchFileIdSrch != null and atchFileIdSrch != ''">
-                AND ATCH_FILE_ID = #{atchFileId}
+                AND ATCH_FILE_ID = #{atchFileId}          /* 첨부파일ID */
             </if>
             <if test="atchFileSnoSrch != null and atchFileSnoSrch != ''">
-                AND ATCH_FILE_SN = #{atchFileSn}
+                AND ATCH_FILE_SN = #{atchFileSn}            /* 첨부파일일련번호 */
             </if>
         </where>
     </select>
 
+    <!-- 첨부파일 저장 -->
     <insert id="insertAtchFile" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto">
-        /* CastRestMapper.insertAtchFile */
-        INSERT INTO PMOWN.TN_PM_PSG_MNG_ATFL
-            (ATCH_FILE_ID
-            , ATCH_FILE_SN
-            , ATCH_FILE_TASK_SE_CD
-            , ATCH_FILE_TYPE_CD
-            , STRG_FILE_NM
-            , ATCH_FILE_PATH_NM
-            , ATCH_FILE_SZ
-            , ATCH_FILE_EXTN_NM
-            , ATCH_FILE_EXPLN
-            , FRST_RGTR_ID
-            , FRST_RGTR_IP_ADDR
-            , FRST_REG_DT)
+        /* CastRestTestMapper.insertAtchFile(PmAtchFileDto dto) */
+        INSERT INTO PMOWN.TN_PM_PSG_MNG_ATFL            /* 첨부파일 */
+            (ATCH_FILE_ID                   /* 첨부파일ID */
+            , ATCH_FILE_SN                 /* 첨부파일일련번호 */
+            , ATCH_FILE_TASK_SE_CD           /* 첨부파일업무구분코드 */
+            , ATCH_FILE_TYPE_CD               /* 첨부파일유형코드 */
+            , STRG_FILE_NM                 /* 저장파일명 */
+            , ATCH_FILE_PATH_NM             /* 첨부파일경로명 */
+            , ATCH_FILE_SZ                  /* 첨부파일사이즈 */
+            , ATCH_FILE_EXTN_NM            /* 첨부파일확장자명 */
+            , ATCH_FILE_EXPLN                /* 첨부파일설명 */
+            , FRST_RGTR_ID                   /* 최초등록자ID */
+            , FRST_RGTR_IP_ADDR                   /* 최초등록자IP */
+            , FRST_REG_DT)                 /* 최초등록타임스탬프 */
         VALUES
-            ( #{atchFileId}
-            , #{atchFileSn}
-            , #{atchFileTaskSeCd}
-            , #{atchFileTypeCd}
-            , #{strgFileNm}
-            , #{atchFilePathNm}
-            , #{atchFileSz}
-            , 'txt'
-            , '----'
-            , #{loginUserId}
-            , #{loginIpAddr}
-            , CURRENT_TIMESTAMP)
+            ( #{atchFileId}                   /* 첨부파일ID */
+            , #{atchFileSn}              /* 첨부파일일련번호 */
+            , #{atchFileTaskSeCd}          /* 첨부파일업무구분코드 */
+            , #{atchFileTypeCd}             /* 첨부파일유형코드 */
+            , #{strgFileNm}              /* 저장파일명 */
+            , #{atchFilePathNm}               /* 첨부파일경로명 */
+            , #{atchFileSz}                   /* 첨부파일사이즈 */
+            , 'txt'                                /* 첨부파일확장자명 */
+            , '----'                                 /* 첨부파일설명 */
+            , #{loginUserId}              /* 최초등록자ID */
+            , #{loginIpAddr}                   /* 최초등록자IP */
+            , CURRENT_TIMESTAMP)            /* 최초등록타임스탬프 */
     </insert>
 
+    <!-- 첨부파일 수정 -->
     <update id="updateAtchFile" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto">
-        /* CastRestMapper.updateAtchFile */
-        UPDATE PMOWN.TN_PM_PSG_MNG_ATFL
-           SET ATCH_FILE_TASK_SE_CD = #{atchFileTaskSeCd}
-             , ATCH_FILE_TYPE_CD = #{atchFileTypeCd}
-             , STRG_FILE_NM = #{strgFileNm}
-             , ATCH_FILE_PATH_NM = #{atchFilePathNm}
-             , ATCH_FILE_SZ = #{atchFileSz}
-             , ATCH_FILE_EXTN_NM = #{atchFileExtnNm}
-             , LAST_MDFR_ID = #{loginUserId}
-             , LAST_MDFR_IP_ADDR = #{loginIpAddr}
-             , LAST_MDFCN_DT = CURRENT_TIMESTAMP
-         WHERE ATCH_FILE_ID = #{atchFileId}
-           AND ATCH_FILE_SN = #{atchFileSn}
+        /* CastRestTestMapper.updateAtchFile(PmAtchFileDto dto) */
+        UPDATE PMOWN.TN_PM_PSG_MNG_ATFL                 /* 첨부파일 */
+           SET ATCH_FILE_TASK_SE_CD = #{atchFileTaskSeCd}           /* 첨부파일업무구분코드 */
+             , ATCH_FILE_TYPE_CD = #{atchFileTypeCd}              /* 첨부파일유형코드 */
+             , STRG_FILE_NM = #{strgFileNm}                 /* 저장파일명 */
+             , ATCH_FILE_PATH_NM = #{atchFilePathNm}          /* 첨부파일경로명 */
+             , ATCH_FILE_SZ = #{atchFileSz}                       /* 첨부파일사이즈 */
+             , ATCH_FILE_EXTN_NM = #{atchFileExtnNm}            /* 첨부파일확장자명 */
+             , LAST_MDFR_ID = #{loginUserId}                       /* 최종수정자ID */
+             , LAST_MDFR_IP_ADDR = #{loginIpAddr}                           /* 최종수정자IP */
+             , LAST_MDFCN_DT = CURRENT_TIMESTAMP                  /* 최종수정일시 */
+         WHERE ATCH_FILE_ID = #{atchFileId}                   /* 첨부파일ID */
+           AND ATCH_FILE_SN = #{atchFileSn}              /* 첨부파일일련번호 */
     </update>
 
+    <!-- 첨부파일 ATCH_FILE_ID PK 채번 -->
     <select id="retrieveIdMaxPk" resultType="String">
-        /* CastRestMapper.retrieveIdMaxPk */
+        /* CastRestTestMapper.retrieveIdMaxPk() */
         SELECT DECODE(SUBSTR(MAX(ATCH_FILE_ID), 1, 8)
                     , TO_CHAR(SYSDATE, 'YYYYMMDD'), SUBSTR(MAX(ATCH_FILE_ID), 1, 8) || LPAD(TO_NUMBER(SUBSTR(MAX(ATCH_FILE_ID), 9, 11)) + 1, 3, '0')
                     , TO_CHAR(SYSDATE, 'YYYYMMDD') || '001') AS atchFileId
           FROM PMOWN.TN_PM_PSG_MNG_ATFL
     </select>
 
+    <!-- 첨부파일 ATCH_FILE_ID 별 ATCH_FILE_SNO PK 채번 -->
     <select id="retrieveSnoMaxPk" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto" resultType="String">
-        /* CastRestMapper.retrieveSnoMaxPk */
-        SELECT NVL(MAX(TO_NUMBER(ATCH_FILE_SN)), 0) + 1 AS atchFileSn
+        /* CastRestTestMapper.retrieveSnoMaxPk(PmAtchFileDto dto) */
+        SELECT NVL(MAX(TO_NUMBER(ATCH_FILE_SN)), 0) + 1 AS atchFileSn             /* 첨부파일일련번호 */
           FROM PMOWN.TN_PM_PSG_MNG_ATFL
-         WHERE ATCH_FILE_ID = #{atchFileId}
+         WHERE ATCH_FILE_ID = #{atchFileId}                       /* 첨부파일ID */
     </select>
 
     <select id="retrieveCheckInCounterServiceTime" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastCheckInCounterServiceTimeDto">
-         /* CastRestMapper.retrieveCheckInCounterServiceTime */
+        /* CastRestTestMapper.retrieveCheckInCounterServiceTime(CastReqGetResourceDto dto) */
          SELECT LISTAGG(CASE WHEN A.ALN_CD = 'Default' THEN '&lt;default&gt;' ELSE A.ALN_CD END,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS airline
              , LISTAGG(A.AVG_VL,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS serviceTime
              , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_CKNCT_SRVC_MSTR A WHERE USE_YN = 'Y' AND A.CKNCT_SRVC_ATRB_ID = REGEXP_REPLACE(#{resourceID},'CCST|CheckinCounterServiceTime','')) AS LastModified
@@ -1912,7 +1937,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveCheckinType" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastCheckinTypeDto">
-        /* CastRestMapper.retrieveCheckinType */
+        /* CastRestTestMapper.retrieveCheckinType(CastReqGetResourceDto dto) */
         SELECT LISTAGG(CASE WHEN A.ALN_CD = 'Default' THEN '&lt;default&gt;' ELSE A.ALN_CD END,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS airlineCode
              , LISTAGG(A.CKNCT_RT,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS counterShare
              , LISTAGG(A.CKNCT_VL,',') WITHIN GROUP (ORDER BY CASE WHEN A.ALN_CD = 'Default' THEN 'ZZZ' ELSE A.ALN_CD END) AS counterValue
@@ -1926,7 +1951,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveFcltyOpngTblDptg" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblDptgDto">
-        /* CastRestMapper.retrieveFcltyOpngTblDptg */
+        /* CastRestTestMapper.retrieveFcltyOpngTblDptg(CastReqGetResourceDto dto) */
         SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO, A.FCLTY_TYPE_ID, A.FCLTY_OPNG_SN) AS terminal
              , LISTAGG(A.FCLT_SE_CD || 'G' || A.GATE_NO || CASE
                                                            WHEN A.FCLTY_TYPE_ID IS NOT NULL AND A.FCLTY_TYPE_ID = 'W'
@@ -2014,7 +2039,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveFcltyOpngTblEmig" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblEmigDto">
-    /* CastRestMapper.retrieveFcltyOpngTblEmig */
+        /* CastRestTestMapper.retrieveFcltyOpngTblEmig(CastReqGetResourceDto dto) */
     SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO) AS terminal
          , LISTAGG(A.FCLT_SE_CD || 'G' || A.GATE_NO,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO) AS location
          , LISTAGG(CASE WHEN A.DPTCNY_TYPE_CD = '1' THEN 'Normal' WHEN A.DPTCNY_TYPE_CD = '2' THEN 'Automatic' ELSE '' END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.GATE_NO) AS immigrationType
@@ -2025,7 +2050,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveFcltyOpngTblImmig" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblImmigDto">
-    /* CastRestMapper.retrieveFcltyOpngTblImmig */
+        /* CastRestTestMapper.retrieveFcltyOpngTblImmig(CastReqGetResourceDto dto) */
     SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS terminal
          , LISTAGG(A.FCLTY_TYPE_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS location
          , REPLACE(LISTAGG(CASE
@@ -2093,7 +2118,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveFcltyOpngTblScrtyCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblScrtyCntrlDto">
-    /* CastRestMapper.retrieveFcltyOpngTblScrtyCntrl */
+        /* CastRestTestMapper.retrieveFcltyOpngTblScrtyCntrl(CastReqGetResourceDto dto) */
     SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.GATE_NO) AS terminal
          , LISTAGG(A.FCLT_SE_CD || 'G' || A.GATE_NO,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.GATE_NO) AS location
          , LISTAGG(A.FCLTY_CNT,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.GATE_NO) AS currentNumberofLanes
@@ -2103,7 +2128,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <select id="retrieveFcltyOpngTblTrnstScrtyCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFcltyOpngTblTrnstScrtyCntrlDto">
-    /* CastRestMapper.retrieveFcltyOpngTblTrnstScrtyCntrl */
+        /* CastRestTestMapper.retrieveFcltyOpngTblTrnstScrtyCntrl(CastReqGetResourceDto dto) */
     SELECT LISTAGG(A.TMNL_ID,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS terminal
          , LISTAGG(CASE WHEN A.FCLTY_TYPE_ID = 'W' THEN 'West' WHEN A.FCLTY_TYPE_ID = 'E' THEN 'East' ELSE '' END,',') WITHIN GROUP (ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID) AS location
          , REPLACE(LISTAGG(CASE
@@ -2202,7 +2227,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
      WHERE A.TRNST_SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{resourceID},'FOTTSC|FacilityOpeningTable_TransferSecurityControl','')
     </select>
     <select id="retrieveRptStngHrGroupCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastRptStngHrGroupCntrlDto">
-        /* CastRestMapper.retrieveRptStngHrGroupCntrl */
+        /* CastRestTestMapper.retrieveRptProfHrGroupCntrl(CastReqGetResourceDto dto) */
         SELECT LISTAGG(A.SCHDL_HR,',') WITHIN GROUP (ORDER BY A.SCHDL_HR, A.GROUP_NM) AS scheduledHour
              , LISTAGG(A.GROUP_NM,',') WITHIN GROUP (ORDER BY A.SCHDL_HR, A.GROUP_NM) AS groupName
              , (SELECT TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'YYYY-MM-DD')||'T'||TO_CHAR(NVL(A.LAST_MDFCN_DT,A.FRST_REG_DT),'HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_RPT_STNG_HR_GROUP_MSTR A WHERE USE_YN = 'Y' AND A.RPT_STNG_ATRB_ID = REGEXP_REPLACE(#{resourceID},'RPTG|ReportingProfilesTimeGroups','')) AS LastModified
@@ -2210,7 +2235,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
          WHERE A.RPT_STNG_ATRB_ID = REGEXP_REPLACE(#{resourceID},'RPTG|ReportingProfilesTimeGroups','')
     </select>
     <select id="retrieveWhatIfCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
-    /* CastRestMapper.retrieveWhatIfCntrl */
+        /* CastRestTestMapper.retrieveWhatIfCntrl(CastReqGetResourceDto dto) */
     -- 대기(New) 건만 내보낸다. 필터가 없으면 완료·실패 건까지 매번 다시 실행 대상이 된다.
     -- LISTAGG 는 NULL 셀을 배열에서 통째로 빼 뒤 값을 한 칸 당긴다. NVL 로 자리를 채우고
     -- 정렬 기준도 전부 SMLT_REQ_ID 로 통일해야 컬럼 간 행 대응이 유지된다.
@@ -2238,7 +2263,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
     <update id="updateWhatIfDefinitionTableStts" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
-        /* CastRestMapper.updateWhatIfDefinitionTableStts */
+        /* CastRestMapper.updateWhatIfDefinitionTable(CastWhatIfCntrlDto dto) */
         -- 이전 상태를 조건에 걸어 전이 방향을 강제한다. 영향 0행은 이미 다른 경로가
         -- 전이시킨 것이므로 호출자가 무시한다 (New → Executing → Finished/Failed)
         UPDATE PMOWN.TN_PM_SMLT_USER_MSTR
@@ -2258,33 +2283,33 @@ ORDER BY BlockID, DepArrTerminal, resourceID
         AND SMLT_STTS = #{fromStatus}
     </update>
     <select id="checkWhatIfIdList" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto" resultType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
-    /* CastRestMapper.checkWhatIfIdList */
+        /* CastRestMapper.checkWhatIfIdList(CastWhatIfCntrlDto dto) */
     SELECT SMLT_REQ_ID AS whatIfRunId
          , SMLT_STTS AS status
       FROM PMOWN.TN_PM_SMLT_USER_MSTR
     </select>
     <delete  id="deleteWhatIfDefinitionTable" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto" >
-       /* CastRestMapper.deleteWhatIfDefinitionTable */
+        /* CastRestMapper.deleteWhatIfDefinitionTable(CastWhatIfCntrlDto dto) */
        DELETE FROM PMOWN.TN_PM_SMLT_USER_MSTR
        WHERE SMLT_REQ_ID = #{whatIfRunId}
     </delete>
 
     <select id="retrieveUserReqByFsRsrcId" resultType="aoms.pm.cast.dto.UserSmltReqDto">
-        /* CastRestMapper.retrieveUserReqByFsRsrcId */
+        /* CastRestMapper.retrieveUserReqByFsRsrcId(String fltSchdlRsrcId) */
         SELECT *
         FROM PMOWN.TN_PM_SMLT_USER_MSTR
         WHERE FLT_SCHDL_RSRC_ID = #{fltSchdlRsrcId}
     </select>
 
     <select id="retrieveUserReqByKey" resultType="aoms.pm.cast.dto.UserSmltReqDto">
-        /* CastRestMapper.retrieveUserReqByKey */
+        /* CastRestMapper.retrieveUserReqByKey(String smltReqId) */
         SELECT *
         FROM PMOWN.TN_PM_SMLT_USER_MSTR
         WHERE SMLT_REQ_ID = #{smltReqId}
     </select>
 
     <update id="updateUserReqFinished" parameterType="aoms.pm.cast.dto.UserSmltReqDto">
-        /* CastRestMapper.updateUserReqFinished */
+        /* CastRestMapper.updateUserReqFinished(UserSmltReqDto dto) */
         UPDATE PMOWN.TN_PM_SMLT_USER_MSTR
         SET    SMLT_STTS = 'Finished'
              , RSLT_SMLT_ID = #{rsltSmltId}
@@ -2297,7 +2322,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </update>
 
     <select id="selectBaseYmdForCalibration" resultType="String">
-        /* CastRestMapper.selectBaseYmdForCalibration */
+        /* CastRestMapper.selectBaseYmdForCalibration() */
         SELECT NVL(TO_CHAR(MAX(BASE_DT), 'YYYYMMDD'), TO_CHAR(SYSDATE, 'YYYYMMDD')) AS V_BASE_DT FROM PMOWN.DROP_TMP
     </select>
 
