@@ -38,15 +38,15 @@ public final class ChknQueueSeries {
 	private final List<String> warningList;
 
 	ChknQueueSeries(
-			String island,
-			int[] queue,
-			int[] processed,
-			int[] boothCnt,
-			int[] capacity,
-			long[] waitMinSum,
-			long[] prcsSecSum,
-			long[] waitDistribution,
-			List<String> warningList
+        String island,
+        int[] queue,
+        int[] processed,
+        int[] boothCnt,
+        int[] capacity,
+        long[] waitMinSum,
+        long[] prcsSecSum,
+        long[] waitDistribution,
+        List<String> warningList
 	) {
 		this.island = island;
 		this.queue = queue.clone();

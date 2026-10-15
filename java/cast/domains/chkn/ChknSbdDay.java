@@ -15,10 +15,10 @@ public final class ChknSbdDay {
 	private final long[] prcsSecSum;
 
 	public ChknSbdDay(
-			Map<String, int[]> queueMap,
-			int[] processed,
-			long[] waitSecSum,
-			long[] prcsSecSum
+        Map<String, int[]> queueMap,
+        int[] processed,
+        long[] waitSecSum,
+        long[] prcsSecSum
 	) {
 		this.queueMap = new LinkedHashMap<>();
 		queueMap.forEach((island, queue) -> this.queueMap.put(island, queue.clone()));

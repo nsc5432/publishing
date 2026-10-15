@@ -65,14 +65,12 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 	public ChknQueueDay retrieveChknQueueDay(String smltId, TerminalKind tmnlId, String excnYmd) {
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 		String context = "smltId=" + smltId + ", tmnlId=" + tmnlId.getValue();
+        LocalDate baseDate = LocalDate.parse(excnYmd, DateTimeFormatter.ofPattern(YMD_FORMAT));
 
 		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(smltId, fcltTmnlId, "CC");
 		Map<String, List<UserConfigChknDto>> boothListByIsland = castChknService.retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
-
-		LocalDate baseDate = LocalDate.parse(excnYmd, DateTimeFormatter.ofPattern(YMD_FORMAT));
 		Map<String, Map<Integer, List<ChknQueueRawDto>>> rawListByIslandAndMinute = groupByIslandAndMinute(rawList, baseDate);
 		BigDecimal tmnlAvgPrcsSec = weightedPrcsSec(rawList);
-
 		Map<String, ChknQueueSeries> seriesByIsland = new LinkedHashMap<>();
 
 		for (String island : boothListByIsland.keySet()) {
@@ -97,46 +95,59 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 	public ChknSbdDay retrieveChknSbdDay(String smltId, TerminalKind tmnlId, String excnYmd) {
 		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(smltId, tmnlId.getFcltTmnlId(), "SBD");
 		LocalDate baseDate = LocalDate.parse(excnYmd, DateTimeFormatter.ofPattern(YMD_FORMAT));
+
 		Map<String, Map<Integer, List<ChknQueueRawDto>>> rawListByIslandAndMinute = groupByIslandAndMinute(rawList, baseDate);
 		Map<String, int[]> queueByIsland = new LinkedHashMap<>();
 		int[] processed = new int[MINUTE_PER_DAY];
 		long[] waitSecSum = new long[MINUTE_PER_DAY];
 		long[] prcsSecSum = new long[MINUTE_PER_DAY];
 
-		for (Map.Entry<String, Map<Integer, List<ChknQueueRawDto>>> entry : rawListByIslandAndMinute.entrySet()) {
-			Map<Integer, List<ChknQueueRawDto>> rawListByMinute = entry.getValue();
-			List<Integer> minuteList = new ArrayList<>(rawListByMinute.keySet());
-			int[] queue = new int[MINUTE_PER_DAY];
+		for (Map.Entry<String, Map<Integer, List<ChknQueueRawDto>>> islandEntry : rawListByIslandAndMinute.entrySet()) {
+			String island = islandEntry.getKey();
+			Map<Integer, List<ChknQueueRawDto>> rawListByMinute = islandEntry.getValue();
 
-			for (int index = 0; index < minuteList.size(); index++) {
-				int bgnMinute = minuteList.get(index);
-				int durationMin = intervalDurationMin(minuteList, index);
-				List<ChknQueueRawDto> boothList = rawListByMinute.get(bgnMinute);
-				int wtngEndPsgCnt = boothList.stream().mapToInt(ChknQueueRawDto::getWtngPsgCnt).sum();
+			queueByIsland.put(island, toSbdQueue(rawListByMinute));
 
-				for (int minute = Math.max(bgnMinute, 0); minute < Math.min(bgnMinute + durationMin, MINUTE_PER_DAY); minute++) {
-					queue[minute] = wtngEndPsgCnt;
-				}
+			for (Map.Entry<Integer, List<ChknQueueRawDto>> minuteEntry : rawListByMinute.entrySet()) {
+				int minute = minuteEntry.getKey();
 
-				if (bgnMinute < 0 || bgnMinute >= MINUTE_PER_DAY) {
+				if (minute < 0 || minute >= MINUTE_PER_DAY) {
 					continue;
 				}
 
-				for (ChknQueueRawDto raw : boothList) {
-					processed[bgnMinute] += raw.getTrnstPsgCnt();
-					waitSecSum[bgnMinute] += (long) raw.getWtngHr() * raw.getTrnstPsgCnt();
-					prcsSecSum[bgnMinute] += (long) raw.getPrcsHr() * raw.getTrnstPsgCnt();
+				for (ChknQueueRawDto raw : minuteEntry.getValue()) {
+					processed[minute] += raw.getTrnstPsgCnt();
+					waitSecSum[minute] += (long) raw.getWtngHr() * raw.getTrnstPsgCnt();
+					prcsSecSum[minute] += (long) raw.getPrcsHr() * raw.getTrnstPsgCnt();
 				}
 			}
-
-			queueByIsland.put(entry.getKey(), queue);
 		}
 
 		return new ChknSbdDay(queueByIsland, processed, waitSecSum, prcsSecSum);
 	}
 
+	private int[] toSbdQueue(Map<Integer, List<ChknQueueRawDto>> rawListByMinute) {
+		List<Integer> minuteList = new ArrayList<>(rawListByMinute.keySet());
+		int[] queue = new int[MINUTE_PER_DAY];
+
+		for (int index = 0; index < minuteList.size(); index++) {
+			int bgnMinute = minuteList.get(index);
+			int endMinute = bgnMinute + intervalDurationMin(minuteList, index);
+			int wtngEndPsgCnt = rawListByMinute.get(bgnMinute).stream()
+					.mapToInt(ChknQueueRawDto::getWtngPsgCnt)
+					.sum();
+
+			for (int minute = Math.max(bgnMinute, 0); minute < Math.min(endMinute, MINUTE_PER_DAY); minute++) {
+				queue[minute] = wtngEndPsgCnt;
+			}
+		}
+
+		return queue;
+	}
+
 	private Map<String, Map<Integer, List<ChknQueueRawDto>>> groupByIslandAndMinute(
-			List<ChknQueueRawDto> rawList, LocalDate baseDate) {
+        List<ChknQueueRawDto> rawList, LocalDate baseDate
+    ) {
 		Map<String, Map<Integer, List<ChknQueueRawDto>>> result = new LinkedHashMap<>();
 
 		for (ChknQueueRawDto raw : rawList) {
@@ -194,12 +205,13 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		}
 
 		intervalList.add(new ChknQueueInterval(
-				bgnMinute,
-				MINUTE_PER_DAY - bgnMinute,
-				last.getWtngEndPsgCnt(),
-				0,
-				null,
-				0));
+            bgnMinute,
+            MINUTE_PER_DAY - bgnMinute,
+            last.getWtngEndPsgCnt(),
+            0,
+            null,
+            0
+        ));
 	}
 
 	private int intervalDurationMin(List<Integer> minuteList, int index) {

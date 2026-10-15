@@ -561,13 +561,13 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	private DsbdRsltDto toChknRsltDto(
-			String hour,
-			ChknQueueDay queueDay,
-			ChknSbdDay sbdDay,
-			Set<String> islandCdSet,
-			FltPsgRawDto fltPsg,
-			PsgWtngRawDto psgWtng,
-			PsgWtngRawDto lastWeekPsgWtng
+        String hour,
+        ChknQueueDay queueDay,
+        ChknSbdDay sbdDay,
+        Set<String> islandCdSet,
+        FltPsgRawDto fltPsg,
+        PsgWtngRawDto psgWtng,
+        PsgWtngRawDto lastWeekPsgWtng
 	) {
 		int bgnMinute = Integer.parseInt(hour) * MIN_PER_HOUR;
 		int endMinute = bgnMinute + MIN_PER_HOUR;
