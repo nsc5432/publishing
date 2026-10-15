@@ -348,7 +348,6 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private final aoms.pm.cast.mapper.CastExecutionMapper executionMapper;
     private final aoms.pm.cast.service.impl.CastExecutionService executionService;
-    private final CastResultInboxService inboxService;
     private final SessionService sessionService;
 
     private static class FsFieldInfo {
@@ -2441,8 +2440,6 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     @Override
     public String saveResult(String param){
         colTable.remove();
-        String payloadHash = inboxService.receive(param);
-
         saveSimLog("16", "1");
 
         CastResReqDto simRslt = new CastResReqDto();
@@ -2481,6 +2478,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
                     HttpServletRequest request = attributes.getRequest();
                     simRslt.setLoginIpAddr(request.getRemoteAddr());
                 }
+                String payloadHash = DigestUtils.sha256Hex(param);
                 int result = insertResult(simRslt, payloadHash);
                 if(result < 1) {
                     return buildReturnXml(false);
@@ -2491,7 +2489,6 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             return buildReturnXml(true);
         } catch (RuntimeException | ParserConfigurationException | SAXException | IOException e) {
             org.springframework.transaction.interceptor.TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
-            inboxService.failed(payloadHash, String.valueOf(e.getMessage()));
             saveSimLog("16", "9");
             return buildReturnXml(false);
         }
