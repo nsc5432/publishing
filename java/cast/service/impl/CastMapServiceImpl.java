@@ -105,8 +105,7 @@ public class CastMapServiceImpl implements CastMapService {
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(searchDto.getSmltId());
 
 		// 체크인은 아일랜드 공용 Queue 를, 출국장은 시각 → (묶음 단위 → 결과) 를 읽는다
-		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(
-				searchDto.getSmltId(), tmnlId, smltStng.getExcnYmd());
+		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(searchDto.getSmltId(), tmnlId, smltStng.getExcnYmd());
 		Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap = retrieveUnitRsltDayMap(searchDto, DPTGT_FCLT_CD_LIST);
 
 		FltSmryRawDto fltSmry = castDsbdMapper.retrieveFltSmry(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList(), null, null);

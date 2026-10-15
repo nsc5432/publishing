@@ -27,11 +27,6 @@ import aoms.pm.cast.service.FcltRecommendationCalculator;
 public final class ChknQueueSeries {
 	public static final int MINUTE_PER_DAY = 24 * 60;
 
-	private static final MathContext MATH_CONTEXT = MathContext.DECIMAL128;
-	private static final int SEC_PER_MIN = 60;
-	private static final int PERCENT = 100;
-	private static final BigDecimal P95 = new BigDecimal("0.95");
-
 	private final String island;
 	private final int[] queue;
 	private final int[] processed;
@@ -140,7 +135,7 @@ public final class ChknQueueSeries {
 			queue[end - 1],
 			Math.toIntExact(Math.round((double) queueSum / minutes0)),
 			maxQueue,
-			processedSum == 0 ? 0 : Math.toIntExact(Math.round((double) waitSum * SEC_PER_MIN / processedSum)),
+			processedSum == 0 ? 0 : Math.toIntExact(Math.round((double) waitSum * 60 / processedSum)),
 			Math.toIntExact(processedSum),
 			processedSum == 0 ? 0 : Math.toIntExact(Math.round((double) prcsSum / processedSum)),
 			toUtilRate(processedSum, capacitySum),
@@ -179,7 +174,7 @@ public final class ChknQueueSeries {
 			return null;
 		}
 
-		return BigDecimal.valueOf(capacitySum).divide(BigDecimal.valueOf(boothMinuteSum), MATH_CONTEXT);
+		return BigDecimal.valueOf(capacitySum).divide(BigDecimal.valueOf(boothMinuteSum), MathContext.DECIMAL128);
 	}
 
 	public ChknQueueKpi kpi() {
@@ -215,7 +210,7 @@ public final class ChknQueueSeries {
 		}
 
 		long target = BigDecimal.valueOf(processedSum)
-				.multiply(P95, MATH_CONTEXT)
+				.multiply(new BigDecimal("0.95"), MathContext.DECIMAL128)
 				.setScale(0, RoundingMode.CEILING)
 				.longValueExact();
 		long cumulative = 0;
@@ -236,7 +231,7 @@ public final class ChknQueueSeries {
 			return 0;
 		}
 
-		return (int) Math.min(PERCENT, processedSum * PERCENT / capacitySum);
+		return (int) Math.min(100, processedSum * 100 / capacitySum);
 	}
 
 	private boolean isInDay(int minute) {

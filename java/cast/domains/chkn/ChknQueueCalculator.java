@@ -37,13 +37,13 @@ public final class ChknQueueCalculator {
 
 	/**
 	 * @param assignedBoothCnt 분 단위 배정 부스 수 (길이 1440)
-	 * @param tmnlAvgPrcsSec 터미널 CC 처리인원 가중평균 처리시간 — 아일랜드 fallback 이 모두 비면 쓴다
+	 * @param tmnlAvgPrcsSec 터미널 CC 처리인원 가중평균 처리시간 (fallback)
 	 */
 	public static ChknQueueSeries calculate(
-			String island,
-			List<ChknQueueInterval> intervalList,
-			int[] assignedBoothCnt,
-			BigDecimal tmnlAvgPrcsSec
+        String island,
+        List<ChknQueueInterval> intervalList,
+        int[] assignedBoothCnt,
+        BigDecimal tmnlAvgPrcsSec
 	) {
 		int[] queue = new int[MINUTE_PER_DAY];
 		int[] processed = new int[MINUTE_PER_DAY];
@@ -60,21 +60,21 @@ public final class ChknQueueCalculator {
 		Deque<int[]> cohortQueue = new ArrayDeque<>();
 		BigDecimal carry = BigDecimal.ZERO;
 		int running = 0;
-		int previousObservedQueue = 0;
+		int previousWtngEndPsgCnt = 0;
 
 		for (int index = 0; index < sortedList.size(); index++) {
 			ChknQueueInterval interval = sortedList.get(index);
 			int bgn = Math.max(interval.getBgnMinute(), 0);
 			int end = Math.min(interval.getBgnMinute() + interval.getDurationMin(), MINUTE_PER_DAY);
 
-			int arrivalsRaw = interval.getObservedQueue() - previousObservedQueue + interval.getObservedProcessed();
-			previousObservedQueue = interval.getObservedQueue();
+			int arrivalsRaw = interval.getWtngEndPsgCnt() - previousWtngEndPsgCnt + interval.getIntvPrcsPsgCnt();
+			previousWtngEndPsgCnt = interval.getWtngEndPsgCnt();
 
 			if (arrivalsRaw < 0) {
 				warningList.add(warning(island, interval,
 						"대기인원 역산이 음수라 0 으로 보정했습니다. arrivals=" + arrivalsRaw
-								+ ", observedQueue=" + interval.getObservedQueue()
-								+ ", observedProcessed=" + interval.getObservedProcessed()));
+								+ ", wtngEndPsgCnt=" + interval.getWtngEndPsgCnt()
+								+ ", intvPrcsPsgCnt=" + interval.getIntvPrcsPsgCnt()));
 			}
 
 			if (bgn >= end) {
@@ -89,7 +89,7 @@ public final class ChknQueueCalculator {
 
 			BigDecimal prcsSec = resolvePrcsSec(sortedList, index, tmnlAvgPrcsSec);
 
-			if (prcsSec == null && interval.getObservedProcessed() <= 0 && (arrivalsRaw > 0 || running > 0)) {
+			if (prcsSec == null && interval.getIntvPrcsPsgCnt() <= 0 && (arrivalsRaw > 0 || running > 0)) {
 				warningList.add(warning(island, interval, "평균 처리시간을 찾지 못해 처리용량을 0 으로 둡니다."));
 			}
 
@@ -151,8 +151,8 @@ public final class ChknQueueCalculator {
 			return BigDecimal.valueOf((long) boothCnt * SEC_PER_MIN).divide(prcsSec, MATH_CONTEXT);
 		}
 
-		if (interval.getObservedProcessed() > 0) {
-			return BigDecimal.valueOf(interval.getObservedProcessed())
+		if (interval.getIntvPrcsPsgCnt() > 0) {
+			return BigDecimal.valueOf(interval.getIntvPrcsPsgCnt())
 					.divide(BigDecimal.valueOf(interval.getDurationMin()), MATH_CONTEXT);
 		}
 
@@ -187,15 +187,15 @@ public final class ChknQueueCalculator {
 				break;
 			}
 
-			if (!isPositive(priorInterval.getAvgPrcsSec()) || priorInterval.getObservedProcessed() <= 0) {
+			if (!isPositive(priorInterval.getAvgPrcsSec()) || priorInterval.getIntvPrcsPsgCnt() <= 0) {
 				continue;
 			}
 
 			weightedSum = weightedSum.add(
 					priorInterval.getAvgPrcsSec().multiply(
-							BigDecimal.valueOf(priorInterval.getObservedProcessed()), MATH_CONTEXT),
+							BigDecimal.valueOf(priorInterval.getIntvPrcsPsgCnt()), MATH_CONTEXT),
 					MATH_CONTEXT);
-			processedSum += priorInterval.getObservedProcessed();
+			processedSum += priorInterval.getIntvPrcsPsgCnt();
 		}
 
 		if (processedSum > 0) {

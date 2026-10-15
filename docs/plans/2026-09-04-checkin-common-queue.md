@@ -68,12 +68,12 @@ CAST가 내려주는 유인 체크인카운터 부스별 결과를 계산 원천
 아일랜드별 원천 구간 `t`에서 다음 값을 만든다.
 
 ```text
-observedQueue[t] = SUM(부스별 WTNG_PSG_CNT)
-observedProcessed[t] = SUM(부스별 FinishedClients_Abs)
-arrivals[t] = MAX(0, observedQueue[t] - observedQueue[t-1] + observedProcessed[t])
+wtngEndPsgCnt[t] = SUM(부스별 WTNG_PSG_CNT)
+intvPrcsPsgCnt[t] = SUM(부스별 FinishedClients_Abs)
+arrivals[t] = MAX(0, wtngEndPsgCnt[t] - wtngEndPsgCnt[t-1] + intvPrcsPsgCnt[t])
 ```
 
-- 첫 구간의 `observedQueue[t-1]`은 0으로 보고 `observedQueue + observedProcessed`를 유입으로 본다.
+- 첫 구간의 `wtngEndPsgCnt[t-1]`은 0으로 보고 `wtngEndPsgCnt + intvPrcsPsgCnt`를 유입으로 본다.
 - 음수 유입은 0으로 보정하고 보정 건수·원천값을 로그에 남긴다.
 - 부스별 평균 처리시간이 양수이면 `구간 초 / 평균 처리시간`으로 처리용량을 계산한다.
 - 처리시간 fallback 순서는 동일 아일랜드 최근 60분 처리인원 가중평균 → 당일 터미널 CC 처리인원
