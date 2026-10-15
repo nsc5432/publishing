@@ -5,7 +5,7 @@ interface CategoryBarProps {
     categories: Category[];
     current: Category | null;
     changeCount: number;
-    busy: boolean;
+    pending: boolean;
     onSelect: (code: string) => void;
     onClone: () => void;
     onSave: () => void;
@@ -14,15 +14,15 @@ interface CategoryBarProps {
     onOpenHistory: () => void;
 }
 
-export function CategoryBar({ categories, current, changeCount, busy, onSelect, onClone, onSave, onApplyOper, onDownload, onOpenHistory }: CategoryBarProps) {
+export function CategoryBar({ categories, current, changeCount, pending, onSelect, onClone, onSave, onApplyOper, onDownload, onOpenHistory }: CategoryBarProps) {
     const hasDrafts = changeCount > 0;
-    const persistedActionDisabled = busy || hasDrafts || !current;
+    const persistedActionDisabled = pending || hasDrafts || !current;
 
     return (
         <div className="cast-config-category-bar is-page-toolbar">
             <label className="cast-config-category-pick">
                 <span className="blind">설정 카테고리</span>
-                <select value={current?.code ?? ''} disabled={busy} onChange={(event) => onSelect(event.target.value)}>
+                <select value={current?.code ?? ''} disabled={pending} onChange={(event) => onSelect(event.target.value)}>
                     {categories.map((category) => (
                         <option key={category.code} value={category.code}>
                             {category.name} ({category.code})
@@ -57,7 +57,7 @@ export function CategoryBar({ categories, current, changeCount, busy, onSelect, 
                 <button
                     type="button"
                     className="cast-config-primary-button is-save"
-                    disabled={busy || !hasDrafts || !current || current.isBase || current.isPreProcess}
+                    disabled={pending || !hasDrafts || !current || current.isBase || current.isPreProcess}
                     onClick={onSave}
                 >
                     저장
@@ -80,7 +80,7 @@ export function CategoryBar({ categories, current, changeCount, busy, onSelect, 
                 >
                     엑셀저장
                 </button>
-                <button type="button" className="cast-config-ghost-button" disabled={busy} onClick={onOpenHistory}>
+                <button type="button" className="cast-config-ghost-button" disabled={pending} onClick={onOpenHistory}>
                     반영 이력
                 </button>
             </div>

@@ -1,5 +1,5 @@
 import './castConfig.css';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { castConfigService } from '@/api/pm/services/castConfig.service';
 import { unwrap } from '@/api/pm/result';
 import { Lnb } from '@/components/lnb';
@@ -20,16 +20,12 @@ import { useCastConfigGroups } from './hooks/useCastConfigGroups';
 import { useDatasetDraft } from './hooks/useDatasetDraft';
 import type { FacilityGroupId, TerminalKind } from './types';
 
-interface ActiveGroup {
+interface SelectedGroup {
     terminal: TerminalKind;
     groupId: FacilityGroupId;
 }
 
-type Layer = 'none' | 'clone' | 'history';
-
-const T1_QUERY = { terminal: 'T1' as TerminalKind };
-const T2_QUERY = { terminal: 'T2' as TerminalKind };
-const DISCARD_WARNING = '저장하지 않은 변경사항이 있습니다. 변경사항을 버리고 계속하시겠습니까?';
+type ModalKind = 'none' | 'clone' | 'history';
 
 function errorMessage(error: unknown, fallback: string): string {
     return (error as ApiError)?.message || fallback;
@@ -38,75 +34,65 @@ function errorMessage(error: unknown, fallback: string): string {
 function CastConfig() {
     usePageScope('castConfig');
 
-    const [active, setActive] = useState<ActiveGroup | null>(null);
+    const [selectedGroup, setSelectedGroup] = useState<SelectedGroup | null>(null);
     const [categoryCode, setCategoryCode] = useState('');
+    const [openModal, setOpenModal] = useState<ModalKind>('none');
+    const [pending, setPending] = useState(false);
+    const draft = useDatasetDraft();
+    const groupsT1 = useCastConfigGroups('T1');
+    const groupsT2 = useCastConfigGroups('T2');
+
     const [categoryReloadToken, setCategoryReloadToken] = useState(0);
     const [dataReloadToken, setDataReloadToken] = useState(0);
     const [historyReloadToken, setHistoryReloadToken] = useState(0);
-    const [layer, setLayer] = useState<Layer>('none');
-    const [busy, setBusy] = useState(false);
-    const draft = useDatasetDraft();
-    const groupsT1 = useCastConfigGroups(T1_QUERY);
-    const groupsT2 = useCastConfigGroups(T2_QUERY);
+
     const categoryQuery = useMemo(() => ({ reloadToken: categoryReloadToken }), [categoryReloadToken]);
     const fetchedCategories = useCastConfigCategories(categoryQuery);
-    const historyQuery = useMemo(() => (layer === 'history' ? { reloadToken: historyReloadToken } : null), [historyReloadToken, layer]);
+    const historyQuery = useMemo(() => (openModal === 'history' ? { reloadToken: historyReloadToken } : null), [historyReloadToken, openModal]);
     const fetchedHistory = useCastConfigApplyHistory(historyQuery);
     const currentCategory = fetchedCategories.data.find((category) => category.code === categoryCode) ?? fetchedCategories.data[0] ?? null;
-    const activeGroups = active?.terminal === 'T2' ? groupsT2.data : groupsT1.data;
-    const activeGroup = active ? (activeGroups?.find((group) => group.id === active.groupId) ?? null) : null;
+    const terminalGroups = selectedGroup?.terminal === 'T2' ? groupsT2.data : groupsT1.data;
+    const selectedGroupInfo = selectedGroup ? (terminalGroups?.find((group) => group.id === selectedGroup.groupId) ?? null) : null;
 
     useErrorAlert(groupsT1.error, groupsT1.responseSeq);
     useErrorAlert(groupsT2.error, groupsT2.responseSeq);
     useErrorAlert(fetchedCategories.error, fetchedCategories.responseSeq);
     useErrorAlert(fetchedHistory.error, fetchedHistory.responseSeq);
 
-    useEffect(() => {
-        if (draft.totalCount === 0) return;
-
-        const handleBeforeUnload = (event: BeforeUnloadEvent) => event.preventDefault();
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [draft.totalCount]);
-
     const confirmDiscard = useCallback(async () => {
         if (draft.totalCount === 0) return true;
-        return dialog.confirm({ title: 'Cast 설정', description: DISCARD_WARNING }).catch(() => false);
+
+        return dialog.confirm({ title: 'Cast 설정', description: '저장하지 않은 변경사항이 있습니다. 변경사항을 버리고 계속하시겠습니까?' }).catch(() => false);
     }, [draft.totalCount]);
 
-    const handleCategorySelect = (code: string) => {
+    const handleCategorySelect = async (code: string) => {
         if (code === currentCategory?.code) return;
+        if (!(await confirmDiscard())) return;
 
-        confirmDiscard()
-            .then((ok) => {
-                if (!ok) return;
-                draft.clearAll();
-                setCategoryCode(code);
-                setDataReloadToken((token) => token + 1);
-            })
-            .catch(() => {});
+        draft.clearAll();
+        setCategoryCode(code);
+        setDataReloadToken((token) => token + 1);
     };
 
-    const handleClone = (dto: CastConfigCategoryCloneDto) => {
-        setBusy(true);
-        castConfigService
-            .cloneCategory(dto)
-            .then((response) => unwrap(response, '카테고리를 복제하지 못했습니다.'))
-            .then((response) => {
-                draft.clearAll();
-                setCategoryCode(response.fixAtrbGroupId);
-                setCategoryReloadToken((token) => token + 1);
-                setDataReloadToken((token) => token + 1);
-                setLayer('none');
-                dialog.alert({ title: '카테고리 복제', description: '전체 Cast 설정을 복제했습니다.' }).catch(() => {});
-            })
-            .catch((error: unknown) => {
-                dialog.alert({ title: '카테고리 복제', description: errorMessage(error, '카테고리를 복제하지 못했습니다.') }).catch(() => {});
-            })
-            .finally(() => setBusy(false));
+    const handleClone = async (dto: CastConfigCategoryCloneDto) => {
+        setPending(true);
+
+        try {
+            const response = unwrap(await castConfigService.cloneCategory(dto), '카테고리를 복제하지 못했습니다.');
+            draft.clearAll();
+            setCategoryCode(response.fixAtrbGroupId);
+            setCategoryReloadToken((token) => token + 1);
+            setDataReloadToken((token) => token + 1);
+            setOpenModal('none');
+            dialog.alert({ title: '카테고리 복제', description: '전체 Cast 설정을 복제했습니다.' }).catch(() => {});
+        } catch (error: unknown) {
+            dialog.alert({ title: '카테고리 복제', description: errorMessage(error, '카테고리를 복제하지 못했습니다.') }).catch(() => {});
+        } finally {
+            setPending(false);
+        }
     };
 
-    const handleSave = () => {
+    const handleSave = async () => {
         if (!currentCategory || draft.totalCount === 0 || currentCategory.isBase || currentCategory.isPreProcess) return;
 
         const messages = draft.validationMessages();
@@ -115,84 +101,78 @@ function CastConfig() {
             return;
         }
 
-        setBusy(true);
-        castConfigService
-            .saveCategorySet(currentCategory.code, draft.saveItems())
-            .then((response) => unwrap(response, '변경사항을 저장하지 못했습니다.'))
-            .then(() => {
-                const count = draft.totalCount;
-                draft.clearAll();
-                setDataReloadToken((token) => token + 1);
-                dialog.alert({ title: '저장 완료', description: `${count.toLocaleString('ko-KR')}개 변경사항을 저장했습니다.` }).catch(() => {});
-            })
-            .catch((error: unknown) => {
-                dialog.alert({ title: '저장 실패', description: errorMessage(error, '변경사항을 저장하지 못했습니다.') }).catch(() => {});
-            })
-            .finally(() => setBusy(false));
+        setPending(true);
+
+        try {
+            unwrap(await castConfigService.saveCategorySet(currentCategory.code, draft.saveItems()), '변경사항을 저장하지 못했습니다.');
+            const count = draft.totalCount;
+            draft.clearAll();
+            setDataReloadToken((token) => token + 1);
+            dialog.alert({ title: '저장 완료', description: `${count.toLocaleString('ko-KR')}개 변경사항을 저장했습니다.` }).catch(() => {});
+        } catch (error: unknown) {
+            dialog.alert({ title: '저장 실패', description: errorMessage(error, '변경사항을 저장하지 못했습니다.') }).catch(() => {});
+        } finally {
+            setPending(false);
+        }
     };
 
-    const handleApplyOper = () => {
+    const handleApplyOper = async () => {
         if (!currentCategory || currentCategory.isBase || draft.totalCount > 0) return;
 
-        dialog
+        const ok = await dialog
             .confirm({
                 title: '운영 반영',
                 description: `${currentCategory.name}(${currentCategory.code})의 T1·T2 전체 Cast 설정을 기준정보에 반영합니다. 계속하시겠습니까?`,
             })
-            .then((ok) => {
-                if (!ok) return;
+            .catch(() => false);
+        if (!ok) return;
 
-                setBusy(true);
-                return castConfigService
-                    .applyCategorySet(currentCategory.code)
-                    .then((response) => unwrap(response, '기준정보에 반영하지 못했습니다.'))
-                    .then(() => {
-                        setDataReloadToken((token) => token + 1);
-                        setHistoryReloadToken((token) => token + 1);
-                        dialog.alert({ title: '운영 반영', description: '전체 Cast 설정을 기준정보에 반영했습니다.' }).catch(() => {});
-                    })
-                    .catch((error: unknown) => {
-                        dialog.alert({ title: '운영 반영', description: errorMessage(error, '기준정보에 반영하지 못했습니다.') }).catch(() => {});
-                    })
-                    .finally(() => setBusy(false));
-            })
-            .catch(() => {});
+        setPending(true);
+
+        try {
+            unwrap(await castConfigService.applyCategorySet(currentCategory.code), '기준정보에 반영하지 못했습니다.');
+            setDataReloadToken((token) => token + 1);
+            setHistoryReloadToken((token) => token + 1);
+            dialog.alert({ title: '운영 반영', description: '전체 Cast 설정을 기준정보에 반영했습니다.' }).catch(() => {});
+        } catch (error: unknown) {
+            dialog.alert({ title: '운영 반영', description: errorMessage(error, '기준정보에 반영하지 못했습니다.') }).catch(() => {});
+        } finally {
+            setPending(false);
+        }
     };
 
-    const handleDownload = () => {
+    const handleDownload = async () => {
         if (!currentCategory || draft.totalCount > 0) return;
 
-        setBusy(true);
-        castConfigService
-            .getCategorySet(currentCategory.code)
-            .then((response) => unwrap(response, '전체 Cast 설정을 불러오지 못했습니다.'))
-            .then((response) => downloadCastConfigWorkbook(currentCategory.name, response))
-            .catch((error: unknown) => {
-                dialog.alert({ title: '엑셀저장', description: errorMessage(error, '엑셀 파일을 만들지 못했습니다.') }).catch(() => {});
-            })
-            .finally(() => setBusy(false));
+        setPending(true);
+
+        try {
+            const response = unwrap(await castConfigService.getCategorySet(currentCategory.code), '전체 Cast 설정을 불러오지 못했습니다.');
+            await downloadCastConfigWorkbook(currentCategory.name, response);
+        } catch (error: unknown) {
+            dialog.alert({ title: '엑셀저장', description: errorMessage(error, '엑셀 파일을 만들지 못했습니다.') }).catch(() => {});
+        } finally {
+            setPending(false);
+        }
     };
 
-    const handleRevert = (aplySetSn: number) => {
-        dialog
+    const handleRevert = async (aplySetSn: number) => {
+        const ok = await dialog
             .confirm({ title: '전체 되돌리기', description: '이 반영 세트의 모든 설정을 반영 직전 값으로 복원합니다. 계속하시겠습니까?' })
-            .then((ok) => {
-                if (!ok) return;
+            .catch(() => false);
+        if (!ok) return;
 
-                setBusy(true);
-                return castConfigService
-                    .revertApplySet(aplySetSn)
-                    .then((response) => unwrap(response, '반영 세트를 되돌리지 못했습니다.'))
-                    .then(() => {
-                        setDataReloadToken((token) => token + 1);
-                        setHistoryReloadToken((token) => token + 1);
-                    })
-                    .catch((error: unknown) => {
-                        dialog.alert({ title: '전체 되돌리기', description: errorMessage(error, '반영 세트를 되돌리지 못했습니다.') }).catch(() => {});
-                    })
-                    .finally(() => setBusy(false));
-            })
-            .catch(() => {});
+        setPending(true);
+
+        try {
+            unwrap(await castConfigService.revertApplySet(aplySetSn), '반영 세트를 되돌리지 못했습니다.');
+            setDataReloadToken((token) => token + 1);
+            setHistoryReloadToken((token) => token + 1);
+        } catch (error: unknown) {
+            dialog.alert({ title: '전체 되돌리기', description: errorMessage(error, '반영 세트를 되돌리지 못했습니다.') }).catch(() => {});
+        } finally {
+            setPending(false);
+        }
     };
 
     return (
@@ -214,18 +194,18 @@ function CastConfig() {
                         categories={fetchedCategories.data}
                         current={currentCategory}
                         changeCount={draft.totalCount}
-                        busy={busy}
+                        pending={pending}
                         onSelect={handleCategorySelect}
-                        onClone={() => setLayer('clone')}
+                        onClone={() => setOpenModal('clone')}
                         onSave={handleSave}
                         onApplyOper={handleApplyOper}
                         onDownload={handleDownload}
-                        onOpenHistory={() => setLayer('history')}
+                        onOpenHistory={() => setOpenModal('history')}
                     />
 
                     <div className="cast-config-scene-row">
-                        <FlowDiagram terminal="T1" groups={groupsT1.data ?? []} onOpenGroup={(groupId) => setActive({ terminal: 'T1', groupId })} />
-                        <FlowDiagram terminal="T2" groups={groupsT2.data ?? []} onOpenGroup={(groupId) => setActive({ terminal: 'T2', groupId })} />
+                        <FlowDiagram terminal="T1" groups={groupsT1.data ?? []} onOpenGroup={(groupId) => setSelectedGroup({ terminal: 'T1', groupId })} />
+                        <FlowDiagram terminal="T2" groups={groupsT2.data ?? []} onOpenGroup={(groupId) => setSelectedGroup({ terminal: 'T2', groupId })} />
                     </div>
 
                     <aside className="cast-config-legend" aria-label="시설그룹 색상 안내">
@@ -253,24 +233,24 @@ function CastConfig() {
                 </main>
             </div>
 
-            {activeGroup && active && currentCategory && (
+            {selectedGroupInfo && selectedGroup && currentCategory && (
                 <DataConfigModal
-                    key={`${active.terminal}-${activeGroup.id}-${currentCategory.code}`}
-                    terminal={active.terminal}
-                    group={activeGroup}
+                    key={`${selectedGroup.terminal}-${selectedGroupInfo.id}-${currentCategory.code}`}
+                    terminal={selectedGroup.terminal}
+                    group={selectedGroupInfo}
                     category={currentCategory}
                     draft={draft}
                     reloadToken={dataReloadToken}
-                    onClose={() => setActive(null)}
+                    onClose={() => setSelectedGroup(null)}
                 />
             )}
 
-            {layer === 'clone' && currentCategory && (
-                <CategoryRegisterModal source={currentCategory} saving={busy} onSubmit={handleClone} onClose={() => setLayer('none')} />
+            {openModal === 'clone' && currentCategory && (
+                <CategoryRegisterModal source={currentCategory} saving={pending} onSubmit={handleClone} onClose={() => setOpenModal('none')} />
             )}
 
-            {layer === 'history' && (
-                <PreProcessHistoryModal histories={fetchedHistory.data} reverting={busy} onRevert={handleRevert} onClose={() => setLayer('none')} />
+            {openModal === 'history' && (
+                <PreProcessHistoryModal histories={fetchedHistory.data} reverting={pending} onRevert={handleRevert} onClose={() => setOpenModal('none')} />
             )}
         </div>
     );
