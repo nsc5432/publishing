@@ -5,18 +5,15 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum DsbdCategory {
-	PSG("PSG"), // 터미널 여객수
-	FLT("FLT"), // 운항편
-	CHKN("CHKN"), // 체크인카운터
-	DEP("DEP"); // 출국장
+	PSG("PSG"),
+	FLT("FLT"),
+	CHKN("CHKN"),
+	DEP("DEP");
 
 	// LS 랜드사이드 좌석, CC 체크인카운터, CK 셀프체크인, SBD 셀프백드랍, LGT 출국장, LC 출국심사, SC 보안검색대, SR 보안검색대RED
 	private static final List<String> ALL_FCLT_CD_LIST = List.of("LS", "CC", "CK", "SBD", "LGT", "LC", "SC", "SR");
-	private static final List<String> CHKN_FCLT_CD_LIST = List.of("CC", "CK", "SBD");
 	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT", "LC", "SC", "SR");
 
-	// 여객대기정보(Xovis)는 시설 구분: Queue 체크인 대기열, DG 출국장, SC 보안검색대
-	private static final List<String> CHKN_WTNG_TYPE_CD_LIST = List.of("Queue");
 	private static final List<String> DEP_WTNG_TYPE_CD_LIST = List.of("DG", "SC");
 	// 빈 리스트를 넘기면 mapper 가 유형 필터를 건너뛰어 미정의 유형까지 MAX 에 섞인다
 	private static final List<String> ALL_WTNG_TYPE_CD_LIST = List.of("Queue", "DG", "SC");
@@ -33,10 +30,6 @@ public enum DsbdCategory {
 	}
 
 	public List<String> getUpPsgFcltCdList() {
-		if (this == CHKN) {
-			return CHKN_FCLT_CD_LIST;
-		}
-
 		if (this == DEP) {
 			return DPTGT_FCLT_CD_LIST;
 		}
@@ -45,10 +38,6 @@ public enum DsbdCategory {
 	}
 
 	public List<String> getPsgWtngFcltTypeCdList() {
-		if (this == CHKN) {
-			return CHKN_WTNG_TYPE_CD_LIST;
-		}
-
 		if (this == DEP) {
 			return DEP_WTNG_TYPE_CD_LIST;
 		}

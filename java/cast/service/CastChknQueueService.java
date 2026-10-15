@@ -1,6 +1,7 @@
 package aoms.pm.cast.service;
 
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
+import aoms.pm.cast.domains.chkn.ChknSbdDay;
 import aoms.pm.cast.enums.TerminalKind;
 
 /**
@@ -20,4 +21,6 @@ import aoms.pm.cast.enums.TerminalKind;
  */
 public interface CastChknQueueService {
 	ChknQueueDay retrieveChknQueueDay(String smltId, TerminalKind tmnlId, String excnYmd);
+
+	ChknSbdDay retrieveChknSbdDay(String smltId, TerminalKind tmnlId, String excnYmd);
 }

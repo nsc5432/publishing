@@ -128,6 +128,27 @@
         ORDER BY TIME
     </select>
 
+    <select id="retrievePsgWtngIslSumByHourList" resultType="aoms.pm.cast.dto.PsgWtngRawDto">
+        /* CastDsbdMapper.retrievePsgWtngIslSumByHourList */
+        SELECT
+            SUBSTR(T.PSG_FLOW_DATA_CRT_DT, 9, 2) || '00' AS TIME,
+            NVL(MAX(T.ISL_WTNG_LINE_LEN), 0) AS WTNG_PSG_CNT
+        FROM (
+            SELECT
+                A.PSG_FLOW_DATA_CRT_DT,
+                A.CHKN_ISL_CD,
+                SUM(A.WTNG_LINE_LEN) AS ISL_WTNG_LINE_LEN
+            FROM PMOWN.TN_PM_PSG_WTNG_INFO A
+            WHERE 1 = 1
+            AND A.PSG_FLOW_DATA_CRT_DT BETWEEN #{ymd} || '0000' AND #{ymd} || '2359'
+            AND A.TMNL_ID = #{tmnlId}
+            AND A.FCLT_TYPE_CD = 'Queue'
+            GROUP BY A.PSG_FLOW_DATA_CRT_DT, A.CHKN_ISL_CD
+        ) T
+        GROUP BY SUBSTR(T.PSG_FLOW_DATA_CRT_DT, 9, 2)
+        ORDER BY TIME
+    </select>
+
     <select id="retrievePsgWtngByHourList" resultType="aoms.pm.cast.dto.PsgWtngRawDto">
         /* CastDsbdMapper.retrievePsgWtngByHourList */
         SELECT

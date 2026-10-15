@@ -54,6 +54,11 @@ public interface CastDsbdMapper {
 			@Param("fcltTypeCdList") List<String> fcltTypeCdList
 	);
 
+	List<PsgWtngRawDto> retrievePsgWtngIslSumByHourList(
+			@Param("ymd") String ymd,
+			@Param("tmnlId") String tmnlId
+	);
+
 	/** smltActlDt 를 주면 그 시각 한 칸만, 주지 않으면 [bgnDt, endDt) 구간을 읽는다. */
 	List<SmltRsltRawDto> retrieveRsltByUnitList(
 			@Param("smltId") String smltId,

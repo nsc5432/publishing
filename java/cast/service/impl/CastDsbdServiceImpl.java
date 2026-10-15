@@ -14,6 +14,7 @@ import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -29,6 +30,7 @@ import aoms.pm.cast.domains.CgnGradeScale;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknQueueRecommend;
 import aoms.pm.cast.domains.chkn.ChknQueueSlot;
+import aoms.pm.cast.domains.chkn.ChknSbdDay;
 import aoms.pm.cast.domains.dsbd.AssignmentSummary;
 import aoms.pm.cast.domains.dsbd.RecommendationContext;
 import aoms.pm.cast.domains.dsbd.RecommendationResources;
@@ -209,7 +211,10 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(searchDto.getSmltId());
 
-        // Cast
+		if (category == DsbdCategory.CHKN) {
+			return retrieveChknRsltByTime(searchDto.getSmltId(), tmnlId, smltStng.getExcnYmd());
+		}
+
 		Map<String, SmltRsltRawDto> rsltMap = castDsbdMapper
 				.retrieveRsltByHourList(searchDto.getSmltId(), tmnlId.getFcltTmnlId(), category.getUpPsgFcltCdList())
 				.stream().collect(Collectors.toMap(SmltRsltRawDto::getTime, Function.identity(), (first, ignored) -> first));
@@ -218,7 +223,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				.retrieveFltPsgHourList(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList())
 				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
-		// Xovis
 		Map<String, PsgWtngRawDto> psgWtngMap = castDsbdMapper
 				.retrievePsgWtngByHourList(smltStng.getExcnYmd(), tmnlId.getFcltTmnlId(), category.getPsgWtngFcltTypeCdList())
 				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
@@ -230,7 +234,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		List<DsbdRsltDto> result = new ArrayList<>();
 
-		// 결과가 없는 시간대는 행이 통째로 없다. 24시간 축은 애플리케이션이 채운다
 		for (String hour : TimeBucketUtils.hourList()) {
 			result.add(toRsltDto(
 					hour,
@@ -287,20 +290,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		List<SmltRsltRawDto> sortedRsltList = displayRsltMap.values().stream().sorted(Comparator.comparingInt(SmltRsltRawDto::getWtngPsgCnt).reversed()).collect(toList());
 
-		/*
-		 * 60분 구간 계산
-		 * - 대기열/예상인원 = MAX
-		 * - 처리인원(Pax/Min) = 구간 통과인원 합 / 실제 집계 분
-		 * - 처리율(%) = 구간 통과인원 합 / (구간 통과인원 합 + 최대 대기인원) * 100
-         */
-        /*
-         * 추천 대상은 각각 CC, SC/SR
-		 * - 추천 피크 = 시작 10분 후부터 구간 종료까지 추천 대상 시설의 최대 대기인원
-		 * - 시설당 분당 처리량 = 구간 통과인원 합 / 현재 운영 수량 / 실제 집계 분
-		 * - 추가 수량 = (추천 피크 - NORMAL 등급 상한) / (시설당 분당 처리량 * 피크까지 분)
-		 * - 혼잡해소 예상시간 = 대기인원 - (시설당 분당 처리량 * 추가 수량 * 경과 분)이 NORMAL 등급 상한 이하가 되는 첫 슬롯 시각
-		 * - 혼잡해소율(%) = (실제 집계 분 - 해소까지 분) / 실제 집계 분 * 100
-		 */
 		for (SmltRsltRawDto rslt : sortedRsltList) {
 			String unitCd = rslt.getUnitCd();
 			String unitContext = recommendContext(baseContext, fcltType, unitCd);
@@ -402,7 +391,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		ChknQueueSlot rollingSlot = queueDay.slotOf(unitCd, bgnMinute, range.getActualMinutes());
 		ChknQueueRecommend recommend = queueDay.recommendOf(unitCd, bgnMinute, CARD_SLOT_MIN);
 		int queuePsgCnt = slot.getCurrentQueue();
-		// 배정이 없는 아일랜드는 추천 대상 항공사도 없다
 		String targetName = recommend.getReqCnt() == null ? EMPTY : resources.getTargetName(unitCd, recommendContext(baseContext, FcltType.CHKN, unitCd));
 
 		DsbdFcltCardDto result = new DsbdFcltCardDto();
@@ -540,6 +528,79 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setWtngPsgCnt(peak.getWtngPsgCnt());
 		result.setMaxWtngHr(peak.getWtngHr() / SEC_PER_MIN);
 		result.setHrlyPrcsPsgCnt(peak.getTrnstPsgCnt());
+
+		return result;
+	}
+
+	private List<DsbdRsltDto> retrieveChknRsltByTime(String smltId, TerminalKind tmnlId, String excnYmd) {
+		Map<String, FltPsgRawDto> fltPsgMap = castFltPsgMapper
+				.retrieveFltPsgHourList(excnYmd, tmnlId.getFltTmnlIdList())
+				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
+		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltId, tmnlId, excnYmd);
+		ChknSbdDay sbdDay = castChknQueueService.retrieveChknSbdDay(smltId, tmnlId, excnYmd);
+		Set<String> islandCdSet = new LinkedHashSet<>(queueDay.islandCdList());
+		islandCdSet.addAll(sbdDay.islandCdList());
+
+		Map<String, PsgWtngRawDto> psgWtngMap = castDsbdMapper
+				.retrievePsgWtngIslSumByHourList(excnYmd, tmnlId.getFcltTmnlId())
+				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+		String lastWeekYmd = formatYmd(parseYmd(excnYmd).minusDays(DAYS_A_WEEK));
+		Map<String, PsgWtngRawDto> lastWeekPsgWtngMap = castDsbdMapper
+				.retrievePsgWtngIslSumByHourList(lastWeekYmd, tmnlId.getFcltTmnlId())
+				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+		List<DsbdRsltDto> result = new ArrayList<>();
+
+		for (String hour : TimeBucketUtils.hourList()) {
+			result.add(toChknRsltDto(
+					hour,
+					queueDay,
+					sbdDay,
+					islandCdSet,
+					fltPsgMap.get(hour),
+					psgWtngMap.get(hour + HOUR_SUFFIX),
+					lastWeekPsgWtngMap.get(hour + HOUR_SUFFIX)
+			));
+		}
+
+		return result;
+	}
+
+	private DsbdRsltDto toChknRsltDto(
+			String hour,
+			ChknQueueDay queueDay,
+			ChknSbdDay sbdDay,
+			Set<String> islandCdSet,
+			FltPsgRawDto fltPsg,
+			PsgWtngRawDto psgWtng,
+			PsgWtngRawDto lastWeekPsgWtng
+	) {
+		int bgnMinute = Integer.parseInt(hour) * MIN_PER_HOUR;
+		int endMinute = bgnMinute + MIN_PER_HOUR;
+		ChknQueueSlot cc = queueDay.tmnlSeries().slotOf(bgnMinute, MIN_PER_HOUR);
+		int maxQueue = 0;
+		int endQueue = cc.getCurrentQueue();
+
+		for (String island : islandCdSet) {
+			endQueue += sbdDay.queueAt(island, endMinute - 1);
+
+			for (int minute = bgnMinute; minute < endMinute; minute++) {
+				maxQueue = Math.max(maxQueue, queueDay.queueAt(island, minute) + sbdDay.queueAt(island, minute));
+			}
+		}
+
+		int prcsPsgCnt = cc.getPrcsPsgCnt() + sbdDay.prcsPsgCnt(bgnMinute, MIN_PER_HOUR);
+		long waitSecSum = (long) cc.getAvgWaitSec() * cc.getPrcsPsgCnt() + sbdDay.waitSecSum(bgnMinute, MIN_PER_HOUR);
+		long prcsSecSum = (long) cc.getAvgPrcsSec() * cc.getPrcsPsgCnt() + sbdDay.prcsSecSum(bgnMinute, MIN_PER_HOUR);
+		DsbdRsltDto result = new DsbdRsltDto();
+		result.setTime(hour + HOUR_SUFFIX);
+		result.setPsgCnt(fltPsg == null ? 0 : fltPsg.getPsgCnt());
+		result.setFcstWtngPsgCnt(maxQueue);
+		result.setPrcsPsgCnt(prcsPsgCnt);
+		result.setWtngHr(prcsPsgCnt == 0 ? 0 : Math.toIntExact(waitSecSum / prcsPsgCnt / SEC_PER_MIN));
+		result.setPrcsHr(prcsPsgCnt == 0 ? 0 : Math.toIntExact(prcsSecSum / prcsPsgCnt / SEC_PER_MIN));
+		result.setPrcsRate(SmltUtils.toPrcsRate(prcsPsgCnt, endQueue));
+		result.setWtngPsgCnt(psgWtng == null ? null : psgWtng.getWtngPsgCnt());
+		result.setLastWeekWtngPsgCnt(lastWeekPsgWtng == null ? 0 : lastWeekPsgWtng.getWtngPsgCnt());
 
 		return result;
 	}
@@ -699,7 +760,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return result;
 	}
 
-	// 출국장은 배정할 항공사가 없어 소요 수량만 표기한다
 	private FcltRecommendDto getRecommend(String targetName, int reqCnt) {
 		FcltRecommendDto result = new FcltRecommendDto();
 

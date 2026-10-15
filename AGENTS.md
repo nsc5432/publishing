@@ -541,6 +541,9 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 
 - **Queue 대상은 유인 카운터 `CC` 뿐이다.** `CK`(셀프체크인) · `SBD`(셀프백드롭)는 자원 정보로만
   남고 Queue·혼잡·추천 계산에서 빠진다.
+- 요약보기 시간대별 CHKN 차트는 `CC` 공용 Queue에 아일랜드별 SBD 기기 대기를 더한다. SBD가 있는
+  아일랜드에서는 체크인 카드와 값이 다른 것이 의도된 동작이다
+  ([구현 계획](docs/plans/2026-10-15-dsbd-chkn-chart-island-queue.md)).
 - 산식은 `observedQueue[t] - observedQueue[t-1] + observedProcessed[t]` 로 유입을 역산해 1분 단위
   FIFO 로 흘린다. **`QueueLength_Current` 는 부스별 독립 값이고 `FinishedClients_Abs` 는 누적이
   아니라 구간 처리인원**이라는 두 전제가 깨지면 산식 전체가 무너진다.

@@ -20,6 +20,7 @@ import aoms.pm.cast.domains.chkn.ChknQueueCalculator;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknQueueInterval;
 import aoms.pm.cast.domains.chkn.ChknQueueSeries;
+import aoms.pm.cast.domains.chkn.ChknSbdDay;
 import aoms.pm.cast.dto.ChknQueueRawDto;
 import aoms.pm.cast.dto.TimeRange;
 import aoms.pm.cast.dto.UserConfigChknDto;
@@ -55,6 +56,7 @@ import lombok.extern.slf4j.Slf4j;
 public class CastChknQueueServiceImpl implements CastChknQueueService {
 	/** Queue 대상은 유인 카운터뿐이다 — 셀프체크인(CK) · 셀프백드롭(SBD)은 자원 정보로만 남는다 */
 	private static final String QUEUE_UP_PSG_FCLT_CD = "CC";
+	private static final String SBD_UP_PSG_FCLT_CD = "SBD";
 
 	private static final String YMD_FORMAT = "yyyyMMdd";
 	private static final int MINUTE_PER_DAY = ChknQueueSeries.MINUTE_PER_DAY;
@@ -91,6 +93,49 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		}
 
 		return result;
+	}
+
+	@Override
+	public ChknSbdDay retrieveChknSbdDay(String smltId, TerminalKind tmnlId, String excnYmd) {
+		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(
+				smltId, tmnlId.getFcltTmnlId(), SBD_UP_PSG_FCLT_CD);
+		LocalDate baseDate = LocalDate.parse(excnYmd, DateTimeFormatter.ofPattern(YMD_FORMAT));
+		Map<String, Map<Integer, List<ChknQueueRawDto>>> islandRawMap = groupByIslandAndMinute(rawList, baseDate);
+		Map<String, int[]> queueMap = new LinkedHashMap<>();
+		int[] processed = new int[MINUTE_PER_DAY];
+		long[] waitSecSum = new long[MINUTE_PER_DAY];
+		long[] prcsSecSum = new long[MINUTE_PER_DAY];
+
+		for (Map.Entry<String, Map<Integer, List<ChknQueueRawDto>>> entry : islandRawMap.entrySet()) {
+			Map<Integer, List<ChknQueueRawDto>> minuteMap = entry.getValue();
+			List<Integer> minuteList = new ArrayList<>(minuteMap.keySet());
+			int[] queue = new int[MINUTE_PER_DAY];
+
+			for (int index = 0; index < minuteList.size(); index++) {
+				int bgnMinute = minuteList.get(index);
+				int durationMin = intervalDurationMin(minuteList, index);
+				List<ChknQueueRawDto> boothList = minuteMap.get(bgnMinute);
+				int observedQueue = boothList.stream().mapToInt(ChknQueueRawDto::getWtngPsgCnt).sum();
+
+				for (int minute = Math.max(bgnMinute, 0); minute < Math.min(bgnMinute + durationMin, MINUTE_PER_DAY); minute++) {
+					queue[minute] = observedQueue;
+				}
+
+				if (bgnMinute < 0 || bgnMinute >= MINUTE_PER_DAY) {
+					continue;
+				}
+
+				for (ChknQueueRawDto raw : boothList) {
+					processed[bgnMinute] += raw.getTrnstPsgCnt();
+					waitSecSum[bgnMinute] += (long) raw.getWtngHr() * raw.getTrnstPsgCnt();
+					prcsSecSum[bgnMinute] += (long) raw.getPrcsHr() * raw.getTrnstPsgCnt();
+				}
+			}
+
+			queueMap.put(entry.getKey(), queue);
+		}
+
+		return new ChknSbdDay(queueMap, processed, waitSecSum, prcsSecSum);
 	}
 
 	private List<String> islandCdList(
@@ -130,9 +175,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 
 		for (int index = 0; index < minuteList.size(); index++) {
 			int bgnMinute = minuteList.get(index);
-			int durationMin = index + 1 < minuteList.size()
-					? minuteList.get(index + 1) - bgnMinute
-					: lastDurationMin(minuteList);
+			int durationMin = intervalDurationMin(minuteList, index);
 			List<ChknQueueRawDto> boothList = minuteMap.get(bgnMinute);
 
 			result.add(new ChknQueueInterval(
@@ -151,10 +194,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		return result;
 	}
 
-	/*
-	 * 마지막 결과 시각 이후는 유입이 없다고 보고 남은 Queue 를 배정 부스로 흘려보낸다.
-	 * 이 구간을 비우면 마지막 Queue 가 24:00 까지 그대로 남아 미운영 시각에 대기인원이 서 있게 된다.
-	 */
+	// 꼬리 구간을 비우면 마지막 Queue가 미운영 시각까지 남는다.
 	private void addTailInterval(List<ChknQueueInterval> intervalList) {
 		if (intervalList.isEmpty()) {
 			return;
@@ -176,7 +216,11 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 				0));
 	}
 
-	private int lastDurationMin(List<Integer> minuteList) {
+	private int intervalDurationMin(List<Integer> minuteList, int index) {
+		if (index + 1 < minuteList.size()) {
+			return minuteList.get(index + 1) - minuteList.get(index);
+		}
+
 		if (minuteList.size() < 2) {
 			return DEFAULT_ITVL_MIN;
 		}
