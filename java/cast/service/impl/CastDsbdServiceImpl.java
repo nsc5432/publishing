@@ -1,6 +1,7 @@
 package aoms.pm.cast.service.impl;
 
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -21,7 +22,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -132,7 +132,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		DsbdHeaderDto result = new DsbdHeaderDto();
 		String ymd = searchDto.getYmd();
 
-		// 운항계획 카드는 공항 전체다. 터미널 목록을 주지 않으면 매퍼가 터미널 조건을 걸지 않는다
 		FltSmryRawDto fltSmry = castDsbdMapper.retrieveFltSmry(ymd, null, null, null);
 		List<HourlyPsgDto> hourlyPsgList = new ArrayList<>();
 
@@ -204,22 +203,26 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			return retrieveChknRsltByTime(searchDto.getSmltId(), tmnlId, smltStng.getExcnYmd());
 		}
 
+		if (category == DsbdCategory.DEP) {
+			return retrieveDepRsltByTime(searchDto.getSmltId(), tmnlId, smltStng.getExcnYmd());
+		}
+
 		Map<String, SmltRsltRawDto> rsltByHour = castDsbdMapper
 				.retrieveRsltByHourList(searchDto.getSmltId(), tmnlId.getFcltTmnlId(), category.getUpPsgFcltCdList())
-				.stream().collect(Collectors.toMap(SmltRsltRawDto::getTime, Function.identity(), (first, ignored) -> first));
+				.stream().collect(toMap(SmltRsltRawDto::getTime, Function.identity(), (first, ignored) -> first));
 
 		Map<String, FltPsgRawDto> fltPsgByHour = castFltPsgMapper
 				.retrieveFltPsgHourList(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList())
-				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
+				.stream().collect(toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
 		Map<String, PsgWtngRawDto> psgWtngByHour = castDsbdMapper
 				.retrievePsgWtngByHourList(smltStng.getExcnYmd(), tmnlId.getFcltTmnlId(), category.getPsgWtngFcltTypeCdList())
-				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+				.stream().collect(toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
 
 		String lastWeekYmd = formatYmd(parseYmd(smltStng.getExcnYmd()).minusDays(7));
 		Map<String, PsgWtngRawDto> lastWeekPsgWtngByHour = castDsbdMapper
 				.retrievePsgWtngByHourList(lastWeekYmd, tmnlId.getFcltTmnlId(), category.getPsgWtngFcltTypeCdList())
-				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+				.stream().collect(toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
 
 		List<DsbdRsltDto> result = new ArrayList<>();
 
@@ -263,7 +266,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		Map<String, SmltRsltRawDto> recommendRsltMap = aggregateByUnit(recommendUnitTimeMap);
 
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, cardFcltCdList)
-				.stream().collect(Collectors.toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
+				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
 
 		CgnGradeScale gradeScale = castCgnGradeService.retrieveGradeScale(fcltType, baseContext);
 		RecommendationContext recommendationContext = new RecommendationContext(
@@ -320,7 +323,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		RecommendationResources resources = getRecommendationResources(FcltType.CHKN, smltStng, fcltTmnlId, range.getBgnDt());
 
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, List.of("CC", "CK", "SBD"))
-				.stream().collect(Collectors.toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
+				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
 
 		int bgnMinute = toMinutes(hhmm);
 		List<FcltUnitDto> unitList = getChknUnitList(unitMap, queueDay, bgnMinute, baseContext);
@@ -447,9 +450,9 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private HourlyPsgDto getHourlyPsg(String ymd, TerminalKind tmnlId) {
 		Map<String, PsgDptcnyTrnsPrfmncRawDto> prcsMap = castDsbdMapper
 				.retrieveHourlyPsgDptcnyTrnsPrfmncList(ymd, tmnlId.getFltTmnlIdList())
-				.stream().collect(Collectors.toMap(PsgDptcnyTrnsPrfmncRawDto::getHour, Function.identity(), (first, ignored) -> first));
+				.stream().collect(toMap(PsgDptcnyTrnsPrfmncRawDto::getHour, Function.identity(), (first, ignored) -> first));
 		Map<String, BdpsgAnceRawDto> fcstMap = castDsbdMapper.retrieveHourlyBdpsgAnceList(ymd, tmnlId.getFltTmnlIdList())
-				.stream().collect(Collectors.toMap(BdpsgAnceRawDto::getHour, Function.identity(), (first, ignored) -> first));
+				.stream().collect(toMap(BdpsgAnceRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
 		List<HourlyPsgItemDto> itemList = new ArrayList<>();
 		int totPsgCnt = 0;
@@ -525,7 +528,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private List<DsbdRsltDto> retrieveChknRsltByTime(String smltId, TerminalKind tmnlId, String excnYmd) {
 		Map<String, FltPsgRawDto> fltPsgByHour = castFltPsgMapper
             .retrieveFltPsgHourList(excnYmd, tmnlId.getFltTmnlIdList())
-            .stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
+            .stream().collect(toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
         // Cast Queue
 		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltId, tmnlId, excnYmd);
@@ -537,11 +540,11 @@ public class CastDsbdServiceImpl implements CastDsbdService {
         String lastWeekYmd = formatYmd(parseYmd(excnYmd).minusDays(7));
 		Map<String, PsgWtngRawDto> psgWtngByHour = castDsbdMapper
             .retrievePsgWtngIslSumByHourList(excnYmd, tmnlId.getFcltTmnlId())
-            .stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+            .stream().collect(toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
 		
         Map<String, PsgWtngRawDto> lastWeekPsgWtngByHour = castDsbdMapper
             .retrievePsgWtngIslSumByHourList(lastWeekYmd, tmnlId.getFcltTmnlId())
-            .stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+            .stream().collect(toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
 	
         List<DsbdRsltDto> result = new ArrayList<>();
 
@@ -572,14 +575,14 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		int bgnMinute = Integer.parseInt(hour) * MIN_PER_HOUR;
 		int endMinute = bgnMinute + MIN_PER_HOUR;
 		ChknQueueSlot cc = queueDay.tmnlSeries().slotOf(bgnMinute, MIN_PER_HOUR);
-		int maxQueue = 0;
+		int maxIslandQueue = 0;
 		int endQueue = cc.getCurrentQueue();
 
 		for (String island : islandCdSet) {
 			endQueue += sbdDay.queueAt(island, endMinute - 1);
 
 			for (int minute = bgnMinute; minute < endMinute; minute++) {
-				maxQueue = Math.max(maxQueue, queueDay.queueAt(island, minute) + sbdDay.queueAt(island, minute));
+				maxIslandQueue = Math.max(maxIslandQueue, queueDay.queueAt(island, minute) + sbdDay.queueAt(island, minute));
 			}
 		}
 
@@ -589,13 +592,51 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		DsbdRsltDto result = new DsbdRsltDto();
 		result.setTime(hour + "00");
 		result.setPsgCnt(fltPsg == null ? 0 : fltPsg.getPsgCnt());
-		result.setFcstWtngPsgCnt(maxQueue);
+		result.setFcstWtngPsgCnt(maxIslandQueue);
 		result.setPrcsPsgCnt(prcsPsgCnt);
 		result.setWtngHr(prcsPsgCnt == 0 ? 0 : Math.toIntExact(waitSecSum / prcsPsgCnt / SEC_PER_MIN));
 		result.setPrcsHr(prcsPsgCnt == 0 ? 0 : Math.toIntExact(prcsSecSum / prcsPsgCnt / SEC_PER_MIN));
 		result.setPrcsRate(SmltUtils.toPrcsRate(prcsPsgCnt, endQueue));
 		result.setWtngPsgCnt(psgWtng == null ? null : psgWtng.getWtngPsgCnt());
 		result.setLastWeekWtngPsgCnt(lastWeekPsgWtng == null ? 0 : lastWeekPsgWtng.getWtngPsgCnt());
+
+		return result;
+	}
+
+	private List<DsbdRsltDto> retrieveDepRsltByTime(String smltId, TerminalKind tmnlId, String excnYmd) {
+        String lastWeekYmd = formatYmd(parseYmd(excnYmd).minusDays(7));
+
+		Map<String, SmltRsltRawDto> rsltByHour = castDsbdMapper.retrieveRsltByHourList(smltId, tmnlId.getFcltTmnlId(), DsbdCategory.DEP.getUpPsgFcltCdList())
+				.stream().collect(toMap(SmltRsltRawDto::getTime, Function.identity(), (first, ignored) -> first));
+
+		Map<String, PsgWtngRawDto> fcstWtngByHour = castDsbdMapper.retrieveDepFcstWtngByHourList(smltId, tmnlId.getFcltTmnlId())
+				.stream().collect(toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+
+		Map<String, FltPsgRawDto> fltPsgByHour = castFltPsgMapper.retrieveFltPsgHourList(excnYmd, tmnlId.getFltTmnlIdList())
+				.stream().collect(toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
+
+		Map<String, PsgWtngRawDto> psgWtngByHour = castDsbdMapper.retrievePsgWtngDptgtSumByHourList(excnYmd, tmnlId.getFcltTmnlId())
+				.stream().collect(toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+
+		Map<String, PsgWtngRawDto> lastWeekPsgWtngByHour = castDsbdMapper.retrievePsgWtngDptgtSumByHourList(lastWeekYmd, tmnlId.getFcltTmnlId())
+				.stream().collect(toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+
+		List<DsbdRsltDto> result = new ArrayList<>();
+
+		for (String hour : TimeBucketUtils.hourList()) {
+			DsbdRsltDto row = toRsltDto(
+                hour,
+                rsltByHour.get(hour + "00"),
+                fltPsgByHour.get(hour),
+                psgWtngByHour.get(hour + "00"),
+                lastWeekPsgWtngByHour.get(hour + "00"),
+                DsbdCategory.DEP
+			);
+
+			PsgWtngRawDto fcstWtng = fcstWtngByHour.get(hour + "00");
+			row.setFcstWtngPsgCnt(fcstWtng == null ? 0 : fcstWtng.getWtngPsgCnt());
+			result.add(row);
+		}
 
 		return result;
 	}
@@ -623,9 +664,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			result.setPrcsRate(SmltUtils.toPrcsRate(rslt.getTrnstPsgCnt(), rslt.getWtngPsgCnt()));
 		}
 
-		// 측정값이 없는 시간대는 0 이 아니라 null 이다 — 실적선을 끊어 그린다
 		result.setWtngPsgCnt(psgWtng == null ? null : psgWtng.getWtngPsgCnt());
-
 		result.setLastWeekWtngPsgCnt(lastWeekPsgWtng == null ? 0 : lastWeekPsgWtng.getWtngPsgCnt());
 
 		return result;

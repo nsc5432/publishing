@@ -24,7 +24,6 @@ public interface CastDsbdMapper {
 
 	List<String> retrieveAvlTimeList(@Param("smltId") String smltId);
 
-	/** tmnlIdList 가 비면 공항 전체, bgnHhmm/endHhmm 이 null 이면 하루 전체를 집계한다. */
 	FltSmryRawDto retrieveFltSmry(
 			@Param("ymd") String ymd,
 			@Param("tmnlIdList") List<String> tmnlIdList,
@@ -59,7 +58,16 @@ public interface CastDsbdMapper {
 			@Param("tmnlId") String tmnlId
 	);
 
-	/** smltActlDt 를 주면 그 시각 한 칸만, 주지 않으면 [bgnDt, endDt) 구간을 읽는다. */
+	List<PsgWtngRawDto> retrieveDepFcstWtngByHourList(
+			@Param("smltId") String smltId,
+			@Param("tmnlId") String tmnlId
+	);
+
+	List<PsgWtngRawDto> retrievePsgWtngDptgtSumByHourList(
+			@Param("ymd") String ymd,
+			@Param("tmnlId") String tmnlId
+	);
+
 	List<SmltRsltRawDto> retrieveRsltByUnitList(
 			@Param("smltId") String smltId,
 			@Param("tmnlId") String tmnlId,

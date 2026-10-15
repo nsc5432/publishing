@@ -95,7 +95,7 @@
         <if test="tmnlIdList != null and tmnlIdList.size() > 0">
         AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
         </if>
-        AND REGEXP_LIKE(A.PSG_FCLT_CD, '^D[1-6]$')
+        AND A.PSG_FCLT_CD LIKE 'D_'
         GROUP BY A.TOT_HOUR
         ORDER BY HOUR
     </select>
@@ -162,6 +162,61 @@
         AND A.FCLT_TYPE_CD IN (<foreach collection="fcltTypeCdList" item="item" separator=",">#{item}</foreach>)
         </if>
         GROUP BY SUBSTR(A.PSG_FLOW_DATA_CRT_DT, 9, 2)
+        ORDER BY TIME
+    </select>
+
+    <select id="retrieveDepFcstWtngByHourList" resultType="aoms.pm.cast.dto.PsgWtngRawDto">
+        /* CastDsbdMapper.retrieveDepFcstWtngByHourList */
+        SELECT
+            TO_CHAR(T.SMLT_ACTL_DT, 'HH24') || '00' AS TIME,
+            NVL(MAX(T.DPTGT_WTNG_PSG_CNT), 0) AS WTNG_PSG_CNT
+        FROM (
+            SELECT
+                A.SMLT_ACTL_DT,
+                CASE
+                    WHEN B.UP_PSG_FCLT_CD = 'LGT' THEN SUBSTR(B.PSG_FCLT_CD, 4, 1)
+                    ELSE SUBSTR(B.PSG_FCLT_CD, 5, 1)
+                END AS DPTGT_NO,
+                SUM(A.WTNG_PSG_CNT) AS DPTGT_WTNG_PSG_CNT
+            FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+                INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
+                ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
+            WHERE A.SMLT_ID = #{smltId}
+            AND B.TMNL_ID = #{tmnlId}
+            AND B.USE_YN = 'Y'
+            AND B.UP_PSG_FCLT_CD IN ('LGT', 'LC', 'SC', 'SR')
+            GROUP BY
+                A.SMLT_ACTL_DT,
+                CASE
+                    WHEN B.UP_PSG_FCLT_CD = 'LGT' THEN SUBSTR(B.PSG_FCLT_CD, 4, 1)
+                    ELSE SUBSTR(B.PSG_FCLT_CD, 5, 1)
+                END
+        ) T
+        GROUP BY TO_CHAR(T.SMLT_ACTL_DT, 'HH24')
+        ORDER BY TIME
+    </select>
+
+    <select id="retrievePsgWtngDptgtSumByHourList" resultType="aoms.pm.cast.dto.PsgWtngRawDto">
+        /* CastDsbdMapper.retrievePsgWtngDptgtSumByHourList */
+        SELECT
+            SUBSTR(T.PSG_FLOW_DATA_CRT_DT, 9, 2) || '00' AS TIME,
+            NVL(MAX(T.DPTGT_WTNG_LINE_LEN), 0) AS WTNG_PSG_CNT
+        FROM (
+            SELECT
+                A.PSG_FLOW_DATA_CRT_DT,
+                LTRIM(TRIM(A.CHKN_ISL_CD), '0') AS DPTGT_NO,
+                SUM(A.WTNG_LINE_LEN) AS DPTGT_WTNG_LINE_LEN
+            FROM PMOWN.TN_PM_PSG_WTNG_INFO A
+            WHERE A.PSG_FLOW_DATA_CRT_DT BETWEEN #{ymd} || '0000' AND #{ymd} || '2359'
+            AND A.TMNL_ID = #{tmnlId}
+            AND LTRIM(TRIM(A.CHKN_ISL_CD), '0') IS NOT NULL
+            AND (
+                (A.FCLT_TYPE_CD = 'DG' AND A.FCLT_NM LIKE 'DG_')
+                OR A.FCLT_TYPE_CD = 'SC'
+            )
+            GROUP BY A.PSG_FLOW_DATA_CRT_DT, LTRIM(TRIM(A.CHKN_ISL_CD), '0')
+        ) T
+        GROUP BY SUBSTR(T.PSG_FLOW_DATA_CRT_DT, 9, 2)
         ORDER BY TIME
     </select>
 
