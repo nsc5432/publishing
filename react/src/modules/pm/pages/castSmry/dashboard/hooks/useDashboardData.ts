@@ -3,7 +3,7 @@ import { dashboardService } from '@/api/pm/services/dashboard.service';
 import { unwrap } from '@/api/pm/result';
 import { useFetched, type Fetched } from '@/hooks/useFetched';
 import type { DsbdCategory, DsbdFcltCardDto, DsbdHeaderDto, TmnlSmryDto } from '@/types/api.types';
-import { SMRY_ITVL_MIN, type TerminalKind, type TerminalView } from '../types';
+import { SMRY_INTRVL_MIN, type TerminalKind, type TerminalView } from '../types';
 import { toTerminalView } from '../view';
 
 export interface DashboardQuery {
@@ -50,7 +50,7 @@ export function useTerminalPanel(query: DashboardQuery | null, tmnlId: TerminalK
             const { smltId, hhmm } = dashboardQuery;
 
             return Promise.all([
-                dashboardService.getTmnlSmry(smltId, terminal, hhmm, SMRY_ITVL_MIN).then((dto) => unwrap(dto, PANEL_FAIL)),
+                dashboardService.getTmnlSmry(smltId, terminal, hhmm, SMRY_INTRVL_MIN).then((dto) => unwrap(dto, PANEL_FAIL)),
                 dashboardService.getFcltCardList(smltId, terminal, hhmm, 'CHKN'),
                 dashboardService.getFcltCardList(smltId, terminal, hhmm, 'DEP'),
             ]).then(([smry, chknCards, dptgtCards]): PanelBase => ({

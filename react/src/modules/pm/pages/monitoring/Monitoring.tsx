@@ -20,7 +20,8 @@ function filterByStatus(rows: HistoryRow[], filter: StatusFilter): HistoryRow[] 
 }
 
 const DETAIL_FAIL = '시뮬레이션 결과를 불러오지 못했습니다.';
-const DASHBOARD_PATH = '/rui/pm/daily-smlt/dashboard';
+const DAILY_DASHBOARD_PATH = '/rui/pm/daily-smlt/dashboard';
+const USER_DASHBOARD_PATH = '/rui/pm/user-smlt/dashboard';
 const USER_SMLT_CONFIG_PATH = '/rui/pm/user-smlt/config';
 
 function toQuery(range: RangeCondition): MonitoringQuery {
@@ -61,7 +62,8 @@ function Monitoring() {
                     ymd: execDetail.ymd,
                 });
 
-                navigate(`${DASHBOARD_PATH}?${dashboardParams.toString()}`);
+                const dashboardPath = execDetail.smltType === 'USER' ? USER_DASHBOARD_PATH : DAILY_DASHBOARD_PATH;
+                navigate(`${dashboardPath}?${dashboardParams.toString()}`);
             })
             .catch((error: ApiError) => {
                 dialog.alert({ title: '조회 실패', description: error?.message || DETAIL_FAIL }).catch(() => {});

@@ -1,7 +1,3 @@
-/**
- * 서버 DTO 값을 화면 표기로 옮기는 변환 모음 (화면 공용).
- */
-
 /** 값이 비었거나 형식이 어긋날 때 표기 */
 const EMPTY = '-';
 
@@ -53,11 +49,7 @@ export function formatCount(count: number): string {
 export function dowLabel(ymd: string): string {
     if (!ymd || ymd.length !== 8) return '';
 
-    const date = new Date(
-        Number(ymd.slice(0, 4)),
-        Number(ymd.slice(4, 6)) - 1,
-        Number(ymd.slice(6, 8)),
-    );
+    const date = new Date(Number(ymd.slice(0, 4)), Number(ymd.slice(4, 6)) - 1, Number(ymd.slice(6, 8)));
 
     return ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][date.getDay()];
 }
@@ -106,21 +98,11 @@ function nowHhmm(): string {
     return pad2(now.getHours()) + pad2(Math.floor(now.getMinutes() / MINUTE_STEP) * MINUTE_STEP);
 }
 
-/**
- * 기본 선택 시각 — 현재 시각에 가장 가까운 선택 가능 시각.
- *
- * 화면에 들어오면 "지금" 을 보고 싶어 하지, 계산이 끝난 마지막 시각을 보고 싶어 하지 않는다.
- * 아직 계산되지 않은 시각은 목록에 없으므로 자연히 가장 늦은 시각으로 내려앉는다.
- * (목록이 비면 현재 시각을 그대로 쓴다)
- */
 export function defaultTime(avlTimes: string[]): string {
     const now = toMinuteOfDay(nowHhmm());
 
     if (avlTimes.length === 0) return nowHhmm();
 
-    return avlTimes.reduce((nearest, time) =>
-        Math.abs(toMinuteOfDay(time) - now) < Math.abs(toMinuteOfDay(nearest) - now)
-            ? time
-            : nearest,
-    );
+    // 현재 시각에 가장 가까운 선택 가능 시각
+    return avlTimes.reduce((nearest, time) => (Math.abs(toMinuteOfDay(time) - now) < Math.abs(toMinuteOfDay(nearest) - now) ? time : nearest));
 }

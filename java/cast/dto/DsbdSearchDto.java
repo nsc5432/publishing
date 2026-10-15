@@ -19,5 +19,5 @@ public class DsbdSearchDto {
 	private TerminalKind tmnlId; // T1 / T2
 	private DsbdCategory category; // 시간대별 결과의 퀵 액세스 타일
 	private FcltType fcltType; // 게이트 카드 구분 (CHKN / DEP)
-	private Integer itvlMin; // 구간 집계 길이 (분)
+	private Integer intrvlMin; // 구간 집계 길이 (분)
 }

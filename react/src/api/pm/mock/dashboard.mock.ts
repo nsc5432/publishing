@@ -122,7 +122,7 @@ const HEADER: DsbdHeaderDto = {
 /* ================= 터미널 패널 요약 ================= */
 
 /** 조회 시각과 무관한 부분 — 구간 4필드는 buildTmnlSmry 가 얹는다 */
-type TmnlSmryBase = Omit<TmnlSmryDto, 'itvlMin' | 'itvlFltCnt' | 'itvlPsgCnt' | 'itvlBefFltDiffCnt' | 'itvlBefPsgDiffCnt'>;
+type TmnlSmryBase = Omit<TmnlSmryDto, 'intrvlMin' | 'intrvlFltCnt' | 'intrvlPsgCnt' | 'intrvlYesterdayFltDiffCnt' | 'intrvlYesterdayPsgDiffCnt'>;
 
 const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
     T1: {
@@ -131,10 +131,10 @@ const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
         tmnlId: 'T1',
         fltCnt: TMNL_FLT_CNT.T1,
         fltDiffCnt: 12,
-        befFltDiffCnt: 2,
+        yesterdayFltDiffCnt: 2,
         psgCnt: sum(HOURLY_PSG.T1),
         psgDiffCnt: 2688,
-        befPsgDiffCnt: 1234,
+        yesterdayPsgDiffCnt: 1234,
         brdgRate: 79,
         cgnStatus: 'FREE',
         peak: {
@@ -151,10 +151,10 @@ const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
         tmnlId: 'T2',
         fltCnt: TMNL_FLT_CNT.T2,
         fltDiffCnt: -8,
-        befFltDiffCnt: 5,
+        yesterdayFltDiffCnt: 5,
         psgCnt: sum(HOURLY_PSG.T2),
         psgDiffCnt: 1942,
-        befPsgDiffCnt: 842,
+        yesterdayPsgDiffCnt: 842,
         brdgRate: 74,
         cgnStatus: 'NORMAL',
         peak: {
@@ -168,7 +168,7 @@ const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
 };
 
 /** 전일 같은 구간을 만드는 터미널별 배율 — 증감 부호가 두 터미널에서 갈리도록 골랐다 */
-const BEF_DAY_RATIO: Record<TmnlId, number> = { T1: 0.94, T2: 1.05 };
+const YESTERDAY_RATIO: Record<TmnlId, number> = { T1: 0.94, T2: 1.05 };
 
 const MIN_PER_HOUR = 60;
 const MIN_PER_DAY = 24 * MIN_PER_HOUR;
@@ -181,11 +181,11 @@ function toHourlyFlt(tmnlId: TmnlId): number[] {
     return counts.map((psgCnt) => (TMNL_FLT_CNT[tmnlId] * psgCnt) / total);
 }
 
-/** 시간대(00~23시) 곡선에서 [bgnHhmm, +itvlMin) 과 겹치는 분만큼만 비례해 더한다 */
-function sumByItvl(hourly: number[], bgnHhmm: string, itvlMin: number): number {
+/** 시간대(00~23시) 곡선에서 [bgnHhmm, +intrvlMin) 과 겹치는 분만큼만 비례해 더한다 */
+function sumByIntrvl(hourly: number[], bgnHhmm: string, intrvlMin: number): number {
     const bgnMin = Number(bgnHhmm.slice(0, 2)) * MIN_PER_HOUR + Number(bgnHhmm.slice(2, 4));
     // 예측시분에 날짜가 없어 자정을 넘는 구간은 그날 끝까지로 자른다 (서버와 같은 규칙)
-    const endMin = Math.min(bgnMin + itvlMin, MIN_PER_DAY);
+    const endMin = Math.min(bgnMin + intrvlMin, MIN_PER_DAY);
 
     const total = hourly.reduce((acc, count, hour) => {
         const overlap = Math.min(endMin, (hour + 1) * MIN_PER_HOUR) - Math.max(bgnMin, hour * MIN_PER_HOUR);
@@ -196,18 +196,18 @@ function sumByItvl(hourly: number[], bgnHhmm: string, itvlMin: number): number {
     return Math.round(total);
 }
 
-function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, itvlMin: number): TmnlSmryDto {
-    const itvlFltCnt = sumByItvl(toHourlyFlt(tmnlId), hhmm, itvlMin);
-    const itvlPsgCnt = sumByItvl(HOURLY_PSG[tmnlId], hhmm, itvlMin);
-    const ratio = BEF_DAY_RATIO[tmnlId];
+function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmryDto {
+    const intrvlFltCnt = sumByIntrvl(toHourlyFlt(tmnlId), hhmm, intrvlMin);
+    const intrvlPsgCnt = sumByIntrvl(HOURLY_PSG[tmnlId], hhmm, intrvlMin);
+    const ratio = YESTERDAY_RATIO[tmnlId];
 
     return {
         ...TMNL_SMRY[tmnlId],
-        itvlMin,
-        itvlFltCnt,
-        itvlPsgCnt,
-        itvlBefFltDiffCnt: itvlFltCnt - Math.round(itvlFltCnt * ratio),
-        itvlBefPsgDiffCnt: itvlPsgCnt - Math.round(itvlPsgCnt * ratio),
+        intrvlMin,
+        intrvlFltCnt,
+        intrvlPsgCnt,
+        intrvlYesterdayFltDiffCnt: intrvlFltCnt - Math.round(intrvlFltCnt * ratio),
+        intrvlYesterdayPsgDiffCnt: intrvlPsgCnt - Math.round(intrvlPsgCnt * ratio),
     };
 }
 
@@ -779,7 +779,7 @@ export const dashboardMock = {
 
     getHeader: (): DsbdHeaderDto => HEADER,
 
-    getTmnlSmry: (tmnlId: TmnlId, hhmm: string, itvlMin: number): TmnlSmryDto => buildTmnlSmry(tmnlId, hhmm, itvlMin),
+    getTmnlSmry: (tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmryDto => buildTmnlSmry(tmnlId, hhmm, intrvlMin),
 
     getTmnlRsltByTime: (tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] => buildRsltList(tmnlId, category),
 

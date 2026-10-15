@@ -1,10 +1,5 @@
 import type { NavItem } from '@/components/lnb';
 
-/**
- * 화면 접근 권한. 롤은 합집합으로 평가한다 (한 사용자가 여러 롤을 갖는다).
- * 매출 정보는 여기서 다루지 않는다 — 서버가 응답에서 빼 준다.
- */
-
 export const PM_ROLE = {
     BASIC: 'PMR0001',
     OPER_CENTER: 'PMR0002',
@@ -14,13 +9,7 @@ export const PM_ROLE = {
     SYS_ADMIN: 'PMR0006',
 } as const;
 
-const SMLT_ROLES = [
-    PM_ROLE.OPER_CENTER,
-    PM_ROLE.OPER_PLAN,
-    PM_ROLE.SALES,
-    PM_ROLE.FORECAST,
-    PM_ROLE.SYS_ADMIN,
-];
+const SMLT_ROLES = [PM_ROLE.OPER_CENTER, PM_ROLE.OPER_PLAN, PM_ROLE.SALES, PM_ROLE.FORECAST, PM_ROLE.SYS_ADMIN];
 const FCLT_MAP_ROLES = [PM_ROLE.OPER_CENTER, PM_ROLE.OPER_PLAN, PM_ROLE.SYS_ADMIN];
 const CAST_CONFIG_ROLES = [PM_ROLE.SYS_ADMIN];
 
@@ -31,6 +20,7 @@ const PATH_ROLES: Record<string, readonly string[]> = {
     '/rui/pm/daily-smlt/checkinCounter': SMLT_ROLES,
     '/rui/pm/daily-smlt/departureHall': SMLT_ROLES,
     '/rui/pm/user-smlt/config': SMLT_ROLES,
+    '/rui/pm/user-smlt/dashboard': SMLT_ROLES,
     '/rui/pm/smlt-monitoring': SMLT_ROLES,
     '/rui/pm/fclt-map': FCLT_MAP_ROLES,
     '/rui/pm/cast-config': CAST_CONFIG_ROLES,

@@ -233,7 +233,7 @@ public interface ObservationCorrector {
 public final class QueueIntervalMetrics {
     private final QueueNodeKey node;
     private final LocalDateTime bgnDt;
-    private final int itvlMin;
+    private final int intrvlMin;
 
     private final int queueLength;          // L_q  (관측 또는 보정)
     private final int processedCount;       // 구간 처리인원
@@ -308,7 +308,7 @@ public interface QueueAnalysisEngine {
 ### 4.1 구간 정규화
 
 1. 관측을 `(node, obsvDt)` 로 묶는다.
-2. 인접한 관측 시각의 간격을 그 구간의 `itvlMin` 으로 삼는다. 마지막 구간은 직전 간격을 물려받는다.
+2. 인접한 관측 시각의 간격을 그 구간의 `intrvlMin` 으로 삼는다. 마지막 구간은 직전 간격을 물려받는다.
 3. `anchor` 가 `END` 면 구간은 `[이전 시각, 이 시각]`, `START` 면 `[이 시각, 다음 시각]` 이다.
 4. **꼬리 구간을 붙인다.** 마지막 결과 시각 이후 자정까지 유입 0 인 구간을 만들어 남은 Queue 를
    흘려보낸다. 빼면 마지막 대기인원이 24:00 까지 서 있게 된다 (기존 `addTailInterval` 과 동일).
@@ -349,7 +349,7 @@ s[t] = COUNT( SERVER 관측 WHERE node 동일 AND open = true AND outRatePerHour
 | 2 | 원천 평균 처리시간 | `60 / avgServiceSec` |
 | 3 | 같은 노드 최근 60분 처리인원 가중평균 처리시간 | `60 / weightedAvgServiceSec` |
 | 4 | 같은 터미널·시설군 당일 가중평균 처리시간 | `60 / tmnlAvgServiceSec` |
-| 5 | 관측 처리량 역산 | `processedCount / itvlMin / s` |
+| 5 | 관측 처리량 역산 | `processedCount / intrvlMin / s` |
 | — | 모두 실패 | `μ = null` → 추천 `NONE(NO_SERVICE_RATE)` + `WARN` |
 
 3·4순위는 기존 `ChknQueueCalculator.resolvePrcsSec` 의 fallback 사슬 그대로다. 1·2순위가 Xovis 를
@@ -362,7 +362,7 @@ s[t] = COUNT( SERVER 관측 WHERE node 동일 AND open = true AND outRatePerHour
 ```
 ΔL[t] = L_q[t] − L_q[t−1]
 outflow[t] = Σ departedCount(같은 노드의 모든 Desk)
-λ[t] = MAX(0, ΔL[t] + outflow[t]) / itvlMin        (명/분)
+λ[t] = MAX(0, ΔL[t] + outflow[t]) / intrvlMin        (명/분)
 ```
 
 - 첫 구간의 `L_q[t−1]` 은 0으로 본다.
@@ -527,7 +527,7 @@ Queue 대상은 유인 카운터 `CC` 뿐이라는 규칙도 어댑터의 조회
 
 입력
 ```
-L_q(직전) = 0,  L_q(현재) = 138,  Σ departedCount = 30,  itvlMin = 10
+L_q(직전) = 0,  L_q(현재) = 138,  Σ departedCount = 30,  intrvlMin = 10
 활성 Desk = 3대,  각 outRatePerHour = 240
 L* = 10 (목표 대기인원),  T = 30분
 ```
@@ -611,7 +611,7 @@ export interface QueueMetricsDto {
 
 export interface QueueSlotDto {
     hhmm: string;
-    itvlMin: number;
+    intrvlMin: number;
     wtngPsgCnt: number;      // L_q
     prcsPsgCnt: number;
     oprFcltCnt: number;      // s

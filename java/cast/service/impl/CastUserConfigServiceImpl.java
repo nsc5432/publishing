@@ -34,7 +34,6 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class CastUserConfigServiceImpl implements CastUserConfigService {
-	// I 는 숫자 1 과 헷갈려 아일랜드 기호로 쓰지 않는다
 	private static final List<String> ISLAND_CD_LIST =
 			List.of("A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N");
 

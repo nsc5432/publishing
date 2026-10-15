@@ -54,14 +54,10 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastChknQueueServiceImpl implements CastChknQueueService {
-	/** Queue 대상은 유인 카운터뿐이다 — 셀프체크인(CK) · 셀프백드롭(SBD)은 자원 정보로만 남는다 */
-	private static final String QUEUE_UP_PSG_FCLT_CD = "CC";
-	private static final String SBD_UP_PSG_FCLT_CD = "SBD";
-
 	private static final String YMD_FORMAT = "yyyyMMdd";
 	private static final int MINUTE_PER_DAY = ChknQueueSeries.MINUTE_PER_DAY;
 	private static final int MINUTE_PER_HOUR = 60;
-	private static final int DEFAULT_ITVL_MIN = 10;
+	private static final int DEFAULT_INTRVL_MIN = 10;
 	private static final MathContext MATH_CONTEXT = MathContext.DECIMAL128;
 
 	private final CastChknMapper castChknMapper;
@@ -73,7 +69,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 		String context = "smltId=" + smltId + ", tmnlId=" + tmnlId.getValue();
 
-		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(smltId, fcltTmnlId, QUEUE_UP_PSG_FCLT_CD);
+		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(smltId, fcltTmnlId, "CC");
 		Map<String, List<UserConfigChknDto>> boothMap = castUserConfigService.retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
 
 		LocalDate baseDate = LocalDate.parse(excnYmd, DateTimeFormatter.ofPattern(YMD_FORMAT));
@@ -97,8 +93,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 
 	@Override
 	public ChknSbdDay retrieveChknSbdDay(String smltId, TerminalKind tmnlId, String excnYmd) {
-		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(
-				smltId, tmnlId.getFcltTmnlId(), SBD_UP_PSG_FCLT_CD);
+		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(smltId, tmnlId.getFcltTmnlId(), "SBD");
 		LocalDate baseDate = LocalDate.parse(excnYmd, DateTimeFormatter.ofPattern(YMD_FORMAT));
 		Map<String, Map<Integer, List<ChknQueueRawDto>>> islandRawMap = groupByIslandAndMinute(rawList, baseDate);
 		Map<String, int[]> queueMap = new LinkedHashMap<>();
@@ -138,9 +133,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		return new ChknSbdDay(queueMap, processed, waitSecSum, prcsSecSum);
 	}
 
-	private List<String> islandCdList(
-			Map<String, List<UserConfigChknDto>> boothMap,
-			Map<String, Map<Integer, List<ChknQueueRawDto>>> islandRawMap) {
+	private List<String> islandCdList(Map<String, List<UserConfigChknDto>> boothMap, Map<String, Map<Integer, List<ChknQueueRawDto>>> islandRawMap) {
 		Set<String> result = new LinkedHashSet<>(boothMap.keySet());
 		result.addAll(islandRawMap.keySet());
 
@@ -222,7 +215,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		}
 
 		if (minuteList.size() < 2) {
-			return DEFAULT_ITVL_MIN;
+			return DEFAULT_INTRVL_MIN;
 		}
 
 		return minuteList.get(minuteList.size() - 1) - minuteList.get(minuteList.size() - 2);

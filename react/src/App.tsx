@@ -72,6 +72,7 @@ function App() {
                             <Route path="/rui/pm/daily-smlt/departureHall" element={<DepartureHallPage />} />
                             <Route path="/rui/pm/daily-smlt/checkinCounter" element={<CheckinCounterPage />} />
                             <Route path="/rui/pm/user-smlt/config" element={<UserSmltConfigPage />} />
+                            <Route path="/rui/pm/user-smlt/dashboard" element={<DashboardPage />} />
                             <Route path="/rui/pm/smlt-monitoring" element={<MonitoringPage />} />
                             <Route path="/rui/pm/fclt-map" element={<FacilityMapPage />} />
                             <Route path="/rui/pm/cast-config" element={<CastConfigPage />} />

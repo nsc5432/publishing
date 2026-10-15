@@ -180,18 +180,18 @@ export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCard
             {
                 icon: 'plane',
                 iconClass: 'i-blue i-32',
-                value: formatCount(smry.itvlFltCnt),
+                value: formatCount(smry.intrvlFltCnt),
                 unit: '편',
                 deltaLabel: '전일 대비',
-                delta: formatDiff(smry.itvlBefFltDiffCnt),
+                delta: formatDiff(smry.intrvlYesterdayFltDiffCnt),
             },
             {
                 icon: 'people',
                 iconClass: 'i-teal i-32',
-                value: formatCount(smry.itvlPsgCnt),
+                value: formatCount(smry.intrvlPsgCnt),
                 unit: '명',
                 deltaLabel: '전일 대비',
-                delta: formatDiff(smry.itvlBefPsgDiffCnt),
+                delta: formatDiff(smry.intrvlYesterdayPsgDiffCnt),
             },
         ],
         summaryInfo: [

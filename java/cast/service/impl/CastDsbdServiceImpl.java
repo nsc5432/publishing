@@ -84,27 +84,16 @@ import lombok.RequiredArgsConstructor;
 public class CastDsbdServiceImpl implements CastDsbdService {
 	private static final String YMD_FORMAT = "yyyyMMdd";
 	private static final String DT_FORMAT = "yyyyMMddHHmmss";
-	private static final String HOUR_SUFFIX = "00";
 	private static final String EMPTY = "";
-	private static final String USE_YN_Y = "Y";
-	private static final String USE_YN_N = "N";
-	private static final String AM = "AM";
-	private static final String PM = "PM";
-
-	private static final String DAY_END_HHMM = "2400";
-
-	private static final int SEC_PER_MIN = 60;
+    private static final int SEC_PER_MIN = 60;
 	private static final int MIN_PER_HOUR = 60;
 	private static final int MIN_PER_DAY = 24 * MIN_PER_HOUR;
-	private static final int HHMM_LENGTH = 4;
-	private static final int NOON_HOUR = 12;
-	private static final int DAYS_A_WEEK = 7;
-	private static final int DEFAULT_ITVL_MIN = 60;
+	private static final int DEFAULT_INTRVL_MIN = 60;
 	private static final int FCLT_ROLLING_MIN = 60;
 	private static final int CAST_SLOT_MIN = 10;
 	private static final int RECOMMEND_LEAD_MIN = 10;
 	private static final int CARD_SLOT_MIN = 30;
-	private static final MathContext MATH_CONTEXT = MathContext.DECIMAL128;
+
 	private final CastDsbdMapper castDsbdMapper;
 	private final CastFltPsgMapper castFltPsgMapper;
 	private final CastSmltService castSmltService;
@@ -170,35 +159,35 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		LocalDate baseDate = parseYmd(smltStng.getExcnYmd());
 
 		FltSmryRawDto baseFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList, null, null);
-		FltSmryRawDto befFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, null, null);
-		FltSmryRawDto lastWeekFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(DAYS_A_WEEK)), fltTmnlIdList, null, null);
+		FltSmryRawDto yesterdayFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, null, null);
+		FltSmryRawDto lastWeekFltSmry = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(7)), fltTmnlIdList, null, null);
 
 		result.setTmnlId(tmnlId.getValue());
 		result.setFltCnt(baseFltSmry.getDepFltCnt());
 		result.setPsgCnt(baseFltSmry.getDepPsgCnt());
 		result.setFltDiffCnt(baseFltSmry.getDepFltCnt() - lastWeekFltSmry.getDepFltCnt());
 		result.setPsgDiffCnt(baseFltSmry.getDepPsgCnt() - lastWeekFltSmry.getDepPsgCnt());
-		result.setBefFltDiffCnt(baseFltSmry.getDepFltCnt() - befFltSmry.getDepFltCnt());
-		result.setBefPsgDiffCnt(baseFltSmry.getDepPsgCnt() - befFltSmry.getDepPsgCnt());
+		result.setYesterdayFltDiffCnt(baseFltSmry.getDepFltCnt() - yesterdayFltSmry.getDepFltCnt());
+		result.setYesterdayPsgDiffCnt(baseFltSmry.getDepPsgCnt() - yesterdayFltSmry.getDepPsgCnt());
 		result.setBrdgRate(getBrdgRate(baseFltSmry));
 		PeakDto peak = getPeak(searchDto.getSmltId(), tmnlId);
 		result.setCgnStatus(CongestionStatus.ofWtngPsgCnt(peak.getWtngPsgCnt()));
 		result.setPeak(peak);
 
-		int itvlMin = searchDto.getItvlMin() != null ? searchDto.getItvlMin() : DEFAULT_ITVL_MIN;
+		int intrvlMin = searchDto.getIntrvlMin() != null ? searchDto.getIntrvlMin() : DEFAULT_INTRVL_MIN;
 		String bgnHhmm = searchDto.getHhmm();
 
-		result.setItvlMin(itvlMin);
+		result.setIntrvlMin(intrvlMin);
 
-		if (bgnHhmm != null && bgnHhmm.length() == HHMM_LENGTH) {
-			String endHhmm = getEndHhmm(bgnHhmm, itvlMin);
-			FltSmryRawDto baseItvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList, bgnHhmm, endHhmm);
-			FltSmryRawDto beforeItvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, bgnHhmm, endHhmm);
+		if (bgnHhmm != null && bgnHhmm.length() == 4) {
+			String endHhmm = getEndHhmm(bgnHhmm, intrvlMin);
+			FltSmryRawDto baseIntrvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList, bgnHhmm, endHhmm);
+			FltSmryRawDto yesterdayIntrvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, bgnHhmm, endHhmm);
 
-			result.setItvlFltCnt(baseItvl.getDepFltCnt());
-			result.setItvlPsgCnt(baseItvl.getDepPsgCnt());
-			result.setItvlBefFltDiffCnt(baseItvl.getDepFltCnt() - beforeItvl.getDepFltCnt());
-			result.setItvlBefPsgDiffCnt(baseItvl.getDepPsgCnt() - beforeItvl.getDepPsgCnt());
+			result.setIntrvlFltCnt(baseIntrvl.getDepFltCnt());
+			result.setIntrvlPsgCnt(baseIntrvl.getDepPsgCnt());
+			result.setIntrvlYesterdayFltDiffCnt(baseIntrvl.getDepFltCnt() - yesterdayIntrvl.getDepFltCnt());
+			result.setIntrvlYesterdayPsgDiffCnt(baseIntrvl.getDepPsgCnt() - yesterdayIntrvl.getDepPsgCnt());
 		}
 
 		return result;
@@ -215,20 +204,20 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			return retrieveChknRsltByTime(searchDto.getSmltId(), tmnlId, smltStng.getExcnYmd());
 		}
 
-		Map<String, SmltRsltRawDto> rsltMap = castDsbdMapper
+		Map<String, SmltRsltRawDto> rsltByHour = castDsbdMapper
 				.retrieveRsltByHourList(searchDto.getSmltId(), tmnlId.getFcltTmnlId(), category.getUpPsgFcltCdList())
 				.stream().collect(Collectors.toMap(SmltRsltRawDto::getTime, Function.identity(), (first, ignored) -> first));
 
-		Map<String, FltPsgRawDto> fltPsgMap = castFltPsgMapper
+		Map<String, FltPsgRawDto> fltPsgByHour = castFltPsgMapper
 				.retrieveFltPsgHourList(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList())
 				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
 
-		Map<String, PsgWtngRawDto> psgWtngMap = castDsbdMapper
+		Map<String, PsgWtngRawDto> psgWtngByHour = castDsbdMapper
 				.retrievePsgWtngByHourList(smltStng.getExcnYmd(), tmnlId.getFcltTmnlId(), category.getPsgWtngFcltTypeCdList())
 				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
 
-		String lastWeekYmd = formatYmd(parseYmd(smltStng.getExcnYmd()).minusDays(DAYS_A_WEEK));
-		Map<String, PsgWtngRawDto> lastWeekPsgWtngMap = castDsbdMapper
+		String lastWeekYmd = formatYmd(parseYmd(smltStng.getExcnYmd()).minusDays(7));
+		Map<String, PsgWtngRawDto> lastWeekPsgWtngByHour = castDsbdMapper
 				.retrievePsgWtngByHourList(lastWeekYmd, tmnlId.getFcltTmnlId(), category.getPsgWtngFcltTypeCdList())
 				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
 
@@ -237,10 +226,10 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		for (String hour : TimeBucketUtils.hourList()) {
 			result.add(toRsltDto(
 					hour,
-					rsltMap.get(hour + HOUR_SUFFIX),
-					fltPsgMap.get(hour),
-					psgWtngMap.get(hour + HOUR_SUFFIX),
-					lastWeekPsgWtngMap.get(hour + HOUR_SUFFIX),
+					rsltByHour.get(hour + "00"),
+					fltPsgByHour.get(hour),
+					psgWtngByHour.get(hour + "00"),
+					lastWeekPsgWtngByHour.get(hour + "00"),
 					category
 			));
 		}
@@ -380,7 +369,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 					.withCgnStatus(queueDay.statusOf(
 							queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN).getCurrentQueue(),
 							gradeContext(baseContext, unitCd)))
-					.withUseYn(unit.getOprCnt() > 0 ? USE_YN_Y : USE_YN_N));
+					.withUseYn(unit.getOprCnt() > 0 ? "Y" : "N"));
 		}
 
 		return result;
@@ -422,7 +411,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		FcltRecommendDto result = new FcltRecommendDto();
 		result.setTargetNm(targetName);
 		result.setReqCnt(reqCnt == null ? 0 : reqCnt);
-		result.setNeedAssignYn(needAssign ? USE_YN_Y : USE_YN_N);
+		result.setNeedAssignYn(needAssign ? "Y" : "N");
 
 		return result;
 	}
@@ -512,7 +501,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		List<SmltRsltRawDto> rsltList = castDsbdMapper.retrieveRsltByHourList(smltId, tmnlId.getFcltTmnlId(), DsbdCategory.PSG.getUpPsgFcltCdList());
 
 		PeakDto result = new PeakDto();
-		result.setAmpm(AM);
+		result.setAmpm("AM");
 		result.setPeakTime(EMPTY);
 
 		SmltRsltRawDto peak = rsltList.stream().max(Comparator.comparingInt(SmltRsltRawDto::getWtngPsgCnt)).orElse(null);
@@ -523,7 +512,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		int hour = Integer.parseInt(peak.getTime().substring(0, 2));
 
-		result.setAmpm(hour < NOON_HOUR ? AM : PM);
+		result.setAmpm(hour < 12 ? "AM" : "PM");
 		result.setPeakTime(peak.getTime());
 		result.setWtngPsgCnt(peak.getWtngPsgCnt());
 		result.setMaxWtngHr(peak.getWtngHr() / SEC_PER_MIN);
@@ -532,33 +521,39 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return result;
 	}
 
+    // PRIME TIME 체크인카운터
 	private List<DsbdRsltDto> retrieveChknRsltByTime(String smltId, TerminalKind tmnlId, String excnYmd) {
-		Map<String, FltPsgRawDto> fltPsgMap = castFltPsgMapper
-				.retrieveFltPsgHourList(excnYmd, tmnlId.getFltTmnlIdList())
-				.stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
+		Map<String, FltPsgRawDto> fltPsgByHour = castFltPsgMapper
+            .retrieveFltPsgHourList(excnYmd, tmnlId.getFltTmnlIdList())
+            .stream().collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
+
+        // Cast Queue
 		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltId, tmnlId, excnYmd);
 		ChknSbdDay sbdDay = castChknQueueService.retrieveChknSbdDay(smltId, tmnlId, excnYmd);
 		Set<String> islandCdSet = new LinkedHashSet<>(queueDay.islandCdList());
 		islandCdSet.addAll(sbdDay.islandCdList());
 
-		Map<String, PsgWtngRawDto> psgWtngMap = castDsbdMapper
-				.retrievePsgWtngIslSumByHourList(excnYmd, tmnlId.getFcltTmnlId())
-				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
-		String lastWeekYmd = formatYmd(parseYmd(excnYmd).minusDays(DAYS_A_WEEK));
-		Map<String, PsgWtngRawDto> lastWeekPsgWtngMap = castDsbdMapper
-				.retrievePsgWtngIslSumByHourList(lastWeekYmd, tmnlId.getFcltTmnlId())
-				.stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
-		List<DsbdRsltDto> result = new ArrayList<>();
+        // Xovis Queue
+        String lastWeekYmd = formatYmd(parseYmd(excnYmd).minusDays(7));
+		Map<String, PsgWtngRawDto> psgWtngByHour = castDsbdMapper
+            .retrievePsgWtngIslSumByHourList(excnYmd, tmnlId.getFcltTmnlId())
+            .stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+		
+        Map<String, PsgWtngRawDto> lastWeekPsgWtngByHour = castDsbdMapper
+            .retrievePsgWtngIslSumByHourList(lastWeekYmd, tmnlId.getFcltTmnlId())
+            .stream().collect(Collectors.toMap(PsgWtngRawDto::getTime, Function.identity(), (first, ignored) -> first));
+	
+        List<DsbdRsltDto> result = new ArrayList<>();
 
 		for (String hour : TimeBucketUtils.hourList()) {
 			result.add(toChknRsltDto(
-					hour,
-					queueDay,
-					sbdDay,
-					islandCdSet,
-					fltPsgMap.get(hour),
-					psgWtngMap.get(hour + HOUR_SUFFIX),
-					lastWeekPsgWtngMap.get(hour + HOUR_SUFFIX)
+                hour,
+                queueDay,
+                sbdDay,
+                islandCdSet,
+                fltPsgByHour.get(hour),
+                psgWtngByHour.get(hour + "00"),
+                lastWeekPsgWtngByHour.get(hour + "00")
 			));
 		}
 
@@ -592,7 +587,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		long waitSecSum = (long) cc.getAvgWaitSec() * cc.getPrcsPsgCnt() + sbdDay.waitSecSum(bgnMinute, MIN_PER_HOUR);
 		long prcsSecSum = (long) cc.getAvgPrcsSec() * cc.getPrcsPsgCnt() + sbdDay.prcsSecSum(bgnMinute, MIN_PER_HOUR);
 		DsbdRsltDto result = new DsbdRsltDto();
-		result.setTime(hour + HOUR_SUFFIX);
+		result.setTime(hour + "00");
 		result.setPsgCnt(fltPsg == null ? 0 : fltPsg.getPsgCnt());
 		result.setFcstWtngPsgCnt(maxQueue);
 		result.setPrcsPsgCnt(prcsPsgCnt);
@@ -614,7 +609,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			DsbdCategory category
 	) {
 		DsbdRsltDto result = new DsbdRsltDto();
-		result.setTime(hour + HOUR_SUFFIX);
+		result.setTime(hour + "00");
 
 		if (fltPsg != null) {
 			result.setPsgCnt(category == DsbdCategory.FLT ? fltPsg.getFltCnt() : fltPsg.getPsgCnt());
@@ -722,7 +717,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 					.withCgnStatus(gradeScale.statusOf(
 							wtngPsgCnt,
 							gradeContext(baseContext, unitCd)))
-					.withUseYn(unit.getOprCnt() > 0 ? USE_YN_Y : USE_YN_N));
+					.withUseYn(unit.getOprCnt() > 0 ? "Y" : "N"));
 		}
 
 		return result;
@@ -765,7 +760,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		result.setTargetNm(targetName);
 		result.setReqCnt(reqCnt);
-		result.setNeedAssignYn(USE_YN_N);
+		result.setNeedAssignYn("N");
 
 		return result;
 	}
@@ -1023,8 +1018,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	private BigDecimal calculateServiceRate(int processedPsgCnt, int openCount, int minutes) {
 		return BigDecimal.valueOf(processedPsgCnt)
-				.divide(BigDecimal.valueOf(openCount), MATH_CONTEXT)
-				.divide(BigDecimal.valueOf(minutes), MATH_CONTEXT);
+				.divide(BigDecimal.valueOf(openCount), MathContext.DECIMAL128)
+				.divide(BigDecimal.valueOf(minutes), MathContext.DECIMAL128);
 	}
 
 	private FcltRecommendationCalculator.Result calculateRecommendation(
@@ -1090,17 +1085,17 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return lastCalc.plusHours(1).withMinute(0).withSecond(0).format(DateTimeFormatter.ofPattern(DT_FORMAT));
 	}
 
-	private String getEndHhmm(String bgnHhmm, int itvlMin) {
-		int endMin = toMinutes(bgnHhmm) + itvlMin;
+	private String getEndHhmm(String bgnHhmm, int intrvlMin) {
+		int endMin = toMinutes(bgnHhmm) + intrvlMin;
 
 		return endMin >= MIN_PER_DAY
-				? DAY_END_HHMM
+				? "2400"
 				: toHhmm(endMin);
 	}
 
 	private int toMinutes(String hhmm) {
 		return Integer.parseInt(hhmm.substring(0, 2)) * MIN_PER_HOUR
-				+ Integer.parseInt(hhmm.substring(2, HHMM_LENGTH));
+				+ Integer.parseInt(hhmm.substring(2, 4));
 	}
 
 	private String toHhmm(int minutes) {

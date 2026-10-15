@@ -18,7 +18,7 @@ export const SIMULATION_TITLE: Record<SimulationType, string> = {
 export type TerminalKind = 'T1' | 'T2';
 
 /** 요약 블록이 세는 구간 길이(분) — 조회 시각부터 이만큼 안에 출발하는 편만 센다 */
-export const SMRY_ITVL_MIN = 60;
+export const SMRY_INTRVL_MIN = 60;
 
 /* ================= 터미널 패널 뷰 모델 ================= */
 

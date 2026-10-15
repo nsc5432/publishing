@@ -35,7 +35,13 @@ export const LNB_TOP: NavItem[] = [
         match: '/rui/pm/daily-smlt',
         children: LNB_DAILY_SMLT,
     },
-    { id: 'userSmlt', icon: 'user', label: '사용자 시뮬레이션', path: '/rui/pm/user-smlt/config' },
+    {
+        id: 'userSmlt',
+        icon: 'user',
+        label: '사용자 시뮬레이션',
+        path: '/rui/pm/user-smlt/config',
+        match: '/rui/pm/user-smlt',
+    },
     {
         id: 'monitoring',
         icon: 'monitor',

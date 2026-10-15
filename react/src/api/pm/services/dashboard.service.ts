@@ -38,22 +38,22 @@ export const dashboardService = {
         return response.data;
     },
 
-    // itvlMin 은 요약 블록이 세는 구간 길이 — hhmm 부터 이만큼 안에 출발하는 편만 센다
+    // intrvlMin 은 요약 블록이 세는 구간 길이 — hhmm 부터 이만큼 안에 출발하는 편만 센다
     getTmnlSmry: async (
         smltId: string,
         tmnlId: TmnlId,
         hhmm: string,
-        itvlMin: number,
+        intrvlMin: number,
     ): Promise<TmnlSmryDto> => {
         if (USE_MOCK) {
-            return mockResponse(dashboardMock.getTmnlSmry(tmnlId, hhmm, itvlMin), {
+            return mockResponse(dashboardMock.getTmnlSmry(tmnlId, hhmm, intrvlMin), {
                 loading: true,
             });
         }
 
         const response = await apiClient.post<TmnlSmryDto>(
             API_ENDPOINTS.DSBD_TMNL_SMRY,
-            { smltId, tmnlId, hhmm, itvlMin },
+            { smltId, tmnlId, hhmm, intrvlMin },
             { params: { loading: true } },
         );
 

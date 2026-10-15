@@ -99,17 +99,17 @@ export interface TmnlSmryDto extends JsonResponse {
     tmnlId: TmnlId;
     fltCnt: number;
     fltDiffCnt: number;
-    befFltDiffCnt: number;
+    yesterdayFltDiffCnt: number;
     psgCnt: number;
     psgDiffCnt: number;
-    befPsgDiffCnt: number;
+    yesterdayPsgDiffCnt: number;
     brdgRate: number;
     cgnStatus: CongestionStatus;
-    itvlMin: number;
-    itvlFltCnt: number;
-    itvlPsgCnt: number;
-    itvlBefFltDiffCnt: number;
-    itvlBefPsgDiffCnt: number;
+    intrvlMin: number;
+    intrvlFltCnt: number;
+    intrvlPsgCnt: number;
+    intrvlYesterdayFltDiffCnt: number;
+    intrvlYesterdayPsgDiffCnt: number;
     peak: PeakDto;
 }
 
