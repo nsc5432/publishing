@@ -27,7 +27,7 @@ import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastChknMapper;
 import aoms.pm.cast.service.CastCgnGradeService;
 import aoms.pm.cast.service.CastChknQueueService;
-import aoms.pm.cast.service.CastUserConfigService;
+import aoms.pm.cast.service.CastChknService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -58,7 +58,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 	private static final int DEFAULT_INTRVL_MIN = 10;
 
 	private final CastChknMapper castChknMapper;
-	private final CastUserConfigService castUserConfigService;
+	private final CastChknService castChknService;
 	private final CastCgnGradeService castCgnGradeService;
 
 	@Override
@@ -67,7 +67,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		String context = "smltId=" + smltId + ", tmnlId=" + tmnlId.getValue();
 
 		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(smltId, fcltTmnlId, "CC");
-		Map<String, List<UserConfigChknDto>> boothListByIsland = castUserConfigService.retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
+		Map<String, List<UserConfigChknDto>> boothListByIsland = castChknService.retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
 
 		LocalDate baseDate = LocalDate.parse(excnYmd, DateTimeFormatter.ofPattern(YMD_FORMAT));
 		Map<String, Map<Integer, List<ChknQueueRawDto>>> rawListByIslandAndMinute = groupByIslandAndMinute(rawList, baseDate);
@@ -146,8 +146,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 				continue;
 			}
 
-			int minute = Math.toIntExact(
-					Duration.between(baseDate.atStartOfDay(), raw.getSmltActlDt()).toMinutes());
+			int minute = Math.toIntExact(Duration.between(baseDate.atStartOfDay(), raw.getSmltActlDt()).toMinutes());
 
 			result.computeIfAbsent(island, ignored -> new TreeMap<>())
 					.computeIfAbsent(minute, ignored -> new ArrayList<>())

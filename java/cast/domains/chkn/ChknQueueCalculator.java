@@ -7,8 +7,8 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Deque;
 import java.util.List;
+import java.util.Queue;
 
 /**
  * @Classname : ChknQueueCalculator.java
@@ -37,13 +37,13 @@ public final class ChknQueueCalculator {
 
 	/**
 	 * @param assignedBoothCnt 분 단위 배정 부스 수 (길이 1440)
-	 * @param tmnlAvgPrcsSec 터미널 CC 처리인원 가중평균 처리시간 (fallback)
+	 * @param fallbackPrcsSec 터미널 CC 처리인원 가중평균 처리시간 (fallback)
 	 */
 	public static ChknQueueSeries calculate(
         String island,
         List<ChknQueueInterval> intervalList,
         int[] assignedBoothCnt,
-        BigDecimal tmnlAvgPrcsSec
+        BigDecimal fallbackPrcsSec
 	) {
 		int[] queue = new int[MINUTE_PER_DAY];
 		int[] processed = new int[MINUTE_PER_DAY];
@@ -54,16 +54,16 @@ public final class ChknQueueCalculator {
 		long[] waitDistribution = new long[MINUTE_PER_DAY + 1];
 		List<String> warningList = new ArrayList<>();
 
-		List<ChknQueueInterval> sortedList = new ArrayList<>(intervalList);
-		sortedList.sort(Comparator.comparingInt(ChknQueueInterval::getBgnMinute));
+		List<ChknQueueInterval> intervalListByBgnMinute = new ArrayList<>(intervalList);
+		intervalListByBgnMinute.sort(Comparator.comparingInt(ChknQueueInterval::getBgnMinute));
 
-		Deque<int[]> cohortQueue = new ArrayDeque<>();
+		Queue<int[]> arrivalGroupQueue = new ArrayDeque<>();
 		BigDecimal carry = BigDecimal.ZERO;
 		int running = 0;
 		int previousWtngEndPsgCnt = 0;
 
-		for (int index = 0; index < sortedList.size(); index++) {
-			ChknQueueInterval interval = sortedList.get(index);
+		for (int index = 0; index < intervalListByBgnMinute.size(); index++) {
+			ChknQueueInterval interval = intervalListByBgnMinute.get(index);
 			int bgn = Math.max(interval.getBgnMinute(), 0);
 			int end = Math.min(interval.getBgnMinute() + interval.getDurationMin(), MINUTE_PER_DAY);
 
@@ -71,10 +71,12 @@ public final class ChknQueueCalculator {
 			previousWtngEndPsgCnt = interval.getWtngEndPsgCnt();
 
 			if (arrivalsRaw < 0) {
-				warningList.add(warning(island, interval,
-						"대기인원 역산이 음수라 0 으로 보정했습니다. arrivals=" + arrivalsRaw
-								+ ", wtngEndPsgCnt=" + interval.getWtngEndPsgCnt()
-								+ ", intvPrcsPsgCnt=" + interval.getIntvPrcsPsgCnt()));
+				String message = String.format(
+                    "대기인원 역산이 음수라 0 으로 보정했습니다. arrivals=%d, wtngEndPsgCnt=%d, intvPrcsPsgCnt=%d",
+                    arrivalsRaw, interval.getWtngEndPsgCnt(), interval.getIntvPrcsPsgCnt()
+                );
+
+				warningList.add(warning(island, interval, message));
 			}
 
 			if (bgn >= end) {
@@ -82,12 +84,15 @@ public final class ChknQueueCalculator {
 			}
 
 			if (interval.getActiveBoothCnt() > assignedBoothCnt[bgn]) {
-				warningList.add(warning(island, interval,
-						"배정 시간 밖 부스에 결과가 있어 운영 부스로 포함했습니다. activeBoothCnt="
-								+ interval.getActiveBoothCnt() + ", assignedBoothCnt=" + assignedBoothCnt[bgn]));
+				String message = String.format(
+                    "배정 시간 밖 부스에 결과가 있어 운영 부스로 포함했습니다. activeBoothCnt=%d, assignedBoothCnt=%d",
+                    interval.getActiveBoothCnt(), assignedBoothCnt[bgn]
+                );
+
+				warningList.add(warning(island, interval, message));
 			}
 
-			BigDecimal prcsSec = resolvePrcsSec(sortedList, index, tmnlAvgPrcsSec);
+			BigDecimal prcsSec = resolvePrcsSec(intervalListByBgnMinute, index, fallbackPrcsSec);
 
 			if (prcsSec == null && interval.getIntvPrcsPsgCnt() <= 0 && (arrivalsRaw > 0 || running > 0)) {
 				warningList.add(warning(island, interval, "평균 처리시간을 찾지 못해 처리용량을 0 으로 둡니다."));
@@ -111,7 +116,7 @@ public final class ChknQueueCalculator {
 				int arrival = arrivalBase + (minute - bgn < arrivalRemainder ? 1 : 0);
 
 				if (arrival > 0) {
-					cohortQueue.addLast(new int[] { minute, arrival });
+					arrivalGroupQueue.add(new int[] { minute, arrival });
 					running += arrival;
 				}
 
@@ -120,17 +125,17 @@ public final class ChknQueueCalculator {
 				int rest = served;
 
 				while (rest > 0) {
-					int[] cohort = cohortQueue.peekFirst();
-					int take = Math.min(rest, cohort[1]);
-					int wait = minute - cohort[0];
+					int[] arrivalGroup = arrivalGroupQueue.peek();
+					int take = Math.min(rest, arrivalGroup[1]);
+					int wait = minute - arrivalGroup[0];
 
 					waitSum += (long) wait * take;
 					waitDistribution[Math.min(wait, MINUTE_PER_DAY)] += take;
-					cohort[1] -= take;
+					arrivalGroup[1] -= take;
 					rest -= take;
 
-					if (cohort[1] == 0) {
-						cohortQueue.pollFirst();
+					if (arrivalGroup[1] == 0) {
+						arrivalGroupQueue.poll();
 					}
 				}
 
@@ -170,13 +175,15 @@ public final class ChknQueueCalculator {
 	}
 
 	private static BigDecimal resolvePrcsSec(
-			List<ChknQueueInterval> intervalList, int index, BigDecimal tmnlAvgPrcsSec) {
+        List<ChknQueueInterval> intervalList, int index, BigDecimal fallbackPrcsSec
+    ) {
 		ChknQueueInterval interval = intervalList.get(index);
 
 		if (isPositive(interval.getAvgPrcsSec())) {
 			return interval.getAvgPrcsSec();
 		}
 
+        // 가중평균으로 대체
 		BigDecimal weightedSum = BigDecimal.ZERO;
 		int processedSum = 0;
 
@@ -202,7 +209,7 @@ public final class ChknQueueCalculator {
 			return weightedSum.divide(BigDecimal.valueOf(processedSum), MATH_CONTEXT);
 		}
 
-		return isPositive(tmnlAvgPrcsSec) ? tmnlAvgPrcsSec : null;
+		return isPositive(fallbackPrcsSec) ? fallbackPrcsSec : null;
 	}
 
 	private static boolean isPositive(BigDecimal value) {

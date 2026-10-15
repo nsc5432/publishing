@@ -16,7 +16,6 @@ public class UserConfigChknDto {
 	private int counterNum;
 	private List<TimeRange> timeRanges;
 
-	// 같은 카운터의 배정 구간 여러 건을 1건으로 접는다 (항공사·번호는 어느 행이나 같다)
 	public UserConfigChknDto factory(List<ChknRawDto> chknList) {
 		ChknRawDto first = chknList.get(0);
 

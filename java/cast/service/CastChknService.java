@@ -1,6 +1,10 @@
 package aoms.pm.cast.service;
 
+import java.util.List;
+import java.util.Map;
+
 import aoms.pm.cast.dto.JsonResponse;
+import aoms.pm.cast.dto.UserConfigChknDto;
 import aoms.pm.cast.dto.UserSmltChknDto;
 import aoms.pm.cast.dto.UserSmltChknSaveDto;
 import aoms.pm.cast.dto.UserSmltChknSearchDto;
@@ -24,4 +28,6 @@ public interface CastChknService {
 	UserSmltChknDto retrieveChknCounterInfo(UserSmltChknSearchDto searchDto);
 
 	JsonResponse saveChknCounterInfo(UserSmltChknSaveDto saveDto);
+
+	Map<String, List<UserConfigChknDto>> retrieveChknMapGroupByIsland(String ymd, String tmnlId);
 }

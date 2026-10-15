@@ -38,9 +38,9 @@ import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastChknMapper;
 import aoms.pm.cast.service.CastChknCounterService;
 import aoms.pm.cast.service.CastChknQueueService;
+import aoms.pm.cast.service.CastChknService;
 import aoms.pm.cast.service.CastSlfchknService;
 import aoms.pm.cast.service.CastSmltService;
-import aoms.pm.cast.service.CastUserConfigService;
 import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
 
@@ -85,7 +85,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 	private final CastChknQueueService castChknQueueService;
 	private final CastSmltService castSmltService;
 	private final CastSlfchknService castSlfchknService;
-	private final CastUserConfigService castUserConfigService;
+	private final CastChknService castChknService;
 
 	@Override
 	public ChknCounterDto retrieveChknCounter(ChknCounterSearchDto searchDto) {
@@ -129,7 +129,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 	 */
 	private List<ChknCounterIslandDto> getIslandList(
 			String fcltTmnlId, SmltStngDto smltStng, List<CknctCntRawDto> cknctCntList) {
-		Map<String, List<UserConfigChknDto>> boothMap = castUserConfigService
+		Map<String, List<UserConfigChknDto>> boothMap = castChknService
 				.retrieveChknMapGroupByIsland(smltStng.getExcnYmd(), fcltTmnlId);
 		Map<String, List<SlfDeviceCntRawDto>> slfDeviceMap = castSlfchknService.retrieveSlfDeviceCntList(fcltTmnlId)
 				.stream().collect(Collectors.groupingBy(SlfDeviceCntRawDto::getIsland));

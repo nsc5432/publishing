@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.dto.ChknBoothDto;
 import aoms.pm.cast.dto.ChknIslandDto;
+import aoms.pm.cast.dto.ChknRawDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
 import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.OprTimeDto;
@@ -33,7 +34,6 @@ import aoms.pm.cast.mapper.CastChknMapper;
 import aoms.pm.cast.service.CastChknService;
 import aoms.pm.cast.service.CastSlfchknService;
 import aoms.pm.cast.service.CastSmltService;
-import aoms.pm.cast.service.CastUserConfigService;
 
 import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
@@ -55,11 +55,45 @@ public class CastChknServiceImpl implements CastChknService {
 
     private static final int ISLAND_BOOTHS = SIDE_BOOTHS * 2;
 
+    private static final List<String> ISLAND_CD_LIST =
+            List.of("A", "B", "C", "D", "E", "F", "G", "H", "J", "K", "L", "M", "N");
+
     private final CastSmltService castSmltService;
     private final CastSlfchknService castSlfchknService;
-    private final CastUserConfigService castUserConfigService;
     private final CastChknMapper castChknMapper;
     private final CastExecutionService executionService;
+
+    @Override
+    public Map<String, List<UserConfigChknDto>> retrieveChknMapGroupByIsland(String ymd, String tmnlId) {
+        List<ChknRawDto> chknList = castChknMapper.retrieveChknList(ymd, tmnlId);
+        Map<String, List<UserConfigChknDto>> result = new LinkedHashMap<>();
+
+        for (String islandCd : ISLAND_CD_LIST) {
+            List<ChknRawDto> islandChknList = chknList.stream()
+                    .filter(chkn -> islandCd.equals(chkn.getIsland()))
+                    .collect(toList());
+
+            List<Integer> counterNumList = islandChknList.stream()
+                    .map(ChknRawDto::getCounterNum)
+                    .distinct()
+                    .sorted()
+                    .collect(toList());
+
+            List<UserConfigChknDto> boothList = new ArrayList<>();
+
+            for (Integer counterNum : counterNumList) {
+                List<ChknRawDto> counterChknList = islandChknList.stream()
+                        .filter(chkn -> counterNum.equals(chkn.getCounterNum()))
+                        .collect(toList());
+
+                boothList.add(new UserConfigChknDto().factory(counterChknList));
+            }
+
+            result.put(islandCd, boothList);
+        }
+
+        return result;
+    }
 
     @Override
     public UserSmltChknDto retrieveChknCounterInfo(UserSmltChknSearchDto searchDto) {
@@ -148,7 +182,7 @@ public class CastChknServiceImpl implements CastChknService {
         }
 
         Map<String, List<UserConfigChknDto>> allotBoothMap =
-                castUserConfigService.retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
+                retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
         Map<String, List<SlfDeviceCntRawDto>> slfDeviceMap = castSlfchknService.retrieveSlfDeviceCntList(fcltTmnlId)
                 .stream().collect(Collectors.groupingBy(SlfDeviceCntRawDto::getIsland));
 

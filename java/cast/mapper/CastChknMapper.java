@@ -8,6 +8,7 @@ import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
 import aoms.pm.cast.dto.ChknIslandDto;
 import aoms.pm.cast.dto.ChknQueueRawDto;
+import aoms.pm.cast.dto.ChknRawDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
 import aoms.pm.cast.dto.UserChknBoothRawDto;
 import aoms.pm.cast.dto.UserChknOperHrRawDto;
@@ -22,6 +23,8 @@ public interface CastChknMapper {
             @Param("tmnlId") String tmnlId,
             @Param("upPsgFcltCd") String upPsgFcltCd
     );
+
+    List<ChknRawDto> retrieveChknList(@Param("ymd") String ymd, @Param("tmnlId") String tmnlId);
 
     List<String> retrieveAlnCdList(@Param("ymd") String ymd, @Param("tmnlId") String tmnlId);
 
