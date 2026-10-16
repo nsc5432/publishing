@@ -74,7 +74,7 @@ public class CastRestController extends BaseAomsRestController {
     // GET /castrest/rest/json/REQ_GetResource_Test.do?resourceType=FlightSchedule&resourceID=FS001
     // 체크인카운터 배정
     // GET /castrest/rest/json/REQ_GetResource_Test.do?resourceType=CounterAllocation&resourceID=CA001
-    // 프로퍼티셋 (여객 속성/서비스 속성/참조 리소스 설정 (기준정보))
+    // 프로퍼티셋 (여객 속성/서비스 속성/참조 리소스 설정 (기준정보)) -> SBD, SecurityControl, Immigration, Emigration, DepartureGate, TransferSecurityControl, CheckinType, CheckInCounterServiceTime
     // GET /castrest/rest/json/REQ_GetResource_Test.do?resourceType=PropertySet&resourceID=PS001
     // 셀프백드롭 — CounterAllocation 유형
     // GET /castrest/rest/json/REQ_GetResource_Test.do?resourceType=CounterAllocation&resourceID=SBD001

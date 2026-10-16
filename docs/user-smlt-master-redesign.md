@@ -73,12 +73,13 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
   운영계 출국장 운영시간을 조인한다. sideDoor·facialRecognition은 NVL(' ')로 배열 길이를 맞춘다.
 - SecurityControl은 일일·사용자 모두 시각 없이 수량만 보낸다. 사용자는 운영 Y이고 scshCntom > 0인
   출국장마다 1행이다. 시간별 계획(TN_PM_SMLT_SCSH_OPER_PLAN)은 화면·계약·저장에서 폐지했다.
-- TN_PM_SMLT_INPUT_BASE는 이전 결과 조회를 대체하는 날짜 유효 설정이다. 동일 날짜의 활성 행이
-  여러 개면 selectOne이 실패하므로 운영자가 유효기간을 겹치지 않게 등록해야 한다.
-  모델·PropertySet·서비스시간·체크인유형·입국심사·환승보안은 필수이며 실제 모델 파일·XML 입력 내용도 검사한다.
-  원천 ID는 일일 Auto 조합과 같게 둔다. 초기 행은 2026-10-11-user-smlt-input-base-seed.sql로 등록한다.
+- 사용자가 편집하지 않는 리소스는 일일 시뮬레이션과 같은 001 원천을 쓴다. 2026-10-16 날짜 유효 설정
+  TN_PM_SMLT_INPUT_BASE를 제거하고 CastUserSnapshotServiceImpl 상수로 고정했다. 모델 ICN001, 원천 PS001,
+  CheckinCounterServiceTime001, CheckinType001, FacilityOpeningTable_Emigration001,
+  ReportingProfilesTimeGroups001이다. 실행별 조합은 USER_MSTR의 리소스 컬럼에 기록한다.
+  실행 등록 시 리소스를 미리 렌더해 보던 검사(capture)도 함께 제거했다. 원천 누락은 CAST 단계에서 드러난다.
 - 002~999는 실행 ID와 별개인 전송 번호다. 한 요청이 FS·CA·SBD·DepartureGate·SecurityControl·
-  Immigration·TransferSecurityControl 7종에 같은 번호를 쓴다. 입국심사·환승보안은 INPUT_BASE 원천(001) 행을
+  Immigration·TransferSecurityControl 7종에 같은 번호를 쓴다. 입국심사·환승보안은 001 원천 행을
   번호로 복사한다(렌더 SQL이 번호로 FS 그룹 일자를 찾기 때문).
 - 번호는 쓰인 최대 번호 다음의 미사용 값을 우선 할당한다. 요청·결과·원천 테이블에 존재하는 번호를 제외하고,
   기존 리소스를 DELETE하거나 UPDATE해 새 실행에 재사용하지 않는다. FS002~999, PS500~998에 빈 번호가 없으면 실패하며,

@@ -2,7 +2,7 @@
 
 ## 최종 테이블 목록
 
-이번 변경에서 런타임과 신규 설치 DDL에서 제거한 테이블은 다음 8개다.
+이번 변경에서 런타임과 신규 설치 DDL에서 제거한 테이블은 다음 9개다.
 실제 운영 DB의 DROP은 수행하지 않았으며 별도 전환 SQL을 제공한다.
 
 | 제거 테이블 | 대체 방식 |
@@ -15,13 +15,10 @@
 | PMOWN.TN_PM_SMLT_ID_LOCK | 직렬화 잠금 없음. 리소스 번호는 USER_MSTR·STNG에 쓰인 최대 번호에서 계산 |
 | PMOWN.TN_PM_SMLT_RESULT_GROUP | 일일·Manual은 Run 하나에 모델 1개. 결과마다 새 공통 ID |
 | PMOWN.TN_PM_SMLT_CAST_CONTRACT | 결과 묶음이 없어져 활성화 검사도 제거 |
+| PMOWN.TN_PM_SMLT_INPUT_BASE | 사용자 실행의 고정 리소스는 일일과 같은 001 원천. 코드 상수로 두고 USER_MSTR에 실행별로 기록 |
 
 PMOWN.TN_PM_SMLT_MSTR는 앞선 공통 마스터 제거 작업에서 제거한 테이블이다.
-이번 8개와 합치면 최초 검토한 10개 중 9개가 제거된 구조이며 아래 1개는 유지한다.
-
-| 유지 테이블 | 이유 |
-|---|---|
-| PMOWN.TN_PM_SMLT_INPUT_BASE | 대상일자별 기본 리소스 참조 설정 |
+이번 9개와 합치면 최초 검토한 10개가 모두 제거된 구조다.
 
 ## 리소스 정책
 
@@ -62,6 +59,7 @@ USER_MSTR에 SRC_PRPT_SET_RSRC_ID를 추가해 원천 PS ID를 기록한다. 이
 CAST가 사용자 PS를 요청하면 원천 PS를 렌더하고 PS ID와 SBD·DepartureGate·SecurityControl·Immigration·TransferSecurityControl
 참조를 해당 요청의 리소스 ID로 바꿔 반환한다. 모델·서비스시간·체크인유형·출국심사·리포팅은 기존 원본 ID를 사용한다.
 INPUT_BASE의 기간별 매핑이 바뀌어도 이미 기록한 원천 PS ID는 유지하고, 원천 PS 내용의 의도된 변경은 반영한다.
+2026-10-16 INPUT_BASE를 제거해 새 요청의 원천 PS는 항상 PS001이다. 이미 기록된 원천 PS ID는 그대로 읽는다.
 
 ## DB 적용
 
@@ -177,6 +175,46 @@ RunID 빈값 검사도 묶음 키에만 쓰였으므로 제거했다. 다음을 
 두 백업을 CTAS로 원본 이름에 복원하고 `PRIMARY KEY (GROUP_KEY)`·`PRIMARY KEY (CONTRACT_ID)`와
 `VERIFIED_YN`의 기본값·CHECK를 복구한 뒤 구 백엔드를 배포한다. 전환 이후 결과의 묶음 키는 기록하지 않는다.
 
+### INPUT_BASE 제거 적용
+
+일일 시뮬레이션은 001 원천 고정이고, 사용자 실행은 KPI 비교를 위해 같은 원천을 쓴다. 그래서 사용자가 편집하지 않는
+리소스를 `CastUserSnapshotServiceImpl` 상수로 고정하고 날짜 유효 설정 테이블을 제거했다.
+실행별로 쓴 조합은 기존처럼 USER_MSTR의 리소스 컬럼에 남는다.
+
+| 항목 | 고정값 |
+|---|---|
+| 모델 | `ICN001` |
+| 원천 PropertySet | `PS001` |
+| 서비스시간 · 체크인유형 | `CheckinCounterServiceTime001` · `CheckinType001` |
+| 출국심사 | `FacilityOpeningTable_Emigration001` |
+| 입국심사 · 환승보안 번호 복사 원천 | `FacilityOpeningTable_Immigration001` · `FacilityOpeningTable_TransferSecurityControl001` |
+| 리포팅 | `ReportingProfilesTimeGroups001` |
+
+리포팅 ID는 PS에 참조가 없고 CAST 결과에도 실리지 않아 WhatIfDefinitionTable 칸으로만 전달된다.
+다음을 감수하는 결정이다.
+
+| 포기한 기능 | 제거 후 동작 |
+|---|---|
+| 날짜 구간별 기본 조합 전환 | 바꾸려면 상수를 고쳐 배포한다. 일일도 001 고정이라 실제 전환 수요가 없다 |
+| 운영 중 DB 행으로 조합 변경 | 코드 배포가 필요하다 |
+| 기본 조합의 필수값·PS 범위 검사 | 상수라 항상 성립해 제거했다 |
+| 실행 등록 시 리소스 렌더 검사 (capture) | 발행한 번호 리소스와 001 원천 13개를 미리 렌더해 비었거나 깨졌으면 실행을 거부하던 검사를 제거했다. 운항 자료 누락·001 원천 삭제 같은 문제는 요청이 New로 등록된 뒤 CAST 단계에서 드러나며, 그 사이 FS·PS 번호를 쓴다. CAST가 빈 입력으로 완료하면 결과가 DONE으로 남을 수 있다 |
+
+`captureResource`는 사용자 PS 응답 렌더에만 쓰이므로 `CastRestService` 인터페이스에서 내리고 비공개로 바꿨다.
+
+신규 DB는 최신 cast-ddl.sql을 사용한다. 기존 DB는 앞선 전환(특히 INPUT_BASE를 읽는 `remove-smlt-snapshots.sql`)을
+먼저 완료하고, 화면 실행을 정지한 상태에서 전체 스키마·권한·객체를 백업한 뒤
+`java/ddl/2026-10-16-remove-input-base.sql`을 PMOWN 스키마에서 실행한다.
+스크립트는 DB 객체·외래키 의존성과, 활성 행이 위 상수와 다른지 검사한다. 다르면 제거 후 실행 입력이 바뀌므로 중단한다.
+`TN_PM_SMLT_IBASE_BAK_1016`에 데이터를 보존하고 건수와 모든 컬럼의 양방향 차이를 확인한 뒤 원본만 제거한다.
+새 백엔드 배포 후 사용자 실행 등록·USER_MSTR 리소스 컬럼·CAST의 PS·입국심사·환승보안 응답을 확인한다.
+이 저장소에서 실제 Oracle 실행과 백엔드 빌드를 완료한 것으로 간주하지 않는다.
+
+복구 시 전체 스키마 백업을 우선 사용한다. 데이터 백업만 사용하는 경우 실행을 정지한 상태에서
+`CREATE TABLE PMOWN.TN_PM_SMLT_INPUT_BASE AS SELECT * FROM PMOWN.TN_PM_SMLT_IBASE_BAK_1016`으로 복원하고
+`PRIMARY KEY (BASE_ID)`, 필수 컬럼 NOT NULL, `USE_YN` 기본값·CHECK, `VALID_BGN_YMD <= VALID_END_YMD` CHECK를 복구한 뒤
+구 백엔드를 배포한다.
+
 ## 검증 범위
 
 - React 타입 검사, 전체 lint, Vite dev 빌드 통과.
@@ -200,3 +238,6 @@ React 타입 검사와 변경 diff의 공백 검사를 확인했다. 기존 DB �
 ID_LOCK 제거 검증에서는 mapper XML 16개 파싱과 CastExecutionMapper의 인터페이스·SQL 13개 대응,
 Java·mapper·신규 설치 DDL의 ID_LOCK·LAST_NO·잠금 호출 제거, 변경 diff의 공백 검사를 확인했다.
 번호 할당 SQL과 기존 DB 제거 SQL은 실제 Oracle에서 실행하지 않았다. React는 변경하지 않았다.
+
+INPUT_BASE 제거 검증에서는 Java·mapper·신규 설치 DDL의 INPUT_BASE·retrieveInputBase 참조 제거와
+`captureResource` 외부 호출이 남지 않았음을 확인했다. 기존 DB 제거 SQL은 실제 Oracle에서 실행하지 않았다. React는 변경하지 않았다.

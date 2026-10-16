@@ -419,7 +419,6 @@ docs/user-smlt-master-redesign.md를 따른다.
 | TH_PM_SMLT_FLFMT_HSTRY | 같은 실행 ID로 관리하는 수행이력 |
 | TN_PM_SMLT_STNG | 같은 실행 ID 아래의 모델별 설정. PK는 (SMLT_ID, SMLT_MDL_SN). USER_MSTR에 없는 ID는 일일·Manual 실행이며 실행별로 집계한다 |
 | TN_PM_SMLT_RSLT_DTL(_REG_EXCL) | 같은 실행 ID의 상세·미매핑 결과 |
-| TN_PM_SMLT_INPUT_BASE | 결과 유무와 무관한 날짜 유효 기본 리소스 설정 |
 
 공통 ID는 SQ1_TN_PM_SMLT_RSLT.NEXTVAL을 숫자 8자리로 표기하며 99999999를 넘기면 실패한다.
 이관된 기존 1~8자리 숫자 ID는 보존한다. 시퀀스는 NOCYCLE이며 USER_MSTR·STNG의 기존 최대 ID보다
@@ -435,7 +434,7 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 
 - FS001 / CA001 / SBD001은 일일 운영자료다. 사용자 자료는 002~999 번호를 FS·CA·SBD·DepartureGate·
   SecurityControl·Immigration·TransferSecurityControl 7종이 공유한다. 출국장·입국심사·환승보안 렌더 SQL이
-  번호로 FS 그룹 일자를 찾으므로 타입별 번호를 분리하지 않는다. 입국심사·환승보안은 INPUT_BASE 원천(001)을 번호로 복사한다.
+  번호로 FS 그룹 일자를 찾으므로 타입별 번호를 분리하지 않는다. 입국심사·환승보안은 001 원천을 번호로 복사한다.
 - FS001은 매일 변경 가능한 일일 세트다. 그 외 지정 리소스는 자동으로 덮어쓰거나 재사용하지 않는다.
   원천에 대한 의도된 변경은 그대로 참조한다. 기존 001계열의 일일 운영자료 조회 경로는 유지한다.
 - 사용자 FS002~999·PS500~998은 USER_MSTR·STNG에 쓰인 최대 번호 다음의 미사용 번호를 할당하고, 그 위가 차면
@@ -453,7 +452,9 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   (HHMM, 24시는 2359)에 싣는다. 이 칸이 빈 행(일일 001)만 운영계 출국장 운영시간을 조인한다.
   sideDoor·facialRecognition은 NVL(' ')로 감싸 배열 길이를 맞춘다.
 - SecurityControl은 일일·사용자 모두 시각 없이 수량만 보낸다. 사용자는 운영 Y·scshCntom > 0 출국장마다 1행.
-- 모델·PropertySet·서비스시간·체크인유형·입국심사·환승보안 설정 및 실제 입력이 없으면 실행 등록을 실패시킨다.
+- 사용자가 편집하지 않는 모델(ICN001)·원천 PS·서비스시간·체크인유형·출국심사·입국/환승보안 원천·리포팅은
+  일일과 같은 001 원천이며 `CastUserSnapshotServiceImpl` 상수다(2026-10-16 INPUT_BASE 제거). 실행 등록 시
+  리소스를 미리 렌더해 검사하지 않으므로 원천 누락은 CAST 단계에서 드러난다.
   운영자료가 없는 것과 사용자가 저장한 미운영 조건을 구분한다.
 
 ### 11.4 결과·상태·공개 조회

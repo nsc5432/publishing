@@ -6,7 +6,6 @@ import aoms.pm.cast.dto.UserSmltCurrentDto;
 
 @Mapper
 public interface CastExecutionMapper {
-    aoms.pm.cast.dto.SmltStngDto retrieveInputBase(@Param("ymd") String ymd);
     void syncHistory(@Param("smltId") String smltId);
     String nextSmltId();
     String retrieveSaveDt(UserSmltCurrentDto scope);

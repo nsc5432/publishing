@@ -146,11 +146,6 @@
         AND REGEXP_LIKE(U.PRPT_STNG_RSRC_ID, '^PS[0-9]{3}$')
         AND SUBSTR(U.PRPT_STNG_RSRC_ID, 3) BETWEEN '500' AND '998'
     </select>
-    <select id="retrieveInputBase" resultType="aoms.pm.cast.dto.SmltStngDto">
-        /* CastExecutionMapper.retrieveInputBase */
-        SELECT B.* FROM PMOWN.TN_PM_SMLT_INPUT_BASE B
-        WHERE #{ymd} BETWEEN B.VALID_BGN_YMD AND B.VALID_END_YMD AND B.USE_YN = 'Y'
-    </select>
     <!-- 리소스 내용은 지정된 원천 ID로 조회한다 -->
     <update id="syncHistory">
         /* CastExecutionMapper.syncHistory */

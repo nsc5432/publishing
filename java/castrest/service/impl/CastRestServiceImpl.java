@@ -982,8 +982,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         }
     }
 
-    @Override
-    public String captureResource(String type, String resourceId, String baseYmd) {
+    private String captureResource(String type, String resourceId, String baseYmd) {
         colTable.remove();
         CastReqGetResourceDto dto = new CastReqGetResourceDto();
         dto.setResourceType(type); dto.setResourceID(resourceId); dto.setBaseYmd(baseYmd);

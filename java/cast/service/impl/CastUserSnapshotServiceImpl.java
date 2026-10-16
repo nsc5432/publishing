@@ -12,7 +12,6 @@ import aoms.pm.cast.dto.ChknBoothDto;
 import aoms.pm.cast.dto.ChknIslandDto;
 import aoms.pm.cast.dto.DepGateDto;
 import aoms.pm.cast.dto.OprTimeDto;
-import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.UserSmltFrozenDto;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.ChknBoothRow;
@@ -24,7 +23,6 @@ import aoms.pm.cast.mapper.CastExecutionMapper;
 import aoms.pm.cast.mapper.CastUserSnapshotMapper;
 
 import aoms.pm.cast.service.CastUserSnapshotService;
-import aoms.pm.castrest.service.CastRestService;
 import aoms.pm.utils.SessionUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -43,22 +41,22 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
     private static final String TRANSFER_SECURITY_CONTROL = "FacilityOpeningTable_TransferSecurityControl";
     private static final String PS = "PS";
 
+    // 사용자 결과를 일일 결과와 KPI 비교하므로 편집하지 않는 리소스는 일일 시뮬레이션과 같은 001 원천을 쓴다
+    private static final String DAILY_RSRC_NO = "001";
+    private static final String MDL_RSRC_ID = "ICN001";
+    private static final String DAILY_PRPT_SET_RSRC_ID = PS + DAILY_RSRC_NO;
+    private static final String DAILY_CKNCT_SRVC_HR_RSRC_ID = "CheckinCounterServiceTime" + DAILY_RSRC_NO;
+    private static final String DAILY_CHKN_TYPE_RSRC_ID = "CheckinType" + DAILY_RSRC_NO;
+    private static final String DAILY_EMIGRATION_RSRC_ID = "FacilityOpeningTable_Emigration" + DAILY_RSRC_NO;
+    private static final String DAILY_RPT_STNG_ATRB_ID = "ReportingProfilesTimeGroups" + DAILY_RSRC_NO;
+
     private final CastUserSnapshotMapper castUserSnapshotMapper;
-    private final CastRestService castRestService;
     private final SessionService sessionService;
     private final CastExecutionMapper executionMapper;
 
     @Override
     public UserSmltRsrcSnapshotDto publish(String smltId, String excnYmd, List<UserSmltFrozenDto> frozenList) {
-        SmltStngDto base = executionMapper.retrieveInputBase(excnYmd);
-        if (base == null) throw new IllegalStateException("해당 일자의 CAST 기본 입력 리소스 설정이 없습니다.");
-        for (String required : new String[] { base.getMdlRsrcId(), base.getPrptSetRsrcId(), base.getCknctSrvcHrRsrcId(), base.getChknTypeRsrcId(), base.getFcltyOpngImmiRsrcId(), base.getFcltyOpngTrScrtyCntrlRsrcId() }) {
-            if (required == null || required.isBlank()) throw new IllegalStateException("모델·PropertySet·서비스시간·체크인유형·입국심사·환승보안 기본 설정을 확인해주세요.");
-        }
-        if (!base.getPrptSetRsrcId().matches(PS + "[0-9]{3}")) throw new IllegalStateException("기본 PropertySet ID 형식이 올바르지 않습니다: " + base.getPrptSetRsrcId());
-        int sourcePsNo = Integer.parseInt(base.getPrptSetRsrcId().substring(2));
-        if (sourcePsNo >= 500 && sourcePsNo <= 998) throw new IllegalStateException("기본 PropertySet은 사용자 실행 예약 범위를 사용할 수 없습니다.");
-        UserSmltRsrcSnapshotDto snapshot = getSnapshot(smltId, excnYmd, base);
+        UserSmltRsrcSnapshotDto snapshot = getSnapshot(smltId, excnYmd);
         for (UserSmltFrozenDto frozen : frozenList) addRows(snapshot, frozen);
 
         publishRsrc(RsrcTable.FLT_SCHDL, snapshot, this::insertSchdlAtrb);
@@ -69,33 +67,10 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         publishRsrc(RsrcTable.ENTCNY, snapshot, castUserSnapshotMapper::insertEntcnyAtrb);
         publishRsrc(RsrcTable.TRNST_SCRTY_CNTRL, snapshot, castUserSnapshotMapper::insertTrnstScrtyCntrlAtrb);
 
-        for (String[] resource : List.of(
-                new String[] { "FlightSchedule", snapshot.getFltSchdlRsrcId() },
-                new String[] { "CounterAllocation", snapshot.getCknctAlctnRsrcId() },
-                new String[] { "CounterAllocation", snapshot.getSbdCntrlAlctnId() },
-                new String[] { "GenericTable", snapshot.getFcltyOpngDptcnySrngRsrcId() },
-                new String[] { "GenericTable", snapshot.getFcltyOpngScrtyCntrlRsrcId() },
-                new String[] { "GenericTable", snapshot.getFcltyOpngEntcnyRsrcId() },
-                new String[] { "GenericTable", snapshot.getFcltyOpngTrScrtyCntrlRsrcId() },
-                new String[] { "GenericTable", snapshot.getFcltyOpngDptcnyRsrcId() },
-                new String[] { "GenericTable", snapshot.getRptStngAtrbId() },
-                new String[] { "CASTModel", snapshot.getMdlRsrcId() },
-                new String[] { "PropertySet", base.getPrptSetRsrcId() },
-                new String[] { "GenericTable", snapshot.getCknctSrvcHrRsrcId() },
-                new String[] { "GenericTable", snapshot.getChknTypeRsrcId() })) {
-            if (resource[1] != null && !resource[1].isBlank()) capture(snapshot, resource[0], resource[1]);
-        }
         return snapshot;
     }
 
-    private String capture(UserSmltRsrcSnapshotDto snapshot, String type, String id) {
-        if (id.length() > 100) throw new IllegalStateException("CAST 입력 리소스 ID가 100자를 초과합니다.");
-        String xml = castRestService.captureResource(type, id, snapshot.getExcnYmd());
-        if (xml == null || !xml.contains("ResourceInfo")) throw new IllegalStateException("CAST 입력 리소스가 없습니다: " + id);
-        return xml;
-    }
-
-    private UserSmltRsrcSnapshotDto getSnapshot(String smltId, String excnYmd, SmltStngDto base) {
+    private UserSmltRsrcSnapshotDto getSnapshot(String smltId, String excnYmd) {
         UserSmltRsrcSnapshotDto result = new UserSmltRsrcSnapshotDto();
         SessionUtils.setUserContext(result, sessionService);
 
@@ -115,16 +90,16 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         result.setFcltyOpngTrScrtyCntrlRsrcId(TRANSFER_SECURITY_CONTROL + rsrcNo);
         result.setPrptStngRsrcId(PS + psNo);
 
-        result.setSrcPrptSetRsrcId(base.getPrptSetRsrcId());
-        result.setMdlRsrcId(base.getMdlRsrcId());
-        result.setCknctSrvcHrRsrcId(base.getCknctSrvcHrRsrcId());
-        result.setChknTypeRsrcId(base.getChknTypeRsrcId());
-        result.setRptStngAtrbId(base.getRptStngAtrbId());
-        result.setFcltyOpngDptcnyRsrcId(base.getFcltyOpngEmiRsrcId());
+        result.setSrcPrptSetRsrcId(DAILY_PRPT_SET_RSRC_ID);
+        result.setMdlRsrcId(MDL_RSRC_ID);
+        result.setCknctSrvcHrRsrcId(DAILY_CKNCT_SRVC_HR_RSRC_ID);
+        result.setChknTypeRsrcId(DAILY_CHKN_TYPE_RSRC_ID);
+        result.setRptStngAtrbId(DAILY_RPT_STNG_ATRB_ID);
+        result.setFcltyOpngDptcnyRsrcId(DAILY_EMIGRATION_RSRC_ID);
 
         result.setSrcFltSchdlRsrcId(DAILY_FLT_SCHDL_RSRC_ID);
-        result.setSrcFcltyOpngEntcnyRsrcId(base.getFcltyOpngImmiRsrcId());
-        result.setSrcFcltyOpngTrScrtyCntrlRsrcId(base.getFcltyOpngTrScrtyCntrlRsrcId());
+        result.setSrcFcltyOpngEntcnyRsrcId(IMMIGRATION + DAILY_RSRC_NO);
+        result.setSrcFcltyOpngTrScrtyCntrlRsrcId(TRANSFER_SECURITY_CONTROL + DAILY_RSRC_NO);
 
         return result;
     }
