@@ -2529,8 +2529,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
                     HttpServletRequest request = attributes.getRequest();
                     simRslt.setLoginIpAddr(request.getRemoteAddr());
                 }
-                String payloadHash = DigestUtils.sha256Hex(param);
-                int result = insertResult(simRslt, payloadHash);
+                int result = insertResult(simRslt);
                 if(result < 1) {
                     return buildReturnXml(false);
                 }
@@ -2545,15 +2544,9 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         }
     }
 
-    private int insertResult(CastResReqDto dto, String payloadHash) {
+    private int insertResult(CastResReqDto dto) {
         int relatedEventCd = setupMasterDto(dto);
         executionService.lock();
-        String sourceKey = DigestUtils.sha256Hex(String.join("|", dto.getResourceID(), dto.getModelResourceID(), dto.getRunID(), dto.getStartTime(), dto.getStopTime(), dto.getSimulationStartTime(), dto.getSimulationStopTime()));
-        String existing = executionMapper.retrieveResultId(sourceKey);
-        if (existing != null) {
-            if (!payloadHash.equals(executionMapper.retrieveResultHash(sourceKey))) throw new IllegalStateException("동일 원천 결과의 내용이 달라졌습니다.");
-            return 1;
-        }
         UserSmltReqDto userReq = null;
         String simId;
         if (WHAT_IF.equals(dto.getSmltType())) {
@@ -2589,7 +2582,6 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         List<SmltRsltDtlDto> details = processDetailList(dto, simId, sno, relatedEventCd);
         castRestMapper.insertSimSet(dto);
         if (!details.isEmpty()) executeBatchInsert(details);
-        executionMapper.insertResultIdentity(sourceKey, simId, payloadHash);
         if (userReq != null) {
             userReq.setRsltSmltId(simId); userReq.setLoginIpAddr(dto.getLoginIpAddr());
             castRestMapper.updateUserReqFinished(userReq);

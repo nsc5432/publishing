@@ -20,8 +20,5 @@ public interface CastExecutionMapper {
     String retrieveBaseSmltId(@Param("ymd") String ymd);
     String reserveRsrcNo(@Param("kind") String kind, @Param("minNo") int minNo, @Param("maxNo") int maxNo);
     int updateLastRsrcNo(@Param("kind") String kind, @Param("rsrcNo") String rsrcNo);
-    String retrieveResultId(@Param("sourceKey") String sourceKey);
-    void insertResultIdentity(@Param("sourceKey") String sourceKey, @Param("smltId") String smltId, @Param("payloadHash") String payloadHash);
-    String retrieveResultHash(@Param("sourceKey") String sourceKey);
     int hasModel(@Param("smltId") String smltId, @Param("mdlSn") String mdlSn);
 }

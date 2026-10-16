@@ -117,18 +117,6 @@
         /* CastExecutionMapper.updateLastRsrcNo */
         UPDATE PMOWN.TN_PM_SMLT_ID_LOCK SET LAST_NO = #{rsrcNo} WHERE LOCK_ID = 'RSRC_' || #{kind}
     </update>
-    <select id="retrieveResultId" resultType="string">
-        /* CastExecutionMapper.retrieveResultId */
-        SELECT SMLT_ID FROM PMOWN.TN_PM_SMLT_RESULT_IDENTITY WHERE SOURCE_KEY = #{sourceKey}
-    </select>
-    <select id="retrieveResultHash" resultType="string">
-        /* CastExecutionMapper.retrieveResultHash */
-        SELECT PAYLOAD_HASH FROM PMOWN.TN_PM_SMLT_RESULT_IDENTITY WHERE SOURCE_KEY = #{sourceKey}
-    </select>
-    <insert id="insertResultIdentity">
-        /* CastExecutionMapper.insertResultIdentity */
-        INSERT INTO PMOWN.TN_PM_SMLT_RESULT_IDENTITY (SOURCE_KEY, SMLT_ID, PAYLOAD_HASH) VALUES (#{sourceKey}, #{smltId}, #{payloadHash})
-    </insert>
     <select id="hasModel" resultType="int">
         /* CastExecutionMapper.hasModel */
         SELECT COUNT(*) FROM PMOWN.TN_PM_SMLT_STNG WHERE SMLT_ID = #{smltId} AND SMLT_MDL_SN = #{mdlSn}

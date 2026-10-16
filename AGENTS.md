@@ -464,7 +464,8 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 - 일일·Manual 결과의 다중 모델 묶음 키는 RunID·계획/실제 시각·FS 조합이다. 실 CAST 계약 검증 후
   TN_PM_SMLT_CAST_CONTRACT.RESULT_GROUP_V1에 근거와 VERIFIED_YN=Y를 등록해야 활성화된다.
 - 원문은 REQUIRES_NEW 수신함에 먼저 보존한다. 파싱·매칭·저장 실패 이유도 남긴다.
-  원천 식별키와 payload hash로 재수신을 판별하며, 같은 식별자의 다른 내용은 격리한다.
+  CAST는 결과를 재전송하지 않는다. RESULT_IDENTITY와 원천 식별키·payload hash 비교를 제거했다.
+  동일 실행·모델의 결과가 STNG에 있으면 내용 비교 없이 실패 처리한다.
 - 결과 저장·이력·요청 완료는 같은 트랜잭션이다. 사용자 실행은 Failed이면 FAILED, STNG 결과가
   있으면 DONE, 나머지는 RUNNING이다. Finished 통보만으로 결과 없는 실행을 완료시키지 않는다.
 - 상태는 이전 상태 조건의 CAS UPDATE다. 상태 응답에 없는 요청을 삭제하지 않는다.

@@ -2,7 +2,7 @@
 
 ## 최종 테이블 목록
 
-이번 변경에서 런타임과 신규 설치 DDL에서 제거한 테이블은 다음 4개다.
+이번 변경에서 런타임과 신규 설치 DDL에서 제거한 테이블은 다음 5개다.
 실제 운영 DB의 DROP은 수행하지 않았으며 별도 전환 SQL을 제공한다.
 
 | 제거 테이블 | 대체 방식 |
@@ -11,14 +11,14 @@
 | PMOWN.TN_PM_SMLT_INPUT_SNAPSHOT | CAST 요청 시 지정된 원천 리소스로 XML 생성 |
 | PMOWN.TN_PM_SMLT_RSRC_LEASE | 번호를 재사용하지 않는 신규 할당. USER_MSTR가 사용자 PS와 시설 리소스의 관계를 관리 |
 | PMOWN.TN_PM_SMLT_CURRENT_SAVE | 현재상태 부모 행이 없으면 운영자료 사용. 저장시각은 남아 있는 부모 행에서 계산 |
+| PMOWN.TN_PM_SMLT_RESULT_IDENTITY | CAST는 결과를 재전송하지 않는다. 동일 실행·모델의 중복 결과는 기존 STNG 검사로 거부 |
 
 PMOWN.TN_PM_SMLT_MSTR는 앞선 공통 마스터 제거 작업에서 제거한 테이블이다.
-이번 4개와 합치면 최초 검토한 10개 중 5개가 제거된 구조이며 아래 5개는 유지한다.
+이번 5개와 합치면 최초 검토한 10개 중 6개가 제거된 구조이며 아래 4개는 유지한다.
 
 | 유지 테이블 | 이유 |
 |---|---|
 | PMOWN.TN_PM_SMLT_ID_LOCK | 리소스 할당·결과 연결·상태 전이 직렬화와 최종 할당 번호 |
-| PMOWN.TN_PM_SMLT_RESULT_IDENTITY | 결과 재전송 처리와 같은 원천키의 내용 변경 검출 |
 | PMOWN.TN_PM_SMLT_RESULT_GROUP | 일일·Manual 모델별 결과를 같은 실행으로 연결 |
 | PMOWN.TN_PM_SMLT_INPUT_BASE | 대상일자별 기본 리소스 참조 설정 |
 | PMOWN.TN_PM_SMLT_CAST_CONTRACT | 실제 CAST 결과 묶음 계약 검증 여부와 근거 |
@@ -81,7 +81,7 @@ java/ddl/2026-10-16-remove-smlt-snapshots.sql을 적용한다. 구 stage·execut
 | RSRC_LEASE | TN_PM_SMLT_LEASE_BAK_1016 |
 
 7. SQL은 기존 요청·결과·lease의 최댓값을 커서에 반영한다. 할당 시 원천에 이미 있는 번호도 검사한다. 기존 SQ1_TN_PM_SMLT_USER_RSRC가 있으면 NOCYCLE로 바꾸지만 새 런타임은 이 시퀀스를 사용하지 않는다.
-8. 세 원본 테이블을 DROP한 뒤 새 백엔드를 배포한다. 현재상태 저장·실행·실패 롤백·조건 보기·의도된 원천 변경 반영·CAST 리소스 목록과 PS 응답·결과 수신·재전송을 확인한다.
+8. 세 원본 테이블을 DROP한 뒤 새 백엔드를 배포한다. 현재상태 저장·실행·실패 롤백·조건 보기·의도된 원천 변경 반영·CAST 리소스 목록과 PS 응답·결과 수신·동일 실행·모델 중복 결과 거부를 확인한다.
 
 Oracle DDL은 전체 트랜잭션 롤백 대상이 아니다. 중단되면 서비스를 정지한 채 이미 적용된 컬럼·백업·DROP 상태를 확인한다.
 복구는 독립 전체 백업을 우선 사용한다. 데이터 백업으로 복구할 경우 원본 PK와 USER_MSTR의 지연 검사 FK도 복원해야 한다.
@@ -102,6 +102,26 @@ SQL은 여기서 실제 실행하지 않았다. 새 백엔드 배포 후 빈 저
 `PRIMARY KEY (OWNER_USER_ID, EXCN_YMD, TMNL_ID, AREA_CD)`와 기존 권한·객체를 복구한 뒤 구 백엔드를 배포한다.
 새 구조 운영 중의 빈 저장 여부·시각은 기록하지 않으므로, 과거 백업만으로 전환 이후의 저장 표시를 복원할 수 없다.
 
+### RESULT_IDENTITY 제거 적용
+
+CAST는 결과를 재전송하지 않으므로 원천 식별키·XML 원문 해시 저장과 재수신 성공 처리를 제거했다.
+사용자 요청과 결과의 날짜·모델·입력 리소스 대조, 동일 실행·모델의 STNG 존재 검사,
+일일·Manual 결과의 RESULT_GROUP 연결과 결과·이력·요청 완료의 단일 트랜잭션은 유지한다.
+중복 결과는 내용 비교나 덮어쓰기 없이 실패 응답한다.
+
+신규 DB는 최신 cast-ddl.sql을 사용한다. 기존 DB는 앞선 전환이 필요한 경우 먼저 완료하고,
+CAST 결과 수신을 정지한 상태에서 전체 스키마·권한·객체를 백업한 뒤
+`java/ddl/2026-10-16-remove-result-identity.sql`을 PMOWN 스키마에서 실행한다.
+스크립트는 DB 객체·외래키 의존성을 검사하고 `TN_PM_SMLT_RSID_BAK_1016`에 데이터를 보존한다.
+건수와 세 컬럼의 양방향 차이가 없는지 확인한 뒤 원본만 제거한다. STNG·결과·이력은 변경하지 않는다.
+새 백엔드 배포 후 사용자·일일 결과 저장, 동일 실행·모델 중복 거부와 요청 불일치 거부를 확인한다.
+이 저장소에서 실제 Oracle 실행과 백엔드 빌드를 완료한 것으로 간주하지 않는다.
+
+복구 시 전체 스키마 백업을 우선 사용한다. 데이터 백업만 사용하는 경우 결과 수신을 정지한 상태에서
+`CREATE TABLE PMOWN.TN_PM_SMLT_RESULT_IDENTITY AS SELECT * FROM PMOWN.TN_PM_SMLT_RSID_BAK_1016`으로 복원하고,
+`PRIMARY KEY (SOURCE_KEY)`·`PAYLOAD_HASH NOT NULL`과 기존 권한·객체를 복구한 뒤 구 백엔드를 배포한다.
+전환 이후 결과의 원천키·해시는 기록하지 않으므로 과거 백업만으로 해당 기록을 복원할 수 없다.
+
 ## 검증 범위
 
 - React 타입 검사, 전체 lint, Vite dev 빌드 통과.
@@ -117,3 +137,7 @@ CURRENT_SAVE 제거 검증에서는 mapper XML 16개 파싱과 CastExecutionMapp
 타입·lint·목업 검증은 Node의 preserve-symlinks 플래그로 실행했다. 일반 Vite 설정 로딩은 상위 사용자 경로
 접근 제한으로 실패하여 저장소 설정을 수정하지 않고 동등한 인메모리 설정으로 dev 번들을 검증했다.
 이 검증 설정은 symlink 정규화와 SVGR의 외부 설정 탐색을 끈다. 기존 500kB 이상 청크 경고가 남는다.
+
+RESULT_IDENTITY 제거 검증에서는 mapper XML 16개 파싱과 CastExecutionMapper의 인터페이스·SQL 15개 대응을 확인했다.
+런타임·신규 설치 DDL의 RESULT_IDENTITY 참조 제거와 기존 중복 검사·요청 검증·그룹 연결 유지,
+React 타입 검사와 변경 diff의 공백 검사를 확인했다. 기존 DB 제거 SQL은 실제 Oracle에서 실행하지 않았다.
