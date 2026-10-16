@@ -100,7 +100,6 @@ public class CastDepServiceImpl implements CastDepService {
         castDepMapper.deleteUserDepOperHrList(saveDto);
         castDepMapper.deleteUserDepList(saveDto);
 
-        executionService.saved(saveDto, "DEP");
         if (saveDto.getDptgtList().isEmpty()) {
             return new JsonResponse();
         }
@@ -115,10 +114,10 @@ public class CastDepServiceImpl implements CastDepService {
     }
 
     private List<DepGateDto> getGateList(UserSmltDepSearchDto scope, String fcltTmnlId) {
-        if (!executionService.hasSaved(scope, "DEP")) return getBaseGateList(scope.getYmd(), fcltTmnlId);
+        List<DepGateDto> saved = new ArrayList<>(getSavedGateMap(scope).values());
+        if (saved.isEmpty()) return getBaseGateList(scope.getYmd(), fcltTmnlId);
         Map<String, String> names = getDepFcltList(fcltTmnlId).stream()
             .collect(Collectors.toMap(DepFcltRawDto::getDptgtNo, DepFcltRawDto::getDptgtNm));
-        List<DepGateDto> saved = new ArrayList<>(getSavedGateMap(scope).values());
         saved.forEach(gate -> gate.setDptgtNm(names.getOrDefault(gate.getDptgtNo(), gate.getDptgtNo())));
         return saved;
     }

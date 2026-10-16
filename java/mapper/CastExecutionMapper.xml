@@ -43,22 +43,28 @@
     </sql>
     <select id="retrieveSaveDt" resultType="string">
         /* CastExecutionMapper.retrieveSaveDt */
-        SELECT TO_CHAR(MAX(SAVE_DT), 'YYYYMMDDHH24MISS') FROM PMOWN.TN_PM_SMLT_CURRENT_SAVE
+        SELECT TO_CHAR(MAX(SAVE_DT), 'YYYYMMDDHH24MISS') FROM (
+            SELECT OWNER_USER_ID, EXCN_YMD, TMNL_ID, NVL(LAST_MDFCN_DT, FRST_REG_DT) AS SAVE_DT
+            FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT
+            UNION ALL
+            SELECT OWNER_USER_ID, EXCN_YMD, TMNL_ID, NVL(LAST_MDFCN_DT, FRST_REG_DT)
+            FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL
+            UNION ALL
+            SELECT OWNER_USER_ID, EXCN_YMD, TMNL_ID, NVL(LAST_MDFCN_DT, FRST_REG_DT)
+            FROM PMOWN.TN_PM_SMLT_USER_DPTGT
+        )
         WHERE OWNER_USER_ID = #{loginUserId} AND EXCN_YMD = #{ymd} AND TMNL_ID = #{fcltTmnlId}
     </select>
-    <select id="hasSaved" resultType="int">
-        /* CastExecutionMapper.hasSaved */
-        SELECT COUNT(*) FROM PMOWN.TN_PM_SMLT_CURRENT_SAVE
+    <select id="hasCurrentConditions" resultType="int">
+        SELECT COUNT(*) FROM (
+            SELECT OWNER_USER_ID, EXCN_YMD, TMNL_ID, 'CHKN' AS AREA_CD
+            FROM PMOWN.TN_PM_SMLT_USER_CHKN_ISL
+            UNION ALL
+            SELECT OWNER_USER_ID, EXCN_YMD, TMNL_ID, 'DEP' AS AREA_CD
+            FROM PMOWN.TN_PM_SMLT_USER_DPTGT
+        )
         WHERE OWNER_USER_ID = #{scope.loginUserId} AND EXCN_YMD = #{scope.ymd} AND TMNL_ID = #{scope.fcltTmnlId} AND AREA_CD = #{area}
     </select>
-    <update id="markSaved">
-        /* CastExecutionMapper.markSaved */
-        MERGE INTO PMOWN.TN_PM_SMLT_CURRENT_SAVE T
-        USING (SELECT #{scope.loginUserId} OWNER_USER_ID, #{scope.ymd} EXCN_YMD, #{scope.fcltTmnlId} TMNL_ID, #{area} AREA_CD FROM DUAL) S
-        ON (T.OWNER_USER_ID = S.OWNER_USER_ID AND T.EXCN_YMD = S.EXCN_YMD AND T.TMNL_ID = S.TMNL_ID AND T.AREA_CD = S.AREA_CD)
-        WHEN MATCHED THEN UPDATE SET SAVE_DT = CURRENT_TIMESTAMP
-        WHEN NOT MATCHED THEN INSERT (OWNER_USER_ID, EXCN_YMD, TMNL_ID, AREA_CD, SAVE_DT) VALUES (S.OWNER_USER_ID, S.EXCN_YMD, S.TMNL_ID, S.AREA_CD, CURRENT_TIMESTAMP)
-    </update>
     <select id="retrieveBaseSmltId" resultType="string">
         /* CastExecutionMapper.retrieveBaseSmltId */
         SELECT MAX(SMLT_ID) FROM PMOWN.TN_PM_SMLT_STNG WHERE EXCN_YMD = #{ymd} AND SMLT_TYPE = 'Auto'

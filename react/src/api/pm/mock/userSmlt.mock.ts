@@ -274,14 +274,22 @@ interface Conditions {
     flt: UserSmltFltPsgDto;
     chkn: UserSmltChknDto;
     dep: UserSmltDepDto;
+}
+interface SavedCondition<T> {
+    value: T;
     saveDt: string;
+}
+interface CurrentConditions {
+    flt?: SavedCondition<UserSmltFltPsgDto>;
+    chkn?: SavedCondition<UserSmltChknDto>;
+    dep?: SavedCondition<UserSmltDepDto>;
 }
 interface Execution {
     detail: SmltExecDetailDto;
     requestedDt: string;
     resourceIds: Record<TmnlId, string>;
 }
-const current = new Map<string, Conditions>();
+const current = new Map<string, CurrentConditions>();
 export const mockExecutions = new Map<string, Execution>();
 export const mockResources = new Map<string, Conditions>();
 let nextId = 10000000;
@@ -293,7 +301,16 @@ const stamp = () => {
 };
 const key = (ymd: string, terminal: TmnlId) => [commonMock.getUserInfoBySession().userId, ymd, terminal].join(':');
 function defaults(terminal: TmnlId): Conditions {
-    return { flt: { ...structuredClone(FLT_PSG[terminal]), ajmtRt: 0 }, chkn: buildChkn(terminal), dep: buildDep(terminal), saveDt: '' };
+    return { flt: { ...structuredClone(FLT_PSG[terminal]), ajmtRt: 0 }, chkn: buildChkn(terminal), dep: buildDep(terminal) };
+}
+function currentConditions(state: Map<string, CurrentConditions>, ymd: string, terminal: TmnlId): Conditions {
+    const saved = state.get(key(ymd, terminal));
+    const base = defaults(terminal);
+    return structuredClone({
+        flt: saved?.flt?.value ?? base.flt,
+        chkn: saved?.chkn?.value ?? base.chkn,
+        dep: saved?.dep?.value ?? base.dep,
+    });
 }
 function conditions(query: UserSmltQuery, terminal: TmnlId): Conditions {
     if (query.smltId) {
@@ -303,40 +320,43 @@ function conditions(query: UserSmltQuery, terminal: TmnlId): Conditions {
         if (!resource) throw new Error('참조한 리소스가 없습니다.');
         return structuredClone(resource);
     }
-    return structuredClone(current.get(key(query.ymd, terminal)) ?? defaults(terminal));
+    return currentConditions(current, query.ymd, terminal);
 }
 function validateYmd(ymd: string): void {
     const iso = ymd.slice(0, 4) + '-' + ymd.slice(4, 6) + '-' + ymd.slice(6, 8);
     const date = new Date(iso + 'T00:00:00Z');
     if (!/^\d{8}$/.test(ymd) || Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== iso) throw new Error('대상 일자를 확인해주세요.');
 }
-function saveFlt(request: UserSmltFltPsgSaveReq, state: Map<string, Conditions>) {
+function saveFlt(request: UserSmltFltPsgSaveReq, state: Map<string, CurrentConditions>) {
     validateYmd(request.ymd);
     const id = key(request.ymd, request.tmnlId);
-    const value = structuredClone(state.get(id) ?? defaults(request.tmnlId));
+    const value = structuredClone(state.get(id) ?? {});
     if (!Number.isFinite(request.ajmtRt) || request.ajmtRt < -100 || request.ajmtRt > 100) throw new Error('수정 비율은 -100 ~ 100 사이여야 합니다.');
-    value.flt.ajmtRt = request.ajmtRt;
-    value.saveDt = stamp();
+    value.flt = { value: { ...defaults(request.tmnlId).flt, ajmtRt: request.ajmtRt }, saveDt: stamp() };
     state.set(id, value);
 }
-function saveChkn(request: UserSmltChknSaveReq, state: Map<string, Conditions>) {
+function saveChkn(request: UserSmltChknSaveReq, state: Map<string, CurrentConditions>) {
     validateYmd(request.ymd);
     const id = key(request.ymd, request.tmnlId);
-    const value = structuredClone(state.get(id) ?? defaults(request.tmnlId));
-    value.chkn.islandList = structuredClone(request.islandList).map((island) => ({
+    const value = structuredClone(state.get(id) ?? {});
+    const chkn = defaults(request.tmnlId).chkn;
+    chkn.islandList = structuredClone(request.islandList).map((island) => ({
         ...island,
         boothCnt: island.boothList.filter((booth) => booth.alnCd).length,
     }));
-    value.saveDt = stamp();
+    if (chkn.islandList.length > 0) value.chkn = { value: chkn, saveDt: stamp() };
+    else delete value.chkn;
     state.set(id, value);
 }
-function saveDep(request: UserSmltDepSaveReq, state: Map<string, Conditions>) {
+function saveDep(request: UserSmltDepSaveReq, state: Map<string, CurrentConditions>) {
     validateYmd(request.ymd);
     const id = key(request.ymd, request.tmnlId);
-    const value = structuredClone(state.get(id) ?? defaults(request.tmnlId));
-    value.dep.dptgtList = structuredClone(request.dptgtList).map((gate) => ({ ...gate, dptgtNm: '출국장 ' + gate.dptgtNo }));
-    value.dep.peakScshCntom = peakScshCntom(value.dep.dptgtList);
-    value.saveDt = stamp();
+    const value = structuredClone(state.get(id) ?? {});
+    const dep = defaults(request.tmnlId).dep;
+    dep.dptgtList = structuredClone(request.dptgtList).map((gate) => ({ ...gate, dptgtNm: '출국장 ' + gate.dptgtNo }));
+    dep.peakScshCntom = peakScshCntom(dep.dptgtList);
+    if (dep.dptgtList.length > 0) value.dep = { value: dep, saveDt: stamp() };
+    else delete value.dep;
     state.set(id, value);
 }
 function publishResources(id: string, values: Record<TmnlId, Conditions>): Record<TmnlId, string> {
@@ -381,7 +401,12 @@ export function seedExecution(detail: SmltExecDetailDto): void {
     });
 }
 export const userSmltMock = {
-    getInfo: (ymd: string, tmnlId: TmnlId): UserSmltInfoDto => ({ ...OK, ymd, saveDt: current.get(key(ymd, tmnlId))?.saveDt ?? '', smltFlfmtSttsCd: '' }),
+    getInfo: (ymd: string, tmnlId: TmnlId): UserSmltInfoDto => ({
+        ...OK,
+        ymd,
+        saveDt: Object.values(current.get(key(ymd, tmnlId)) ?? {}).map((area) => area.saveDt).sort().at(-1) ?? '',
+        smltFlfmtSttsCd: '',
+    }),
     getFltPsgInfo: (query: UserSmltQuery, tmnlId: TmnlId) => conditions(query, tmnlId).flt,
     getChknCounterInfo: (query: UserSmltQuery, tmnlId: TmnlId) => conditions(query, tmnlId).chkn,
     getDepInfo: (query: UserSmltQuery, tmnlId: TmnlId) => conditions(query, tmnlId).dep,
@@ -414,7 +439,7 @@ export const userSmltMock = {
         request.chknList.forEach((item) => saveChkn({ ...item, ymd: request.ymd }, staged));
         request.depList.forEach((item) => saveDep({ ...item, ymd: request.ymd }, staged));
         const resolved = Object.fromEntries(
-            (['T1', 'T2'] as const).map((terminal) => [terminal, structuredClone(staged.get(key(request.ymd, terminal)) ?? defaults(terminal))]),
+            (['T1', 'T2'] as const).map((terminal) => [terminal, currentConditions(staged, request.ymd, terminal)]),
         ) as Record<TmnlId, Conditions>;
         const smltId = String(++nextId);
         const user = commonMock.getUserInfoBySession();

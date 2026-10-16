@@ -91,8 +91,8 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         UserSmltDepDto dep = depService.retrieveDepInfo(dq);
         requireSuccess(flt); requireSuccess(chkn); requireSuccess(dep);
         if (flt.getFltCnt() == 0) throw new IllegalStateException(terminal.getValue() + " " + ymd + " 운항 운영자료가 없습니다.");
-        if (!executionService.hasSaved(cq, "CHKN") && chkn.getIslandList().stream().noneMatch(island -> !island.getOprTimeList().isEmpty() && island.getBoothList().stream().anyMatch(booth -> booth.getAlnCd() != null && !booth.getAlnCd().isBlank()))) throw new IllegalStateException(terminal.getValue() + " 체크인 운영자료가 없습니다.");
-        if (!executionService.hasSaved(dq, "DEP") && dep.getDptgtList().stream().noneMatch(gate -> !gate.getOprTimeList().isEmpty())) throw new IllegalStateException(terminal.getValue() + " 출국장 운영자료가 없습니다.");
+        if (!executionService.hasCurrentConditions(cq, "CHKN") && chkn.getIslandList().stream().noneMatch(island -> !island.getOprTimeList().isEmpty() && island.getBoothList().stream().anyMatch(booth -> booth.getAlnCd() != null && !booth.getAlnCd().isBlank()))) throw new IllegalStateException(terminal.getValue() + " 체크인 운영자료가 없습니다.");
+        if (!executionService.hasCurrentConditions(dq, "DEP") && dep.getDptgtList().stream().noneMatch(gate -> !gate.getOprTimeList().isEmpty())) throw new IllegalStateException(terminal.getValue() + " 출국장 운영자료가 없습니다.");
         return new UserSmltFrozenDto(terminal, flt, chkn, dep);
     }
     private <T> List<T> list(List<T> values) { return values == null ? List.of() : values; }

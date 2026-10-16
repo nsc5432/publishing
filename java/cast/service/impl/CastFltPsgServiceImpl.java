@@ -96,7 +96,6 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
             castFltPsgMapper.insertUserFltPsg(saveDto);
         }
 
-        executionService.saved(saveDto, "FLT_PSG");
         return new JsonResponse();
     }
 

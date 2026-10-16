@@ -155,7 +155,6 @@ public class CastChknServiceImpl implements CastChknService {
         castChknMapper.deleteUserChknOperHrList(saveDto);
         castChknMapper.deleteUserChknIslandList(saveDto);
 
-        executionService.saved(saveDto, "CHKN");
         if (saveDto.getIslandList().isEmpty()) {
             return new JsonResponse();
         }
@@ -183,7 +182,7 @@ public class CastChknServiceImpl implements CastChknService {
     ) {
         List<ChknIslandDto> savedIslandList = getSavedIslandList(searchDto);
 
-        if (executionService.hasSaved(searchDto, "CHKN")) {
+        if (!savedIslandList.isEmpty()) {
             return savedIslandList;
         }
 

@@ -14,8 +14,7 @@ public interface CastExecutionMapper {
     String lockAllocator();
     String nextSmltId();
     String retrieveSaveDt(UserSmltCurrentDto scope);
-    int hasSaved(@Param("scope") UserSmltCurrentDto scope, @Param("area") String area);
-    void markSaved(@Param("scope") UserSmltCurrentDto scope, @Param("area") String area);
+    int hasCurrentConditions(@Param("scope") UserSmltCurrentDto scope, @Param("area") String area);
     aoms.pm.cast.dto.SmltStngDto retrieveExecutionResources(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId);
     aoms.pm.cast.dto.UserSmltReqDto retrievePropertySetRequest(@Param("resourceId") String resourceId);
     String retrieveBaseSmltId(@Param("ymd") String ymd);

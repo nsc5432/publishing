@@ -39,8 +39,7 @@ public class CastExecutionService {
         return "0".repeat(8 - id.length()) + id;
     }
     public String baseId(String ymd) { return mapper.retrieveBaseSmltId(ymd); }
-    public boolean hasSaved(UserSmltCurrentDto dto, String area) { return mapper.hasSaved(dto, area) > 0; }
-    public void saved(UserSmltCurrentDto dto, String area) { mapper.markSaved(dto, area); }
+    public boolean hasCurrentConditions(UserSmltCurrentDto dto, String area) { return mapper.hasCurrentConditions(dto, area) > 0; }
     public String saveDt(UserSmltCurrentDto dto) { String value = mapper.retrieveSaveDt(dto); return value == null ? "" : value; }
     public SmltStngDto resources(String id, String terminal) {
         if (terminal == null || !("P01".equals(terminal) || "P03".equals(terminal))) throw new IllegalStateException("터미널을 지정해주세요.");

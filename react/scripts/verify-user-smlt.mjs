@@ -76,12 +76,40 @@ try {
     check(mockExecutions.size === before && ratio() === 30, 'failed auto save leaves no partial execution or draft');
 
     api.saveFltPsgInfo({ ymd, tmnlId: 'T1', ajmtRt: 50 });
+    const baseChkn = api.getChknCounterInfo({ ymd }, 'T1');
+    const editedChkn = structuredClone(baseChkn.islandList);
+    editedChkn[0].kioskCnt += 1;
+    api.saveChknCounterInfo({ ymd, tmnlId: 'T1', islandList: editedChkn });
+    check(api.getChknCounterInfo({ ymd }, 'T1').islandList[0].kioskCnt === editedChkn[0].kioskCnt, 'nonempty check-in conditions remain saved');
     api.saveChknCounterInfo({ ymd, tmnlId: 'T1', islandList: [] });
-    const third = api.execute(request());
+    check(JSON.stringify(api.getChknCounterInfo({ ymd }, 'T1')) === JSON.stringify(baseChkn), 'empty check-in save returns to operative defaults');
+    const baseDep = api.getDepInfo({ ymd }, 'T1');
+    const editedDep = structuredClone(baseDep.dptgtList);
+    editedDep[0].scshCntom += 1;
+    api.saveDepInfo({ ymd, tmnlId: 'T1', dptgtList: editedDep });
+    check(api.getDepInfo({ ymd }, 'T1').dptgtList[0].scshCntom === editedDep[0].scshCntom, 'nonempty departure conditions remain saved');
+    api.saveDepInfo({ ymd, tmnlId: 'T1', dptgtList: [] });
+    check(JSON.stringify(api.getDepInfo({ ymd }, 'T1')) === JSON.stringify(baseDep), 'empty departure save returns to operative defaults');
+    check(ratio() === 50 && api.getInfo(ymd, 'T1').saveDt !== '', 'clearing facilities retains flight conditions and their save time');
+    const third = api.execute(request({
+        chknList: [{ ymd, tmnlId: 'T2', islandList: [] }],
+        depList: [{ ymd, tmnlId: 'T2', dptgtList: [] }],
+    }));
     check(api.getFltPsgInfo({ ymd, smltId: first.smltId }, 'T1').psgCnt > initialPax, 'draft edits do not replace assigned resources');
     check(mockExecutions.get(first.smltId).resourceIds.T1 !== mockExecutions.get(third.smltId).resourceIds.T1, 'new execution gets a distinct resource');
-    check(api.getChknCounterInfo({ ymd, smltId: third.smltId }, 'T1').islandList.length === 0, 'explicit saved empty is preserved');
+    check(api.getChknCounterInfo({ ymd, smltId: third.smltId }, 'T1').islandList.length > 0, 'execution uses operative check-in defaults after empty save');
+    check(api.getDepInfo({ ymd, smltId: third.smltId }, 'T1').dptgtList.length > 0, 'execution uses operative departure defaults after empty save');
+    check(api.getChknCounterInfo({ ymd, smltId: third.smltId }, 'T2').islandList.length > 0 && api.getDepInfo({ ymd, smltId: third.smltId }, 'T2').dptgtList.length > 0, 'empty auto saves also resolve to operative defaults');
     check(api.getChknCounterInfo({ ymd, smltId: first.smltId }, 'T1').islandList.length > 0, 'new empty does not mutate older conditions');
+    const inactiveChkn = api.getChknCounterInfo({ ymd: otherDay }, 'T2').islandList.map((island) => ({ ...island, oprTimeList: [] }));
+    const inactiveDep = api.getDepInfo({ ymd: otherDay }, 'T2').dptgtList.map((gate) => ({ ...gate, oprYn: 'N', oprTimeList: [] }));
+    api.saveChknCounterInfo({ ymd: otherDay, tmnlId: 'T2', islandList: inactiveChkn });
+    api.saveDepInfo({ ymd: otherDay, tmnlId: 'T2', dptgtList: inactiveDep });
+    check(api.getChknCounterInfo({ ymd: otherDay }, 'T2').islandList.every((island) => island.oprTimeList.length === 0) && api.getDepInfo({ ymd: otherDay }, 'T2').dptgtList.every((gate) => gate.oprYn === 'N'), 'nonempty inactive facilities do not fall back to operative data');
+    check(api.getInfo(otherDay, 'T2').saveDt !== '', 'remaining facility rows supply save time');
+    api.saveChknCounterInfo({ ymd: otherDay, tmnlId: 'T2', islandList: [] });
+    api.saveDepInfo({ ymd: otherDay, tmnlId: 'T2', dptgtList: [] });
+    check(api.getInfo(otherDay, 'T2').saveDt === '', 'empty saves without remaining rows leave no save time');
     const detached = api.getDepInfo({ ymd, smltId: first.smltId }, 'T1');
     detached.dptgtList.length = 0;
     check(api.getDepInfo({ ymd, smltId: first.smltId }, 'T1').dptgtList.length > 0, 'public DTO mutation cannot modify resource data');
