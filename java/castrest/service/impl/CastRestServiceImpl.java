@@ -84,6 +84,11 @@ import lombok.RequiredArgsConstructor;
 @Transactional(rollbackFor = Exception.class)
 public class CastRestServiceImpl extends EgovAbstractServiceImpl implements CastRestService {
 
+    @FunctionalInterface
+    private interface ResourceRequestParser<T> {
+        T parse() throws ParserConfigurationException, SAXException, IOException;
+    }
+
     private static final String FIXED_BASE_YMD = "20260212";
 
     private static final String CAST_MODEL = "CASTModel";
@@ -714,19 +719,30 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     @Override
     public String retrieveResourceInformation(String param){
+        return retrieveResourceInformation(() -> {
+            Document doc = parseXmlSafely(param);
+            CastReqGetResourceInformationDto infoDto = new CastReqGetResourceInformationDto();
+            resourceInfoList(doc.getDocumentElement(), null, infoDto);
+            return infoDto;
+        });
+    }
+
+    @Override
+    public String retrieveResourceInformation(CastReqGetResourceInformationDto infoDto) {
+        return retrieveResourceInformation(() -> infoDto);
+    }
+
+    private String retrieveResourceInformation(
+            ResourceRequestParser<CastReqGetResourceInformationDto> requestParser) {
         colTable.remove();
 
         saveSimLog("1", "1");
         List<Object> dbResults = null;
         try {
 
-            Document doc = parseXmlSafely(param);
-            Element node = doc.getDocumentElement();
-
-            CastReqGetResourceInformationDto infoDto = new CastReqGetResourceInformationDto();
+            CastReqGetResourceInformationDto infoDto = requestParser.parse();
             infoDto.setBaseYmd(resolveBaseYmd());
 
-            resourceInfoList(node, null, infoDto);
             mapResourceFlags(infoDto);
 
             dbResults = castRestMapper.retrieveResourceInformation(infoDto);
@@ -863,19 +879,29 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     @Override
     public String retrieveResource(String param){
+        return retrieveResource(() -> {
+            Document doc = parseXmlSafely(param);
+            CastReqGetResourceDto resourceDto = new CastReqGetResourceDto();
+            resourceList(doc.getDocumentElement(), null, resourceDto);
+            return resourceDto;
+        });
+    }
+
+    @Override
+    public String retrieveResource(CastReqGetResourceDto resourceDto) {
+        return retrieveResource(() -> resourceDto);
+    }
+
+    private String retrieveResource(ResourceRequestParser<CastReqGetResourceDto> requestParser) {
         colTable.remove();
 
         saveSimLog("2", "2");
 
         try {
 
-            Document doc = parseXmlSafely(param);
-            Element node = doc.getDocumentElement();
-
-            CastReqGetResourceDto resourceDto = new CastReqGetResourceDto();
+            CastReqGetResourceDto resourceDto = requestParser.parse();
             resourceDto.setBaseYmd(resolveBaseYmd());
 
-            resourceList(node, null, resourceDto);
             String archived = executionMapper.retrieveInput(resourceDto.getResourceType(), resourceDto.getResourceID());
             if (archived != null) return archived;
 
