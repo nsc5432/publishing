@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="aoms.pm.cast.mapper.CastExecutionMapper">
-    <select id="isResultGroupingVerified" resultType="int">
-        /* CastExecutionMapper.isResultGroupingVerified */
-        SELECT COUNT(*) FROM PMOWN.TN_PM_SMLT_CAST_CONTRACT WHERE CONTRACT_ID = 'RESULT_GROUP_V1' AND VERIFIED_YN = 'Y' AND EVIDENCE IS NOT NULL
-    </select>
     <select id="nextSmltId" resultType="string">
         /* CastExecutionMapper.nextSmltId */
         SELECT TO_CHAR(PMOWN.SQ1_TN_PM_SMLT_RSLT.NEXTVAL, 'TM9') FROM DUAL
@@ -156,14 +152,6 @@
         WHERE #{ymd} BETWEEN B.VALID_BGN_YMD AND B.VALID_END_YMD AND B.USE_YN = 'Y'
     </select>
     <!-- 리소스 내용은 지정된 원천 ID로 조회한다 -->
-    <select id="retrieveResultGroup" resultType="string">
-        /* CastExecutionMapper.retrieveResultGroup */
-        SELECT SMLT_ID FROM PMOWN.TN_PM_SMLT_RESULT_GROUP WHERE GROUP_KEY = #{groupKey}
-    </select>
-    <insert id="insertResultGroup">
-        /* CastExecutionMapper.insertResultGroup */
-        INSERT INTO PMOWN.TN_PM_SMLT_RESULT_GROUP (GROUP_KEY, SMLT_ID) VALUES (#{groupKey}, #{smltId})
-    </insert>
     <update id="syncHistory">
         /* CastExecutionMapper.syncHistory */
         MERGE INTO PMOWN.TH_PM_SMLT_FLFMT_HSTRY H

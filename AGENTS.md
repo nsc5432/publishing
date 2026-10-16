@@ -462,8 +462,8 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   mode=view&smltId=...는 현재상태가 아닌 실행 당시 JSON을 읽는다.
 - 사용자 결과는 FS 번호 후보가 유일해야 하며, 확인 가능한 WI 식별자와 일자·모델·입력 리소스를 대조한다.
   모호하거나 다른 입력이면 최신 요청에 임의 연결하지 않는다. 사용자 결과에 새 ID를 발급하지 않는다.
-- 일일·Manual 결과의 다중 모델 묶음 키는 RunID·계획/실제 시각·FS 조합이다. 실 CAST 계약 검증 후
-  TN_PM_SMLT_CAST_CONTRACT.RESULT_GROUP_V1에 근거와 VERIFIED_YN=Y를 등록해야 활성화된다.
+- 일일·Manual은 Run 하나에 모델 결과 1건이라 결과마다 새 공통 ID를 받는다(2026-10-16 RESULT_GROUP·
+  CAST_CONTRACT 제거). 다중 모델을 도입하면 STNG의 SMLT_TYPE·EXCN_ID(RunID)·계획/실제 시각·FS로 묶는다.
 - 원문은 REQUIRES_NEW 수신함에 먼저 보존한다. 파싱·매칭·저장 실패 이유도 남긴다.
   CAST는 결과를 재전송하지 않는다. RESULT_IDENTITY와 원천 식별키·payload hash 비교를 제거했다.
   동일 실행·모델의 결과가 STNG에 있으면 내용 비교 없이 실패 처리한다.

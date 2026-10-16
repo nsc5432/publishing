@@ -6,10 +6,7 @@ import aoms.pm.cast.dto.UserSmltCurrentDto;
 
 @Mapper
 public interface CastExecutionMapper {
-    int isResultGroupingVerified();
     aoms.pm.cast.dto.SmltStngDto retrieveInputBase(@Param("ymd") String ymd);
-    String retrieveResultGroup(@Param("groupKey") String groupKey);
-    void insertResultGroup(@Param("groupKey") String groupKey, @Param("smltId") String smltId);
     void syncHistory(@Param("smltId") String smltId);
     String nextSmltId();
     String retrieveSaveDt(UserSmltCurrentDto scope);

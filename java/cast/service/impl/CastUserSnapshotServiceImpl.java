@@ -20,9 +20,11 @@ import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.ChknIslRow;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.DptgtRow;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.FltAjmtRow;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.OperHrRow;
+import aoms.pm.cast.mapper.CastExecutionMapper;
 import aoms.pm.cast.mapper.CastUserSnapshotMapper;
 
 import aoms.pm.cast.service.CastUserSnapshotService;
+import aoms.pm.castrest.service.CastRestService;
 import aoms.pm.utils.SessionUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -42,9 +44,9 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
     private static final String PS = "PS";
 
     private final CastUserSnapshotMapper castUserSnapshotMapper;
-    private final aoms.pm.castrest.service.CastRestService castRestService;
+    private final CastRestService castRestService;
     private final SessionService sessionService;
-    private final aoms.pm.cast.mapper.CastExecutionMapper executionMapper;
+    private final CastExecutionMapper executionMapper;
 
     @Override
     public UserSmltRsrcSnapshotDto publish(String smltId, String excnYmd, List<UserSmltFrozenDto> frozenList) {

@@ -45,6 +45,8 @@ import aoms.framework.cmmn.service.SessionService;
 import aoms.framework.cmmn.util.FileUtil;
 import aoms.pm.cast.dto.UserSmltReqDto;
 import aoms.pm.cast.enums.UserSmltReqStatus;
+import aoms.pm.cast.mapper.CastExecutionMapper;
+import aoms.pm.cast.service.impl.CastExecutionService;
 
 import aoms.pm.castrest.mapper.CastRestMapper;
 import aoms.pm.castrest.service.CastRestService;
@@ -351,8 +353,8 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private final CastRestMapper castRestMapper;
 
-    private final aoms.pm.cast.mapper.CastExecutionMapper executionMapper;
-    private final aoms.pm.cast.service.impl.CastExecutionService executionService;
+    private final CastExecutionMapper executionMapper;
+    private final CastExecutionService executionService;
     private final SessionService sessionService;
 
     private static class FsFieldInfo {
@@ -2563,14 +2565,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             validateUserResult(dto, userReq);
             simId = userReq.getSmltId();
         } else {
-            if (dto.getRunID() == null || dto.getRunID().isBlank()) throw new IllegalStateException("결과 RunID가 없습니다.");
-            if (executionMapper.isResultGroupingVerified() != 1) throw new IllegalStateException("CAST 다중 모델 결과 묶음 계약 검증이 필요합니다.");
-            String groupKey = DigestUtils.sha256Hex(String.join("|", dto.getSmltType(), dto.getRunID(), dto.getStartTime(), dto.getStopTime(), dto.getSimulationStartTime(), dto.getSimulationStopTime(), dto.getFlightScheduleResourceID()));
-            simId = executionMapper.retrieveResultGroup(groupKey);
-            if (simId == null) {
-                simId = executionService.nextId();
-                executionMapper.insertResultGroup(groupKey, simId);
-            }
+            simId = executionService.nextId();
         }
         dto.setSimId(simId);
         SmltMdlDto modelDto = castRestMapper.retrieveModelInfo(dto);

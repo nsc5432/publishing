@@ -92,16 +92,15 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
   입력 누락·불일치, 여러 WI 토큰, 여러 후보, 실패 종료 요청은 임의로 연결하지 않는다.
 - CAST는 결과를 재전송하지 않는다. RESULT_IDENTITY와 원천 식별키·XML 원문 해시 비교를 제거했으며,
   동일 실행·모델의 결과가 이미 STNG에 있으면 내용 비교 없이 실패 처리한다.
-- 일일·Manual의 묶음 키는 유형 + RunID + 계획 시작/종료 + 실제 시작/종료 + FS다.
-  **실 CAST 계약 확인 전에는 활성화하지 않는다.** TN_PM_SMLT_CAST_CONTRACT의
-  RESULT_GROUP_V1에 검증 근거와 VERIFIED_YN=Y가 있어야 일일·Manual 결과를 저장한다.
-  미확인 결과는 실패 응답과 수신함 원문으로 남으며 별도 요청에 임의 연결하지 않는다.
+- 일일·Manual은 Run 하나에 모델 결과 1건이므로 결과마다 새 공통 ID를 받는다.
+  2026-10-16 RESULT_GROUP 묶음과 CAST_CONTRACT 활성화 검사를 제거했다.
+  다중 모델을 도입하면 STNG의 SMLT_TYPE·EXCN_ID(RunID)·계획/실제 시각·FLT_SCHDL_RSRC_ID로 묶는다.
 - New/Executing은 RUNNING, 결과 저장 성공은 DONE, Failed는 FAILED다.
   Finished 상태 통보만 도착하고 결과가 없으면 모니터링은 RUNNING을 유지한다.
   사용자 상태는 `USER_MSTR`와 결과 존재 여부로 판단하고, 비사용자는 저장된 `STNG`를 실행별로 집계한다.
   COND_SNAPSHOT·INPUT_SNAPSHOT·RSRC_LEASE는 제거했다. 적용 절차와 전체 테이블 목록은
   [리소스 참조 정리](resource-reference-cleanup.md)를 따른다.
-  `RESULT_GROUP`·결과 상세·수행이력은 양 원천을 대상으로 하므로 공통 마스터 FK를
+  결과 상세·수행이력은 양 원천을 대상으로 하므로 공통 마스터 FK를
   제거한다. 결과 저장 트랜잭션과 전환 스크립트 끝의 고아 ID 점검 SQL로 정합성을 확인한다.
 
 ## 리소스 참조 전환 적용 절차 (2026-10-16)
