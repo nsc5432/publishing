@@ -711,6 +711,8 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         WHATIF_MAP.put(SIMULATION_RESULT_SUFFIX, CastWhatIfCntrlDto::setSimulationResultSuffix);
         WHATIF_MAP.put(STATUS, CastWhatIfCntrlDto::setStatus);
     }
+
+    // 동시 응답을 받는 경우 ThreadLocal 로 변수 관리가 되어야 각각의 응답에 종속
     private final ThreadLocal<String> colTable = ThreadLocal.withInitial(() -> "");
 
     private String resolveBaseYmd() {
@@ -734,8 +736,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         return retrieveResourceInformation(() -> infoDto);
     }
 
-    private String retrieveResourceInformation(
-            ResourceRequestParser<CastReqGetResourceInformationDto> requestParser) {
+    private String retrieveResourceInformation(ResourceRequestParser<CastReqGetResourceInformationDto> requestParser) {
         colTable.remove();
 
         saveSimLog("1", "1");
