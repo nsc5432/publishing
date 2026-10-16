@@ -143,7 +143,7 @@
              ON S.SMLT_ID = L.SMLT_ID
             AND S.RESOURCE_TYPE = 'PropertySet'
             AND S.RESOURCE_ID = 'PS'||L.RSRC_NO
-        INNER JOIN PMOWN.TN_PM_SMLT_MSTR M
+        INNER JOIN PMOWN.TN_PM_SMLT_USER_MSTR M
              ON M.SMLT_ID = L.SMLT_ID
         WHERE L.RSRC_KIND = 'PS'
              AND #{handleYn} = 1
@@ -2288,12 +2288,6 @@ ORDER BY BlockID, DepArrTerminal, resourceID
          , SMLT_STTS AS status
       FROM PMOWN.TN_PM_SMLT_USER_MSTR
     </select>
-    <delete  id="deleteWhatIfDefinitionTable" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto" >
-        /* CastRestMapper.deleteWhatIfDefinitionTable(CastWhatIfCntrlDto dto) */
-       DELETE FROM PMOWN.TN_PM_SMLT_USER_MSTR
-       WHERE SMLT_REQ_ID = #{whatIfRunId}
-    </delete>
-
     <select id="retrieveUserReqByFsRsrcId" resultType="aoms.pm.cast.dto.UserSmltReqDto">
         /* CastRestMapper.retrieveUserReqByFsRsrcId(String fltSchdlRsrcId) */
         SELECT *

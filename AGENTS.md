@@ -381,10 +381,11 @@ CAST 는 `REQ_GetResource` 요청에 날짜를 싣지 않는다 — 본문이 `@
 
 ---
 
-## 11. 사용자 현재상태·공통 실행 마스터와 CAST 연계
+## 11. 사용자 현재상태·공통 실행 ID와 CAST 연계
 
-2026-10-11 재설계. 계획은 docs/plans/2026-10-11-user-smlt-master-redesign.md,
-API·적용·복구 절차는 docs/user-smlt-master-redesign.md를 따른다.
+2026-10-11 재설계 후 2026-10-16 공통 마스터를 제거했다. 최초 계획은
+docs/plans/2026-10-11-user-smlt-master-redesign.md이며 현재 API·적용·복구 절차는
+docs/user-smlt-master-redesign.md를 따른다.
 이 저장소의 Java는 참조 사본이며 실DB 적용·실백엔드 빌드가 완료된 것으로 간주하지 않는다.
 
 ### 11.1 현재상태와 실행
@@ -410,19 +411,20 @@ API·적용·복구 절차는 docs/user-smlt-master-redesign.md를 따른다.
 
 | 이름 / 테이블 | 의미 |
 |---|---|
-| TN_PM_SMLT_MSTR.SMLT_ID | 공통 실행 1건. 사용자 등록 시, 일일 결과 수신 시 발급 |
-| TN_PM_SMLT_ID_LOCK | 고정 EXECUTION 행을 FOR UPDATE한 후 공통 MAX+1 채번. RSRC_FS·RSRC_PS 행의 LAST_NO가 마지막 리소스 번호 |
+| SQ1_TN_PM_SMLT_RSLT | 사용자 등록·일일 결과 최초 수신 양쪽에서 공통 SMLT_ID 채번 |
+| TN_PM_SMLT_ID_LOCK | 고정 EXECUTION 행을 FOR UPDATE해 리소스 할당·결과 수신·상태 전이를 직렬화. RSRC_FS·RSRC_PS 행의 LAST_NO가 마지막 리소스 번호 |
 | TN_PM_SMLT_RSRC_LEASE | (RSRC_KIND FS/PS, RSRC_NO) → 현재 소유 실행. 번호 재사용 시 소유 실행을 UPDATE |
-| TN_PM_SMLT_USER_MSTR | CAST WhatIf 요청. 신규 요청 ID는 WI + 공통 8자리 ID |
+| TN_PM_SMLT_USER_MSTR | 사용자 실행의 원천이자 CAST WhatIf 요청. 신규 요청 ID는 WI + 공통 8자리 ID. 결과가 남아 있는 요청 행은 삭제하지 않는다 |
 | TH_PM_SMLT_FLFMT_HSTRY | 같은 실행 ID로 관리하는 수행이력 |
-| TN_PM_SMLT_STNG | 같은 실행 ID 아래의 모델별 설정. PK는 (SMLT_ID, SMLT_MDL_SN) |
+| TN_PM_SMLT_STNG | 같은 실행 ID 아래의 모델별 설정. PK는 (SMLT_ID, SMLT_MDL_SN). USER_MSTR에 없는 ID는 일일·Manual 실행이며 실행별로 집계한다 |
 | TN_PM_SMLT_RSLT_DTL(_REG_EXCL) | 같은 실행 ID의 상세·미매핑 결과 |
 | TN_PM_SMLT_COND_SNAPSHOT | 실행별 양 터미널·세 영역 JSON 확정 조건 |
 | TN_PM_SMLT_INPUT_SNAPSHOT | 실행별 CAST 입력 XML 원문. PK (SMLT_ID, RESOURCE_TYPE, RESOURCE_ID) |
 | TN_PM_SMLT_INPUT_BASE | 결과 유무와 무관한 날짜 유효 기본 리소스 설정 |
 
-공통 ID는 숫자 8자리 신규 값을 사용하며 99999999를 넘기면 실패한다. 이관된 기존 1~8자리 숫자
-ID는 보존한다. MAX에는 미완료 마스터도 포함한다. SQ1_TN_PM_SMLT_RSLT.NEXTVAL과 회차를 사용하지 않는다.
+공통 ID는 SQ1_TN_PM_SMLT_RSLT.NEXTVAL을 숫자 8자리로 표기하며 99999999를 넘기면 실패한다.
+이관된 기존 1~8자리 숫자 ID는 보존한다. 시퀀스는 NOCYCLE이며 USER_MSTR·STNG의 기존 최대 ID보다
+높게 맞춘다. 롤백에 따른 결번은 허용하며 회차는 사용하지 않는다. 별도 TN_PM_SMLT_MSTR는 사용하지 않는다.
 RSLT_SMLT_ID는 호환 컬럼으로 남지만 결과 연결 후 공통 SMLT_ID와 같다.
 구 회차·요청·결과 ID는 이관 대응표와 원본 LGC에서만 보존한다.
 
@@ -435,15 +437,16 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 - FS001 / CA001 / SBD001은 일일 운영자료다. 사용자 자료는 002~999 번호를 FS·CA·SBD·DepartureGate·
   SecurityControl·Immigration·TransferSecurityControl 7종이 공유한다. 출국장·입국심사·환승보안 렌더 SQL이
   번호로 FS 그룹 일자를 찾으므로 타입별 번호를 분리하지 않는다. 입국심사·환승보안은 INPUT_BASE 원천(001)을 번호로 복사한다.
-- 번호는 002→…→999→002로 순환한다(2026-10-12). 소유 실행이 Finished/Failed면 재사용, New/Executing이면
-  건너뛴다. lease 없는 기존 요청은 FLT_SCHDL_RSRC_ID로 같은 판정을 한다. 전 번호가 진행 중일 때만 실패한다.
+- 번호는 002→…→999→002로 순환한다(2026-10-12). USER_MSTR의 소유 실행이 Failed이거나 Finished이고
+  STNG 결과가 있으면 재사용한다. New/Executing 및 결과 없는 Finished는 건너뛴다.
+  lease 없는 기존 요청은 FLT_SCHDL_RSRC_ID로 같은 판정을 한다. 전 번호가 진행 중일 때만 실패한다.
   멈춘 실행은 번호를 계속 점유하며 자동 해제하지 않는다. 재사용 번호의 전송 7쌍은 DELETE 후 INSERT한다.
 - PropertySet은 실행마다 PS500~998 하나를 FS와 독립 순환으로 받는다. 원천 PS(001)를 렌더해 SBD·DepartureGate·
   SecurityControl·Immigration·TransferSecurityControl 참조만 그 실행의 FS 번호로 바꾼 XML로만 보관한다
   (FIX_ATRB_GROUP 행을 만들지 않는다). 모델·서비스시간·체크인유형·출국심사·리포팅은 원본 ID 그대로 요청에 넣는다.
   원본(001 계열·모델)이 등록~CAST 수집 사이 바뀌지 않는다는 운영 가정으로 `_U` 가상 ID를 폐지했다.
 - REQ_GetResource는 INPUT_SNAPSHOT 중 **현재 lease 소유 실행의 번호 리소스·PS5xx 행만** 반환한다. 원본 ID로
-  남긴 기록용 행은 반환하지 않는다. 리소스 목록은 PS lease의 PS5xx만 추가로 내보낸다(LastModified = 마스터 등록시각).
+  남긴 기록용 행은 반환하지 않는다. 리소스 목록은 PS lease의 PS5xx만 추가로 내보낸다(LastModified = USER_MSTR 등록시각).
 - CA 블록은 P01CKINInt / P01CKINDom / P03CKIN, SBD는 P01SBD / P03SBD,
   키오스크는 P01Self / P03Self다. 발행과 조회의 값이 같아야 한다.
   SBD AirlineCode는 ALN_CD가 아니라 CHKN_TYPE_DTL_INFO다.
@@ -465,8 +468,8 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   TN_PM_SMLT_CAST_CONTRACT.RESULT_GROUP_V1에 근거와 VERIFIED_YN=Y를 등록해야 활성화된다.
 - 원문은 REQUIRES_NEW 수신함에 먼저 보존한다. 파싱·매칭·저장 실패 이유도 남긴다.
   원천 식별키와 payload hash로 재수신을 판별하며, 같은 식별자의 다른 내용은 격리한다.
-- 결과 저장·마스터·이력·요청 완료는 같은 트랜잭션이다. Finished 통보만으로 결과 없는 마스터를
-  완료시키지 않는다. New/Executing→RUNNING, Finished→DONE, Failed→FAILED 매핑을 유지한다.
+- 결과 저장·이력·요청 완료는 같은 트랜잭션이다. 사용자 실행은 Failed이면 FAILED, STNG 결과가
+  있으면 DONE, 나머지는 RUNNING이다. Finished 통보만으로 결과 없는 실행을 완료시키지 않는다.
 - 상태는 이전 상태 조건의 CAS UPDATE다. 상태 응답에 없는 요청을 삭제하지 않는다.
   활성 요청 부분 유니크 제약과 추가 실행 차단을 사용하지 않는다.
 - LISTAGG의 NULL 누락을 막는 NVL(' ')과 모든 컬럼의 동일 정렬 순서를 유지한다.
@@ -475,7 +478,9 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 
 참조 DDL은 사진 판독본이다. java/ddl/2026-10-11-user-smlt-preflight.sql로 실스키마·인덱스·코드·ID를 대조한다.
 이전 2026-08-27-user-smlt-alter.sql을 새 환경에 순서대로 적용하지 않는다.
-이관은 stage→executions→input-base-seed→verify→cutover 순서이며, stage부터 CAST 및 화면 쓰기를 중단한다.
+기존 stage→executions→input-base-seed→verify→cutover는 과거 절차다. 현재 executions 파일은 손상되어
+그대로 실행할 수 없다. 이미 cutover가 완료된 DB는 2026-10-16-remove-smlt-master.sql로 전환한다.
+신규 DB는 최신 cast-ddl.sql을 기준으로 생성하며 적용·복구 상세는 docs/user-smlt-master-redesign.md를 따른다.
 stage는 전송 7쌍의 002~999 행을 *_LGC로 백업하고 RSRC_FS 시작점을 기존 요청의 최대 FS 번호로 둔다.
 원본·대응표·미확정 사유를 보존하고, 모든 미확정 건과 별도 환경 검증을 해결하기 전 cutover하지 않는다.
 

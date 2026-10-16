@@ -2552,12 +2552,6 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             simId = executionMapper.retrieveResultGroup(groupKey);
             if (simId == null) {
                 simId = executionService.nextId();
-                aoms.pm.cast.dto.SmltMasterDto master = new aoms.pm.cast.dto.SmltMasterDto();
-                master.setSmltId(simId); master.setSmltType(dto.getSmltType());
-                master.setExcnYmd(dateTime(dto.getStartTime()).substring(0, 10).replace("-", ""));
-                master.setSmltStts("Finished"); master.setLoginUserId("CAST");
-                master.setSmltBgngDt(dateTime(dto.getSimulationStartTime())); master.setSmltEndDt(dateTime(dto.getSimulationStopTime()));
-                executionMapper.insertMaster(master);
                 executionMapper.insertResultGroup(groupKey, simId);
             }
         }
@@ -2571,12 +2565,11 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         castRestMapper.insertSimSet(dto);
         if (!details.isEmpty()) executeBatchInsert(details);
         executionMapper.insertResultIdentity(sourceKey, simId, payloadHash);
-        executionMapper.completeMaster(simId, dateTime(dto.getSimulationStartTime()), dateTime(dto.getSimulationStopTime()));
-        executionMapper.syncHistory(simId);
         if (userReq != null) {
             userReq.setRsltSmltId(simId); userReq.setLoginIpAddr(dto.getLoginIpAddr());
             castRestMapper.updateUserReqFinished(userReq);
         }
+        executionMapper.syncHistory(simId);
         return 1;
     }
     private void validateUserResult(CastResReqDto dto, UserSmltReqDto request) {
@@ -3222,6 +3215,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     }
 
     private int updateWhatIf(CastWhatIfCntrlDto dto){
+        executionService.lock();
         saveSimLog("22", "1");
         String[] sIDs = dto.getWhatIfRunId().split(",");
         String[] sStts = dto.getStatus().split(",");
@@ -3259,21 +3253,20 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             rRslt += updated;
 
             if (updated > 0) {
-                closeFlfmtHstry(runId, to);
+                closeFlfmtHstry(runId);
             }
         }
         saveSimLog("22", "2");
         return rRslt;
     }
 
-    private void closeFlfmtHstry(String smltReqId, UserSmltReqStatus status) {
+    private void closeFlfmtHstry(String smltReqId) {
         UserSmltReqDto userReq = castRestMapper.retrieveUserReqByKey(smltReqId);
 
         if (userReq == null) {
             return;
         }
 
-        executionMapper.updateStatus(userReq.getSmltId(), status.getValue());
         executionMapper.syncHistory(userReq.getSmltId());
     }
 }

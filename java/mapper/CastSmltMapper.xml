@@ -66,25 +66,25 @@
     </insert>
     <select id="retrieveSmltFlfmt" resultType="aoms.pm.cast.dto.SmltExcnDto">
         /* CastSmltMapper.retrieveSmltFlfmt */
-        SELECT A.SMLT_ID, A.SMLT_TYPE, A.EXCN_YMD, NVL((SELECT MIN(S.TMNL_ID) FROM PMOWN.TN_PM_SMLT_STNG S WHERE S.SMLT_ID=A.SMLT_ID), 'P01') AS TMNL_ID,
+        SELECT A.SMLT_ID, A.SMLT_TYPE, A.EXCN_YMD, A.TMNL_ID,
             CASE A.SMLT_STTS WHEN 'Finished' THEN 'DONE' WHEN 'Failed' THEN 'FAILED' ELSE 'RUNNING' END AS SMLT_FLFMT_STTS_CD,
             TO_CHAR(A.SMLT_BGNG_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_BGNG_DT,
             TO_CHAR(A.SMLT_END_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_END_DT,
             NVL(ROUND((CAST(A.SMLT_END_DT AS DATE) - CAST(A.SMLT_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
             A.FRST_RGTR_ID AS RGTR_ID, NVL(C.USER_NM, '') AS USER_NM, NVL(D.DEPT_NM, '') AS DEPT_NM
-        FROM PMOWN.TN_PM_SMLT_MSTR A
+        FROM (<include refid="aoms.pm.cast.mapper.CastExecutionMapper.executionRows"/>) A
         LEFT JOIN CAOWN.TN_CA_USER C ON A.FRST_RGTR_ID = C.USER_ID
         LEFT JOIN CAOWN.TN_CA_DEPT D ON C.DEPT_CD = D.DEPT_CD WHERE A.SMLT_ID = #{smltId}
     </select>
     <select id="retrieveSmltFlfmtList" resultType="aoms.pm.cast.dto.SmltExcnDto">
         /* CastSmltMapper.retrieveSmltFlfmtList */
-        SELECT A.SMLT_ID, A.SMLT_TYPE, A.EXCN_YMD, NVL((SELECT MIN(S.TMNL_ID) FROM PMOWN.TN_PM_SMLT_STNG S WHERE S.SMLT_ID=A.SMLT_ID), 'P01') AS TMNL_ID,
+        SELECT A.SMLT_ID, A.SMLT_TYPE, A.EXCN_YMD, A.TMNL_ID,
             CASE A.SMLT_STTS WHEN 'Finished' THEN 'DONE' WHEN 'Failed' THEN 'FAILED' ELSE 'RUNNING' END AS SMLT_FLFMT_STTS_CD,
             TO_CHAR(A.SMLT_BGNG_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_BGNG_DT,
             TO_CHAR(A.SMLT_END_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_END_DT,
             NVL(ROUND((CAST(A.SMLT_END_DT AS DATE) - CAST(A.SMLT_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
             A.FRST_RGTR_ID AS RGTR_ID, NVL(C.USER_NM, '') AS USER_NM, NVL(D.DEPT_NM, '') AS DEPT_NM
-        FROM PMOWN.TN_PM_SMLT_MSTR A
+        FROM (<include refid="aoms.pm.cast.mapper.CastExecutionMapper.executionRows"/>) A
         LEFT JOIN CAOWN.TN_CA_USER C ON A.FRST_RGTR_ID = C.USER_ID
         LEFT JOIN CAOWN.TN_CA_DEPT D ON C.DEPT_CD = D.DEPT_CD
         WHERE TO_CHAR(NVL(A.SMLT_REQ_DT, A.SMLT_BGNG_DT), 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
@@ -96,7 +96,7 @@
             NVL(SUM(CASE WHEN SMLT_STTS = 'Finished' THEN 1 ELSE 0 END), 0) DONE_CNT,
             NVL(SUM(CASE WHEN SMLT_STTS IN ('New', 'Executing') THEN 1 ELSE 0 END), 0) RUNNING_CNT,
             NVL(ROUND(AVG(CASE WHEN SMLT_STTS = 'Finished' THEN (CAST(SMLT_END_DT AS DATE) - CAST(SMLT_BGNG_DT AS DATE)) * 86400 END)), 0) AVG_EXEC_SEC
-        FROM PMOWN.TN_PM_SMLT_MSTR
+        FROM (<include refid="aoms.pm.cast.mapper.CastExecutionMapper.executionRows"/>) A
         WHERE TO_CHAR(NVL(SMLT_REQ_DT, SMLT_BGNG_DT), 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
     </select>
 </mapper>

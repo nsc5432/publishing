@@ -11,16 +11,36 @@
     </select>
     <select id="nextSmltId" resultType="string">
         /* CastExecutionMapper.nextSmltId */
-        SELECT TO_CHAR(NVL(MAX(TO_NUMBER(SMLT_ID)), 0) + 1, 'FM00000000') FROM PMOWN.TN_PM_SMLT_MSTR
+        SELECT TO_CHAR(PMOWN.SQ1_TN_PM_SMLT_RSLT.NEXTVAL, 'TM9') FROM DUAL
     </select>
-    <insert id="insertMaster">
-        /* CastExecutionMapper.insertMaster */
-        INSERT INTO PMOWN.TN_PM_SMLT_MSTR (SMLT_ID, SMLT_TYPE, EXCN_YMD, SMLT_STTS, SMLT_REQ_DT, SMLT_BGNG_DT, SMLT_END_DT, FRST_RGTR_ID, FRST_REG_DT)
-        VALUES (#{smltId}, #{smltType}, #{excnYmd}, #{smltStts},
-            CASE WHEN #{smltType} = 'WhatIf' THEN CURRENT_TIMESTAMP ELSE NULL END,
-            TO_TIMESTAMP(#{smltBgngDt,jdbcType=VARCHAR}, 'YYYY-MM-DD HH24:MI:SS'), TO_TIMESTAMP(#{smltEndDt,jdbcType=VARCHAR}, 'YYYY-MM-DD HH24:MI:SS'),
-            #{loginUserId}, CURRENT_TIMESTAMP)
-    </insert>
+    <sql id="executionResults">
+        SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
+            MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
+            MAX(SMLT_END_DT) AS SMLT_END_DT,
+            MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
+            MIN(FRST_REG_DT) AS FRST_REG_DT
+        FROM PMOWN.TN_PM_SMLT_STNG
+        GROUP BY SMLT_ID
+    </sql>
+    <sql id="executionRows">
+        SELECT U.SMLT_ID, 'WhatIf' AS SMLT_TYPE, U.EXCN_YMD,
+            CASE WHEN U.SMLT_STTS = 'Failed' THEN 'Failed'
+                WHEN S.SMLT_ID IS NOT NULL THEN 'Finished'
+                WHEN U.SMLT_STTS = 'New' THEN 'New' ELSE 'Executing' END AS SMLT_STTS,
+            U.QUEUE_DT AS SMLT_REQ_DT, NVL(S.SMLT_BGNG_DT, U.EXCT_DT) AS SMLT_BGNG_DT,
+            CASE WHEN U.SMLT_STTS = 'Failed' THEN NVL(U.END_DT, S.SMLT_END_DT)
+                ELSE S.SMLT_END_DT END AS SMLT_END_DT,
+            U.FRST_RGTR_ID, U.FRST_REG_DT, NVL(S.TMNL_ID, 'P01') AS TMNL_ID
+        FROM PMOWN.TN_PM_SMLT_USER_MSTR U
+        LEFT JOIN (<include refid="aoms.pm.cast.mapper.CastExecutionMapper.executionResults"/>) S ON S.SMLT_ID = U.SMLT_ID
+        UNION ALL
+        SELECT S.SMLT_ID, CASE WHEN S.SMLT_TYPE = 'Manual' THEN 'Manual' ELSE 'Auto' END AS SMLT_TYPE,
+            S.EXCN_YMD, 'Finished' AS SMLT_STTS,
+            CAST(NULL AS TIMESTAMP(6)) AS SMLT_REQ_DT, S.SMLT_BGNG_DT, S.SMLT_END_DT,
+            S.FRST_RGTR_ID, S.FRST_REG_DT, S.TMNL_ID
+        FROM (<include refid="aoms.pm.cast.mapper.CastExecutionMapper.executionResults"/>) S
+        WHERE NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U WHERE U.SMLT_ID = S.SMLT_ID)
+    </sql>
     <select id="retrieveSaveDt" resultType="string">
         /* CastExecutionMapper.retrieveSaveDt */
         SELECT TO_CHAR(MAX(SAVE_DT), 'YYYYMMDDHH24MISS') FROM PMOWN.TN_PM_SMLT_CURRENT_SAVE
@@ -64,14 +84,16 @@
             ) P
             WHERE NOT EXISTS (
                 SELECT 1 FROM PMOWN.TN_PM_SMLT_RSRC_LEASE L
-                INNER JOIN PMOWN.TN_PM_SMLT_MSTR M ON M.SMLT_ID = L.SMLT_ID
-                WHERE L.RSRC_KIND = #{kind} AND L.RSRC_NO = N.RSRC_NO AND M.SMLT_STTS IN ('New', 'Executing')
+                INNER JOIN PMOWN.TN_PM_SMLT_USER_MSTR U ON U.SMLT_ID = L.SMLT_ID
+                WHERE L.RSRC_KIND = #{kind} AND L.RSRC_NO = N.RSRC_NO
+                AND (U.SMLT_STTS IN ('New', 'Executing') OR (U.SMLT_STTS = 'Finished'
+                    AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_STNG S WHERE S.SMLT_ID = U.SMLT_ID)))
             )
             AND NOT EXISTS (
                 SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U
-                INNER JOIN PMOWN.TN_PM_SMLT_MSTR M ON M.SMLT_ID = U.SMLT_ID
                 WHERE DECODE(#{kind}, 'FS', U.FLT_SCHDL_RSRC_ID, 'PS', U.PRPT_STNG_RSRC_ID) = #{kind} || N.RSRC_NO
-                AND M.SMLT_STTS IN ('New', 'Executing')
+                AND (U.SMLT_STTS IN ('New', 'Executing') OR (U.SMLT_STTS = 'Finished'
+                    AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_STNG S WHERE S.SMLT_ID = U.SMLT_ID)))
             )
             ORDER BY MOD(MOD(TO_NUMBER(N.RSRC_NO) - P.LAST_NO - 1, #{maxNo} - #{minNo} + 1) + #{maxNo} - #{minNo} + 1, #{maxNo} - #{minNo} + 1)
         ) WHERE ROWNUM = 1
@@ -104,21 +126,6 @@
         /* CastExecutionMapper.hasModel */
         SELECT COUNT(*) FROM PMOWN.TN_PM_SMLT_STNG WHERE SMLT_ID = #{smltId} AND SMLT_MDL_SN = #{mdlSn}
     </select>
-    <update id="completeMaster">
-        /* CastExecutionMapper.completeMaster */
-        UPDATE PMOWN.TN_PM_SMLT_MSTR SET SMLT_STTS = 'Finished',
-            SMLT_BGNG_DT = LEAST(NVL(SMLT_BGNG_DT, TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')), TO_TIMESTAMP(#{startTime}, 'YYYY-MM-DD HH24:MI:SS')),
-            SMLT_END_DT = GREATEST(NVL(SMLT_END_DT, TO_TIMESTAMP(#{stopTime}, 'YYYY-MM-DD HH24:MI:SS')), TO_TIMESTAMP(#{stopTime}, 'YYYY-MM-DD HH24:MI:SS'))
-        WHERE SMLT_ID = #{smltId} AND SMLT_STTS != 'Failed'
-    </update>
-    <update id="updateStatus">
-        /* CastExecutionMapper.updateStatus */
-        UPDATE PMOWN.TN_PM_SMLT_MSTR SET SMLT_STTS = #{status},
-            SMLT_BGNG_DT = CASE WHEN #{status} = 'Executing' THEN NVL(SMLT_BGNG_DT, CURRENT_TIMESTAMP) ELSE SMLT_BGNG_DT END,
-            SMLT_END_DT = CASE WHEN #{status} = 'Failed' THEN CURRENT_TIMESTAMP ELSE SMLT_END_DT END
-        WHERE SMLT_ID = #{smltId} AND SMLT_STTS IN ('New', 'Executing')
-        AND (#{status} != 'Finished')
-    </update>
     <select id="retrieveInputBase" resultType="aoms.pm.cast.dto.SmltStngDto">
         /* CastExecutionMapper.retrieveInputBase */
         SELECT B.* FROM PMOWN.TN_PM_SMLT_INPUT_BASE B
@@ -160,7 +167,9 @@
     </insert>
     <update id="syncHistory">
         /* CastExecutionMapper.syncHistory */
-        MERGE INTO PMOWN.TH_PM_SMLT_FLFMT_HSTRY H USING (SELECT * FROM PMOWN.TN_PM_SMLT_MSTR WHERE SMLT_ID = #{smltId}) M ON (H.SMLT_ID = M.SMLT_ID)
+        MERGE INTO PMOWN.TH_PM_SMLT_FLFMT_HSTRY H
+        USING (SELECT E.* FROM (<include refid="executionRows"/>) E WHERE E.SMLT_ID = #{smltId}) M
+        ON (H.SMLT_ID = M.SMLT_ID)
         WHEN MATCHED THEN UPDATE SET H.SMLT_FLFMT_STTS_CD = CASE M.SMLT_STTS WHEN 'Finished' THEN 'DONE' WHEN 'Failed' THEN 'FAILED' ELSE 'RUNNING' END,
             H.SMLT_FLFMT_BGNG_DT = M.SMLT_BGNG_DT, H.SMLT_FLFMT_END_DT = M.SMLT_END_DT
         WHEN NOT MATCHED THEN INSERT (SMLT_ID, SMLT_TYPE, SMLT_FLFMT_STTS_CD, SMLT_FLFMT_BGNG_DT, SMLT_FLFMT_END_DT, FRST_RGTR_ID, FRST_REG_DT)

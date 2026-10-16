@@ -21,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 public class CastUserSmltServiceImpl implements CastUserSmltService {
     private static final String EMPTY = "";
     private final CastExecutionService executionService;
-    private final CastExecutionMapper executionMapper;
     private final CastSmltMapper castSmltMapper;
     private final CastUserReqMapper castUserReqMapper;
     private final CastUserSnapshotService castUserSnapshotService;
@@ -62,13 +61,6 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         for (UserSmltDepSaveDto edit : list(request.getDepList())) requireSuccess(depService.saveDepInfo(edit));
 
         String id = executionService.nextId();
-        SmltMasterDto master = new SmltMasterDto();
-        SessionUtils.setUserContext(master, sessionService);
-        master.setSmltId(id);
-        master.setSmltType(SmltType.USER.getDbCode());
-        master.setExcnYmd(request.getYmd());
-        master.setSmltStts("New");
-        executionMapper.insertMaster(master);
         List<UserSmltFrozenDto> frozenList = new ArrayList<>();
         for (TerminalKind terminal : List.of(TerminalKind.T1, TerminalKind.T2)) frozenList.add(freezeTerminal(id, request.getYmd(), terminal));
         UserSmltRsrcSnapshotDto snapshot = castUserSnapshotService.publish(id, request.getYmd(), frozenList);

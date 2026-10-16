@@ -35,10 +35,9 @@ public class CastExecutionService {
         LocalDate.parse(ymd, DateTimeFormatter.ofPattern("uuuuMMdd").withResolverStyle(ResolverStyle.STRICT));
     }
     public String nextId() {
-        lock();
         String id = mapper.nextSmltId();
-        if (id == null || !id.matches("[0-9]{8}")) throw new IllegalStateException("시뮬레이션 ID 범위를 초과했습니다.");
-        return id;
+        if (id == null || !id.matches("[0-9]{1,8}") || Long.parseLong(id) < 1) throw new IllegalStateException("시뮬레이션 ID 범위를 초과했습니다.");
+        return "0".repeat(8 - id.length()) + id;
     }
     public String baseId(String ymd) { return mapper.retrieveBaseSmltId(ymd); }
     public boolean hasSaved(UserSmltCurrentDto dto, String area) { return mapper.hasSaved(dto, area) > 0; }

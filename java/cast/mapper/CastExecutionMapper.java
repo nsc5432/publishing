@@ -2,7 +2,6 @@ package aoms.pm.cast.mapper;
 
 import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
-import aoms.pm.cast.dto.SmltMasterDto;
 import aoms.pm.cast.dto.UserSmltCurrentDto;
 
 @Mapper
@@ -16,7 +15,6 @@ public interface CastExecutionMapper {
     void syncHistory(@Param("smltId") String smltId);
     String lockAllocator();
     String nextSmltId();
-    void insertMaster(SmltMasterDto dto);
     String retrieveSaveDt(UserSmltCurrentDto scope);
     int hasSaved(@Param("scope") UserSmltCurrentDto scope, @Param("area") String area);
     void markSaved(@Param("scope") UserSmltCurrentDto scope, @Param("area") String area);
@@ -30,6 +28,4 @@ public interface CastExecutionMapper {
     void insertResultIdentity(@Param("sourceKey") String sourceKey, @Param("smltId") String smltId, @Param("payloadHash") String payloadHash);
     String retrieveResultHash(@Param("sourceKey") String sourceKey);
     int hasModel(@Param("smltId") String smltId, @Param("mdlSn") String mdlSn);
-    void completeMaster(@Param("smltId") String smltId, @Param("startTime") String startTime, @Param("stopTime") String stopTime);
-    void updateStatus(@Param("smltId") String smltId, @Param("status") String status);
 }
