@@ -1849,7 +1849,7 @@ COMMENT ON COLUMN "PMOWN"."TN_PM_SLF_CHKN_OPER_PLCY"."LAST_MDFCN_DT" IS '최종�
 -- 시퀀스
 -- =====================================================================================
 
--- 아래 순환 설명은 구 정책이며 현재는 ID_LOCK으로 미사용 번호만 할당하고 이 시퀀스는 사용하지 않는다.
+-- 아래 순환 설명은 구 정책이며 현재는 CastExecutionMapper.reserveRsrcNo가 미사용 번호를 할당하고 이 시퀀스는 사용하지 않는다.
 -- 사용자 CAST 리소스 번호. ResourceID 는 FS002 … FS999 → 002 로 도는 단순 증가 번호고
 -- 001 은 일일 시뮬레이션 고정이다. FS · CA · SBD · 시설운영이 한 번호를 공유한다 —
 -- retrieveFcltyOpngTblDptg 가 출국장 번호로 TN_PM_SMLT_SCHDL_ATRB 를 뒤지기 때문이다.
@@ -1862,12 +1862,6 @@ CREATE SEQUENCE "PMOWN"."SQ1_TN_PM_SMLT_USER_RSRC"
 -- CREATE SEQUENCE "PMOWN"."SQ1_TN_PM_SMLT_RSLT" ...;
 CREATE SEQUENCE "PMOWN"."SQ1_TN_PM_SMLT_RSLT"
     START WITH 1 INCREMENT BY 1 MINVALUE 1 MAXVALUE 99999999 NOCYCLE NOCACHE ORDER;
--- EXECUTION: 공통 ID 채번 잠금. RSRC_FS(002~999)·RSRC_PS(500~998): 마지막으로 할당한 리소스 번호
--- EXECUTION 잠금은 시퀀스 채번 이후에도 리소스 할당·결과 연결·상태 갱신을 직렬화한다.
-CREATE TABLE PMOWN.TN_PM_SMLT_ID_LOCK (LOCK_ID VARCHAR2(20) PRIMARY KEY, LAST_NO VARCHAR2(3));
-INSERT INTO PMOWN.TN_PM_SMLT_ID_LOCK (LOCK_ID) VALUES ('EXECUTION');
-INSERT INTO PMOWN.TN_PM_SMLT_ID_LOCK (LOCK_ID, LAST_NO) VALUES ('RSRC_FS', '001');
-INSERT INTO PMOWN.TN_PM_SMLT_ID_LOCK (LOCK_ID, LAST_NO) VALUES ('RSRC_PS', '499');
 CREATE TABLE PMOWN.TN_PM_SMLT_RESULT_GROUP (
     GROUP_KEY VARCHAR2(64) PRIMARY KEY, SMLT_ID VARCHAR2(8)
 );

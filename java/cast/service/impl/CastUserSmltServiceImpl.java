@@ -52,7 +52,6 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         SessionUtils.setUserContext(request, sessionService);
         if (request.getLoginUserId() == null) throw new IllegalStateException("로그인을 진행해주세요.");
         executionService.validateYmd(request.getYmd());
-        executionService.lock();
         validateEdits(request.getFltPsgList(), request.getYmd());
         validateEdits(request.getChknList(), request.getYmd());
         validateEdits(request.getDepList(), request.getYmd());

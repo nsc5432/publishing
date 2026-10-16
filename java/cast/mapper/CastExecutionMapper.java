@@ -11,7 +11,6 @@ public interface CastExecutionMapper {
     String retrieveResultGroup(@Param("groupKey") String groupKey);
     void insertResultGroup(@Param("groupKey") String groupKey, @Param("smltId") String smltId);
     void syncHistory(@Param("smltId") String smltId);
-    String lockAllocator();
     String nextSmltId();
     String retrieveSaveDt(UserSmltCurrentDto scope);
     int hasCurrentConditions(@Param("scope") UserSmltCurrentDto scope, @Param("area") String area);
@@ -19,6 +18,5 @@ public interface CastExecutionMapper {
     aoms.pm.cast.dto.UserSmltReqDto retrievePropertySetRequest(@Param("resourceId") String resourceId);
     String retrieveBaseSmltId(@Param("ymd") String ymd);
     String reserveRsrcNo(@Param("kind") String kind, @Param("minNo") int minNo, @Param("maxNo") int maxNo);
-    int updateLastRsrcNo(@Param("kind") String kind, @Param("rsrcNo") String rsrcNo);
     int hasModel(@Param("smltId") String smltId, @Param("mdlSn") String mdlSn);
 }

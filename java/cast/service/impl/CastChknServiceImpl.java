@@ -140,7 +140,6 @@ public class CastChknServiceImpl implements CastChknService {
     @Override
     public JsonResponse saveChknCounterInfo(UserSmltChknSaveDto saveDto) {
         executionService.scope(saveDto);
-        executionService.lock();
 
         JsonResponse validationError = validate(saveDto);
 

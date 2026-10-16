@@ -19,9 +19,6 @@ public class CastExecutionService {
     private final CastExecutionMapper mapper;
     private final SessionService sessionService;
 
-    public void lock() {
-        if (!"EXECUTION".equals(mapper.lockAllocator())) throw new IllegalStateException("실행 채번 잠금 행이 없습니다.");
-    }
     public void scope(UserSmltCurrentDto dto) {
         SessionUtils.setUserContext(dto, sessionService);
         if (dto.getLoginUserId() == null || dto.getLoginUserId().isBlank()) throw new IllegalStateException("로그인을 진행해주세요.");

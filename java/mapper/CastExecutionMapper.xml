@@ -5,10 +5,6 @@
         /* CastExecutionMapper.isResultGroupingVerified */
         SELECT COUNT(*) FROM PMOWN.TN_PM_SMLT_CAST_CONTRACT WHERE CONTRACT_ID = 'RESULT_GROUP_V1' AND VERIFIED_YN = 'Y' AND EVIDENCE IS NOT NULL
     </select>
-    <select id="lockAllocator" resultType="string">
-        /* CastExecutionMapper.lockAllocator */
-        SELECT LOCK_ID FROM PMOWN.TN_PM_SMLT_ID_LOCK WHERE LOCK_ID = 'EXECUTION' FOR UPDATE
-    </select>
     <select id="nextSmltId" resultType="string">
         /* CastExecutionMapper.nextSmltId */
         SELECT TO_CHAR(PMOWN.SQ1_TN_PM_SMLT_RSLT.NEXTVAL, 'TM9') FROM DUAL
@@ -69,18 +65,27 @@
         /* CastExecutionMapper.retrieveBaseSmltId */
         SELECT MAX(SMLT_ID) FROM PMOWN.TN_PM_SMLT_STNG WHERE EXCN_YMD = #{ymd} AND SMLT_TYPE = 'Auto'
     </select>
-    <!-- 마지막 번호 이후의 미사용 번호만 할당한다. 요청·결과·원천 리소스의 번호는 재사용하지 않는다 -->
+    <!-- 요청·결과에 쓰인 최대 번호 다음의 미사용 번호를 할당하고, 없으면 가장 작은 미사용 번호로 돌아간다. 요청·결과·원천 리소스에 남아 있는 번호는 재사용하지 않는다 -->
     <select id="reserveRsrcNo" resultType="string">
         /* CastExecutionMapper.reserveRsrcNo */
-        SELECT MIN(N.RSRC_NO) FROM (
+        SELECT RSRC_NO FROM (
+        SELECT N.RSRC_NO FROM (
             SELECT TO_CHAR(#{minNo} + LEVEL - 1, 'FM000') RSRC_NO
             FROM DUAL CONNECT BY LEVEL &lt;= #{maxNo} - #{minNo} + 1
         ) N
-        WHERE TO_NUMBER(N.RSRC_NO) &gt; (
-            SELECT NVL(MAX(TO_NUMBER(LAST_NO)), #{minNo} - 1)
-            FROM PMOWN.TN_PM_SMLT_ID_LOCK WHERE LOCK_ID = 'RSRC_' || #{kind}
-        )
-        AND NOT EXISTS (
+        CROSS JOIN (
+            SELECT NVL(MAX(U.RSRC_NO), #{minNo} - 1) AS LAST_USED_NO FROM (
+                SELECT CASE WHEN REGEXP_LIKE(R.RSRC_ID, '^' || #{kind} || '[0-9]{3}$')
+                    THEN TO_NUMBER(SUBSTR(R.RSRC_ID, 3)) END AS RSRC_NO
+                FROM (
+                    SELECT DECODE(#{kind}, 'FS', FLT_SCHDL_RSRC_ID, PRPT_STNG_RSRC_ID) AS RSRC_ID FROM PMOWN.TN_PM_SMLT_USER_MSTR
+                    UNION ALL
+                    SELECT DECODE(#{kind}, 'FS', FLT_SCHDL_RSRC_ID, PRPT_SET_RSRC_ID) FROM PMOWN.TN_PM_SMLT_STNG
+                ) R
+            ) U
+            WHERE U.RSRC_NO BETWEEN #{minNo} AND #{maxNo}
+        ) L
+        WHERE NOT EXISTS (
             SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U
             WHERE DECODE(#{kind}, 'FS', U.FLT_SCHDL_RSRC_ID, U.PRPT_STNG_RSRC_ID) = #{kind} || N.RSRC_NO
         )
@@ -112,11 +117,9 @@
                 AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_SRVC_ATRB G WHERE G.FIX_ATRB_GROUP_ID = N.RSRC_NO)
             </otherwise>
         </choose>
+        ORDER BY CASE WHEN TO_NUMBER(N.RSRC_NO) &gt; L.LAST_USED_NO THEN 0 ELSE 1 END, N.RSRC_NO
+        ) WHERE ROWNUM = 1
     </select>
-    <update id="updateLastRsrcNo">
-        /* CastExecutionMapper.updateLastRsrcNo */
-        UPDATE PMOWN.TN_PM_SMLT_ID_LOCK SET LAST_NO = #{rsrcNo} WHERE LOCK_ID = 'RSRC_' || #{kind}
-    </update>
     <select id="hasModel" resultType="int">
         /* CastExecutionMapper.hasModel */
         SELECT COUNT(*) FROM PMOWN.TN_PM_SMLT_STNG WHERE SMLT_ID = #{smltId} AND SMLT_MDL_SN = #{mdlSn}

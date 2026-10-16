@@ -86,7 +86,6 @@ public class CastDepServiceImpl implements CastDepService {
     @Override
     public JsonResponse saveDepInfo(UserSmltDepSaveDto saveDto) {
         executionService.scope(saveDto);
-        executionService.lock();
 
         JsonResponse validationError = validate(saveDto);
 

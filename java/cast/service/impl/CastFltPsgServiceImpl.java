@@ -82,7 +82,6 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
     @Override
     public JsonResponse saveFltPsgInfo(UserSmltFltPsgSaveDto saveDto) {
         executionService.scope(saveDto);
-        executionService.lock();
 
         JsonResponse validationError = validate(saveDto);
 

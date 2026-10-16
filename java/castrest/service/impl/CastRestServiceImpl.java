@@ -2546,7 +2546,6 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private int insertResult(CastResReqDto dto) {
         int relatedEventCd = setupMasterDto(dto);
-        executionService.lock();
         UserSmltReqDto userReq = null;
         String simId;
         if (WHAT_IF.equals(dto.getSmltType())) {
@@ -3232,7 +3231,6 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     }
 
     private int updateWhatIf(CastWhatIfCntrlDto dto){
-        executionService.lock();
         saveSimLog("22", "1");
         String[] sIDs = dto.getWhatIfRunId().split(",");
         String[] sStts = dto.getStatus().split(",");

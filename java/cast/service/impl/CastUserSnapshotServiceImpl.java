@@ -45,7 +45,6 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
     private final aoms.pm.castrest.service.CastRestService castRestService;
     private final SessionService sessionService;
     private final aoms.pm.cast.mapper.CastExecutionMapper executionMapper;
-    private final CastExecutionService executionService;
 
     @Override
     public UserSmltRsrcSnapshotDto publish(String smltId, String excnYmd, List<UserSmltFrozenDto> frozenList) {
@@ -98,7 +97,6 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         UserSmltRsrcSnapshotDto result = new UserSmltRsrcSnapshotDto();
         SessionUtils.setUserContext(result, sessionService);
 
-        executionService.lock();
         String rsrcNo = reserve(RsrcPool.FS);
         String psNo = reserve(RsrcPool.PS);
 
@@ -131,8 +129,7 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 
     private String reserve(RsrcPool pool) {
         String no = executionMapper.reserveRsrcNo(pool.name(), pool.minNo, pool.maxNo);
-        if (no == null) throw new IllegalStateException(pool.name() + " 리소스 번호를 모두 사용했습니다. 기존 번호는 재사용하지 않습니다.");
-        if (executionMapper.updateLastRsrcNo(pool.name(), no) != 1) throw new IllegalStateException(pool.name() + " 리소스 번호 채번 행이 없습니다.");
+        if (no == null) throw new IllegalStateException(pool.name() + " 리소스 번호를 모두 사용했습니다. 오래된 실행을 정리한 뒤 다시 실행해주세요.");
         return no;
     }
 
