@@ -16,12 +16,14 @@ import aoms.pm.cast.dto.FltPsgChartItemDto;
 import aoms.pm.cast.dto.FltPsgHourDto;
 import aoms.pm.cast.dto.FltPsgRawDto;
 import aoms.pm.cast.dto.JsonResponse;
+import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.UserFltPsgRawDto;
 import aoms.pm.cast.dto.UserSmltFltPsgDto;
 import aoms.pm.cast.dto.UserSmltFltPsgSaveDto;
 import aoms.pm.cast.dto.UserSmltFltPsgSearchDto;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastFltPsgMapper;
+import aoms.pm.cast.mapper.CastResourceConditionMapper;
 import aoms.pm.cast.service.CastFltPsgService;
 import aoms.pm.cast.service.CastSmltService;
 
@@ -45,20 +47,24 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
     private final CastSmltService castSmltService;
     private final CastFltPsgMapper castFltPsgMapper;
     private final CastExecutionService executionService;
+    private final CastResourceConditionMapper resourceConditionMapper;
 
     @Override
     public UserSmltFltPsgDto retrieveFltPsgInfo(UserSmltFltPsgSearchDto searchDto) {
-        if (searchDto.getSmltId() != null && !searchDto.getSmltId().isBlank()) {
-            return executionService.frozen(searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId(), "FLT_PSG", UserSmltFltPsgDto.class);
-        }
-        executionService.scope(searchDto);
+        if (searchDto.getTmnlId() == null) throw new IllegalStateException("터미널을 지정해주세요.");
+        SmltStngDto refs = searchDto.getSmltId() != null && !searchDto.getSmltId().isBlank()
+                ? executionService.resources(searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId()) : null;
+        if (refs == null) executionService.scope(searchDto);
+        else searchDto.setYmd(refs.getExcnYmd());
         UserSmltFltPsgDto result = new UserSmltFltPsgDto();
         TerminalKind tmnlId = searchDto.getTmnlId();
 
-        List<FltPsgRawDto> rawList = castFltPsgMapper.retrieveFltPsgHourList(getExcnYmd(searchDto), tmnlId.getFltTmnlIdList());
+        List<FltPsgRawDto> rawList = refs == null
+                ? castFltPsgMapper.retrieveFltPsgHourList(getExcnYmd(searchDto), tmnlId.getFltTmnlIdList())
+                : resourceConditionMapper.retrieveFlightHours(refs.getFltSchdlRsrcId(), tmnlId.getFltTmnlIdList());
         Map<String, FltPsgRawDto> rawMap = rawList.stream()
                 .collect(Collectors.toMap(FltPsgRawDto::getHour, Function.identity(), (first, ignored) -> first));
-        UserFltPsgRawDto saved = castFltPsgMapper.retrieveUserFltPsg(searchDto);
+        UserFltPsgRawDto saved = refs == null ? castFltPsgMapper.retrieveUserFltPsg(searchDto) : null;
         List<FltPsgHourDto> hourList = toHourList(rawMap);
 
         result.setTmnlId(tmnlId.getValue());

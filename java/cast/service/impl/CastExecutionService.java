@@ -9,7 +9,7 @@ import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.dto.UserSmltCurrentDto;
 import aoms.pm.cast.mapper.CastExecutionMapper;
 import aoms.pm.utils.SessionUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import aoms.pm.cast.dto.SmltStngDto;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -18,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 public class CastExecutionService {
     private final CastExecutionMapper mapper;
     private final SessionService sessionService;
-    private final ObjectMapper objectMapper;
 
     public void lock() {
         if (!"EXECUTION".equals(mapper.lockAllocator())) throw new IllegalStateException("실행 채번 잠금 행이 없습니다.");
@@ -43,14 +42,10 @@ public class CastExecutionService {
     public boolean hasSaved(UserSmltCurrentDto dto, String area) { return mapper.hasSaved(dto, area) > 0; }
     public void saved(UserSmltCurrentDto dto, String area) { mapper.markSaved(dto, area); }
     public String saveDt(UserSmltCurrentDto dto) { String value = mapper.retrieveSaveDt(dto); return value == null ? "" : value; }
-    public <T> T frozen(String id, String terminal, String area, Class<T> type) {
-        String payload = mapper.retrieveCondition(id, terminal, area);
-        if (payload == null) throw new IllegalStateException("실행 당시 확정 조건이 없습니다.");
-        try { return objectMapper.readValue(payload, type); }
-        catch (Exception error) { throw new IllegalStateException("확정 조건을 읽지 못했습니다.", error); }
-    }
-    public void freeze(String id, String terminal, String area, Object value) {
-        try { mapper.storeCondition(id, terminal, area, objectMapper.writeValueAsString(value)); }
-        catch (Exception error) { throw new IllegalStateException("확정 조건을 보존하지 못했습니다.", error); }
+    public SmltStngDto resources(String id, String terminal) {
+        if (terminal == null || !("P01".equals(terminal) || "P03".equals(terminal))) throw new IllegalStateException("터미널을 지정해주세요.");
+        SmltStngDto result = mapper.retrieveExecutionResources(id, terminal);
+        if (result == null) throw new IllegalStateException("실행의 리소스 참조가 없습니다.");
+        return result;
     }
 }

@@ -122,6 +122,7 @@ export function FlightPaxTab({
                         <BarChart data={panelData.paxChart} />
 
                         <FlightEditor
+                            readOnly={readOnly}
                             ratio={ratios[terminal]}
                             onRatioChange={(ratio) => handleRatioChange(terminal, ratio)}
                             rows={panelData.rows}

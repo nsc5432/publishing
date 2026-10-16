@@ -264,7 +264,7 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
 |---|---|---|
 | `001` | 기준정보. CAST 가 `PS001` 로 읽어 가는 **일일 시뮬레이션의 실제 입력** | 화면에서 셀 직접 편집 불가. 운영 반영으로만 바뀐다 |
 | `999` | 전처리 결과. `data-processing/run_pipeline.py` 가 주단위로 전량 교체 | 읽기전용. 화면은 비교·반영에만 쓴다 |
-| `500~998` | 사용자 실행 전용 PropertySet `PS5xx` (§11.3). 그룹 행 없이 실행별 XML 로만 존재 | 카테고리 채번(`retrieveAvailableCategoryId`)은 `002~499` 만 쓴다 |
+| `500~998` | 사용자 실행 전용 PropertySet `PS5xx` (§11.3). 그룹 행 없이 USER_MSTR의 원천 PS·시설 리소스 참조로 렌더 | 카테고리 채번(`retrieveAvailableCategoryId`)은 `002~499` 만 쓴다 |
 
 - 체크인유형도 `TN_PM_SMLT_CKNCT_TYPE_ATRB` 하나에서 관리한다. `CKNCT_TYPE_ATRB_ID` 가 카테고리
   축이며 전처리 결과는 `999`, 운영 기준정보는 `001` 이다. `_PRC` 별도 테이블은 사용하지 않는다.
@@ -399,11 +399,12 @@ docs/user-smlt-master-redesign.md를 따른다.
 - 체크인·출국장은 세션 사용자·일자·터미널 범위의 자식부터 삭제하고 부모부터 다시 넣는다.
   수동 저장은 탭별 독립 트랜잭션이다.
 - 실행 API는 변경한 영역만 자동 저장하고, 나머지는 저장 조건→운영자료 순으로 채운다.
-  두 터미널 확정·공통 ID·조건·입력 보존·이력·요청을 한 트랜잭션으로 처리한다.
+  두 터미널 확정·공통 ID·리소스 발행·이력·요청을 한 트랜잭션으로 처리한다.
   실패하면 자동 저장까지 롤백한다. 프런트는 방문 탭과 양 터미널의 미확정 편집을 유지한다.
-- 확정 조건은 JSON(COND_SNAPSHOT)으로만 남기고, **같은 DTO를 발행에 직접 넘긴다**. 발행 SQL은 DTO를
-  `<foreach>` 인라인 행(WITH … FROM DUAL UNION ALL)으로 받는다. 중간 정규화 테이블·GTT를 두지 않으며,
-  `EX_*`를 `USER_*`로 단순 치환하면 미저장 영역의 운영자료가 빠진다 (2026-10-12).
+- 확정 조건 DTO를 발행 SQL에 직접 넘긴다. SQL은 `<foreach>` 인라인 행으로 받아 원천 리소스 테이블에 넣는다.
+  중간 정규화 테이블·GTT·조건 JSON·입력 XML 사본을 두지 않는다. 실행 중 USER_*를 다시 읽지 않는다.
+- 공개 조건 조회는 STNG의 리소스 ID를 우선 사용하고 결과가 없으면 USER_MSTR를 참조한다.
+  지정된 리소스 원천의 의도된 변경은 조회에 반영한다. 현재 편집 상태를 과거 실행 조건으로 대신 읽지 않는다.
 - 화면의 터미널 선택은 편집 선택이다. 실행은 항상 T1·T2 전체다. 현재 HTTP 요청 처리 중만 잠그며
   다른 실행의 RUNNING 상태로 추가 실행을 막지 않는다.
 
@@ -412,14 +413,11 @@ docs/user-smlt-master-redesign.md를 따른다.
 | 이름 / 테이블 | 의미 |
 |---|---|
 | SQ1_TN_PM_SMLT_RSLT | 사용자 등록·일일 결과 최초 수신 양쪽에서 공통 SMLT_ID 채번 |
-| TN_PM_SMLT_ID_LOCK | 고정 EXECUTION 행을 FOR UPDATE해 리소스 할당·결과 수신·상태 전이를 직렬화. RSRC_FS·RSRC_PS 행의 LAST_NO가 마지막 리소스 번호 |
-| TN_PM_SMLT_RSRC_LEASE | (RSRC_KIND FS/PS, RSRC_NO) → 현재 소유 실행. 번호 재사용 시 소유 실행을 UPDATE |
+| TN_PM_SMLT_ID_LOCK | 고정 EXECUTION 행을 FOR UPDATE해 리소스 할당·결과 수신·상태 전이를 직렬화. RSRC_FS·RSRC_PS 행의 LAST_NO 이후 미사용 번호만 할당 |
 | TN_PM_SMLT_USER_MSTR | 사용자 실행의 원천이자 CAST WhatIf 요청. 신규 요청 ID는 WI + 공통 8자리 ID. 결과가 남아 있는 요청 행은 삭제하지 않는다 |
 | TH_PM_SMLT_FLFMT_HSTRY | 같은 실행 ID로 관리하는 수행이력 |
 | TN_PM_SMLT_STNG | 같은 실행 ID 아래의 모델별 설정. PK는 (SMLT_ID, SMLT_MDL_SN). USER_MSTR에 없는 ID는 일일·Manual 실행이며 실행별로 집계한다 |
 | TN_PM_SMLT_RSLT_DTL(_REG_EXCL) | 같은 실행 ID의 상세·미매핑 결과 |
-| TN_PM_SMLT_COND_SNAPSHOT | 실행별 양 터미널·세 영역 JSON 확정 조건 |
-| TN_PM_SMLT_INPUT_SNAPSHOT | 실행별 CAST 입력 XML 원문. PK (SMLT_ID, RESOURCE_TYPE, RESOURCE_ID) |
 | TN_PM_SMLT_INPUT_BASE | 결과 유무와 무관한 날짜 유효 기본 리소스 설정 |
 
 공통 ID는 SQ1_TN_PM_SMLT_RSLT.NEXTVAL을 숫자 8자리로 표기하며 99999999를 넘기면 실패한다.
@@ -428,7 +426,7 @@ docs/user-smlt-master-redesign.md를 따른다.
 RSLT_SMLT_ID는 호환 컬럼으로 남지만 결과 연결 후 공통 SMLT_ID와 같다.
 구 회차·요청·결과 ID는 이관 대응표와 원본 LGC에서만 보존한다.
 
-### 11.3 CAST 리소스와 불변 입력
+### 11.3 CAST 리소스 참조
 
 CAST는 /castrest/rest/json/REQ_GetResourceInformation.do, REQ_GetResource.do,
 REQ_SetResource.do를 호출한다. 서버가 CAST를 호출하거나 선점하는 스케줄러를 두지 않는다.
@@ -437,16 +435,14 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 - FS001 / CA001 / SBD001은 일일 운영자료다. 사용자 자료는 002~999 번호를 FS·CA·SBD·DepartureGate·
   SecurityControl·Immigration·TransferSecurityControl 7종이 공유한다. 출국장·입국심사·환승보안 렌더 SQL이
   번호로 FS 그룹 일자를 찾으므로 타입별 번호를 분리하지 않는다. 입국심사·환승보안은 INPUT_BASE 원천(001)을 번호로 복사한다.
-- 번호는 002→…→999→002로 순환한다(2026-10-12). USER_MSTR의 소유 실행이 Failed이거나 Finished이고
-  STNG 결과가 있으면 재사용한다. New/Executing 및 결과 없는 Finished는 건너뛴다.
-  lease 없는 기존 요청은 FLT_SCHDL_RSRC_ID로 같은 판정을 한다. 전 번호가 진행 중일 때만 실패한다.
-  멈춘 실행은 번호를 계속 점유하며 자동 해제하지 않는다. 재사용 번호의 전송 7쌍은 DELETE 후 INSERT한다.
-- PropertySet은 실행마다 PS500~998 하나를 FS와 독립 순환으로 받는다. 원천 PS(001)를 렌더해 SBD·DepartureGate·
-  SecurityControl·Immigration·TransferSecurityControl 참조만 그 실행의 FS 번호로 바꾼 XML로만 보관한다
-  (FIX_ATRB_GROUP 행을 만들지 않는다). 모델·서비스시간·체크인유형·출국심사·리포팅은 원본 ID 그대로 요청에 넣는다.
-  원본(001 계열·모델)이 등록~CAST 수집 사이 바뀌지 않는다는 운영 가정으로 `_U` 가상 ID를 폐지했다.
-- REQ_GetResource는 INPUT_SNAPSHOT 중 **현재 lease 소유 실행의 번호 리소스·PS5xx 행만** 반환한다. 원본 ID로
-  남긴 기록용 행은 반환하지 않는다. 리소스 목록은 PS lease의 PS5xx만 추가로 내보낸다(LastModified = USER_MSTR 등록시각).
+- FS001은 매일 변경 가능한 일일 세트다. 그 외 지정 리소스는 자동으로 덮어쓰거나 재사용하지 않는다.
+  원천에 대한 의도된 변경은 그대로 참조한다. 기존 001계열의 일일 운영자료 조회 경로는 유지한다.
+- 사용자 FS002~999·PS500~998은 마지막 번호 이후의 미사용 번호만 신규 할당한다. 요청·결과·원천에 이미 있는 번호는
+  상태와 관계없이 제외하고, 소진하면 명확히 실패한다. 리소스 DELETE 후 INSERT·lease·순환 할당을 두지 않는다.
+- PropertySet은 USER_MSTR.SRC_PRPT_SET_RSRC_ID의 원천 PS를 읽고 해당 요청의 시설 리소스 ID로 참조를 바꿔 렌더한다.
+  XML 사본을 저장하지 않는다. 모델·서비스시간·체크인유형·출국심사·리포팅은 지정된 원본 ID로 조회한다.
+- COND_SNAPSHOT·INPUT_SNAPSHOT·RSRC_LEASE를 제거했다. 적용·복구 절차와 최종 목록은
+  docs/resource-reference-cleanup.md를 따른다. 최초 설계·구 이관 스크립트는 역사 기록이며 현재 계약의 근거로 쓰지 않는다.
 - CA 블록은 P01CKINInt / P01CKINDom / P03CKIN, SBD는 P01SBD / P03SBD,
   키오스크는 P01Self / P03Self다. 발행과 조회의 값이 같아야 한다.
   SBD AirlineCode는 ALN_CD가 아니라 CHKN_TYPE_DTL_INFO다.

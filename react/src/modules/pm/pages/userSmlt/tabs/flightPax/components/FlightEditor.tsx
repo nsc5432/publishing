@@ -7,38 +7,31 @@ interface FlightEditorProps {
     onRatioChange: (ratio: number) => void;
     rows: HourRow[];
     disabled: boolean;
+    readOnly?: boolean;
 }
 
 const clamp = (value: number) => Math.max(MIN_RATIO, Math.min(MAX_RATIO, value));
 
-export function FlightEditor({ ratio, onRatioChange, rows, disabled }: FlightEditorProps) {
+export function FlightEditor({ ratio, onRatioChange, rows, disabled, readOnly }: FlightEditorProps) {
     return (
         <div className="editor">
-            <div className="editor__opts">
-                <p className="editor__label">운항편 전체 비율로 수정</p>
+            {!readOnly && (
+                <div className="editor__opts">
+                    <p className="editor__label">운항편 전체 비율로 수정</p>
 
-                <div className="stepper">
-                    <button
-                        type="button"
-                        className="stepper__btn"
-                        disabled={disabled}
-                        onClick={() => onRatioChange(clamp(ratio - RATIO_STEP))}
-                    >
-                        <ChevronLeftIcon aria-hidden="true" />
-                        <span className="blind">감소</span>
-                    </button>
-                    <span className="stepper__value">{ratio}%</span>
-                    <button
-                        type="button"
-                        className="stepper__btn"
-                        disabled={disabled}
-                        onClick={() => onRatioChange(clamp(ratio + RATIO_STEP))}
-                    >
-                        <ChevronRightIcon aria-hidden="true" />
-                        <span className="blind">증가</span>
-                    </button>
+                    <div className="stepper">
+                        <button type="button" className="stepper__btn" disabled={disabled} onClick={() => onRatioChange(clamp(ratio - RATIO_STEP))}>
+                            <ChevronLeftIcon aria-hidden="true" />
+                            <span className="blind">감소</span>
+                        </button>
+                        <span className="stepper__value">{ratio}%</span>
+                        <button type="button" className="stepper__btn" disabled={disabled} onClick={() => onRatioChange(clamp(ratio + RATIO_STEP))}>
+                            <ChevronRightIcon aria-hidden="true" />
+                            <span className="blind">증가</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
+            )}
 
             <div className="table-wrap scroll-area">
                 <table className="data-table">
@@ -55,7 +48,7 @@ export function FlightEditor({ ratio, onRatioChange, rows, disabled }: FlightEdi
                             <tr key={row.start}>
                                 <td>{row.start}</td>
                                 <td>{row.end}</td>
-                                <td className="is-num">{row.adjust}</td>
+                                {!readOnly && <td className="is-num">{row.adjust}</td>}
                                 <td className="is-num">{row.pax}</td>
                             </tr>
                         ))}

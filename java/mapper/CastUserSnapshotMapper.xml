@@ -3,17 +3,6 @@
 
 <mapper namespace="aoms.pm.cast.mapper.CastUserSnapshotMapper">
 
-<delete id="deleteRsrcAtrb">
-        /* CastUserSnapshotMapper.deleteRsrcAtrb */
-        DELETE FROM PMOWN.${atrbTableNm}
-        WHERE ${atrbIdColumnNm} = #{rsrcNo}
-    </delete>
-
-    <delete id="deleteRsrcMstr">
-        /* CastUserSnapshotMapper.deleteRsrcMstr */
-        DELETE FROM PMOWN.${mstrTableNm}
-        WHERE ${mstrIdColumnNm} = #{rsrcNo}
-    </delete>
 
     <insert id="insertRsrcMstr">
         /* CastUserSnapshotMapper.insertRsrcMstr */
@@ -342,7 +331,7 @@
         /* CastUserSnapshotMapper.insertDptgtAtrb */
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB (
             DPTGT_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, FCLTY_CNT,
-            OPER_BGNG_HM, OPER_END_HM,
+            OPER_BGNG_HM, OPER_END_HM, GNRL_SRCH_CNTOM, SMART_PASS_SRCH_CNTOM,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         WITH DPTGT AS (
@@ -359,6 +348,7 @@
             NVL(D.GNRL_SRCH_CNTOM, 0) + NVL(D.SMART_PASS_SRCH_CNTOM, 0),
             LPAD(H.OPER_BGNG_HOUR, 2, '0') || '00',
             LPAD(DECODE(H.OPER_END_HOUR, 24, 23, H.OPER_END_HOUR), 2, '0') || DECODE(H.OPER_END_HOUR, 24, '59', '00'),
+            D.GNRL_SRCH_CNTOM, D.SMART_PASS_SRCH_CNTOM,
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM DPTGT D
             INNER JOIN OPER_HR H

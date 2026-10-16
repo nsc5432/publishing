@@ -59,53 +59,54 @@
         WHEN MATCHED THEN UPDATE SET SAVE_DT = CURRENT_TIMESTAMP
         WHEN NOT MATCHED THEN INSERT (OWNER_USER_ID, EXCN_YMD, TMNL_ID, AREA_CD, SAVE_DT) VALUES (S.OWNER_USER_ID, S.EXCN_YMD, S.TMNL_ID, S.AREA_CD, CURRENT_TIMESTAMP)
     </update>
-    <insert id="storeCondition">
-        /* CastExecutionMapper.storeCondition */
-        INSERT INTO PMOWN.TN_PM_SMLT_COND_SNAPSHOT (SMLT_ID, TMNL_ID, AREA_CD, PAYLOAD) VALUES (#{smltId}, #{tmnlId}, #{area}, #{payload,jdbcType=CLOB})
-    </insert>
-    <select id="retrieveCondition" resultType="string">
-        /* CastExecutionMapper.retrieveCondition */
-        SELECT PAYLOAD FROM PMOWN.TN_PM_SMLT_COND_SNAPSHOT WHERE SMLT_ID = #{smltId} AND TMNL_ID = #{tmnlId} AND AREA_CD = #{area}
-    </select>
     <select id="retrieveBaseSmltId" resultType="string">
         /* CastExecutionMapper.retrieveBaseSmltId */
         SELECT MAX(SMLT_ID) FROM PMOWN.TN_PM_SMLT_STNG WHERE EXCN_YMD = #{ymd} AND SMLT_TYPE = 'Auto'
     </select>
-    <!-- 마지막 번호 다음부터 순환하며 소유 실행이 New/Executing 이 아닌 첫 번호. lease 가 없는 기존 요청은 요청의 리소스 ID 로 판정한다 -->
+    <!-- 마지막 번호 이후의 미사용 번호만 할당한다. 요청·결과·원천 리소스의 번호는 재사용하지 않는다 -->
     <select id="reserveRsrcNo" resultType="string">
         /* CastExecutionMapper.reserveRsrcNo */
-        SELECT RSRC_NO FROM (
-            SELECT N.RSRC_NO
-            FROM (
-                SELECT TO_CHAR(#{minNo} + LEVEL - 1, 'FM000') RSRC_NO FROM DUAL CONNECT BY LEVEL &lt;= #{maxNo} - #{minNo} + 1
-            ) N
-            CROSS JOIN (
-                SELECT NVL(MAX(TO_NUMBER(LAST_NO)), #{minNo} - 1) LAST_NO FROM PMOWN.TN_PM_SMLT_ID_LOCK WHERE LOCK_ID = 'RSRC_' || #{kind}
-            ) P
-            WHERE NOT EXISTS (
-                SELECT 1 FROM PMOWN.TN_PM_SMLT_RSRC_LEASE L
-                INNER JOIN PMOWN.TN_PM_SMLT_USER_MSTR U ON U.SMLT_ID = L.SMLT_ID
-                WHERE L.RSRC_KIND = #{kind} AND L.RSRC_NO = N.RSRC_NO
-                AND (U.SMLT_STTS IN ('New', 'Executing') OR (U.SMLT_STTS = 'Finished'
-                    AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_STNG S WHERE S.SMLT_ID = U.SMLT_ID)))
-            )
-            AND NOT EXISTS (
-                SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U
-                WHERE DECODE(#{kind}, 'FS', U.FLT_SCHDL_RSRC_ID, 'PS', U.PRPT_STNG_RSRC_ID) = #{kind} || N.RSRC_NO
-                AND (U.SMLT_STTS IN ('New', 'Executing') OR (U.SMLT_STTS = 'Finished'
-                    AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_STNG S WHERE S.SMLT_ID = U.SMLT_ID)))
-            )
-            ORDER BY MOD(MOD(TO_NUMBER(N.RSRC_NO) - P.LAST_NO - 1, #{maxNo} - #{minNo} + 1) + #{maxNo} - #{minNo} + 1, #{maxNo} - #{minNo} + 1)
-        ) WHERE ROWNUM = 1
+        SELECT MIN(N.RSRC_NO) FROM (
+            SELECT TO_CHAR(#{minNo} + LEVEL - 1, 'FM000') RSRC_NO
+            FROM DUAL CONNECT BY LEVEL &lt;= #{maxNo} - #{minNo} + 1
+        ) N
+        WHERE TO_NUMBER(N.RSRC_NO) &gt; (
+            SELECT NVL(MAX(TO_NUMBER(LAST_NO)), #{minNo} - 1)
+            FROM PMOWN.TN_PM_SMLT_ID_LOCK WHERE LOCK_ID = 'RSRC_' || #{kind}
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U
+            WHERE DECODE(#{kind}, 'FS', U.FLT_SCHDL_RSRC_ID, U.PRPT_STNG_RSRC_ID) = #{kind} || N.RSRC_NO
+        )
+        AND NOT EXISTS (
+            SELECT 1 FROM PMOWN.TN_PM_SMLT_STNG S
+            WHERE DECODE(#{kind}, 'FS', S.FLT_SCHDL_RSRC_ID, S.PRPT_SET_RSRC_ID) = #{kind} || N.RSRC_NO
+        )
+        <choose>
+            <when test="kind == 'FS'">
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_SCHDL_MSTR R WHERE R.SCHDL_ATRB_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB R WHERE R.SCHDL_ATRB_GROUP_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_CKNCT_MSTR R WHERE R.CKNCT_ATRB_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB R WHERE R.SCHDL_ATRB_GROUP_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_SBD_MSTR R WHERE R.SBD_ATRB_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_SBD_ATRB R WHERE R.SCHDL_ATRB_GROUP_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_MSTR R WHERE R.DPTGT_ATRB_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB R WHERE R.DPTGT_ATRB_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_MSTR R WHERE R.SCRTY_CNTRL_ATRB_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB R WHERE R.SCRTY_CNTRL_ATRB_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_ENTCNY_MSTR R WHERE R.ENTCNY_ATRB_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_ENTCNY_ATRB R WHERE R.ENTCNY_ATRB_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_MSTR R WHERE R.TRNST_SCRTY_CNTRL_ATRB_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_ATRB R WHERE R.TRNST_SCRTY_CNTRL_ATRB_ID = N.RSRC_NO)
+            </when>
+            <otherwise>
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP G WHERE G.FIX_ATRB_GROUP_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_PSG_ATRB G WHERE G.FIX_ATRB_GROUP_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_SHOW_UP_ATRB G WHERE G.FIX_ATRB_GROUP_ID = N.RSRC_NO)
+                AND NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_SRVC_ATRB G WHERE G.FIX_ATRB_GROUP_ID = N.RSRC_NO)
+            </otherwise>
+        </choose>
     </select>
-    <update id="assignRsrcNo">
-        /* CastExecutionMapper.assignRsrcNo */
-        MERGE INTO PMOWN.TN_PM_SMLT_RSRC_LEASE T
-        USING (SELECT #{kind} RSRC_KIND, #{rsrcNo} RSRC_NO, #{smltId} SMLT_ID FROM DUAL) S
-        ON (T.RSRC_KIND = S.RSRC_KIND AND T.RSRC_NO = S.RSRC_NO)
-        WHEN MATCHED THEN UPDATE SET T.SMLT_ID = S.SMLT_ID
-        WHEN NOT MATCHED THEN INSERT (RSRC_KIND, RSRC_NO, SMLT_ID) VALUES (S.RSRC_KIND, S.RSRC_NO, S.SMLT_ID)
-    </update>
     <update id="updateLastRsrcNo">
         /* CastExecutionMapper.updateLastRsrcNo */
         UPDATE PMOWN.TN_PM_SMLT_ID_LOCK SET LAST_NO = #{rsrcNo} WHERE LOCK_ID = 'RSRC_' || #{kind}
@@ -126,37 +127,38 @@
         /* CastExecutionMapper.hasModel */
         SELECT COUNT(*) FROM PMOWN.TN_PM_SMLT_STNG WHERE SMLT_ID = #{smltId} AND SMLT_MDL_SN = #{mdlSn}
     </select>
+    <select id="retrieveExecutionResources" resultType="aoms.pm.cast.dto.SmltStngDto">
+        SELECT * FROM (
+            SELECT S.SMLT_ID, S.EXCN_YMD, S.FLT_SCHDL_RSRC_ID, S.CKNCT_ALCTN_RSRC_ID,
+                   S.SBD_CNTRL_ALCTN_ID, S.PRPT_SET_RSRC_ID, S.MDL_RSRC_ID,
+                   S.FCLTY_OPNG_DPTCNY_SRNG_RSRC_ID, S.FCLTY_OPNG_EMI_RSRC_ID,
+                   S.FCLTY_OPNG_IMMI_RSRC_ID, S.FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID,
+                   S.FCLTY_OPNG_TR_SCRTY_CNTRL_RSRC_ID, S.CKNCT_SRVC_HR_RSRC_ID,
+                   S.CHKN_TYPE_RSRC_ID, CAST(NULL AS VARCHAR2(100)) AS RPT_STNG_ATRB_ID,
+                   CASE WHEN S.TMNL_ID = #{tmnlId} THEN 0 ELSE 1 END AS PRIORITY, S.SMLT_MDL_SN
+            FROM PMOWN.TN_PM_SMLT_STNG S WHERE S.SMLT_ID = #{smltId}
+            UNION ALL
+            SELECT U.SMLT_ID, U.EXCN_YMD, U.FLT_SCHDL_RSRC_ID, U.CKNCT_ALCTN_RSRC_ID,
+                   U.SBD_CNTRL_ALCTN_ID, U.PRPT_STNG_RSRC_ID, U.MDL_RSRC_ID,
+                   U.FCLTY_OPNG_DPTCNY_SRNG_RSRC_ID, U.FCLTY_OPNG_DPTCNY_RSRC_ID,
+                   U.FCLTY_OPNG_ENTCNY_RSRC_ID, U.FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID,
+                   U.FCLTY_OPNG_TR_SCRTY_CNTRL_RSRC_ID, U.CKNCT_SRVC_HR_RSRC_ID,
+                   U.CHKN_TYPE_RSRC_ID, U.RPT_STNG_ATRB_ID, 2, 0
+            FROM PMOWN.TN_PM_SMLT_USER_MSTR U WHERE U.SMLT_ID = #{smltId}
+            ORDER BY PRIORITY, SMLT_MDL_SN
+        ) WHERE ROWNUM = 1
+    </select>
+    <select id="retrievePropertySetRequest" resultType="aoms.pm.cast.dto.UserSmltReqDto">
+        SELECT U.* FROM PMOWN.TN_PM_SMLT_USER_MSTR U WHERE U.PRPT_STNG_RSRC_ID = #{resourceId}
+        AND REGEXP_LIKE(U.PRPT_STNG_RSRC_ID, '^PS[0-9]{3}$')
+        AND SUBSTR(U.PRPT_STNG_RSRC_ID, 3) BETWEEN '500' AND '998'
+    </select>
     <select id="retrieveInputBase" resultType="aoms.pm.cast.dto.SmltStngDto">
         /* CastExecutionMapper.retrieveInputBase */
         SELECT B.* FROM PMOWN.TN_PM_SMLT_INPUT_BASE B
         WHERE #{ymd} BETWEEN B.VALID_BGN_YMD AND B.VALID_END_YMD AND B.USE_YN = 'Y'
     </select>
-    <insert id="archiveInput">
-        /* CastExecutionMapper.archiveInput */
-        INSERT INTO PMOWN.TN_PM_SMLT_INPUT_SNAPSHOT (SMLT_ID, RESOURCE_TYPE, RESOURCE_ID, SOURCE_ID, PAYLOAD)
-        VALUES (#{smltId}, #{type}, #{resourceId}, #{sourceId}, #{payload,jdbcType=CLOB})
-    </insert>
-    <!-- 원본 ID 로 남긴 기록용 행은 내보내지 않는다. 번호 리소스·PS 는 현재 lease 소유 실행의 것만 -->
-    <select id="retrieveInput" resultType="string">
-        /* CastExecutionMapper.retrieveInput */
-        SELECT S.PAYLOAD
-        FROM PMOWN.TN_PM_SMLT_INPUT_SNAPSHOT S
-        INNER JOIN PMOWN.TN_PM_SMLT_RSRC_LEASE L
-            ON  L.SMLT_ID = S.SMLT_ID
-            AND L.RSRC_KIND = DECODE(S.RESOURCE_TYPE, 'PropertySet', 'PS', 'FS')
-        WHERE S.RESOURCE_ID = #{resourceId}
-        AND S.RESOURCE_TYPE = #{type}
-        AND (
-            (L.RSRC_KIND = 'PS' AND S.RESOURCE_ID = 'PS' || L.RSRC_NO)
-            OR (L.RSRC_KIND = 'FS' AND S.RESOURCE_ID IN (
-                'FS' || L.RSRC_NO, 'CA' || L.RSRC_NO, 'SBD' || L.RSRC_NO,
-                'FacilityOpeningTable_DepartureGate' || L.RSRC_NO,
-                'FacilityOpeningTable_SecurityControl' || L.RSRC_NO,
-                'FacilityOpeningTable_Immigration' || L.RSRC_NO,
-                'FacilityOpeningTable_TransferSecurityControl' || L.RSRC_NO
-            ))
-        )
-    </select>
+    <!-- 리소스 내용은 지정된 원천 ID로 조회한다 -->
     <select id="retrieveResultGroup" resultType="string">
         /* CastExecutionMapper.retrieveResultGroup */
         SELECT SMLT_ID FROM PMOWN.TN_PM_SMLT_RESULT_GROUP WHERE GROUP_KEY = #{groupKey}

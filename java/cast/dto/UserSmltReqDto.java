@@ -20,6 +20,7 @@ public class UserSmltReqDto extends AomsDefaultDto {
     private String cknctAlctnRsrcId;
     private String sbdCntrlAlctnId;
     private String prptStngRsrcId;
+    private String srcPrptSetRsrcId;
     private String fcltyOpngDptcnySrngRsrcId;
     private String fcltyOpngDptcnyRsrcId;
     private String fcltyOpngEntcnyRsrcId;

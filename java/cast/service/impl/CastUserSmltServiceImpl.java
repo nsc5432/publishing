@@ -62,7 +62,7 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
 
         String id = executionService.nextId();
         List<UserSmltFrozenDto> frozenList = new ArrayList<>();
-        for (TerminalKind terminal : List.of(TerminalKind.T1, TerminalKind.T2)) frozenList.add(freezeTerminal(id, request.getYmd(), terminal));
+        for (TerminalKind terminal : List.of(TerminalKind.T1, TerminalKind.T2)) frozenList.add(resolveTerminal(request.getYmd(), terminal));
         UserSmltRsrcSnapshotDto snapshot = castUserSnapshotService.publish(id, request.getYmd(), frozenList);
         SmltExcnDto history = new SmltExcnDto();
         SessionUtils.setUserContext(history, sessionService);
@@ -79,7 +79,7 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         result.setSmltFlfmtBgngDt(EMPTY);
         return result;
     }
-    private UserSmltFrozenDto freezeTerminal(String id, String ymd, TerminalKind terminal) {
+    private UserSmltFrozenDto resolveTerminal(String ymd, TerminalKind terminal) {
         UserSmltFltPsgSearchDto fq = new UserSmltFltPsgSearchDto();
         fq.setYmd(ymd); fq.setTmnlId(terminal);
         UserSmltChknSearchDto cq = new UserSmltChknSearchDto();
@@ -93,9 +93,6 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         if (flt.getFltCnt() == 0) throw new IllegalStateException(terminal.getValue() + " " + ymd + " 운항 운영자료가 없습니다.");
         if (!executionService.hasSaved(cq, "CHKN") && chkn.getIslandList().stream().noneMatch(island -> !island.getOprTimeList().isEmpty() && island.getBoothList().stream().anyMatch(booth -> booth.getAlnCd() != null && !booth.getAlnCd().isBlank()))) throw new IllegalStateException(terminal.getValue() + " 체크인 운영자료가 없습니다.");
         if (!executionService.hasSaved(dq, "DEP") && dep.getDptgtList().stream().noneMatch(gate -> !gate.getOprTimeList().isEmpty())) throw new IllegalStateException(terminal.getValue() + " 출국장 운영자료가 없습니다.");
-        executionService.freeze(id, terminal.getFcltTmnlId(), "FLT_PSG", flt);
-        executionService.freeze(id, terminal.getFcltTmnlId(), "CHKN", chkn);
-        executionService.freeze(id, terminal.getFcltTmnlId(), "DEP", dep);
         return new UserSmltFrozenDto(terminal, flt, chkn, dep);
     }
     private <T> List<T> list(List<T> values) { return values == null ? List.of() : values; }
@@ -145,6 +142,7 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         result.setCknctAlctnRsrcId(snapshot.getCknctAlctnRsrcId());
         result.setSbdCntrlAlctnId(snapshot.getSbdCntrlAlctnId());
         result.setPrptStngRsrcId(snapshot.getPrptStngRsrcId());
+        result.setSrcPrptSetRsrcId(snapshot.getSrcPrptSetRsrcId());
         result.setFcltyOpngDptcnySrngRsrcId(snapshot.getFcltyOpngDptcnySrngRsrcId());
         result.setFcltyOpngDptcnyRsrcId(snapshot.getFcltyOpngDptcnyRsrcId());
         result.setFcltyOpngEntcnyRsrcId(snapshot.getFcltyOpngEntcnyRsrcId());

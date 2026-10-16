@@ -27,6 +27,7 @@ public class UserSmltRsrcSnapshotDto extends AomsDefaultDto {
 	private String fcltyOpngTrScrtyCntrlRsrcId; // FacilityOpeningTable_TransferSecurityControl002
 	private String prptStngRsrcId; // PS500
 
+	private String srcPrptSetRsrcId;
 	private String mdlRsrcId;
 	private String cknctSrvcHrRsrcId;
 	private String chknTypeRsrcId;

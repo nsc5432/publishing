@@ -16,7 +16,7 @@
 |---|---|---|
 | retrieveUserSmltInfo | ymd, tmnlId | ymd, saveDt, 상태. 편집용 smltId 반환 제거 |
 | retrieveFltPsgInfo / retrieveChknCounterInfo / retrieveDepInfo | ymd, tmnlId | 현재 사용자의 해당 날짜 조건. 저장이 없으면 운영자료 |
-| 같은 조회의 공개 확정 조건 경로 | smltId, tmnlId | 해당 실행 당시 조건 JSON. 현재상태 소유자 필터 없음 |
+| 같은 조회의 공개 확정 조건 경로 | smltId, tmnlId | 실행의 리소스 ID로 원천 조건 조회. 현재상태 소유자 필터 없음 |
 | saveFltPsgInfo | ymd, tmnlId, ajmtRt | 세션 사용자 현재상태만 저장 |
 | saveChknCounterInfo | ymd, tmnlId, islandList | 같은 범위 전체 교체 |
 | saveDepInfo | ymd, tmnlId, dptgtList | 같은 범위 전체 교체 |
@@ -50,7 +50,7 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
 - TN_PM_SMLT_CURRENT_SAVE는 영역별 저장 사실과 시각을 보존한다. 저장한 빈 배열과 미저장을 구분한다.
 - 공통 채번은 `SQ1_TN_PM_SMLT_RSLT.NEXTVAL`을 일일·사용자 실행에서 함께 사용한다.
   `TN_PM_SMLT_ID_LOCK`의 `EXECUTION` 행은 리소스 할당·결과 연결·상태 갱신의 직렬화에 계속 사용한다.
-  같은 잠금 안에서 RSRC_FS·RSRC_PS 행의 LAST_NO로 리소스 번호를 순환 할당한다.
+  같은 잠금 안에서 RSRC_FS·RSRC_PS 행의 LAST_NO 이후 미사용 번호를 할당한다. 사용한 번호는 재사용하지 않는다.
   신규 번호는 00000001부터 99999999까지이며, 시퀀스는 INCREMENT BY 1, MAXVALUE 99999999,
   NOCYCLE로 설정한다. 상한을 넘기면 실패하며 롤백된 실행의 번호는 다시 사용하지 않는다.
   이관 시 기존 숫자 1~8자리 ID는 그대로 보존하고 신규 번호만 8자리로 정규화한다.
@@ -59,10 +59,11 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
   같은 ID의 모델별 `STNG`를 먼저 1행으로 집계한 뒤 사용자 실행과 합친다.
 - 신규 사용자 요청 ID는 WI + 공통 ID다. 호환 RSLT_SMLT_ID도 결과 연결 후 같은 ID를 가리킨다.
   회차는 런타임 DTO·mapper·목업에서 제거했다. 구 회차는 이관 감사 대응표에서만 남긴다.
-- 양 터미널의 조건을 JSON(TN_PM_SMLT_COND_SNAPSHOT)에 고정하고, 같은 확정 DTO를 발행에 직접 넘긴다.
-  발행 SQL은 DTO를 인라인 행(WITH … FROM DUAL UNION ALL)으로 받아 전송 테이블에 넣고, 발행 중
-  USER_* 를 다시 읽지 않는다. 중간 정규화 테이블은 두지 않는다. 이후 편집은 과거 실행을 바꾸지 않는다.
-- 항공사 없는 체크인 부스는 발행용 행에서만 뺀다. 조건 JSON은 화면이 본 값 그대로다.
+- 양 터미널의 조건을 메모리 DTO로 확정하고 발행 SQL에 직접 전달한다. 발행 중 USER_*를 다시 읽지 않는다.
+  실행 조건 JSON과 입력 XML 사본을 별도 테이블에 보관하지 않는다.
+- 공개 조건 조회는 STNG의 리소스 ID를 우선 사용하고, 결과가 없는 요청은 USER_MSTR를 참조한다.
+  FS001은 매일 바뀌는 일일 세트이며 그 외 리소스는 지정된 ID의 원천을 읽는다. 의도된 원천 변경은 조회에 반영한다.
+  미배정 체크인 부스와 미운영 출국장은 발행 입력에서 제외된다. 운항은 조정 후 여객수를 보여주며 원래 조정률은 표시하지 않는다.
 - 사용자 DepartureGate는 확정 DEP 조건의 운영구간마다 1행이다(운영 Y). 시각은 ATRB의
   OPER_BGNG_HM·OPER_END_HM(HHMM, 24시는 2359), 날짜는 FS 그룹 일자다. 이 칸이 빈 일일(001) 행만
   운영계 출국장 운영시간을 조인한다. sideDoor·facialRecognition은 NVL(' ')로 배열 길이를 맞춘다.
@@ -75,20 +76,14 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
 - 002~999는 실행 ID와 별개인 전송 번호다. 한 요청이 FS·CA·SBD·DepartureGate·SecurityControl·
   Immigration·TransferSecurityControl 7종에 같은 번호를 쓴다. 입국심사·환승보안은 INPUT_BASE 원천(001) 행을
   번호로 복사한다(렌더 SQL이 번호로 FS 그룹 일자를 찾기 때문).
-- 번호는 마지막 할당 번호 다음부터 002→…→999→002로 순환한다. 소유 실행(lease, lease 없는 기존 요청은
-  FLT_SCHDL_RSRC_ID)의 `USER_MSTR`가 New/Executing이면 건너뛰고, Failed 또는 결과가 저장된 Finished면
-  lease 소유 실행을 UPDATE해 재사용한다. Finished 통보만 있고 `STNG` 결과가 없으면 계속 점유한다.
-  재사용 번호의 전송 7쌍은 상세→마스터 DELETE 후 INSERT한다. 전 번호가 진행 중일 때만 등록이 실패한다.
-  New/Executing에 멈춘 실행은 번호를 계속 점유하며 자동 해제하지 않는다.
-- PropertySet은 실행마다 PS500~998 중 하나를 FS와 독립 순환으로 받는다(001 기준정보, 002~499 Cast 설정
-  카테고리, 999 전처리 결과와 분리). INPUT_BASE 원천 PS를 렌더해 SBD·DepartureGate·SecurityControl·Immigration·
-  TransferSecurityControl 참조만 이 실행의 FS 번호로 바꾸고 ID를 PS5xx로 바꿔 XML로만 보관한다.
-- 모델·서비스시간·체크인유형·출국심사·리포팅은 원본 ID 그대로 요청에 넣는다. 등록~CAST 수집 사이 원본이
-  바뀌지 않는다는 운영 가정(2026-10-12)으로 `_U` 가상 ID를 폐지했다. INPUT_SNAPSHOT에는 원본 ID 리소스도
-  실행별 기록으로 남기지만(PK SMLT_ID+유형+ID) REQ_GetResource 응답에는 **현재 lease 소유 실행의 번호 리소스·
-  PS5xx 행만** 쓴다. 리소스 목록은 PS lease의 PS5xx만 추가로 내보낸다.
+- 번호는 마지막 할당 번호 이후의 미사용 값만 할당한다. 요청·결과·원천 테이블에 존재하는 번호를 제외하고,
+  기존 리소스를 DELETE하거나 UPDATE해 새 실행에 재사용하지 않는다. FS002~999, PS500~998의 범위를 소진하면 실패한다.
+- PropertySet은 PS500~998에서 FS와 독립적으로 신규 할당한다. USER_MSTR.SRC_PRPT_SET_RSRC_ID에 원천 PS를 기록하고,
+  CAST 요청 시 원천 PS를 렌더한 뒤 해당 요청의 SBD·출국장·보안검색·입국심사·환승보안 리소스 ID로 참조를 바꾼다.
+  XML은 저장하지 않는다. 원천 PS 내용의 의도된 변경은 반영되며 원천 PS ID는 요청별로 유지한다.
+- 모델·서비스시간·체크인유형·출국심사·리포팅은 원본 ID로 조회한다. 리소스 목록은 USER_MSTR의 사용자 PS도 포함한다.
 - 사용자 결과는 FS 후보를 WI 토큰으로 먼저 좁혀 유일하게 식별하고 날짜·모델·입력 ID를 대조한다.
-  번호가 순환하므로 FS 번호나 현재 lease만으로 실행을 고르지 않는다.
+  실행 연결은 리소스 ID 외에 WI 토큰과 입력 참조를 함께 검증한다.
   입력 누락·불일치, 여러 WI 토큰, 여러 후보, 실패 종료 요청은 임의로 연결하지 않는다.
 - 원문과 SHA-256 hash를 REQUIRES_NEW 수신함에 먼저 저장한다. 결과 저장이 롤백되어도 원문·오류는 남는다.
   원천 식별키가 같고 hash가 같으면 재수신 성공으로 처리하고, hash가 다르면 격리한다.
@@ -99,11 +94,17 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
 - New/Executing은 RUNNING, 결과 저장 성공은 DONE, Failed는 FAILED다.
   Finished 상태 통보만 도착하고 결과가 없으면 모니터링은 RUNNING을 유지한다.
   사용자 상태는 `USER_MSTR`와 결과 존재 여부로 판단하고, 비사용자는 저장된 `STNG`를 실행별로 집계한다.
-  `COND_SNAPSHOT`·`INPUT_SNAPSHOT`·`RSRC_LEASE`는 `USER_MSTR(SMLT_ID)`를
-  DEFERRABLE INITIALLY DEFERRED FK로 참조한다. 발행 자식이 사용자 요청보다 먼저 생성되어도
-  동일 트랜잭션 커밋 때 사용자 요청이 존재해야 한다.
+  COND_SNAPSHOT·INPUT_SNAPSHOT·RSRC_LEASE는 제거했다. 적용 절차와 전체 테이블 목록은
+  [리소스 참조 정리](resource-reference-cleanup.md)를 따른다.
   `RESULT_IDENTITY`·`RESULT_GROUP`·결과 상세·수행이력은 양 원천을 대상으로 하므로 공통 마스터 FK를
   제거한다. 결과 저장 트랜잭션과 전환 스크립트 끝의 고아 ID 점검 SQL로 정합성을 확인한다.
+
+## 리소스 참조 전환 적용 절차 (2026-10-16)
+
+신규 DB는 최신 cast-ddl.sql을 사용한다. 이미 공통 마스터 제거를 마친 DB는
+java/ddl/2026-10-16-remove-smlt-snapshots.sql을 검증 DB에서 먼저 확인한 뒤 적용한다.
+세 테이블 제거와 복구, 기존 PS 참조 분리 조건은 [리소스 참조 정리](resource-reference-cleanup.md)에 있다.
+아래 공통 마스터 제거 절차는 그 전환의 선행 단계이며 스냅샷 제거 후 다시 실행하지 않는다.
 
 ## 공통 마스터 제거 적용 절차 (2026-10-16)
 
@@ -127,7 +128,7 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
 - 공통 마스터 FK를 제거하고 사용자 전용 자식 FK 3개를 지연 검사 FK로 연결한다.
   원본과 백업이 여전히 같은지 확인한 후 공통 마스터를 DROP한다. 자식·결과·이력은 삭제하지 않는다.
   마지막 고아 ID 점검이 0행인지 확인하고, 새 백엔드로 사용자 등록·실패 롤백·결과 수신·재전송·모니터링·
-  Finished 통보 후 결과 지연 및 리소스 재사용을 검증한 뒤 서비스를 재개한다.
+  Finished 통보 후 결과 지연을 검증한다. 현재 배포 전에는 위 리소스 참조 전환까지 완료한다.
 - Oracle DDL과 시퀀스는 전체 트랜잭션 롤백 대상이 아니다. 중단되면 서비스 정지를 유지하고
   변경된 FK·시퀀스·백업 상태를 확인한다. DROP 전 실패는 원인을 해결한 후 재실행할 수 있지만,
   DROP 후 완료된 스크립트는 그대로 재실행하지 않는다. 복구는 전체 백업과 보존 마스터를 기준으로
@@ -145,7 +146,7 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
 4. 사용자 요청이 단일 모델 전체 결과인지, 다중 모델 각각인지와 전체 완료를 판정할 수 있는 신호.
    현재 사용자 설정은 요청당 모델 하나다. 다중 모델 요청 계약이 확인되면 기대 모델 집합·완료 집계를 추가한다.
 5. 상태 통보 후 결과 지연·중복·역순·부분 응답과 재전송 결과의 문자열 차이.
-6. 전송 번호가 순환 재사용되므로 늦은 결과가 새 요청과 혼동되지 않게 WI 식별자가 결과에 왕복하는지.
+6. 늦은 결과가 다른 요청과 혼동되지 않게 WI 식별자가 결과에 왕복하는지.
    WI 없이 FS 후보가 여럿이면 결과는 연결되지 않고 수신함에 실패 사유가 남는다.
 7. GO FS 부속 컬럼 9개의 NULL 처리, 키오스크 기기 ID 앞 한 자=아일랜드 가정 및 4자리 한도,
    EMI/IMMI 실제 의미와 운영자료 날짜 범위.
@@ -220,7 +221,7 @@ stage 이후 쓰기가 발생하면 LGC가 최신 원본이 아니다. 정지 �
 - 전체 ESLint `eslint .`: 통과.
 - `verify:user-smlt`: 실제 목업 모듈을 대상으로 22개 시나리오 통과.
   사용자·날짜·터미널 격리, 변경 영역 자동 저장, 미방문 기본값, 저장한 빈 조건 유지,
-  추가 실행, 실패 시 원복, 과거 조건 불변, 다른 사용자의 공개 조건 조회,
+  추가 실행, 실패 시 원복, 편집 상태와 리소스 분리, 의도된 원천 변경 반영, 다른 사용자의 공개 조건 조회,
   잘못된 날짜·중복 터미널 거부, 모니터링 집계·기간 일치를 확인했다.
 - Vite dev 모드 번들: 통과. 기존 500kB 이상 청크 경고가 남는다.
 - MyBatis XML 17개 파싱, statement 중복 및 새 mapper 바인딩 누락 점검: 통과.

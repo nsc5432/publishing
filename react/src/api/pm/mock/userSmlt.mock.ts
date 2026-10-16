@@ -279,10 +279,11 @@ interface Conditions {
 interface Execution {
     detail: SmltExecDetailDto;
     requestedDt: string;
-    conditions: Record<TmnlId, Conditions>;
+    resourceIds: Record<TmnlId, string>;
 }
 const current = new Map<string, Conditions>();
 export const mockExecutions = new Map<string, Execution>();
+export const mockResources = new Map<string, Conditions>();
 let nextId = 10000000;
 const stamp = () => {
     const now = new Date();
@@ -297,8 +298,10 @@ function defaults(terminal: TmnlId): Conditions {
 function conditions(query: UserSmltQuery, terminal: TmnlId): Conditions {
     if (query.smltId) {
         const execution = mockExecutions.get(query.smltId);
-        if (!execution) throw new Error('해당 실행의 확정 조건이 없습니다.');
-        return structuredClone(execution.conditions[terminal]);
+        if (!execution) throw new Error('해당 실행의 리소스 참조가 없습니다.');
+        const resource = mockResources.get(execution.resourceIds[terminal]);
+        if (!resource) throw new Error('참조한 리소스가 없습니다.');
+        return structuredClone(resource);
     }
     return structuredClone(current.get(key(query.ymd, terminal)) ?? defaults(terminal));
 }
@@ -336,12 +339,45 @@ function saveDep(request: UserSmltDepSaveReq, state: Map<string, Conditions>) {
     value.saveDt = stamp();
     state.set(id, value);
 }
+function publishResources(id: string, values: Record<TmnlId, Conditions>): Record<TmnlId, string> {
+    return Object.fromEntries(
+        (['T1', 'T2'] as const).map((terminal) => {
+            const resourceId = `${id}:${terminal}`;
+            if (mockResources.has(resourceId)) throw new Error('이미 지정된 리소스입니다.');
+            const resource = structuredClone(values[terminal]);
+            const factor = 1 + resource.flt.ajmtRt / 100;
+            resource.flt.hourList.forEach((hour) => {
+                hour.psgCnt = Math.round(hour.psgCnt * factor);
+            });
+            resource.flt.psgCnt = resource.flt.hourList.reduce((sum, hour) => sum + hour.psgCnt, 0);
+            resource.flt.psgChart.itemList.forEach((item) => {
+                item.cnt = resource.flt.hourList
+                    .filter((hour) => Number(hour.bgnTime.slice(0, 2)) >= Number(item.time) && Number(hour.bgnTime.slice(0, 2)) < Number(item.time) + 2)
+                    .reduce((sum, hour) => sum + hour.psgCnt, 0);
+            });
+            resource.flt.psgChart.totCnt = resource.flt.psgCnt;
+            resource.flt.psgChart.maxCnt = Math.max(0, ...resource.flt.psgChart.itemList.map((item) => item.cnt));
+            resource.flt.peakTime =
+                resource.flt.hourList.reduce((peak, hour) => (hour.psgCnt > peak.psgCnt ? hour : peak), resource.flt.hourList[0])?.bgnTime ?? '0000';
+            resource.flt.ajmtRt = 0;
+            resource.chkn.islandList = resource.chkn.islandList
+                .filter((island) => island.oprTimeList.length > 0)
+                .map((island) => ({
+                    ...island,
+                    boothList: island.boothList.filter((booth) => booth.alnCd),
+                }));
+            resource.dep.dptgtList = resource.dep.dptgtList.filter((gate) => gate.oprYn === 'Y' && gate.oprTimeList.length > 0);
+            mockResources.set(resourceId, resource);
+            return [terminal, resourceId];
+        }),
+    ) as Record<TmnlId, string>;
+}
 export function seedExecution(detail: SmltExecDetailDto): void {
     if (mockExecutions.has(detail.smltId)) return;
     mockExecutions.set(detail.smltId, {
         detail: structuredClone(detail),
         requestedDt: detail.smltFlfmtBgngDt,
-        conditions: { T1: structuredClone(defaults('T1')), T2: structuredClone(defaults('T2')) },
+        resourceIds: publishResources(detail.smltId, { T1: defaults('T1'), T2: defaults('T2') }),
     });
 }
 export const userSmltMock = {
@@ -377,13 +413,13 @@ export const userSmltMock = {
         request.fltPsgList.forEach((item) => saveFlt({ ...item, ymd: request.ymd }, staged));
         request.chknList.forEach((item) => saveChkn({ ...item, ymd: request.ymd }, staged));
         request.depList.forEach((item) => saveDep({ ...item, ymd: request.ymd }, staged));
-        const frozen = Object.fromEntries(
+        const resolved = Object.fromEntries(
             (['T1', 'T2'] as const).map((terminal) => [terminal, structuredClone(staged.get(key(request.ymd, terminal)) ?? defaults(terminal))]),
         ) as Record<TmnlId, Conditions>;
         const smltId = String(++nextId);
         const user = commonMock.getUserInfoBySession();
         mockExecutions.set(smltId, {
-            conditions: frozen,
+            resourceIds: publishResources(smltId, resolved),
             requestedDt: stamp(),
             detail: {
                 ...OK,

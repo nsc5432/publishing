@@ -17,6 +17,7 @@ import aoms.pm.cast.dto.ChknIslandDto;
 import aoms.pm.cast.dto.ChknRawDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
 import aoms.pm.cast.dto.JsonResponse;
+import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.OprTimeDto;
 import aoms.pm.cast.dto.SlfDeviceCntRawDto;
 import aoms.pm.cast.dto.SmltKpiDto;
@@ -62,6 +63,7 @@ public class CastChknServiceImpl implements CastChknService {
     private final CastSlfchknService castSlfchknService;
     private final CastChknMapper castChknMapper;
     private final CastExecutionService executionService;
+    private final CastResourceConditionService resourceConditionService;
 
     @Override
     public Map<String, List<UserConfigChknDto>> retrieveChknMapGroupByIsland(String ymd, String tmnlId) {
@@ -97,10 +99,11 @@ public class CastChknServiceImpl implements CastChknService {
 
     @Override
     public UserSmltChknDto retrieveChknCounterInfo(UserSmltChknSearchDto searchDto) {
-        if (searchDto.getSmltId() != null && !searchDto.getSmltId().isBlank()) {
-            return executionService.frozen(searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId(), "CHKN", UserSmltChknDto.class);
-        }
-        executionService.scope(searchDto);
+        if (searchDto.getTmnlId() == null) throw new IllegalStateException("터미널을 지정해주세요.");
+        SmltStngDto refs = searchDto.getSmltId() != null && !searchDto.getSmltId().isBlank()
+                ? executionService.resources(searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId()) : null;
+        if (refs == null) executionService.scope(searchDto);
+        else searchDto.setYmd(refs.getExcnYmd());
         UserSmltChknDto result = new UserSmltChknDto();
         TerminalKind tmnlId = searchDto.getTmnlId();
         String fcltTmnlId = tmnlId.getFcltTmnlId();
@@ -108,7 +111,9 @@ public class CastChknServiceImpl implements CastChknService {
 
         List<CknctCntRawDto> cknctCntList = castChknMapper.retrieveCknctCntList(fcltTmnlId, BOOTH_USE_CRG_TYPE_CD_LIST);
         List<String> islandCdList = cknctCntList.stream().map(CknctCntRawDto::getIsland).collect(toList());
-        List<ChknIslandDto> islandList = getIslandList(searchDto, excnYmd, fcltTmnlId, islandCdList);
+        List<ChknIslandDto> islandList = refs == null
+                ? getIslandList(searchDto, excnYmd, fcltTmnlId, islandCdList)
+                : resourceConditionService.islands(refs, fcltTmnlId);
         List<Integer> hourlyOprBoothCntList = getHourlyOprBoothCntList(islandList);
         List<WaitPsgDto> waitList = castSmltService.retrieveWaitPsgList(executionService.baseId(searchDto.getYmd()), fcltTmnlId, UP_PSG_FCLT_CD_LIST);
         int totCnt = cknctCntList.stream().mapToInt(CknctCntRawDto::getCknctCnt).sum();
@@ -122,8 +127,9 @@ public class CastChknServiceImpl implements CastChknService {
         result.setTotKioskCnt(islandList.stream().mapToInt(ChknIslandDto::getKioskCnt).sum());
         result.setTotBagDropCnt(islandList.stream().mapToInt(ChknIslandDto::getBagDropCnt).sum());
         result.setWaitMaxCnt(waitList.stream().mapToInt(WaitPsgDto::getWaitPsgCnt).max().orElse(0));
-        result.setIslandCdList(islandCdList);
-        result.setAlnCdList(castChknMapper.retrieveAlnCdList(excnYmd, fcltTmnlId));
+        result.setIslandCdList(refs == null ? islandCdList : islandList.stream().map(ChknIslandDto::getIsland).collect(toList()));
+        result.setAlnCdList(refs == null ? castChknMapper.retrieveAlnCdList(excnYmd, fcltTmnlId)
+                : islandList.stream().flatMap(island -> island.getBoothList().stream()).map(ChknBoothDto::getAlnCd).distinct().sorted().collect(toList()));
         result.setIslandList(islandList);
         result.setWaitList(waitList);
         result.setKpi(kpi);

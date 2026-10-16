@@ -16,6 +16,7 @@ import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepGateDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
 import aoms.pm.cast.dto.JsonResponse;
+import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.OprTimeDto;
 import aoms.pm.cast.dto.ScCntRawDto;
 import aoms.pm.cast.dto.SmltKpiDto;
@@ -50,18 +51,22 @@ public class CastDepServiceImpl implements CastDepService {
     private final CastOperHrService castOperHrService;
     private final CastDepMapper castDepMapper;
     private final CastExecutionService executionService;
+    private final CastResourceConditionService resourceConditionService;
 
     @Override
     public UserSmltDepDto retrieveDepInfo(UserSmltDepSearchDto searchDto) {
-        if (searchDto.getSmltId() != null && !searchDto.getSmltId().isBlank()) {
-            return executionService.frozen(searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId(), "DEP", UserSmltDepDto.class);
-        }
-        executionService.scope(searchDto);
+        if (searchDto.getTmnlId() == null) throw new IllegalStateException("터미널을 지정해주세요.");
+        SmltStngDto refs = searchDto.getSmltId() != null && !searchDto.getSmltId().isBlank()
+                ? executionService.resources(searchDto.getSmltId(), searchDto.getTmnlId().getFcltTmnlId()) : null;
+        if (refs == null) executionService.scope(searchDto);
+        else searchDto.setYmd(refs.getExcnYmd());
         UserSmltDepDto result = new UserSmltDepDto();
         TerminalKind tmnlId = searchDto.getTmnlId();
         String fcltTmnlId = tmnlId.getFcltTmnlId();
 
-        List<DepGateDto> dptgtList = getGateList(searchDto, fcltTmnlId);
+        List<DepGateDto> dptgtList = refs == null
+                ? getGateList(searchDto, fcltTmnlId)
+                : resourceConditionService.gates(refs, fcltTmnlId);
         List<Integer> oprScCntList = getOprScCntList(dptgtList);
         List<WaitPsgDto> waitList = castSmltService.retrieveWaitPsgList(executionService.baseId(searchDto.getYmd()), fcltTmnlId, UP_PSG_FCLT_CD_LIST);
 

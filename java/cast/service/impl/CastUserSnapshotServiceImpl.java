@@ -1,12 +1,7 @@
 package aoms.pm.cast.service.impl;
 
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -45,7 +40,6 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
     private static final String IMMIGRATION = "FacilityOpeningTable_Immigration";
     private static final String TRANSFER_SECURITY_CONTROL = "FacilityOpeningTable_TransferSecurityControl";
     private static final String PS = "PS";
-    private static final List<String> PS_RSRC_NO_REFERENCES = List.of(SBD, DEPARTURE_GATE, SECURITY_CONTROL, IMMIGRATION, TRANSFER_SECURITY_CONTROL);
 
     private final CastUserSnapshotMapper castUserSnapshotMapper;
     private final aoms.pm.castrest.service.CastRestService castRestService;
@@ -61,6 +55,8 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
             if (required == null || required.isBlank()) throw new IllegalStateException("모델·PropertySet·서비스시간·체크인유형·입국심사·환승보안 기본 설정을 확인해주세요.");
         }
         if (!base.getPrptSetRsrcId().matches(PS + "[0-9]{3}")) throw new IllegalStateException("기본 PropertySet ID 형식이 올바르지 않습니다: " + base.getPrptSetRsrcId());
+        int sourcePsNo = Integer.parseInt(base.getPrptSetRsrcId().substring(2));
+        if (sourcePsNo >= 500 && sourcePsNo <= 998) throw new IllegalStateException("기본 PropertySet은 사용자 실행 예약 범위를 사용할 수 없습니다.");
         UserSmltRsrcSnapshotDto snapshot = getSnapshot(smltId, excnYmd, base);
         for (UserSmltFrozenDto frozen : frozenList) addRows(snapshot, frozen);
 
@@ -72,40 +68,23 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         publishRsrc(RsrcTable.ENTCNY, snapshot, castUserSnapshotMapper::insertEntcnyAtrb);
         publishRsrc(RsrcTable.TRNST_SCRTY_CNTRL, snapshot, castUserSnapshotMapper::insertTrnstScrtyCntrlAtrb);
 
-        archive(snapshot, "FlightSchedule", snapshot.getFltSchdlRsrcId());
-        archive(snapshot, "CounterAllocation", snapshot.getCknctAlctnRsrcId());
-        archive(snapshot, "CounterAllocation", snapshot.getSbdCntrlAlctnId());
-        archive(snapshot, "GenericTable", snapshot.getFcltyOpngDptcnySrngRsrcId());
-        archive(snapshot, "GenericTable", snapshot.getFcltyOpngScrtyCntrlRsrcId());
-        archive(snapshot, "GenericTable", snapshot.getFcltyOpngEntcnyRsrcId());
-        archive(snapshot, "GenericTable", snapshot.getFcltyOpngTrScrtyCntrlRsrcId());
-        archive(snapshot, "CASTModel", snapshot.getMdlRsrcId());
-        archive(snapshot, "GenericTable", snapshot.getCknctSrvcHrRsrcId());
-        archive(snapshot, "GenericTable", snapshot.getChknTypeRsrcId());
-        archive(snapshot, "GenericTable", snapshot.getFcltyOpngDptcnyRsrcId());
-        archive(snapshot, "GenericTable", snapshot.getRptStngAtrbId());
-        archivePropertySet(snapshot, base.getPrptSetRsrcId());
+        for (String[] resource : List.of(
+                new String[] { "FlightSchedule", snapshot.getFltSchdlRsrcId() },
+                new String[] { "CounterAllocation", snapshot.getCknctAlctnRsrcId() },
+                new String[] { "CounterAllocation", snapshot.getSbdCntrlAlctnId() },
+                new String[] { "GenericTable", snapshot.getFcltyOpngDptcnySrngRsrcId() },
+                new String[] { "GenericTable", snapshot.getFcltyOpngScrtyCntrlRsrcId() },
+                new String[] { "GenericTable", snapshot.getFcltyOpngEntcnyRsrcId() },
+                new String[] { "GenericTable", snapshot.getFcltyOpngTrScrtyCntrlRsrcId() },
+                new String[] { "GenericTable", snapshot.getFcltyOpngDptcnyRsrcId() },
+                new String[] { "GenericTable", snapshot.getRptStngAtrbId() },
+                new String[] { "CASTModel", snapshot.getMdlRsrcId() },
+                new String[] { "PropertySet", base.getPrptSetRsrcId() },
+                new String[] { "GenericTable", snapshot.getCknctSrvcHrRsrcId() },
+                new String[] { "GenericTable", snapshot.getChknTypeRsrcId() })) {
+            if (resource[1] != null && !resource[1].isBlank()) capture(snapshot, resource[0], resource[1]);
+        }
         return snapshot;
-    }
-
-    private void archive(UserSmltRsrcSnapshotDto snapshot, String type, String id) {
-        if (id == null || id.isBlank()) return;
-        executionMapper.archiveInput(snapshot.getSmltId(), type, id, id, capture(snapshot, type, id));
-    }
-
-    // PS 렌더 SQL 은 내부 참조 번호를 PS 번호에서 뽑으므로, 원천 PS 를 렌더한 뒤 번호 리소스 참조만 이 실행의 번호로 바꾼다
-    private void archivePropertySet(UserSmltRsrcSnapshotDto snapshot, String sourceId) {
-        String sourceNo = sourceId.substring(PS.length());
-        Map<String, String> references = new LinkedHashMap<>();
-        references.put(sourceId, snapshot.getPrptStngRsrcId());
-        for (String prefix : PS_RSRC_NO_REFERENCES) references.put(prefix + sourceNo, prefix + snapshot.getRsrcNo());
-
-        Pattern pattern = Pattern.compile("(?<![A-Za-z0-9_])(?:" + references.keySet().stream().map(Pattern::quote).collect(Collectors.joining("|")) + ")(?![A-Za-z0-9_])");
-        Matcher matcher = pattern.matcher(capture(snapshot, "PropertySet", sourceId));
-        StringBuffer rewritten = new StringBuffer();
-        while (matcher.find()) matcher.appendReplacement(rewritten, Matcher.quoteReplacement(references.get(matcher.group())));
-        matcher.appendTail(rewritten);
-        executionMapper.archiveInput(snapshot.getSmltId(), "PropertySet", snapshot.getPrptStngRsrcId(), sourceId, rewritten.toString());
     }
 
     private String capture(UserSmltRsrcSnapshotDto snapshot, String type, String id) {
@@ -120,8 +99,8 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         SessionUtils.setUserContext(result, sessionService);
 
         executionService.lock();
-        String rsrcNo = reserve(RsrcPool.FS, smltId);
-        String psNo = reserve(RsrcPool.PS, smltId);
+        String rsrcNo = reserve(RsrcPool.FS);
+        String psNo = reserve(RsrcPool.PS);
 
         result.setRsrcNo(rsrcNo);
         result.setSmltId(smltId);
@@ -136,6 +115,7 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         result.setFcltyOpngTrScrtyCntrlRsrcId(TRANSFER_SECURITY_CONTROL + rsrcNo);
         result.setPrptStngRsrcId(PS + psNo);
 
+        result.setSrcPrptSetRsrcId(base.getPrptSetRsrcId());
         result.setMdlRsrcId(base.getMdlRsrcId());
         result.setCknctSrvcHrRsrcId(base.getCknctSrvcHrRsrcId());
         result.setChknTypeRsrcId(base.getChknTypeRsrcId());
@@ -149,10 +129,9 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         return result;
     }
 
-    private String reserve(RsrcPool pool, String smltId) {
+    private String reserve(RsrcPool pool) {
         String no = executionMapper.reserveRsrcNo(pool.name(), pool.minNo, pool.maxNo);
-        if (no == null) throw new IllegalStateException("진행 중인 실행이 " + pool.name() + " 리소스 번호를 모두 사용하고 있습니다.");
-        executionMapper.assignRsrcNo(pool.name(), no, smltId);
+        if (no == null) throw new IllegalStateException(pool.name() + " 리소스 번호를 모두 사용했습니다. 기존 번호는 재사용하지 않습니다.");
         if (executionMapper.updateLastRsrcNo(pool.name(), no) != 1) throw new IllegalStateException(pool.name() + " 리소스 번호 채번 행이 없습니다.");
         return no;
     }
@@ -188,10 +167,6 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
             UserSmltRsrcSnapshotDto snapshot,
             Consumer<UserSmltRsrcSnapshotDto> insertAtrb
     ) {
-        String rsrcNo = snapshot.getRsrcNo();
-
-        castUserSnapshotMapper.deleteRsrcAtrb(table.atrbTableNm, table.atrbIdColumnNm, rsrcNo);
-        castUserSnapshotMapper.deleteRsrcMstr(table.mstrTableNm, table.mstrIdColumnNm, rsrcNo);
         castUserSnapshotMapper.insertRsrcMstr(
                 table.mstrTableNm, table.mstrIdColumnNm, table.mstrNmColumnNm, snapshot);
         insertAtrb.accept(snapshot);

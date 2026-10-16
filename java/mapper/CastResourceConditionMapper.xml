@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="aoms.pm.cast.mapper.CastResourceConditionMapper">
+    <select id="retrieveFlightHours" resultType="aoms.pm.cast.dto.FltPsgRawDto">
+        SELECT SUBSTR(NVL(A.PREDC_HM, A.DEP_ARR_HM), 1, 2) AS HOUR, COUNT(*) AS FLT_CNT,
+               NVL(SUM(GREATEST(NVL(A.BDPSG_CNT, 0) - NVL(A.TRNS_BDPSG_CNT, 0), 0)), 0) AS PSG_CNT
+        FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB A
+        WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{resourceId}, '^FS', '')
+        AND A.ARR_DEP_SE_CD = 'D' AND A.DOM_INTL_SE_CD != 'D'
+        AND A.TMNL_ID IN (<foreach collection="tmnlIds" item="terminal" separator=",">#{terminal}</foreach>)
+        GROUP BY SUBSTR(NVL(A.PREDC_HM, A.DEP_ARR_HM), 1, 2)
+        ORDER BY HOUR
+    </select>
+    <sql id="checkinRows">
+        SELECT SUBSTR(A.CKNCT_ID, 1, 1) AS ISLAND, A.CKNCT_ID AS BOOTH_ID,
+               CAST(NULL AS VARCHAR2(100)) AS KIOSK_ID, CAST(NULL AS VARCHAR2(100)) AS SBD_ID,
+               A.CHKN_OPEN_PRNMNT_DT AS BGN_DT, A.CHKN_CLOSE_PRNMNT_DT AS END_DT
+        FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
+        WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{caId}, '^CA', '') AND A.TMNL_ID = #{tmnlId}
+        UNION ALL
+        SELECT SUBSTR(A.CKNCT_ID, 1, 1), NULL,
+               CASE WHEN A.BLCK_ID IN ('P01Self', 'P03Self') THEN A.CKNCT_ID END,
+               CASE WHEN A.BLCK_ID IN ('P01SBD', 'P03SBD') THEN A.CKNCT_ID END,
+               A.OPER_BGNG_DT, A.OPER_END_DT
+        FROM PMOWN.TN_PM_SMLT_SBD_ATRB A
+        WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{sbdId}, '^SBD', '') AND A.TMNL_ID = #{tmnlId}
+    </sql>
+    <select id="retrieveIslands" resultType="aoms.pm.cast.dto.ChknIslandDto">
+        SELECT ISLAND, COUNT(DISTINCT BOOTH_ID) AS BOOTH_CNT,
+               COUNT(DISTINCT KIOSK_ID) AS KIOSK_CNT, COUNT(DISTINCT SBD_ID) AS BAG_DROP_CNT
+        FROM (<include refid="checkinRows"/>) GROUP BY ISLAND ORDER BY ISLAND
+    </select>
+    <select id="retrieveBooths" resultType="aoms.pm.cast.dto.ChknBoothDto">
+        SELECT NVL(C.BOOTH_NO, TO_NUMBER(REGEXP_REPLACE(A.CKNCT_ID, '[^0-9]', ''))) AS BOOTH_NO,
+               MIN(A.ALN_CD) AS ALN_CD, 'N' AS CSTM_ALTMNT_YN
+        FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
+        LEFT JOIN (
+            SELECT K.TMNL_ID, K.CKNCT_ID,
+                   ROW_NUMBER() OVER (PARTITION BY K.TMNL_ID, SUBSTR(K.CKNCT_ID, 1, 1) ORDER BY K.CKNCT_ID) AS BOOTH_NO
+            FROM CAOWN.TN_CA_CKNCT K
+            WHERE K.USE_YN = 'Y' AND K.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
+        ) C ON C.TMNL_ID = A.TMNL_ID AND C.CKNCT_ID = A.CKNCT_ID
+        WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{caId}, '^CA', '')
+        AND A.TMNL_ID = #{tmnlId} AND SUBSTR(A.CKNCT_ID, 1, 1) = #{island}
+        GROUP BY A.CKNCT_ID, C.BOOTH_NO ORDER BY BOOTH_NO
+    </select>
+    <select id="retrieveCheckinHours" resultType="aoms.pm.cast.dto.OprTimeDto">
+        SELECT DISTINCT TO_NUMBER(SUBSTR(BGN_DT, 9, 2)) AS OPER_BGNG_HOUR,
+               CASE WHEN SUBSTR(END_DT, 9, 4) = '2359' THEN 24 ELSE TO_NUMBER(SUBSTR(END_DT, 9, 2)) END AS OPER_END_HOUR
+        FROM (<include refid="checkinRows"/>) WHERE ISLAND = #{island}
+        ORDER BY OPER_BGNG_HOUR, OPER_END_HOUR
+    </select>
+    <select id="retrieveGates" resultType="aoms.pm.cast.dto.DepGateDto">
+        SELECT D.GATE_NO AS DPTGT_NO, D.GATE_NO AS DPTGT_NM, 'Y' AS OPR_YN,
+               NVL(MAX(S.FCLTY_CNT), 0) AS SCSH_CNTOM,
+               NVL(MAX(D.GNRL_SRCH_CNTOM), MAX(D.FCLTY_CNT)) AS GNRL_SRCH_CNTOM,
+               NVL(MAX(D.SMART_PASS_SRCH_CNTOM), 0) AS SMART_PASS_SRCH_CNTOM
+        FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB D
+        LEFT JOIN PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB S
+          ON S.SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{scId}, '^(FOTSC|FacilityOpeningTable_SecurityControl)', '')
+         AND S.TMNL_ID = D.TMNL_ID AND S.GATE_NO = D.GATE_NO
+        WHERE D.DPTGT_ATRB_ID = REGEXP_REPLACE(#{depId}, '^(FOTDG|FacilityOpeningTable_DepartureGate)', '')
+        AND D.TMNL_ID = #{tmnlId}
+        GROUP BY D.GATE_NO ORDER BY D.GATE_NO
+    </select>
+    <select id="retrieveDepartureHours" resultType="aoms.pm.cast.dto.OprTimeDto">
+        SELECT DISTINCT TO_NUMBER(SUBSTR(OPER_BGNG_HM, 1, 2)) AS OPER_BGNG_HOUR,
+               CASE WHEN OPER_END_HM = '2359' THEN 24 ELSE TO_NUMBER(SUBSTR(OPER_END_HM, 1, 2)) END AS OPER_END_HOUR
+        FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB
+        WHERE DPTGT_ATRB_ID = REGEXP_REPLACE(#{depId}, '^(FOTDG|FacilityOpeningTable_DepartureGate)', '')
+        AND TMNL_ID = #{tmnlId} AND GATE_NO = #{gateNo} AND OPER_BGNG_HM IS NOT NULL
+        ORDER BY OPER_BGNG_HOUR, OPER_END_HOUR
+    </select>
+</mapper>

@@ -902,8 +902,12 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             CastReqGetResourceDto resourceDto = requestParser.parse();
             resourceDto.setBaseYmd(resolveBaseYmd());
 
-            String archived = executionMapper.retrieveInput(resourceDto.getResourceType(), resourceDto.getResourceID());
-            if (archived != null) return archived;
+            if (PROPERTY_SET.equals(resourceDto.getResourceType())) {
+                UserSmltReqDto request = executionMapper.retrievePropertySetRequest(resourceDto.getResourceID());
+                if (request != null) return renderUserPropertySet(request);
+                String id = resourceDto.getResourceID();
+                if (id != null && id.matches("PS[0-9]{3}") && id.substring(2).compareTo("500") >= 0 && id.substring(2).compareTo("998") <= 0) throw new IllegalStateException("등록되지 않은 사용자 PropertySet입니다.");
+            }
 
             saveSimLog("2", "2");
 
@@ -915,6 +919,27 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         }
 
         return INVALID_REQUEST;
+    }
+
+    // PS 렌더 SQL 은 내부 참조 번호를 PS 번호에서 뽑으므로, 원천 PS 를 렌더한 뒤 번호 리소스 참조만 이 실행의 번호로 바꾼다
+    private String renderUserPropertySet(UserSmltReqDto request) {
+        String sourceId = request.getSrcPrptSetRsrcId();
+        if (sourceId == null || !sourceId.matches("PS[0-9]{3}") || sourceId.equals(request.getPrptStngRsrcId())) throw new IllegalStateException("PropertySet 원천 참조를 확인해주세요.");
+        String sourceNo = sourceId.substring(2);
+        Map<String, String> references = new LinkedHashMap<>();
+        references.put(sourceId, request.getPrptStngRsrcId());
+        references.put("SBD" + sourceNo, request.getSbdCntrlAlctnId());
+        references.put("FacilityOpeningTable_DepartureGate" + sourceNo, request.getFcltyOpngDptcnySrngRsrcId());
+        references.put("FacilityOpeningTable_SecurityControl" + sourceNo, request.getFcltyOpngScrtyCntrlRsrcId());
+        references.put("FacilityOpeningTable_Immigration" + sourceNo, request.getFcltyOpngEntcnyRsrcId());
+        references.put("FacilityOpeningTable_TransferSecurityControl" + sourceNo, request.getFcltyOpngTrScrtyCntrlRsrcId());
+        for (String value : references.values()) if (value == null || value.isBlank()) throw new IllegalStateException("PropertySet 리소스 참조가 없습니다.");
+        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(?<![A-Za-z0-9_])(?:" + references.keySet().stream().map(java.util.regex.Pattern::quote).collect(java.util.stream.Collectors.joining("|")) + ")(?![A-Za-z0-9_])");
+        java.util.regex.Matcher matcher = pattern.matcher(captureResource("PropertySet", sourceId, request.getExcnYmd()));
+        StringBuffer result = new StringBuffer();
+        while (matcher.find()) matcher.appendReplacement(result, java.util.regex.Matcher.quoteReplacement(references.get(matcher.group())));
+        matcher.appendTail(result);
+        return result.toString();
     }
 
     private void resourceList(Node node, String str, CastReqGetResourceDto sDto) {

@@ -17,7 +17,7 @@ function check(value, message) {
     assertions += 1;
 }
 try {
-    const { userSmltMock: api, mockExecutions } = await server.ssrLoadModule('/src/api/pm/mock/userSmlt.mock.ts');
+    const { userSmltMock: api, mockExecutions, mockResources } = await server.ssrLoadModule('/src/api/pm/mock/userSmlt.mock.ts');
     const { monitoringMock: monitor } = await server.ssrLoadModule('/src/api/pm/mock/monitoring.mock.ts');
     const { commonMock } = await server.ssrLoadModule('/src/api/pm/mock/common.mock.ts');
     const session = commonMock.getUserInfoBySession();
@@ -40,7 +40,11 @@ try {
     const first = api.execute(request({ fltPsgList: [{ ymd, tmnlId: 'T1', ajmtRt: 30 }] }));
     check(first.smltId.length === 8 && first.smltFlfmtSttsCd === 'RUNNING', 'execution has a new eight-digit ID');
     check(ratio() === 30, 'changed area auto saves');
-    check(ratio('T1', ymd, first.smltId) === 30 && ratio('T2', ymd, first.smltId) === 20, 'snapshot combines edits and saved second terminal');
+    const initialPax = api.getFltPsgInfo({ ymd }, 'T1').hourList.reduce((sum, hour) => sum + hour.psgCnt, 0);
+    const expectedPax = (terminal, factor) => api.getFltPsgInfo({ ymd }, terminal).hourList.reduce((sum, hour) => sum + Math.round(hour.psgCnt * factor), 0);
+    check(api.getFltPsgInfo({ ymd, smltId: first.smltId }, 'T1').psgCnt === expectedPax('T1', 1.3), 'resource contains edited first-terminal passengers');
+    check(api.getFltPsgInfo({ ymd, smltId: first.smltId }, 'T2').psgCnt === expectedPax('T2', 1.2), 'resource uses saved second-terminal ratio');
+    check(ratio('T1', ymd, first.smltId) === 0, 'resource passenger totals are not adjusted twice');
     check(api.getChknCounterInfo({ ymd, smltId: first.smltId }, 'T2').islandList.length > 0, 'unvisited area uses operative defaults');
     const second = api.execute(request());
     check(second.smltId !== first.smltId && mockExecutions.size === 2, 'additional active execution is allowed');
@@ -74,14 +78,21 @@ try {
     api.saveFltPsgInfo({ ymd, tmnlId: 'T1', ajmtRt: 50 });
     api.saveChknCounterInfo({ ymd, tmnlId: 'T1', islandList: [] });
     const third = api.execute(request());
-    check(ratio('T1', ymd, first.smltId) === 30, 'editing and rerunning preserve past ratio');
+    check(api.getFltPsgInfo({ ymd, smltId: first.smltId }, 'T1').psgCnt > initialPax, 'draft edits do not replace assigned resources');
+    check(mockExecutions.get(first.smltId).resourceIds.T1 !== mockExecutions.get(third.smltId).resourceIds.T1, 'new execution gets a distinct resource');
     check(api.getChknCounterInfo({ ymd, smltId: third.smltId }, 'T1').islandList.length === 0, 'explicit saved empty is preserved');
     check(api.getChknCounterInfo({ ymd, smltId: first.smltId }, 'T1').islandList.length > 0, 'new empty does not mutate older conditions');
     const detached = api.getDepInfo({ ymd, smltId: first.smltId }, 'T1');
     detached.dptgtList.length = 0;
-    check(api.getDepInfo({ ymd, smltId: first.smltId }, 'T1').dptgtList.length > 0, 'public DTO mutation cannot modify archived conditions');
+    check(api.getDepInfo({ ymd, smltId: first.smltId }, 'T1').dptgtList.length > 0, 'public DTO mutation cannot modify resource data');
     session.userId = 'verification-B';
-    check(ratio() === -10 && ratio('T1', ymd, first.smltId) === 30, 'another user can read public execution but retains own draft');
+    check(
+        ratio() === -10 && api.getFltPsgInfo({ ymd, smltId: first.smltId }, 'T1').psgCnt > initialPax,
+        'another user can read public resource but retains own draft',
+    );
+    const resource = mockResources.get(mockExecutions.get(first.smltId).resourceIds.T1);
+    resource.dep.dptgtList.length = 0;
+    check(api.getDepInfo({ ymd, smltId: first.smltId }, 'T1').dptgtList.length === 0, 'intentional source changes are reflected in execution condition views');
 
     const now = new Date();
     const day = [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((v, i) => String(v).padStart(i === 0 ? 4 : 2, '0')).join('');
@@ -95,7 +106,7 @@ try {
         'new execution appears in public history',
     );
     const demo = list.userList.find((row) => row.smltId.startsWith('USR-'));
-    check(Boolean(demo) && api.getDepInfo({ ymd: day, smltId: demo.smltId }, 'T1').dptgtList.length > 0, 'demo history also has immutable conditions');
+    check(Boolean(demo) && api.getDepInfo({ ymd: day, smltId: demo.smltId }, 'T1').dptgtList.length > 0, 'demo history also has resource references');
     const future = monitor.getExecList('209901010000', '209901012359');
     check(!future.userList.some((row) => row.smltId === first.smltId), 'period filter excludes new executions outside the period');
     session.userId = originalUser;

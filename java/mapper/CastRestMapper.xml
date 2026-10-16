@@ -133,19 +133,13 @@
              AND #{handleYn} = 1
         UNION ALL
         SELECT 'PropertySet' ResourceType
-                  , S.RESOURCE_ID ResourceID
+                  , M.PRPT_STNG_RSRC_ID ResourceID
                   , 'SYSTEM' Author
                   , 'Property Set' Description
                   , TO_CHAR(M.FRST_REG_DT,'YYYY-MM-DD')||'T'||TO_CHAR(M.FRST_REG_DT,'HH24:MI:SS') AS LastModified
                   , 'cols_PropertySet' tableID
-           FROM PMOWN.TN_PM_SMLT_RSRC_LEASE L
-        INNER JOIN PMOWN.TN_PM_SMLT_INPUT_SNAPSHOT S
-             ON S.SMLT_ID = L.SMLT_ID
-            AND S.RESOURCE_TYPE = 'PropertySet'
-            AND S.RESOURCE_ID = 'PS'||L.RSRC_NO
-        INNER JOIN PMOWN.TN_PM_SMLT_USER_MSTR M
-             ON M.SMLT_ID = L.SMLT_ID
-        WHERE L.RSRC_KIND = 'PS'
+           FROM PMOWN.TN_PM_SMLT_USER_MSTR M
+        WHERE M.PRPT_STNG_RSRC_ID IS NOT NULL
              AND #{handleYn} = 1
         UNION ALL
         SELECT 'GenericTable' ResourceType

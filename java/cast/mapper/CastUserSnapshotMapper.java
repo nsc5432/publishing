@@ -8,17 +8,7 @@ import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto;
 @Mapper
 public interface CastUserSnapshotMapper {
 
-    void deleteRsrcAtrb(
-            @Param("atrbTableNm") String atrbTableNm,
-            @Param("atrbIdColumnNm") String atrbIdColumnNm,
-            @Param("rsrcNo") String rsrcNo
-    );
 
-    void deleteRsrcMstr(
-            @Param("mstrTableNm") String mstrTableNm,
-            @Param("mstrIdColumnNm") String mstrIdColumnNm,
-            @Param("rsrcNo") String rsrcNo
-    );
 
     void insertRsrcMstr(
             @Param("mstrTableNm") String mstrTableNm,
