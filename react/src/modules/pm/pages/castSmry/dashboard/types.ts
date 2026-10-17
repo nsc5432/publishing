@@ -165,7 +165,6 @@ export interface QueueRecommendView {
     countNote: string;
     capaNote: string;
     capaShort: boolean;
-    policyNote: string;
     /** 추천 수량(또는 보유 최대수) 배정 시 해소 예상 */
     clear: QueueClearView | null;
     clearLabel: string;

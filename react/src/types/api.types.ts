@@ -219,7 +219,6 @@ export interface FcltQueueRecommendDto {
     stableAplyYn: YnFlag | null;
     capaAvlYn: YnFlag | null;
     goalMetYn: YnFlag | null;
-    policyCd: string;
     reqMetric: QueueMetricDto;
 }
 

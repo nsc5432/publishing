@@ -661,7 +661,6 @@ function toQueueRecommend(profile: QueueScenarioProfile, targetMin: number): Fcl
         stableAplyYn: null,
         capaAvlYn: null,
         goalMetYn: null,
-        policyCd: 'STABLE_MMS_FLUID_TARGET',
         reqMetric: queueMetric('UNAVAILABLE', 'FLUID_APPROXIMATION', '양수인 단일 시설 평균 처리시간이 필요합니다.'),
     };
 

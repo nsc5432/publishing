@@ -16,6 +16,5 @@ public class FcltQueueRecommendDto {
 	private String stableAplyYn; // 안정조건 하한으로 소요 수량이 늘었으면 Y
 	private String capaAvlYn; // 소요 수량이 배정가능 최대수 이하면 Y. 최대수를 모르면 null
 	private String goalMetYn; // 소요 수량의 해소시간이 목표 이내면 Y. 검증할 수 없으면 null
-	private String policyCd; // 추천 정책
 	private QueueMetricDto reqMetric;
 }

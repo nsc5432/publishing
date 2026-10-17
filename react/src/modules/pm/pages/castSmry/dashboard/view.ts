@@ -340,7 +340,7 @@ function toDiffNote(current: QueueClearView, scenario: QueueClearView): string {
 }
 
 function toQueueRecommendView(dto: FcltQueueScenarioDto, recommend: FcltQueueRecommendDto): QueueRecommendView {
-    const { reqCnt, extraCnt, reduceCnt, fluidReqCnt, stableMinCnt } = recommend;
+    const { reqCnt, extraCnt, reduceCnt } = recommend;
 
     if (reqCnt === null) {
         return {
@@ -348,7 +348,6 @@ function toQueueRecommendView(dto: FcltQueueScenarioDto, recommend: FcltQueueRec
             countNote: recommend.reqMetric.reason,
             capaNote: '',
             capaShort: false,
-            policyNote: '',
             clear: null,
             clearLabel: '',
         };
@@ -367,10 +366,6 @@ function toQueueRecommendView(dto: FcltQueueScenarioDto, recommend: FcltQueueRec
             : recommend.capaAvlYn === 'Y'
               ? `보유 ${formatCount(dto.totCnt ?? 0)}개 이내`
               : dto.totCntRsn || '배정 가능한 최대 수량 미확인';
-    const policyNote =
-        recommend.stableAplyYn === 'Y'
-            ? `유입/처리 차이 계산 ${fluidReqCnt}개 → 안정조건(ρ<1) 최소 ${stableMinCnt}개 적용`
-            : `유입/처리 차이 계산 ${fluidReqCnt}개 · 안정조건(ρ<1) 최소 ${stableMinCnt ?? '—'}개`;
     const clearSource = dto.scenario ?? dto.totScenario;
 
     return {
@@ -378,7 +373,6 @@ function toQueueRecommendView(dto: FcltQueueScenarioDto, recommend: FcltQueueRec
         countNote,
         capaNote,
         capaShort: recommend.capaAvlYn === 'N',
-        policyNote: recommend.goalMetYn === 'N' ? `${policyNote} · 목표시간 검증 실패` : policyNote,
         clear: clearSource ? toQueueClearView(clearSource, dto.baseDt) : null,
         clearLabel: dto.scenario ? '조정 후' : dto.totScenario ? `보유 ${formatCount(dto.totCnt ?? 0)}개 모두 배정 시` : '',
     };

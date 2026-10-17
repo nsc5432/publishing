@@ -11,15 +11,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.ToLongFunction;
-import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.domains.CgnGradeScale;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknQueueSlot;
@@ -40,14 +37,12 @@ import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.enums.FcltQueueScenarioMode;
 import aoms.pm.cast.enums.FcltType;
-import aoms.pm.cast.enums.PmRole;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDsbdMapper;
 import aoms.pm.cast.service.CastCgnGradeService;
 import aoms.pm.cast.service.CastChknQueueService;
 import aoms.pm.cast.service.CastFcltQueueScenarioService;
 import aoms.pm.cast.service.CastSmltService;
-import aoms.pm.cast.service.UserService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -63,11 +58,7 @@ import lombok.RequiredArgsConstructor;
  * 수정일 / 수정자 / 수정내용
  * 2026. 10. 13. / 노세찬 / 최초작성
  * -----------------------------------------------------------------------------------
- *
  * </pre>
- *
- * 혼잡해소 시간은 유입/처리 차이 계산, 대기확률·이론 대기시간은 M/M/s 정상상태값이다
- * (docs/plans/2026-10-13-fclt-card-queue-popup.md). 카드 · 맵 · 체크인 상세의 기존 추천 산식과는 별개다.
  */
 @Service
 @RequiredArgsConstructor
@@ -75,14 +66,9 @@ import lombok.RequiredArgsConstructor;
 public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioService {
 	private static final String DT_FORMAT = "yyyyMMddHHmmss";
 	private static final String YMD_FORMAT = "yyyyMMdd";
-	private static final Pattern YMD_PATTERN = Pattern.compile("\\d{8}");
-	private static final Pattern HHMM_PATTERN = Pattern.compile("([01]\\d|2[0-3])[0-5]\\d");
 	private static final String YN_Y = "Y";
 	private static final String YN_N = "N";
 	private static final String EMPTY = "";
-
-	private static final String POLICY_CD = "STABLE_MMS_FLUID_TARGET";
-	private static final String POLICY_VERSION = "1";
 
 	private static final int OBS_MIN = 30;
 	private static final int CAST_SLOT_MIN = 10;
@@ -104,25 +90,18 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 	private static final List<String> DEP_QUEUE_FCLT_CD_LIST = List.of("SC", "SR");
 	private static final List<String> DEP_MAX_FCLT_CD_LIST = List.of("SC");
 
-	private static final Set<String> DAILY_SMLT_ROLE_ID_SET = Set.of(
-			PmRole.OPER_CENTER.getValue(),
-			PmRole.OPER_PLAN.getValue(),
-			PmRole.SALES.getValue(),
-			PmRole.FORECAST.getValue(),
-			PmRole.SYS_ADMIN.getValue());
-
 	private static final List<String> COMMON_ASMP_LIST = List.of(
-			"M/M/s 적용 가정: 포아송 도착 · 지수 처리시간 · 동일 처리율의 병렬 시설 · 공용 대기열 선착순 · 무한 대기공간 · 이탈 없음 (통계 검증 아님)",
-			"예측 구간 동안 유입률 · 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다",
+			"M/M/s 적용 가정: 포아송 도착 / 지수 처리시간 / 동일 처리율의 병렬 시설 / 공용 대기열 선착순 / 무한 대기공간 / 이탈 없음 (통계 검증 아님)",
+			"예측 구간 동안 유입률 / 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다",
 			"유입률은 관측구간 인원 보존식(종료 대기 - 시작 대기 + 서비스 시작)으로 역산한다");
 
 	private static final List<String> CHKN_ASMP_LIST = List.of(
 			"아일랜드 유인 카운터(CC) 공용 Queue — 부스별 결과를 재구성한 값",
-			"운영 부스 수는 관측구간 마지막 분의 배정 부스, 처리율은 같은 구간의 부스·분당 처리용량 평균",
+			"운영 부스 수는 관측구간 마지막 분의 배정 부스, 처리율은 같은 구간의 부스/분당 처리용량 평균",
 			"배정 가능 최대 수량은 시설 마스터의 아일랜드 CC 수");
 
 	private static final List<String> DEP_ASMP_LIST = List.of(
-			"SC · SR 결과를 합산한 하나의 보안검색 Queue (요약보기 카드 추천과 같은 구성, 직렬 · 병렬 관계 미검증)",
+			"SC / SR 결과를 합산한 하나의 보안검색 Queue (요약보기 카드 추천과 같은 구성, 직렬 / 병렬 관계 미검증)",
 			"통과여객수를 서비스 시작인원으로 근사한다 (처리 중 인원 변화 무시)",
 			"CAST 10분 결과의 대기여객수를 결과 시각의 스냅샷으로 본다",
 			"운영 수량은 실행 리소스 보안검색 운영표의 FCLTY_CNT, 최대 수량은 시설 마스터 SC 수");
@@ -131,8 +110,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 	private final CastSmltService castSmltService;
 	private final CastChknQueueService castChknQueueService;
 	private final CastCgnGradeService castCgnGradeService;
-	private final UserService userService;
-	private final SessionService sessionService;
 
 	@Override
 	public FcltQueueScenarioDto retrieveFcltQueueScenario(FcltQueueScenarioSearchDto searchDto) {
@@ -142,21 +119,9 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 			return fail(invalid);
 		}
 
-		if (!canViewDailySmlt()) {
-			return fail("시설 운영 검토를 조회할 권한이 없습니다.");
-		}
-
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(searchDto.getSmltId());
 
-		if (smltStng == null) {
-			return fail("시뮬레이션 실행 정보를 찾을 수 없습니다. smltId=" + searchDto.getSmltId());
-		}
-
-		if (!searchDto.getYmd().equals(smltStng.getExcnYmd())) {
-			return fail("조회 일자가 시뮬레이션 실행 일자와 다릅니다.");
-		}
-
-		String unitCd = searchDto.getUnitCd().trim();
+		String unitCd = searchDto.getUnitCd();
 		String context = context(searchDto, unitCd);
 		FcltQueueSource source = searchDto.getFcltType() == FcltType.CHKN
 				? getChknSource(smltStng, searchDto.getTmnlId(), searchDto.getHhmm(), unitCd)
@@ -169,13 +134,15 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		Integer targetQueueCnt;
 
 		try {
-			targetQueueCnt = toTargetQueueCnt(castCgnGradeService.retrieveGradeScale(searchDto.getFcltType(), context));
+			CgnGradeScale gradeScale = castCgnGradeService.retrieveGradeScale(searchDto.getFcltType(), context);
+			BigDecimal normalMax = gradeScale.getNormalMax().setScale(0, RoundingMode.FLOOR);
+			targetQueueCnt = normalMax.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0 ? null : normalMax.intValueExact();
+
+            if (targetQueueCnt == null) {
+                return fail("혼잡등급 NORMAL 상한이 정수 범위를 벗어났습니다. " + context);
+            }
 		} catch (IllegalStateException exception) {
 			return fail(exception.getMessage());
-		}
-
-		if (targetQueueCnt == null) {
-			return fail("혼잡등급 NORMAL 상한이 정수 범위를 벗어났습니다. " + context);
 		}
 
 		FacilityQueueMetrics metrics = toMetrics(searchDto, unitCd, source);
@@ -213,34 +180,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 	}
 
 	private String validate(FcltQueueScenarioSearchDto searchDto) {
-		if (isBlank(searchDto.getSmltId())) {
-			return "시뮬레이션이 지정되지 않았습니다.";
-		}
-
-		if (searchDto.getYmd() == null || !YMD_PATTERN.matcher(searchDto.getYmd()).matches()) {
-			return "조회 일자가 올바르지 않습니다.";
-		}
-
-		if (searchDto.getHhmm() == null || !HHMM_PATTERN.matcher(searchDto.getHhmm()).matches()) {
-			return "조회 시각이 올바르지 않습니다.";
-		}
-
-		if (searchDto.getTmnlId() == null) {
-			return "터미널이 지정되지 않았습니다.";
-		}
-
-		if (searchDto.getFcltType() != FcltType.CHKN && searchDto.getFcltType() != FcltType.DEP) {
-			return "체크인카운터 또는 출국장만 조회할 수 있습니다.";
-		}
-
-		if (isBlank(searchDto.getUnitCd())) {
-			return "아일랜드 또는 출국장이 지정되지 않았습니다.";
-		}
-
-		if (searchDto.getMode() == null) {
-			return "계산 방식이 지정되지 않았습니다.";
-		}
-
 		BigDecimal count = searchDto.getOprFcltCnt();
 
 		if (searchDto.getMode() == FcltQueueScenarioMode.COUNT && count != null
@@ -270,16 +209,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		}
 
 		return count > totCnt ? "배정 가능한 최대 수량(" + totCnt + "개)을 넘었습니다." : null;
-	}
-
-	private boolean canViewDailySmlt() {
-		String loginUserId = sessionService.getLoginUserInfo().getLoginUserId();
-
-		if (loginUserId == null) {
-			return false;
-		}
-
-		return userService.retrieveRoleIdList(loginUserId).stream().anyMatch(DAILY_SMLT_ROLE_ID_SET::contains);
 	}
 
 	private FcltQueueSource getChknSource(SmltStngDto smltStng, TerminalKind tmnlId, String hhmm, String unitCd) {
@@ -429,13 +358,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return new MaxCount(masterCnt, EMPTY);
 	}
 
-	// 등급 구간은 [min, max] 양끝 포함이라 NORMAL 상한 이하가 곧 해소다
-	private Integer toTargetQueueCnt(CgnGradeScale gradeScale) {
-		BigDecimal normalMax = gradeScale.getNormalMax().setScale(0, RoundingMode.FLOOR);
-
-		return normalMax.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0 ? null : normalMax.intValueExact();
-	}
-
 	private FacilityQueueMetrics toMetrics(FcltQueueScenarioSearchDto searchDto, String unitCd, FcltQueueSource source) {
 		return FacilityQueueMetrics.builder()
 				.tmnlId(searchDto.getTmnlId().getValue())
@@ -523,7 +445,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 		FcltQueueRecommendDto recommend = new FcltQueueRecommendDto();
 		recommend.setTargetMin(targetMin);
-		recommend.setPolicyCd(POLICY_CD);
 		recommend.setReqMetric(QueueMetricDto.of(fluid));
 		recommend.setFluidReqCnt(fluid.hasValue() ? fluid.getValue() : null);
 		recommend.setStableMinCnt(stableMinCnt);
@@ -615,7 +536,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return result;
 	}
 
-	// 사용자 입력(수량 · 목표시간)은 넣지 않는다 — 같은 원천에서 입력만 바꾼 요청은 같은 버전이어야 한다
+	// 사용자 입력(수량 / 목표시간)은 넣지 않는다 — 같은 원천에서 입력만 바꾼 요청은 같은 버전이어야 한다
 	private String toContextVersion(
 			FcltQueueScenarioSearchDto searchDto,
 			String unitCd,
@@ -625,7 +546,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 			MetricResult<Double> service
 	) {
 		String raw = String.join("|",
-				POLICY_VERSION,
 				searchDto.getSmltId(),
 				searchDto.getTmnlId().getValue(),
 				searchDto.getFcltType().getValue(),
@@ -677,10 +597,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return value.signum() == 0 || value.stripTrailingZeros().scale() <= 0;
 	}
 
-	private boolean isBlank(String value) {
-		return value == null || value.trim().isEmpty();
-	}
-
 	private String normalizeUnitCd(String unitCd) {
 		return unitCd != null ? unitCd.trim() : EMPTY;
 	}
@@ -715,7 +631,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		}
 	}
 
-	/** 같은 결과 시각의 SC · SR 행을 합친 10분 결과 한 칸 */
+	/** 같은 결과 시각의 SC / SR 행을 합친 10분 결과 한 칸 */
 	private static final class DepSlot {
 		private final LocalDateTime dt;
 		private int wtngPsgCnt;
