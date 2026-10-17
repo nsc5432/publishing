@@ -143,8 +143,8 @@ M/M/s 정상상태는 `ρ=λ/(sμ)<1`을 요구하고, `μ`는 시설 하나의 
 | 재사용 클래스 | 역할 |
 |---|---|
 | `FacilityQueueMetrics` | 같은 큐·관측구간의 평균 처리시간, 평균 대기시간, 시간평균 대기인원, 구간 종료 Queue |
-| `FacilityQueueContext` | 운영수, 배정가능 최대수, 외부 유입률, 데이터/모형 가정 |
-| `MetricResult<T>` | `value`, `status`, `method`, `reason`, `hasValue()` |
+| `FacilityQueueInput` | 운영수, 배정가능 최대수, 외부 유입률, 데이터/모형 가정 |
+| `Computed<T>` | `value`, `status`, `method`, `reason`, `hasValue()` |
 | `ErlangCResult` | 대기확률·이론 평균 대기시간·이론 평균 대기인원 |
 | `MetricStatus`, `CalculationMethod`, `QueueDataSource` | 계산 상태·계산 근거·원천 구분 |
 | `QueueInputValidation` | 입력 검증. 프런트 검증과 별개로 서버 검증 유지 |
@@ -284,7 +284,7 @@ POST /pm/cast/smry/retrieveFcltQueueScenario
 - λ·μ를 진단값으로 노출하면 기존 설계명 `arvlRate`·`srvcRate`는 **명/분** 계약을 유지한다. Java 명/시간 값은 응답 경계에서 ÷60 한다. 같은 이름을 명/시간으로 재정의하지 않는다.
 - `current`: 현재 수량, `cgnClearMin`(반올림 전 분), 날짜 포함 `cgnClearDt`, 정상상태 참고지표.
 - `scenario`: 입력 수량 또는 추천 총수량 `reqCnt`, 추가 필요량, 조정 후 `cgnClearMin/cgnClearDt`, 목표 충족/보유량 충족 여부, 정상상태 참고지표.
-- 각 산출 지표의 메타데이터: 기존 `MetricResult`에서 얻은 `status`, `method`, `reason`. 원천 값이 null인 지표는 null을 유지한다.
+- 각 산출 지표의 메타데이터: 기존 `Computed`에서 얻은 `status`, `method`, `reason`. 원천 값이 null인 지표는 null을 유지한다.
 - 추천 정책 메타데이터: raw fluid 추천, 안정성 최소수량, 최종 정책 적용 여부. 화면 본문에는 최종값을 표시하고 상세 근거에 차이를 남긴다.
 
 `reqCnt`는 최종 **총 소요 수량**이다. `cgnClearMin`은 소요시간이며 날짜 포함 `cgnClearDt`는 별도 신규 필드다. 기존 카드의 `cgnClearTime(HHmm)` 형식을 바꾸지 않는다. 초/분 변환과 시각 덧셈은 서버에서 원래 정밀도로 처리한다. 화면에서 올림한 분을 다시 계산 입력으로 쓰지 않는다.

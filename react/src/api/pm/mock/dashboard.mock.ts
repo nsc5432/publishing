@@ -509,7 +509,7 @@ function buildFcltCardList(tmnlId: TmnlId, hhmm: string, fcltType: 'CHKN' | 'DEP
 
 /* ================= 혼잡해소 시나리오 팝업 =================
  *
- * 목업 응답을 입력에 반응시키려고 서버(FacilityQueueMetrics)와 같은 식을 작게 흉내 낸다.
+ * 목업 응답을 입력에 반응시키려고 서버(FacilityQueueCalculator)와 같은 식을 작게 흉내 낸다.
  * 화면 검증용 fixture 생성기일 뿐 운영 계산은 Java queue 클래스가 맡는다.
  */
 

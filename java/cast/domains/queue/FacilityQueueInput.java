@@ -4,10 +4,10 @@ import lombok.Builder;
 import lombok.Getter;
 
 /**
- * 큐 구간(FacilityQueueMetrics)에 적용할 운영 시설 수/유입률 등 시나리오 조건 관리
+ * 큐 구간(FacilityQueueCalculator)에 적용할 운영 시설 수/유입률 등 시나리오 조건 관리
  */
 @Getter
-public final class FacilityQueueContext {
+public final class FacilityQueueInput {
     private final Integer oprServerCnt; // 시설 수 s
     private final Integer totServerCnt; // 큐에 배정 가능한 최대 시설 수
     private final Double arrivalRatePerHour; // 유입률 lambda(명/시간) -> null이면 Little's Law로 추정한다.
@@ -38,7 +38,7 @@ public final class FacilityQueueContext {
     private final boolean mmSApplicable;
 
     @Builder
-    private FacilityQueueContext(
+    private FacilityQueueInput(
         Integer oprServerCnt,
         Integer totServerCnt,
         Double arrivalRatePerHour,

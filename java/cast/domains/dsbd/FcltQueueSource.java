@@ -3,6 +3,8 @@ package aoms.pm.cast.domains.dsbd;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import aoms.pm.cast.domains.queue.FacilityQueueInput;
+import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.queue.QueueDataSource;
 
 import lombok.Builder;
@@ -43,4 +45,24 @@ public final class FcltQueueSource {
 	private final boolean sharedHomogeneousServers;
 	private final boolean mmSApplicable;
 	private final List<String> asmpList;
+
+	public FacilityQueueInput toArrivalInput() {
+		return FacilityQueueInput.builder()
+				.queuePsgCntAtStart(queueAtStart)
+				.wtngEndPsgCnt(wtngEndPsgCnt)
+				.noAbandonmentOrTransfers(true)
+				.build();
+	}
+
+	public FacilityQueueInput toScenarioInput(Computed<Double> arrival, Integer serverCnt) {
+		return FacilityQueueInput.builder()
+				.oprServerCnt(serverCnt)
+				.totServerCnt(totCnt)
+				.arrivalRatePerHour(arrival.hasValue() ? arrival.getValue() : null)
+				.arrivalRateEstimated(true)
+				.sharedHomogeneousServers(sharedHomogeneousServers)
+				.constantRates(true)
+				.mmSApplicable(mmSApplicable)
+				.build();
+	}
 }

@@ -21,11 +21,10 @@ import aoms.pm.cast.domains.CgnGradeScale;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknQueueSlot;
 import aoms.pm.cast.domains.dsbd.FcltQueueSource;
-import aoms.pm.cast.domains.queue.CalculationMethod;
 import aoms.pm.cast.domains.queue.ErlangCResult;
-import aoms.pm.cast.domains.queue.FacilityQueueContext;
-import aoms.pm.cast.domains.queue.FacilityQueueMetrics;
-import aoms.pm.cast.domains.queue.MetricResult;
+import aoms.pm.cast.domains.queue.FacilityQueueInput;
+import aoms.pm.cast.domains.queue.FacilityQueueCalculator;
+import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.queue.QueueDataSource;
 import aoms.pm.cast.dto.FcltQueueClearDto;
 import aoms.pm.cast.dto.FcltQueueRecommendDto;
@@ -75,7 +74,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 	private static final int MIN_PER_HOUR = 60;
 	private static final int MIN_PER_DAY = 24 * MIN_PER_HOUR;
 	private static final double SEC_PER_MIN = 60.0;
-	private static final double SEC_PER_HOUR = 3600.0;
 	private static final double MAX_CLEAR_SEC = 366.0 * MIN_PER_DAY * SEC_PER_MIN;
 
 	private static final int DFLT_TARGET_MIN = 30;
@@ -145,14 +143,14 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 			return fail(exception.getMessage());
 		}
 
-		FacilityQueueMetrics metrics = toMetrics(searchDto, unitCd, source);
-		MetricResult<Double> arrival = estimateArrivalRate(metrics, source);
-		MetricResult<Double> service = metrics.estimateServiceRatePerHour();
+		FacilityQueueCalculator calculator = toCalculator(searchDto, unitCd, source);
+		Computed<Double> arrival = calculator.estimateArrivalRateByConservation(source.toArrivalInput()); // 유입률
+		Computed<Double> service = calculator.estimateServiceRatePerHour(); // 처리율
 		String version = toContextVersion(searchDto, unitCd, source, targetQueueCnt, arrival, service);
 		LocalDateTime baseDt = source.getObsEndDt();
 
 		FcltQueueScenarioDto result = toBaseResult(searchDto, unitCd, source, targetQueueCnt, arrival, service, version);
-		result.setCurrent(toClear(metrics, toContext(source, arrival, source.getOprCnt()), targetQueueCnt, baseDt));
+		result.setCurrent(toClear(calculator, source.toScenarioInput(arrival, source.getOprCnt()), targetQueueCnt, baseDt));
 
 		String requestVersion = searchDto.getContextVersion();
 
@@ -169,12 +167,12 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 				return fail(countInvalid);
 			}
 
-			result.setScenario(toClear(metrics, toContext(source, arrival, count), targetQueueCnt, baseDt));
+			result.setScenario(toClear(calculator, source.toScenarioInput(arrival, count), targetQueueCnt, baseDt));
 			return result;
 		}
 
 		int targetMin = searchDto.getTargetMinutes() == null ? DFLT_TARGET_MIN : searchDto.getTargetMinutes().intValueExact();
-		applyRecommend(result, metrics, source, arrival, service, targetQueueCnt, targetMin);
+		applyRecommend(result, calculator, source, arrival, service, targetQueueCnt, targetMin);
 
 		return result;
 	}
@@ -358,8 +356,8 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return new MaxCount(masterCnt, EMPTY);
 	}
 
-	private FacilityQueueMetrics toMetrics(FcltQueueScenarioSearchDto searchDto, String unitCd, FcltQueueSource source) {
-		return FacilityQueueMetrics.builder()
+	private FacilityQueueCalculator toCalculator(FcltQueueScenarioSearchDto searchDto, String unitCd, FcltQueueSource source) {
+		return FacilityQueueCalculator.builder()
 				.tmnlId(searchDto.getTmnlId().getValue())
 				.fcltType(searchDto.getFcltType().getValue())
 				.fcltId(unitCd)
@@ -374,41 +372,13 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 				.build();
 	}
 
-	private MetricResult<Double> estimateArrivalRate(FacilityQueueMetrics metrics, FcltQueueSource source) {
-		FacilityQueueContext conservation = FacilityQueueContext.builder()
-				.queuePsgCntAtStart(source.getQueueAtStart())
-				.wtngEndPsgCnt(source.getWtngEndPsgCnt())
-				.noAbandonmentOrTransfers(true)
-				.build();
-		MetricResult<Integer> arrivals = metrics.estimateArrivalPsgCnt(conservation);
-
-		if (!arrivals.hasValue()) {
-			return MetricResult.unavailable(CalculationMethod.CONSERVATION, arrivals.getReason());
-		}
-
-		return MetricResult.estimated(arrivals.getValue() / metrics.getIntervalSeconds() * SEC_PER_HOUR,
-				CalculationMethod.CONSERVATION, "관측구간 보존식 유입인원 " + arrivals.getValue() + "명 / 구간초 × 3600 (명/시간)");
-	}
-
-	private FacilityQueueContext toContext(FcltQueueSource source, MetricResult<Double> arrival, Integer serverCnt) {
-		return FacilityQueueContext.builder()
-				.oprServerCnt(serverCnt)
-				.totServerCnt(source.getTotCnt())
-				.arrivalRatePerHour(arrival.hasValue() ? arrival.getValue() : null)
-				.arrivalRateEstimated(true)
-				.sharedHomogeneousServers(source.isSharedHomogeneousServers())
-				.constantRates(true)
-				.mmSApplicable(source.isMmSApplicable())
-				.build();
-	}
-
-	private FcltQueueClearDto toClear(FacilityQueueMetrics metrics, FacilityQueueContext context, int targetQueueCnt, LocalDateTime baseDt) {
-		MetricResult<Double> clear = metrics.estimateClearTimeSec(context, targetQueueCnt);
-		MetricResult<Double> nextWtng = metrics.estimateNextArrivalWaitSec(context);
-		MetricResult<ErlangCResult> erlang = metrics.analyzeErlangC(context);
+	private FcltQueueClearDto toClear(FacilityQueueCalculator calculator, FacilityQueueInput input, int targetQueueCnt, LocalDateTime baseDt) {
+		Computed<Double> clear = calculator.estimateClearTimeSec(input, targetQueueCnt);
+		Computed<Double> nextWtng = calculator.estimateNextArrivalWaitSec(input);
+		Computed<ErlangCResult> erlang = calculator.analyzeErlangC(input);
 
 		FcltQueueClearDto result = new FcltQueueClearDto();
-		result.setFcltCnt(context.getOprServerCnt());
+		result.setFcltCnt(input.getOprServerCnt());
 		result.setCgnClearMin(clear.hasValue() ? clear.getValue() / SEC_PER_MIN : null);
 		result.setCgnClearDt(clear.hasValue() ? toClearDt(baseDt, clear.getValue()) : EMPTY);
 		result.setClearMetric(QueueMetricDto.of(clear));
@@ -429,10 +399,10 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 	private void applyRecommend(
 			FcltQueueScenarioDto result,
-			FacilityQueueMetrics metrics,
+			FacilityQueueCalculator calculator,
 			FcltQueueSource source,
-			MetricResult<Double> arrival,
-			MetricResult<Double> service,
+			Computed<Double> arrival,
+			Computed<Double> service,
 			int targetQueueCnt,
 			int targetMin
 	) {
@@ -440,7 +410,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		Integer currentCnt = source.getOprCnt();
 		Integer totCnt = source.getTotCnt();
 		LocalDateTime baseDt = source.getObsEndDt();
-		MetricResult<Integer> fluid = metrics.estimateRequiredServerCnt(toContext(source, arrival, currentCnt), targetQueueCnt, targetSec);
+		Computed<Integer> fluid = calculator.estimateRequiredServerCnt(source.toScenarioInput(arrival, currentCnt), targetQueueCnt, targetSec);
 		Integer stableMinCnt = toStableMinCnt(arrival, service);
 
 		FcltQueueRecommendDto recommend = new FcltQueueRecommendDto();
@@ -467,17 +437,17 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		recommend.setCapaAvlYn(totCnt == null ? null : reqCnt <= totCnt ? YN_Y : YN_N);
 
 		if (totCnt != null && reqCnt > totCnt) {
-			result.setTotScenario(toClear(metrics, toContext(source, arrival, totCnt), targetQueueCnt, baseDt));
+			result.setTotScenario(toClear(calculator, source.toScenarioInput(arrival, totCnt), targetQueueCnt, baseDt));
 			return;
 		}
 
-		FacilityQueueContext reqContext = toContext(source, arrival, reqCnt);
-		MetricResult<Double> reqClear = metrics.estimateClearTimeSec(reqContext, targetQueueCnt);
+		FacilityQueueInput reqInput = source.toScenarioInput(arrival, reqCnt);
+		Computed<Double> reqClear = calculator.estimateClearTimeSec(reqInput, targetQueueCnt);
 		recommend.setGoalMetYn(reqClear.hasValue() ? reqClear.getValue() <= targetSec + GOAL_EPSILON_SEC ? YN_Y : YN_N : null);
-		result.setScenario(toClear(metrics, reqContext, targetQueueCnt, baseDt));
+		result.setScenario(toClear(calculator, reqInput, targetQueueCnt, baseDt));
 	}
 
-	private Integer toStableMinCnt(MetricResult<Double> arrival, MetricResult<Double> service) {
+	private Integer toStableMinCnt(Computed<Double> arrival, Computed<Double> service) {
 		if (!arrival.hasValue()) {
 			return null;
 		}
@@ -500,8 +470,8 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 			String unitCd,
 			FcltQueueSource source,
 			int targetQueueCnt,
-			MetricResult<Double> arrival,
-			MetricResult<Double> service,
+			Computed<Double> arrival,
+			Computed<Double> service,
 			String version
 	) {
 		List<String> asmpList = new ArrayList<>(COMMON_ASMP_LIST);
@@ -542,8 +512,8 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 			String unitCd,
 			FcltQueueSource source,
 			int targetQueueCnt,
-			MetricResult<Double> arrival,
-			MetricResult<Double> service
+			Computed<Double> arrival,
+			Computed<Double> service
 	) {
 		String raw = String.join("|",
 				searchDto.getSmltId(),

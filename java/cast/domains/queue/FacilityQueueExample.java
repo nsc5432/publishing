@@ -30,7 +30,7 @@ public final class FacilityQueueExample {
          * - 날짜 변경만으로 기준값을 초기화하지 않는다. 관측 자료는 00:10에 누적값이 초기화됐다.
          * - L 외 행은 그대로 유지한다. B03의 00:00 처리량 이상은 별도 검증 대상으로 남긴다.
          */
-        FacilityQueueMetrics metrics = FacilityQueueMetrics.builder()
+        FacilityQueueCalculator calculator = FacilityQueueCalculator.builder()
                 .tmnlId("T1")
                 .fcltType("CHKN")
                 .fcltId("C")
@@ -46,7 +46,7 @@ public final class FacilityQueueExample {
 
         // Lq=30명, Wq=600초 → lambda=180명/시간. S=120초 → mu=30명/시간/시설.
         // 동일 속도 8개 시설이 이 큐를 공유하고 앞으로도 조건이 일정하다고 가정한다.
-        FacilityQueueContext current = FacilityQueueContext.builder()
+        FacilityQueueInput current = FacilityQueueInput.builder()
                 .oprServerCnt(8)
                 .totServerCnt(10)
                 .queuePsgCntAtStart(35)
@@ -60,43 +60,43 @@ public final class FacilityQueueExample {
                 .noAbandonmentOrTransfers(true)
                 .build();
 
-        print("평균 체류시간(초), 기대값 720", metrics.getAvgSojournTimeSec());
-        print("누적 대기부담(명·초), 기대값 18000", metrics.getQueuePersonSeconds());
-        print("대표 처리율(명/시간/시설), 기대값 30", metrics.estimateServiceRatePerHour());
-        print("추정 유입률(명/시간), 기대값 180", metrics.estimateArrivalRatePerHour(current));
-        print("총 처리능력(명/시간), 기대값 240", metrics.estimateCapacityPerHour(current));
-        print("유입 부하 비율, 기대값 0.75", metrics.estimateLoadRatio(current));
-        print("실제 가동률, 기대값 0.75", metrics.getObservedUtilization(current));
-        print("구간 유입인원(명), 기대값 30", metrics.estimateArrivalPsgCnt(current));
-        print("40명에서 10명까지 해소(초), 기대값 1800", metrics.estimateClearTimeSec(current, 10));
-        print("지금 줄 선 여객 예상 대기(초), 기대값 615", metrics.estimateNextArrivalWaitSec(current));
+        print("평균 체류시간(초), 기대값 720", calculator.getAvgSojournTimeSec());
+        print("누적 대기부담(명·초), 기대값 18000", calculator.getQueuePersonSeconds());
+        print("대표 처리율(명/시간/시설), 기대값 30", calculator.estimateServiceRatePerHour());
+        print("추정 유입률(명/시간), 기대값 180", calculator.estimateArrivalRatePerHour(current));
+        print("총 처리능력(명/시간), 기대값 240", calculator.estimateCapacityPerHour(current));
+        print("유입 부하 비율, 기대값 0.75", calculator.estimateLoadRatio(current));
+        print("실제 가동률, 기대값 0.75", calculator.getObservedUtilization(current));
+        print("구간 유입인원(명), 기대값 30", calculator.estimateArrivalPsgCnt(current));
+        print("40명에서 10명까지 해소(초), 기대값 1800", calculator.estimateClearTimeSec(current, 10));
+        print("지금 줄 선 여객 예상 대기(초), 기대값 615", calculator.estimateNextArrivalWaitSec(current));
 
-        print("10분 목표 필요 총 수, 기대값 12", metrics.estimateRequiredServerCnt(current, 10, 600));
-        print("10분 목표 추가 수, 기대값 4", metrics.estimateAdditionalServerCnt(current, 10, 600));
-        print("보유 시설로 목표 달성 가능, 기대값 false", metrics.assessCapacityFeasibility(current, 10, 600));
+        print("10분 목표 필요 총 수, 기대값 12", calculator.estimateRequiredServerCnt(current, 10, 600));
+        print("10분 목표 추가 수, 기대값 4", calculator.estimateAdditionalServerCnt(current, 10, 600));
+        print("보유 시설로 목표 달성 가능, 기대값 false", calculator.assessCapacityFeasibility(current, 10, 600));
 
-        FacilityQueueContext overloaded = FacilityQueueContext.builder()
+        FacilityQueueInput overloaded = FacilityQueueInput.builder()
                 .oprServerCnt(6)
                 .arrivalRatePerHour(180.0)
                 .sharedHomogeneousServers(true)
                 .constantRates(true)
                 .build();
-        print("처리능력=유입률이면 해소 불가", metrics.estimateClearTimeSec(overloaded, 10));
-        print("처리능력=유입률이어도 지금 줄 선 여객 대기(초), 기대값 820", metrics.estimateNextArrivalWaitSec(overloaded));
+        print("처리능력=유입률이면 해소 불가", calculator.estimateClearTimeSec(overloaded, 10));
+        print("처리능력=유입률이어도 지금 줄 선 여객 대기(초), 기대값 820", calculator.estimateNextArrivalWaitSec(overloaded));
 
         print("가정 미확인 시 유입 추정 불가",
-                metrics.estimateArrivalRatePerHour(FacilityQueueContext.builder().build()));
+                calculator.estimateArrivalRatePerHour(FacilityQueueInput.builder().build()));
 
         // 이론 비교에는 예제상 별도로 주어진 유입률을 사용한다. 실제 검증에서는 독립 원천이 필요하다.
         // mmSApplicable=true는 소프트웨어가 가정을 검증했다는 뜻이 아니라 호출자가 확인했다는 선언이다.
-        FacilityQueueContext mmS = FacilityQueueContext.builder()
+        FacilityQueueInput mmS = FacilityQueueInput.builder()
                 .oprServerCnt(8)
                 .arrivalRatePerHour(180.0)
                 .sharedHomogeneousServers(true)
                 .constantRates(true)
                 .mmSApplicable(true)
                 .build();
-        MetricResult<ErlangCResult> theory = metrics.analyzeErlangC(mmS);
+        Computed<ErlangCResult> theory = calculator.analyzeErlangC(mmS);
         if (theory.hasValue()) {
             ErlangCResult result = theory.getValue();
             System.out.println("모형상 대기 발생 확률: " + result.getWaitProbability());
@@ -107,7 +107,7 @@ public final class FacilityQueueExample {
         }
     }
 
-    private static void print(String label, MetricResult<?> result) {
+    private static void print(String label, Computed<?> result) {
         System.out.println(label + ": " + result);
     }
 }

@@ -11,13 +11,13 @@ import java.util.Objects;
  *
  * @param <T> Double, Integer, Boolean 또는 ErlangCResult 등의 결과 타입
  */
-public final class MetricResult<T> {
+public final class Computed<T> {
     private final T value;
     private final MetricStatus status;
     private final CalculationMethod method;
     private final String reason;
 
-    private MetricResult(T value, MetricStatus status, CalculationMethod method, String reason) {
+    private Computed(T value, MetricStatus status, CalculationMethod method, String reason) {
         this.value = value;
         this.status = Objects.requireNonNull(status, "status");
         this.method = Objects.requireNonNull(method, "method");
@@ -25,23 +25,23 @@ public final class MetricResult<T> {
     }
 
     /** 입력값에서 직접 계산한 결과를 만든다. 값이 없으면 unavailable을 사용해야 한다. */
-    public static <T> MetricResult<T> calculated(T value, CalculationMethod method, String reason) {
-        return new MetricResult<>(requireValue(value), MetricStatus.CALCULATED, method, reason);
+    public static <T> Computed<T> calculated(T value, CalculationMethod method, String reason) {
+        return new Computed<>(requireValue(value), MetricStatus.CALCULATED, method, reason);
     }
 
     /** 모델이나 근사 가정에 의존한 결과를 만든다. reason에는 중요한 가정을 적는다. */
-    public static <T> MetricResult<T> estimated(T value, CalculationMethod method, String reason) {
-        return new MetricResult<>(requireValue(value), MetricStatus.ESTIMATED, method, reason);
+    public static <T> Computed<T> estimated(T value, CalculationMethod method, String reason) {
+        return new Computed<>(requireValue(value), MetricStatus.ESTIMATED, method, reason);
     }
 
     /** 입력 부족·모형 미적용·수치 범위 초과를 표현한다. 계산되지 않은 값에 0을 넣지 않는다. */
-    public static <T> MetricResult<T> unavailable(CalculationMethod method, String reason) {
-        return new MetricResult<>(null, MetricStatus.UNAVAILABLE, method, reason);
+    public static <T> Computed<T> unavailable(CalculationMethod method, String reason) {
+        return new Computed<>(null, MetricStatus.UNAVAILABLE, method, reason);
     }
 
     /** 현재 조건에서 목표 해소 등이 불가능함을 표현한다. 입력 부족과는 다른 상태이다. */
-    public static <T> MetricResult<T> unreachable(CalculationMethod method, String reason) {
-        return new MetricResult<>(null, MetricStatus.UNREACHABLE, method, reason);
+    public static <T> Computed<T> unreachable(CalculationMethod method, String reason) {
+        return new Computed<>(null, MetricStatus.UNREACHABLE, method, reason);
     }
 
     private static <T> T requireValue(T value) {
@@ -68,7 +68,7 @@ public final class MetricResult<T> {
 
     @Override
     public String toString() {
-        return "MetricResult{value=" + value + ", status=" + status + ", method=" + method
+        return "Computed{value=" + value + ", status=" + status + ", method=" + method
                 + ", reason='" + reason + "'}";
     }
 }
