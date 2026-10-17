@@ -109,7 +109,7 @@ html[data-page='dashboard'] .main {
 
 html[data-page='dashboard'] .row {
     display: flex;
-    gap: 28px;
+    gap: var(--main-gap);
     min-width: 0;
 }
 
@@ -1554,8 +1554,146 @@ html[data-page='dashboard'] .trow.sel {
 
 /* ============ 반응형 ============ */
 
-/* 패널 두 개의 최소 내용 폭 때문에 1600px 미만에서 세로로 배치한다. */
-@media (max-width: 1599px) {
+@media (min-width: 1350px) {
+    html[data-page='dashboard'] .row--top {
+        display: grid;
+        grid-template-columns:
+            minmax(320px, 410fr) minmax(220px, 500fr)
+            minmax(230px, 374fr) minmax(200px, 244fr) minmax(160px, 237fr);
+        gap: clamp(10px, calc(3vw - 30px), 28px);
+    }
+
+    html[data-page='dashboard'] .header-info-cards {
+        display: contents;
+    }
+
+    html[data-page='dashboard'] .c-plan {
+        container-type: inline-size;
+    }
+
+    html[data-page='dashboard'] .plan-icons {
+        width: clamp(44px, 12cqi, 58px);
+    }
+
+    html[data-page='dashboard'] .plan-icons .ic > i,
+    html[data-page='dashboard'] .plan-icons svg {
+        max-width: 100%;
+    }
+
+    html[data-page='dashboard'] .plan-total {
+        width: clamp(100px, 31cqi, 130px);
+        margin-inline: clamp(4px, 1.5cqi, 8px);
+    }
+
+    html[data-page='dashboard'] .stat-cells {
+        gap: 8px;
+    }
+
+    html[data-page='dashboard'] .stat-cells > div {
+        min-width: max-content;
+    }
+
+    html[data-page='dashboard'] .stat-cells .v {
+        font-size: clamp(22px, 7cqi, 29px);
+    }
+
+    html[data-page='dashboard'] .stat-psg .v {
+        font-size: clamp(19px, 6cqi, 24px);
+    }
+
+    html[data-page='dashboard'] .plan-total .v {
+        font-size: clamp(25px, 8cqi, 31px);
+    }
+
+    html[data-page='dashboard'] .plan-total .v.teal {
+        font-size: clamp(21px, 7cqi, 27px);
+    }
+
+    html[data-page='dashboard'] .c-hourly,
+    html[data-page='dashboard'] .c-dow,
+    html[data-page='dashboard'] .c-wx,
+    html[data-page='dashboard'] .c-quick {
+        container-type: inline-size;
+    }
+
+    html[data-page='dashboard'] .c-hourly .card-head {
+        gap: 8px;
+    }
+
+    html[data-page='dashboard'] .c-hourly .card-title {
+        font-size: clamp(14px, 6cqi, 18.5px);
+        white-space: nowrap;
+    }
+
+    html[data-page='dashboard'] .hourly-legend {
+        flex-shrink: 0;
+        gap: 8px;
+        font-size: clamp(10px, 4.5cqi, 13px);
+        white-space: nowrap;
+    }
+
+    html[data-page='dashboard'] .qtile span {
+        font-size: clamp(11px, 8cqi, 13px);
+        word-break: keep-all;
+    }
+
+    html[data-page='dashboard'] .dow-val {
+        gap: clamp(4px, 2cqi, 10px);
+    }
+
+    html[data-page='dashboard'] .dow-val .on {
+        font-size: clamp(21px, 9cqi, 29px);
+    }
+
+    html[data-page='dashboard'] .dow-val .off {
+        font-size: clamp(13px, 6cqi, 19px);
+    }
+
+    html[data-page='dashboard'] .dow-tags {
+        flex-wrap: wrap;
+        gap: 4px 8px;
+    }
+
+    html[data-page='dashboard'] .wx-row {
+        gap: clamp(4px, 4cqi, 16px);
+    }
+
+    html[data-page='dashboard'] .wx-ic > svg {
+        width: clamp(40px, 27cqi, 64px);
+    }
+
+    html[data-page='dashboard'] .wx-temp {
+        font-size: clamp(29px, 20cqi, 39px);
+    }
+
+    html[data-page='dashboard'] .wx-sub {
+        flex-wrap: wrap;
+        gap: 4px 8px;
+    }
+
+    html[data-page='dashboard'] .c-wx .card-foot {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    html[data-page='dashboard'] .wx-foot-r {
+        margin-left: auto;
+        font-size: clamp(12px, 7cqi, 14.5px);
+    }
+
+    html[data-page='dashboard'] .wx-foot-r b {
+        font-size: clamp(13px, 8cqi, 15.5px);
+        margin-left: 4px;
+    }
+
+    html[data-page='dashboard'] .c-wx .tag-chip {
+        padding-inline: clamp(4px, 2cqi, 10px);
+        font-size: clamp(12px, 7cqi, 14.5px);
+    }
+}
+
+/* 패널 두 개의 최소 내용 폭 때문에 1350px 미만에서 세로로 배치한다. */
+@media (max-width: 1349px) {
     html[data-page='dashboard'] {
         --lost: 0px;
     }
@@ -1581,7 +1719,7 @@ html[data-page='dashboard'] .trow.sel {
 }
 
 /* 1002px 아래에서는 여백 압축만으로 추천 문구와 칩의 겹침을 막을 수 없다. */
-@media (min-width: 1600px) and (max-height: 1001px) {
+@media (min-width: 1350px) and (max-height: 1001px) {
     html[data-page='dashboard'] {
         --donut-size: 58px;
     }
@@ -1630,43 +1768,43 @@ html[data-page='dashboard'] .trow.sel {
 }
 
 /* zoom 안에서 100vh 가 커져 여백 압축이 풀리지 않도록 --lost 를 고정한다. */
-@media (min-width: 1600px) and (max-height: 929px) {
+@media (min-width: 1350px) and (max-height: 929px) {
     html[data-page='dashboard'] {
         --lost: 120px;
     }
 }
 
-@media (min-width: 1600px) and (max-height: 929px) {
+@media (min-width: 1350px) and (max-height: 929px) {
     html[data-page='dashboard'] .main {
         zoom: 0.95;
     }
 }
 
-@media (min-width: 1600px) and (max-height: 868px) {
+@media (min-width: 1350px) and (max-height: 868px) {
     html[data-page='dashboard'] .main {
         zoom: 0.88;
     }
 }
 
-@media (min-width: 1600px) and (max-height: 811px) {
+@media (min-width: 1350px) and (max-height: 811px) {
     html[data-page='dashboard'] .main {
         zoom: 0.82;
     }
 }
 
-@media (min-width: 1600px) and (max-height: 761px) {
+@media (min-width: 1350px) and (max-height: 761px) {
     html[data-page='dashboard'] .main {
         zoom: 0.76;
     }
 }
 
-@media (min-width: 1600px) and (max-height: 712px) {
+@media (min-width: 1350px) and (max-height: 712px) {
     html[data-page='dashboard'] .main {
         zoom: 0.68;
     }
 }
 
-@media (max-width: 1599px) {
+@media (max-width: 1349px) {
     html[data-page='dashboard'] {
         --lost: 0px;
     }
@@ -1692,7 +1830,7 @@ html[data-page='dashboard'] .trow.sel {
 }
 
 /* 패널이 세로로 서는 폭에서 상단도 나눠 여객수의 겹침을 막는다. */
-@media (max-width: 1599px) {
+@media (max-width: 1349px) {
     html[data-page='dashboard'] .row--top {
         flex-wrap: wrap;
     }
