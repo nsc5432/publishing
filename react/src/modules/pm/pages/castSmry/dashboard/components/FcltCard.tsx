@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { EChartsOption } from '@/lib/echarts';
+import { EChart } from '@/components/charts/EChart';
 import { Icon } from '@/components/icons/InlineIcon';
-import { GaugeDonut } from './GaugeDonut';
 import type { FcltCardData } from '../types';
 
 interface FcltCardProps {
@@ -8,6 +9,19 @@ interface FcltCardProps {
     gauge: string;
     onDetail: (unitCd: string) => void;
 }
+
+interface GaugeDonutProps {
+    value: number;
+    centerText: string;
+    captionText: string;
+    accentColor: string;
+}
+
+const SWEEP_ANGLE = 360 * 0.84;
+const START_ANGLE = 360 - 119;
+const END_ANGLE = START_ANGLE - SWEEP_ANGLE;
+const RADIUS = `${((30 / 37) * 100).toFixed(1)}%`;
+const RING_WIDTH = 3.4;
 
 export function FcltCard({ data, gauge, onDetail }: FcltCardProps) {
     const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
@@ -103,6 +117,62 @@ export function FcltCard({ data, gauge, onDetail }: FcltCardProps) {
             <button type="button" className="fclt-card-arrow next" onClick={() => cycleVariant(1)}>
                 <Icon name="chevR" />
             </button>
+        </div>
+    );
+}
+
+function GaugeDonut({ value, centerText, captionText, accentColor }: GaugeDonutProps) {
+    const option = useMemo<EChartsOption>(
+        () => ({
+            animation: false,
+            series: [
+                {
+                    type: 'gauge',
+                    silent: true,
+                    center: ['50%', '50%'],
+                    radius: RADIUS,
+                    startAngle: START_ANGLE,
+                    endAngle: END_ANGLE,
+                    min: 0,
+                    max: 1,
+                    axisLine: {
+                        roundCap: true,
+                        lineStyle: { width: RING_WIDTH, color: [[1, '#e7ebf2']] },
+                    },
+                    progress: {
+                        show: true,
+                        roundCap: true,
+                        width: RING_WIDTH,
+                        itemStyle: { color: accentColor },
+                    },
+                    pointer: { show: false },
+                    axisTick: { show: false },
+                    splitLine: { show: false },
+                    axisLabel: { show: false },
+                    detail: {
+                        offsetCenter: [0, -5],
+                        formatter: () => centerText,
+                        fontSize: 15.6,
+                        fontWeight: 700,
+                        color: '#23272f',
+                        fontFamily: 'Pretendard, sans-serif',
+                    },
+                    title: {
+                        offsetCenter: [0, 9],
+                        fontSize: 9.7,
+                        color: '#8a93a3',
+                        fontFamily: 'Pretendard, sans-serif',
+                    },
+                    data: [{ value: Math.min(Math.max(value, 0), 1), name: captionText }],
+                },
+            ],
+        }),
+        [value, centerText, captionText, accentColor],
+    );
+
+    return (
+        <div className="donut">
+            <EChart className="donut__chart" option={option} />
         </div>
     );
 }

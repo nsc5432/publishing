@@ -110,7 +110,7 @@ function toFcltCardVariant(card: DsbdFcltCardDto): FcltCardVariant {
         processRate: {
             value: card.hrlyPrcsRate / 100,
             centerText: pad2(card.hrlyPrcsPsgCnt),
-            captionText: 'Pax/Min',
+            captionText: 'Pax/Hour',
         },
         clearTime: {
             value: card.cgnClearRate / 100,
