@@ -1,35 +1,28 @@
 package aoms.pm.cast.service.impl;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.TreeMap;
-import java.util.function.ToLongFunction;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.domains.CgnGradeScale;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
-import aoms.pm.cast.domains.chkn.ChknQueueSlot;
+import aoms.pm.cast.domains.dsbd.DepQueueWindow;
+import aoms.pm.cast.domains.dsbd.FcltQueueAssessment;
 import aoms.pm.cast.domains.dsbd.FcltQueueSource;
-import aoms.pm.cast.domains.queue.ErlangCResult;
-import aoms.pm.cast.domains.queue.FacilityQueueInput;
-import aoms.pm.cast.domains.queue.FacilityQueueCalculator;
 import aoms.pm.cast.domains.queue.Computed;
-import aoms.pm.cast.domains.queue.QueueDataSource;
+import aoms.pm.cast.domains.queue.ErlangCResult;
 import aoms.pm.cast.dto.FcltQueueClearDto;
 import aoms.pm.cast.dto.FcltQueueRecommendDto;
 import aoms.pm.cast.dto.FcltQueueScenarioDto;
 import aoms.pm.cast.dto.FcltQueueScenarioSearchDto;
 import aoms.pm.cast.dto.FcltUnitRawDto;
 import aoms.pm.cast.dto.QueueMetricDto;
-import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.enums.FcltQueueScenarioMode;
 import aoms.pm.cast.enums.FcltType;
@@ -37,6 +30,7 @@ import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDsbdMapper;
 import aoms.pm.cast.service.CastCgnGradeService;
 import aoms.pm.cast.service.CastChknQueueService;
+import aoms.pm.cast.service.CastDepQueueService;
 import aoms.pm.cast.service.CastFcltQueueScenarioService;
 import aoms.pm.cast.service.CastSmltService;
 
@@ -62,23 +56,15 @@ import lombok.RequiredArgsConstructor;
 public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioService {
 	private static final String EMPTY = "";
 	private static final int OBS_MIN = 30; // 관측구간 길이(분)
-	private static final int CAST_SLOT_MIN = 10; // CAST 결과 구간(INTERVAL) 길이(분)
 	private static final int MIN_PER_HOUR = 60; // 1시간 = 60분
-	private static final int MIN_PER_DAY = 24 * MIN_PER_HOUR; // 하루 = 1440분
 	private static final double SEC_PER_MIN = 60.0; // 1분 = 60초
-	private static final double MAX_CLEAR_SEC = MIN_PER_DAY * SEC_PER_MIN; // 혼잡해소 시각으로 표기할 상한(초) = 하루(86400초), 넘으면 빈 값
 
     // 목표 해소시간
-	private static final int DFLT_TARGET_MIN = 30; // 목표 해소시간 기본값(분)
+	private static final int DFLT_TARGET_MIN = FcltQueueAssessment.DFLT_TARGET_MIN; // 목표 해소시간 기본값(분)
 	private static final int MIN_TARGET_MIN = 1; // 목표 해소시간 최솟값(분)
 	private static final int MAX_TARGET_MIN = 120; // 목표 해소시간 최댓값(분)
 
-	// lambda/mu 가 정수인데 부동소수 오차로 n - 1e-12 가 되면 rho = 1 인 수량을 안정 최소로 고르게 된다
-	private static final double RHO_EPSILON = 1e-9;
-	private static final double GOAL_EPSILON_SEC = 1e-6;
-
 	private static final List<String> CHKN_QUEUE_FCLT_CD_LIST = List.of("CC");
-	private static final List<String> DEP_QUEUE_FCLT_CD_LIST = List.of("SC", "SR");
 	private static final List<String> DEP_MAX_FCLT_CD_LIST = List.of("SC");
 
 	private static final List<String> COMMON_ASMP_LIST = List.of(
@@ -100,6 +86,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 	private final CastDsbdMapper castDsbdMapper;
 	private final CastSmltService castSmltService;
 	private final CastChknQueueService castChknQueueService;
+	private final CastDepQueueService castDepQueueService;
 	private final CastCgnGradeService castCgnGradeService;
 
 	@Override
@@ -126,8 +113,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 		try {
 			CgnGradeScale gradeScale = castCgnGradeService.retrieveGradeScale(searchDto.getFcltType(), context);
-			BigDecimal normalMax = gradeScale.getNormalMax().setScale(0, RoundingMode.FLOOR);
-			targetQueueCnt = normalMax.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0 ? null : normalMax.intValueExact();
+			targetQueueCnt = FcltQueueAssessment.toTargetQueueCnt(gradeScale.getNormalMax());
 
             if (targetQueueCnt == null) {
                 return fail("혼잡등급 NORMAL 상한이 정수 범위를 벗어났습니다. " + context);
@@ -136,13 +122,10 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 			return fail(exception.getMessage());
 		}
 
-		FacilityQueueCalculator calculator = toCalculator(searchDto, unitCd, source);
-		Computed<Double> arrival = calculator.estimateArrivalRateByConservation(source.toArrivalInput()); // 유입률
-		Computed<Double> service = calculator.estimateServiceRatePerHour(); // 처리율
-		LocalDateTime baseDt = source.getObsEndDt();
+		FcltQueueAssessment assessment = new FcltQueueAssessment(source, targetQueueCnt);
 
-		FcltQueueScenarioDto result = toBaseResult(searchDto, unitCd, source, targetQueueCnt, arrival, service);
-		result.setCurrent(toClear(calculator, source.toScenarioInput(arrival, source.getOprCnt()), targetQueueCnt, baseDt));
+		FcltQueueScenarioDto result = toBaseResult(searchDto, unitCd, assessment);
+		result.setCurrent(toClear(assessment.clearOf(source.getOprCnt())));
 
 		if (searchDto.getMode() == FcltQueueScenarioMode.COUNT) {
 			Integer count = searchDto.getOprFcltCnt() == null ? source.getOprCnt() : searchDto.getOprFcltCnt().intValueExact();
@@ -152,12 +135,12 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 				return fail(countInvalid);
 			}
 
-			result.setScenario(toClear(calculator, source.toScenarioInput(arrival, count), targetQueueCnt, baseDt));
+			result.setScenario(toClear(assessment.clearOf(count)));
 			return result;
 		}
 
 		int targetMin = searchDto.getTargetMinutes() == null ? DFLT_TARGET_MIN : searchDto.getTargetMinutes().intValueExact();
-		applyRecommend(result, calculator, source, arrival, service, targetQueueCnt, targetMin);
+		applyRecommend(result, assessment, targetMin);
 
 		return result;
 	}
@@ -196,129 +179,37 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 	private FcltQueueSource getChknSource(SmltStngDto smltStng, TerminalKind tmnlId, String hhmm, String unitCd) {
 		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltStng.getSmltId(), tmnlId, smltStng.getExcnYmd());
+		FcltQueueSource source = queueDay.sourceOf(unitCd, toMinutes(hhmm), OBS_MIN);
 
-		if (!queueDay.islandCdList().contains(unitCd)) {
+		if (source == null) {
 			return null;
 		}
 
-		int bgnMinute = toMinutes(hhmm);
-		int endMinute = Math.min(bgnMinute + OBS_MIN, MIN_PER_DAY);
-		ChknQueueSlot slot = queueDay.slotOf(unitCd, bgnMinute, endMinute - bgnMinute);
-		BigDecimal boothRatePerMin = queueDay.serviceRateOf(unitCd, bgnMinute, endMinute - bgnMinute);
-		LocalDateTime dayStart = parseYmd(smltStng.getExcnYmd()).atStartOfDay();
-		int oprCnt = slot.getOprBoothCnt();
-		MaxCount maxCount = toMaxCount(oprCnt, getMasterCnt(tmnlId, unitCd, CHKN_QUEUE_FCLT_CD_LIST), "체크인카운터(CC)");
+		MaxCount maxCount = toMaxCount(source.getOprCnt(), getMasterCnt(tmnlId, unitCd, CHKN_QUEUE_FCLT_CD_LIST), "체크인카운터(CC)");
 
-		return FcltQueueSource.builder()
-				.fcltNm(unitCd + " 아일랜드")
-				.dataSrc(QueueDataSource.CAST)
-				.obsBgnDt(dayStart.plusMinutes(bgnMinute))
-				.obsEndDt(dayStart.plusMinutes(endMinute))
-				.queueAtStart(queueDay.queueAt(unitCd, bgnMinute - 1))
-				.queueAtEnd(slot.getCurrentQueue())
-				.wtngEndPsgCnt(slot.getPrcsPsgCnt())
-				.avgPrcsSec(boothRatePerMin == null ? null : SEC_PER_MIN / boothRatePerMin.doubleValue())
-				.avgQueuePsgCnt((double) slot.getAvgQueue())
-				.avgWtngSec(slot.getPrcsPsgCnt() > 0 ? (double) slot.getAvgWaitSec() : null)
-				.oprCnt(oprCnt)
+		return source.toBuilder()
 				.totCnt(maxCount.value)
 				.totCntRsn(maxCount.reason)
-				.sharedHomogeneousServers(true)
-				.mmSApplicable(true)
 				.asmpList(CHKN_ASMP_LIST)
 				.build();
 	}
 
 	private FcltQueueSource getDepSource(SmltStngDto smltStng, TerminalKind tmnlId, String hhmm, String unitCd) {
-		String fcltTmnlId = tmnlId.getFcltTmnlId();
-		LocalDateTime dayStart = parseYmd(smltStng.getExcnYmd()).atStartOfDay();
-		LocalDateTime bgnDt = dayStart.plusMinutes(toMinutes(hhmm));
-		LocalDateTime windowEnd = bgnDt.plusMinutes(OBS_MIN).isBefore(dayStart.plusDays(1)) ? bgnDt.plusMinutes(OBS_MIN) : dayStart.plusDays(1);
-
-		TreeMap<LocalDateTime, DepSlot> slotMap = new TreeMap<>();
-
-		for (SmltRsltRawDto raw : castDsbdMapper.retrieveRsltByUnitList(
-				smltStng.getSmltId(), fcltTmnlId, bgnDt.minusMinutes(CAST_SLOT_MIN), windowEnd, null, DEP_QUEUE_FCLT_CD_LIST)) {
-			if (raw.getSmltActlDt() == null || !unitCd.equals(normalizeUnitCd(raw.getUnitCd()))) {
-				continue;
-			}
-
-			slotMap.computeIfAbsent(raw.getSmltActlDt(), DepSlot::new).add(raw);
-		}
-
+		DepQueueWindow window = castDepQueueService.retrieveDepQueueWindow(smltStng, tmnlId, hhmm);
 		Integer masterCnt = getMasterCnt(tmnlId, unitCd, DEP_MAX_FCLT_CD_LIST);
 
-		if (slotMap.isEmpty() && masterCnt == null) {
+		if (!window.hasResult(unitCd) && masterCnt == null) {
 			return null;
 		}
 
-		List<DepSlot> windowList = new ArrayList<>(slotMap.tailMap(bgnDt, true).values());
-		DepSlot first = windowList.isEmpty() ? null : windowList.get(0);
-		DepSlot last = windowList.isEmpty() ? null : windowList.get(windowList.size() - 1);
-		DepSlot start = first == null ? null : slotMap.get(first.dt.minusMinutes(CAST_SLOT_MIN));
-		boolean contiguous = start != null && isContiguous(windowList);
+		FcltQueueSource source = window.sourceOf(unitCd);
+		MaxCount maxCount = toMaxCount(source.getOprCnt(), masterCnt, "보안검색대(SC)");
 
-		Integer oprCnt = getScrtyOpenCnt(smltStng, fcltTmnlId, unitCd);
-		MaxCount maxCount = toMaxCount(oprCnt, masterCnt, "보안검색대(SC)");
-
-		return FcltQueueSource.builder()
-				.fcltNm(unitCd + "번 출국장")
-				.dataSrc(QueueDataSource.CAST)
-				.obsBgnDt(first == null ? bgnDt : first.dt.minusMinutes(CAST_SLOT_MIN))
-				.obsEndDt(last == null ? windowEnd : last.dt)
-				.queueAtStart(contiguous ? start.wtngPsgCnt : null)
-				.queueAtEnd(last == null ? null : last.wtngPsgCnt)
-				.wtngEndPsgCnt(contiguous ? windowList.stream().mapToInt(slot -> slot.trnstPsgCnt).sum() : null)
-				.avgPrcsSec(weightedAvg(windowList, slot -> slot.prcsSecSum, slot -> slot.prcsPsgCnt))
-				.avgQueuePsgCnt(windowList.isEmpty() ? null : windowList.stream().mapToInt(slot -> slot.wtngPsgCnt).average().getAsDouble())
-				.avgWtngSec(weightedAvg(windowList, slot -> slot.wtngSecSum, slot -> slot.wtngWeightCnt))
-				.oprCnt(oprCnt)
+		return source.toBuilder()
 				.totCnt(maxCount.value)
 				.totCntRsn(maxCount.reason)
-				.sharedHomogeneousServers(true)
-				.mmSApplicable(true)
 				.asmpList(DEP_ASMP_LIST)
 				.build();
-	}
-
-	private boolean isContiguous(List<DepSlot> slotList) {
-		for (int index = 1; index < slotList.size(); index++) {
-			if (!slotList.get(index - 1).dt.plusMinutes(CAST_SLOT_MIN).equals(slotList.get(index).dt)) {
-				return false;
-			}
-		}
-
-		return !slotList.isEmpty();
-	}
-
-	private Double weightedAvg(List<DepSlot> slotList, ToLongFunction<DepSlot> sum, ToLongFunction<DepSlot> weight) {
-		long sumTotal = slotList.stream().mapToLong(sum).sum();
-		long weightTotal = slotList.stream().mapToLong(weight).sum();
-
-		return weightTotal > 0 ? (double) sumTotal / weightTotal : null;
-	}
-
-	private Integer getScrtyOpenCnt(SmltStngDto smltStng, String fcltTmnlId, String unitCd) {
-		String resourceId = smltStng.getFcltyOpngScrtyCntrlRsrcId();
-
-		if (resourceId == null || resourceId.isEmpty()) {
-			throw new IllegalStateException("실행 리소스 정보를 찾을 수 없습니다. smltId=" + smltStng.getSmltId() + ", column=FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID");
-		}
-
-		for (FcltUnitRawDto raw : castDsbdMapper.retrieveScrtyOpenCountList(fcltTmnlId, resourceId)) {
-			if (!unitCd.equals(normalizeUnitCd(raw.getUnitCd()))) {
-				continue;
-			}
-
-			if (raw.getTotCnt() != 1) {
-				throw new IllegalStateException("보안검색대 운영 snapshot 에 같은 게이트 행이 둘 이상입니다. smltId=" + smltStng.getSmltId()
-						+ ", tmnlId=" + fcltTmnlId + ", resourceId=" + resourceId + ", unitCd=" + unitCd + ", rowCount=" + raw.getTotCnt());
-			}
-
-			return raw.getOprCnt();
-		}
-
-		return null;
 	}
 
 	private Integer getMasterCnt(TerminalKind tmnlId, String unitCd, List<String> upPsgFcltCdList) {
@@ -341,32 +232,16 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return new MaxCount(masterCnt, EMPTY);
 	}
 
-	private FacilityQueueCalculator toCalculator(FcltQueueScenarioSearchDto searchDto, String unitCd, FcltQueueSource source) {
-		return FacilityQueueCalculator.builder()
-				.tmnlId(searchDto.getTmnlId().getValue())
-				.fcltType(searchDto.getFcltType().getValue())
-				.fcltId(unitCd)
-				.queueId(searchDto.getFcltType().getValue() + "-" + unitCd)
-				.intervalStart(source.getObsBgnDt())
-				.intervalEnd(source.getObsEndDt())
-				.source(source.getDataSrc())
-				.avgPrcsTimeSec(source.getAvgPrcsSec())
-				.avgWtngTimeSec(source.getAvgWtngSec())
-				.avgQueuePsgCnt(source.getAvgQueuePsgCnt())
-				.queuePsgCntAtEnd(source.getQueueAtEnd())
-				.build();
-	}
-
-	private FcltQueueClearDto toClear(FacilityQueueCalculator calculator, FacilityQueueInput input, int targetQueueCnt, LocalDateTime baseDt) {
-		Computed<Double> clear = calculator.estimateClearTimeSec(input, targetQueueCnt);
-		Computed<Double> nextWtng = calculator.estimateNextArrivalWaitSec(input);
-		Computed<ErlangCResult> erlang = calculator.analyzeErlangC(input);
+	private FcltQueueClearDto toClear(FcltQueueAssessment.Clear clear) {
+		Computed<Double> clearSec = clear.getClearSec();
+		Computed<Double> nextWtng = clear.getNextWtngSec();
+		Computed<ErlangCResult> erlang = clear.getErlang();
 
 		FcltQueueClearDto result = new FcltQueueClearDto();
-		result.setFcltCnt(input.getOprServerCnt());
-		result.setCgnClearMin(clear.hasValue() ? clear.getValue() / SEC_PER_MIN : null);
-		result.setCgnClearDt(clear.hasValue() ? toClearDt(baseDt, clear.getValue()) : EMPTY);
-		result.setClearMetric(QueueMetricDto.of(clear));
+		result.setFcltCnt(clear.getServerCnt());
+		result.setCgnClearMin(clearSec.hasValue() ? clearSec.getValue() / SEC_PER_MIN : null);
+		result.setCgnClearDt(clear.getClearDt() == null ? EMPTY : formatDt(clear.getClearDt()));
+		result.setClearMetric(QueueMetricDto.of(clearSec));
 		result.setNextWtngSec(nextWtng.hasValue() ? nextWtng.getValue() : null);
 		result.setNextWtngMetric(QueueMetricDto.of(nextWtng));
 		result.setErlangMetric(QueueMetricDto.of(erlang));
@@ -382,35 +257,25 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return result;
 	}
 
-	private void applyRecommend(
-			FcltQueueScenarioDto result,
-			FacilityQueueCalculator calculator,
-			FcltQueueSource source,
-			Computed<Double> arrival,
-			Computed<Double> service,
-			int targetQueueCnt,
-			int targetMin
-	) {
-		double targetSec = targetMin * SEC_PER_MIN;
-		Integer currentCnt = source.getOprCnt();
-		Integer totCnt = source.getTotCnt();
-		LocalDateTime baseDt = source.getObsEndDt();
-		Computed<Integer> fluid = calculator.estimateRequiredServerCnt(source.toScenarioInput(arrival, currentCnt), targetQueueCnt, targetSec);
-		Integer stableMinCnt = toStableMinCnt(arrival, service);
+	private void applyRecommend(FcltQueueScenarioDto result, FcltQueueAssessment assessment, int targetMin) {
+		Integer currentCnt = assessment.getSource().getOprCnt();
+		Integer totCnt = assessment.getSource().getTotCnt();
+		FcltQueueAssessment.Recommend calculated = assessment.recommendOf(targetMin);
+		Computed<Integer> fluid = calculated.getFluid();
 
 		FcltQueueRecommendDto recommend = new FcltQueueRecommendDto();
 		recommend.setTargetMin(targetMin);
 		recommend.setReqMetric(QueueMetricDto.of(fluid));
 		recommend.setFluidReqCnt(fluid.hasValue() ? fluid.getValue() : null);
-		recommend.setStableMinCnt(stableMinCnt);
+		recommend.setStableMinCnt(calculated.getStableMinCnt());
 		result.setRecommend(recommend);
 
-		if (!fluid.hasValue()) {
+		Integer reqCnt = calculated.getReqCnt();
+
+		if (reqCnt == null) {
 			return;
 		}
 
-		// 기존 fluid 추천의 의미는 바꾸지 않고, 양의 유입에서 rho < 1 이 되도록 이번 팝업 정책으로만 하한을 둔다
-		int reqCnt = stableMinCnt == null ? fluid.getValue() : Math.max(fluid.getValue(), stableMinCnt);
 		recommend.setReqCnt(reqCnt);
 		recommend.setStableAplyYn(reqCnt > fluid.getValue() ? "Y" : "N");
 
@@ -421,43 +286,20 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 		recommend.setCapaAvlYn(totCnt == null ? null : reqCnt <= totCnt ? "Y" : "N");
 
+		// 카드는 보유 수량을 넘어도 추천 수량 가정값을 그리지만, 팝업은 최대수 전량 배정 결과를 따로 보여준다
 		if (totCnt != null && reqCnt > totCnt) {
-			result.setTotScenario(toClear(calculator, source.toScenarioInput(arrival, totCnt), targetQueueCnt, baseDt));
+			result.setTotScenario(toClear(assessment.clearOf(totCnt)));
 			return;
 		}
 
-		FacilityQueueInput reqInput = source.toScenarioInput(arrival, reqCnt);
-		Computed<Double> reqClear = calculator.estimateClearTimeSec(reqInput, targetQueueCnt);
-		recommend.setGoalMetYn(reqClear.hasValue() ? reqClear.getValue() <= targetSec + GOAL_EPSILON_SEC ? "Y" : "N" : null);
-		result.setScenario(toClear(calculator, reqInput, targetQueueCnt, baseDt));
+		recommend.setGoalMetYn(calculated.getGoalMet() == null ? null : calculated.getGoalMet() ? "Y" : "N");
+		result.setScenario(toClear(calculated.getReqClear()));
 	}
 
-	private Integer toStableMinCnt(Computed<Double> arrival, Computed<Double> service) {
-		if (!arrival.hasValue()) {
-			return null;
-		}
-
-		if (arrival.getValue() == 0) {
-			return 0;
-		}
-
-		if (!service.hasValue()) {
-			return null;
-		}
-
-		double floor = Math.floor(arrival.getValue() / service.getValue() + RHO_EPSILON);
-
-		return Double.isFinite(floor) && floor < Integer.MAX_VALUE ? (int) floor + 1 : null;
-	}
-
-	private FcltQueueScenarioDto toBaseResult(
-			FcltQueueScenarioSearchDto searchDto,
-			String unitCd,
-			FcltQueueSource source,
-			int targetQueueCnt,
-			Computed<Double> arrival,
-			Computed<Double> service
-	) {
+	private FcltQueueScenarioDto toBaseResult(FcltQueueScenarioSearchDto searchDto, String unitCd, FcltQueueAssessment assessment) {
+		FcltQueueSource source = assessment.getSource();
+		Computed<Double> arrival = assessment.getArrival();
+		Computed<Double> service = assessment.getService();
 		List<String> asmpList = new ArrayList<>(COMMON_ASMP_LIST);
 		asmpList.addAll(source.getAsmpList());
 
@@ -472,7 +314,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		result.setObsEndDt(formatDt(source.getObsEndDt()));
 		result.setDataSrc(source.getDataSrc().name());
 		result.setWtngPsgCnt(source.getQueueAtEnd());
-		result.setTargetQueueCnt(targetQueueCnt);
+		result.setTargetQueueCnt(assessment.getTargetQueueCnt());
 		result.setOprFcltCnt(source.getOprCnt());
 		result.setTotCnt(source.getTotCnt());
 		result.setTotCntRsn(source.getTotCntRsn());
@@ -486,14 +328,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		result.setAsmpList(asmpList);
 
 		return result;
-	}
-
-	private String toClearDt(LocalDateTime baseDt, double clearSec) {
-		if (clearSec > MAX_CLEAR_SEC) {
-			return EMPTY;
-		}
-
-		return formatDt(baseDt.plusSeconds((long) Math.ceil(clearSec)));
 	}
 
 	private FcltQueueScenarioDto fail(String message) {
@@ -520,10 +354,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return Integer.parseInt(hhmm.substring(0, 2)) * MIN_PER_HOUR + Integer.parseInt(hhmm.substring(2, 4));
 	}
 
-	private LocalDate parseYmd(String ymd) {
-		return LocalDate.parse(ymd, DateTimeFormatter.ofPattern("yyyyMMdd"));
-	}
-
 	private String formatDt(LocalDateTime dateTime) {
 		return dateTime.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
 	}
@@ -535,36 +365,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		private MaxCount(Integer value, String reason) {
 			this.value = value;
 			this.reason = reason;
-		}
-	}
-
-	/** 같은 결과 시각의 SC / SR 행을 합친 10분 결과 한 칸 */
-	private static final class DepSlot {
-		private final LocalDateTime dt;
-		private int wtngPsgCnt;
-		private int trnstPsgCnt;
-		private long prcsSecSum;
-		private long prcsPsgCnt;
-		private long wtngSecSum;
-		private long wtngWeightCnt;
-
-		private DepSlot(LocalDateTime dt) {
-			this.dt = dt;
-		}
-
-		private void add(SmltRsltRawDto raw) {
-			wtngPsgCnt += raw.getWtngPsgCnt();
-			trnstPsgCnt += raw.getTrnstPsgCnt();
-
-			if (raw.getTrnstPsgCnt() > 0 && raw.getPrcsHr() > 0) {
-				prcsSecSum += (long) raw.getPrcsHr() * raw.getTrnstPsgCnt();
-				prcsPsgCnt += raw.getTrnstPsgCnt();
-			}
-
-			if (raw.getTrnstPsgCnt() > 0) {
-				wtngSecSum += (long) raw.getWtngHr() * raw.getTrnstPsgCnt();
-				wtngWeightCnt += raw.getTrnstPsgCnt();
-			}
 		}
 	}
 }

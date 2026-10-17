@@ -129,7 +129,7 @@ export interface DsbdRsltDto {
 
 export interface FcltRecommendDto {
     targetNm: string;
-    reqCnt: number;
+    reqCnt: number | null;
     needAssignYn: YnFlag;
 }
 
@@ -170,11 +170,10 @@ export type QueueCalcMethod =
     | 'FLUID_APPROXIMATION'
     | 'OBSERVED_FLOW'
     | 'CONSERVATION'
-    | 'CAPACITY_COMPARISON'
     | 'ERLANG_C'
     | 'QUEUE_POSITION';
 
-export type QueueDataSrc = 'CAST' | 'XOVIS' | 'MANUAL';
+export type QueueDataSrc = 'CAST' | 'XOVIS';
 
 export interface QueueMetricDto {
     status: QueueMetricStatus;

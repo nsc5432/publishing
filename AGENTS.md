@@ -72,6 +72,8 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
    - 예외 1건: `FcltRecommendDto.addCnt` → `reqCnt` (2026-08-28 결정). 값이 "추가 수량" 이
      아니라 "총 소요 수량" 이라 이름이 반대 의미였고, 같은 카드의 `totCnt`(보유 대수) 와
      헷갈리지 않는 이름을 골랐다. **`reqCnt` 는 이제 다시 고정이다.**
+     2026-10-17 에 타입만 `number` → `number | null`(Java `int` → `Integer`)로 바꿨다. 카드가 혼잡해소 팝업과
+     같은 계산(§14)을 쓰면서 산정 불가를 `null` 로 내려 화면이 `-` 로 그린다. 이름은 그대로다.
    - `CastConfigPreProcessDiffDto` · `CastConfigPreProcessRowDto` 는 2026-09-04 에 삭제됐다.
      전처리 비교·반영 화면이 운영 반영으로 흡수되면서 조회 API 자체가 없어졌다.
    - `CastConfigAplySetDetailDto.groupId` 와 그 원천 컬럼 `TH_PM_SMLT_ATRB_APLY_HSTRY.GROUP_ID`
@@ -564,11 +566,17 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
   이월해 **반복 실행이 같은 결과**를 낸다.
 - **혼잡등급 220 명 같은 하드코딩 fallback 을 두지 않는다.** 기준정보(`TN_PM_PSG_PRCS_GRD`)가
   없거나 겹치면 조회 실패로 떨어뜨린다.
-- 추천 `reqCnt` 는 추가 수량이 아니라 **현재 운영분을 포함한 총 소요 부스 수**다. 궤적은 슬롯 시작이
-  아니라 **화면이 보여주는 값(구간 마지막 분의 Queue)** 에서 출발하고, 피크는 리드타임 10분 뒤부터
-  찾는다 — 부스를 여는 데 걸리는 시간 안의 피크를 목표로 삼으면 나눌 분이 0 이라 소요량이 발산한다.
-- 운영 부스나 서비스율이 0이라 산정할 수 없으면 `reqCnt` · `cgnClearMin` 을 **`null` 로 내려** 화면이
-  `-` 로 그린다. 보유 부스보다 큰 소요량이 나와도 **자르거나 숨기지 않는다.**
+- 추천 `reqCnt` 는 추가 수량이 아니라 **현재 운영분을 포함한 총 소요 부스 수**다. 2026-10-17 부터
+  `ChknQueueDay.recommendOf` 는 혼잡해소 팝업 기본값과 같은 공용 평가기 `domains/dsbd/FcltQueueAssessment`
+  (목표 30분, §14)를 쓴다 ([계획](docs/plans/2026-10-17-fclt-card-domain-queue.md)). 30분 슬롯 `[hhmm, hhmm+30)`
+  에서 λ·μ·Q0·s 를 뽑아 **현재 슬롯이 그대로 이어진다고 가정**한다 — 예전의 CAST 앞 60분 궤적·리드타임 10분
+  피크 방식이 아니라서 곧 몰려올 피크를 미리 반영하지 못한다. `cgnClearMin` 은 추천 수량을 적용했을 때 슬롯
+  끝부터 NORMAL 이하가 되는 분(올림)이다.
+- **요약보기 카드 · 맵형태보기 · 체크인 상세의 `reqCnt` · `cgnClearMin` 도 같은 조건에서 같아야 한다.**
+  카드는 `assessmentOf` 를, 맵 · 상세는 `recommendOf` 를 부르지만 내부 계산은 하나다.
+- 처리시간이 없어(`UNAVAILABLE`) 산정할 수 없으면 `reqCnt` · `cgnClearMin` 을 **`null` 로 내려** 화면이
+  `-` 로 그린다. 해소가 불가능(`UNREACHABLE`)하거나 하루를 넘는 해소도 `cgnClearMin = null` 이다.
+  보유 부스보다 큰 소요량이 나와도 **자르거나 숨기지 않는다.**
 - 마지막 결과 시각 뒤에는 **유입 0 인 꼬리 구간**을 붙여 남은 Queue 를 배정 부스로 흘려보낸다.
   이 구간을 빼면 마지막 Queue 가 24:00 까지 그대로 남아 미운영 시각에 대기인원이 서 있게 된다.
 - 공용 `CastMapMapper#retrieveMapRsltDayList` 는 **고치지 않는다** — 출국장 등 다른 화면이 같이 쓴다.
@@ -582,7 +590,9 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 
 | 무엇 | 어디 |
 |---|---|
-| 원천 어댑터 · 계산 · 정책 | `CastFcltQueueScenarioServiceImpl` (계산은 `domains/queue` 클래스만 호출) |
+| 정책 · 응답 조립 | `CastFcltQueueScenarioServiceImpl` |
+| 공용 평가기 (카드 · 팝업 · 체크인 추천) | `domains/dsbd/FcltQueueAssessment` (계산은 `domains/queue` 클래스만 호출) |
+| 원천 어댑터 | 체크인 `ChknQueueDay.sourceOf` · 출국장 `DepQueueWindow` (`CastDepQueueService`, 터미널 단위 1회 조회) |
 | 팝업 · 요청 경쟁 처리 | `dashboard/components/FcltQueueScenarioModal.tsx` · `hooks/useFcltQueueScenario.ts` |
 | 일반 Dialog (포커스 트랩 · 복귀) | `components/ui/dialog.tsx` (`@radix-ui/react-dialog`) |
 
@@ -592,6 +602,13 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 - λ·μ·Q0·s 는 **카드와 같은 30분 슬롯 `[hhmm, hhmm+30)`** 에서 뽑고, 계산 기준시각은 슬롯 끝(Q0 스냅샷)이다.
   화면은 기준시각에 30분을 더하지 않는다 — 서버가 `baseDt` 로 내려준다.
 - 해소 기준 `Q*` 는 혼잡등급 **NORMAL 상한(양끝 포함)** 이다. 기준정보가 없으면 실패로 내린다.
-- 출국장은 기존 카드 추천과 같이 **SC+SR 합산을 한 큐**로 본다. 직렬·병렬 관계는 미검증이라 응답의 적용 가정에 싣는다.
+- 출국장은 카드와 같이 **SC+SR 합산을 한 큐**로 본다 (LGT 제외). 직렬·병렬 관계는 미검증이라 응답의 적용 가정에 싣는다.
 - 추천 총수량은 `max(유입/처리 차이 계산 소요, floor(λ/μ)+1)` (정책 `STABLE_MMS_FLUID_TARGET`). 기존 fluid 메서드의 반환 의미는 바꾸지 않는다.
+- **카드는 팝업 첫 화면(TIME 모드 · 목표 30분)과 같은 계산이다** (2026-10-17,
+  [계획](docs/plans/2026-10-17-fclt-card-domain-queue.md)). 같은 `smltId` · 터미널 · `hhmm` · 시설에서 카드의
+  대기열/예상인원 = 팝업 `wtngPsgCnt`, 카드 `reqCnt` = 팝업 `recommend.reqCnt`, 카드 해소 시각 = 팝업
+  `scenario.cgnClearDt` 의 시각이어야 한다. 카드는 **현재 슬롯 기준**이며 CAST 의 앞으로 올 피크를 보지 않는다.
+  - 카드 처리율 중앙 숫자는 슬롯 처리인원의 시간당 환산, 링은 부하율 ρ = λ/(s·μ) 다. ρ ≥ 1 이면 링이 꽉 찬다
+  - 추천이 보유 수량을 넘으면 카드는 자르지 않고 **추천 수량 가정** 해소값을 그린다. 최대수 전량 배정 결과(`totScenario`)는 팝업에만 있다
+  - 혼잡해소 게이지는 `max(30 − 해소분, 0) / 30`. 산정 불가 값은 그 칸만 `-`
 - 원천 변경 감지용 버전(`contextVersion` · `ctxChgYn`)은 두지 않는다 (2026-10-17 제거). 매 요청이 원천을 다시 읽어 계산한다.

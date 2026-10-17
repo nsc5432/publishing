@@ -6,6 +6,8 @@ import java.util.List;
 import aoms.pm.cast.domains.queue.FacilityQueueInput;
 import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.queue.QueueDataSource;
+import aoms.pm.cast.enums.FcltType;
+import aoms.pm.cast.enums.TerminalKind;
 
 import lombok.Builder;
 import lombok.Getter;
@@ -26,8 +28,11 @@ import lombok.Getter;
  * </pre>
  */
 @Getter
-@Builder
+@Builder(toBuilder = true)
 public final class FcltQueueSource {
+	private final TerminalKind tmnlId;
+	private final FcltType fcltType;
+	private final String unitCd;
 	private final String fcltNm;
 	private final QueueDataSource dataSrc;
 	private final LocalDateTime obsBgnDt;
@@ -36,6 +41,7 @@ public final class FcltQueueSource {
 	private final Integer queueAtStart;
 	private final Integer queueAtEnd;
 	private final Integer wtngEndPsgCnt;
+	private final Integer prcsPsgCnt;
 	private final Double avgPrcsSec;
 	private final Double avgQueuePsgCnt;
 	private final Double avgWtngSec;
@@ -57,8 +63,8 @@ public final class FcltQueueSource {
 	public FacilityQueueInput toScenarioInput(Computed<Double> arrival, Integer serverCnt) {
 		return FacilityQueueInput.builder()
 				.oprServerCnt(serverCnt)
-				.totServerCnt(totCnt)
 				.arrivalRatePerHour(arrival.hasValue() ? arrival.getValue() : null)
+				.prcsPsgCnt(prcsPsgCnt)
 				.arrivalRateEstimated(true)
 				.sharedHomogeneousServers(sharedHomogeneousServers)
 				.constantRates(true)

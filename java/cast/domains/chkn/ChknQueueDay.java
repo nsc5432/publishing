@@ -1,14 +1,20 @@
 package aoms.pm.cast.domains.chkn;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import aoms.pm.cast.domains.CgnGradeScale;
+import aoms.pm.cast.domains.dsbd.FcltQueueAssessment;
+import aoms.pm.cast.domains.dsbd.FcltQueueSource;
+import aoms.pm.cast.domains.queue.QueueDataSource;
 import aoms.pm.cast.enums.CongestionStatus;
-import aoms.pm.cast.service.FcltRecommendationCalculator;
+import aoms.pm.cast.enums.FcltType;
+import aoms.pm.cast.enums.TerminalKind;
 
 /**
  * @Classname : ChknQueueDay.java
@@ -26,15 +32,18 @@ import aoms.pm.cast.service.FcltRecommendationCalculator;
  * </pre>
  */
 public final class ChknQueueDay {
-	public static final int RECOMMEND_SPAN_MIN = 60;
-	private static final int RECOMMEND_LEAD_MIN = 10;
 	private static final String TMNL_ISLAND = "*";
+	private static final double SEC_PER_MIN = 60.0;
 
+	private final TerminalKind tmnlId;
+	private final LocalDate baseDate;
 	private final Map<String, ChknQueueSeries> seriesMap;
 	private final ChknQueueSeries tmnlSeries;
 	private final CgnGradeScale gradeScale;
 
-	public ChknQueueDay(Map<String, ChknQueueSeries> seriesMap, CgnGradeScale gradeScale) {
+	public ChknQueueDay(TerminalKind tmnlId, LocalDate baseDate, Map<String, ChknQueueSeries> seriesMap, CgnGradeScale gradeScale) {
+		this.tmnlId = tmnlId;
+		this.baseDate = baseDate;
 		this.seriesMap = new LinkedHashMap<>(seriesMap);
 		this.tmnlSeries = ChknQueueSeries.merge(TMNL_ISLAND, new ArrayList<>(seriesMap.values()));
 		this.gradeScale = gradeScale;
@@ -60,13 +69,6 @@ public final class ChknQueueDay {
 		return series == null ? 0 : series.queueAt(minute);
 	}
 
-	/** 부스 1개의 분당 처리용량. 처리용량이 있던 분이 없으면 null */
-	public BigDecimal serviceRateOf(String island, int bgnMinute, int minutes) {
-		ChknQueueSeries series = seriesMap.get(island);
-
-		return series == null ? null : series.serviceRateOf(bgnMinute, minutes);
-	}
-
 	public CongestionStatus statusOf(int queuePsgCnt, String context) {
 		return gradeScale.statusOf(queuePsgCnt, context);
 	}
@@ -75,60 +77,65 @@ public final class ChknQueueDay {
 		return tmnlSeries.getWarningList();
 	}
 
-	public ChknQueueRecommend recommendOf(String island, int bgnMinute, int slotMin) {
+	/**
+	 * 슬롯 [bgnMinute, bgnMinute+slotMin) 의 큐 원천. 기준시각은 슬롯 끝이다. 없는 아일랜드면 null.
+	 * 배정 가능 최대 수량(시설 마스터)은 혼잡해소 팝업만 쓰므로 여기서 채우지 않는다.
+	 */
+	public FcltQueueSource sourceOf(String island, int bgnMinute, int slotMin) {
 		ChknQueueSeries series = seriesMap.get(island);
 
 		if (series == null) {
-			return ChknQueueRecommend.NONE;
+			return null;
 		}
 
-		int anchorMinute = bgnMinute + slotMin - 1;
-		List<FcltRecommendationCalculator.QueuePoint> trajectory =
-				series.trajectoryOf(anchorMinute, RECOMMEND_SPAN_MIN);
-		BigDecimal serviceRate = series.serviceRateOf(anchorMinute, RECOMMEND_SPAN_MIN);
-		int openCount = series.boothCntAt(anchorMinute);
+		int endMinute = Math.min(bgnMinute + slotMin, ChknQueueSeries.MINUTE_PER_DAY);
+		ChknQueueSlot slot = series.slotOf(bgnMinute, endMinute - bgnMinute);
+		BigDecimal boothRatePerMin = series.serviceRateOf(bgnMinute, endMinute - bgnMinute);
+		LocalDateTime dayStart = baseDate.atStartOfDay();
 
-		if (trajectory.isEmpty() || serviceRate == null || serviceRate.signum() <= 0 || openCount <= 0) {
-			return ChknQueueRecommend.NONE;
-		}
-
-		FcltRecommendationCalculator.QueuePoint peak = peakOf(trajectory);
-
-		try {
-			FcltRecommendationCalculator.Result result = FcltRecommendationCalculator.calculate(
-					BigDecimal.valueOf(peak.getQueue()),
-					BigDecimal.valueOf(peak.getMinutesFromBgn()),
-					serviceRate,
-					gradeScale.getNormalMax(),
-					openCount,
-					trajectory
-			);
-
-			return new ChknQueueRecommend(result.getReqCnt(), result.getClearMinutes());
-		} catch (IllegalArgumentException | IllegalStateException exception) {
-			return ChknQueueRecommend.NONE;
-		}
+		return FcltQueueSource.builder()
+				.tmnlId(tmnlId)
+				.fcltType(FcltType.CHKN)
+				.unitCd(island)
+				.fcltNm(island + " 아일랜드")
+				.dataSrc(QueueDataSource.CAST)
+				.obsBgnDt(dayStart.plusMinutes(bgnMinute))
+				.obsEndDt(dayStart.plusMinutes(endMinute))
+				.queueAtStart(series.queueAt(bgnMinute - 1))
+				.queueAtEnd(slot.getCurrentQueue())
+				.wtngEndPsgCnt(slot.getPrcsPsgCnt())
+				.prcsPsgCnt(slot.getPrcsPsgCnt())
+				.avgPrcsSec(boothRatePerMin == null ? null : SEC_PER_MIN / boothRatePerMin.doubleValue())
+				.avgQueuePsgCnt((double) slot.getAvgQueue())
+				.avgWtngSec(slot.getPrcsPsgCnt() > 0 ? (double) slot.getAvgWaitSec() : null)
+				.oprCnt(slot.getOprBoothCnt())
+				.sharedHomogeneousServers(true)
+				.mmSApplicable(true)
+				.build();
 	}
 
-	/*
-	 * 피크는 리드타임 이후에서 찾는다 — 부스를 여는 데 걸리는 시간 안의 피크를 목표로 삼으면
-	 * 나눌 분이 거의 0 이라 소요 수량이 끝없이 커진다. 구간이 자정에 잘려 리드타임 뒤가 비면
-	 * 남은 궤적에서 찾고, 동률이면 이른 시각을 택해 안전측으로 산정한다.
-	 */
-	private FcltRecommendationCalculator.QueuePoint peakOf(
-			List<FcltRecommendationCalculator.QueuePoint> trajectory) {
-		FcltRecommendationCalculator.QueuePoint result = null;
+	/** 없는 아일랜드거나 NORMAL 상한이 int 범위를 넘으면 null */
+	public FcltQueueAssessment assessmentOf(String island, int bgnMinute, int slotMin) {
+		FcltQueueSource source = sourceOf(island, bgnMinute, slotMin);
+		Integer targetQueueCnt = FcltQueueAssessment.toTargetQueueCnt(gradeScale.getNormalMax());
 
-		for (FcltRecommendationCalculator.QueuePoint point : trajectory) {
-			if (point.getMinutesFromBgn() < RECOMMEND_LEAD_MIN) {
-				continue;
-			}
+		return source == null || targetQueueCnt == null ? null : new FcltQueueAssessment(source, targetQueueCnt);
+	}
 
-			if (result == null || point.getQueue() > result.getQueue()) {
-				result = point;
-			}
+	/** 요약보기 카드 · 혼잡해소 팝업 기본값(목표 30분)과 같은 추천. 맵형태보기 · 체크인 상세가 쓴다 */
+	public ChknQueueRecommend recommendOf(String island, int bgnMinute, int slotMin) {
+		FcltQueueAssessment assessment = assessmentOf(island, bgnMinute, slotMin);
+
+		if (assessment == null) {
+			return ChknQueueRecommend.NONE;
 		}
 
-		return result != null ? result : trajectory.get(trajectory.size() - 1);
+		FcltQueueAssessment.Recommend recommend = assessment.recommendOf(FcltQueueAssessment.DFLT_TARGET_MIN);
+
+		if (recommend.getReqCnt() == null) {
+			return ChknQueueRecommend.NONE;
+		}
+
+		return new ChknQueueRecommend(recommend.getReqCnt(), recommend.getReqClear().getClearMin());
 	}
 }

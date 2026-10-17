@@ -288,7 +288,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             totCnt: 14,
             oprCnt: 14,
             wtngPsgCnt: 640,
-            hrlyPrcsPsgCnt: 42,
+            hrlyPrcsPsgCnt: 180,
             hrlyPrcsRate: 78,
             cgnClearTime: '1100',
             cgnClearRate: 62,
@@ -305,7 +305,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             totCnt: 12,
             oprCnt: 10,
             wtngPsgCnt: 410,
-            hrlyPrcsPsgCnt: 36,
+            hrlyPrcsPsgCnt: 840,
             hrlyPrcsRate: 66,
             cgnClearTime: '1120',
             cgnClearRate: 50,
@@ -324,7 +324,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             totCnt: 12,
             oprCnt: 11,
             wtngPsgCnt: 520,
-            hrlyPrcsPsgCnt: 38,
+            hrlyPrcsPsgCnt: 480,
             hrlyPrcsRate: 71,
             cgnClearTime: '1050',
             cgnClearRate: 58,
@@ -341,7 +341,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             totCnt: 10,
             oprCnt: 8,
             wtngPsgCnt: 330,
-            hrlyPrcsPsgCnt: 30,
+            hrlyPrcsPsgCnt: 360,
             hrlyPrcsRate: 61,
             cgnClearTime: '1110',
             cgnClearRate: 47,
@@ -363,7 +363,7 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             totCnt: 6,
             oprCnt: 5,
             wtngPsgCnt: 640,
-            hrlyPrcsPsgCnt: 44,
+            hrlyPrcsPsgCnt: 600,
             hrlyPrcsRate: 78,
             cgnClearTime: '1100',
             cgnClearRate: 62,
@@ -380,7 +380,7 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             totCnt: 6,
             oprCnt: 4,
             wtngPsgCnt: 430,
-            hrlyPrcsPsgCnt: 31,
+            hrlyPrcsPsgCnt: 420,
             hrlyPrcsRate: 55,
             cgnClearTime: '1130',
             cgnClearRate: 40,
@@ -399,7 +399,7 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             totCnt: 2,
             oprCnt: 2,
             wtngPsgCnt: 640,
-            hrlyPrcsPsgCnt: 44,
+            hrlyPrcsPsgCnt: 510,
             hrlyPrcsRate: 78,
             cgnClearTime: '1100',
             cgnClearRate: 62,
@@ -416,7 +416,7 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             totCnt: 2,
             oprCnt: 1,
             wtngPsgCnt: 430,
-            hrlyPrcsPsgCnt: 31,
+            hrlyPrcsPsgCnt: 0,
             hrlyPrcsRate: 55,
             cgnClearTime: '1130',
             cgnClearRate: 40,
@@ -425,13 +425,6 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
             unitList: DPTGT_UNITS.T2,
         },
     ],
-};
-
-const RECOMMEND_LEAD_MIN = 10;
-
-const FCLT_NORMAL_MAX: Record<'CHKN' | 'DEP', number> = {
-    CHKN: 420,
-    DEP: 320,
 };
 
 const FCLT_GRADE_MAX: Record<'CHKN' | 'DEP', [number, number, number]> = {
@@ -443,11 +436,6 @@ function toMinuteOfDay(hhmm: string): number {
     return Number(hhmm.slice(0, 2)) * MIN_PER_HOUR + Number(hhmm.slice(2, 4));
 }
 
-function toHhmm(minuteOfDay: number): string {
-    const normalized = minuteOfDay % MIN_PER_DAY;
-    return `${String(Math.floor(normalized / MIN_PER_HOUR)).padStart(2, '0')}${String(normalized % MIN_PER_HOUR).padStart(2, '0')}`;
-}
-
 function toFcltStatus(fcltType: 'CHKN' | 'DEP', waitingCount: number): CongestionStatus {
     const [freeMax, normalMax, busyMax] = FCLT_GRADE_MAX[fcltType];
     if (waitingCount <= freeMax) return 'FREE';
@@ -455,48 +443,27 @@ function toFcltStatus(fcltType: 'CHKN' | 'DEP', waitingCount: number): Congestio
     return waitingCount <= busyMax ? 'BUSY' : 'VERY_BUSY';
 }
 
-function buildRollingCard(card: DsbdFcltCardDto, hhmm: string, fcltType: 'CHKN' | 'DEP', index: number): DsbdFcltCardDto {
-    const bgnMinute = toMinuteOfDay(hhmm);
-    const endMinute = Math.min(bgnMinute + MIN_PER_HOUR, MIN_PER_DAY);
-    const actualMinutes = endMinute - bgnMinute;
-    const seed = index + (card.cardId.charCodeAt(card.cardId.length - 1) % 7);
-    const queueAt = (minute: number) => Math.max(0, Math.round(card.wtngPsgCnt * (0.78 + 0.2 * Math.sin((minute + seed * 31) / 95) + seed * 0.012)));
-    const rateAt = (minute: number) => Math.max(1, card.hrlyPrcsPsgCnt * (0.88 + 0.16 * Math.cos((minute + seed * 17) / 80)));
-    const slotMinutes: number[] = [];
-
-    for (let minute = bgnMinute; minute < endMinute; minute += 10) {
-        slotMinutes.push(minute);
-    }
-
-    // 종료 시각 한 칸은 피크 탐색 상한이다. 자정에서는 그 칸이 없다 (서버와 같은 규칙)
-    const hasEndSnapshot = endMinute < MIN_PER_DAY;
-    const trajectory = (hasEndSnapshot ? [...slotMinutes, endMinute] : slotMinutes).map((minute) => ({ minute, queue: queueAt(minute) }));
-    const processedPsgCnt = sum(slotMinutes.map((minute) => rateAt(minute) * Math.min(10, endMinute - minute)));
-    const paxPerMin = Math.round(processedPsgCnt / actualMinutes);
-    const openCount = Math.max(1, card.oprCnt);
-    const serviceRate = processedPsgCnt / openCount / actualMinutes;
-    const targetQueue = FCLT_NORMAL_MAX[fcltType];
-
-    const window = trajectory.filter((point) => point.minute >= bgnMinute + RECOMMEND_LEAD_MIN);
-    const peak = window.reduce((best, point) => (point.queue > best.queue ? point : best), window[0] ?? trajectory[trajectory.length - 1]);
-    const leadMinutes = Math.max(RECOMMEND_LEAD_MIN, peak.minute - bgnMinute);
-    const extraCnt = Math.max(0, Math.ceil((peak.queue - targetQueue) / (serviceRate * leadMinutes)));
-    const clearPoint = trajectory.find((point) => point.queue - extraCnt * serviceRate * (point.minute - bgnMinute) <= targetQueue);
-    const clearMinutes = clearPoint ? clearPoint.minute - bgnMinute : leadMinutes;
-    const displayPeak = Math.max(...slotMinutes.map(queueAt));
+// 서버처럼 카드도 혼잡해소 팝업 첫 화면(TIME · 목표 30분)과 같은 프로필 · 같은 식으로 만든다
+function buildFcltCard(card: DsbdFcltCardDto, hhmm: string, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto {
+    const profile = QUEUE_SCENARIO_PROFILES[card.cardId] ?? QUEUE_SCENARIO_PROFILES['T1-CHKN-B'];
+    const targetMin = QUEUE_TARGET_MIN.dflt;
+    const baseMinute = Math.min(toMinuteOfDay(hhmm) + QUEUE_OBS_MIN, MIN_PER_DAY);
+    const capacity = profile.prcsSec === null ? 0 : (profile.oprCnt * 3600) / profile.prcsSec;
+    const { reqCnt } = toQueueRecommend(profile, targetMin);
+    const clear = reqCnt === null ? null : toQueueClear(profile, reqCnt, BASE_INFO.ymd, baseMinute);
+    const clearMin = clear?.cgnClearMin == null ? null : Math.ceil(clear.cgnClearMin - 1e-9);
 
     return {
         ...card,
-        wtngPsgCnt: displayPeak,
-        hrlyPrcsPsgCnt: paxPerMin,
-        hrlyPrcsRate: Math.round((processedPsgCnt * 100) / (processedPsgCnt + displayPeak)),
-        cgnClearTime: toHhmm(bgnMinute + clearMinutes),
-        cgnClearRate: 0,
-        cgnStatus: toFcltStatus(fcltType, displayPeak),
+        wtngPsgCnt: profile.wtngPsgCnt,
+        hrlyPrcsRate: capacity === 0 ? 0 : Math.round((profile.arvlPerHour / capacity) * 100),
+        cgnClearTime: clear === null || clearMin === null ? '' : clear.cgnClearDt.slice(8, 12),
+        cgnClearRate: clearMin === null ? 0 : Math.round((Math.max(targetMin - clearMin, 0) / targetMin) * 100),
+        cgnStatus: toFcltStatus(fcltType, profile.wtngPsgCnt),
         recommend: {
-            ...card.recommend,
-            reqCnt: openCount + extraCnt,
-            needAssignYn: fcltType === 'CHKN' ? 'Y' : 'N',
+            targetNm: reqCnt === null ? '' : card.recommend.targetNm,
+            reqCnt,
+            needAssignYn: fcltType === 'CHKN' && reqCnt !== null && reqCnt > profile.oprCnt ? 'Y' : 'N',
         },
         unitList: card.unitList.map((unit) => ({ ...unit })),
     };
@@ -504,7 +471,7 @@ function buildRollingCard(card: DsbdFcltCardDto, hhmm: string, fcltType: 'CHKN' 
 
 function buildFcltCardList(tmnlId: TmnlId, hhmm: string, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto[] {
     const cards = fcltType === 'CHKN' ? CHKN_CARDS[tmnlId] : DPTGT_CARDS[tmnlId];
-    return cards.map((card, index) => buildRollingCard(card, hhmm, fcltType, index));
+    return cards.map((card) => buildFcltCard(card, hhmm, fcltType));
 }
 
 /* ================= 혼잡해소 시나리오 팝업 =================
@@ -527,7 +494,7 @@ interface QueueScenarioProfile {
 /** 키는 `${tmnlId}-${fcltType}-${unitCd}` — T1-CHKN-B 가 계획서 §9.1 검증 벡터다 */
 const QUEUE_SCENARIO_PROFILES: Record<string, QueueScenarioProfile> = {
     'T1-CHKN-B': { wtngPsgCnt: 40, targetQueueCnt: 10, arvlPerHour: 180, prcsSec: 120, oprCnt: 8, totCnt: 10 },
-    'T1-CHKN-D': { wtngPsgCnt: 640, targetQueueCnt: 420, arvlPerHour: 840, prcsSec: 60, oprCnt: 14, totCnt: 14 },
+    'T1-CHKN-D': { wtngPsgCnt: 640, targetQueueCnt: 420, arvlPerHour: 900, prcsSec: 60, oprCnt: 14, totCnt: 14 },
     'T2-CHKN-C': { wtngPsgCnt: 520, targetQueueCnt: 420, arvlPerHour: 480, prcsSec: 72, oprCnt: 11, totCnt: 12 },
     'T2-CHKN-E': { wtngPsgCnt: 300, targetQueueCnt: 420, arvlPerHour: 360, prcsSec: 60, oprCnt: 8, totCnt: 10 },
     'T1-DEP-3': { wtngPsgCnt: 380, targetQueueCnt: 320, arvlPerHour: 600, prcsSec: 24, oprCnt: 5, totCnt: 6 },

@@ -17,8 +17,6 @@ public enum CalculationMethod {
     OBSERVED_FLOW,
     /** 큐에 들어온 사람과 나간 사람의 인원 보존 관계. */
     CONSERVATION,
-    /** 필요한 총 시설 수와 해당 큐에 배정 가능한 최대 시설 수를 비교한다. */
-    CAPACITY_COMPARISON,
     /** M/M/s 정상상태 모형으로 대기확률과 이론 평균값을 추정한다. */
     ERLANG_C,
     /** 기준시각의 대기 순번과 총 처리능력으로 그 시각 도착자의 대기를 구한다. */

@@ -22,25 +22,13 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class RecommendationResources {
 	private static final String EMPTY = "";
-	private final Map<String, Integer> openCountMap;
 	private final Map<String, AssignmentSummary> targetMap;
-	private final String fixedTargetName;
 
-	public RecommendationResources(Map<String, Integer> openCountMap, Map<String, AssignmentSummary> targetMap, String fixedTargetName) {
-		this.openCountMap = openCountMap;
+	public RecommendationResources(Map<String, AssignmentSummary> targetMap) {
 		this.targetMap = targetMap;
-		this.fixedTargetName = fixedTargetName;
-	}
-
-	public int getOpenCountValue(String unitCd) {
-		return openCountMap.getOrDefault(unitCd, 0);
 	}
 
 	public String getTargetName(String unitCd, String context) {
-		if (fixedTargetName != null) {
-			return fixedTargetName;
-		}
-
 		AssignmentSummary target = targetMap.get(unitCd);
 
 		if (target == null) {

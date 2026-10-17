@@ -64,7 +64,6 @@ const FCLT_CARD_TITLE: Record<FcltCardType, string> = {
 const QUEUE_DATA_SRC_LABEL: Record<QueueDataSrc, string> = {
     CAST: 'CAST 예측',
     XOVIS: 'Xovis 실적',
-    MANUAL: '수동 입력',
 };
 
 const QUEUE_METHOD_LABEL: Record<QueueCalcMethod, string> = {
@@ -76,7 +75,6 @@ const QUEUE_METHOD_LABEL: Record<QueueCalcMethod, string> = {
     FLUID_APPROXIMATION: '유입/처리 차이 계산',
     OBSERVED_FLOW: '관측 통과율',
     CONSERVATION: '인원 보존식 추정',
-    CAPACITY_COMPARISON: '보유량 비교',
     ERLANG_C: 'Erlang C',
     QUEUE_POSITION: '대기 순번 계산',
 };
@@ -114,13 +112,13 @@ function toFcltCardVariant(card: DsbdFcltCardDto): FcltCardVariant {
         },
         clearTime: {
             value: card.cgnClearRate / 100,
-            centerText: formatHhmm(card.cgnClearTime),
+            centerText: formatHhmm(card.cgnClearTime) || '-',
             captionText: '이후',
         },
         recommend: {
             tag: '추천',
             name: card.recommend.targetNm,
-            count: String(card.recommend.reqCnt),
+            count: card.recommend.reqCnt === null ? '-' : String(card.recommend.reqCnt),
             countNote: card.recommend.needAssignYn === 'Y' ? '배정 필요' : '소요',
             countNoteAccent: card.recommend.needAssignYn === 'N',
         },

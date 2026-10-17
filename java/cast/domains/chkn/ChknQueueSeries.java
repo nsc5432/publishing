@@ -7,8 +7,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import aoms.pm.cast.service.FcltRecommendationCalculator;
-
 /**
  * @Classname : ChknQueueSeries.java
  * @Description : 아일랜드 1곳의 하루치 공용 Queue 분 단위 궤적
@@ -101,10 +99,6 @@ public final class ChknQueueSeries {
 		return isInDay(minute) ? queue[minute] : 0;
 	}
 
-	public int boothCntAt(int minute) {
-		return isInDay(minute) ? boothCnt[minute] : 0;
-	}
-
 	public ChknQueueSlot slotOf(int bgnMinute, int minutes) {
 		int bgn = Math.max(bgnMinute, 0);
 		int end = Math.min(bgnMinute + minutes, MINUTE_PER_DAY);
@@ -141,18 +135,6 @@ public final class ChknQueueSeries {
 			toUtilRate(processedSum, capacitySum),
 			boothCnt[end - 1]
 		);
-	}
-
-	public List<FcltRecommendationCalculator.QueuePoint> trajectoryOf(int bgnMinute, int spanMin) {
-		List<FcltRecommendationCalculator.QueuePoint> result = new ArrayList<>();
-		int bgn = Math.max(bgnMinute, 0);
-		int end = Math.min(bgnMinute + spanMin, MINUTE_PER_DAY - 1);
-
-		for (int minute = bgn; minute <= end; minute++) {
-			result.add(new FcltRecommendationCalculator.QueuePoint(minute - bgnMinute, queue[minute]));
-		}
-
-		return result;
 	}
 
 	public BigDecimal serviceRateOf(int bgnMinute, int spanMin) {

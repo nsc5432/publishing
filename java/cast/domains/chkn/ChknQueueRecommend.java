@@ -2,7 +2,7 @@ package aoms.pm.cast.domains.chkn;
 
 /**
  * @Classname : ChknQueueRecommend.java
- * @Description : 공용 Queue 궤적으로 구한 부스 추천 — 산정할 수 없으면 값이 null 이다
+ * @Description : 공용 Queue 30분 슬롯으로 구한 부스 추천 — 산정할 수 없으면 값이 null 이다
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
@@ -26,12 +26,12 @@ public final class ChknQueueRecommend {
 		this.cgnClearMin = cgnClearMin;
 	}
 
-	/** 피크를 NORMAL 이하로 만드는 총 소요 부스 수 (현재 운영분 포함) */
+	/** 현재 슬롯이 이어진다고 볼 때 30분 안에 NORMAL 이하로 해소되는 총 소요 부스 수 (현재 운영분 포함) */
 	public Integer getReqCnt() {
 		return reqCnt;
 	}
 
-	/** 추천 부스를 적용했을 때 NORMAL 이하가 되는 경과 분 */
+	/** 추천 부스를 적용했을 때 슬롯 끝부터 NORMAL 이하가 되는 경과 분 (올림) */
 	public Integer getCgnClearMin() {
 		return cgnClearMin;
 	}

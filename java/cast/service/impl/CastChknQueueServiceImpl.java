@@ -82,7 +82,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
             ));
 		}
 
-		ChknQueueDay result = new ChknQueueDay(seriesByIsland, castCgnGradeService.retrieveGradeScale(FcltType.CHKN, context));
+		ChknQueueDay result = new ChknQueueDay(tmnlId, baseDate, seriesByIsland, castCgnGradeService.retrieveGradeScale(FcltType.CHKN, context));
 
 		for (String warning : result.warningList()) {
 			log.warn("체크인 공용 Queue 계산 보정: {}, {}", context, warning);
