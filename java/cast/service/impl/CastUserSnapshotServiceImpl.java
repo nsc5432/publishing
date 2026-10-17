@@ -44,7 +44,6 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
     // 사용자 결과를 일일 결과와 KPI 비교하므로 편집하지 않는 리소스는 일일 시뮬레이션과 같은 001 원천을 쓴다
     private static final String DAILY_RSRC_NO = "001";
     private static final String MDL_RSRC_ID = "ICN001";
-    private static final String DAILY_PRPT_SET_RSRC_ID = PS + DAILY_RSRC_NO;
     private static final String DAILY_CKNCT_SRVC_HR_RSRC_ID = "CheckinCounterServiceTime" + DAILY_RSRC_NO;
     private static final String DAILY_CHKN_TYPE_RSRC_ID = "CheckinType" + DAILY_RSRC_NO;
     private static final String DAILY_EMIGRATION_RSRC_ID = "FacilityOpeningTable_Emigration" + DAILY_RSRC_NO;
@@ -90,7 +89,6 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         result.setFcltyOpngTrScrtyCntrlRsrcId(TRANSFER_SECURITY_CONTROL + rsrcNo);
         result.setPrptStngRsrcId(PS + psNo);
 
-        result.setSrcPrptSetRsrcId(DAILY_PRPT_SET_RSRC_ID);
         result.setMdlRsrcId(MDL_RSRC_ID);
         result.setCknctSrvcHrRsrcId(DAILY_CKNCT_SRVC_HR_RSRC_ID);
         result.setChknTypeRsrcId(DAILY_CHKN_TYPE_RSRC_ID);

@@ -74,9 +74,10 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
 - SecurityControl은 일일·사용자 모두 시각 없이 수량만 보낸다. 사용자는 운영 Y이고 scshCntom > 0인
   출국장마다 1행이다. 시간별 계획(TN_PM_SMLT_SCSH_OPER_PLAN)은 화면·계약·저장에서 폐지했다.
 - 사용자가 편집하지 않는 리소스는 일일 시뮬레이션과 같은 001 원천을 쓴다. 2026-10-16 날짜 유효 설정
-  TN_PM_SMLT_INPUT_BASE를 제거하고 CastUserSnapshotServiceImpl 상수로 고정했다. 모델 ICN001, 원천 PS001,
+  TN_PM_SMLT_INPUT_BASE를 제거하고 소스 상수로 고정했다. 모델 ICN001, 원천 PS001,
   CheckinCounterServiceTime001, CheckinType001, FacilityOpeningTable_Emigration001,
-  ReportingProfilesTimeGroups001이다. 실행별 조합은 USER_MSTR의 리소스 컬럼에 기록한다.
+  ReportingProfilesTimeGroups001이다. 원천 PS는 CastRestServiceImpl, 나머지는 CastUserSnapshotServiceImpl에 정의한다.
+  실행별 조합은 USER_MSTR의 리소스 컬럼에 기록하되 원천 PS는 저장하지 않는다.
   실행 등록 시 리소스를 미리 렌더해 보던 검사(capture)도 함께 제거했다. 원천 누락은 CAST 단계에서 드러난다.
 - 002~999는 실행 ID와 별개인 전송 번호다. 한 요청이 FS·CA·SBD·DepartureGate·SecurityControl·
   Immigration·TransferSecurityControl 7종에 같은 번호를 쓴다. 입국심사·환승보안은 001 원천 행을
@@ -84,9 +85,9 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
 - 번호는 쓰인 최대 번호 다음의 미사용 값을 우선 할당한다. 요청·결과·원천 테이블에 존재하는 번호를 제외하고,
   기존 리소스를 DELETE하거나 UPDATE해 새 실행에 재사용하지 않는다. FS002~999, PS500~998에 빈 번호가 없으면 실패하며,
   운영자가 오래된 실행을 정리해 비운 번호는 그 뒤 다시 할당된다.
-- PropertySet은 PS500~998에서 FS와 독립적으로 신규 할당한다. USER_MSTR.SRC_PRPT_SET_RSRC_ID에 원천 PS를 기록하고,
-  CAST 요청 시 원천 PS를 렌더한 뒤 해당 요청의 SBD·출국장·보안검색·입국심사·환승보안 리소스 ID로 참조를 바꾼다.
-  XML은 저장하지 않는다. 원천 PS 내용의 의도된 변경은 반영되며 원천 PS ID는 요청별로 유지한다.
+- PropertySet은 PS500~998에서 FS와 독립적으로 신규 할당한다. CAST 요청 시 상수로 지정한 PS001을 렌더한 뒤
+  PS ID와 해당 요청의 SBD·출국장·보안검색·입국심사·환승보안 리소스 ID로 참조를 바꾼다.
+  XML과 원천 PS ID는 저장하지 않는다. PS001 내용의 의도된 변경은 기존 실행의 PS 재조회에도 반영된다.
 - 모델·서비스시간·체크인유형·출국심사·리포팅은 원본 ID로 조회한다. 리소스 목록은 USER_MSTR의 사용자 PS도 포함한다.
 - 사용자 결과는 FS 후보를 WI 토큰으로 먼저 좁혀 유일하게 식별하고 날짜·모델·입력 ID를 대조한다.
   실행 연결은 리소스 ID 외에 WI 토큰과 입력 참조를 함께 검증한다.
@@ -108,6 +109,9 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
 
 신규 DB는 최신 cast-ddl.sql을 사용한다. 이미 공통 마스터 제거를 마친 DB는
 java/ddl/2026-10-16-remove-smlt-snapshots.sql을 검증 DB에서 먼저 확인한 뒤 적용한다.
+이어서 java/ddl/2026-10-17-remove-user-source-property-set.sql로 원천 PS 컬럼을 제거한다.
+이 스크립트는 기존 원천이 모두 PS001이고 사용 가능한 PS001 그룹이 있을 때만 컬럼을 삭제한다.
+PS001 이외의 값이나 NULL이 있으면 중단하므로 해당 실행의 PS001 전환 여부를 먼저 확인한다.
 세 테이블 제거와 복구, 기존 PS 참조 분리 조건은 [리소스 참조 정리](resource-reference-cleanup.md)에 있다.
 RESULT_IDENTITY 제거는 `java/ddl/2026-10-16-remove-result-identity.sql`로 별도 적용하며,
 적용·복구와 기존 중복 검사 유지 범위도 위 문서를 따른다.

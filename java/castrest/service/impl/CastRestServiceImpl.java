@@ -17,6 +17,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
@@ -30,6 +32,7 @@ import org.egovframe.rte.fdl.cmmn.EgovAbstractServiceImpl;
 import org.egovframe.rte.fdl.string.EgovDateUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.w3c.dom.Document;
@@ -104,6 +107,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     private static final String CHECK_IN_COUNTER_SERVICE_TIME = "CheckinCounterServiceTime";
     private static final String GENERIC_TABLE = "GenericTable";
     private static final String PROPERTY_SET = "PropertySet";
+    private static final String DAILY_PRPT_SET_RSRC_ID = "PS001";
     private static final String RESOURCE_TYPE = "ResourceType";
     private static final String RESOURCE_ID = "ResourceID";
     private static final String AUTHOR = "Author";
@@ -907,9 +911,17 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
             if (PROPERTY_SET.equals(resourceDto.getResourceType())) {
                 UserSmltReqDto request = executionMapper.retrievePropertySetRequest(resourceDto.getResourceID());
-                if (request != null) return renderUserPropertySet(request);
+                if (request != null) 
+                    return renderUserPropertySet(request); // PS 사용자 시뮬레이션 처리
+
                 String id = resourceDto.getResourceID();
-                if (id != null && id.matches("PS[0-9]{3}") && id.substring(2).compareTo("500") >= 0 && id.substring(2).compareTo("998") <= 0) throw new IllegalStateException("등록되지 않은 사용자 PropertySet입니다.");
+                if (
+                    id != null && 
+                    id.matches("PS[0-9]{3}") && 
+                    id.substring(2).compareTo("500") >= 0 && 
+                    id.substring(2).compareTo("998") <= 0
+                ) 
+                    throw new IllegalStateException("등록되지 않은 사용자 PropertySet입니다.");
             }
 
             saveSimLog("2", "2");
@@ -924,23 +936,23 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         return INVALID_REQUEST;
     }
 
-    // PS 렌더 SQL 은 내부 참조 번호를 PS 번호에서 뽑으므로, 원천 PS 를 렌더한 뒤 번호 리소스 참조만 이 실행의 번호로 바꾼다
+    // 원천 PS001의 XML을 만든 뒤, PS ID와 시설 참조를 사용자 시뮬레이션에 할당된 ID로 바꾼다.
     private String renderUserPropertySet(UserSmltReqDto request) {
-        String sourceId = request.getSrcPrptSetRsrcId();
-        if (sourceId == null || !sourceId.matches("PS[0-9]{3}") || sourceId.equals(request.getPrptStngRsrcId())) throw new IllegalStateException("PropertySet 원천 참조를 확인해주세요.");
-        String sourceNo = sourceId.substring(2);
+        String sourceNo = DAILY_PRPT_SET_RSRC_ID.substring(2);
         Map<String, String> references = new LinkedHashMap<>();
-        references.put(sourceId, request.getPrptStngRsrcId());
+        references.put(DAILY_PRPT_SET_RSRC_ID, request.getPrptStngRsrcId());
         references.put("SBD" + sourceNo, request.getSbdCntrlAlctnId());
         references.put("FacilityOpeningTable_DepartureGate" + sourceNo, request.getFcltyOpngDptcnySrngRsrcId());
         references.put("FacilityOpeningTable_SecurityControl" + sourceNo, request.getFcltyOpngScrtyCntrlRsrcId());
         references.put("FacilityOpeningTable_Immigration" + sourceNo, request.getFcltyOpngEntcnyRsrcId());
         references.put("FacilityOpeningTable_TransferSecurityControl" + sourceNo, request.getFcltyOpngTrScrtyCntrlRsrcId());
         for (String value : references.values()) if (value == null || value.isBlank()) throw new IllegalStateException("PropertySet 리소스 참조가 없습니다.");
-        java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("(?<![A-Za-z0-9_])(?:" + references.keySet().stream().map(java.util.regex.Pattern::quote).collect(java.util.stream.Collectors.joining("|")) + ")(?![A-Za-z0-9_])");
-        java.util.regex.Matcher matcher = pattern.matcher(captureResource("PropertySet", sourceId, request.getExcnYmd()));
+        Pattern pattern = Pattern.compile("(?<![A-Za-z0-9_])(?:" + references.keySet().stream().map(Pattern::quote).collect(Collectors.joining("|")) + ")(?![A-Za-z0-9_])");
+
+        Matcher matcher = pattern.matcher(captureResource("PropertySet", DAILY_PRPT_SET_RSRC_ID, request.getExcnYmd()));
+        
         StringBuffer result = new StringBuffer();
-        while (matcher.find()) matcher.appendReplacement(result, java.util.regex.Matcher.quoteReplacement(references.get(matcher.group())));
+        while (matcher.find()) matcher.appendReplacement(result, Matcher.quoteReplacement(references.get(matcher.group())));
         matcher.appendTail(result);
         return result.toString();
     }
@@ -2540,7 +2552,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             saveSimLog("16", "2");
             return buildReturnXml(true);
         } catch (RuntimeException | ParserConfigurationException | SAXException | IOException e) {
-            org.springframework.transaction.interceptor.TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
+            TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             saveSimLog("16", "9");
             return buildReturnXml(false);
         }
@@ -2552,7 +2564,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         String simId;
         if (WHAT_IF.equals(dto.getSmltType())) {
             List<UserSmltReqDto> candidates = castRestMapper.retrieveUserReqByFsRsrcId(dto.getFlightScheduleResourceID());
-            java.util.regex.Matcher token = java.util.regex.Pattern.compile("(?<![A-Za-z0-9])WI[0-9]{8}(?![A-Za-z0-9])").matcher(dto.getResourceID());
+            Matcher token = Pattern.compile("(?<![A-Za-z0-9])WI[0-9]{8}(?![A-Za-z0-9])").matcher(dto.getResourceID());
             String reqId = token.find() ? token.group() : null;
             if (token.find()) throw new IllegalStateException("결과에 요청 식별자가 둘 이상 있습니다.");
             if (reqId != null) {

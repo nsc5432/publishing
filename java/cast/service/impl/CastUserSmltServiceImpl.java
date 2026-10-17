@@ -141,7 +141,6 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         result.setCknctAlctnRsrcId(snapshot.getCknctAlctnRsrcId());
         result.setSbdCntrlAlctnId(snapshot.getSbdCntrlAlctnId());
         result.setPrptStngRsrcId(snapshot.getPrptStngRsrcId());
-        result.setSrcPrptSetRsrcId(snapshot.getSrcPrptSetRsrcId());
         result.setFcltyOpngDptcnySrngRsrcId(snapshot.getFcltyOpngDptcnySrngRsrcId());
         result.setFcltyOpngDptcnyRsrcId(snapshot.getFcltyOpngDptcnyRsrcId());
         result.setFcltyOpngEntcnyRsrcId(snapshot.getFcltyOpngEntcnyRsrcId());

@@ -55,16 +55,17 @@ FS는 998개, PS는 499개로 한정되므로 빈 번호가 없으면 실행 등
 
 ## PropertySet 제공
 
-USER_MSTR에 SRC_PRPT_SET_RSRC_ID를 추가해 원천 PS ID를 기록한다. 이 컬럼은 리소스 관계이며 입력 사본이 아니다.
-CAST가 사용자 PS를 요청하면 원천 PS를 렌더하고 PS ID와 SBD·DepartureGate·SecurityControl·Immigration·TransferSecurityControl
+원천 PS는 CastRestServiceImpl.DAILY_PRPT_SET_RSRC_ID의 PS001로 고정하며 USER_MSTR에 원천 PS ID를 저장하지 않는다.
+CAST가 사용자 PS를 요청하면 PS001을 렌더하고 PS ID와 SBD·DepartureGate·SecurityControl·Immigration·TransferSecurityControl
 참조를 해당 요청의 리소스 ID로 바꿔 반환한다. 모델·서비스시간·체크인유형·출국심사·리포팅은 기존 원본 ID를 사용한다.
-INPUT_BASE의 기간별 매핑이 바뀌어도 이미 기록한 원천 PS ID는 유지하고, 원천 PS 내용의 의도된 변경은 반영한다.
-2026-10-16 INPUT_BASE를 제거해 새 요청의 원천 PS는 항상 PS001이다. 이미 기록된 원천 PS ID는 그대로 읽는다.
+PS001 내용의 의도된 변경은 기존 실행의 PS 재조회에도 반영된다.
+2026-10-17 SRC_PRPT_SET_RSRC_ID를 제거했다. 기존 실행도 PS001을 사용하므로 다른 원천을 사용하던 실행은 전환 전에 확인한다.
 
 ## DB 적용
 
 신규 DB는 최신 java/ddl/cast-ddl.sql을 사용한다. 기존 DB는 공통 마스터 제거를 완료한 상태에서
-java/ddl/2026-10-16-remove-smlt-snapshots.sql을 적용한다. 구 stage·executions·verify·cutover는 역사적 기록이다.
+java/ddl/2026-10-16-remove-smlt-snapshots.sql과 java/ddl/2026-10-17-remove-user-source-property-set.sql을 순서대로 적용한다.
+이미 스냅샷 제거를 완료한 DB는 2026-10-17 스크립트만 적용한다. 구 stage·executions·verify·cutover는 역사적 기록이다.
 
 1. 검증 DB에서 실제 백엔드를 빌드하고 SQL과 CAST 왕복을 검증한다. 이 저장소의 Java는 참조 사본이며 여기서 컴파일할 수 없다.
 2. 화면 저장·실행과 CAST polling·상태·결과 수신을 정지한다. 활성 요청과 Finished 후 결과 미도착 요청을 완료한다.
@@ -80,11 +81,13 @@ java/ddl/2026-10-16-remove-smlt-snapshots.sql을 적용한다. 구 stage·execut
 | RSRC_LEASE | TN_PM_SMLT_LEASE_BAK_1016 |
 
 7. SQL은 기존 요청·결과·lease의 최댓값을 커서에 반영한다. 할당 시 원천에 이미 있는 번호도 검사한다. 기존 SQ1_TN_PM_SMLT_USER_RSRC가 있으면 NOCYCLE로 바꾸지만 새 런타임은 이 시퀀스를 사용하지 않는다.
-8. 세 원본 테이블을 DROP한 뒤 새 백엔드를 배포한다. 현재상태 저장·실행·실패 롤백·조건 보기·의도된 원천 변경 반영·CAST 리소스 목록과 PS 응답·결과 수신·동일 실행·모델 중복 결과 거부를 확인한다.
+8. java/ddl/2026-10-17-remove-user-source-property-set.sql을 실행한다. 이 스크립트는 이관된 원천이 모두 PS001이고 사용 가능한 PS001 그룹이 있을 때만 원천 PS 컬럼을 삭제한다. 다른 원천이나 NULL이 있으면 중단하므로 해당 실행의 PS001 전환 여부를 먼저 확인한다. 컬럼이 이미 없으면 건너뛴다.
+9. 세 원본 테이블과 원천 PS 컬럼을 제거한 뒤 새 백엔드를 배포한다. 현재상태 저장·실행·실패 롤백·조건 보기·의도된 PS001 변경 반영·CAST 리소스 목록과 PS 응답·결과 수신·동일 실행·모델 중복 결과 거부를 확인한다.
 
 Oracle DDL은 전체 트랜잭션 롤백 대상이 아니다. 중단되면 서비스를 정지한 채 이미 적용된 컬럼·백업·DROP 상태를 확인한다.
 복구는 독립 전체 백업을 우선 사용한다. 데이터 백업으로 복구할 경우 원본 PK와 USER_MSTR의 지연 검사 FK도 복원해야 한다.
 구 백엔드를 배포하기 전에 세 원본과 참조 정합성을 확인하며 실행 ID 시퀀스를 뒤로 되돌리지 않는다.
+원천 PS 컬럼을 사용하던 백엔드로 복구할 때는 서비스 정지 상태에서 SRC_PRPT_SET_RSRC_ID VARCHAR2(100)을 다시 추가하고 PS001로 채운 뒤 배포한다. 다른 원천에서 PS001로 전환한 이력이 있다면 해당 실행은 독립 백업의 원래 값으로 복구한다.
 
 ### CURRENT_SAVE 제거 적용
 
@@ -178,8 +181,9 @@ RunID 빈값 검사도 묶음 키에만 쓰였으므로 제거했다. 다음을 
 ### INPUT_BASE 제거 적용
 
 일일 시뮬레이션은 001 원천 고정이고, 사용자 실행은 KPI 비교를 위해 같은 원천을 쓴다. 그래서 사용자가 편집하지 않는
-리소스를 `CastUserSnapshotServiceImpl` 상수로 고정하고 날짜 유효 설정 테이블을 제거했다.
-실행별로 쓴 조합은 기존처럼 USER_MSTR의 리소스 컬럼에 남는다.
+리소스를 소스 상수로 고정하고 날짜 유효 설정 테이블을 제거했다.
+원천 PS 상수는 현재 `CastRestServiceImpl`, 나머지는 `CastUserSnapshotServiceImpl`에 있다.
+실행별로 쓴 조합은 USER_MSTR의 리소스 컬럼에 남으며, 원천 PS ID는 2026-10-17에 제거했다.
 
 | 항목 | 고정값 |
 |---|---|
