@@ -26,7 +26,6 @@ interface ScenarioResult {
 }
 
 interface ScenarioDraft {
-    version: string;
     countText: string;
     targetText: string;
 }
@@ -41,11 +40,9 @@ function toInitialRequest(target: FcltQueueTarget): ScenarioRequest {
 
 // 응답이 어떤 입력의 결과인지 나타내는 키 — 지금 입력과 다르면 이전 결과를 보여주지 않는다
 function toResultKey(dto: FcltQueueScenarioDto): string | null {
-    if (dto.ctxChgYn === 'Y') return null;
-
     const value = dto.mode === 'COUNT' ? dto.scenario?.fcltCnt : dto.recommend?.targetMin;
 
-    return `${dto.mode}|${dto.contextVersion}|${value ?? ''}`;
+    return `${dto.mode}|${value ?? ''}`;
 }
 
 function parseInteger(text: string): number | null {
@@ -75,17 +72,15 @@ export function useFcltQueueScenario(target: FcltQueueTarget) {
     const fetched = useFetched(request, loadScenario, FAIL);
     const latest = fetched.data;
     const context = latest?.context ?? null;
-    const version = context?.contextVersion ?? '';
 
     const contextView = useMemo<FcltQueueContextView | null>(() => (context ? toFcltQueueContextView(context) : null), [context]);
 
     const countLocked = !contextView || contextView.countLockReason !== '';
     const defaults: ScenarioDraft = {
-        version,
         countText: String(context?.oprFcltCnt ?? ''),
         targetText: String(context?.dfltTargetMin ?? ''),
     };
-    const inputs = draft && draft.version === version ? draft : defaults;
+    const inputs = draft ?? defaults;
 
     const countValue = parseInteger(inputs.countText);
     const targetValue = parseInteger(inputs.targetText);
@@ -109,7 +104,7 @@ export function useFcltQueueScenario(target: FcltQueueTarget) {
     const nextReq = useMemo<FcltQueueScenarioReq | null>(() => {
         if (!context) return null;
 
-        const base: FcltQueueScenarioReq = { ...target, mode, contextVersion: context.contextVersion };
+        const base: FcltQueueScenarioReq = { ...target, mode };
 
         if (mode === 'TIME') return targetError ? null : { ...base, targetMinutes: targetValue ?? undefined };
         if (countLocked) return base;
@@ -117,7 +112,7 @@ export function useFcltQueueScenario(target: FcltQueueTarget) {
         return countError ? null : { ...base, oprFcltCnt: countValue ?? undefined };
     }, [context, target, mode, countLocked, countError, countValue, targetError, targetValue]);
 
-    const nextKey = nextReq ? `${mode}|${version}|${mode === 'COUNT' ? (countLocked ? (context?.oprFcltCnt ?? '') : countValue) : targetValue}` : null;
+    const nextKey = nextReq ? `${mode}|${mode === 'COUNT' ? (countLocked ? (context?.oprFcltCnt ?? '') : countValue) : targetValue}` : null;
     const resultKey = latest?.dto ? toResultKey(latest.dto) : null;
     const errorKey = latest?.error ? latest.request.key : null;
 
@@ -137,7 +132,7 @@ export function useFcltQueueScenario(target: FcltQueueTarget) {
     else if (latest?.dto && nextKey === resultKey) result = { status: 'ready', view: toFcltQueueResultView(latest.dto) };
     else if (nextKey === errorKey && latest?.error) result = { status: 'error', message: latest.error };
 
-    const updateDraft = (patch: Partial<ScenarioDraft>) => setDraft({ ...inputs, ...patch, version });
+    const updateDraft = (patch: Partial<ScenarioDraft>) => setDraft({ ...inputs, ...patch });
 
     const stepCount = (delta: number) => {
         const next = Math.max(0, (countValue ?? contextView?.currentCnt ?? 0) + delta);

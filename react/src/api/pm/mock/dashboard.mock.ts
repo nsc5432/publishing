@@ -690,7 +690,6 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
     const profile = QUEUE_SCENARIO_PROFILES[key] ?? QUEUE_SCENARIO_PROFILES['T1-CHKN-B'];
     const ymd = BASE_INFO.ymd;
     const baseMinute = Math.min(toMinuteOfDay(req.hhmm) + QUEUE_OBS_MIN, MIN_PER_DAY);
-    const contextVersion = `mock-${key}-${req.hhmm}`;
     const mu = profile.prcsSec === null ? null : 3600 / profile.prcsSec;
 
     if (req.mode === 'COUNT' && req.oprFcltCnt !== undefined) {
@@ -714,8 +713,6 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
         obsBgnDt: toDt(ymd, baseMinute - QUEUE_OBS_MIN),
         obsEndDt: toDt(ymd, baseMinute),
         dataSrc: 'CAST',
-        contextVersion,
-        ctxChgYn: req.contextVersion && req.contextVersion !== contextVersion ? 'Y' : 'N',
         wtngPsgCnt: profile.wtngPsgCnt,
         targetQueueCnt: profile.targetQueueCnt,
         oprFcltCnt: profile.oprCnt,
@@ -737,8 +734,6 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
         totScenario: null,
         recommend: null,
     };
-
-    if (result.ctxChgYn === 'Y') return result;
 
     if (req.mode === 'COUNT') {
         return {

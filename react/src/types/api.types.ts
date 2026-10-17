@@ -192,7 +192,6 @@ export interface FcltQueueScenarioReq {
     mode: FcltQueueScenarioMode;
     oprFcltCnt?: number;
     targetMinutes?: number;
-    contextVersion?: string;
 }
 
 export interface FcltQueueClearDto {
@@ -232,8 +231,6 @@ export interface FcltQueueScenarioDto extends JsonResponse {
     obsBgnDt: string;
     obsEndDt: string;
     dataSrc: QueueDataSrc;
-    contextVersion: string;
-    ctxChgYn: YnFlag;
     wtngPsgCnt: number | null;
     targetQueueCnt: number;
     oprFcltCnt: number | null;

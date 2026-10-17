@@ -23,5 +23,4 @@ public class FcltQueueScenarioSearchDto {
 	// Jackson 기본 설정은 2.5 를 2 로 잘라 받으므로 소수 입력을 거르기 위해 BigDecimal 로 받는다
 	private BigDecimal oprFcltCnt; // COUNT: 조정 수량 (생략 시 현재 운영 수량)
 	private BigDecimal targetMinutes; // TIME: 목표 해소시간 (분, 생략 시 기본값)
-	private String contextVersion; // 최초 응답의 원천 스냅샷 식별값
 }

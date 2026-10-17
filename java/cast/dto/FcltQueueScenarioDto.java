@@ -24,8 +24,6 @@ public class FcltQueueScenarioDto extends JsonResponse {
 	private String obsBgnDt; // 관측구간 시작 yyyyMMddHHmmss
 	private String obsEndDt; // 관측구간 종료 yyyyMMddHHmmss
 	private String dataSrc; // CAST / XOVIS
-	private String contextVersion;
-	private String ctxChgYn; // 요청의 contextVersion 과 원천이 달라졌으면 Y (scenario · recommend 없이 새 기준만 내린다)
 	private Integer wtngPsgCnt; // 기준시각 대기인원 Q0 (명)
 	private Integer targetQueueCnt; // 해소 기준 대기인원 Q* (명, 이하)
 	private Integer oprFcltCnt; // 현재 운영 수량 (개)

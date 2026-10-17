@@ -2,9 +2,6 @@ package aoms.pm.cast.service.impl;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -63,22 +60,18 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioService {
-	private static final String DT_FORMAT = "yyyyMMddHHmmss";
-	private static final String YMD_FORMAT = "yyyyMMdd";
-	private static final String YN_Y = "Y";
-	private static final String YN_N = "N";
 	private static final String EMPTY = "";
+	private static final int OBS_MIN = 30; // 관측구간 길이(분)
+	private static final int CAST_SLOT_MIN = 10; // CAST 결과 구간(INTERVAL) 길이(분)
+	private static final int MIN_PER_HOUR = 60; // 1시간 = 60분
+	private static final int MIN_PER_DAY = 24 * MIN_PER_HOUR; // 하루 = 1440분
+	private static final double SEC_PER_MIN = 60.0; // 1분 = 60초
+	private static final double MAX_CLEAR_SEC = MIN_PER_DAY * SEC_PER_MIN; // 혼잡해소 시각으로 표기할 상한(초) = 하루(86400초), 넘으면 빈 값
 
-	private static final int OBS_MIN = 30;
-	private static final int CAST_SLOT_MIN = 10;
-	private static final int MIN_PER_HOUR = 60;
-	private static final int MIN_PER_DAY = 24 * MIN_PER_HOUR;
-	private static final double SEC_PER_MIN = 60.0;
-	private static final double MAX_CLEAR_SEC = 366.0 * MIN_PER_DAY * SEC_PER_MIN;
-
-	private static final int DFLT_TARGET_MIN = 30;
-	private static final int MIN_TARGET_MIN = 1;
-	private static final int MAX_TARGET_MIN = 120;
+    // 목표 해소시간
+	private static final int DFLT_TARGET_MIN = 30; // 목표 해소시간 기본값(분)
+	private static final int MIN_TARGET_MIN = 1; // 목표 해소시간 최솟값(분)
+	private static final int MAX_TARGET_MIN = 120; // 목표 해소시간 최댓값(분)
 
 	// lambda/mu 가 정수인데 부동소수 오차로 n - 1e-12 가 되면 rho = 1 인 수량을 안정 최소로 고르게 된다
 	private static final double RHO_EPSILON = 1e-9;
@@ -146,18 +139,10 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		FacilityQueueCalculator calculator = toCalculator(searchDto, unitCd, source);
 		Computed<Double> arrival = calculator.estimateArrivalRateByConservation(source.toArrivalInput()); // 유입률
 		Computed<Double> service = calculator.estimateServiceRatePerHour(); // 처리율
-		String version = toContextVersion(searchDto, unitCd, source, targetQueueCnt, arrival, service);
 		LocalDateTime baseDt = source.getObsEndDt();
 
-		FcltQueueScenarioDto result = toBaseResult(searchDto, unitCd, source, targetQueueCnt, arrival, service, version);
+		FcltQueueScenarioDto result = toBaseResult(searchDto, unitCd, source, targetQueueCnt, arrival, service);
 		result.setCurrent(toClear(calculator, source.toScenarioInput(arrival, source.getOprCnt()), targetQueueCnt, baseDt));
-
-		String requestVersion = searchDto.getContextVersion();
-
-		if (requestVersion != null && !requestVersion.isEmpty() && !requestVersion.equals(version)) {
-			result.setCtxChgYn(YN_Y);
-			return result;
-		}
 
 		if (searchDto.getMode() == FcltQueueScenarioMode.COUNT) {
 			Integer count = searchDto.getOprFcltCnt() == null ? source.getOprCnt() : searchDto.getOprFcltCnt().intValueExact();
@@ -427,14 +412,14 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		// 기존 fluid 추천의 의미는 바꾸지 않고, 양의 유입에서 rho < 1 이 되도록 이번 팝업 정책으로만 하한을 둔다
 		int reqCnt = stableMinCnt == null ? fluid.getValue() : Math.max(fluid.getValue(), stableMinCnt);
 		recommend.setReqCnt(reqCnt);
-		recommend.setStableAplyYn(reqCnt > fluid.getValue() ? YN_Y : YN_N);
+		recommend.setStableAplyYn(reqCnt > fluid.getValue() ? "Y" : "N");
 
 		if (currentCnt != null) {
 			recommend.setExtraCnt(Math.max(reqCnt - currentCnt, 0));
 			recommend.setReduceCnt(Math.max(currentCnt - reqCnt, 0));
 		}
 
-		recommend.setCapaAvlYn(totCnt == null ? null : reqCnt <= totCnt ? YN_Y : YN_N);
+		recommend.setCapaAvlYn(totCnt == null ? null : reqCnt <= totCnt ? "Y" : "N");
 
 		if (totCnt != null && reqCnt > totCnt) {
 			result.setTotScenario(toClear(calculator, source.toScenarioInput(arrival, totCnt), targetQueueCnt, baseDt));
@@ -443,7 +428,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 		FacilityQueueInput reqInput = source.toScenarioInput(arrival, reqCnt);
 		Computed<Double> reqClear = calculator.estimateClearTimeSec(reqInput, targetQueueCnt);
-		recommend.setGoalMetYn(reqClear.hasValue() ? reqClear.getValue() <= targetSec + GOAL_EPSILON_SEC ? YN_Y : YN_N : null);
+		recommend.setGoalMetYn(reqClear.hasValue() ? reqClear.getValue() <= targetSec + GOAL_EPSILON_SEC ? "Y" : "N" : null);
 		result.setScenario(toClear(calculator, reqInput, targetQueueCnt, baseDt));
 	}
 
@@ -471,8 +456,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 			FcltQueueSource source,
 			int targetQueueCnt,
 			Computed<Double> arrival,
-			Computed<Double> service,
-			String version
+			Computed<Double> service
 	) {
 		List<String> asmpList = new ArrayList<>(COMMON_ASMP_LIST);
 		asmpList.addAll(source.getAsmpList());
@@ -487,8 +471,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		result.setObsBgnDt(formatDt(source.getObsBgnDt()));
 		result.setObsEndDt(formatDt(source.getObsEndDt()));
 		result.setDataSrc(source.getDataSrc().name());
-		result.setContextVersion(version);
-		result.setCtxChgYn(YN_N);
 		result.setWtngPsgCnt(source.getQueueAtEnd());
 		result.setTargetQueueCnt(targetQueueCnt);
 		result.setOprFcltCnt(source.getOprCnt());
@@ -504,51 +486,6 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		result.setAsmpList(asmpList);
 
 		return result;
-	}
-
-	// 사용자 입력(수량 / 목표시간)은 넣지 않는다 — 같은 원천에서 입력만 바꾼 요청은 같은 버전이어야 한다
-	private String toContextVersion(
-			FcltQueueScenarioSearchDto searchDto,
-			String unitCd,
-			FcltQueueSource source,
-			int targetQueueCnt,
-			Computed<Double> arrival,
-			Computed<Double> service
-	) {
-		String raw = String.join("|",
-				searchDto.getSmltId(),
-				searchDto.getTmnlId().getValue(),
-				searchDto.getFcltType().getValue(),
-				unitCd,
-				formatDt(source.getObsBgnDt()),
-				formatDt(source.getObsEndDt()),
-				String.valueOf(source.getQueueAtStart()),
-				String.valueOf(source.getQueueAtEnd()),
-				String.valueOf(source.getWtngEndPsgCnt()),
-				String.valueOf(source.getAvgPrcsSec()),
-				String.valueOf(source.getAvgQueuePsgCnt()),
-				String.valueOf(source.getAvgWtngSec()),
-				String.valueOf(source.getOprCnt()),
-				String.valueOf(source.getTotCnt()),
-				String.valueOf(targetQueueCnt),
-				String.valueOf(arrival.getValue()),
-				String.valueOf(service.getValue()),
-				source.getDataSrc().name(),
-				String.valueOf(source.isSharedHomogeneousServers()),
-				String.valueOf(source.isMmSApplicable()));
-
-		try {
-			byte[] digest = MessageDigest.getInstance("SHA-256").digest(raw.getBytes(StandardCharsets.UTF_8));
-			StringBuilder result = new StringBuilder();
-
-			for (int index = 0; index < 16; index++) {
-				result.append(String.format("%02x", digest[index]));
-			}
-
-			return result.toString();
-		} catch (NoSuchAlgorithmException exception) {
-			throw new IllegalStateException("SHA-256 을 사용할 수 없습니다.", exception);
-		}
 	}
 
 	private String toClearDt(LocalDateTime baseDt, double clearSec) {
@@ -584,11 +521,11 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 	}
 
 	private LocalDate parseYmd(String ymd) {
-		return LocalDate.parse(ymd, DateTimeFormatter.ofPattern(YMD_FORMAT));
+		return LocalDate.parse(ymd, DateTimeFormatter.ofPattern("yyyyMMdd"));
 	}
 
 	private String formatDt(LocalDateTime dateTime) {
-		return dateTime.format(DateTimeFormatter.ofPattern(DT_FORMAT));
+		return dateTime.format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
 	}
 
 	private static final class MaxCount {
