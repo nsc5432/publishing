@@ -939,20 +939,27 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     // 원천 PS001의 XML을 만든 뒤, PS ID와 시설 참조를 사용자 시뮬레이션에 할당된 ID로 바꾼다.
     private String renderUserPropertySet(UserSmltReqDto request) {
         String sourceNo = DAILY_PRPT_SET_RSRC_ID.substring(2);
-        Map<String, String> references = new LinkedHashMap<>();
-        references.put(DAILY_PRPT_SET_RSRC_ID, request.getPrptStngRsrcId());
-        references.put("SBD" + sourceNo, request.getSbdCntrlAlctnId());
-        references.put("FacilityOpeningTable_DepartureGate" + sourceNo, request.getFcltyOpngDptcnySrngRsrcId());
-        references.put("FacilityOpeningTable_SecurityControl" + sourceNo, request.getFcltyOpngScrtyCntrlRsrcId());
-        references.put("FacilityOpeningTable_Immigration" + sourceNo, request.getFcltyOpngEntcnyRsrcId());
-        references.put("FacilityOpeningTable_TransferSecurityControl" + sourceNo, request.getFcltyOpngTrScrtyCntrlRsrcId());
-        for (String value : references.values()) if (value == null || value.isBlank()) throw new IllegalStateException("PropertySet 리소스 참조가 없습니다.");
-        Pattern pattern = Pattern.compile("(?<![A-Za-z0-9_])(?:" + references.keySet().stream().map(Pattern::quote).collect(Collectors.joining("|")) + ")(?![A-Za-z0-9_])");
+        
+        Map<String, String> replacements = new LinkedHashMap<>();
+        replacements.put(DAILY_PRPT_SET_RSRC_ID, request.getPrptStngRsrcId());
+        replacements.put("SBD" + sourceNo, request.getSbdCntrlAlctnId());
+        replacements.put("FacilityOpeningTable_DepartureGate" + sourceNo, request.getFcltyOpngDptcnySrngRsrcId());
+        replacements.put("FacilityOpeningTable_SecurityControl" + sourceNo, request.getFcltyOpngScrtyCntrlRsrcId());
+        replacements.put("FacilityOpeningTable_Immigration" + sourceNo, request.getFcltyOpngEntcnyRsrcId());
+        replacements.put("FacilityOpeningTable_TransferSecurityControl" + sourceNo, request.getFcltyOpngTrScrtyCntrlRsrcId());
+        
+        for (String value : replacements.values()) 
+            if (value == null || value.isBlank()) 
+                throw new IllegalStateException("PropertySet 리소스 참조가 없습니다.");
 
-        Matcher matcher = pattern.matcher(captureResource("PropertySet", DAILY_PRPT_SET_RSRC_ID, request.getExcnYmd()));
+        Pattern pattern = Pattern.compile(String.join("|", replacements.keySet()));
+        Matcher matcher = pattern.matcher(renderBasePropertySetXml(request.getExcnYmd()));
         
         StringBuffer result = new StringBuffer();
-        while (matcher.find()) matcher.appendReplacement(result, Matcher.quoteReplacement(references.get(matcher.group())));
+        
+        while (matcher.find()) 
+            matcher.appendReplacement(result, Matcher.quoteReplacement(replacements.get(matcher.group())));
+
         matcher.appendTail(result);
         return result.toString();
     }
@@ -995,29 +1002,39 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         }
     }
 
-    private String captureResource(String type, String resourceId, String baseYmd) {
+    private String renderBasePropertySetXml(String baseYmd) {
         colTable.remove();
+
         CastReqGetResourceDto dto = new CastReqGetResourceDto();
-        dto.setResourceType(type); dto.setResourceID(resourceId); dto.setBaseYmd(baseYmd);
+        dto.setResourceType(PROPERTY_SET);
+        dto.setResourceID(DAILY_PRPT_SET_RSRC_ID);
+        dto.setBaseYmd(baseYmd);
+
         StringBuilder content = new StringBuilder();
-        if (CAST_MODEL.equals(type) && castRestMapper.retrieveCASTModel(dto) == null) type = CAST_EXPRESS_MODEL;
-        processResourceData(type, dto, content);
+        handlePropertySet(dto, content);
         String xml = content.toString();
+
         try {
             Document document = parseXmlSafely(xml);
-            boolean required = FLIGHT_SCHEDULE.equals(type) || PROPERTY_SET.equals(type) || CAST_MODEL.equals(type) || CAST_EXPRESS_MODEL.equals(type) || resourceId.contains(CHECK_IN_TYPE) || resourceId.contains(CHECK_IN_COUNTER_SERVICE_TIME);
             boolean populated = false;
             NodeList columns = document.getElementsByTagName("m:col");
+
             for (int i = 0; i < columns.getLength(); i++) {
                 Element column = (Element) columns.item(i);
-                if (PROPERTY_SET.equals(type) && !S_VALUES.equals(column.getAttribute(S_P_NAME))) continue;
+                if (!S_VALUES.equals(column.getAttribute(S_P_NAME))) 
+                    continue;
+
                 String value = column.getAttribute(S_VALUES).replace(",", "").trim();
-                if (!value.isEmpty()) populated = true;
+                if (!value.isEmpty()) 
+                    populated = true;
             }
-            if (required && !populated) throw new IllegalStateException("CAST 입력 내용이 없습니다: " + resourceId);
+
+            if (!populated) 
+                throw new IllegalStateException("CAST 입력 내용이 없습니다: " + DAILY_PRPT_SET_RSRC_ID);
         } catch (ParserConfigurationException | SAXException | IOException e) {
-            throw new IllegalStateException("CAST 입력 XML이 유효하지 않습니다: " + resourceId, e);
+            throw new IllegalStateException("CAST 입력 XML이 유효하지 않습니다: " + DAILY_PRPT_SET_RSRC_ID, e);
         }
+        
         return xml;
     }
 
@@ -1243,11 +1260,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handlePropertySet(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("6", "1");
-        processMasterInfo(idto, sb);
-        saveSimLog("6", "2");
-    }
-
-    private void processMasterInfo(CastReqGetResourceDto idto, StringBuilder sb) {
+        
         StringBuilder pNameSb = new StringBuilder();
         StringBuilder pFriendlyNameSb = new StringBuilder();
         StringBuilder pEnumTypeSb = new StringBuilder();
@@ -1255,9 +1268,12 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         StringBuilder unitNameSb = new StringBuilder();
         StringBuilder valSb = new StringBuilder();
 
-        CastPropertySetDto arrMst = castRestMapper.retrievePropertySetMst(idto);
+        CastPropertySetDto propertySetMstr = castRestMapper.retrievePropertySetMst(idto);
+        // 서비스 관련 속성
         processServiceProperties(idto, pNameSb, pFriendlyNameSb, pEnumTypeSb, pKindSb, unitNameSb, valSb);
+        // 여객/자원 정보
         processPaxAndResourceInfo(idto, pNameSb, pFriendlyNameSb, pEnumTypeSb, pKindSb, unitNameSb, valSb);
+        // 리소스 ID 참조 속성
         processPropertySetId(idto, pNameSb, pFriendlyNameSb, pEnumTypeSb, pKindSb, unitNameSb, valSb);
 
         sb.append(XML_VERSION)
@@ -1268,14 +1284,14 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
           .append(System.lineSeparator())
           .append(TAB_TWO).append(RES_GET_RESOURCE_START)
           .append(System.lineSeparator());
-        if (arrMst != null) {
-            sb.append(TAB_THREE).append("<").append(RESOURCE_INFO).append(" ").append(AUTHOR).append("=\"").append(arrMst.getAuthor()).append(FNC_S_QUOT_ONE)
-              .append(" ").append(CREATED).append("=\"").append(arrMst.getCreated()).append(FNC_S_QUOT_ONE)
+        if (propertySetMstr != null) {
+            sb.append(TAB_THREE).append("<").append(RESOURCE_INFO).append(" ").append(AUTHOR).append("=\"").append(propertySetMstr.getAuthor()).append(FNC_S_QUOT_ONE)
+              .append(" ").append(CREATED).append("=\"").append(propertySetMstr.getCreated()).append(FNC_S_QUOT_ONE)
               .append(" ").append(DESCRIPTION).append("=\"").append(PROPERTY_SET).append(FNC_S_QUOT_ONE)
-              .append(" ").append(LAST_MODIFIED).append("=\"").append(arrMst.getLastModified()).append(FNC_S_QUOT_ONE)
-              .append(" ").append(LAST_SAVE_BY).append("=\"").append(arrMst.getLastSaveBy()).append(FNC_S_QUOT_ONE)
-              .append(" ").append(LAST_SAVED_USING_VERSION).append("=\"").append(arrMst.getLastSaveUsingVersion()).append(FNC_S_QUOT_ONE)
-              .append(" ").append(RESOURCE_ID).append("=\"").append(arrMst.getResourceID()).append(FNC_S_QUOT_ONE)
+              .append(" ").append(LAST_MODIFIED).append("=\"").append(propertySetMstr.getLastModified()).append(FNC_S_QUOT_ONE)
+              .append(" ").append(LAST_SAVE_BY).append("=\"").append(propertySetMstr.getLastSaveBy()).append(FNC_S_QUOT_ONE)
+              .append(" ").append(LAST_SAVED_USING_VERSION).append("=\"").append(propertySetMstr.getLastSaveUsingVersion()).append(FNC_S_QUOT_ONE)
+              .append(" ").append(RESOURCE_ID).append("=\"").append(propertySetMstr.getResourceID()).append(FNC_S_QUOT_ONE)
               .append(" ").append(RESOURCE_TYPE).append("=\"").append(PROPERTY_SET).append(FNC_S_QUOT_ONE).append("/>")
               .append(System.lineSeparator())
               .append(TAB_THREE).append(RESOURCE_CONTENT_START)
@@ -1323,7 +1339,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
               .append(TAB_ONE).append(SOAP_BODY_END)
               .append(System.lineSeparator())
               .append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT)
               .append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>")
               .append(System.lineSeparator())
@@ -1333,6 +1349,8 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
               .append(System.lineSeparator())
               .append(SOAP_ENVELOPE_END);
         }
+
+        saveSimLog("6", "2");
     }
 
     private void processServiceProperties(CastReqGetResourceDto idto, StringBuilder pNameSb, StringBuilder pFriendlyNameSb, StringBuilder pEnumTypeSb, StringBuilder pKindSb, StringBuilder unitNameSb, StringBuilder valSb) {
