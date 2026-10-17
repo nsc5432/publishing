@@ -41,7 +41,6 @@ public final class FacilityQueueExample {
                 .avgWtngTimeSec(600.0)
                 .avgQueuePsgCnt(30.0)
                 .queuePsgCntAtEnd(40)
-                .samePassengerPopulation(true)
                 .build();
 
         // Lq=30명, Wq=600초 → lambda=180명/시간. S=120초 → mu=30명/시간/시설.

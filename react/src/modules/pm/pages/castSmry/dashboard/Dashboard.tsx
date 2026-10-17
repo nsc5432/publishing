@@ -1,5 +1,4 @@
 import './dashboard.css';
-import './fclt-queue-scenario.css';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lnb } from '@/components/lnb';

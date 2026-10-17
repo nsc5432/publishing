@@ -20,7 +20,6 @@ public final class FacilityQueueCalculator {
     private final Double avgWtngTimeSec;
     private final Double avgQueuePsgCnt;
     private final Integer queuePsgCntAtEnd;
-    private final boolean samePassengerPopulation;
 
     private FacilityQueueCalculator(Builder builder) {
         QueueInputValidation.requiredText(builder.tmnlId, "tmnlId");
@@ -29,15 +28,17 @@ public final class FacilityQueueCalculator {
         QueueInputValidation.requiredText(builder.queueId, "queueId");
         Objects.requireNonNull(builder.intervalStart, "intervalStart");
         Objects.requireNonNull(builder.source, "source");
-        LocalDateTime end = builder.intervalEnd == null
-                ? builder.intervalStart.plusMinutes(10) : builder.intervalEnd;
+        LocalDateTime end = builder.intervalEnd == null ? builder.intervalStart.plusMinutes(10) : builder.intervalEnd;
+        
         if (!end.isAfter(builder.intervalStart)) {
-            throw new IllegalArgumentException("intervalEnd must be after intervalStart");
+            throw new IllegalArgumentException("종료 시각은 시작 시각보다 뒤여야 합니다.");
         }
+
         QueueInputValidation.nonNegative(builder.avgPrcsTimeSec, "avgPrcsTimeSec");
         QueueInputValidation.nonNegative(builder.avgWtngTimeSec, "avgWtngTimeSec");
         QueueInputValidation.nonNegative(builder.avgQueuePsgCnt, "avgQueuePsgCnt");
         QueueInputValidation.nonNegative(builder.queuePsgCntAtEnd, "queuePsgCntAtEnd");
+        
         this.tmnlId = builder.tmnlId;
         this.fcltType = builder.fcltType;
         this.fcltId = builder.fcltId;
@@ -49,7 +50,6 @@ public final class FacilityQueueCalculator {
         this.avgWtngTimeSec = builder.avgWtngTimeSec;
         this.avgQueuePsgCnt = builder.avgQueuePsgCnt;
         this.queuePsgCntAtEnd = builder.queuePsgCntAtEnd;
-        this.samePassengerPopulation = builder.samePassengerPopulation;
     }
 
     public static Builder builder() { return new Builder(); }
@@ -65,7 +65,7 @@ public final class FacilityQueueCalculator {
      * 예: 대기 600초·처리 120초이면 평균 720초. 서로 다른 집단의 평균은 합산하지 않는다.
      */
     public Computed<Double> getAvgSojournTimeSec() {
-        String missing = comparableTimesIssue();
+        String missing = missingTimesIssue();
         if (missing != null) return Computed.unavailable(CalculationMethod.DIRECT, missing);
         return number(avgWtngTimeSec + avgPrcsTimeSec, false, CalculationMethod.DIRECT,
                 "같은 여객 모집단의 평균 대기시간 + 평균 처리시간(초)");
@@ -88,7 +88,7 @@ public final class FacilityQueueCalculator {
 
     /** 평균 대기가 평균 처리의 몇 배인지 Wq/S로 구한다. 처리시간이 0이면 나눌 수 없다. */
     public Computed<Double> getWaitingToServiceRatio() {
-        String missing = comparableTimesIssue();
+        String missing = missingTimesIssue();
         if (missing != null) return Computed.unavailable(CalculationMethod.DIRECT, missing);
         if (avgPrcsTimeSec == 0) {
             return Computed.unavailable(CalculationMethod.DIRECT, "평균 처리시간이 0입니다.");
@@ -462,9 +462,10 @@ public final class FacilityQueueCalculator {
         );
     }
 
-    private String comparableTimesIssue() {
+    /** 평균 처리시간과 평균 대기시간은 같은 큐·관측 구간의 여객을 대표하는 값으로 입력한다. */
+    private String missingTimesIssue() {
         if (avgPrcsTimeSec == null || avgWtngTimeSec == null) return "평균 처리시간과 평균 대기시간이 모두 필요합니다.";
-        return samePassengerPopulation ? null : "두 평균시간이 같은 여객 모집단을 대표하는지 확인되지 않았습니다.";
+        return null;
     }
 
     /** 0 나눗셈은 각 메서드에서 처리하고, 최종 산술 오버플로는 잘못된 숫자 대신 산출 불가로 바꾼다. */
@@ -517,9 +518,6 @@ public final class FacilityQueueCalculator {
     /** 구간 종료 시점 대기인원 Q(명). 혼잡 해소시간의 초기 상태로 사용한다. */
     public Integer getQueuePsgCntAtEnd() { return queuePsgCntAtEnd; }
 
-    /** 평균 처리시간과 평균 대기시간이 같은 여객 모집단·관측 기준을 대표하는지 확인한 값. 기본은 false이다. */
-    public boolean isSamePassengerPopulation() { return samePassengerPopulation; }
-
     public static final class Builder {
         private String tmnlId;
         private String fcltType;
@@ -532,7 +530,6 @@ public final class FacilityQueueCalculator {
         private Double avgWtngTimeSec;
         private Double avgQueuePsgCnt;
         private Integer queuePsgCntAtEnd;
-        private boolean samePassengerPopulation;
         private Builder() { }
         public Builder tmnlId(String value) { this.tmnlId = value; return this; }
         public Builder fcltType(String value) { this.fcltType = value; return this; }
@@ -545,7 +542,6 @@ public final class FacilityQueueCalculator {
         public Builder avgWtngTimeSec(Double value) { this.avgWtngTimeSec = value; return this; }
         public Builder avgQueuePsgCnt(Double value) { this.avgQueuePsgCnt = value; return this; }
         public Builder queuePsgCntAtEnd(Integer value) { this.queuePsgCntAtEnd = value; return this; }
-        public Builder samePassengerPopulation(boolean value) { this.samePassengerPopulation = value; return this; }
         public FacilityQueueCalculator build() { return new FacilityQueueCalculator(this); }
     }
 }
