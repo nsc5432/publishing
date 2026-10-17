@@ -536,18 +536,18 @@ function toQueueNextWtng(
     capacity: number | null,
 ): Pick<FcltQueueClearDto, 'nextWtngSec' | 'nextWtngMetric'> {
     if (fcltCnt === 0) {
-        return { nextWtngSec: null, nextWtngMetric: queueMetric('UNREACHABLE', 'QUEUE_POSITION', '운영 처리시설이 0개라 대기가 끝나지 않습니다.') };
+        return { nextWtngSec: null, nextWtngMetric: queueMetric('UNREACHABLE', 'NEXT_ARRIVAL_WAIT', '운영 처리시설이 0개라 대기가 끝나지 않습니다.') };
     }
     if (capacity === null) {
-        return { nextWtngSec: null, nextWtngMetric: queueMetric('UNAVAILABLE', 'QUEUE_POSITION', '양수인 단일 시설 평균 처리시간이 필요합니다.') };
+        return { nextWtngSec: null, nextWtngMetric: queueMetric('UNAVAILABLE', 'NEXT_ARRIVAL_WAIT', '양수인 단일 시설 평균 처리시간이 필요합니다.') };
     }
     if (profile.wtngPsgCnt === 0) {
-        return { nextWtngSec: 0, nextWtngMetric: queueMetric('CALCULATED', 'QUEUE_POSITION', '대기열이 비어 있어 바로 처리를 시작한다고 봅니다.') };
+        return { nextWtngSec: 0, nextWtngMetric: queueMetric('CALCULATED', 'NEXT_ARRIVAL_WAIT', '대기열이 비어 있어 바로 처리를 시작한다고 봅니다.') };
     }
 
     return {
         nextWtngSec: ((profile.wtngPsgCnt + 1) / capacity) * 3600,
-        nextWtngMetric: queueMetric('ESTIMATED', 'QUEUE_POSITION', '(종료 시점 대기인원 + 1) / 총 처리능력 × 3600. 이후 유입과 무관'),
+        nextWtngMetric: queueMetric('ESTIMATED', 'NEXT_ARRIVAL_WAIT', '(종료 시점 대기인원 + 1) / 총 처리능력 × 3600. 이후 유입과 무관'),
     };
 }
 
@@ -564,12 +564,12 @@ function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: strin
         clearSec = 0;
         clearMetric = queueMetric('CALCULATED', 'DIRECT', '종료 시점 대기인원이 이미 목표 이하입니다.');
     } else if (capacity === null) {
-        clearMetric = queueMetric('UNAVAILABLE', 'FLUID_APPROXIMATION', '양수인 단일 시설 평균 처리시간이 필요합니다.');
+        clearMetric = queueMetric('UNAVAILABLE', 'FLOW_BALANCE', '양수인 단일 시설 평균 처리시간이 필요합니다.');
     } else if (capacity - lambda <= 0) {
-        clearMetric = queueMetric('UNREACHABLE', 'FLUID_APPROXIMATION', '처리능력이 유입률 이하라 현재 조건으로 목표까지 감소하지 않습니다.');
+        clearMetric = queueMetric('UNREACHABLE', 'FLOW_BALANCE', '처리능력이 유입률 이하라 현재 조건으로 목표까지 감소하지 않습니다.');
     } else {
         clearSec = (excess / (capacity - lambda)) * 3600;
-        clearMetric = queueMetric('ESTIMATED', 'FLUID_APPROXIMATION', '유입률·처리능력이 일정한 유입/처리 차이 계산');
+        clearMetric = queueMetric('ESTIMATED', 'FLOW_BALANCE', '유입률·처리능력이 일정한 유입/처리 차이 계산');
     }
 
     const clear: FcltQueueClearDto = {
@@ -628,7 +628,7 @@ function toQueueRecommend(profile: QueueScenarioProfile, targetMin: number): Fcl
         stableAplyYn: null,
         capaAvlYn: null,
         goalMetYn: null,
-        reqMetric: queueMetric('UNAVAILABLE', 'FLUID_APPROXIMATION', '양수인 단일 시설 평균 처리시간이 필요합니다.'),
+        reqMetric: queueMetric('UNAVAILABLE', 'FLOW_BALANCE', '양수인 단일 시설 평균 처리시간이 필요합니다.'),
     };
 
     if (requiredRate > 0 && mu === null) return base;
@@ -644,7 +644,7 @@ function toQueueRecommend(profile: QueueScenarioProfile, targetMin: number): Fcl
         fluidReqCnt,
         stableAplyYn: reqCnt > fluidReqCnt ? 'Y' : 'N',
         capaAvlYn: profile.totCnt === null ? null : reqCnt <= profile.totCnt ? 'Y' : 'N',
-        reqMetric: queueMetric('ESTIMATED', 'FLUID_APPROXIMATION', '현재 운영분을 포함한 총 소요 수'),
+        reqMetric: queueMetric('ESTIMATED', 'FLOW_BALANCE', '현재 운영분을 포함한 총 소요 수'),
     };
 }
 
@@ -687,7 +687,7 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
         totCntRsn: profile.totCnt === null ? '보안검색대(SC) 시설 마스터에서 배정 가능 수량을 찾지 못했습니다.' : '',
         arvlRate: profile.arvlPerHour / 60,
         srvcRate: mu === null ? null : mu / 60,
-        arvlMetric: queueMetric('ESTIMATED', 'CONSERVATION', '관측구간 보존식 유입인원 / 구간초 × 3600 (명/시간)'),
+        arvlMetric: queueMetric('ESTIMATED', 'QUEUE_BALANCE', '관측구간 보존식 유입인원 / 구간초 × 3600 (명/시간)'),
         srvcMetric:
             mu === null
                 ? queueMetric('UNAVAILABLE', 'SERVICE_TIME', '양수인 단일 시설 평균 처리시간이 필요합니다.')

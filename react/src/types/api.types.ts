@@ -166,12 +166,12 @@ export type QueueCalcMethod =
     | 'EXTERNAL_INPUT'
     | 'SERVICE_TIME'
     | 'LITTLE_LAW'
-    | 'CAPACITY_MODEL'
-    | 'FLUID_APPROXIMATION'
+    | 'SERVICE_CAPACITY'
+    | 'FLOW_BALANCE'
     | 'OBSERVED_FLOW'
-    | 'CONSERVATION'
+    | 'QUEUE_BALANCE'
     | 'ERLANG_C'
-    | 'QUEUE_POSITION';
+    | 'NEXT_ARRIVAL_WAIT';
 
 export type QueueDataSrc = 'CAST' | 'XOVIS';
 

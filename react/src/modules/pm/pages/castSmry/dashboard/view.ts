@@ -71,12 +71,12 @@ const QUEUE_METHOD_LABEL: Record<QueueCalcMethod, string> = {
     EXTERNAL_INPUT: '외부 입력',
     SERVICE_TIME: '처리시간 역수',
     LITTLE_LAW: "Little's Law 추정",
-    CAPACITY_MODEL: '처리능력 모형',
-    FLUID_APPROXIMATION: '유입/처리 차이 계산',
+    SERVICE_CAPACITY: '처리능력 모형',
+    FLOW_BALANCE: '유입/처리 차이 계산',
     OBSERVED_FLOW: '관측 통과율',
-    CONSERVATION: '인원 보존식 추정',
+    QUEUE_BALANCE: '인원 보존식 추정',
     ERLANG_C: 'Erlang C',
-    QUEUE_POSITION: '대기 순번 계산',
+    NEXT_ARRIVAL_WAIT: '대기 순번 계산',
 };
 
 export function toSimulationType(smltType: SmltType): SimulationType {

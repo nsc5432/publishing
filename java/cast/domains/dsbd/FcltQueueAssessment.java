@@ -46,7 +46,7 @@ public final class FcltQueueAssessment {
 		this.source = source;
 		this.targetQueueCnt = targetQueueCnt;
 		this.calculator = toCalculator(source);
-		this.arrival = calculator.estimateArrivalRateByConservation(source.toArrivalInput());
+		this.arrival = calculator.estimateArrivalRateByQueueBalance(source.toArrivalInput());
 		this.service = calculator.estimateServiceRatePerHour();
 	}
 

@@ -104,17 +104,17 @@ public final class FacilityQueueCalculator {
     public Computed<Double> estimateCapacityPerHour(FacilityQueueInput input) {
         Objects.requireNonNull(input, "input");
         if (input.getOprServerCnt() == null) {
-            return Computed.unavailable(CalculationMethod.CAPACITY_MODEL, "운영 처리시설 수가 없습니다.");
+            return Computed.unavailable(CalculationMethod.SERVICE_CAPACITY, "운영 처리시설 수가 없습니다.");
         }
         if (input.getOprServerCnt() == 0) {
-            return number(0, false, CalculationMethod.CAPACITY_MODEL, "운영 처리시설이 0개이므로 처리능력도 0입니다.");
+            return number(0, false, CalculationMethod.SERVICE_CAPACITY, "운영 처리시설이 0개이므로 처리능력도 0입니다.");
         }
         if (!input.isSharedHomogeneousServers()) {
-            return Computed.unavailable(CalculationMethod.CAPACITY_MODEL, "동일 속도의 공용 처리시설 그룹인지 확인되지 않았습니다.");
+            return Computed.unavailable(CalculationMethod.SERVICE_CAPACITY, "동일 속도의 공용 처리시설 그룹인지 확인되지 않았습니다.");
         }
         Computed<Double> service = estimateServiceRatePerHour();
-        if (!service.hasValue()) return failure(service, CalculationMethod.CAPACITY_MODEL);
-        return number(input.getOprServerCnt() * service.getValue(), true, CalculationMethod.CAPACITY_MODEL,
+        if (!service.hasValue()) return failure(service, CalculationMethod.SERVICE_CAPACITY);
+        return number(input.getOprServerCnt() * service.getValue(), true, CalculationMethod.SERVICE_CAPACITY,
                 "동일 속도의 공용 처리시설 수 × 대표 처리율(명/시간)");
     }
 
@@ -124,13 +124,13 @@ public final class FacilityQueueCalculator {
      */
     public Computed<Double> estimateLoadRatio(FacilityQueueInput input) {
         Computed<Double> capacity = estimateCapacityPerHour(input);
-        if (!capacity.hasValue()) return failure(capacity, CalculationMethod.CAPACITY_MODEL);
+        if (!capacity.hasValue()) return failure(capacity, CalculationMethod.SERVICE_CAPACITY);
         if (capacity.getValue() == 0) {
-            return Computed.unavailable(CalculationMethod.CAPACITY_MODEL, "처리능력이 0이라 유한한 부하율을 정의할 수 없습니다.");
+            return Computed.unavailable(CalculationMethod.SERVICE_CAPACITY, "처리능력이 0이라 유한한 부하율을 정의할 수 없습니다.");
         }
         Computed<Double> arrival = estimateArrivalRatePerHour(input);
-        if (!arrival.hasValue()) return failure(arrival, CalculationMethod.CAPACITY_MODEL);
-        return number(arrival.getValue() / capacity.getValue(), true, CalculationMethod.CAPACITY_MODEL,
+        if (!arrival.hasValue()) return failure(arrival, CalculationMethod.SERVICE_CAPACITY);
+        return number(arrival.getValue() / capacity.getValue(), true, CalculationMethod.SERVICE_CAPACITY,
                 "유입률 / 처리능력. 1 초과는 과부하이며 실제 가동률이 아닙니다. 유입 근거: " + arrival.getMethod());
     }
 
@@ -141,10 +141,10 @@ public final class FacilityQueueCalculator {
      */
     public Computed<Double> estimateNetDrainRatePerHour(FacilityQueueInput input) {
         Computed<Double> capacity = estimateCapacityPerHour(input);
-        if (!capacity.hasValue()) return failure(capacity, CalculationMethod.FLUID_APPROXIMATION);
+        if (!capacity.hasValue()) return failure(capacity, CalculationMethod.FLOW_BALANCE);
         Computed<Double> arrival = estimateArrivalRatePerHour(input);
-        if (!arrival.hasValue()) return failure(arrival, CalculationMethod.FLUID_APPROXIMATION);
-        return number(capacity.getValue() - arrival.getValue(), true, CalculationMethod.FLUID_APPROXIMATION,
+        if (!arrival.hasValue()) return failure(arrival, CalculationMethod.FLOW_BALANCE);
+        return number(capacity.getValue() - arrival.getValue(), true, CalculationMethod.FLOW_BALANCE,
                 "처리능력 - 유입률(명/시간). 유입 근거: " + arrival.getMethod());
     }
 
@@ -158,21 +158,21 @@ public final class FacilityQueueCalculator {
         Objects.requireNonNull(input, "input");
         QueueInputValidation.nonNegative(Integer.valueOf(targetQueueCnt), "targetQueueCnt");
         if (queuePsgCntAtEnd == null) {
-            return Computed.unavailable(CalculationMethod.FLUID_APPROXIMATION, "종료 시점 대기인원이 없습니다.");
+            return Computed.unavailable(CalculationMethod.FLOW_BALANCE, "종료 시점 대기인원이 없습니다.");
         }
         if (queuePsgCntAtEnd <= targetQueueCnt) {
             return number(0, false, CalculationMethod.DIRECT, "종료 시점 대기인원이 이미 목표 이하입니다.");
         }
         if (!input.isConstantRates()) {
-            return Computed.unavailable(CalculationMethod.FLUID_APPROXIMATION, "예측 구간의 유입률·처리율·운영 수 유지 가정이 필요합니다.");
+            return Computed.unavailable(CalculationMethod.FLOW_BALANCE, "예측 구간의 유입률·처리율·운영 수 유지 가정이 필요합니다.");
         }
         Computed<Double> drain = estimateNetDrainRatePerHour(input);
-        if (!drain.hasValue()) return failure(drain, CalculationMethod.FLUID_APPROXIMATION);
+        if (!drain.hasValue()) return failure(drain, CalculationMethod.FLOW_BALANCE);
         if (drain.getValue() <= 0) {
-            return Computed.unreachable(CalculationMethod.FLUID_APPROXIMATION, "처리능력이 유입률 이하라 현재 조건으로 목표까지 감소하지 않습니다.");
+            return Computed.unreachable(CalculationMethod.FLOW_BALANCE, "처리능력이 유입률 이하라 현재 조건으로 목표까지 감소하지 않습니다.");
         }
         return number((queuePsgCntAtEnd - (double) targetQueueCnt) / drain.getValue() * SECONDS_PER_HOUR,
-                true, CalculationMethod.FLUID_APPROXIMATION, "현재 대기인원에서 목표까지 유입률·처리능력이 일정한 유입/처리 차이 계산");
+                true, CalculationMethod.FLOW_BALANCE, "현재 대기인원에서 목표까지 유입률·처리능력이 일정한 유입/처리 차이 계산");
     }
 
     /**
@@ -184,21 +184,21 @@ public final class FacilityQueueCalculator {
     public Computed<Double> estimateNextArrivalWaitSec(FacilityQueueInput input) {
         Objects.requireNonNull(input, "input");
         if (queuePsgCntAtEnd == null) {
-            return Computed.unavailable(CalculationMethod.QUEUE_POSITION, "종료 시점 대기인원이 없습니다.");
+            return Computed.unavailable(CalculationMethod.NEXT_ARRIVAL_WAIT, "종료 시점 대기인원이 없습니다.");
         }
         if (!input.isConstantRates()) {
-            return Computed.unavailable(CalculationMethod.QUEUE_POSITION, "대기하는 동안 처리율·운영 수가 유지된다는 가정이 필요합니다.");
+            return Computed.unavailable(CalculationMethod.NEXT_ARRIVAL_WAIT, "대기하는 동안 처리율·운영 수가 유지된다는 가정이 필요합니다.");
         }
         Computed<Double> capacity = estimateCapacityPerHour(input);
-        if (!capacity.hasValue()) return failure(capacity, CalculationMethod.QUEUE_POSITION);
+        if (!capacity.hasValue()) return failure(capacity, CalculationMethod.NEXT_ARRIVAL_WAIT);
         if (capacity.getValue() == 0) {
-            return Computed.unreachable(CalculationMethod.QUEUE_POSITION, "운영 처리시설이 0개라 대기가 끝나지 않습니다.");
+            return Computed.unreachable(CalculationMethod.NEXT_ARRIVAL_WAIT, "운영 처리시설이 0개라 대기가 끝나지 않습니다.");
         }
         if (queuePsgCntAtEnd == 0) {
-            return number(0, false, CalculationMethod.QUEUE_POSITION, "대기열이 비어 있어 바로 처리를 시작한다고 봅니다.");
+            return number(0, false, CalculationMethod.NEXT_ARRIVAL_WAIT, "대기열이 비어 있어 바로 처리를 시작한다고 봅니다.");
         }
         return number((queuePsgCntAtEnd + 1.0) / capacity.getValue() * SECONDS_PER_HOUR, true,
-                CalculationMethod.QUEUE_POSITION, "(종료 시점 대기인원 + 1) / 총 처리능력 × 3600. 이후 유입과 무관");
+                CalculationMethod.NEXT_ARRIVAL_WAIT, "(종료 시점 대기인원 + 1) / 총 처리능력 × 3600. 이후 유입과 무관");
     }
 
     /**
@@ -215,26 +215,26 @@ public final class FacilityQueueCalculator {
         QueueInputValidation.nonNegative(Integer.valueOf(targetQueueCnt), "targetQueueCnt");
         QueueInputValidation.positive(targetTimeSec, "targetTimeSec");
         if (queuePsgCntAtEnd == null) {
-            return Computed.unavailable(CalculationMethod.FLUID_APPROXIMATION, "종료 시점 대기인원이 없습니다.");
+            return Computed.unavailable(CalculationMethod.FLOW_BALANCE, "종료 시점 대기인원이 없습니다.");
         }
         if (!input.isConstantRates() || !input.isSharedHomogeneousServers()) {
-            return Computed.unavailable(CalculationMethod.FLUID_APPROXIMATION, "일정한 유입률과 동일 속도의 공용 처리시설 가정이 필요합니다.");
+            return Computed.unavailable(CalculationMethod.FLOW_BALANCE, "일정한 유입률과 동일 속도의 공용 처리시설 가정이 필요합니다.");
         }
         Computed<Double> arrival = estimateArrivalRatePerHour(input);
-        if (!arrival.hasValue()) return failure(arrival, CalculationMethod.FLUID_APPROXIMATION);
+        if (!arrival.hasValue()) return failure(arrival, CalculationMethod.FLOW_BALANCE);
         double excess = Math.max(0, queuePsgCntAtEnd - (double) targetQueueCnt);
         double requiredRate = arrival.getValue() + excess / targetTimeSec * SECONDS_PER_HOUR;
         if (requiredRate == 0) {
-            return Computed.calculated(0, CalculationMethod.FLUID_APPROXIMATION, "잔여 초과 대기와 신규 유입이 모두 0입니다.");
+            return Computed.calculated(0, CalculationMethod.FLOW_BALANCE, "잔여 초과 대기와 신규 유입이 모두 0입니다.");
         }
         Computed<Double> service = estimateServiceRatePerHour();
-        if (!service.hasValue()) return failure(service, CalculationMethod.FLUID_APPROXIMATION);
+        if (!service.hasValue()) return failure(service, CalculationMethod.FLOW_BALANCE);
         // 양수 수요를 양수 처리율로 나눈 값이 극소수 언더플로로 0이 되어도 최소 1개는 필요하다.
         double required = Math.max(1.0, Math.ceil(requiredRate / service.getValue()));
         if (!Double.isFinite(required) || required > Integer.MAX_VALUE) {
-            return Computed.unavailable(CalculationMethod.FLUID_APPROXIMATION, "필요 시설 수가 표현 가능한 정수 범위를 초과합니다.");
+            return Computed.unavailable(CalculationMethod.FLOW_BALANCE, "필요 시설 수가 표현 가능한 정수 범위를 초과합니다.");
         }
-        return Computed.estimated((int) required, CalculationMethod.FLUID_APPROXIMATION,
+        return Computed.estimated((int) required, CalculationMethod.FLOW_BALANCE,
                 "현재 운영분을 포함한 총 소요 수. 보유 한도·변동성·SLA는 별도 검토해야 합니다.");
     }
 
@@ -256,28 +256,28 @@ public final class FacilityQueueCalculator {
     public Computed<Integer> estimateArrivalPsgCnt(FacilityQueueInput input) {
         Objects.requireNonNull(input, "input");
         if (!input.isNoAbandonmentOrTransfers()) {
-            return Computed.unavailable(CalculationMethod.CONSERVATION, "큐 이탈·다른 큐 이동·측정영역 변경이 없다는 확인이 필요합니다.");
+            return Computed.unavailable(CalculationMethod.QUEUE_BALANCE, "큐 이탈·다른 큐 이동·측정영역 변경이 없다는 확인이 필요합니다.");
         }
         if (queuePsgCntAtEnd == null || input.getQueuePsgCntAtStart() == null
                 || input.getWtngEndPsgCnt() == null) {
-            return Computed.unavailable(CalculationMethod.CONSERVATION, "시작·종료 대기인원과 서비스 시작인원이 필요합니다.");
+            return Computed.unavailable(CalculationMethod.QUEUE_BALANCE, "시작·종료 대기인원과 서비스 시작인원이 필요합니다.");
         }
         long arrivals = (long) queuePsgCntAtEnd - input.getQueuePsgCntAtStart() + input.getWtngEndPsgCnt();
         if (arrivals < 0 || arrivals > Integer.MAX_VALUE) {
-            return Computed.unavailable(CalculationMethod.CONSERVATION, "역산 유입인원이 음수이거나 정수 범위를 초과합니다. 원천과 경계를 확인해야 합니다.");
+            return Computed.unavailable(CalculationMethod.QUEUE_BALANCE, "역산 유입인원이 음수이거나 정수 범위를 초과합니다. 원천과 경계를 확인해야 합니다.");
         }
-        return Computed.calculated((int) arrivals, CalculationMethod.CONSERVATION,
+        return Computed.calculated((int) arrivals, CalculationMethod.QUEUE_BALANCE,
                 "큐 이탈·이동이 없는 경우의 종료인원 - 시작인원 + 서비스 시작인원");
     }
 
     /** 보존식 유입인원 / 구간초 × 3600(명/시간). 유입인원을 구할 수 없으면 그 사유를 그대로 전달한다. */
-    public Computed<Double> estimateArrivalRateByConservation(FacilityQueueInput input) {
+    public Computed<Double> estimateArrivalRateByQueueBalance(FacilityQueueInput input) {
         Computed<Integer> arrivals = estimateArrivalPsgCnt(input);
         if (!arrivals.hasValue()) {
-            return Computed.unavailable(CalculationMethod.CONSERVATION, arrivals.getReason());
+            return Computed.unavailable(CalculationMethod.QUEUE_BALANCE, arrivals.getReason());
         }
         return number(arrivals.getValue() / getIntervalSeconds() * SECONDS_PER_HOUR, true,
-                CalculationMethod.CONSERVATION, "관측구간 보존식 유입인원 " + arrivals.getValue() + "명 / 구간초 × 3600 (명/시간)");
+                CalculationMethod.QUEUE_BALANCE, "관측구간 보존식 유입인원 " + arrivals.getValue() + "명 / 구간초 × 3600 (명/시간)");
     }
 
     /**
