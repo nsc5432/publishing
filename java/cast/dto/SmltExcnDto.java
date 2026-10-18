@@ -13,7 +13,7 @@ public class SmltExcnDto extends AomsDefaultDto {
     private String smltId;
     private String tmnlId;
     private String smltType;
-    private String smltFlfmtSttsCd;
+    private String smltStts;
     private String smltFlfmtBgngDt;
     private String smltFlfmtEndDt;
     private String excnYmd;

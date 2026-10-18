@@ -16,6 +16,7 @@ import aoms.pm.cast.dto.SmltExecSmryDto;
 import aoms.pm.cast.enums.SmltExecStatus;
 import aoms.pm.cast.enums.SmltType;
 import aoms.pm.cast.enums.TerminalKind;
+import aoms.pm.cast.enums.UserSmltReqStatus;
 import aoms.pm.cast.mapper.CastSmltMapper;
 import aoms.pm.cast.service.CastMntrService;
 
@@ -87,7 +88,7 @@ public class CastMntrServiceImpl implements CastMntrService {
         result.setSmltFlfmtBgngDt(emptyIfNull(flfmt.getSmltFlfmtBgngDt()));
         result.setSmltFlfmtEndDt(emptyIfNull(flfmt.getSmltFlfmtEndDt()));
         result.setExecMin(flfmt.getExecMin());
-        result.setSmltFlfmtSttsCd(toExecStatus(flfmt.getSmltFlfmtSttsCd()));
+        result.setSmltFlfmtSttsCd(toExecStatus(flfmt.getSmltStts()));
 
         return result;
     }
@@ -104,14 +105,14 @@ public class CastMntrServiceImpl implements CastMntrService {
         result.setSmltFlfmtBgngDt(emptyIfNull(flfmt.getSmltFlfmtBgngDt()));
         result.setSmltFlfmtEndDt(emptyIfNull(flfmt.getSmltFlfmtEndDt()));
         result.setExecMin(flfmt.getExecMin());
-        result.setSmltFlfmtSttsCd(toExecStatus(flfmt.getSmltFlfmtSttsCd()));
+        result.setSmltFlfmtSttsCd(toExecStatus(flfmt.getSmltStts()));
 
         return result;
     }
 
-    private SmltExecStatus toExecStatus(String smltFlfmtSttsCd) {
-        if (SmltExecStatus.FAILED.getValue().equals(smltFlfmtSttsCd)) return SmltExecStatus.FAILED;
-        return SmltExecStatus.DONE.getValue().equals(smltFlfmtSttsCd) ? SmltExecStatus.DONE : SmltExecStatus.RUNNING;
+    private SmltExecStatus toExecStatus(String smltStts) {
+        UserSmltReqStatus status = UserSmltReqStatus.ofValue(smltStts);
+        return status != null ? status.toExecStatus() : SmltExecStatus.RUNNING;
     }
 
     private TerminalKind toTerminalKind(String tmnlId) {
