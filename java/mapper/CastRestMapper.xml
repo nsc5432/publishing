@@ -269,7 +269,6 @@
             <![CDATA[
 WITH
 /* 2) 기준 운항 집합 */
-
 BASE_GD AS (
     SELECT
         'FS001' AS RESOURCE_ID,
@@ -350,7 +349,6 @@ BASE_GD AS (
       AND A.GD_SE_YMD = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
 ),
 /* 3) 항공사 카테고리 */
-
 ALN_INFO AS (
     SELECT
         ALN_CD,
@@ -359,7 +357,6 @@ ALN_INFO AS (
     GROUP BY ALN_CD
 ),
 /* 4) 게이트 -> 터미널/CRS 그룹 */
-
 GATE_INFO AS (
     SELECT
         GATE_NO,
@@ -369,7 +366,6 @@ GATE_INFO AS (
     GROUP BY GATE_NO
 ),
 /* 5) 게이트 타입 */
-
 ACST_INFO AS (
     SELECT
         GATE_NO,
@@ -379,7 +375,6 @@ ACST_INFO AS (
     GROUP BY GATE_NO
 ),
 /* 6) 셀프체크인 가능 항공사 -> 영어 이름대로 셀프백드랍으로 변경 */
-
 SBD_INFO AS (
     SELECT DISTINCT
         ALN_CD AS ALN_IATA_CD
@@ -387,7 +382,6 @@ SBD_INFO AS (
     WHERE SYSTIMESTAMP BETWEEN TO_TIMESTAMP(PLCY_BGNG_DT, 'YYYY-MM-DD HH24:MI:SS') AND TO_TIMESTAMP(PLCY_END_DT, 'YYYY-MM-DD HH24:MI:SS')
 ),
 /* 7) 당일 CIC 배정이 존재하는 항공사 */
-
 CIC_ALLOC_ALN AS (
     SELECT DISTINCT
         A.ALN_CD
@@ -395,7 +389,6 @@ CIC_ALLOC_ALN AS (
     WHERE A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
 ),
 /* 8) FP 원본 - 당일/익일 04시 이전 */
-
 FP_DAY AS (
     SELECT
         B.FLTNM AS FLT_NM,
@@ -413,7 +406,6 @@ FP_DAY AS (
         B.FLTNM, B.SCHDL_YMD, B.SCHDL_HM
 ),
 /* 9) CIC_RANGE_CTT - ACT_FLT_ID 기준 */
-
 FP_CIC_BY_ACT AS (
     SELECT
         DALY_FLTSH_ID AS ACT_FLT_ID,
@@ -423,7 +415,6 @@ FP_CIC_BY_ACT AS (
     GROUP BY DALY_FLTSH_ID
 ),
 /* 10) CIC_RANGE_CTT - FLT_NM/SCHD_DT/SCHD_HM 기준 fallback */
-
 FP_CIC_BY_FLT AS (
     SELECT
         FLTNM AS FLT_NM,
@@ -436,7 +427,6 @@ FP_CIC_BY_FLT AS (
         FLTNM, SCHDL_YMD, SCHDL_HM
 ),
 /* 11) RS 캐로셀 정보 */
-
 RS_CRS_DAILY AS (
     SELECT
         ARR_DALY_FLTSH_ID AS ARR_ACT_FLT_ID,
@@ -445,7 +435,6 @@ RS_CRS_DAILY AS (
     GROUP BY ARR_DALY_FLTSH_ID
 ),
 /* 12) 최근 3개월 기준 closing_flt_nm별 대표 gate/stnd/ter */
-
 PAST_GATE_RANK AS (
     SELECT
         A.DDLN_FLTNM AS CLOSING_FLT_NM,
@@ -485,7 +474,6 @@ PAST_GATE AS (
     WHERE RN = 1
 ),
 /* 13) 최근 1개월 도착편 기준 대표 캐로셀 */
-
 ARR_CRS_HIST_RANK AS (
     SELECT
         A.DDLN_FLTNM AS CLOSING_FLT_NM,
@@ -524,7 +512,6 @@ ARR_CRS_HIST AS (
     WHERE RN = 1
 ),
 /* 13-2) 최근 3개월 기준 편명별 / 항공사별 평균 승객 수 및 환승객 수 추정 */
-
 PAST_PAX_AVG AS (
     SELECT
         A.DDLN_FLTNM AS CLOSING_FLT_NM,
@@ -573,7 +560,6 @@ PAST_PAX_AVG AS (
     GROUP BY A.DDLN_FLTNM, A.ALN_CD
 ),
 /* 14) CA_CRS fallback - TER_ID(+P02->P01), CRS_GRP_CD별 1건 */
-
 CA_CRS_PICK AS (
     SELECT
         CASE WHEN TMNL_ID = 'P02' THEN 'P01' ELSE TMNL_ID END AS TER_ID_ADJ,
@@ -586,7 +572,6 @@ CA_CRS_PICK AS (
     FROM CAOWN.TN_CA_CRSL
 ),
 /* ★ [추가] 14-2) 최근 6개월 항공사별 가장 많이 할당된 카운터 범위 (최빈값 구하기) */
-
 PAST_CIC_RANK AS (
     SELECT
         B.ALN_CD,
@@ -610,7 +595,6 @@ PAST_CIC AS (
     WHERE RN = 1
 ),
 /* 15) 기준 운항 + 과거 대표값 + FP/RS/CIC 결합 */
-
 BASE_PRE AS (
     SELECT
         B.RESOURCE_ID,
@@ -687,12 +671,10 @@ BASE_PRE AS (
        AND B.SCHD_DT        = F2.SCHD_DT
        AND B.SCHD_HM        = F2.SCHD_HM
     /* ★ [추가] 과거 대표 카운터 Join */
-
     LEFT JOIN PAST_CIC PC
         ON B.ALN_CD = PC.ALN_CD
 ),
 /* 16) 최종 FFF */
-
 FFF AS (
     SELECT
         BP.DOM_INT_SE_CD AS DomStatus,
@@ -1570,7 +1552,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
 
         /* CastRestTestMapper.retrieveSimId(CastResReqDto dto) */
-<select id="checkFcltCd" parameterType="aoms.pm.cmmn.dto.SimRsltDto" resultType="String">
+    <select id="checkFcltCd" parameterType="aoms.pm.cmmn.dto.SimRsltDto" resultType="String">
         /* CastRestTestMapper.checkFcltCd(SimRsltDto dto) */
     SELECT PSG_FCLT_CD AS psgFcltCd
     FROM PMOWN.TN_PM_SMLT_PSG_FCLT
