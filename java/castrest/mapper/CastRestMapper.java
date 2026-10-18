@@ -78,6 +78,7 @@ public interface CastRestMapper {
     CastRptStngHrGroupCntrlDto retrieveRptStngHrGroupCntrl(CastReqGetResourceDto idto);
     int updateWhatIfDefinitionTableStts(CastWhatIfCntrlDto wDto);
     List<CastWhatIfCntrlDto> checkWhatIfIdList(CastWhatIfCntrlDto dto);
+    int deleteWhatIfDefinitionTable(@Param("whatIfRunId") String whatIfRunId);
     List<UserSmltReqDto> retrieveUserReqByFsRsrcId(@Param("fltSchdlRsrcId") String fltSchdlRsrcId);
     UserSmltReqDto retrieveUserReqByKey(@Param("smltReqId") String smltReqId);
     int updateUserReqFinished(UserSmltReqDto dto);

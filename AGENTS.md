@@ -424,8 +424,8 @@ docs/user-smlt-master-redesign.md를 따른다.
 | 이름 / 테이블 | 의미 |
 |---|---|
 | SQ1_TN_PM_SMLT_RSLT | 사용자 등록·일일 결과 최초 수신 양쪽에서 공통 SMLT_ID 채번 |
-| TN_PM_SMLT_USER_MSTR | 사용자 실행의 원천이자 CAST WhatIf 요청. 신규 요청 ID는 WI + 공통 8자리 ID. 결과가 남아 있는 요청 행은 삭제하지 않는다 |
-| TN_PM_SMLT_STNG | 같은 실행 ID 아래의 모델별 설정. PK는 (SMLT_ID, SMLT_MDL_SN). USER_MSTR에 없는 ID는 일일·Manual 실행이며 실행별로 집계한다 |
+| TN_PM_SMLT_USER_MSTR | 사용자 실행의 원천이자 CAST WhatIf 요청. 신규 요청 ID는 WI + 공통 8자리 ID. 정상 비어 있지 않은 CAST 상태 목록에 없는 Finished 요청만 삭제한다 |
+| TN_PM_SMLT_STNG | 같은 실행 ID 아래의 모델별 설정. PK는 (SMLT_ID, SMLT_MDL_SN). SMLT_TYPE은 Auto·WhatIf만 사용한다. USER_MSTR에 없는 Auto만 모니터링에 표시하고, 삭제된 WhatIf 결과는 보존하되 표시하지 않는다 |
 | TN_PM_SMLT_RSLT_DTL(_REG_EXCL) | 같은 실행 ID의 상세·미매핑 결과 |
 
 공통 ID는 SQ1_TN_PM_SMLT_RSLT.NEXTVAL을 숫자 8자리로 표기하며 99999999를 넘기면 실패한다.
@@ -472,14 +472,18 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   mode=view&smltId=...는 현재상태가 아닌 실행 당시 JSON을 읽는다.
 - 사용자 결과는 FS 번호 후보가 유일해야 하며, 확인 가능한 WI 식별자와 일자·모델·입력 리소스를 대조한다.
   모호하거나 다른 입력이면 최신 요청에 임의 연결하지 않는다. 사용자 결과에 새 ID를 발급하지 않는다.
-- 일일·Manual은 Run 하나에 모델 결과 1건이라 결과마다 새 공통 ID를 받는다(2026-10-16 RESULT_GROUP·
+- 일일(Auto)은 Run 하나에 모델 결과 1건이라 결과마다 새 공통 ID를 받는다(2026-10-16 RESULT_GROUP·
   CAST_CONTRACT 제거). 다중 모델을 도입하면 STNG의 SMLT_TYPE·EXCN_ID(RunID)·계획/실제 시각·FS로 묶는다.
 - 원문은 REQUIRES_NEW 수신함에 먼저 보존한다. 파싱·매칭·저장 실패 이유도 남긴다.
   CAST는 결과를 재전송하지 않는다. RESULT_IDENTITY와 원천 식별키·payload hash 비교를 제거했다.
   동일 실행·모델의 결과가 STNG에 있으면 내용 비교 없이 실패 처리한다.
 - 결과 저장·이력·요청 완료는 같은 트랜잭션이다. 사용자 실행은 Failed이면 FAILED, STNG 결과가
   있으면 DONE, 나머지는 RUNNING이다. Finished 통보만으로 결과 없는 실행을 완료시키지 않는다.
-- 상태는 이전 상태 조건의 CAS UPDATE다. 상태 응답에 없는 요청을 삭제하지 않는다.
+- 상태는 이전 상태 조건의 CAS UPDATE다. CAST는 결과 저장 성공 응답 후 Finished를 통보한다.
+  정상 비어 있지 않은 상태 목록을 기준으로 목록에 없는 DB Finished 요청만 삭제한다.
+  빈 목록·잘못된 형식·파싱 실패는 삭제하지 않고 New·Executing·Failed도 유지한다.
+  삭제된 요청은 모니터링 목록·집계·상세에서 제외하고 해당 사용자 PS의 목록 제공·재조회를 종료한다.
+  STNG·결과 상세·발행 원천은 보존하며, 요청 삭제만으로 리소스 번호를 회수하지 않는다.
   활성 요청 부분 유니크 제약과 추가 실행 차단을 사용하지 않는다.
 - LISTAGG의 NULL 누락을 막는 NVL(' ')과 모든 컬럼의 동일 정렬 순서를 유지한다.
 

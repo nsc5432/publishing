@@ -239,8 +239,10 @@ Failed    → (종착)
 - **모든 전이는 이전 상태를 `WHERE` 에 건 CAS UPDATE.** 영향 0행은 이미 다른 경로가 전이시킨
   것이므로 에러가 아니라 무시한다.
 - **서버는 선점하지 않는다.** `New` 를 `Executing` 으로 바꾸는 것은 CAST 다.
-- 상태 응답에 없는 행을 삭제하지 않는다. full snapshot 계약이 확인되지 않았고, 방금 등록된
-  `New` 가 다음 응답에 못 들어가면 그대로 사라진다.
+- 정상 비어 있지 않은 CAST 상태 목록에 없는 DB `Finished` 요청만 삭제한다(2026-10-18).
+  빈 목록·잘못된 형식·파싱 실패 시 삭제하지 않으며 `New`·`Executing`·`Failed`는 유지한다.
+  CAST는 결과 저장 성공 응답 후 `Finished`를 통보한다. 요청 삭제 후 사용자 PS 조회를 종료하고,
+  모니터링 목록·집계·상세에서 제외한다. `STNG`·결과 상세·발행 원천은 보존한다.
 - `Executing` 으로 멈춘 요청을 회수하는 감시 배치는 **두지 않는다.** 수동 복구 SQL 은
   `java/ddl/2026-08-27-user-smlt-alter.sql` 말미 주석에 있다.
 
@@ -256,7 +258,7 @@ Failed    → (종착)
 | `retrieveWhatIfCntrl` | `CastRestMapper.xml` | CAST polling. **`WHERE SMLT_STTS = 'New'` 필수** |
 | `updateWhatIfDefinitionTableStts` | 〃 | CAS 전이 + `EXCT_DT` · `END_DT` |
 | `checkWhatIfIdList` | 〃 | 요청 ID · 상태 목록 |
-| `deleteWhatIfDefinitionTable` | 〃 | 요청 삭제 |
+| `deleteWhatIfDefinitionTable` | 〃 | CAST 목록에서 빠진 Finished 요청 삭제 |
 | `retrieveUserReqByFsRsrcId` | 〃 | `FLT_SCHDL_RSRC_ID` 로 역추적 |
 | `updateUserReqFinished` | 〃 | 결과 수신 완료 처리 + `RSLT_SMLT_ID` |
 

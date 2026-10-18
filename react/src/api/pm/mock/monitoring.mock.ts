@@ -15,6 +15,7 @@ const FAILED_NOS: Record<SmltType, number[]> = {
 };
 
 const EXEC_MIN = 15;
+const seededDays = new Set<string>();
 
 function toYmd(bgnDt: string): string {
     return bgnDt.length >= 8 ? bgnDt.slice(0, 8) : todayYmd();
@@ -58,8 +59,11 @@ function toSttsCd(running: boolean, failed: boolean): SmltExecStatus {
 
 function rows(bgnDt: string, endDt: string) {
     const ymd = toYmd(bgnDt);
-    const demos = buildRows('USER', ymd);
-    demos.forEach((row) => seedExecution({ ...row, error: false, errorMessage: '', ymd, tmnlId: 'T1' }));
+    if (!seededDays.has(ymd)) {
+        const demos = buildRows('USER', ymd);
+        demos.forEach((row) => seedExecution({ ...row, error: false, errorMessage: '', ymd, tmnlId: 'T1' }));
+        seededDays.add(ymd);
+    }
     const within = (stamp: string) => stamp.slice(0, 12) >= bgnDt && stamp.slice(0, 12) <= endDt;
     return {
         stdList: buildRows('DAILY', ymd).filter((row) => within(row.smltFlfmtBgngDt)),
@@ -88,25 +92,16 @@ export const monitoringMock = {
     getExecDetail: (smltId: string): SmltExecDetailDto => {
         const execution = mockExecutions.get(smltId);
         if (execution) return structuredClone(execution.detail);
-        const [prefix, ymd = '20260723', no = '0001'] = smltId.split('-');
-        const smltType: SmltType = prefix === 'USR' ? 'USER' : 'DAILY';
-        const rowNum = Number(no) || 1;
-        const running = RUNNING_NOS[smltType].includes(rowNum);
-        const failed = FAILED_NOS[smltType].includes(rowNum);
+        const match = /^STD-(\d{8})-(\d{4})$/.exec(smltId);
+        const standard = match ? buildRows('DAILY', match[1]).find((row) => row.smltId === smltId) : undefined;
+        if (!standard || !match) throw new Error('수행 이력을 찾을 수 없습니다.');
 
         return {
             error: false,
             errorMessage: '',
-            smltId,
-            smltType,
-            ymd,
-            tmnlId: rowNum % 2 === 0 ? 'T2' : 'T1',
-            deptNm: '시설관리팀',
-            userNm: '김민수',
-            smltFlfmtBgngDt: toDateTime(ymd, rowNum - 1),
-            smltFlfmtEndDt: running ? '' : toDateTime(ymd, rowNum - 1 + EXEC_MIN),
-            execMin: running ? 0 : EXEC_MIN,
-            smltFlfmtSttsCd: toSttsCd(running, failed),
+            ...standard,
+            ymd: match[1],
+            tmnlId: standard.rowNum % 2 === 0 ? 'T2' : 'T1',
         };
     },
 };

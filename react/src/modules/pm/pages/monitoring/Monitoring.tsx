@@ -66,6 +66,7 @@ function Monitoring() {
                 navigate(`${dashboardPath}?${dashboardParams.toString()}`);
             })
             .catch((error: ApiError) => {
+                setQuery((current) => ({ ...current }));
                 dialog.alert({ title: '조회 실패', description: error?.message || DETAIL_FAIL }).catch(() => {});
             });
     };
@@ -83,6 +84,7 @@ function Monitoring() {
                 navigate(`${USER_SMLT_CONFIG_PATH}?${configParams.toString()}`);
             })
             .catch((error: ApiError) => {
+                setQuery((current) => ({ ...current }));
                 dialog.alert({ title: '조회 실패', description: error?.message || DETAIL_FAIL }).catch(() => {});
             });
     };

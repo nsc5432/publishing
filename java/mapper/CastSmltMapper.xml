@@ -86,7 +86,7 @@
                 GROUP BY SMLT_ID
             ) S ON S.SMLT_ID = U.SMLT_ID
             UNION ALL
-            SELECT S.SMLT_ID, CASE WHEN S.SMLT_TYPE = 'Manual' THEN 'Manual' ELSE 'Auto' END AS SMLT_TYPE,
+            SELECT S.SMLT_ID, S.SMLT_TYPE,
                 S.EXCN_YMD, 'Finished' AS SMLT_STTS,
                 CAST(NULL AS TIMESTAMP(6)) AS SMLT_REQ_DT, S.SMLT_BGNG_DT, S.SMLT_END_DT,
                 S.FRST_RGTR_ID, S.FRST_REG_DT, S.TMNL_ID
@@ -100,6 +100,7 @@
                 GROUP BY SMLT_ID
             ) S
             WHERE NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U WHERE U.SMLT_ID = S.SMLT_ID)
+            AND S.SMLT_TYPE = 'Auto'
         ) A
         LEFT JOIN CAOWN.TN_CA_USER C ON A.FRST_RGTR_ID = C.USER_ID
         LEFT JOIN CAOWN.TN_CA_DEPT D ON C.DEPT_CD = D.DEPT_CD WHERE A.SMLT_ID = #{smltId}
@@ -131,7 +132,7 @@
                 GROUP BY SMLT_ID
             ) S ON S.SMLT_ID = U.SMLT_ID
             UNION ALL
-            SELECT S.SMLT_ID, CASE WHEN S.SMLT_TYPE = 'Manual' THEN 'Manual' ELSE 'Auto' END AS SMLT_TYPE,
+            SELECT S.SMLT_ID, S.SMLT_TYPE,
                 S.EXCN_YMD, 'Finished' AS SMLT_STTS,
                 CAST(NULL AS TIMESTAMP(6)) AS SMLT_REQ_DT, S.SMLT_BGNG_DT, S.SMLT_END_DT,
                 S.FRST_RGTR_ID, S.FRST_REG_DT, S.TMNL_ID
@@ -145,6 +146,7 @@
                 GROUP BY SMLT_ID
             ) S
             WHERE NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U WHERE U.SMLT_ID = S.SMLT_ID)
+            AND S.SMLT_TYPE = 'Auto'
         ) A
         LEFT JOIN CAOWN.TN_CA_USER C ON A.FRST_RGTR_ID = C.USER_ID
         LEFT JOIN CAOWN.TN_CA_DEPT D ON C.DEPT_CD = D.DEPT_CD
@@ -177,7 +179,7 @@
                 GROUP BY SMLT_ID
             ) S ON S.SMLT_ID = U.SMLT_ID
             UNION ALL
-            SELECT S.SMLT_ID, CASE WHEN S.SMLT_TYPE = 'Manual' THEN 'Manual' ELSE 'Auto' END AS SMLT_TYPE,
+            SELECT S.SMLT_ID, S.SMLT_TYPE,
                 S.EXCN_YMD, 'Finished' AS SMLT_STTS,
                 CAST(NULL AS TIMESTAMP(6)) AS SMLT_REQ_DT, S.SMLT_BGNG_DT, S.SMLT_END_DT,
                 S.FRST_RGTR_ID, S.FRST_REG_DT, S.TMNL_ID
@@ -191,6 +193,7 @@
                 GROUP BY SMLT_ID
             ) S
             WHERE NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U WHERE U.SMLT_ID = S.SMLT_ID)
+            AND S.SMLT_TYPE = 'Auto'
         ) A
         WHERE TO_CHAR(NVL(SMLT_REQ_DT, SMLT_BGNG_DT), 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
     </select>

@@ -13,7 +13,7 @@
 | PMOWN.TN_PM_SMLT_CURRENT_SAVE | 현재상태 부모 행이 없으면 운영자료 사용. 저장시각은 남아 있는 부모 행에서 계산 |
 | PMOWN.TN_PM_SMLT_RESULT_IDENTITY | CAST는 결과를 재전송하지 않는다. 동일 실행·모델의 중복 결과는 기존 STNG 검사로 거부 |
 | PMOWN.TN_PM_SMLT_ID_LOCK | 직렬화 잠금 없음. 리소스 번호는 USER_MSTR·STNG에 쓰인 최대 번호에서 계산 |
-| PMOWN.TN_PM_SMLT_RESULT_GROUP | 일일·Manual은 Run 하나에 모델 1개. 결과마다 새 공통 ID |
+| PMOWN.TN_PM_SMLT_RESULT_GROUP | 일일(Auto)은 Run 하나에 모델 1개. 결과마다 새 공통 ID |
 | PMOWN.TN_PM_SMLT_CAST_CONTRACT | 결과 묶음이 없어져 활성화 검사도 제거 |
 | PMOWN.TN_PM_SMLT_INPUT_BASE | 사용자 실행의 고정 리소스는 일일과 같은 001 원천. 코드 상수로 두고 USER_MSTR에 실행별로 기록 |
 
@@ -153,7 +153,7 @@ USER_MSTR의 최대 번호로 맞춘 뒤 구 백엔드를 배포한다.
 
 ### RESULT_GROUP·CAST_CONTRACT 제거 적용
 
-일일·Manual 실행은 Run 하나에 모델 결과 1건을 보낸다(Auto는 2026-10-12 확인, Manual은 운영 판단).
+일일(Auto) 실행은 Run 하나에 모델 결과 1건을 보낸다(2026-10-12 확인).
 그래서 결과 묶음과 그 활성화 스위치를 함께 제거하고, 결과마다 `SQ1_TN_PM_SMLT_RSLT`로 새 ID를 받는다.
 RunID 빈값 검사도 묶음 키에만 쓰였으므로 제거했다. 다음을 감수하는 결정이다.
 
@@ -161,7 +161,7 @@ RunID 빈값 검사도 묶음 키에만 쓰였으므로 제거했다. 다음을 
 |---|---|
 | 다중 모델 결과의 한 실행 묶음 | 모델 결과마다 별도 실행이 된다. 요약보기 기준 ID는 일자의 `MAX(SMLT_ID)` 하나다 |
 | 같은 Run 결과의 중복 수신 거부 | 같은 결과가 두 번 오면 실행 2건으로 저장된다. CAST는 재전송하지 않는다 |
-| 검증 전 일일·Manual 결과 저장 차단 | 차단 없이 저장한다. 신규 DB에서 계약 행이 없어 결과가 전부 실패하던 문제도 함께 사라진다 |
+| 검증 전 일일(Auto) 결과 저장 차단 | 차단 없이 저장한다. 신규 DB에서 계약 행이 없어 결과가 전부 실패하던 문제도 함께 사라진다 |
 
 다중 모델을 도입하게 되면 새 테이블 없이 STNG의 `SMLT_TYPE`·`EXCN_ID`(RunID)·`PLAN_BGNG_DT`·`PLAN_END_DT`·
 `SMLT_BGNG_DT`·`SMLT_END_DT`·`FLT_SCHDL_RSRC_ID` 조회로 기존 ID를 찾을 수 있다. 시각은 초 단위로 잘려 저장된다.
@@ -171,7 +171,7 @@ RunID 빈값 검사도 묶음 키에만 쓰였으므로 제거했다. 다음을 
 스크립트는 두 테이블의 DB 객체·외래키 의존성과, RESULT_GROUP으로 묶인 실행에 STNG 모델 행이 둘 이상인지 검사한다.
 다중 모델 실행이 있으면 단일 모델 전제가 깨진 것이므로 중단한다. `TN_PM_SMLT_RGRP_BAK_1016`·`TN_PM_SMLT_CNTR_BAK_1016`에
 데이터를 보존하고 건수와 모든 컬럼의 양방향 차이를 확인한 뒤 원본만 제거한다.
-새 백엔드 배포 후 일일·Manual 결과 저장과 사용자 결과 연결을 확인한다.
+새 백엔드 배포 후 일일(Auto) 결과 저장과 사용자(WhatIf) 결과 연결을 확인한다.
 이 저장소에서 실제 Oracle 실행과 백엔드 빌드를 완료한 것으로 간주하지 않는다.
 
 복구 시 전체 스키마 백업을 우선 사용한다. 데이터 백업만 사용하는 경우 결과 수신을 정지한 상태에서

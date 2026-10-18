@@ -2549,12 +2549,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
                 modelParser(node, mDto);
                 saveModel(mDto);
             }else if(simRslt.getResourceType().equals(GENERIC_TABLE)) {
-
-                int result = updateWhatIf(wDto);
-                if(result < 1) {
-                    throw new IllegalStateException("CAST 수신 상태 또는 결과를 적용하지 못했습니다.");
-                }
-
+                updateWhatIf(wDto);
             }else {
                 ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
                 if (attributes != null) {
@@ -2636,20 +2631,14 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     }
 
     private int setupMasterDto(CastResReqDto dto) {
-        int eventCd = 1;
-
         if (dto.getResourceID().contains(" Auto")) {
             dto.setSmltType(AUTO);
-            eventCd = 2;
+            return 2;
         } else if (dto.getResourceID().contains(WHAT_IF)) {
             dto.setSmltType(WHAT_IF);
-            eventCd = 0;
-        }else {
-            dto.setSmltType("Manual");
-            eventCd = 1;
+            return 0;
         }
-
-        return eventCd;
+        throw new IllegalStateException("CAST 결과의 시뮬레이션 유형을 식별할 수 없습니다: " + dto.getResourceID());
     }
 
     private List<SmltRsltDtlDto> processDetailList(CastResReqDto dto, String simId, String sno, int eventCd) {
@@ -3256,23 +3245,41 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private int updateWhatIf(CastWhatIfCntrlDto dto){
         saveSimLog("22", "1");
-        String[] sIDs = dto.getWhatIfRunId().split(",");
-        String[] sStts = dto.getStatus().split(",");
+        if (dto.getWhatIfRunId() == null || dto.getStatus() == null) {
+            throw new IllegalStateException("CAST 요청 ID 또는 상태 목록이 없습니다.");
+        }
+        String[] sIDs = dto.getWhatIfRunId().split(",", -1);
+        String[] sStts = dto.getStatus().split(",", -1);
+        if (sIDs.length != sStts.length) {
+            throw new IllegalStateException("CAST 요청 ID와 상태 목록의 길이가 다릅니다.");
+        }
+
+        Map<String, UserSmltReqStatus> reportedSttsMap = new LinkedHashMap<>();
+        for (int j = 0; j < sIDs.length; j++) {
+            String runId = sIDs[j].trim();
+            String status = sStts[j].trim();
+            if (runId.isBlank() && status.isBlank()) {
+                continue;
+            }
+            UserSmltReqStatus to = UserSmltReqStatus.ofValue(status);
+            if (runId.isBlank() || to == null || reportedSttsMap.putIfAbsent(runId, to) != null) {
+                throw new IllegalStateException("CAST 요청 ID 또는 상태 목록이 올바르지 않습니다.");
+            }
+        }
+        if (reportedSttsMap.isEmpty()) {
+            saveSimLog("22", "2");
+            return 0;
+        }
 
         Map<String, String> currentSttsMap = castRestMapper.checkWhatIfIdList(dto).stream()
                 .collect(Collectors.toMap(CastWhatIfCntrlDto::getWhatIfRunId, CastWhatIfCntrlDto::getStatus,
                         (first, ignored) -> first));
 
         int rRslt = 0;
-        for (int j = 0; j < sIDs.length && j < sStts.length; j++) {
-            String runId = sIDs[j] != null ? sIDs[j].trim() : "";
-
-            if (runId.isBlank()) {
-                continue;
-            }
-
+        for (Map.Entry<String, UserSmltReqStatus> reported : reportedSttsMap.entrySet()) {
+            String runId = reported.getKey();
             UserSmltReqStatus from = UserSmltReqStatus.ofValue(currentSttsMap.get(runId));
-            UserSmltReqStatus to = UserSmltReqStatus.ofValue(sStts[j] != null ? sStts[j].trim() : null);
+            UserSmltReqStatus to = reported.getValue();
 
             if (from == null || !from.canTransitTo(to)) {
                 continue;
@@ -3290,6 +3297,12 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
             int updated = castRestMapper.updateWhatIfDefinitionTableStts(wDto);
             rRslt += updated;
+        }
+        for (Map.Entry<String, String> current : currentSttsMap.entrySet()) {
+            if (UserSmltReqStatus.FINISHED.getValue().equals(current.getValue())
+                    && !reportedSttsMap.containsKey(current.getKey())) {
+                rRslt += castRestMapper.deleteWhatIfDefinitionTable(current.getKey());
+            }
         }
         saveSimLog("22", "2");
         return rRslt;

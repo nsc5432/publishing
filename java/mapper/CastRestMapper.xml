@@ -2264,6 +2264,11 @@ ORDER BY BlockID, DepArrTerminal, resourceID
          , SMLT_STTS AS status
       FROM PMOWN.TN_PM_SMLT_USER_MSTR
     </select>
+    <delete id="deleteWhatIfDefinitionTable">
+        DELETE FROM PMOWN.TN_PM_SMLT_USER_MSTR
+        WHERE SMLT_REQ_ID = #{whatIfRunId}
+        AND SMLT_STTS = 'Finished'
+    </delete>
     <select id="retrieveUserReqByFsRsrcId" resultType="aoms.pm.cast.dto.UserSmltReqDto">
         /* CastRestMapper.retrieveUserReqByFsRsrcId(String fltSchdlRsrcId) */
         SELECT *
