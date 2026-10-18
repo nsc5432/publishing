@@ -12,7 +12,7 @@ import aoms.pm.cast.dto.ChknBoothDto;
 import aoms.pm.cast.dto.ChknIslandDto;
 import aoms.pm.cast.dto.DepGateDto;
 import aoms.pm.cast.dto.OprTimeDto;
-import aoms.pm.cast.dto.UserSmltFrozenDto;
+import aoms.pm.cast.dto.UserSmltCustomCondDto;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.ChknBoothRow;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.ChknIslRow;
@@ -54,9 +54,9 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
     private final CastExecutionMapper executionMapper;
 
     @Override
-    public UserSmltRsrcSnapshotDto publish(String smltId, String excnYmd, List<UserSmltFrozenDto> frozenList) {
+    public UserSmltRsrcSnapshotDto publish(String smltId, String excnYmd, List<UserSmltCustomCondDto> customCondList) {
         UserSmltRsrcSnapshotDto snapshot = getSnapshot(smltId, excnYmd);
-        for (UserSmltFrozenDto frozen : frozenList) addRows(snapshot, frozen);
+        for (UserSmltCustomCondDto cond : customCondList) addRows(snapshot, cond);
 
         publishRsrc(RsrcTable.FLT_SCHDL, snapshot, this::insertSchdlAtrb);
         publishRsrc(RsrcTable.CKNCT, snapshot, castUserSnapshotMapper::insertCknctAtrb);
@@ -108,10 +108,10 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         return no;
     }
 
-    private void addRows(UserSmltRsrcSnapshotDto snapshot, UserSmltFrozenDto frozen) {
-        String tmnlId = frozen.getTmnlId().getFcltTmnlId();
-        snapshot.getFltAjmtList().add(new FltAjmtRow(tmnlId, frozen.getFlt().getAjmtRt()));
-        for (ChknIslandDto island : list(frozen.getChkn().getIslandList())) {
+    private void addRows(UserSmltRsrcSnapshotDto snapshot, UserSmltCustomCondDto cond) {
+        String tmnlId = cond.getTmnlId().getFcltTmnlId();
+        snapshot.getFltAjmtList().add(new FltAjmtRow(tmnlId, cond.getFlt().getAjmtRt()));
+        for (ChknIslandDto island : list(cond.getChkn().getIslandList())) {
             snapshot.getChknIslList().add(new ChknIslRow(tmnlId, island.getIsland(), island.getKioskCnt(), island.getBagDropCnt()));
             addOperHrRows(snapshot.getChknOperHrList(), tmnlId, island.getIsland(), island.getOprTimeList());
             for (ChknBoothDto booth : list(island.getBoothList())) {
@@ -119,7 +119,7 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
                 snapshot.getChknBoothList().add(new ChknBoothRow(tmnlId, island.getIsland(), booth.getBoothNo(), booth.getAlnCd()));
             }
         }
-        for (DepGateDto gate : list(frozen.getDep().getDptgtList())) {
+        for (DepGateDto gate : list(cond.getDep().getDptgtList())) {
             snapshot.getDptgtList().add(new DptgtRow(tmnlId, gate.getDptgtNo(), gate.getOprYn(), gate.getScshCntom(), gate.getGnrlSrchCntom(), gate.getSmartPassSrchCntom()));
             addOperHrRows(snapshot.getDptgtOperHrList(), tmnlId, gate.getDptgtNo(), gate.getOprTimeList());
         }

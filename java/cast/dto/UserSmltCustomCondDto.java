@@ -7,7 +7,7 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class UserSmltFrozenDto {
+public class UserSmltCustomCondDto {
 	private TerminalKind tmnlId;
 	private UserSmltFltPsgDto flt;
 	private UserSmltChknDto chkn;

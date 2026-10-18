@@ -72,7 +72,41 @@
             TO_CHAR(A.SMLT_END_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_END_DT,
             NVL(ROUND((CAST(A.SMLT_END_DT AS DATE) - CAST(A.SMLT_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
             A.FRST_RGTR_ID AS RGTR_ID, NVL(C.USER_NM, '') AS USER_NM, NVL(D.DEPT_NM, '') AS DEPT_NM
-        FROM (<include refid="aoms.pm.cast.mapper.CastExecutionMapper.executionRows"/>) A
+        FROM (
+            SELECT U.SMLT_ID, 'WhatIf' AS SMLT_TYPE, U.EXCN_YMD,
+                CASE WHEN U.SMLT_STTS = 'Failed' THEN 'Failed'
+                    WHEN S.SMLT_ID IS NOT NULL THEN 'Finished'
+                    WHEN U.SMLT_STTS = 'New' THEN 'New' ELSE 'Executing' END AS SMLT_STTS,
+                U.QUEUE_DT AS SMLT_REQ_DT, NVL(S.SMLT_BGNG_DT, U.EXCT_DT) AS SMLT_BGNG_DT,
+                CASE WHEN U.SMLT_STTS = 'Failed' THEN NVL(U.END_DT, S.SMLT_END_DT)
+                    ELSE S.SMLT_END_DT END AS SMLT_END_DT,
+                U.FRST_RGTR_ID, U.FRST_REG_DT, NVL(S.TMNL_ID, 'P01') AS TMNL_ID
+            FROM PMOWN.TN_PM_SMLT_USER_MSTR U
+            LEFT JOIN (
+                SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
+                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
+                    MAX(SMLT_END_DT) AS SMLT_END_DT,
+                    MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
+                    MIN(FRST_REG_DT) AS FRST_REG_DT
+                FROM PMOWN.TN_PM_SMLT_STNG
+                GROUP BY SMLT_ID
+            ) S ON S.SMLT_ID = U.SMLT_ID
+            UNION ALL
+            SELECT S.SMLT_ID, CASE WHEN S.SMLT_TYPE = 'Manual' THEN 'Manual' ELSE 'Auto' END AS SMLT_TYPE,
+                S.EXCN_YMD, 'Finished' AS SMLT_STTS,
+                CAST(NULL AS TIMESTAMP(6)) AS SMLT_REQ_DT, S.SMLT_BGNG_DT, S.SMLT_END_DT,
+                S.FRST_RGTR_ID, S.FRST_REG_DT, S.TMNL_ID
+            FROM (
+                SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
+                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
+                    MAX(SMLT_END_DT) AS SMLT_END_DT,
+                    MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
+                    MIN(FRST_REG_DT) AS FRST_REG_DT
+                FROM PMOWN.TN_PM_SMLT_STNG
+                GROUP BY SMLT_ID
+            ) S
+            WHERE NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U WHERE U.SMLT_ID = S.SMLT_ID)
+        ) A
         LEFT JOIN CAOWN.TN_CA_USER C ON A.FRST_RGTR_ID = C.USER_ID
         LEFT JOIN CAOWN.TN_CA_DEPT D ON C.DEPT_CD = D.DEPT_CD WHERE A.SMLT_ID = #{smltId}
     </select>
@@ -84,7 +118,41 @@
             TO_CHAR(A.SMLT_END_DT, 'YYYYMMDDHH24MISS') AS SMLT_FLFMT_END_DT,
             NVL(ROUND((CAST(A.SMLT_END_DT AS DATE) - CAST(A.SMLT_BGNG_DT AS DATE)) * 1440), 0) AS EXEC_MIN,
             A.FRST_RGTR_ID AS RGTR_ID, NVL(C.USER_NM, '') AS USER_NM, NVL(D.DEPT_NM, '') AS DEPT_NM
-        FROM (<include refid="aoms.pm.cast.mapper.CastExecutionMapper.executionRows"/>) A
+        FROM (
+            SELECT U.SMLT_ID, 'WhatIf' AS SMLT_TYPE, U.EXCN_YMD,
+                CASE WHEN U.SMLT_STTS = 'Failed' THEN 'Failed'
+                    WHEN S.SMLT_ID IS NOT NULL THEN 'Finished'
+                    WHEN U.SMLT_STTS = 'New' THEN 'New' ELSE 'Executing' END AS SMLT_STTS,
+                U.QUEUE_DT AS SMLT_REQ_DT, NVL(S.SMLT_BGNG_DT, U.EXCT_DT) AS SMLT_BGNG_DT,
+                CASE WHEN U.SMLT_STTS = 'Failed' THEN NVL(U.END_DT, S.SMLT_END_DT)
+                    ELSE S.SMLT_END_DT END AS SMLT_END_DT,
+                U.FRST_RGTR_ID, U.FRST_REG_DT, NVL(S.TMNL_ID, 'P01') AS TMNL_ID
+            FROM PMOWN.TN_PM_SMLT_USER_MSTR U
+            LEFT JOIN (
+                SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
+                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
+                    MAX(SMLT_END_DT) AS SMLT_END_DT,
+                    MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
+                    MIN(FRST_REG_DT) AS FRST_REG_DT
+                FROM PMOWN.TN_PM_SMLT_STNG
+                GROUP BY SMLT_ID
+            ) S ON S.SMLT_ID = U.SMLT_ID
+            UNION ALL
+            SELECT S.SMLT_ID, CASE WHEN S.SMLT_TYPE = 'Manual' THEN 'Manual' ELSE 'Auto' END AS SMLT_TYPE,
+                S.EXCN_YMD, 'Finished' AS SMLT_STTS,
+                CAST(NULL AS TIMESTAMP(6)) AS SMLT_REQ_DT, S.SMLT_BGNG_DT, S.SMLT_END_DT,
+                S.FRST_RGTR_ID, S.FRST_REG_DT, S.TMNL_ID
+            FROM (
+                SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
+                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
+                    MAX(SMLT_END_DT) AS SMLT_END_DT,
+                    MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
+                    MIN(FRST_REG_DT) AS FRST_REG_DT
+                FROM PMOWN.TN_PM_SMLT_STNG
+                GROUP BY SMLT_ID
+            ) S
+            WHERE NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U WHERE U.SMLT_ID = S.SMLT_ID)
+        ) A
         LEFT JOIN CAOWN.TN_CA_USER C ON A.FRST_RGTR_ID = C.USER_ID
         LEFT JOIN CAOWN.TN_CA_DEPT D ON C.DEPT_CD = D.DEPT_CD
         WHERE TO_CHAR(NVL(A.SMLT_REQ_DT, A.SMLT_BGNG_DT), 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
@@ -96,7 +164,41 @@
             NVL(SUM(CASE WHEN SMLT_STTS = 'Finished' THEN 1 ELSE 0 END), 0) DONE_CNT,
             NVL(SUM(CASE WHEN SMLT_STTS IN ('New', 'Executing') THEN 1 ELSE 0 END), 0) RUNNING_CNT,
             NVL(ROUND(AVG(CASE WHEN SMLT_STTS = 'Finished' THEN (CAST(SMLT_END_DT AS DATE) - CAST(SMLT_BGNG_DT AS DATE)) * 86400 END)), 0) AVG_EXEC_SEC
-        FROM (<include refid="aoms.pm.cast.mapper.CastExecutionMapper.executionRows"/>) A
+        FROM (
+            SELECT U.SMLT_ID, 'WhatIf' AS SMLT_TYPE, U.EXCN_YMD,
+                CASE WHEN U.SMLT_STTS = 'Failed' THEN 'Failed'
+                    WHEN S.SMLT_ID IS NOT NULL THEN 'Finished'
+                    WHEN U.SMLT_STTS = 'New' THEN 'New' ELSE 'Executing' END AS SMLT_STTS,
+                U.QUEUE_DT AS SMLT_REQ_DT, NVL(S.SMLT_BGNG_DT, U.EXCT_DT) AS SMLT_BGNG_DT,
+                CASE WHEN U.SMLT_STTS = 'Failed' THEN NVL(U.END_DT, S.SMLT_END_DT)
+                    ELSE S.SMLT_END_DT END AS SMLT_END_DT,
+                U.FRST_RGTR_ID, U.FRST_REG_DT, NVL(S.TMNL_ID, 'P01') AS TMNL_ID
+            FROM PMOWN.TN_PM_SMLT_USER_MSTR U
+            LEFT JOIN (
+                SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
+                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
+                    MAX(SMLT_END_DT) AS SMLT_END_DT,
+                    MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
+                    MIN(FRST_REG_DT) AS FRST_REG_DT
+                FROM PMOWN.TN_PM_SMLT_STNG
+                GROUP BY SMLT_ID
+            ) S ON S.SMLT_ID = U.SMLT_ID
+            UNION ALL
+            SELECT S.SMLT_ID, CASE WHEN S.SMLT_TYPE = 'Manual' THEN 'Manual' ELSE 'Auto' END AS SMLT_TYPE,
+                S.EXCN_YMD, 'Finished' AS SMLT_STTS,
+                CAST(NULL AS TIMESTAMP(6)) AS SMLT_REQ_DT, S.SMLT_BGNG_DT, S.SMLT_END_DT,
+                S.FRST_RGTR_ID, S.FRST_REG_DT, S.TMNL_ID
+            FROM (
+                SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
+                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
+                    MAX(SMLT_END_DT) AS SMLT_END_DT,
+                    MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
+                    MIN(FRST_REG_DT) AS FRST_REG_DT
+                FROM PMOWN.TN_PM_SMLT_STNG
+                GROUP BY SMLT_ID
+            ) S
+            WHERE NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U WHERE U.SMLT_ID = S.SMLT_ID)
+        ) A
         WHERE TO_CHAR(NVL(SMLT_REQ_DT, SMLT_BGNG_DT), 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
     </select>
 </mapper>

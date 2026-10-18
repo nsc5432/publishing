@@ -2,8 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="aoms.pm.cast.mapper.CastUserSnapshotMapper">
-
-
     <insert id="insertRsrcMstr">
         /* CastUserSnapshotMapper.insertRsrcMstr */
         INSERT INTO PMOWN.${mstrTableNm} (
@@ -17,59 +15,6 @@
         )
     </insert>
 
-    <!-- 확정 조건 인라인 행. 목록이 비어도 SQL 이 성립하도록 0행 seed 로 시작한다 -->
-    <sql id="fltAjmtRows">
-        SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS NUMBER) AS AJMT_RT FROM DUAL WHERE 1 = 0
-        <foreach collection="fltAjmtList" item="row">
-        UNION ALL SELECT #{row.tmnlId}, #{row.ajmtRt} FROM DUAL
-        </foreach>
-    </sql>
-
-    <sql id="chknIslRows">
-        SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
-               CAST(NULL AS NUMBER) AS KOS_CNT, CAST(NULL AS NUMBER) AS SBD_CNT
-        FROM DUAL WHERE 1 = 0
-        <foreach collection="chknIslList" item="row">
-        UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.kosCnt}, #{row.sbdCnt} FROM DUAL
-        </foreach>
-    </sql>
-
-    <sql id="chknOperHrRows">
-        SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
-               CAST(NULL AS NUMBER) AS OPER_HR_SN, CAST(NULL AS NUMBER) AS OPER_BGNG_HOUR, CAST(NULL AS NUMBER) AS OPER_END_HOUR
-        FROM DUAL WHERE 1 = 0
-        <foreach collection="chknOperHrList" item="row">
-        UNION ALL SELECT #{row.tmnlId}, #{row.fcltCd}, #{row.operHrSn}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
-        </foreach>
-    </sql>
-
-    <sql id="chknBoothRows">
-        SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
-               CAST(NULL AS NUMBER) AS BOOTH_NO, CAST(NULL AS VARCHAR2(3)) AS ALN_CD
-        FROM DUAL WHERE 1 = 0
-        <foreach collection="chknBoothList" item="row">
-        UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.boothNo}, #{row.alnCd} FROM DUAL
-        </foreach>
-    </sql>
-
-    <sql id="dptgtRows">
-        SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(2)) AS DPTGT_NO, CAST(NULL AS VARCHAR2(1)) AS OPER_YN,
-               CAST(NULL AS NUMBER) AS SCSH_CNTOM, CAST(NULL AS NUMBER) AS GNRL_SRCH_CNTOM, CAST(NULL AS NUMBER) AS SMART_PASS_SRCH_CNTOM
-        FROM DUAL WHERE 1 = 0
-        <foreach collection="dptgtList" item="row">
-        UNION ALL SELECT #{row.tmnlId}, #{row.dptgtNo}, #{row.oprYn}, #{row.scshCntom}, #{row.gnrlSrchCntom}, #{row.smartPassSrchCntom} FROM DUAL
-        </foreach>
-    </sql>
-
-    <sql id="dptgtOperHrRows">
-        SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(2)) AS DPTGT_NO,
-               CAST(NULL AS NUMBER) AS OPER_HR_SN, CAST(NULL AS NUMBER) AS OPER_BGNG_HOUR, CAST(NULL AS NUMBER) AS OPER_END_HOUR
-        FROM DUAL WHERE 1 = 0
-        <foreach collection="dptgtOperHrList" item="row">
-        UNION ALL SELECT #{row.tmnlId}, #{row.fcltCd}, #{row.operHrSn}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
-        </foreach>
-    </sql>
-
     <insert id="insertSchdlAtrbFromDaily" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSchdlAtrbFromDaily */
         INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB (
@@ -81,7 +26,10 @@
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         WITH AJMT AS (
-            <include refid="fltAjmtRows"/>
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS NUMBER) AS AJMT_RT FROM DUAL WHERE 1 = 0
+            <foreach collection="fltAjmtList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.ajmtRt} FROM DUAL
+            </foreach>
         )
         SELECT
             #{rsrcNo}, X.DOM_INTL_SE_CD, X.ARR_DEP_SE_CD, X.TMNL_ID, X.ALN_CD,
@@ -141,7 +89,10 @@
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         WITH AJMT AS (
-            <include refid="fltAjmtRows"/>
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS NUMBER) AS AJMT_RT FROM DUAL WHERE 1 = 0
+            <foreach collection="fltAjmtList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.ajmtRt} FROM DUAL
+            </foreach>
         )
         SELECT
             #{rsrcNo}, A.DOM_INTL_SE_CD, A.ARR_DEP_SE_CD, A.TMNL_ID, A.ALN_CD, A.ALN_CTGRY,
@@ -175,9 +126,19 @@
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         WITH BOOTH AS (
-            <include refid="chknBoothRows"/>
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
+                   CAST(NULL AS NUMBER) AS BOOTH_NO, CAST(NULL AS VARCHAR2(3)) AS ALN_CD
+            FROM DUAL WHERE 1 = 0
+            <foreach collection="chknBoothList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.boothNo}, #{row.alnCd} FROM DUAL
+            </foreach>
         ), OPER_HR AS (
-            <include refid="chknOperHrRows"/>
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
+                   CAST(NULL AS NUMBER) AS OPER_HR_SN, CAST(NULL AS NUMBER) AS OPER_BGNG_HOUR, CAST(NULL AS NUMBER) AS OPER_END_HOUR
+            FROM DUAL WHERE 1 = 0
+            <foreach collection="chknOperHrList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.fcltCd}, #{row.operHrSn}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
+            </foreach>
         )
         SELECT
             #{rsrcNo},
@@ -226,11 +187,26 @@
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         WITH ISL AS (
-            <include refid="chknIslRows"/>
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
+                   CAST(NULL AS NUMBER) AS KOS_CNT, CAST(NULL AS NUMBER) AS SBD_CNT
+            FROM DUAL WHERE 1 = 0
+            <foreach collection="chknIslList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.kosCnt}, #{row.sbdCnt} FROM DUAL
+            </foreach>
         ), OPER_HR AS (
-            <include refid="chknOperHrRows"/>
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
+                   CAST(NULL AS NUMBER) AS OPER_HR_SN, CAST(NULL AS NUMBER) AS OPER_BGNG_HOUR, CAST(NULL AS NUMBER) AS OPER_END_HOUR
+            FROM DUAL WHERE 1 = 0
+            <foreach collection="chknOperHrList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.fcltCd}, #{row.operHrSn}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
+            </foreach>
         ), BOOTH AS (
-            <include refid="chknBoothRows"/>
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
+                   CAST(NULL AS NUMBER) AS BOOTH_NO, CAST(NULL AS VARCHAR2(3)) AS ALN_CD
+            FROM DUAL WHERE 1 = 0
+            <foreach collection="chknBoothList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.boothNo}, #{row.alnCd} FROM DUAL
+            </foreach>
         )
         SELECT
             #{rsrcNo},
@@ -288,9 +264,19 @@
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         WITH ISL AS (
-            <include refid="chknIslRows"/>
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
+                   CAST(NULL AS NUMBER) AS KOS_CNT, CAST(NULL AS NUMBER) AS SBD_CNT
+            FROM DUAL WHERE 1 = 0
+            <foreach collection="chknIslList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.kosCnt}, #{row.sbdCnt} FROM DUAL
+            </foreach>
         ), OPER_HR AS (
-            <include refid="chknOperHrRows"/>
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
+                   CAST(NULL AS NUMBER) AS OPER_HR_SN, CAST(NULL AS NUMBER) AS OPER_BGNG_HOUR, CAST(NULL AS NUMBER) AS OPER_END_HOUR
+            FROM DUAL WHERE 1 = 0
+            <foreach collection="chknOperHrList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.fcltCd}, #{row.operHrSn}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
+            </foreach>
         )
         SELECT
             #{rsrcNo},
@@ -335,9 +321,19 @@
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         WITH DPTGT AS (
-            <include refid="dptgtRows"/>
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(2)) AS DPTGT_NO, CAST(NULL AS VARCHAR2(1)) AS OPER_YN,
+                   CAST(NULL AS NUMBER) AS SCSH_CNTOM, CAST(NULL AS NUMBER) AS GNRL_SRCH_CNTOM, CAST(NULL AS NUMBER) AS SMART_PASS_SRCH_CNTOM
+            FROM DUAL WHERE 1 = 0
+            <foreach collection="dptgtList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.dptgtNo}, #{row.oprYn}, #{row.scshCntom}, #{row.gnrlSrchCntom}, #{row.smartPassSrchCntom} FROM DUAL
+            </foreach>
         ), OPER_HR AS (
-            <include refid="dptgtOperHrRows"/>
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(2)) AS DPTGT_NO,
+                   CAST(NULL AS NUMBER) AS OPER_HR_SN, CAST(NULL AS NUMBER) AS OPER_BGNG_HOUR, CAST(NULL AS NUMBER) AS OPER_END_HOUR
+            FROM DUAL WHERE 1 = 0
+            <foreach collection="dptgtOperHrList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.fcltCd}, #{row.operHrSn}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
+            </foreach>
         )
         SELECT
             #{rsrcNo},
@@ -364,7 +360,12 @@
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         WITH DPTGT AS (
-            <include refid="dptgtRows"/>
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(2)) AS DPTGT_NO, CAST(NULL AS VARCHAR2(1)) AS OPER_YN,
+                   CAST(NULL AS NUMBER) AS SCSH_CNTOM, CAST(NULL AS NUMBER) AS GNRL_SRCH_CNTOM, CAST(NULL AS NUMBER) AS SMART_PASS_SRCH_CNTOM
+            FROM DUAL WHERE 1 = 0
+            <foreach collection="dptgtList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.dptgtNo}, #{row.oprYn}, #{row.scshCntom}, #{row.gnrlSrchCntom}, #{row.smartPassSrchCntom} FROM DUAL
+            </foreach>
         )
         SELECT
             #{rsrcNo},

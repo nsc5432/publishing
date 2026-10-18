@@ -2,7 +2,7 @@ package aoms.pm.cast.service;
 
 import java.util.List;
 
-import aoms.pm.cast.dto.UserSmltFrozenDto;
+import aoms.pm.cast.dto.UserSmltCustomCondDto;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto;
 
 /**
@@ -21,5 +21,5 @@ import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto;
  * </pre>
  */
 public interface CastUserSnapshotService {
-	UserSmltRsrcSnapshotDto publish(String smltId, String excnYmd, List<UserSmltFrozenDto> frozenList);
+	UserSmltRsrcSnapshotDto publish(String smltId, String excnYmd, List<UserSmltCustomCondDto> customCondList);
 }

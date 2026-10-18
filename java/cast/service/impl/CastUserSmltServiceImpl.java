@@ -49,28 +49,38 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
     }
     @Override
     public UserSmltExecDto executeUserSmlt(UserSmltExecSearchDto request) {
-        SessionUtils.setUserContext(request, sessionService);
-        if (request.getLoginUserId() == null) throw new IllegalStateException("로그인을 진행해주세요.");
         executionService.validateYmd(request.getYmd());
         validateEdits(request.getFltPsgList(), request.getYmd());
         validateEdits(request.getChknList(), request.getYmd());
         validateEdits(request.getDepList(), request.getYmd());
-        for (UserSmltFltPsgSaveDto edit : list(request.getFltPsgList())) requireSuccess(fltService.saveFltPsgInfo(edit));
-        for (UserSmltChknSaveDto edit : list(request.getChknList())) requireSuccess(chknService.saveChknCounterInfo(edit));
-        for (UserSmltDepSaveDto edit : list(request.getDepList())) requireSuccess(depService.saveDepInfo(edit));
+        
+        for (UserSmltFltPsgSaveDto edit : list(request.getFltPsgList())) 
+            requireSuccess(fltService.saveFltPsgInfo(edit));
+
+        for (UserSmltChknSaveDto edit : list(request.getChknList())) 
+            requireSuccess(chknService.saveChknCounterInfo(edit));
+        
+        for (UserSmltDepSaveDto edit : list(request.getDepList())) 
+            requireSuccess(depService.saveDepInfo(edit));
 
         String id = executionService.nextId();
-        List<UserSmltFrozenDto> frozenList = new ArrayList<>();
-        for (TerminalKind terminal : List.of(TerminalKind.T1, TerminalKind.T2)) frozenList.add(resolveTerminal(request.getYmd(), terminal));
-        UserSmltRsrcSnapshotDto snapshot = castUserSnapshotService.publish(id, request.getYmd(), frozenList);
+        List<UserSmltCustomCondDto> customCondList = new ArrayList<>();
+
+        for (TerminalKind terminal : List.of(TerminalKind.T1, TerminalKind.T2)) 
+            customCondList.add(resolveTerminal(request.getYmd(), terminal));
+        
+        UserSmltRsrcSnapshotDto snapshot = castUserSnapshotService.publish(id, request.getYmd(), customCondList);
+        
         SmltExcnDto history = new SmltExcnDto();
         SessionUtils.setUserContext(history, sessionService);
         history.setSmltId(id);
         history.setSmltType(SmltType.USER.getDbCode());
         history.setSmltFlfmtSttsCd(SmltExecStatus.RUNNING.getValue());
         castSmltMapper.insertSmltFlfmtHstry(history);
+
         String reqId = "WI" + id;
         castUserReqMapper.insertUserReq(getUserReq(id, reqId, request.getYmd(), snapshot));
+        
         UserSmltExecDto result = new UserSmltExecDto();
         result.setSmltId(id);
         result.setSmltReqId(reqId);
@@ -78,21 +88,37 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         result.setSmltFlfmtBgngDt(EMPTY);
         return result;
     }
-    private UserSmltFrozenDto resolveTerminal(String ymd, TerminalKind terminal) {
-        UserSmltFltPsgSearchDto fq = new UserSmltFltPsgSearchDto();
-        fq.setYmd(ymd); fq.setTmnlId(terminal);
-        UserSmltChknSearchDto cq = new UserSmltChknSearchDto();
-        cq.setYmd(ymd); cq.setTmnlId(terminal);
-        UserSmltDepSearchDto dq = new UserSmltDepSearchDto();
-        dq.setYmd(ymd); dq.setTmnlId(terminal);
-        UserSmltFltPsgDto flt = fltService.retrieveFltPsgInfo(fq);
-        UserSmltChknDto chkn = chknService.retrieveChknCounterInfo(cq);
-        UserSmltDepDto dep = depService.retrieveDepInfo(dq);
-        requireSuccess(flt); requireSuccess(chkn); requireSuccess(dep);
-        if (flt.getFltCnt() == 0) throw new IllegalStateException(terminal.getValue() + " " + ymd + " 운항 운영자료가 없습니다.");
-        if (!executionService.hasCurrentConditions(cq, "CHKN") && chkn.getIslandList().stream().noneMatch(island -> !island.getOprTimeList().isEmpty() && island.getBoothList().stream().anyMatch(booth -> booth.getAlnCd() != null && !booth.getAlnCd().isBlank()))) throw new IllegalStateException(terminal.getValue() + " 체크인 운영자료가 없습니다.");
-        if (!executionService.hasCurrentConditions(dq, "DEP") && dep.getDptgtList().stream().noneMatch(gate -> !gate.getOprTimeList().isEmpty())) throw new IllegalStateException(terminal.getValue() + " 출국장 운영자료가 없습니다.");
-        return new UserSmltFrozenDto(terminal, flt, chkn, dep);
+    private UserSmltCustomCondDto resolveTerminal(String ymd, TerminalKind terminal) {
+        UserSmltFltPsgSearchDto fltQuery = new UserSmltFltPsgSearchDto();
+        fltQuery.setYmd(ymd);
+        fltQuery.setTmnlId(terminal);
+        
+        UserSmltChknSearchDto chknQuery = new UserSmltChknSearchDto();
+        chknQuery.setYmd(ymd);
+        chknQuery.setTmnlId(terminal);
+        
+        UserSmltDepSearchDto depQuery = new UserSmltDepSearchDto();
+        depQuery.setYmd(ymd);
+        depQuery.setTmnlId(terminal);
+        
+        UserSmltFltPsgDto flt = fltService.retrieveFltPsgInfo(fltQuery);
+        UserSmltChknDto chkn = chknService.retrieveChknCounterInfo(chknQuery);
+        UserSmltDepDto dep = depService.retrieveDepInfo(depQuery);
+        
+        requireSuccess(flt);
+        requireSuccess(chkn);
+        requireSuccess(dep);
+        
+        if (flt.getFltCnt() == 0) 
+            throw new IllegalStateException(terminal.getValue() + " " + ymd + " 운항 운영자료가 없습니다.");
+        
+        if (!executionService.hasCurrentConditions(chknQuery, "CHKN") && chkn.getIslandList().stream().noneMatch(island -> !island.getOprTimeList().isEmpty() && island.getBoothList().stream().anyMatch(booth -> booth.getAlnCd() != null && !booth.getAlnCd().isBlank()))) 
+            throw new IllegalStateException(terminal.getValue() + " 체크인 운영자료가 없습니다.");
+        
+        if (!executionService.hasCurrentConditions(depQuery, "DEP") && dep.getDptgtList().stream().noneMatch(gate -> !gate.getOprTimeList().isEmpty())) 
+            throw new IllegalStateException(terminal.getValue() + " 출국장 운영자료가 없습니다.");
+        
+        return new UserSmltCustomCondDto(terminal, flt, chkn, dep);
     }
     private <T> List<T> list(List<T> values) { return values == null ? List.of() : values; }
     private void validateEdits(List<? extends UserSmltCurrentDto> edits, String ymd) {
