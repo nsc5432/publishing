@@ -256,7 +256,7 @@ export function DepartureTab({
                                 const range = gate?.ranges.find((it) => hour >= it.start && hour < it.end);
                                 const when = range ? `${range.start}~${range.end}시` : `${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
 
-                                return `${item.label}번 출국장 · ${when} · 보안검색대 ${gate?.scshCntom ?? 0}대`;
+                                return `${item.label}번 출국장 / ${when} / 보안검색대 ${gate?.scshCntom ?? 0}대`;
                             }}
                             disabled={!terminalEnabled}
                         />

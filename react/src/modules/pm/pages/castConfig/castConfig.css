@@ -651,8 +651,8 @@ html[data-page='castConfig'] .cast-config-cell-input {
 }
 
 /*
- * 편집 중인 셀은 스티키 헤더(4)·고정 체크박스 열(2) 보다 위로 올라와야 한다.
- * 셀렉트는 열린 목록이 아래·위 행을 덮으므로 특히 스태킹 컨텍스트가 필요하다.
+ * 편집 중인 셀은 스티키 헤더(4)/고정 체크박스 열(2) 보다 위로 올라와야 한다.
+ * 셀렉트는 열린 목록이 아래/위 행을 덮으므로 특히 스태킹 컨텍스트가 필요하다.
  */
 html[data-page='castConfig'] .cast-config-cell-input:focus,
 html[data-page='castConfig'] .cast-config-cell-select:focus {

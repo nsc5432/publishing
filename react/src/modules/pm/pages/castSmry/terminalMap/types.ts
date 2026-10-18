@@ -144,7 +144,7 @@ export interface MapSlot {
 
 /**
  * 하루치 도면 — 한 번 받아 두고 타임라인은 자리만 옮긴다.
- * 헤더 요약 · 운영시간 카드는 시각과 무관해 슬롯 밖에 한 벌만 둔다.
+ * 헤더 요약 / 운영시간 카드는 시각과 무관해 슬롯 밖에 한 벌만 둔다.
  */
 export interface MapDay {
     summary: HeaderSummary;

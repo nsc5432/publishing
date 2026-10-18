@@ -26,9 +26,9 @@ export function IslandStrip({ islands, time }: IslandStripProps) {
                     <li
                         key={island.id}
                         className={`chkn-chip chkn-chip--${island.isClosed ? 'off' : island.level}`}
-                        title={`${island.title} · ${
+                        title={`${island.title} / ${
                             island.isClosed ? '미운영' : CONGESTION_LABEL[island.level]
-                        } · Queue ${island.queuePsgCnt}명`}
+                        } / Queue ${island.queuePsgCnt}명`}
                     >
                         <b className="chkn-chip__label">{island.island}</b>
                         <span className="chkn-chip__value">
@@ -37,7 +37,7 @@ export function IslandStrip({ islands, time }: IslandStripProps) {
                         <span className="chkn-chip__sub">
                             {island.isClosed
                                 ? '-'
-                                : `${island.oprBoothCnt}부스 · ${toWaitMin(island.waitSec)}분`}
+                                : `${island.oprBoothCnt}부스 / ${toWaitMin(island.waitSec)}분`}
                         </span>
                     </li>
                 ))}

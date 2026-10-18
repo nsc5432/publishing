@@ -53,7 +53,7 @@ export function TerminalIntro({ ymd, onStart }: TerminalIntroProps) {
             </div>
 
             <div className="intro__foot">
-                <p className="intro__hint">편집할 터미널을 고르세요. 실행할 때는 선택과 관계없이 T1·T2 전체 조건을 사용합니다.</p>
+                <p className="intro__hint">편집할 터미널을 고르세요. 실행할 때는 선택과 관계없이 T1/T2 전체 조건을 사용합니다.</p>
                 <button type="button" className="btn btn--primary intro__start" disabled={pickedCount === 0} onClick={() => onStart(picked)}>
                     {pickedCount === 0 ? '터미널을 선택하세요' : `선택한 ${pickedCount}개로 시작`}
                 </button>

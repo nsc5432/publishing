@@ -15,7 +15,7 @@ interface FcltMapStageProps {
 /**
  * 터미널 도면 + 구역 마커.
  *
- * 좌표 원본이 아일랜드·출국장 단위뿐이라 마커 하나에 시설 여러 건이 걸린다(N:1).
+ * 좌표 원본이 아일랜드/출국장 단위뿐이라 마커 하나에 시설 여러 건이 걸린다(N:1).
  * 그래서 마커는 개별 시설을 가리키지 않고 **그 구역의 건수**로만 말한다.
  * 미매핑이 있는 구역은 뱃지를 달아 도면만 봐도 문제 자리가 보이게 한다.
  */
@@ -64,8 +64,8 @@ export function FcltMapStage({
                                 marker.id === activeMarkerId ? ' is-active' : ''
                             }${marker.unmapped > 0 ? ' has-issue' : ''}`}
                             style={toStagePosition(marker.x, marker.y)}
-                            aria-label={`${marker.label} · 시설 ${marker.total}건${
-                                marker.unmapped > 0 ? ` · 미매핑 ${marker.unmapped}건` : ''
+                            aria-label={`${marker.label} / 시설 ${marker.total}건${
+                                marker.unmapped > 0 ? ` / 미매핑 ${marker.unmapped}건` : ''
                             }`}
                             onClick={() => onMarkerClick(marker.id)}
                         >

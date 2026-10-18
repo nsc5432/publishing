@@ -223,7 +223,7 @@
     background: #c5cbd6;
 }
 
-/* 실적 = 꺾은선. 선 색이 터미널마다 달라 T1 파랑 · T2 청록을 반씩 쓴다 */
+/* 실적 = 꺾은선. 선 색이 터미널마다 달라 T1 파랑 / T2 청록을 반씩 쓴다 */
 .header-info-cards .hourly-legend .lg-rslt::before {
     width: 14px;
     height: 3px;

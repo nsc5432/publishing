@@ -13,7 +13,7 @@ interface DepMapViewProps {
  * 맵 보기 — 도면 무대 위의 마커와 출국장 카드.
  *
  * 무대(.dep-stage)는 도면 배경(.dep-view__bg)에 대한 고정 비율 박스라
- * 창 크기가 변해도 마커·카드가 배경 위 같은 자리에 얹힌다.
+ * 창 크기가 변해도 마커/카드가 배경 위 같은 자리에 얹힌다.
  */
 export function DepMapView({ data, activeId, onDepGateHover }: DepMapViewProps) {
     return (

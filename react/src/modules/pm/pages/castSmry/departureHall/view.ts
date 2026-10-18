@@ -28,7 +28,7 @@ import type {
 /**
  * 출국장 DTO → 화면 뷰 모델.
  *
- * 서버는 혼잡도를 4단계(CongestionStatus)로 내려주고 화면 마커·뱃지는 3색이다.
+ * 서버는 혼잡도를 4단계(CongestionStatus)로 내려주고 화면 마커/뱃지는 3색이다.
  * 그 접점을 여기 한 곳에 둔다. 컴포넌트가 저마다 매핑을 들고 있으면
  * 같은 상태가 화면마다 다른 색으로 보이기 시작한다.
  *
@@ -36,7 +36,7 @@ import type {
  * 같은 슬롯에서 뽑는다. 세 보기가 한 벌의 값을 나눠 쓴다.
  */
 
-/** 혼잡도 4단계 → 마커·뱃지 3단계 (여유와 보통은 같은 색을 쓴다) */
+/** 혼잡도 4단계 → 마커/뱃지 3단계 (여유와 보통은 같은 색을 쓴다) */
 const CONGESTION_TO_LEVEL: Record<CongestionStatus, CongestionLevel> = {
     FREE: 'normal',
     NORMAL: 'normal',
@@ -55,7 +55,7 @@ const CONGESTION_TO_NOTICE_LEVEL: Record<CongestionStatus, NoticeLevel> = {
 /** 출국장별 꺾은선 색 (내려온 순서대로 돌려 쓴다) */
 const TREND_COLORS = ['#4441cc', '#e12b2b', '#1f9d3a', '#e8a318', '#2f7ff0', '#8b5cf6'];
 
-/** 혼잡 현황 지표 4종 — 카드 · 표 보기가 같은 순서로 읽는다 */
+/** 혼잡 현황 지표 4종 — 카드 / 표 보기가 같은 순서로 읽는다 */
 function toDepStats(cgnStat: MapCgnStatDto): DepStat[] {
     return [
         {
@@ -77,14 +77,14 @@ function toDepStats(cgnStat: MapCgnStatDto): DepStat[] {
     ];
 }
 
-/** 묶음 단위 코드(출국장 번호 · 아일랜드 문자) → 그 시각 상태 */
+/** 묶음 단위 코드(출국장 번호 / 아일랜드 문자) → 그 시각 상태 */
 function toRsltMap(rsltList: MapUnitRsltDto[]): Map<string, MapUnitRsltDto> {
     return new Map(rsltList.map((rslt) => [rslt.unitCd, rslt]));
 }
 
 /**
  * 도면 위 출국장 카드 — 마커와 같은 무대 기준 비율 좌표를 갖는다.
- * 자리·운영시간은 하루 내내 같고 혼잡도·지표만 그 시각 결과에서 온다.
+ * 자리/운영시간은 하루 내내 같고 혼잡도/지표만 그 시각 결과에서 온다.
  */
 function toCard(gate: DepHallGateDto, rslt: MapUnitRsltDto | undefined): DepGateCard {
     return {
@@ -102,7 +102,7 @@ function toCard(gate: DepHallGateDto, rslt: MapUnitRsltDto | undefined): DepGate
 }
 
 /**
- * 혼잡도를 함께 그리는 마커 (아일랜드 · 출국장이 같은 모양이다).
+ * 혼잡도를 함께 그리는 마커 (아일랜드 / 출국장이 같은 모양이다).
  * 마커는 자리만 알고 색은 그 시각 결과에서 온다 — 결과가 없는 시각은 원활로 둔다.
  */
 function toCongestionMarker(
@@ -135,7 +135,7 @@ function toNotice(notice: MapNoticeDto): NoticeData {
 
 /* ================= 하루치 ================= */
 
-/** 슬롯 1칸 — 카드·마커 색이 같은 결과에서 나온다 */
+/** 슬롯 1칸 — 카드/마커 색이 같은 결과에서 나온다 */
 function toDepSlot(dto: DepHallDto, slot: DepHallSlotDto, gates: GateMarker[]): DepSlot {
     const dptgtMap = toRsltMap(slot.dptgtRsltList);
     const chknMap = toRsltMap(slot.chknRsltList);
@@ -156,7 +156,7 @@ function toDepSlot(dto: DepHallDto, slot: DepHallSlotDto, gates: GateMarker[]): 
 
 /**
  * 차트 보기 — 출국장별 하루 추이.
- * 맵·표 보기가 한 시각을 읽는 그 값들을 시각 순서대로 이어 붙인 것이다.
+ * 맵/표 보기가 한 시각을 읽는 그 값들을 시각 순서대로 이어 붙인 것이다.
  */
 function toTrend(dto: DepHallDto): DepTrend {
     return {

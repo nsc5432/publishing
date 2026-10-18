@@ -1,7 +1,7 @@
 /** 값이 비었거나 형식이 어긋날 때 표기 */
 const EMPTY = '-';
 
-/** 두 자리 0 채움 (시각 · 분 · 초 표기 공용) */
+/** 두 자리 0 채움 (시각 / 분 / 초 표기 공용) */
 export function pad2(value: number | string): string {
     return String(value).padStart(2, '0');
 }

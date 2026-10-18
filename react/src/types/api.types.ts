@@ -472,7 +472,7 @@ export interface UserSmltFltPsgSaveReq {
     ajmtRt: number;
 }
 
-/* --------- 조회 결과 공용 (체크인 카운터 · 출국장) --------- */
+/* --------- 조회 결과 공용 (체크인 카운터 / 출국장) --------- */
 
 export interface WaitPsgDto {
     hour: number;

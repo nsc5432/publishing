@@ -35,8 +35,8 @@ const weatherIconName = (wthrCn: string | undefined): IconName => {
 };
 
 /**
- * 조회 일자 요약 카드 4개 — 일일 운항계획 / 승객예고·실적 비교 / 요일 속성 / 기상정보.
- * 대시보드·사용자 시뮬레이션 두 화면이 함께 쓴다.
+ * 조회 일자 요약 카드 4개 — 일일 운항계획 / 승객예고/실적 비교 / 요일 속성 / 기상정보.
+ * 대시보드/사용자 시뮬레이션 두 화면이 함께 쓴다.
  */
 export function HeaderInfoCards({ planDate, header }: HeaderInfoCardsProps) {
     const plan = header?.fltPlan;

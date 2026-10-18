@@ -142,7 +142,7 @@ export function DataConfigModal({ terminal, group, category, draft, reloadToken,
                 <header className="cast-config-modal__header">
                     <div>
                         <div className="cast-config-modal__kicker">
-                            {terminal} · {group.english} · {category.name}
+                            {terminal} / {group.english} / {category.name}
                         </div>
                         <h2 id="cast-config-modal-title">{group.label}</h2>
                         <p id="cast-config-modal-subtitle">{group.description}</p>

@@ -19,7 +19,7 @@ function toPeakDeparture(flightPax: UserSmltFltPsgDto): string {
 
     if (!peak || peak.psgCnt <= 0) return '-';
 
-    return `${peak.bgnTime.slice(0, 2)}~${peak.endTime.slice(0, 2)}시 · ${formatCount(peak.psgCnt)}명`;
+    return `${peak.bgnTime.slice(0, 2)}~${peak.endTime.slice(0, 2)}시 / ${formatCount(peak.psgCnt)}명`;
 }
 
 export function toFlightDemand(flightPax: UserSmltFltPsgDto): FlightDemandSummary {

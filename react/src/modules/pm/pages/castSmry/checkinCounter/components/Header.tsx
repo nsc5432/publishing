@@ -8,7 +8,7 @@ interface HeaderProps {
     onSearch: () => void;
 }
 
-/** 상단 헤더 — 타이틀 / 조회 조건(기준일자 · 터미널) */
+/** 상단 헤더 — 타이틀 / 조회 조건(기준일자 / 터미널) */
 export function Header({ baseDate, terminal, onTerminalChange, onSearch }: HeaderProps) {
     return (
         <header className="header">

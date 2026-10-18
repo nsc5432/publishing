@@ -44,7 +44,7 @@ const CLEAR_EMPTY: QueueClearView = {
 };
 
 function joinNotes(...notes: (string | undefined)[]): string {
-    return notes.filter(Boolean).join(' · ');
+    return notes.filter(Boolean).join(' / ');
 }
 
 function toCountNote(context: FcltQueueContextView | null, value: number | null, locked: boolean): string {
@@ -127,7 +127,7 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                             <span className="fqs-sub">
                                 {context?.totCnt != null && context.currentCnt != null
                                     ? `보유 ${formatCount(context.totCnt)}개 중 현재 ${formatCount(context.currentCnt)}개 운영`
-                                    : '보유·운영 수량 미확인'}
+                                    : '보유/운영 수량 미확인'}
                             </span>
                         </div>
                     </div>

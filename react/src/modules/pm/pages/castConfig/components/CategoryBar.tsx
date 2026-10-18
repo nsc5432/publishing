@@ -41,7 +41,7 @@ export function CategoryBar({ categories, current, changeCount, pending, onSelec
 
             <span className="cast-config-category-meta">
                 {current ? (current.isPreProcess ? `갱신 ${current.modifiedAt}` : `등록 ${current.registeredAt}`) : ''}
-                {hasDrafts && <strong> · 변경 {formatCount(changeCount)}건</strong>}
+                {hasDrafts && <strong> / 변경 {formatCount(changeCount)}건</strong>}
             </span>
 
             <div className="cast-config-category-actions">

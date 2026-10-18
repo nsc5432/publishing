@@ -38,8 +38,8 @@ import { toPlanPoint } from './layout';
 /**
  * 맵형태보기 DTO → 화면 뷰 모델.
  *
- * 서버는 혼잡도를 4단계(CongestionStatus)로 내려주고 화면 마커·뱃지는 3색이다.
- * 그 접점과 단위·형식 표기를 여기 한 곳에 모은다.
+ * 서버는 혼잡도를 4단계(CongestionStatus)로 내려주고 화면 마커/뱃지는 3색이다.
+ * 그 접점과 단위/형식 표기를 여기 한 곳에 모은다.
  *
  * 하루치를 한 번에 받으므로 여기서 30분 슬롯을 모두 펼쳐 둔다. 타임라인은 만들어 둔
  * 슬롯에서 자리만 바꿔 읽는다 — 눈금을 옮길 때 다시 계산하지 않는다.
@@ -54,7 +54,7 @@ const STAGE_ASPECT = '1798.6 / 1118.7';
 /** 출국장 팝업 제목 (예: 출국장 3) */
 const DPTGT_TITLE_PREFIX = '출국장 ';
 
-/** 혼잡도 4단계 → 마커·뱃지 3단계 (여유와 보통은 같은 색을 쓴다) */
+/** 혼잡도 4단계 → 마커/뱃지 3단계 (여유와 보통은 같은 색을 쓴다) */
 const CONGESTION_TO_LEVEL: Record<CongestionStatus, CongestionLevel> = {
     FREE: 'normal',
     NORMAL: 'normal',
@@ -120,13 +120,13 @@ function toNotice(notice: MapNoticeDto): NoticeData {
     };
 }
 
-/** 묶음 단위 코드(아일랜드 문자 · 출국장 번호) → 그 시각 상태 */
+/** 묶음 단위 코드(아일랜드 문자 / 출국장 번호) → 그 시각 상태 */
 function toRsltMap<T extends MapUnitRsltDto>(rsltList: T[]): Map<string, T> {
     return new Map(rsltList.map((rslt) => [rslt.unitCd, rslt]));
 }
 
 /**
- * 혼잡도를 함께 그리는 마커 (아일랜드 · 출국장이 같은 모양이다).
+ * 혼잡도를 함께 그리는 마커 (아일랜드 / 출국장이 같은 모양이다).
  * 마커는 자리만 알고 색은 그 시각 결과에서 온다 — 결과가 없는 시각은 원활로 둔다.
  */
 function toCongestionMarker(
@@ -185,7 +185,7 @@ function toStats(stat: MapCgnStatDto): IslandStat[] {
     ];
 }
 
-/** 시설 구성·매출은 하루 내내 같고, 혼잡도·처리율만 그 시각 결과에서 온다 */
+/** 시설 구성/매출은 하루 내내 같고, 혼잡도/처리율만 그 시각 결과에서 온다 */
 function toIslandDetail(info: MapChknInfoDto, rslt: MapChknRsltDto | undefined): IslandDetail {
     return {
         id: info.island,

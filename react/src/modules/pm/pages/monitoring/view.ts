@@ -4,7 +4,7 @@ import type { HistoryRow, RunStatus, StatCard } from './types';
 
 /**
  * 모니터링 DTO → 화면 뷰 모델.
- * 단위·시각 형식을 여기서 한 번에 정한다.
+ * 단위/시각 형식을 여기서 한 번에 정한다.
  */
 
 /** 값이 비었을 때 표기 */

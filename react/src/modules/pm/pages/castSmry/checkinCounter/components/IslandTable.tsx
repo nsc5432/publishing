@@ -17,12 +17,12 @@ export function IslandTable({ islands, time }: IslandTableProps) {
     return (
         <div className="chkn-table">
             <p className="chkn-table__caption">
-                <strong>{time}</strong> 기준 아일랜드별 Queue · 혼잡 현황
+                <strong>{time}</strong> 기준 아일랜드별 Queue / 혼잡 현황
             </p>
 
             <div className="chkn-table__scroll scroll-area">
                 <table className="tbl">
-                    <caption className="blind">아일랜드별 Queue · 혼잡 현황</caption>
+                    <caption className="blind">아일랜드별 Queue / 혼잡 현황</caption>
                     <colgroup>
                         <col style={{ width: '11%' }} />
                         <col style={{ width: '8%' }} />

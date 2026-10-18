@@ -14,7 +14,7 @@ export { CONGESTION_LABEL, TERMINAL_LABEL, TERMINALS } from '@/modules/pm/types/
  * 체크인카운터 결과 조회 뷰 모델.
  *
  * 화면이 보는 값은 아일랜드 공용 Queue 하나다 — 부스별 집계와 Queue 추정을 함께 보여주지 않는다.
- * 값은 두 갈래로 나뉜다: 하루 흐름(차트)과 한 시각의 아일랜드별 상태(표 · 칩).
+ * 값은 두 갈래로 나뉜다: 하루 흐름(차트)과 한 시각의 아일랜드별 상태(표 / 칩).
  * 셀프체크인/백드롭은 Queue 에 들어가지 않고 상단 자원 요약에만 남는다.
  */
 
@@ -28,7 +28,7 @@ export const VIEW_LABEL: Record<ViewMode, string> = {
 
 /* ================= 요약 바 ================= */
 
-/** 요약 바 지표 1개 (전체 카운터 · 운영 아일랜드 · 피크 카운터 …) */
+/** 요약 바 지표 1개 (전체 카운터 / 운영 아일랜드 / 피크 카운터 …) */
 export interface ChknSummaryItem {
     /** CSS 결합 값이 아니라 목록 키다 */
     id: string;

@@ -3,8 +3,8 @@
 /* =====================================================================
    PM 예측관리 / 일일 시뮬레이션 결과 조회 (출국장)
 
-   맵 · 표 · 차트 세 보기가 하나의 카드(.dep-view) 안에서 바뀐다.
-   도면 배경과 마커·카드가 같은 기준 박스(.dep-view)를 쓰므로
+   맵 / 표 / 차트 세 보기가 하나의 카드(.dep-view) 안에서 바뀐다.
+   도면 배경과 마커/카드가 같은 기준 박스(.dep-view)를 쓰므로
    창 크기가 변해도 마커가 배경 위 같은 자리에 얹힌다.
    ===================================================================== */
 
@@ -316,7 +316,7 @@ html[data-page='departureHall'] .dep-view__body {
     min-height: 0;
 }
 
-/* 표 · 차트 보기는 흐름 배치라 여백이 필요하다 (맵 보기는 도면이 꽉 찬다) */
+/* 표 / 차트 보기는 흐름 배치라 여백이 필요하다 (맵 보기는 도면이 꽉 찬다) */
 html[data-page='departureHall'] .dep-view--table .dep-view__body,
 html[data-page='departureHall'] .dep-view--chart .dep-view__body {
     display: flex;
@@ -366,7 +366,7 @@ html[data-page='departureHall'] .view-switch__btn.is-on {
 /**
  * 도면 무대.
  * 배경(.dep-view__bg)과 같은 기준 박스(.dep-view) 위에 얹는 고정 비율 박스라
- * 창 크기가 변해도 마커·카드가 배경의 같은 지점에 붙는다.
+ * 창 크기가 변해도 마커/카드가 배경의 같은 지점에 붙는다.
  * 값은 디자인 도면에서 잰 것이며 서버 좌표(DepHallLayout.java)와 짝을 이룬다.
  */
 html[data-page='departureHall'] .dep-stage {

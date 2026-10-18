@@ -7,7 +7,7 @@ interface CountStepperProps {
     min?: number;
     max?: number;
     disabled?: boolean;
-    /** 'row' 라벨 + 우측 스테퍼 (기본, 드로어/도크) · 'inline' 스테퍼만 (격자 팝오버) */
+    /** 'row' 라벨 + 우측 스테퍼 (기본, 드로어/도크) / 'inline' 스테퍼만 (격자 팝오버) */
     variant?: 'row' | 'inline';
 }
 

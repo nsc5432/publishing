@@ -4,7 +4,7 @@ import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
 /**
  * 확인/알림 다이얼로그 (dialog-provider.tsx 전용)
  *
- * 동작(포커스 트랩·ESC·포털)은 Radix 가 맡고, 모양은 common.css 의
+ * 동작(포커스 트랩/ESC/포털)은 Radix 가 맡고, 모양은 common.css 의
  * `.alert-dialog__*` 클래스가 맡는다. 열림/닫힘 애니메이션은 Radix 가 붙여 주는
  * data-state 속성을 CSS 에서 직접 받는다.
  */

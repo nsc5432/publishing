@@ -39,7 +39,7 @@ export function GridToolbar({ sheetName, query, rowCount, dimension, sheetChange
 
                 <div className="cast-config-grid-meta">
                     <span>
-                        {formatCount(rowCount)}개 행{dimension ? ` · ${dimension}` : ''}
+                        {formatCount(rowCount)}개 행{dimension ? ` / ${dimension}` : ''}
                     </span>
                     <span className="cast-config-change-pill">이 시트 변경 {formatCount(sheetChangeCount)}</span>
                 </div>

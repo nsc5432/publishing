@@ -170,7 +170,7 @@ export interface QueueRecommendView {
     clearLabel: string;
 }
 
-/** 응답 하나에서 정해지는 기준 정보 — 수량 · 목표시간 입력과 무관하다 */
+/** 응답 하나에서 정해지는 기준 정보 — 수량 / 목표시간 입력과 무관하다 */
 export interface FcltQueueContextView {
     label: FcltQueueLabel;
     tmnlId: TerminalKind;

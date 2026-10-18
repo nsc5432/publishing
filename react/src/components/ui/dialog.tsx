@@ -4,9 +4,9 @@ import * as DialogPrimitive from '@radix-ui/react-dialog';
 /**
  * 입력 폼을 담는 일반 다이얼로그.
  *
- * 확인/알림 전용인 alert-dialog 와 달리 내용 구성은 화면이 정한다. 포커스 트랩 · ESC · 배경 스크롤
- * 차단 · 닫을 때 원래 버튼으로 포커스 복귀는 Radix 가 맡고, 틀은 common.css 의 `.dialog__*` 가 맡는다.
- * body 로 포털되므로 화면의 zoom · overflow 영향을 받지 않는다.
+ * 확인/알림 전용인 alert-dialog 와 달리 내용 구성은 화면이 정한다. 포커스 트랩 / ESC / 배경 스크롤
+ * 차단 / 닫을 때 원래 버튼으로 포커스 복귀는 Radix 가 맡고, 틀은 common.css 의 `.dialog__*` 가 맡는다.
+ * body 로 포털되므로 화면의 zoom / overflow 영향을 받지 않는다.
  */
 
 function join(...classes: (string | undefined | false)[]) {

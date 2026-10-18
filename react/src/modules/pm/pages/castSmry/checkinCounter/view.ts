@@ -57,7 +57,7 @@ export function toWaitMin(waitSec: number): number {
     return Math.round(waitSec / SEC_PER_MIN);
 }
 
-/* ================= 요약 · 결과 지표 ================= */
+/* ================= 요약 / 결과 지표 ================= */
 
 /** 요약 바 — 시뮬레이션이 배치한 자원의 규모를 한 줄로 읽는다 */
 function toSummary(dto: ChknCounterDto): ChknSummaryItem[] {
@@ -211,7 +211,7 @@ function toNoticeDesc(item: MapNoticeItemDto): string {
     if (item.reqCnt != null) parts.push(`필요 ${formatCount(item.reqCnt)}개`);
     if (item.cgnClearMin != null) parts.push(`해소 ${formatCount(item.cgnClearMin)}분`);
 
-    return parts.join(' · ');
+    return parts.join(' / ');
 }
 
 function toNotice(notice: MapNoticeDto): NoticeData {

@@ -1912,7 +1912,7 @@ html[data-page='dashboard'] .trow.sel {
     }
 }
 
-/* body 포털은 .app의 zoom·overflow 영향을 받지 않는다. */
+/* body 포털은 .app의 zoom/overflow 영향을 받지 않는다. */
 .fqs {
     --fqs-surface: #ffffff;
     --fqs-soft: #f6f6fa;

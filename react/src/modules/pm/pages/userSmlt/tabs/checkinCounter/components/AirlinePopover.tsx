@@ -73,7 +73,7 @@ export function AirlinePopover({ airlines, count, pos, onPick }: AirlinePopoverP
                 '--airpop-arrow-x': `${pos.x - x + halfWidth}px`,
             } as CSSProperties}
         >
-            <p className="airpop__head">{count}석 선택 · 항공사 배정</p>
+            <p className="airpop__head">{count}석 선택 / 항공사 배정</p>
 
             <div className={`airpop__rail${rail.scrollable ? ' is-scrollable' : ''}${rail.atStart ? '' : ' is-scrolled'}${rail.atEnd ? ' is-end' : ''}`}>
                 <div

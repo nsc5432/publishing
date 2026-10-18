@@ -18,7 +18,7 @@ const NODE_ICON: Record<FacilityGroupId, string> = {
 };
 
 const NODE_CAPTION: Record<FacilityGroupId, string> = {
-    checkin: 'Counter · Kiosk · Bag Drop',
+    checkin: 'Counter / Kiosk / Bag Drop',
     departure: 'Departure Hall',
     security: 'Security Control',
     border: 'Border Control',

@@ -243,9 +243,9 @@ export function CheckinCounterTab({
                             onBlockSelect={(label) => openIsland(terminal, label, true)}
                             formatTip={(item, hour) => {
                                 const one = item.sides?.length === 1 ? item.sides[0] : null;
-                                const detail = one ? `${one} ${SIDE_BOOTHS}석 · ${one === 'L' ? 'R' : 'L'} 미운영` : `L ${SIDE_BOOTHS}석 · R ${SIDE_BOOTHS}석`;
+                                const detail = one ? `${one} ${SIDE_BOOTHS}석 / ${one === 'L' ? 'R' : 'L'} 미운영` : `L ${SIDE_BOOTHS}석 / R ${SIDE_BOOTHS}석`;
 
-                                return `아일랜드 ${item.label} · ${detail} · ${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
+                                return `아일랜드 ${item.label} / ${detail} / ${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
                             }}
                             disabled={!terminalEnabled || readOnly}
                         />

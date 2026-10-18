@@ -1,4 +1,4 @@
-/** CSV 한 칸 — 쉼표·따옴표·줄바꿈이 섞여도 열이 밀리지 않게 감싼다 */
+/** CSV 한 칸 — 쉼표/따옴표/줄바꿈이 섞여도 열이 밀리지 않게 감싼다 */
 function toCsvCell(value: string): string {
     return `"${value.replace(/"/g, '""')}"`;
 }

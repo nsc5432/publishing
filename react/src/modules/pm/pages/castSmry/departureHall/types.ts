@@ -25,7 +25,7 @@ export { CONGESTION_LABEL, TERMINAL_LABEL, TERMINALS } from '@/modules/pm/types/
 
 /**
  * 우상단 보기 전환.
- * 세 보기 모두 같은 조회 조건(기준일자 · 터미널 · 타임라인 시각)을 쓴다.
+ * 세 보기 모두 같은 조회 조건(기준일자 / 터미널 / 타임라인 시각)을 쓴다.
  */
 export type ViewMode = 'map' | 'table' | 'chart';
 
@@ -103,7 +103,7 @@ export interface DepTrend {
 
 /* ================= 하루치 ================= */
 
-/** 타임라인 한 칸(30분)이 가리키는 화면 값 — 맵·표 보기가 함께 읽는다 */
+/** 타임라인 한 칸(30분)이 가리키는 화면 값 — 맵/표 보기가 함께 읽는다 */
 export interface DepSlot {
     notice: NoticeData;
     map: TerminalDepMap;

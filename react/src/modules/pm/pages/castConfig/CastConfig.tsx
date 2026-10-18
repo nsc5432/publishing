@@ -122,7 +122,7 @@ function CastConfig() {
         const ok = await dialog
             .confirm({
                 title: '운영 반영',
-                description: `${currentCategory.name}(${currentCategory.code})의 T1·T2 전체 Cast 설정을 기준정보에 반영합니다. 계속하시겠습니까?`,
+                description: `${currentCategory.name}(${currentCategory.code})의 T1/T2 전체 Cast 설정을 기준정보에 반영합니다. 계속하시겠습니까?`,
             })
             .catch(() => false);
         if (!ok) return;

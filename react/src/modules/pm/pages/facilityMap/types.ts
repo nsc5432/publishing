@@ -29,7 +29,7 @@ export const MAPPING_STATUS_LABEL: Record<MappingStatus, string> = {
     unused: '미사용',
 };
 
-/** 표·타일에서 함께 쓰는 필터 값 (all = 전체) */
+/** 표/타일에서 함께 쓰는 필터 값 (all = 전체) */
 export type StatusFilter = MappingStatus | 'all';
 
 /** 상단 요약 타일 1개 */

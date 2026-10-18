@@ -7,9 +7,9 @@ export function formatRanges(ranges: TimeRange[]): string {
     return formatRangeList(ranges, '미설정');
 }
 
-/** 드로어 부제 — `T1 · 06:00 ~ 20:00 운영 (14시간)` */
+/** 드로어 부제 — `T1 / 06:00 ~ 20:00 운영 (14시간)` */
 export function formatOperating(terminal: string, ranges: TimeRange[]): string {
-    if (ranges.length === 0) return `${terminal} · 운영시간 미설정`;
+    if (ranges.length === 0) return `${terminal} / 운영시간 미설정`;
 
-    return `${terminal} · ${formatRanges(ranges)} 운영 (${totalHours(ranges)}시간)`;
+    return `${terminal} / ${formatRanges(ranges)} 운영 (${totalHours(ranges)}시간)`;
 }

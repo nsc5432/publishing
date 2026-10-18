@@ -9,7 +9,7 @@ interface FcltDetailPanelProps {
  * 매핑 상세 — 도면 아래, 고른 시설 한 건의 전문.
  *
  * 여객시설 → 시뮬레이션시설을 위아래로 세워 둔다. 표에서는 한 줄로 훑고,
- * 여기서는 한 건을 확인하는 자리라 코드·설명·최종수정까지 펼쳐 보여 준다.
+ * 여기서는 한 건을 확인하는 자리라 코드/설명/최종수정까지 펼쳐 보여 준다.
  */
 export function FcltDetailPanel({ row }: FcltDetailPanelProps) {
     return (

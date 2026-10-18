@@ -38,19 +38,19 @@ const GROUP_FALLBACKS: Record<FacilityGroupId, GroupDefinition> = {
         id: 'departure',
         label: '출국장 영역',
         english: 'Departure Hall Facility Group',
-        description: '출국장 운영시간과 여객 발생·이동·리포팅 속성',
+        description: '출국장 운영시간과 여객 발생/이동/리포팅 속성',
     },
     security: {
         id: 'security',
         label: '시큐리티 영역',
         english: 'Security Facility Group',
-        description: '탑승권·보안검색 서비스타임, 운영시간 및 레인 수',
+        description: '탑승권/보안검색 서비스타임, 운영시간 및 레인 수',
     },
     border: {
         id: 'border',
         label: '출입국심사 영역',
         english: 'Border Control Facility Group',
-        description: '출입국·검역 서비스타임, 운영시간, 레인 및 여객 속성',
+        description: '출입국/검역 서비스타임, 운영시간, 레인 및 여객 속성',
     },
     gate: {
         id: 'gate',

@@ -351,7 +351,7 @@ function toQueueRecommendView(dto: FcltQueueScenarioDto, recommend: FcltQueueRec
         };
     }
 
-    const current = dto.oprFcltCnt === null ? '' : `현재 ${formatCount(dto.oprFcltCnt)}개 · `;
+    const current = dto.oprFcltCnt === null ? '' : `현재 ${formatCount(dto.oprFcltCnt)}개 / `;
     const countNote =
         extraCnt !== null && extraCnt > 0
             ? `${current}${formatCount(extraCnt)}개 추가 필요`
@@ -394,7 +394,7 @@ export function toFcltQueueContextView(dto: FcltQueueScenarioDto): FcltQueueCont
         dataSrcText: QUEUE_DATA_SRC_LABEL[dto.dataSrc],
         queueText: dto.wtngPsgCnt === null ? '—' : formatCount(dto.wtngPsgCnt),
         targetQueueText: `대기인원 ${formatCount(dto.targetQueueCnt)}명 이하 기준 (혼잡등급 NORMAL 상한)`,
-        arvlText: dto.arvlRate === null ? `— (${dto.arvlMetric.reason})` : `${dto.arvlRate.toFixed(1)}명/분 · ${QUEUE_METHOD_LABEL[dto.arvlMetric.method]}`,
+        arvlText: dto.arvlRate === null ? `— (${dto.arvlMetric.reason})` : `${dto.arvlRate.toFixed(1)}명/분 / ${QUEUE_METHOD_LABEL[dto.arvlMetric.method]}`,
         srvcText: dto.srvcRate === null ? `— (${dto.srvcMetric.reason})` : `${label.resource} 1개당 ${dto.srvcRate.toFixed(2)}명/분`,
         asmpList: dto.asmpList,
         currentCnt: dto.oprFcltCnt,

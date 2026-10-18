@@ -100,7 +100,7 @@ function UserSmltConfig() {
         try {
             const confirmed = await dialog.confirm({
                 title: '시뮬레이션 실행',
-                description: '변경한 조건을 저장하고 T1·T2 전체 시뮬레이션을 실행하시겠습니까?',
+                description: '변경한 조건을 저장하고 T1/T2 전체 시뮬레이션을 실행하시겠습니까?',
             });
             if (!confirmed) return;
             const request: UserSmltExecReq = { ymd, fltPsgList: [], chknList: [], depList: [] };

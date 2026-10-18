@@ -12,7 +12,7 @@ const VIEWS: Array<{ id: ViewMode; Icon: ComponentType<SVGProps<SVGSVGElement>> 
     { id: 'table', Icon: TableIcon },
 ];
 
-/** 우상단 보기 전환 (차트 / 표) — 출국장 화면과 같은 자리·같은 조작이다 */
+/** 우상단 보기 전환 (차트 / 표) — 출국장 화면과 같은 자리/같은 조작이다 */
 export function ViewSwitch({ view, onChange }: ViewSwitchProps) {
     return (
         <div className="view-switch" role="group" aria-label="보기 전환">
