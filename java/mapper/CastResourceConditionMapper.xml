@@ -21,7 +21,7 @@
             FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
             WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{caId}, '^CA', '') AND A.TMNL_ID = #{tmnlId}
             UNION ALL
-            SELECT SUBSTR(A.CKNCT_ID, 1, 1), NULL,
+            SELECT CASE WHEN A.BLCK_ID IN ('P01Self', 'P03Self') THEN SUBSTR(A.CKNCT_ID, -3, 1) ELSE SUBSTR(A.CKNCT_ID, 1, 1) END, NULL,
                    CASE WHEN A.BLCK_ID IN ('P01Self', 'P03Self') THEN A.CKNCT_ID END,
                    CASE WHEN A.BLCK_ID IN ('P01SBD', 'P03SBD') THEN A.CKNCT_ID END,
                    A.OPER_BGNG_DT, A.OPER_END_DT
@@ -53,7 +53,7 @@
             FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
             WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{caId}, '^CA', '') AND A.TMNL_ID = #{tmnlId}
             UNION ALL
-            SELECT SUBSTR(A.CKNCT_ID, 1, 1), NULL,
+            SELECT CASE WHEN A.BLCK_ID IN ('P01Self', 'P03Self') THEN SUBSTR(A.CKNCT_ID, -3, 1) ELSE SUBSTR(A.CKNCT_ID, 1, 1) END, NULL,
                    CASE WHEN A.BLCK_ID IN ('P01Self', 'P03Self') THEN A.CKNCT_ID END,
                    CASE WHEN A.BLCK_ID IN ('P01SBD', 'P03SBD') THEN A.CKNCT_ID END,
                    A.OPER_BGNG_DT, A.OPER_END_DT

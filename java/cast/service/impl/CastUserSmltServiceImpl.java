@@ -70,7 +70,7 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         
         UserSmltRsrcSnapshotDto snapshot = castUserSnapshotService.publish(id, request.getYmd(), customCondList);
         
-        String reqId = "WI" + id;
+        String reqId = executionService.requestId(id);
         castUserReqMapper.insertUserReq(getUserReq(id, reqId, request.getYmd(), snapshot));
         
         UserSmltExecDto result = new UserSmltExecDto();

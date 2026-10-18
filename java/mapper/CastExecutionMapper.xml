@@ -31,7 +31,8 @@
     </select>
     <select id="retrieveBaseSmltId" resultType="string">
         /* CastExecutionMapper.retrieveBaseSmltId */
-        SELECT MAX(SMLT_ID) FROM PMOWN.TN_PM_SMLT_STNG WHERE EXCN_YMD = #{ymd} AND SMLT_TYPE = 'Auto'
+        SELECT MAX(SMLT_ID) KEEP (DENSE_RANK LAST ORDER BY TO_NUMBER(SMLT_ID))
+        FROM PMOWN.TN_PM_SMLT_STNG WHERE EXCN_YMD = #{ymd} AND SMLT_TYPE = 'Auto'
     </select>
     <!-- 요청/결과에 쓰인 최대 번호 다음의 미사용 번호를 할당하고, 없으면 가장 작은 미사용 번호로 돌아간다. 요청/결과/원천 리소스에 남아 있는 번호는 재사용하지 않는다 -->
     <select id="reserveRsrcNo" resultType="string">

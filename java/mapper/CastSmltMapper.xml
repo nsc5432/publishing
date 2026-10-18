@@ -151,7 +151,7 @@
         LEFT JOIN CAOWN.TN_CA_USER C ON A.FRST_RGTR_ID = C.USER_ID
         LEFT JOIN CAOWN.TN_CA_DEPT D ON C.DEPT_CD = D.DEPT_CD
         WHERE TO_CHAR(NVL(A.SMLT_REQ_DT, A.SMLT_BGNG_DT), 'YYYYMMDDHH24MI') BETWEEN #{bgnDt} AND #{endDt}
-        ORDER BY NVL(A.SMLT_REQ_DT, A.SMLT_BGNG_DT) DESC, A.SMLT_ID DESC
+        ORDER BY NVL(A.SMLT_REQ_DT, A.SMLT_BGNG_DT) DESC, TO_NUMBER(A.SMLT_ID) DESC
     </select>
     <select id="retrieveSmltFlfmtSmry" resultType="aoms.pm.cast.dto.SmltExcnCntRawDto">
         /* CastSmltMapper.retrieveSmltFlfmtSmry */

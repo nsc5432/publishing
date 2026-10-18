@@ -18,11 +18,12 @@
     <insert id="insertSchdlAtrbFromDaily" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSchdlAtrbFromDaily */
         INSERT INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB (
-            SCHDL_ATRB_GROUP_ID, DOM_INTL_SE_CD, ARR_DEP_SE_CD, TMNL_ID, ALN_CD,
+            SCHDL_ATRB_GROUP_ID, DOM_INTL_SE_CD, ARR_DEP_SE_CD, TMNL_ID, ALN_CD, ALN_CTGRY,
             FLTNM, DEP_ARR_YMD, DEP_ARR_HM, PREDC_HM, ACTL_HM,
-            ARR_DEP_ARPT_CD, ACST_NO, GATE_NO, ARCFT_STGCP,
-            BDPSG_CNT, TRNS_BDPSG_CNT, CRSL_NO, ARCFT_SUBTYPE_CD,
-            IRR_FLT_YN, TDFLT_YN,
+            ARR_DEP_ARPT_CD, ACST_NO, GATE_NO, GATE_TYPE, ARCFT_STGCP,
+            BDPSG_CNT, TRNS_BDPSG_CNT, CRSL_NO, ARCFT_SUBTYPE_CD, CKNCT_RANGE_CN,
+            SLF_CHKN_PSBLTY_YN, IRR_FLT_YN, TDFLT_YN, BUS_NEED_YN, WAYO_ID,
+            FRST_BAG_INPUT_DT, LAST_BAG_INPUT_DT,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         WITH AJMT AS (
@@ -32,47 +33,42 @@
             </foreach>
         )
         SELECT
-            #{rsrcNo}, X.DOM_INTL_SE_CD, X.ARR_DEP_SE_CD, X.TMNL_ID, X.ALN_CD,
-            X.FLTNM, X.DEP_ARR_YMD, X.DEP_ARR_HM, X.PREDC_HM, X.ACTL_HM,
-            X.ARPT_CD, X.ACST_NO, X.GATE_NO, X.ARCFT_STGCP,
-            NVL(X.BDPSG_CNT, 0) + ROUND(
+            #{rsrcNo}, X.DOM_INTL_SE_CD, X.FLIGHTDIRECTION, X.DEPARRTERMINAL, X.AIRLINECODE, X.OPERATORCAT,
+            X.FLIGHTNUMBER, X.SCHD_DT, X.SCHD_HM, X.PREDC_HM, X.ACTL_HM,
+            X.AIRPORTCODE, X.STANDNUMBER, X.GATE, X.CONTACTREMOTE, X.SEATS,
+            X.PAXCOUNT + ROUND(
                 CASE
-                    WHEN X.ARR_DEP_SE_CD = 'D' AND X.DOM_INTL_SE_CD != 'D'
-                    THEN GREATEST(NVL(X.BDPSG_CNT, 0) - NVL(X.TRNS_BDPSG_CNT, 0), 0)
+                    WHEN X.FLIGHTDIRECTION = 'D' AND X.DOM_INTL_SE_CD != 'D'
+                    THEN GREATEST(
+                        NVL(TO_NUMBER(TRIM(X.RSVT_BDPSG_CNT)), 0) - NVL(TO_NUMBER(TRIM(X.RSVT_TRNS_BDPSG_CNT)), 0),
+                        0
+                    )
                     ELSE 0
                 END * X.AJMT_RT / 100
-            ), X.TRNS_BDPSG_CNT,
-            X.CRSL_NO, X.ARCFT_SUBTYPE_CD,
-            X.IRR_FLT_YN, X.TDFLT_YN,
+            ),
+            X.TRANSFERPAX, X.BELT, X.AIRCRAFTTYPE, X.CHECKINRANGE,
+            X.SBDAVAILABLE, X.GD_IRR_YN, X.TRIANGLE, X.BUS, X.ARRIVALGATE,
+            TO_TIMESTAMP(SUBSTR(X.FRST_BAG_INPUT_DT_RAW, 1, 12), 'YYYYMMDDHH24MI'),
+            TO_TIMESTAMP(SUBSTR(X.LAST_BAG_INPUT_DT_RAW, 1, 12), 'YYYYMMDDHH24MI'),
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM (
             SELECT
-                A.DOM_INTL_SE_CD, A.ARR_DEP_SE_CD, A.TMNL_ID, A.ALN_CD,
-                A.FLTNM, A.GD_SE_YMD AS DEP_ARR_YMD, A.SCHDL_HM AS DEP_ARR_HM,
-                A.PREDC_HM, A.ACTL_HM, A.ARPT_CD, A.ACST_NO, A.GATE_NO,
-                A.ARCFT_STGCP, TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)) AS BDPSG_CNT,
-                TO_NUMBER(TRIM(A.RSVT_TRNS_BDPSG_CNT)) AS TRNS_BDPSG_CNT,
-                A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.GD_IRR_YN AS IRR_FLT_YN, A.TDFLT_YN,
+                F.*,
                 NVL((
-                    SELECT NVL(F.AJMT_RT, 0)
-                    FROM AJMT F
-                    WHERE F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
+                    SELECT NVL(J.AJMT_RT, 0)
+                    FROM AJMT J
+                    WHERE J.TMNL_ID = DECODE(F.CF_TER_ID_X, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
                 ), 0) AS AJMT_RT,
                 ROW_NUMBER() OVER (
-                    PARTITION BY A.ARR_DEP_SE_CD, A.FLTNM, A.GD_SE_YMD, A.SCHDL_HM
-                    ORDER BY A.RSVT_BDPSG_CNT DESC NULLS LAST
+                    PARTITION BY F.FLIGHTDIRECTION, F.FLIGHTNUMBER, F.SCHD_DT, F.SCHD_HM
+                    ORDER BY F.RSVT_BDPSG_CNT DESC NULLS LAST
                 ) AS RN
-            FROM GOOWN.TN_GO_GD_DATA A
-            WHERE A.GD_SE_YMD = #{excnYmd}
-            AND A.CSHR_STTS_CD != 'SL'
-            AND A.DLY_RSN_CD NOT IN ('2', '3')
-            AND A.TMNL_ID IN ('P01', 'P02', 'P03')
-            AND A.ARCFT_USE_SE_CD = '0'
-            AND A.GD_FLT_PRPS_CD IN ('00', '05')
-            AND A.PSG_CGO_SE_CD = 'Y'
-            AND A.FRY_YN = 'N'
-            AND A.LCRFT_YN = 'N'
-            AND A.SCHDL_HM IS NOT NULL
+            FROM (
+                <include refid="aoms.pm.castrest.mapper.CastRestMapper.dailyFlightScheduleRows">
+                    <property name="ymdParam" value="excnYmd"/>
+                </include>
+            ) F
+            WHERE F.SCHD_HM IS NOT NULL
         ) X
         WHERE X.RN = 1
     </insert>
@@ -299,14 +295,15 @@
             INNER JOIN (
                 SELECT
                     P.TMNL_ID,
-                    SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1) AS CHKN_ISL_CD,
+                    SUBSTR(P.SLF_CHKN_ISTR_ID, -3, 1) AS CHKN_ISL_CD,
                     P.SLF_CHKN_ISTR_ID,
                     MIN(P.ALN_CD) AS ALN_CD,
                     LISTAGG(P.ALN_CD, ',') WITHIN GROUP (ORDER BY P.ALN_CD) AS ALN_CD_LIST,
-                    ROW_NUMBER() OVER (PARTITION BY P.TMNL_ID, SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1) ORDER BY P.SLF_CHKN_ISTR_ID) AS DEVICE_NO
+                    ROW_NUMBER() OVER (PARTITION BY P.TMNL_ID, SUBSTR(P.SLF_CHKN_ISTR_ID, -3, 1) ORDER BY P.SLF_CHKN_ISTR_ID) AS DEVICE_NO
                 FROM PMOWN.TN_PM_SLF_CHKN_OPER_PLCY P
                 WHERE #{excnYmd} BETWEEN P.PLCY_BGNG_YMD AND P.PLCY_END_YMD
-                GROUP BY P.TMNL_ID, SUBSTR(P.SLF_CHKN_ISTR_ID, 1, 1), P.SLF_CHKN_ISTR_ID
+                <!-- 기기 ID는 ICN1SB01 형식이라 아일랜드는 번호 두 자리 앞 글자다 (운영자료 PSG_FCLT 의 SUBSTR(..., -3, 1) 과 같은 규칙) -->
+                GROUP BY P.TMNL_ID, SUBSTR(P.SLF_CHKN_ISTR_ID, -3, 1), P.SLF_CHKN_ISTR_ID
             ) C
                 ON C.TMNL_ID = I.TMNL_ID
                 AND C.CHKN_ISL_CD = I.CHKN_ISL_CD

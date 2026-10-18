@@ -4,7 +4,7 @@
 <mapper namespace="aoms.pm.cast.mapper.CastDsbdMapper">
     <select id="retrieveSmltIdByYmd" resultType="java.lang.String">
         /* CastDsbdMapper.retrieveSmltIdByYmd */
-        SELECT MAX(A.SMLT_ID) AS SMLT_ID
+        SELECT MAX(A.SMLT_ID) KEEP (DENSE_RANK LAST ORDER BY TO_NUMBER(A.SMLT_ID)) AS SMLT_ID
         FROM PMOWN.TN_PM_SMLT_STNG A
         WHERE 1 = 1
         AND A.EXCN_YMD = #{ymd}

@@ -424,11 +424,13 @@ docs/user-smlt-master-redesign.md를 따른다.
 | 이름 / 테이블 | 의미 |
 |---|---|
 | SQ1_TN_PM_SMLT_RSLT | 사용자 등록·일일 결과 최초 수신 양쪽에서 공통 SMLT_ID 채번 |
-| TN_PM_SMLT_USER_MSTR | 사용자 실행의 원천이자 CAST WhatIf 요청. 신규 요청 ID는 WI + 공통 8자리 ID. 정상 비어 있지 않은 CAST 상태 목록에 없는 Finished 요청만 삭제한다 |
+| TN_PM_SMLT_USER_MSTR | 사용자 실행의 원천이자 CAST WhatIf 요청. 신규 요청 ID는 WI + 공통 ID를 8자리로 0 채움(WI00008061). 정상 비어 있지 않은 CAST 상태 목록에 없는 Finished 요청만 삭제한다 |
 | TN_PM_SMLT_STNG | 같은 실행 ID 아래의 모델별 설정. PK는 (SMLT_ID, SMLT_MDL_SN). SMLT_TYPE은 Auto·WhatIf만 사용한다. USER_MSTR에 없는 Auto만 모니터링에 표시하고, 삭제된 WhatIf 결과는 보존하되 표시하지 않는다 |
 | TN_PM_SMLT_RSLT_DTL(_REG_EXCL) | 같은 실행 ID의 상세·미매핑 결과 |
 
-공통 ID는 SQ1_TN_PM_SMLT_RSLT.NEXTVAL을 숫자 8자리로 표기하며 99999999를 넘기면 실패한다.
+공통 ID는 SQ1_TN_PM_SMLT_RSLT.NEXTVAL을 0 채움 없이 그대로 쓰며(8061) 99999999를 넘기면 실패한다
+(2026-10-19 변경, 이전 신규 ID는 00008061처럼 8자리). 자리수가 섞이므로 SMLT_ID의 최대·정렬은
+TO_NUMBER로 비교한다. 결과 수신은 WI 뒤 8자리로 요청을 찾으므로 요청 ID만 8자리를 유지한다.
 이관된 기존 1~8자리 숫자 ID는 보존한다. 시퀀스는 NOCYCLE이며 USER_MSTR·STNG의 기존 최대 ID보다
 높게 맞춘다. 롤백에 따른 결번은 허용하며 회차는 사용하지 않는다. 별도 TN_PM_SMLT_MSTR는 사용하지 않는다.
 RSLT_SMLT_ID는 호환 컬럼으로 남지만 결과 연결 후 공통 SMLT_ID와 같다.
@@ -456,7 +458,13 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 - CA 블록은 P01CKINInt / P01CKINDom / P03CKIN, SBD는 P01SBD / P03SBD,
   키오스크는 P01Self / P03Self다. 발행과 조회의 값이 같아야 한다.
   SBD AirlineCode는 ALN_CD가 아니라 CHKN_TYPE_DTL_INFO다.
+  키오스크 기기 ID는 ICN1SB01 형식이라 아일랜드는 SUBSTR(ID, -3, 1)이다. 첫 글자로 자르면 전부 I가 되어 키오스크가 0대로 발행된다.
+- 사용자 FS(일일 운영자료 기반)는 FS001과 같은 SQL 조각 `CastRestMapper.dailyFlightScheduleRows`의 행을 저장한다
+  (2026-10-19). 게이트·주기장 3자리 패딩·fallback, OperatorCat·ContactRemote·CheckinRange·SBDAvailable 등을
+  따로 만들지 않는다 — GO 원값을 그대로 쓰면 출발편이 게이트에 배정되지 않고 CAST가 계산 없이 끝난다.
+  PK 때문에 같은 편 중복은 ROW_NUMBER로 1행만 남긴다.
 - 운항 조정은 국제선 출발 GREATEST(예약-환승,0) 몫만 늘린다. 조회와 발행의 필터·ROW_NUMBER를 맞춘다.
+  기준 여객수는 FS001 값이고, 늘리는 몫만 조회 화면과 같은 예약 기준이다.
 - 사용자 DepartureGate는 운영 Y 출국장의 운영구간마다 1행이고 시각을 ATRB의 OPER_BGNG_HM·OPER_END_HM
   (HHMM, 24시는 2359)에 싣는다. 이 칸이 빈 행(일일 001)만 운영계 출국장 운영시간을 조인한다.
   sideDoor·facialRecognition은 NVL(' ')로 감싸 배열 길이를 맞춘다.
@@ -497,7 +505,7 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 stage는 전송 7쌍의 002~999 행을 *_LGC로 백업하고 RSRC_FS 시작점을 기존 요청의 최대 FS 번호로 둔다.
 원본·대응표·미확정 사유를 보존하고, 모든 미확정 건과 별도 환경 검증을 해결하기 전 cutover하지 않는다.
 
-실연계 검증 대상: GO FS 부속 9개 NULL 컬럼, 키오스크 기기 ID 앞 한 자=아일랜드 가정과 4자리 제약,
+실연계 검증 대상: 키오스크 기기 ID 4자리 제약 (GO FS 부속 NULL 컬럼·아일랜드 추출은 2026-10-19 결과 대조로 확인·수정),
 EMI/IMMI 컬럼 의미, PS5xx·번호 입국심사/환승보안 리소스 왕복과 리소스 목록 대조 여부,
 결과 묶음 키·전체 완료 단위, 실제 시각/대상일자 의미다.
 Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증 DB에서 수행한다.

@@ -33,8 +33,10 @@ public class CastExecutionService {
     public String nextId() {
         String id = mapper.nextSmltId();
         if (id == null || !id.matches("[0-9]{1,8}") || Long.parseLong(id) < 1) throw new IllegalStateException("시뮬레이션 ID 범위를 초과했습니다.");
-        return "0".repeat(8 - id.length()) + id;
+        return id;
     }
+    // 결과 수신이 WI 뒤 8자리로 요청을 찾으므로 요청 ID만 자리수를 맞춘다
+    public String requestId(String smltId) { return "WI" + "0".repeat(8 - smltId.length()) + smltId; }
     public String baseId(String ymd) { return mapper.retrieveBaseSmltId(ymd); }
     public boolean hasCurrentConditions(UserSmltCurrentDto dto, String area) { return mapper.hasCurrentConditions(dto, area) > 0; }
     public String saveDt(UserSmltCurrentDto dto) { String value = mapper.retrieveSaveDt(dto); return value == null ? "" : value; }

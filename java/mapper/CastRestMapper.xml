@@ -233,40 +233,9 @@
         ORDER BY ResourceType DESC
     </select>
 
-    <select id="retrieveFlightSchedule" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFlightScheduleDto">
-        /* CastRestTestMapper.retrieveFlightSchedule(CastReqGetResourceDto dto) */
-       SELECT
-            LISTAGG(NVL(X.domStatus, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS domStatus
-            , LISTAGG(NVL(X.flightDirection, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightDirection
-            , LISTAGG(NVL(X.depArrTerminal, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS depArrTerminal
-            , LISTAGG(NVL(X.airlineCode, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS airlineCode
-            , LISTAGG(NVL(X.operatorCat, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS operatorCat
-            , LISTAGG(NVL(X.flightNumber, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightNumber
-            , LISTAGG(NVL(X.flightNumberID, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightNumberID
-            , LISTAGG(NVL(X.scheduleTime, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS scheduleTime
-            , LISTAGG(NVL(X.estimatedTime, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS estimatedTime
-            , LISTAGG(NVL(X.actualTime, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS actualTime
-            , LISTAGG(NVL(X.airportCode, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS airportCode
-            , LISTAGG(NVL(TO_CHAR(X.standNumber), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS standNumber
-            , LISTAGG(NVL(TO_CHAR(X.gate), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS gate
-            , LISTAGG(NVL(X.contactRemote, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS contactRemote
-            , LISTAGG(NVL(TO_CHAR(X.seats), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS seats
-            , LISTAGG(NVL(TO_CHAR(X.paxCount), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS paxCount
-            , LISTAGG(NVL(TO_CHAR(X.transferPax), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS transferPax
-            , LISTAGG(NVL(X.belt, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS belt
-            , LISTAGG(NVL(X.flightType, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightType
-            , LISTAGG(NVL(X.checkInRange, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS checkInRange
-            , LISTAGG(NVL(X.aircraftType, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS aircraftType
-            , LISTAGG(NVL(X.sbdAvailable, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS sbdAvailable
-            , LISTAGG(NVL(X.triangle, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS triangle
-            , LISTAGG(NVL(X.bus, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS bus
-            , LISTAGG(NVL(X.arrivalGate, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS arrivalGate
-            , LISTAGG(NVL(X.baggageT1, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS baggageT1
-            , LISTAGG(NVL(X.baggageT2, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS baggageT2
-            , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
-          FROM (
-            <if test="resourceID == 'FS001'">
-            <![CDATA[
+    <!-- 사용자 FS 발행(insertSchdlAtrbFromDaily)이 이 행을 그대로 저장하므로 컬럼을 바꾸면 그쪽도 맞춘다 -->
+    <sql id="dailyFlightScheduleRows">
+        <![CDATA[
 WITH
 /* 2) 기준 운항 집합 */
 BASE_GD AS (
@@ -335,7 +304,13 @@ BASE_GD AS (
             WHEN A.GD_IRR_YN IN ('1', 'Y') THEN 'Charter'
             ELSE ''
         END AS IRR_FLT_YN,
-        A.TDFLT_YN AS TRDOMFLT_YN
+        A.TDFLT_YN AS TRDOMFLT_YN,
+        A.DOM_INTL_SE_CD,
+        TRIM(A.PREDC_HM) AS PREDC_HM,
+        TRIM(A.ACTL_HM) AS ACTL_HM,
+        A.GD_IRR_YN,
+        A.RSVT_BDPSG_CNT,
+        A.RSVT_TRNS_BDPSG_CNT
     FROM GOOWN.TN_GO_GD_DATA A
     WHERE 1 = 1
       AND A.CSHR_STTS_CD != 'SL'
@@ -346,7 +321,7 @@ BASE_GD AS (
       AND A.PSG_CGO_SE_CD = 'Y'
       AND A.FRY_YN = 'N'
       AND A.LCRFT_YN = 'N'
-      AND A.GD_SE_YMD = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
+      AND A.GD_SE_YMD = TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), 'YYYYMMDD')
 ),
 /* 3) 항공사 카테고리 */
 ALN_INFO AS (
@@ -386,7 +361,7 @@ CIC_ALLOC_ALN AS (
     SELECT DISTINCT
         A.ALN_CD
     FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
-    WHERE A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
+    WHERE A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), 'YYYYMMDD')
 ),
 /* 8) FP 원본 - 당일/익일 04시 이전 */
 FP_DAY AS (
@@ -398,8 +373,8 @@ FP_DAY AS (
     FROM GOOWN.TI_GO_DALY_ARR_DEP B
     WHERE 1 = 1
       AND (
-            B.SCHDL_YMD = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'), 'YYYYMMDD')
-            OR (B.SCHDL_YMD = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') + 1, 'YYYYMMDD') AND B.SCHDL_HM < '0400')
+            B.SCHDL_YMD = TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), 'YYYYMMDD')
+            OR (B.SCHDL_YMD = TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD') + 1, 'YYYYMMDD') AND B.SCHDL_HM < '0400')
           )
       AND B.FLT_SRVC_TYPE_CD NOT IN ('A', 'F', 'H', 'M', 'V', 'Z', 'P', 'X', 'D')
     GROUP BY
@@ -456,7 +431,7 @@ PAST_GATE_RANK AS (
       AND A.PSG_CGO_SE_CD = 'Y'
       AND A.FRY_YN = 'N'
       AND A.LCRFT_YN = 'N'
-      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{baseYmd}, 'YYYYMMDD'), - 3), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
+      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), - 3), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD') - 1, 'YYYYMMDD')
       AND A.TMNL_ID IS NOT NULL
       AND A.TMNL_ID != 'P'
       AND A.ACST_NO IS NOT NULL
@@ -487,7 +462,7 @@ ARR_CRS_HIST_RANK AS (
         ) AS RN
     FROM GOOWN.TN_GO_GD_DATA A
     WHERE 1 = 1
-      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{baseYmd}, 'YYYYMMDD'), - 1), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
+      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), - 1), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD') - 1, 'YYYYMMDD')
       AND A.ARR_DEP_SE_CD = 'A'
       AND A.CSHR_STTS_CD != 'SL'
       AND A.DLY_RSN_CD NOT IN ('2', '3')
@@ -555,8 +530,8 @@ PAST_PAX_AVG AS (
       AND A.PSG_CGO_SE_CD = 'Y'
       AND A.FRY_YN = 'N'
       AND A.LCRFT_YN = 'N'
-      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{baseYmd}, 'YYYYMMDD'), - 3), 'YYYYMMDD')
-                         AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
+      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), - 3), 'YYYYMMDD')
+                         AND TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD') - 1, 'YYYYMMDD')
     GROUP BY A.DDLN_FLTNM, A.ALN_CD
 ),
 /* 14) CA_CRS fallback - TER_ID(+P02->P01), CRS_GRP_CD별 1건 */
@@ -583,8 +558,8 @@ PAST_CIC_RANK AS (
         ) AS RN
     FROM GOOWN.TI_GO_DALY_ARR_DEP B
     WHERE B.CKNCT_RANGE_CN IS NOT NULL
-      AND B.SCHDL_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{baseYmd}, 'YYYYMMDD'), - 6), 'YYYYMMDD')
-                        AND TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
+      AND B.SCHDL_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), - 6), 'YYYYMMDD')
+                        AND TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD') - 1, 'YYYYMMDD')
     GROUP BY B.ALN_CD, B.CKNCT_RANGE_CN
 ),
 PAST_CIC AS (
@@ -629,6 +604,12 @@ BASE_PRE AS (
         B.IRR_FLT_YN,
         B.TRDOMFLT_YN,
         B.FLT_ID,
+        B.DOM_INTL_SE_CD,
+        B.PREDC_HM,
+        B.ACTL_HM,
+        B.GD_IRR_YN,
+        B.RSVT_BDPSG_CNT,
+        B.RSVT_TRNS_BDPSG_CNT,
         CASE
             WHEN (B.STND_NO_RAW IS NULL OR B.STND_NO_RAW = '0000') AND PG.STND_NO IS NOT NULL THEN PG.STND_NO
             WHEN (B.STND_NO_RAW IS NULL OR B.STND_NO_RAW = '0000') AND PG.STND_NO IS NULL THEN '112'
@@ -720,7 +701,16 @@ FFF AS (
         END AS SBDAvailable,
         BP.IRR_FLT_YN AS FlightType,
         BP.TRDOMFLT_YN AS Triangle,
-        BP.FLT_ID
+        BP.FLT_ID,
+        BP.CF_TER_ID_X,
+        BP.SCHD_DT,
+        BP.SCHD_HM,
+        BP.DOM_INTL_SE_CD,
+        BP.PREDC_HM,
+        BP.ACTL_HM,
+        BP.GD_IRR_YN,
+        BP.RSVT_BDPSG_CNT,
+        BP.RSVT_TRNS_BDPSG_CNT
     FROM BASE_PRE BP
     LEFT JOIN GATE_INFO GI
         ON BP.GATE_NO = GI.GATE_NO
@@ -783,10 +773,59 @@ SELECT
             || SUBSTR(B.LAST_BAG_INPUT_DT, 7, 2) || 'T'
             || SUBSTR(B.LAST_BAG_INPUT_DT, 9, 2) || ':'
             || SUBSTR(B.LAST_BAG_INPUT_DT, 11, 2) || ':00.000'
-    END AS BaggageT2
+    END AS BaggageT2,
+    FFF.CF_TER_ID_X,
+    FFF.SCHD_DT,
+    FFF.SCHD_HM,
+    FFF.DOM_INTL_SE_CD,
+    FFF.PREDC_HM,
+    FFF.ACTL_HM,
+    FFF.GD_IRR_YN,
+    FFF.RSVT_BDPSG_CNT,
+    FFF.RSVT_TRNS_BDPSG_CNT,
+    B.FRST_BAG_INPUT_DT AS FRST_BAG_INPUT_DT_RAW,
+    B.LAST_BAG_INPUT_DT AS LAST_BAG_INPUT_DT_RAW
 FROM FFF
 JOIN GOOWN.TI_GO_FLTSH_RSRC B
   ON FFF.FLT_ID = B.DALY_FLTSH_ID
+        ]]>
+    </sql>
+
+    <select id="retrieveFlightSchedule" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastFlightScheduleDto">
+        /* CastRestTestMapper.retrieveFlightSchedule(CastReqGetResourceDto dto) */
+       SELECT
+            LISTAGG(NVL(X.domStatus, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS domStatus
+            , LISTAGG(NVL(X.flightDirection, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightDirection
+            , LISTAGG(NVL(X.depArrTerminal, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS depArrTerminal
+            , LISTAGG(NVL(X.airlineCode, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS airlineCode
+            , LISTAGG(NVL(X.operatorCat, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS operatorCat
+            , LISTAGG(NVL(X.flightNumber, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightNumber
+            , LISTAGG(NVL(X.flightNumberID, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightNumberID
+            , LISTAGG(NVL(X.scheduleTime, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS scheduleTime
+            , LISTAGG(NVL(X.estimatedTime, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS estimatedTime
+            , LISTAGG(NVL(X.actualTime, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS actualTime
+            , LISTAGG(NVL(X.airportCode, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS airportCode
+            , LISTAGG(NVL(TO_CHAR(X.standNumber), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS standNumber
+            , LISTAGG(NVL(TO_CHAR(X.gate), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS gate
+            , LISTAGG(NVL(X.contactRemote, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS contactRemote
+            , LISTAGG(NVL(TO_CHAR(X.seats), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS seats
+            , LISTAGG(NVL(TO_CHAR(X.paxCount), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS paxCount
+            , LISTAGG(NVL(TO_CHAR(X.transferPax), ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS transferPax
+            , LISTAGG(NVL(X.belt, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS belt
+            , LISTAGG(NVL(X.flightType, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS flightType
+            , LISTAGG(NVL(X.checkInRange, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS checkInRange
+            , LISTAGG(NVL(X.aircraftType, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS aircraftType
+            , LISTAGG(NVL(X.sbdAvailable, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS sbdAvailable
+            , LISTAGG(NVL(X.triangle, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS triangle
+            , LISTAGG(NVL(X.bus, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS bus
+            , LISTAGG(NVL(X.arrivalGate, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS arrivalGate
+            , LISTAGG(NVL(X.baggageT1, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS baggageT1
+            , LISTAGG(NVL(X.baggageT2, ' '),',') WITHIN GROUP (ORDER BY X.DomStatus, X.FlightDirection, X.DepArrTerminal, X.FlightNumber) AS baggageT2
+            , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
+          FROM (
+            <if test="resourceID == 'FS001'">
+            <include refid="dailyFlightScheduleRows"><property name="ymdParam" value="baseYmd"/></include>
+            <![CDATA[
 ORDER BY
     FFF.DomStatus,
     FFF.FlightDirection,
@@ -2233,7 +2272,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
          , LISTAGG(NVL(TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'YYYY-MM-DD"T"HH24:MI:SS'),' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS lastChange
          , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
       FROM PMOWN.TN_PM_SMLT_USER_MSTR
-     WHERE SMLT_STTS = 'New'
+     WHERE 1 = 1
      ORDER BY whatIfRunId
     </select>
 
