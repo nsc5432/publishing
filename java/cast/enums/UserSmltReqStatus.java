@@ -19,7 +19,6 @@ import java.util.Set;
  * </pre>
  */
 public enum UserSmltReqStatus {
-	// CAST 가 REQ_SetResource 로 보내는 문자열을 그대로 값으로 쓴다. 화면의 RUNNING/DONE 과 별개다
 	NEW("New"),
 	EXECUTING("Executing"),
 	FINISHED("Finished"),
@@ -61,7 +60,6 @@ public enum UserSmltReqStatus {
 		return this == FINISHED || this == FAILED;
 	}
 
-	// 수행이력 · 화면은 실행 요청보다 상태가 거칠다. 여기서 한 번만 접는다
 	public SmltExecStatus toExecStatus() {
 		switch (this) {
 			case FINISHED:

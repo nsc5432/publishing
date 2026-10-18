@@ -1046,7 +1046,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             case COUNTER_ALLOCATION:
                 if(idto.getResourceID().contains("CA")) {
                      handleCounterAllocation(idto, sb);
-                }else {
+                } else {
                     handleSbdAllocation(idto, sb);
                 }
                 break;
@@ -1060,21 +1060,21 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             case GENERIC_TABLE:
                 if(idto.getResourceID().contains(CHECK_IN_TYPE)) {
                     handleCheckinType(idto, sb);
-                }else if(idto.getResourceID().contains(CHECK_IN_COUNTER_SERVICE_TIME)) {
+                } else if(idto.getResourceID().contains(CHECK_IN_COUNTER_SERVICE_TIME)) {
                     handleServiceTime(idto, sb);
-                }else if(idto.getResourceID().contains(FACILITY_OPENING_TABLE_DEPARTURE_GATE)) {
+                } else if(idto.getResourceID().contains(FACILITY_OPENING_TABLE_DEPARTURE_GATE)) {
                     handleDepartureGate(idto, sb);
-                }else if(idto.getResourceID().contains(FACILITY_OPENING_TABLE_EMIGRATION)) {
+                } else if(idto.getResourceID().contains(FACILITY_OPENING_TABLE_EMIGRATION)) {
                     handleEmigration(idto, sb);
-                }else if(idto.getResourceID().contains(FACILITY_OPENING_TABLE_IMMIGRATION)) {
+                } else if(idto.getResourceID().contains(FACILITY_OPENING_TABLE_IMMIGRATION)) {
                     handleImmigration(idto, sb);
-                }else if(idto.getResourceID().contains(FACILITY_OPENING_TABLE_SECURITY_CONTROL)) {
+                } else if(idto.getResourceID().contains(FACILITY_OPENING_TABLE_SECURITY_CONTROL)) {
                     handleSecurityControl(idto, sb);
-                }else if(idto.getResourceID().contains(FACILITY_OPENING_TABLE_TRANSFER_SECURITY_CONTROL)) {
+                } else if(idto.getResourceID().contains(FACILITY_OPENING_TABLE_TRANSFER_SECURITY_CONTROL)) {
                     handleTransferSecurityControl(idto, sb);
-                }else if(idto.getResourceID().contains(REPORTING_PROFILES_TIME_GROUPS)) {
+                } else if(idto.getResourceID().contains(REPORTING_PROFILES_TIME_GROUPS)) {
                     handleRrpStngHrGroupControl(idto, sb);
-                }else if(idto.getResourceID().contains(WHAT_IF_DEFINITION_TABLE)) {
+                } else if(idto.getResourceID().contains(WHAT_IF_DEFINITION_TABLE)) {
                     handleWhatIfControl(idto, sb);
                 }
                 break;
@@ -1127,7 +1127,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             sb.append(TAB_ONE).append(SOAP_BODY_END);
             sb.append(System.lineSeparator());
             sb.append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT);
             sb.append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>");
             sb.append(System.lineSeparator());
@@ -1186,7 +1186,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             sb.append(TAB_ONE).append(SOAP_BODY_END);
             sb.append(System.lineSeparator());
             sb.append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT);
             sb.append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>");
             sb.append(System.lineSeparator());
@@ -1245,7 +1245,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             sb.append(TAB_ONE).append(SOAP_BODY_END);
             sb.append(System.lineSeparator());
             sb.append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT);
             sb.append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>");
             sb.append(System.lineSeparator());
@@ -2017,7 +2017,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             sb.append(TAB_ONE).append(SOAP_BODY_END);
             sb.append(System.lineSeparator());
             sb.append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT);
             sb.append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>");
             sb.append(System.lineSeparator());
@@ -2074,7 +2074,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             sb.append(TAB_ONE).append(SOAP_BODY_END);
             sb.append(System.lineSeparator());
             sb.append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT);
             sb.append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>");
             sb.append(System.lineSeparator());
@@ -2139,7 +2139,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             sb.append(TAB_ONE).append(SOAP_BODY_END);
             sb.append(System.lineSeparator());
             sb.append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT);
             sb.append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>");
             sb.append(System.lineSeparator());
@@ -2196,7 +2196,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             sb.append(TAB_ONE).append(SOAP_BODY_END);
             sb.append(System.lineSeparator());
             sb.append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT);
             sb.append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>");
             sb.append(System.lineSeparator());
@@ -2259,7 +2259,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             sb.append(TAB_ONE).append(SOAP_BODY_END);
             sb.append(System.lineSeparator());
             sb.append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT);
             sb.append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>");
             sb.append(System.lineSeparator());
@@ -2316,7 +2316,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             sb.append(TAB_ONE).append(SOAP_BODY_END);
             sb.append(System.lineSeparator());
             sb.append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT);
             sb.append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>");
             sb.append(System.lineSeparator());
@@ -2379,7 +2379,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             sb.append(TAB_ONE).append(SOAP_BODY_END);
             sb.append(System.lineSeparator());
             sb.append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT);
             sb.append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>");
             sb.append(System.lineSeparator());
@@ -2442,7 +2442,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             sb.append(TAB_ONE).append(SOAP_BODY_END);
             sb.append(System.lineSeparator());
             sb.append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT);
             sb.append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>");
             sb.append(System.lineSeparator());
@@ -2535,11 +2535,11 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         SessionUtils.setUserContext(simRsltContent, sessionService);
 
         try {
-
             Document doc = parseXmlSafely(param);
             Element node = doc.getDocumentElement();
 
             simRsltParser(node, RUN, simRslt, simRsltContentMap, simRsltContent, wDto);
+
             if (simRslt.getResourceType().equals(CAST_MODEL) || simRslt.getResourceType().equals(CAST_EXPRESS_MODEL)) {
                 ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
                 if (attributes != null) {
@@ -2548,15 +2548,17 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
                 }
                 modelParser(node, mDto);
                 saveModel(mDto);
-            }else if(simRslt.getResourceType().equals(GENERIC_TABLE)) {
+            } else if(simRslt.getResourceType().equals(GENERIC_TABLE)) {
                 updateWhatIf(wDto);
-            }else {
+            } else {
                 ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
                 if (attributes != null) {
                     HttpServletRequest request = attributes.getRequest();
                     simRslt.setLoginIpAddr(request.getRemoteAddr());
                 }
+
                 int result = insertResult(simRslt);
+
                 if(result < 1) {
                     return buildReturnXml(false);
                 }
@@ -2575,32 +2577,52 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         int relatedEventCd = setupMasterDto(dto);
         UserSmltReqDto userReq = null;
         String simId;
+
         if (WHAT_IF.equals(dto.getSmltType())) {
             List<UserSmltReqDto> candidates = castRestMapper.retrieveUserReqByFsRsrcId(dto.getFlightScheduleResourceID());
             Matcher token = Pattern.compile("(?<![A-Za-z0-9])WI[0-9]{8}(?![A-Za-z0-9])").matcher(dto.getResourceID());
             String reqId = token.find() ? token.group() : null;
-            if (token.find()) throw new IllegalStateException("결과에 요청 식별자가 둘 이상 있습니다.");
+
+            if (token.find())
+                throw new IllegalStateException("결과에 요청 식별자가 둘 이상 있습니다.");
+
             if (reqId != null) {
                 final String matched = reqId;
                 candidates = candidates.stream().filter(req -> matched.equals(req.getSmltReqId())).collect(Collectors.toList());
             }
-            if (candidates.size() != 1) throw new IllegalStateException("사용자 결과의 요청을 유일하게 식별할 수 없습니다.");
+
+            if (candidates.size() != 1)
+                throw new IllegalStateException("사용자 결과의 요청을 유일하게 식별할 수 없습니다.");
+
             userReq = candidates.get(0);
-            if ("Failed".equals(userReq.getSmltStts())) throw new IllegalStateException("실패 종료한 요청의 결과입니다.");
+
+            if ("Failed".equals(userReq.getSmltStts()))
+                throw new IllegalStateException("실패 종료한 요청의 결과입니다.");
+
             validateUserResult(dto, userReq);
             simId = userReq.getSmltId();
         } else {
             simId = executionService.nextId();
         }
+
         dto.setSimId(simId);
         SmltMdlDto modelDto = castRestMapper.retrieveModelInfo(dto);
-        if (modelDto == null || modelDto.getSmltMdlSn() == null) throw new IllegalStateException("CAST 모델 정보를 찾을 수 없습니다.");
+
+        if (modelDto == null || modelDto.getSmltMdlSn() == null)
+            throw new IllegalStateException("CAST 모델 정보를 찾을 수 없습니다.");
+
         String sno = modelDto.getSmltMdlSn();
         dto.setSmltMdlSn(sno);
-        if (executionMapper.hasModel(simId, sno) > 0) throw new IllegalStateException("동일 실행·모델에 다른 결과가 이미 저장되어 있습니다.");
+
+        if (executionMapper.hasModel(simId, sno) > 0)
+            throw new IllegalStateException("동일 실행·모델에 다른 결과가 이미 저장되어 있습니다.");
+
         List<SmltRsltDtlDto> details = processDetailList(dto, simId, sno, relatedEventCd);
         castRestMapper.insertSimSet(dto);
-        if (!details.isEmpty()) executeBatchInsert(details);
+
+        if (!details.isEmpty())
+            executeBatchInsert(details);
+
         if (userReq != null) {
             userReq.setRsltSmltId(simId); userReq.setLoginIpAddr(dto.getLoginIpAddr());
             castRestMapper.updateUserReqFinished(userReq);
@@ -2608,7 +2630,8 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         return 1;
     }
     private void validateUserResult(CastResReqDto dto, UserSmltReqDto request) {
-        if (!request.getExcnYmd().equals(dateTime(dto.getStartTime()).substring(0, 10).replace("-", ""))) throw new IllegalStateException("사용자 결과의 대상 일자가 다릅니다.");
+        if (!request.getExcnYmd().equals(dateTime(dto.getStartTime()).substring(0, 10).replace("-", "")))
+            throw new IllegalStateException("사용자 결과의 대상 일자가 다릅니다.");
         requireResource(request.getMdlRsrcId(), dto.getModelResourceID());
         requireResource(request.getFltSchdlRsrcId(), dto.getFlightScheduleResourceID());
         requireResource(request.getCknctAlctnRsrcId(), dto.getCheckInAllocationResourceID());
@@ -2623,10 +2646,12 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         requireResource(request.getFcltyOpngTrScrtyCntrlRsrcId(), dto.getFacilityOpeningTableTransferSecurityControlResourceID());
     }
     private void requireResource(String expected, String actual) {
-        if (expected != null && !expected.isBlank() && !expected.equals(actual)) throw new IllegalStateException("결과 입력 리소스가 요청과 다릅니다: " + expected);
+        if (expected != null && !expected.isBlank() && !expected.equals(actual))
+            throw new IllegalStateException("결과 입력 리소스가 요청과 다릅니다: " + expected);
     }
     private String dateTime(String value) {
-        if (value == null || value.length() < 19) throw new IllegalStateException("CAST 결과 시각이 누락됐습니다.");
+        if (value == null || value.length() < 19)
+            throw new IllegalStateException("CAST 결과 시각이 누락됐습니다.");
         return value.replace("T", " ").substring(0, 19);
     }
 
@@ -3207,7 +3232,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             sb.append(TAB_ONE).append(SOAP_BODY_END);
             sb.append(System.lineSeparator());
             sb.append(SOAP_ENVELOPE_END);
-        }else {
+        } else {
             sb.append(TAB_THREE).append(INVOCATION_RESULT);
             sb.append(FALSE).append(INVOCATION_RESULT_MESSAGE).append(MESSAGE_NOT_OK).append("\"/>");
             sb.append(System.lineSeparator());
@@ -3245,11 +3270,14 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private int updateWhatIf(CastWhatIfCntrlDto dto){
         saveSimLog("22", "1");
+
         if (dto.getWhatIfRunId() == null || dto.getStatus() == null) {
             throw new IllegalStateException("CAST 요청 ID 또는 상태 목록이 없습니다.");
         }
+
         String[] sIDs = dto.getWhatIfRunId().split(",", -1);
         String[] sStts = dto.getStatus().split(",", -1);
+
         if (sIDs.length != sStts.length) {
             throw new IllegalStateException("CAST 요청 ID와 상태 목록의 길이가 다릅니다.");
         }
@@ -3258,14 +3286,22 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         for (int j = 0; j < sIDs.length; j++) {
             String runId = sIDs[j].trim();
             String status = sStts[j].trim();
+
             if (runId.isBlank() && status.isBlank()) {
                 continue;
             }
+
             UserSmltReqStatus to = UserSmltReqStatus.ofValue(status);
-            if (runId.isBlank() || to == null || reportedSttsMap.putIfAbsent(runId, to) != null) {
+
+            if (runId.isBlank() || to == null) {
                 throw new IllegalStateException("CAST 요청 ID 또는 상태 목록이 올바르지 않습니다.");
             }
+
+            if (reportedSttsMap.putIfAbsent(runId, to) != null) {
+                throw new IllegalStateException("CAST 상태 목록에 중복된 요청 ID가 있습니다: " + runId);
+            }
         }
+
         if (reportedSttsMap.isEmpty()) {
             saveSimLog("22", "2");
             return 0;
@@ -3287,10 +3323,12 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
             CastWhatIfCntrlDto wDto = new CastWhatIfCntrlDto();
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+
             if (attributes != null) {
                 HttpServletRequest request = attributes.getRequest();
                 wDto.setLoginIpAddr(request.getRemoteAddr());
             }
+
             wDto.setWhatIfRunId(runId);
             wDto.setFromStatus(from.getValue());
             wDto.setStatus(to.getValue());
@@ -3298,9 +3336,12 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             int updated = castRestMapper.updateWhatIfDefinitionTableStts(wDto);
             rRslt += updated;
         }
+
         for (Map.Entry<String, String> current : currentSttsMap.entrySet()) {
-            if (UserSmltReqStatus.FINISHED.getValue().equals(current.getValue())
-                    && !reportedSttsMap.containsKey(current.getKey())) {
+            if (
+                UserSmltReqStatus.FINISHED.getValue().equals(current.getValue()) &&
+                !reportedSttsMap.containsKey(current.getKey())
+            ) {
                 rRslt += castRestMapper.deleteWhatIfDefinitionTable(current.getKey());
             }
         }

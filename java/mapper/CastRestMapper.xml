@@ -2240,8 +2240,6 @@ ORDER BY BlockID, DepArrTerminal, resourceID
 
     <update id="updateWhatIfDefinitionTableStts" parameterType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
         /* CastRestMapper.updateWhatIfDefinitionTable(CastWhatIfCntrlDto dto) */
-        -- 이전 상태를 조건에 걸어 전이 방향을 강제한다. 영향 0행은 이미 다른 경로가
-        -- 전이시킨 것이므로 호출자가 무시한다 (New → Executing → Finished/Failed)
         UPDATE PMOWN.TN_PM_SMLT_USER_MSTR
         SET    SMLT_STTS = #{status}
              , EXCT_DT = CASE
