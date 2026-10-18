@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import aoms.framework.cmmn.controller.BaseAomsRestController;
+// import aoms.pm.castrest.service.CastRestDebugService;
 import aoms.pm.castrest.service.CastRestService;
 import aoms.pm.cmmn.dto.CastReqGetResourceDto;
 import aoms.pm.cmmn.dto.CastReqGetResourceInformationDto;
@@ -35,6 +36,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CastRestController extends BaseAomsRestController {
     private final CastRestService castRestService;
+    // private final CastRestDebugService castRestDebugService;
 
     /**
      * 자료 목록 조회
@@ -114,6 +116,7 @@ public class CastRestController extends BaseAomsRestController {
      **/	
 	@PostMapping(value = "/REQ_SetResource.do")
     public String resSetResource(@RequestBody String param) {
+        // castRestDebugService.saveRequest(param);
 		return castRestService.saveResult(param);
     }
     /**

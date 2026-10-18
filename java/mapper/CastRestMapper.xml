@@ -2298,4 +2298,8 @@ ORDER BY BlockID, DepArrTerminal, resourceID
         SELECT NVL(TO_CHAR(MAX(BASE_DT), 'YYYYMMDD'), TO_CHAR(SYSDATE, 'YYYYMMDD')) AS V_BASE_DT FROM PMOWN.DROP_TMP
     </select>
 
+    <insert id="insertSetResourceRequest">
+        INSERT INTO PMOWN.TT_PM_CASTREST_REQ_DEBUG (PAYLOAD, REG_DT)
+        VALUES (#{payload, jdbcType=CLOB, typeHandler=org.apache.ibatis.type.ClobTypeHandler}, CURRENT_TIMESTAMP)
+    </insert>
 </mapper>

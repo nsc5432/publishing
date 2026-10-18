@@ -33,7 +33,7 @@ import aoms.pm.cmmn.dto.SmltMdlDto;
 import aoms.pm.cmmn.dto.SmltRsltDtlDto;
 
 @Mapper
-public interface CastRestMapper {
+public interface CastRestMapper {    
     int insertSimRunStat(SimRunStatDto dto);
     List<Object> retrieveResourceInformation(CastReqGetResourceInformationDto dto);
     CastFlightScheduleDto retrieveFlightSchedule(CastReqGetResourceDto dto);
@@ -84,4 +84,5 @@ public interface CastRestMapper {
     int updateUserReqFinished(UserSmltReqDto dto);
 
     String selectBaseYmdForCalibration();
+    int insertSetResourceRequest(@Param("payload") String payload);
 }
