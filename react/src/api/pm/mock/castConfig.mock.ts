@@ -189,21 +189,21 @@ const GROUPS: MockGroupDefinition[] = [
         groupId: 'departure',
         groupNm: '출국장 영역',
         groupNmEn: 'Departure Hall Facility Group',
-        groupDesc: '출국장 운영시간과 여객 발생·이동·리포팅 속성',
+        groupDesc: '출국장 운영시간과 여객 발생/이동/리포팅 속성',
         sheets: ['Facility Opening Tables', '여객유형 분포', '출현시간'],
     },
     {
         groupId: 'security',
         groupNm: '시큐리티 영역',
         groupNmEn: 'Security Facility Group',
-        groupDesc: '탑승권·보안검색 서비스타임, 운영시간 및 레인 수',
+        groupDesc: '탑승권/보안검색 서비스타임, 운영시간 및 레인 수',
         sheets: ['서비스타임', 'Facility Opening Tables', 'Facility Lane Inventory', '여객유형 분포'],
     },
     {
         groupId: 'border',
         groupNm: '출입국심사 영역',
         groupNmEn: 'Border Control Facility Group',
-        groupDesc: '출입국·검역 서비스타임, 운영시간, 레인 및 여객 속성',
+        groupDesc: '출입국/검역 서비스타임, 운영시간, 레인 및 여객 속성',
         sheets: ['서비스타임', 'Facility Opening Tables', 'Facility Lane Inventory', '여객유형 분포'],
     },
     {
@@ -296,7 +296,7 @@ function createDatasetStore(tmnlId: TmnlId): DatasetStore {
         ],
         [
             { values: ['FULL', '유인 카운터', 'Y', '일반', 'Full service'] },
-            { values: ['ONLINE', '웹·모바일', 'N', '사전 처리', 'Online check-in'] },
+            { values: ['ONLINE', '웹/모바일', 'N', '사전 처리', 'Online check-in'] },
             { values: ['KIOSK', '셀프체크인', 'N', '자동', 'Self service'] },
             { values: ['BAGDROP', '셀프백드롭', 'Y', '자동', 'Bag drop'] },
             { values: ['TRANSFER', '환승', 'Y', '환승 전용', 'Transfer desk'] },

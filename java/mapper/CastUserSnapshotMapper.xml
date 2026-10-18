@@ -380,7 +380,7 @@
         AND D.SCSH_CNTOM > 0
     </insert>
 
-    <!-- 입국심사·환승보안은 편집 영역이 아니지만 렌더 SQL 이 번호로 FS 그룹 일자를 찾으므로 원천을 번호로 복사한다 -->
+    <!-- 입국심사/환승보안은 편집 영역이 아니지만 렌더 SQL 이 번호로 FS 그룹 일자를 찾으므로 원천을 번호로 복사한다 -->
     <insert id="insertEntcnyAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertEntcnyAtrb */
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_ENTCNY_ATRB (

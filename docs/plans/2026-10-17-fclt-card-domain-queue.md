@@ -49,7 +49,7 @@
 ### 4.1 공용 평가기
 
 `CastFcltQueueScenarioServiceImpl`의 계산 부분(`toCalculator` · `toClear` · `applyRecommend` · `toStableMinCnt`)을
-`domains/dsbd`의 상태 없는 클래스(가칭 `FcltQueueAssessment`)로 옮긴다. 이 클래스가 받는 값과 돌려주는 값은 아래와 같다.
+`domains/dsbd`의 상태 없는 클래스(가칭 `FcltQueueClearance`)로 옮긴다. 이 클래스가 받는 값과 돌려주는 값은 아래와 같다.
 
 - 입력: `FcltQueueSource`, 목표 인원 `Q*`(NORMAL 상한의 정수 내림), 목표 해소시간(분)
 - 출력:
@@ -236,7 +236,7 @@ Xovis 적용 전에 확인할 것:
 
 ## 9. 구현 순서
 
-1. **평가기 추출**: `FcltQueueAssessment`를 만들고 팝업 서비스가 이를 쓰게 바꾼다. 팝업 응답은 바뀌지 않아야 한다.
+1. **평가기 추출**: `FcltQueueClearance`를 만들고 팝업 서비스가 이를 쓰게 바꾼다. 팝업 응답은 바뀌지 않아야 한다.
 2. **원천 어댑터**: `ChknQueueDay.sourceOf`와 출국장 터미널 단위 어댑터를 만든다. 팝업이 이를 쓰게 바꾼다.
 3. **체크인 추천 교체**: `recommendOf`를 평가기로 바꾼다. 맵·체크인 상세는 자동으로 따라온다.
 4. **카드 교체**: 체크인·출국장 카드가 4.4 매핑을 따르게 한다. `FcltRecommendDto.reqCnt`를 nullable로 바꾼다.
@@ -313,9 +313,9 @@ Xovis 적용 전에 확인할 것:
 
 | 무엇 | 어디 |
 |---|---|
-| 공용 평가기 | `domains/dsbd/FcltQueueAssessment` — `clearOf(s)`, `recommendOf(목표분)`, `getLoadRatio`, `getThroughputPerHour`, `toTargetQueueCnt` |
+| 공용 평가기 | `domains/dsbd/FcltQueueClearance` — `clearOf(s)`, `recommendOf(목표분)`, `getLoadRatio`, `getThroughputPerHour`, `toTargetQueueCnt` |
 | 원천 | `FcltQueueSource`에 `tmnlId` · `fcltType` · `unitCd` · `prcsPsgCnt` 추가, `toBuilder` 사용. `toScenarioInput`은 `totServerCnt`를 싣지 않는다 (추천 수량이 보유 수량을 넘어도 계산해야 해서) |
-| 체크인 어댑터 | `ChknQueueDay.sourceOf` / `assessmentOf` / `recommendOf`. 생성자에 터미널 · 기준일자 추가 |
+| 체크인 어댑터 | `ChknQueueDay.sourceOf` / `clearanceOf` / `recommendOf`. 생성자에 터미널 · 기준일자 추가 |
 | 출국장 어댑터 | `domains/dsbd/DepQueueWindow` + `CastDepQueueService`. 결과 · 보안검색 운영표를 터미널 단위로 한 번씩 조회 |
 | 팝업 | 배정 가능 최대 수량 · 적용 가정만 어댑터 결과에 덧붙이고 계산은 평가기에 맡긴다 |
 
@@ -343,7 +343,7 @@ Xovis 적용 전에 확인할 것:
   (컨트롤러 · HWPX · 운영시간 서비스 등 외부 라이브러리가 없어 컴파일할 수 없는 14개 파일 제외. 이번 변경과 무관).
 - 회귀: 리팩터링 전 팝업 코드와 평가기를 무작위 원천 2만 개로 대조 — λ · μ · 현재/조정/추천 해소값 · Erlang C ·
   fluid · 안정 하한 · 최종 수량 · 목표 달성 여부가 모두 같다.
-- 10장 경계값과 2026-10-13 계획 §9.1 벡터, `ChknQueueDay.recommendOf` = `assessmentOf` 일치, 출국장 연속성 판정.
+- 10장 경계값과 2026-10-13 계획 §9.1 벡터, `ChknQueueDay.recommendOf` = `clearanceOf` 일치, 출국장 연속성 판정.
 - `npx tsc -b`, `npx eslint .` 통과. 목업 화면에서 `-` 카드, ρ > 1 링, 카드 = 팝업 값 확인.
 
 남은 것:

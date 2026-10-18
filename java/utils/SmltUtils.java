@@ -66,8 +66,8 @@ public class SmltUtils {
 	}
 
 	/**
-	 * 상위시설코드가 여러 개 걸린 묶음 단위(아일랜드 · 출국장)는 한 건이 된다.
-	 * 맵형태보기 · 출국장 · 체크인카운터가 같은 규칙을 써야 같은 시설의 값이 화면마다 달라지지 않는다.
+	 * 상위시설코드가 여러 개 걸린 묶음 단위(아일랜드 / 출국장)는 한 건이 된다.
+	 * 맵형태보기 / 출국장 / 체크인카운터가 같은 규칙을 써야 같은 시설의 값이 화면마다 달라지지 않는다.
 	 */
 	public static Map<String, Map<String, SmltRsltRawDto>> foldByTimeAndUnitCd(List<SmltRsltRawDto> rsltList) {
 		Map<String, List<SmltRsltRawDto>> timeMap = rsltList.stream()

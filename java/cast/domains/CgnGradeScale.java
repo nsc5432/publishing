@@ -12,7 +12,7 @@ import aoms.pm.cast.enums.CongestionStatus;
 
 /**
  * @Classname : CgnGradeScale.java
- * @Description : 시설 그룹별 혼잡등급 기준정보 — 대시보드 · 체크인 공용 Queue 가 함께 쓴다
+ * @Description : 시설 그룹별 혼잡등급 기준정보 — 대시보드 / 체크인 공용 Queue 가 함께 쓴다
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>

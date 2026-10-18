@@ -570,13 +570,13 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 - **혼잡등급 220 명 같은 하드코딩 fallback 을 두지 않는다.** 기준정보(`TN_PM_PSG_PRCS_GRD`)가
   없거나 겹치면 조회 실패로 떨어뜨린다.
 - 추천 `reqCnt` 는 추가 수량이 아니라 **현재 운영분을 포함한 총 소요 부스 수**다. 2026-10-17 부터
-  `ChknQueueDay.recommendOf` 는 혼잡해소 팝업 기본값과 같은 공용 평가기 `domains/dsbd/FcltQueueAssessment`
+  `ChknQueueDay.recommendOf` 는 혼잡해소 팝업 기본값과 같은 공용 평가기 `domains/dsbd/FcltQueueClearance`
   (목표 30분, §14)를 쓴다 ([계획](docs/plans/2026-10-17-fclt-card-domain-queue.md)). 30분 슬롯 `[hhmm, hhmm+30)`
   에서 λ·μ·Q0·s 를 뽑아 **현재 슬롯이 그대로 이어진다고 가정**한다 — 예전의 CAST 앞 60분 궤적·리드타임 10분
   피크 방식이 아니라서 곧 몰려올 피크를 미리 반영하지 못한다. `cgnClearMin` 은 추천 수량을 적용했을 때 슬롯
   끝부터 NORMAL 이하가 되는 분(올림)이다.
 - **요약보기 카드 · 맵형태보기 · 체크인 상세의 `reqCnt` · `cgnClearMin` 도 같은 조건에서 같아야 한다.**
-  카드는 `assessmentOf` 를, 맵 · 상세는 `recommendOf` 를 부르지만 내부 계산은 하나다.
+  카드는 `clearanceOf` 를, 맵 · 상세는 `recommendOf` 를 부르지만 내부 계산은 하나다.
 - 처리시간이 없어(`UNAVAILABLE`) 산정할 수 없으면 `reqCnt` · `cgnClearMin` 을 **`null` 로 내려** 화면이
   `-` 로 그린다. 해소가 불가능(`UNREACHABLE`)하거나 하루를 넘는 해소도 `cgnClearMin = null` 이다.
   보유 부스보다 큰 소요량이 나와도 **자르거나 숨기지 않는다.**
@@ -594,7 +594,7 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 | 무엇 | 어디 |
 |---|---|
 | 정책 · 응답 조립 | `CastFcltQueueScenarioServiceImpl` |
-| 공용 평가기 (카드 · 팝업 · 체크인 추천) | `domains/dsbd/FcltQueueAssessment` (계산은 `domains/queue` 클래스만 호출) |
+| 공용 평가기 (카드 · 팝업 · 체크인 추천) | `domains/dsbd/FcltQueueClearance` (계산은 `domains/queue` 클래스만 호출) |
 | 원천 어댑터 | 체크인 `ChknQueueDay.sourceOf` · 출국장 `DepQueueWindow` (`CastDepQueueService`, 터미널 단위 1회 조회) |
 | 팝업 · 요청 경쟁 처리 | `dashboard/components/FcltQueueScenarioModal.tsx` · `hooks/useFcltQueueScenario.ts` |
 | 일반 Dialog (포커스 트랩 · 복귀) | `components/ui/dialog.tsx` (`@radix-ui/react-dialog`) |

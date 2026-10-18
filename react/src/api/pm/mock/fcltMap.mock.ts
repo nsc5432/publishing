@@ -1,12 +1,4 @@
-import type {
-    FcltMapItemDto,
-    FcltMapListDto,
-    FcltMapSaveItemDto,
-    FcltType,
-    JsonResponse,
-    MapMarkerDto,
-    TmnlId,
-} from '@/types/api.types';
+import type { FcltMapItemDto, FcltMapListDto, FcltMapSaveItemDto, FcltType, JsonResponse, MapMarkerDto, TmnlId } from '@/types/api.types';
 
 /**
  * 시설물 매핑 목업.
@@ -23,7 +15,7 @@ import type {
  * 이 화면은 흐림 필터가 없는 도면(terminal1/2-plan-solid.svg)을 쓴다. 좌표는 그 도면
  * 기준으로 맞춰 두었다 — 마커가 건물 밖 빈 자리에 떠 있으면 배치를 확인할 수 없다.
  *
- * T1 은 기존 화면(맵형태보기 · 사용자 시뮬레이션)이 쓰는 값 그대로도 건물 위에 얹힌다.
+ * T1 은 기존 화면(맵형태보기 / 사용자 시뮬레이션)이 쓰는 값 그대로도 건물 위에 얹힌다.
  * T2 는 도면 모양이 아주 달라(가운데가 파인 형태, 콘코스 아래 가장자리가 y≈44%)
  * 기존 값을 쓰면 마커가 건물 아래로 내려가므로 여기서 다시 잡았다.
  */
@@ -247,14 +239,12 @@ function toMarkerList(tmnlId: TmnlId): MapMarkerDto[] {
         cdntY: ISLAND_POINTS[tmnlId][island][1],
     }));
 
-    const dptgtGates: MapMarkerDto[] = Object.entries(DPTGT_POINTS[tmnlId]).map(
-        ([dptgtNo, point]) => ({
+    const dptgtGates: MapMarkerDto[] = Object.entries(DPTGT_POINTS[tmnlId]).map(([dptgtNo, point]) => ({
         markerId: `dg${dptgtNo}`,
         label: dptgtNo,
         cdntX: point[0],
         cdntY: point[1],
-        }),
-    );
+    }));
 
     return [...islands, ...dptgtGates];
 }

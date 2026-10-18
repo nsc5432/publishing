@@ -1,39 +1,24 @@
 import { useId } from 'react';
-import {
-    Bar,
-    CartesianGrid,
-    BarChart as RcBarChart,
-    ReferenceLine,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from 'recharts';
+import { Bar, CartesianGrid, BarChart as RcBarChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import type { ChartBar, ChartData } from '../types';
 
 interface BarChartProps {
     data: ChartData;
 }
 
-/** 눈금 색 — 원본 CSS(rgba(150,155,175,.22)) 를 그대로 옮겼다 */
 const GRID_COLOR = 'rgba(150, 155, 175, 0.22)';
-/** 0 눈금선 — 라벨과 바로 붙어 있어 다른 눈금선과 같은 옅기면 안 보인다 */
 const BASELINE_COLOR = 'rgba(150, 155, 175, 0.5)';
 const AXIS_TICK = { fill: '#9aa0ac', fontSize: 10, fontFamily: 'Pretendard, sans-serif' };
 const SCALE_TICK = { fill: '#6e747f', fontSize: 10, fontFamily: 'Pretendard, sans-serif' };
-/** Y축 자리 — 원본 .chart__axis(26px) + 간격(8px) */
 const Y_WIDTH = 34;
-/** 하단 스케일 라벨 높이 — 원본 .chart__scale */
 const X_HEIGHT = 18;
 
-/** 축 칸이 좁아 1,000 이상은 K 로 줄인다 (90,000 → 90K). */
 function formatAxisTick(value: number) {
     return value >= 1000 ? `${Math.round(value / 1000)}K` : String(Math.round(value));
 }
 
 /**
  * 막대 차트 — 시간대별 운항편 수 / 여객 수.
- * 눈금은 최댓값을 3등분한 4개(0 · 1/3 · 2/3 · 최대)로 원본 퍼블리싱과 맞춘다.
  */
 export function BarChart({ data }: BarChartProps) {
     // 그라디언트 id 는 문서에서 유일해야 한다. 차트가 터미널 x 지표만큼 있다.
@@ -53,20 +38,8 @@ export function BarChart({ data }: BarChartProps) {
             <div className="chart__body">
                 <ResponsiveContainer width="100%" height="100%">
                     <RcBarChart data={data.bars} margin={{ top: 6, right: 0, bottom: 0, left: 0 }}>
-                        <CartesianGrid
-                            vertical={false}
-                            stroke={GRID_COLOR}
-                            strokeWidth={1}
-                            syncWithTicks
-                        />
-                        <XAxis
-                            dataKey="label"
-                            height={X_HEIGHT}
-                            tickLine={false}
-                            axisLine={false}
-                            tick={SCALE_TICK}
-                            interval={0}
-                        />
+                        <CartesianGrid vertical={false} stroke={GRID_COLOR} strokeWidth={1} syncWithTicks />
+                        <XAxis dataKey="label" height={X_HEIGHT} tickLine={false} axisLine={false} tick={SCALE_TICK} interval={0} />
                         <YAxis
                             width={Y_WIDTH}
                             domain={[0, max]}

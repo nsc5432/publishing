@@ -1,7 +1,7 @@
 SET SERVEROUTPUT ON
 WHENEVER SQLERROR EXIT SQL.SQLCODE ROLLBACK
 
--- 화면 저장·실행과 CAST polling·상태·결과 수신을 모두 정지하고 별도 전체 백업 후 PMOWN으로 실행한다.
+-- 화면 저장/실행과 CAST polling/상태/결과 수신을 모두 정지하고 별도 전체 백업 후 PMOWN으로 실행한다.
 -- 2026-10-11 구조의 cutover가 이미 완료된 DB만 대상으로 하며 DDL은 자동 커밋된다.
 DECLARE
     n NUMBER;

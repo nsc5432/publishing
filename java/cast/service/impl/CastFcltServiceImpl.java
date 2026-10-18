@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * @Classname : CastFcltServiceImpl.java
- * @Description : 시설물 매핑 ServiceImpl · 저장
+ * @Description : 시설물 매핑 ServiceImpl / 저장
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
@@ -150,7 +150,7 @@ public class CastFcltServiceImpl implements CastFcltService {
 
 	/**
 	 * 시설이 걸리는 도면 마커 id.
-	 * 체크인 계열은 아일랜드 문자, 출국장·보안검색대는 출국장 마커(dgN)에 함께 붙는다
+	 * 체크인 계열은 아일랜드 문자, 출국장/보안검색대는 출국장 마커(dgN)에 함께 붙는다
 	 * (검색대는 출국장 바로 앞이라 도면에서 같은 자리다).
 	 */
 	private String toMarkerId(FcltType fcltType, String unitCd) {

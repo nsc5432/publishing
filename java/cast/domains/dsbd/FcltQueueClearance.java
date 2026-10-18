@@ -10,8 +10,8 @@ import aoms.pm.cast.domains.queue.FacilityQueueCalculator;
 import aoms.pm.cast.domains.queue.FacilityQueueInput;
 
 /**
- * @Classname : FcltQueueAssessment.java
- * @Description : 한 큐 · 한 관측구간의 혼잡해소 평가 — 요약보기 카드 · 혼잡해소 팝업 · 체크인 추천 공용
+ * @Classname : FcltQueueClearance.java
+ * @Description : 한 큐 / 한 관측구간의 혼잡해소 평가 — 요약보기 카드 / 혼잡해소 팝업 / 체크인 추천 공용
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
@@ -24,17 +24,11 @@ import aoms.pm.cast.domains.queue.FacilityQueueInput;
  *
  * </pre>
  */
-public final class FcltQueueAssessment {
+public final class FcltQueueClearance {
 	public static final int DFLT_TARGET_MIN = 30; // 목표 해소시간 기본값(분)
 
 	private static final double SEC_PER_MIN = 60.0;
 	private static final double MAX_CLEAR_SEC = 24 * 60 * SEC_PER_MIN; // 혼잡해소 시각으로 표기할 상한(초) = 하루(86400초), 넘으면 빈 값
-
-	// lambda/mu 가 정수인데 부동소수 오차로 n - 1e-12 가 되면 rho = 1 인 수량을 안정 최소로 고르게 된다
-	private static final double RHO_EPSILON = 1e-9;
-	private static final double GOAL_EPSILON_SEC = 1e-6;
-	// 15분이 부동소수 오차로 15.0000001분이 되어 16분으로 올라가지 않게 한다 (화면 ceilMinutes 와 같은 값)
-	private static final double CEIL_EPSILON_MIN = 1e-9;
 
 	private final FcltQueueSource source;
 	private final int targetQueueCnt;
@@ -42,7 +36,7 @@ public final class FcltQueueAssessment {
 	private final Computed<Double> arrival;
 	private final Computed<Double> service;
 
-	public FcltQueueAssessment(FcltQueueSource source, int targetQueueCnt) {
+	public FcltQueueClearance(FcltQueueSource source, int targetQueueCnt) {
 		this.source = source;
 		this.targetQueueCnt = targetQueueCnt;
 		this.calculator = toCalculator(source);
@@ -113,7 +107,7 @@ public final class FcltQueueAssessment {
 		// 기존 fluid 추천의 의미는 바꾸지 않고, 양의 유입에서 rho < 1 이 되도록 이번 정책으로만 하한을 둔다
 		int reqCnt = stableMinCnt == null ? fluid.getValue() : Math.max(fluid.getValue(), stableMinCnt);
 		Clear reqClear = clearOf(reqCnt);
-		Boolean goalMet = reqClear.getClearSec().hasValue() ? reqClear.getClearSec().getValue() <= targetSec + GOAL_EPSILON_SEC : null;
+		Boolean goalMet = reqClear.getClearSec().hasValue() ? reqClear.getClearSec().getValue() <= targetSec : null;
 
 		return new Recommend(targetMin, fluid, stableMinCnt, reqCnt, reqClear, goalMet);
 	}
@@ -135,7 +129,7 @@ public final class FcltQueueAssessment {
 			return null;
 		}
 
-		double floor = Math.floor(arrival.getValue() / service.getValue() + RHO_EPSILON);
+		double floor = Math.floor(arrival.getValue() / service.getValue());
 
 		return Double.isFinite(floor) && floor < Integer.MAX_VALUE ? (int) floor + 1 : null;
 	}
@@ -192,14 +186,14 @@ public final class FcltQueueAssessment {
 			return clearSec;
 		}
 
-		/** 기준시각 + 해소 초(올림). 산정 불가 · 해소 불가 · 하루 초과면 null */
+		/** 기준시각 + 해소 초(올림). 산정 불가 / 해소 불가 / 하루 초과면 null */
 		public LocalDateTime getClearDt() {
 			return clearDt;
 		}
 
 		/** 해소 분(올림). clearDt 가 null 이면 null */
 		public Integer getClearMin() {
-			return clearDt == null ? null : (int) Math.ceil(clearSec.getValue() / SEC_PER_MIN - CEIL_EPSILON_MIN);
+			return clearDt == null ? null : (int) Math.ceil(clearSec.getValue() / SEC_PER_MIN);
 		}
 
 		public Computed<Double> getNextWtngSec() {

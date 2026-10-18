@@ -2212,7 +2212,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     </select>
     <select id="retrieveWhatIfCntrl" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastWhatIfCntrlDto">
         /* CastRestTestMapper.retrieveWhatIfCntrl(CastReqGetResourceDto dto) */
-    -- 대기(New) 건만 내보낸다. 필터가 없으면 완료·실패 건까지 매번 다시 실행 대상이 된다.
+    -- 대기(New) 건만 내보낸다. 필터가 없으면 완료/실패 건까지 매번 다시 실행 대상이 된다.
     -- LISTAGG 는 NULL 셀을 배열에서 통째로 빼 뒤 값을 한 칸 당긴다. NVL 로 자리를 채우고
     -- 정렬 기준도 전부 SMLT_REQ_ID 로 통일해야 컬럼 간 행 대응이 유지된다.
     SELECT LISTAGG(NVL(SMLT_REQ_ID,' '),',')     WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS whatIfRunId

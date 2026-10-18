@@ -5,7 +5,7 @@
     <select id="retrieveDepHallTrendList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
         /* CastDepHallMapper.retrieveDepHallTrendList */
         <!--
-            차트 보기 = 하루 전체 추이. 한 시각만 보는 맵·표 보기와 달리 시각으로 거르지 않고
+            차트 보기 = 하루 전체 추이. 한 시각만 보는 맵/표 보기와 달리 시각으로 거르지 않고
             30분 버킷으로 접어 한 번에 내려준다 (타임라인을 옮겨도 재조회하지 않는다).
             묶음 단위 자리수 규칙은 CastMapMapper.retrieveMapRsltList 와 같다.
         -->

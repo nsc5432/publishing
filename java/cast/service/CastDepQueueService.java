@@ -6,7 +6,7 @@ import aoms.pm.cast.enums.TerminalKind;
 
 /**
  * @Classname : CastDepQueueService.java
- * @Description : 출국장 보안검색 Queue 원천 Service — 요약보기 카드 · 혼잡해소 팝업 공용
+ * @Description : 출국장 보안검색 Queue 원천 Service — 요약보기 카드 / 혼잡해소 팝업 공용
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>

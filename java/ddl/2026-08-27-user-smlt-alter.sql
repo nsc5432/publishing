@@ -10,11 +10,11 @@
 -- -------------------------------------------------------------------------------------
 -- (1) TN_PM_SMLT_USER_MSTR — 실행 요청 테이블
 --     PK 는 원래 WHAT_IF_EXCN_ID 였다. 표준단어 치환으로 SMLT_ID 가 되면서
---     편집 draft·수행이력·결과의 SMLT_ID 와 이름이 겹쳤다. 넷을 분리한다.
+--     편집 draft/수행이력/결과의 SMLT_ID 와 이름이 겹쳤다. 넷을 분리한다.
 -- -------------------------------------------------------------------------------------
 ALTER TABLE PMOWN.TN_PM_SMLT_USER_MSTR RENAME COLUMN SMLT_ID TO SMLT_REQ_ID;
 
--- 시뮬레이션은 T1·T2 를 한 번에 돌린다. 터미널별 수행 옵션이 없으므로 TMNL_ID 를 두지 않는다.
+-- 시뮬레이션은 T1/T2 를 한 번에 돌린다. 터미널별 수행 옵션이 없으므로 TMNL_ID 를 두지 않는다.
 ALTER TABLE PMOWN.TN_PM_SMLT_USER_MSTR ADD (
     SMLT_ID       VARCHAR2(8),
     EXCN_YMD      VARCHAR2(8),
@@ -38,7 +38,7 @@ COMMENT ON COLUMN PMOWN.TN_PM_SMLT_USER_MSTR.ERR_MSG       IS '오류메시지';
 COMMENT ON COLUMN PMOWN.TN_PM_SMLT_USER_MSTR.FCLTY_OPNG_SCRTY_CNTRL_RSRC_ID    IS '시설물운영보안검색리소스아이디';
 COMMENT ON COLUMN PMOWN.TN_PM_SMLT_USER_MSTR.FCLTY_OPNG_TR_SCRTY_CNTRL_RSRC_ID IS '시설물운영환승보안검색리소스아이디';
 
--- 기존 행은 draft·회차를 복원할 수 없다. Failed 로 닫고 신규 요청부터 정상 경로를 탄다.
+-- 기존 행은 draft/회차를 복원할 수 없다. Failed 로 닫고 신규 요청부터 정상 경로를 탄다.
 UPDATE PMOWN.TN_PM_SMLT_USER_MSTR
    SET SMLT_STTS     = 'Failed',
        ERR_MSG       = 'migrated 2026-08-27',
@@ -74,7 +74,7 @@ CREATE INDEX PMOWN.TN_PM_SMLT_USER_MSTR_IX2
     ON PMOWN.TN_PM_SMLT_USER_MSTR (FLT_SCHDL_RSRC_ID);
 
 -- -------------------------------------------------------------------------------------
--- (2) TN_PM_SMLT_STNG — retrieveSmltStng · insertSimSet 이 참조하는데 DDL 에 없던 컬럼
+-- (2) TN_PM_SMLT_STNG — retrieveSmltStng / insertSimSet 이 참조하는데 DDL 에 없던 컬럼
 -- -------------------------------------------------------------------------------------
 ALTER TABLE PMOWN.TN_PM_SMLT_STNG ADD (
     PRPT_SET_RSRC_ID                  VARCHAR2(100),
@@ -113,7 +113,7 @@ ALTER TABLE PMOWN.TN_PM_SMLT_RSLT_DTL ADD CONSTRAINT TN_PM_SMLT_RSLT_DTL_PK
 -- -------------------------------------------------------------------------------------
 -- (4) 사용자 CAST 리소스 번호
 --     ResourceID 는 FS002 … FS999 → 002 로 도는 단순 증가 번호다. 001 은 일일 고정.
---     FS · CA · SBD · 시설운영이 한 번호를 공유한다 — retrieveFcltyOpngTblDptg 가
+--     FS / CA / SBD / 시설운영이 한 번호를 공유한다 — retrieveFcltyOpngTblDptg 가
 --     출국장 번호로 TN_PM_SMLT_SCHDL_ATRB 를 뒤지기 때문에 따로 돌리면 깨진다.
 -- -------------------------------------------------------------------------------------
 CREATE SEQUENCE PMOWN.SQ1_TN_PM_SMLT_USER_RSRC

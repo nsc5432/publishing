@@ -2,7 +2,7 @@ package aoms.pm.cast.domains.chkn;
 
 /**
  * @Classname : ChknQueueSlot.java
- * @Description : 공용 Queue 를 화면 구간(30분 · 1시간)으로 접은 값
+ * @Description : 공용 Queue 를 화면 구간(30분 / 1시간)으로 접은 값
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>

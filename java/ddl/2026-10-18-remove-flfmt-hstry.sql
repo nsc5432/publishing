@@ -1,5 +1,5 @@
 -- 읽는 곳이 없는 TH_PM_SMLT_FLFMT_HSTRY 를 제거한다. 모니터링은 USER_MSTR + STNG 로 상태를 계산한다.
--- 적용 전 이 테이블을 직접 조회하는 외부 시스템·리포트가 없는지 확인한다.
+-- 적용 전 이 테이블을 직접 조회하는 외부 시스템/리포트가 없는지 확인한다.
 SET SERVEROUTPUT ON
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 

@@ -1,7 +1,7 @@
 SET SERVEROUTPUT ON
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 -- 이관 6단계. 원천 ID 는 일일 Auto 조합과 같게 둔다(사용자 결과를 일일 결과와 KPI 비교하므로).
--- :mdlRsrcId 는 일일 STNG 의 MDL_RSRC_ID(= TN_PM_SMLT_MDL.SMLT_MDL_EXPLN), :rptStngAtrbId 는 모델 파일·CAST 설정에서
+-- :mdlRsrcId 는 일일 STNG 의 MDL_RSRC_ID(= TN_PM_SMLT_MDL.SMLT_MDL_EXPLN), :rptStngAtrbId 는 모델 파일/CAST 설정에서
 -- 확인한 ReportingProfilesTimeGroups 리소스 ID 다. 나머지 값도 아래 확인 쿼리로 실 DB 와 대조한 뒤 실행한다.
 -- 유효 시작일을 cutover 일자로 두면 그 이전 날짜의 사용자 실행이 실패하므로 19000101 로 둔다.
 

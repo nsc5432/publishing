@@ -28,7 +28,7 @@ import aoms.pm.cast.domains.chkn.ChknQueueSlot;
 import aoms.pm.cast.domains.chkn.ChknSbdDay;
 import aoms.pm.cast.domains.dsbd.AssignmentSummary;
 import aoms.pm.cast.domains.dsbd.DepQueueWindow;
-import aoms.pm.cast.domains.dsbd.FcltQueueAssessment;
+import aoms.pm.cast.domains.dsbd.FcltQueueClearance;
 import aoms.pm.cast.domains.dsbd.FcltQueueSource;
 import aoms.pm.cast.domains.dsbd.RecommendationResources;
 import aoms.pm.cast.domains.queue.Computed;
@@ -259,16 +259,16 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
 
 		List<FcltUnitDto> unitList = getDepUnitList(unitMap, window, gradeScale, baseContext);
-		List<FcltQueueAssessment> assessmentList = window.unitCdList().stream()
-				.map(unitCd -> new FcltQueueAssessment(window.sourceOf(unitCd), targetQueueCnt))
-				.sorted(Comparator.comparingInt((FcltQueueAssessment assessment) -> queueOf(assessment.getSource())).reversed())
+		List<FcltQueueClearance> clearanceList = window.unitCdList().stream()
+				.map(unitCd -> new FcltQueueClearance(window.sourceOf(unitCd), targetQueueCnt))
+				.sorted(Comparator.comparingInt((FcltQueueClearance clearance) -> queueOf(clearance.getSource())).reversed())
 				.collect(toList());
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
-		for (FcltQueueAssessment assessment : assessmentList) {
-			String unitCd = assessment.getSource().getUnitCd();
+		for (FcltQueueClearance clearance : clearanceList) {
+			String unitCd = clearance.getSource().getUnitCd();
 
-			result.add(getDepFcltCard(assessment, unitMap.get(unitCd), unitList, gradeScale.statusOf(queueOf(assessment.getSource()), gradeContext(baseContext, unitCd))));
+			result.add(getDepFcltCard(clearance, unitMap.get(unitCd), unitList, gradeScale.statusOf(queueOf(clearance.getSource()), gradeContext(baseContext, unitCd))));
 		}
 
 		return result;
@@ -348,14 +348,14 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	private DsbdFcltCardDto getChknFcltCard(String unitCd, ChknQueueDay queueDay, int bgnMinute, FcltUnitRawDto unit, List<FcltUnitDto> unitList, RecommendationResources resources, String baseContext) {
 		String unitContext = recommendContext(baseContext, FcltType.CHKN, unitCd);
-		FcltQueueAssessment assessment = queueDay.assessmentOf(unitCd, bgnMinute, CARD_SLOT_MIN);
+		FcltQueueClearance clearance = queueDay.clearanceOf(unitCd, bgnMinute, CARD_SLOT_MIN);
 
-		if (assessment == null) {
+		if (clearance == null) {
 			throw new IllegalStateException("혼잡등급 NORMAL 상한이 정수 범위를 벗어났습니다. " + unitContext);
 		}
 
 		ChknQueueSlot slot = queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN);
-		FcltQueueAssessment.Recommend recommend = assessment.recommendOf(FcltQueueAssessment.DFLT_TARGET_MIN);
+		FcltQueueClearance.Recommend recommend = clearance.recommendOf(FcltQueueClearance.DFLT_TARGET_MIN);
 		Integer reqCnt = recommend.getReqCnt();
 		int queuePsgCnt = slot.getCurrentQueue();
 		String targetName = reqCnt == null ? EMPTY : resources.getTargetName(unitCd, unitContext);
@@ -370,7 +370,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setTotCnt(unit != null ? unit.getTotCnt() : 0);
 		result.setOprCnt(unit != null ? unit.getOprCnt() : 0);
 		result.setWtngPsgCnt(queuePsgCnt);
-		applyAssessment(result, assessment, recommend);
+		applyClearance(result, clearance, recommend);
 		result.setCgnStatus(queueDay.statusOf(queuePsgCnt, gradeContext(baseContext, unitCd)));
 		result.setRecommend(getRecommend(targetName, reqCnt, needAssign));
 		result.setUnitList(unitList);
@@ -405,13 +405,13 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	private DsbdFcltCardDto getDepFcltCard(
-			FcltQueueAssessment assessment,
+			FcltQueueClearance clearance,
 			FcltUnitRawDto unit,
 			List<FcltUnitDto> unitList,
 			CongestionStatus cgnStatus
 	) {
-		String unitCd = assessment.getSource().getUnitCd();
-		FcltQueueAssessment.Recommend recommend = assessment.recommendOf(FcltQueueAssessment.DFLT_TARGET_MIN);
+		String unitCd = clearance.getSource().getUnitCd();
+		FcltQueueClearance.Recommend recommend = clearance.recommendOf(FcltQueueClearance.DFLT_TARGET_MIN);
 
 		DsbdFcltCardDto result = new DsbdFcltCardDto();
 		result.setCardId(FcltType.DEP.getValue() + "-" + unitCd);
@@ -421,8 +421,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setFcltNm(unitCd + "번");
 		result.setTotCnt(unit != null ? unit.getTotCnt() : 0);
 		result.setOprCnt(unit != null ? unit.getOprCnt() : 0);
-		result.setWtngPsgCnt(queueOf(assessment.getSource()));
-		applyAssessment(result, assessment, recommend);
+		result.setWtngPsgCnt(queueOf(clearance.getSource()));
+		applyClearance(result, clearance, recommend);
 		result.setCgnStatus(cgnStatus);
 		result.setRecommend(getRecommend(recommend.getReqCnt() == null ? EMPTY : DEP_TARGET_NM, recommend.getReqCnt(), false));
 		result.setUnitList(unitList);
@@ -431,13 +431,13 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	/*
-	 * 카드 값은 혼잡해소 팝업의 첫 화면(TIME 모드 · 목표 30분)과 같은 계산이다.
+	 * 카드 값은 혼잡해소 팝업의 첫 화면(TIME 모드 / 목표 30분)과 같은 계산이다.
 	 * 해소값은 보유 수량을 넘어도 추천 수량을 가정한다 — 팝업은 그때 최대수 전량 배정 결과를 따로 보여준다.
 	 */
-	private void applyAssessment(DsbdFcltCardDto card, FcltQueueAssessment assessment, FcltQueueAssessment.Recommend recommend) {
-		Computed<Double> throughput = assessment.getThroughputPerHour();
-		Computed<Double> loadRatio = assessment.getLoadRatio();
-		FcltQueueAssessment.Clear clear = recommend.getReqClear();
+	private void applyClearance(DsbdFcltCardDto card, FcltQueueClearance clearance, FcltQueueClearance.Recommend recommend) {
+		Computed<Double> throughput = clearance.getThroughputPerHour();
+		Computed<Double> loadRatio = clearance.getLoadRatio();
+		FcltQueueClearance.Clear clear = recommend.getReqClear();
 		Integer clearMin = clear == null ? null : clear.getClearMin();
 
 		card.setHrlyPrcsPsgCnt(throughput.hasValue() ? toRoundedInt(throughput.getValue()) : 0);
@@ -456,11 +456,11 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	private int toClearRate(int clearMin) {
-		int remainingMinutes = Math.max(FcltQueueAssessment.DFLT_TARGET_MIN - clearMin, 0);
+		int remainingMinutes = Math.max(FcltQueueClearance.DFLT_TARGET_MIN - clearMin, 0);
 
 		return BigDecimal.valueOf(remainingMinutes)
 				.multiply(BigDecimal.valueOf(100))
-				.divide(BigDecimal.valueOf(FcltQueueAssessment.DFLT_TARGET_MIN), 0, RoundingMode.HALF_UP)
+				.divide(BigDecimal.valueOf(FcltQueueClearance.DFLT_TARGET_MIN), 0, RoundingMode.HALF_UP)
 				.intValueExact();
 	}
 
@@ -473,7 +473,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	private int toTargetQueueCnt(CgnGradeScale gradeScale, String context) {
-		Integer result = FcltQueueAssessment.toTargetQueueCnt(gradeScale.getNormalMax());
+		Integer result = FcltQueueClearance.toTargetQueueCnt(gradeScale.getNormalMax());
 
 		if (result == null) {
 			throw new IllegalStateException("혼잡등급 NORMAL 상한이 정수 범위를 벗어났습니다. " + context);

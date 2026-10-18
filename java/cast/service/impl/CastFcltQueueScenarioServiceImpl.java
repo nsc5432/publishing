@@ -13,7 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import aoms.pm.cast.domains.CgnGradeScale;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.dsbd.DepQueueWindow;
-import aoms.pm.cast.domains.dsbd.FcltQueueAssessment;
+import aoms.pm.cast.domains.dsbd.FcltQueueClearance;
 import aoms.pm.cast.domains.dsbd.FcltQueueSource;
 import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.queue.ErlangCResult;
@@ -60,7 +60,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 	private static final double SEC_PER_MIN = 60.0; // 1분 = 60초
 
     // 목표 해소시간
-	private static final int DFLT_TARGET_MIN = FcltQueueAssessment.DFLT_TARGET_MIN; // 목표 해소시간 기본값(분)
+	private static final int DFLT_TARGET_MIN = FcltQueueClearance.DFLT_TARGET_MIN; // 목표 해소시간 기본값(분)
 	private static final int MIN_TARGET_MIN = 1; // 목표 해소시간 최솟값(분)
 	private static final int MAX_TARGET_MIN = 120; // 목표 해소시간 최댓값(분)
 
@@ -113,7 +113,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 		try {
 			CgnGradeScale gradeScale = castCgnGradeService.retrieveGradeScale(searchDto.getFcltType(), context);
-			targetQueueCnt = FcltQueueAssessment.toTargetQueueCnt(gradeScale.getNormalMax());
+			targetQueueCnt = FcltQueueClearance.toTargetQueueCnt(gradeScale.getNormalMax());
 
             if (targetQueueCnt == null) {
                 return fail("혼잡등급 NORMAL 상한이 정수 범위를 벗어났습니다. " + context);
@@ -122,10 +122,10 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 			return fail(exception.getMessage());
 		}
 
-		FcltQueueAssessment assessment = new FcltQueueAssessment(source, targetQueueCnt);
+		FcltQueueClearance clearance = new FcltQueueClearance(source, targetQueueCnt);
 
-		FcltQueueScenarioDto result = toBaseResult(searchDto, unitCd, assessment);
-		result.setCurrent(toClear(assessment.clearOf(source.getOprCnt())));
+		FcltQueueScenarioDto result = toBaseResult(searchDto, unitCd, clearance);
+		result.setCurrent(toClear(clearance.clearOf(source.getOprCnt())));
 
 		if (searchDto.getMode() == FcltQueueScenarioMode.COUNT) {
 			Integer count = searchDto.getOprFcltCnt() == null ? source.getOprCnt() : searchDto.getOprFcltCnt().intValueExact();
@@ -135,12 +135,12 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 				return fail(countInvalid);
 			}
 
-			result.setScenario(toClear(assessment.clearOf(count)));
+			result.setScenario(toClear(clearance.clearOf(count)));
 			return result;
 		}
 
 		int targetMin = searchDto.getTargetMinutes() == null ? DFLT_TARGET_MIN : searchDto.getTargetMinutes().intValueExact();
-		applyRecommend(result, assessment, targetMin);
+		applyRecommend(result, clearance, targetMin);
 
 		return result;
 	}
@@ -232,7 +232,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return new MaxCount(masterCnt, EMPTY);
 	}
 
-	private FcltQueueClearDto toClear(FcltQueueAssessment.Clear clear) {
+	private FcltQueueClearDto toClear(FcltQueueClearance.Clear clear) {
 		Computed<Double> clearSec = clear.getClearSec();
 		Computed<Double> nextWtng = clear.getNextWtngSec();
 		Computed<ErlangCResult> erlang = clear.getErlang();
@@ -257,10 +257,10 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return result;
 	}
 
-	private void applyRecommend(FcltQueueScenarioDto result, FcltQueueAssessment assessment, int targetMin) {
-		Integer currentCnt = assessment.getSource().getOprCnt();
-		Integer totCnt = assessment.getSource().getTotCnt();
-		FcltQueueAssessment.Recommend calculated = assessment.recommendOf(targetMin);
+	private void applyRecommend(FcltQueueScenarioDto result, FcltQueueClearance clearance, int targetMin) {
+		Integer currentCnt = clearance.getSource().getOprCnt();
+		Integer totCnt = clearance.getSource().getTotCnt();
+		FcltQueueClearance.Recommend calculated = clearance.recommendOf(targetMin);
 		Computed<Integer> fluid = calculated.getFluid();
 
 		FcltQueueRecommendDto recommend = new FcltQueueRecommendDto();
@@ -288,7 +288,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 		// 카드는 보유 수량을 넘어도 추천 수량 가정값을 그리지만, 팝업은 최대수 전량 배정 결과를 따로 보여준다
 		if (totCnt != null && reqCnt > totCnt) {
-			result.setTotScenario(toClear(assessment.clearOf(totCnt)));
+			result.setTotScenario(toClear(clearance.clearOf(totCnt)));
 			return;
 		}
 
@@ -296,10 +296,10 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		result.setScenario(toClear(calculated.getReqClear()));
 	}
 
-	private FcltQueueScenarioDto toBaseResult(FcltQueueScenarioSearchDto searchDto, String unitCd, FcltQueueAssessment assessment) {
-		FcltQueueSource source = assessment.getSource();
-		Computed<Double> arrival = assessment.getArrival();
-		Computed<Double> service = assessment.getService();
+	private FcltQueueScenarioDto toBaseResult(FcltQueueScenarioSearchDto searchDto, String unitCd, FcltQueueClearance clearance) {
+		FcltQueueSource source = clearance.getSource();
+		Computed<Double> arrival = clearance.getArrival();
+		Computed<Double> service = clearance.getService();
 		List<String> asmpList = new ArrayList<>(COMMON_ASMP_LIST);
 		asmpList.addAll(source.getAsmpList());
 
@@ -314,7 +314,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		result.setObsEndDt(formatDt(source.getObsEndDt()));
 		result.setDataSrc(source.getDataSrc().name());
 		result.setWtngPsgCnt(source.getQueueAtEnd());
-		result.setTargetQueueCnt(assessment.getTargetQueueCnt());
+		result.setTargetQueueCnt(clearance.getTargetQueueCnt());
 		result.setOprFcltCnt(source.getOprCnt());
 		result.setTotCnt(source.getTotCnt());
 		result.setTotCntRsn(source.getTotCntRsn());

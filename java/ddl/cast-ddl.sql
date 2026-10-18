@@ -1473,7 +1473,7 @@ CREATE TABLE "PMOWN"."TN_PM_SMLT_USER_MSTR"
 );
 
 -- 중복 실행 방어. 한 draft 의 미완료 요청은 동시에 1건만 존재한다.
--- 시뮬레이션은 T1·T2 를 한 번에 돌리므로 터미널은 이 축에 들어가지 않는다.
+-- 시뮬레이션은 T1/T2 를 한 번에 돌리므로 터미널은 이 축에 들어가지 않는다.
 
 CREATE INDEX "PMOWN"."TN_PM_SMLT_USER_MSTR_IX1"
 	ON "PMOWN"."TN_PM_SMLT_USER_MSTR" ("SMLT_STTS", "QUEUE_DT");
@@ -1517,7 +1517,7 @@ COMMENT ON COLUMN "PMOWN"."TN_PM_SMLT_USER_MSTR"."LAST_MDFR_IP_ADDR" IS '최종�
 COMMENT ON COLUMN "PMOWN"."TN_PM_SMLT_USER_MSTR"."LAST_MDFCN_DT" IS '최종수정일시';
 
 -- =====================================================================================
--- 사용자 시뮬레이션 조건·수행 이력
+-- 사용자 시뮬레이션 조건/수행 이력
 -- =====================================================================================
 
 -- -------------------------------------------------------------------------------------
@@ -1644,7 +1644,7 @@ COMMENT ON COLUMN "PMOWN"."TN_PM_SMLT_USER_CHKN_BOOTH"."LAST_MDFR_IP_ADDR" IS '�
 COMMENT ON COLUMN "PMOWN"."TN_PM_SMLT_USER_CHKN_BOOTH"."LAST_MDFCN_DT" IS '최종수정일시';
 
 -- -------------------------------------------------------------------------------------
--- 44. 출국장 탭 — 출국장 (사용여부 · 검색대 구성)
+-- 44. 출국장 탭 — 출국장 (사용여부 / 검색대 구성)
 --    D7 이 지적한 "시뮬레이션 단위 사용여부를 담을 테이블이 없다" 를 여기서 해소한다.
 --    마스터 TN_PM_SMLT_PSG_FCLT.USE_YN(시설 존재 여부)과 의미가 다르므로 분리했다.
 -- -------------------------------------------------------------------------------------
@@ -1768,7 +1768,7 @@ COMMENT ON COLUMN "PMOWN"."TN_PM_SMLT_USER_FLT_PSG_AJMT"."LAST_MDFCN_DT" IS '최
 
 -- TN_PM_SLF_CHKN_OPER_PLCY : PM_셀프체크인운영정책
 -- PMOWN.DROP_AA_SELF_CHKN_ALN 을 대체한다.
--- 키·감사 컬럼은 PMOWN.TN_PM_SBD_OPER_PLCY와 맞추되, 정책기간은 일자(YYYYMMDD)로 관리한다.
+-- 키/감사 컬럼은 PMOWN.TN_PM_SBD_OPER_PLCY와 맞추되, 정책기간은 일자(YYYYMMDD)로 관리한다.
 -- 셀프백드랍 전용 출발 전 시간(SBD_STRT_HR/SBD_END_HR)은 두지 않는다.
 CREATE TABLE "PMOWN"."TN_PM_SLF_CHKN_OPER_PLCY"
 (
@@ -1808,7 +1808,7 @@ COMMENT ON COLUMN "PMOWN"."TN_PM_SLF_CHKN_OPER_PLCY"."LAST_MDFCN_DT" IS '최종�
 
 -- 아래 순환 설명은 구 정책이며 현재는 CastExecutionMapper.reserveRsrcNo가 미사용 번호를 할당하고 이 시퀀스는 사용하지 않는다.
 -- 사용자 CAST 리소스 번호. ResourceID 는 FS002 … FS999 → 002 로 도는 단순 증가 번호고
--- 001 은 일일 시뮬레이션 고정이다. FS · CA · SBD · 시설운영이 한 번호를 공유한다 —
+-- 001 은 일일 시뮬레이션 고정이다. FS / CA / SBD / 시설운영이 한 번호를 공유한다 —
 -- retrieveFcltyOpngTblDptg 가 출국장 번호로 TN_PM_SMLT_SCHDL_ATRB 를 뒤지기 때문이다.
 CREATE SEQUENCE "PMOWN"."SQ1_TN_PM_SMLT_USER_RSRC"
     START WITH 2 INCREMENT BY 1 MINVALUE 2 MAXVALUE 999 NOCYCLE NOCACHE ORDER;

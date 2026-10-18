@@ -175,7 +175,7 @@ M/M/s 정상상태는 `ρ=λ/(sμ)<1`을 요구하고, `μ`는 시설 하나의 
 4. 외부 λ를 얻지 못한 경우에만 같은 모집단·같은 구간의 시간평균 `Lq`와 평균 `Wq`로 Little's Law를 적용한다. `littleLawApplicable` 조건을 확인한다. `Wq=0`을 λ=0으로 변환하지 않는다.
 5. `estimateArrivalRatePerHour`는 외부 λ 또는 Little's Law를 사용한다. 보존식 결과가 자동 fallback으로 연결된 것으로 가정하지 말고 어댑터에서 명시적으로 연결한다.
 6. λ·μ·Q0·Q*·기준시각을 한 번 확정한 컨텍스트로 현재/조정 시나리오를 비교한다. 조정된 Erlang C 대기시간으로 λ를 다시 역산하지 않는다. 시설 수 변경을 근거로 μ도 임의 변경하지 않는다.
-7. `sharedHomogeneousServers`, `constantRates`, `mmSApplicable` 등은 서버의 원천/모형 정책에서 설정한다. 프런트 요청값을 신뢰하거나 모든 시설에 무조건 true로 지정하지 않는다. `mmSApplicable=true`는 적용 가정의 선언이며 통계적 검증 완료 표시가 아니다.
+7. `sharedHomogeneousServers`, `constantRates`, `erlangCApplicable` 등은 서버의 원천/모형 정책에서 설정한다. 프런트 요청값을 신뢰하거나 모든 시설에 무조건 true로 지정하지 않는다. `erlangCApplicable=true`는 적용 가정의 선언이며 통계적 검증 완료 표시가 아니다.
 
 M/M/s 적용 조건은 포아송 도착, 독립적인 지수 서비스시간, 동일 평균 처리율의 병렬 시설, 동일 공용 큐, 선착순 처리, 무한 대기공간, 이탈 없는 모델이다. 시설/시간대에 이 전제를 적용할 수 없으면 이유를 반환한다. 관측값 자체와 “이미 목표인원 이하” 같은 직접 판정은 모델 적용 여부와 구분해 보여준다.
 

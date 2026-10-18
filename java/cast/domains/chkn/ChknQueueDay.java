@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 
 import aoms.pm.cast.domains.CgnGradeScale;
-import aoms.pm.cast.domains.dsbd.FcltQueueAssessment;
+import aoms.pm.cast.domains.dsbd.FcltQueueClearance;
 import aoms.pm.cast.domains.dsbd.FcltQueueSource;
 import aoms.pm.cast.domains.queue.QueueDataSource;
 import aoms.pm.cast.enums.CongestionStatus;
@@ -109,28 +109,27 @@ public final class ChknQueueDay {
 				.avgQueuePsgCnt((double) slot.getAvgQueue())
 				.avgWtngSec(slot.getPrcsPsgCnt() > 0 ? (double) slot.getAvgWaitSec() : null)
 				.oprCnt(slot.getOprBoothCnt())
-				.sharedHomogeneousServers(true)
-				.mmSApplicable(true)
+				.erlangCApplicable(true)
 				.build();
 	}
 
 	/** 없는 아일랜드거나 NORMAL 상한이 int 범위를 넘으면 null */
-	public FcltQueueAssessment assessmentOf(String island, int bgnMinute, int slotMin) {
+	public FcltQueueClearance clearanceOf(String island, int bgnMinute, int slotMin) {
 		FcltQueueSource source = sourceOf(island, bgnMinute, slotMin);
-		Integer targetQueueCnt = FcltQueueAssessment.toTargetQueueCnt(gradeScale.getNormalMax());
+		Integer targetQueueCnt = FcltQueueClearance.toTargetQueueCnt(gradeScale.getNormalMax());
 
-		return source == null || targetQueueCnt == null ? null : new FcltQueueAssessment(source, targetQueueCnt);
+		return source == null || targetQueueCnt == null ? null : new FcltQueueClearance(source, targetQueueCnt);
 	}
 
-	/** 요약보기 카드 · 혼잡해소 팝업 기본값(목표 30분)과 같은 추천. 맵형태보기 · 체크인 상세가 쓴다 */
+	/** 요약보기 카드 / 혼잡해소 팝업 기본값(목표 30분)과 같은 추천. 맵형태보기 / 체크인 상세가 쓴다 */
 	public ChknQueueRecommend recommendOf(String island, int bgnMinute, int slotMin) {
-		FcltQueueAssessment assessment = assessmentOf(island, bgnMinute, slotMin);
+		FcltQueueClearance clearance = clearanceOf(island, bgnMinute, slotMin);
 
-		if (assessment == null) {
+		if (clearance == null) {
 			return ChknQueueRecommend.NONE;
 		}
 
-		FcltQueueAssessment.Recommend recommend = assessment.recommendOf(FcltQueueAssessment.DFLT_TARGET_MIN);
+		FcltQueueClearance.Recommend recommend = clearance.recommendOf(FcltQueueClearance.DFLT_TARGET_MIN);
 
 		if (recommend.getReqCnt() == null) {
 			return ChknQueueRecommend.NONE;

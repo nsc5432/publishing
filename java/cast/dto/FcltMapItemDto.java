@@ -20,7 +20,7 @@ public class FcltMapItemDto {
 	private String smltFcltNm; // 시뮬레이션시설명
 	private TerminalKind tmnlId; // T1 / T2
 	private FcltType fcltType; // 시설 구분
-	private String island; // 아일랜드 · 출국장 마커 id
+	private String island; // 아일랜드 / 출국장 마커 id
 	private int sortSeq; // 정렬순서
 	private String useYn; // 사용여부
 	private String lastMdfrId; // 최종수정자

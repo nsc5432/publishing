@@ -111,7 +111,7 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 
 	/* ================= 출국장 카드 ================= */
 
-	// 카드는 자리 · 운영시간 · 부스 수만 갖는다 (혼잡도 · 지표는 슬롯이 채운다)
+	// 카드는 자리 / 운영시간 / 부스 수만 갖는다 (혼잡도 / 지표는 슬롯이 채운다)
 	private List<DepHallGateDto> getGateList(TerminalKind tmnlId, SmltStngDto smltStng) {
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 

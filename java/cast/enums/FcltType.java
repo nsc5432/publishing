@@ -10,7 +10,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
  */
 public enum FcltType {
 	CHKN("CHKN"), // 체크인카운터
-	SLFCHKN("SLFCHKN"), // 셀프체크인 · 셀프백드랍
+	SLFCHKN("SLFCHKN"), // 셀프체크인 / 셀프백드랍
 	DEP("DEP"), // 출국장
 	SC("SC"), // 보안검색대
 	CMRC("CMRC"); // 상업시설

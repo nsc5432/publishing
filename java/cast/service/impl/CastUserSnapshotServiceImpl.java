@@ -209,7 +209,7 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         }
     }
 
-    // 001 기준정보 · 002~499 Cast 설정 카테고리 · 999 전처리 결과와 겹치지 않게 PS 는 500~998 만 쓴다
+    // 001 기준정보 / 002~499 Cast 설정 카테고리 / 999 전처리 결과와 겹치지 않게 PS 는 500~998 만 쓴다
     private enum RsrcPool {
         FS(2, 999),
         PS(500, 998);

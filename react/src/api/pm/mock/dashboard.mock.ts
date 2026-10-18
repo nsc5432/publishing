@@ -52,7 +52,7 @@ const BASE_INFO: DsbdBaseInfoDto = {
 
 /* ================= 시간대별 출발여객 (상단 카드) ================= */
 
-/** 터미널별 시간대(00~23시) 출발여객 — 새벽에 낮고 오전·저녁에 두 번 솟는 모양 */
+/** 터미널별 시간대(00~23시) 출발여객 — 새벽에 낮고 오전/저녁에 두 번 솟는 모양 */
 const HOURLY_PSG: Record<TmnlId, number[]> = {
     T1: [60, 20, 10, 0, 30, 420, 1580, 2240, 2680, 2510, 2080, 1760, 1640, 1520, 1730, 1980, 2210, 2380, 2090, 1620, 1080, 720, 400, 180],
     T2: [40, 10, 0, 0, 20, 360, 1320, 1980, 2320, 2180, 1820, 1560, 1420, 1330, 1510, 1720, 1930, 2060, 1810, 1400, 940, 610, 340, 150],
@@ -443,7 +443,7 @@ function toFcltStatus(fcltType: 'CHKN' | 'DEP', waitingCount: number): Congestio
     return waitingCount <= busyMax ? 'BUSY' : 'VERY_BUSY';
 }
 
-// 서버처럼 카드도 혼잡해소 팝업 첫 화면(TIME · 목표 30분)과 같은 프로필 · 같은 식으로 만든다
+// 서버처럼 카드도 혼잡해소 팝업 첫 화면(TIME / 목표 30분)과 같은 프로필 / 같은 식으로 만든다
 function buildFcltCard(card: DsbdFcltCardDto, hhmm: string, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto {
     const profile = QUEUE_SCENARIO_PROFILES[card.cardId] ?? QUEUE_SCENARIO_PROFILES['T1-CHKN-B'];
     const targetMin = QUEUE_TARGET_MIN.dflt;
@@ -508,14 +508,14 @@ const QUEUE_TARGET_MIN = { dflt: 30, min: 1, max: 120 };
 
 const QUEUE_ASMP_LIST: Record<'CHKN' | 'DEP', string[]> = {
     CHKN: [
-        'M/M/s 적용 가정: 포아송 도착 · 지수 처리시간 · 동일 처리율의 병렬 시설 · 공용 대기열 선착순 · 무한 대기공간 · 이탈 없음 (통계 검증 아님)',
-        '예측 구간 동안 유입률 · 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다',
+        'M/M/s 적용 가정: 포아송 도착 / 지수 처리시간 / 동일 처리율의 병렬 시설 / 공용 대기열 선착순 / 무한 대기공간 / 이탈 없음 (통계 검증 아님)',
+        '예측 구간 동안 유입률 / 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다',
         '아일랜드 유인 카운터(CC) 공용 Queue — 부스별 결과를 재구성한 값',
     ],
     DEP: [
-        'M/M/s 적용 가정: 포아송 도착 · 지수 처리시간 · 동일 처리율의 병렬 시설 · 공용 대기열 선착순 · 무한 대기공간 · 이탈 없음 (통계 검증 아님)',
-        '예측 구간 동안 유입률 · 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다',
-        'SC · SR 결과를 합산한 하나의 보안검색 Queue (직렬 · 병렬 관계 미검증)',
+        'M/M/s 적용 가정: 포아송 도착 / 지수 처리시간 / 동일 처리율의 병렬 시설 / 공용 대기열 선착순 / 무한 대기공간 / 이탈 없음 (통계 검증 아님)',
+        '예측 구간 동안 유입률 / 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다',
+        'SC / SR 결과를 합산한 하나의 보안검색 Queue (직렬 / 병렬 관계 미검증)',
     ],
 };
 
@@ -530,11 +530,7 @@ function toDt(ymd: string, minuteOfDay: number, plusSec = 0): string {
     return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
 }
 
-function toQueueNextWtng(
-    profile: QueueScenarioProfile,
-    fcltCnt: number,
-    capacity: number | null,
-): Pick<FcltQueueClearDto, 'nextWtngSec' | 'nextWtngMetric'> {
+function toQueueNextWtng(profile: QueueScenarioProfile, fcltCnt: number, capacity: number | null): Pick<FcltQueueClearDto, 'nextWtngSec' | 'nextWtngMetric'> {
     if (fcltCnt === 0) {
         return { nextWtngSec: null, nextWtngMetric: queueMetric('UNREACHABLE', 'NEXT_ARRIVAL_WAIT', '운영 처리시설이 0개라 대기가 끝나지 않습니다.') };
     }
@@ -569,7 +565,7 @@ function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: strin
         clearMetric = queueMetric('UNREACHABLE', 'FLOW_BALANCE', '처리능력이 유입률 이하라 현재 조건으로 목표까지 감소하지 않습니다.');
     } else {
         clearSec = (excess / (capacity - lambda)) * 3600;
-        clearMetric = queueMetric('ESTIMATED', 'FLOW_BALANCE', '유입률·처리능력이 일정한 유입/처리 차이 계산');
+        clearMetric = queueMetric('ESTIMATED', 'FLOW_BALANCE', '유입률/처리능력이 일정한 유입/처리 차이 계산');
     }
 
     const clear: FcltQueueClearDto = {

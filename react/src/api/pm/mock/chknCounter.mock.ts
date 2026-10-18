@@ -36,9 +36,7 @@ function toHhmm(minutes: number): string {
     return hh + mm;
 }
 
-const TIME_LIST: string[] = Array.from({ length: MAX_STEP + 1 }, (_, step) =>
-    toHhmm(step * STEP_MIN),
-);
+const TIME_LIST: string[] = Array.from({ length: MAX_STEP + 1 }, (_, step) => toHhmm(step * STEP_MIN));
 
 /* ================= 아일랜드 ================= */
 
@@ -62,31 +60,152 @@ interface IslandSeed {
 /** 아일랜드는 A~N (I 제외) 13곳이다. 배정이 없는 아일랜드는 counterCnt 가 0 이다 */
 const T1_ISLANDS: IslandSeed[] = [
     { island: 'A', totCnt: 36, counterCnt: 28, kioskCnt: 8, bagDropCnt: 4, operBgngHour: 5, operEndHour: 22, alnCdList: ['KE'], peakStep: 14, peakWtng: 260 },
-    { island: 'B', totCnt: 36, counterCnt: 24, kioskCnt: 6, bagDropCnt: 4, operBgngHour: 5, operEndHour: 21, alnCdList: ['KE', 'OZ'], peakStep: 15, peakWtng: 320 },
+    {
+        island: 'B',
+        totCnt: 36,
+        counterCnt: 24,
+        kioskCnt: 6,
+        bagDropCnt: 4,
+        operBgngHour: 5,
+        operEndHour: 21,
+        alnCdList: ['KE', 'OZ'],
+        peakStep: 15,
+        peakWtng: 320,
+    },
     { island: 'C', totCnt: 36, counterCnt: 18, kioskCnt: 6, bagDropCnt: 2, operBgngHour: 6, operEndHour: 21, alnCdList: ['OZ'], peakStep: 16, peakWtng: 180 },
-    { island: 'D', totCnt: 36, counterCnt: 20, kioskCnt: 4, bagDropCnt: 2, operBgngHour: 6, operEndHour: 22, alnCdList: ['OZ', '7C'], peakStep: 18, peakWtng: 140 },
-    { island: 'E', totCnt: 36, counterCnt: 16, kioskCnt: 4, bagDropCnt: 2, operBgngHour: 6, operEndHour: 20, alnCdList: ['7C', 'LJ'], peakStep: 20, peakWtng: 120 },
+    {
+        island: 'D',
+        totCnt: 36,
+        counterCnt: 20,
+        kioskCnt: 4,
+        bagDropCnt: 2,
+        operBgngHour: 6,
+        operEndHour: 22,
+        alnCdList: ['OZ', '7C'],
+        peakStep: 18,
+        peakWtng: 140,
+    },
+    {
+        island: 'E',
+        totCnt: 36,
+        counterCnt: 16,
+        kioskCnt: 4,
+        bagDropCnt: 2,
+        operBgngHour: 6,
+        operEndHour: 20,
+        alnCdList: ['7C', 'LJ'],
+        peakStep: 20,
+        peakWtng: 120,
+    },
     { island: 'F', totCnt: 36, counterCnt: 12, kioskCnt: 4, bagDropCnt: 0, operBgngHour: 7, operEndHour: 20, alnCdList: ['LJ'], peakStep: 22, peakWtng: 90 },
     { island: 'G', totCnt: 36, counterCnt: 0, kioskCnt: 0, bagDropCnt: 0, operBgngHour: 0, operEndHour: 0, alnCdList: [], peakStep: 0, peakWtng: 0 },
     { island: 'H', totCnt: 36, counterCnt: 14, kioskCnt: 4, bagDropCnt: 2, operBgngHour: 7, operEndHour: 21, alnCdList: ['TW'], peakStep: 24, peakWtng: 150 },
-    { island: 'J', totCnt: 36, counterCnt: 18, kioskCnt: 6, bagDropCnt: 2, operBgngHour: 6, operEndHour: 22, alnCdList: ['TW', 'ZE'], peakStep: 26, peakWtng: 220 },
-    { island: 'K', totCnt: 36, counterCnt: 22, kioskCnt: 6, bagDropCnt: 4, operBgngHour: 5, operEndHour: 22, alnCdList: ['ZE', 'BX'], peakStep: 28, peakWtng: 300 },
+    {
+        island: 'J',
+        totCnt: 36,
+        counterCnt: 18,
+        kioskCnt: 6,
+        bagDropCnt: 2,
+        operBgngHour: 6,
+        operEndHour: 22,
+        alnCdList: ['TW', 'ZE'],
+        peakStep: 26,
+        peakWtng: 220,
+    },
+    {
+        island: 'K',
+        totCnt: 36,
+        counterCnt: 22,
+        kioskCnt: 6,
+        bagDropCnt: 4,
+        operBgngHour: 5,
+        operEndHour: 22,
+        alnCdList: ['ZE', 'BX'],
+        peakStep: 28,
+        peakWtng: 300,
+    },
     { island: 'L', totCnt: 36, counterCnt: 16, kioskCnt: 4, bagDropCnt: 2, operBgngHour: 6, operEndHour: 21, alnCdList: ['BX'], peakStep: 30, peakWtng: 170 },
-    { island: 'M', totCnt: 36, counterCnt: 20, kioskCnt: 6, bagDropCnt: 2, operBgngHour: 5, operEndHour: 23, alnCdList: ['RS', 'YP'], peakStep: 32, peakWtng: 240 },
+    {
+        island: 'M',
+        totCnt: 36,
+        counterCnt: 20,
+        kioskCnt: 6,
+        bagDropCnt: 2,
+        operBgngHour: 5,
+        operEndHour: 23,
+        alnCdList: ['RS', 'YP'],
+        peakStep: 32,
+        peakWtng: 240,
+    },
     { island: 'N', totCnt: 36, counterCnt: 10, kioskCnt: 2, bagDropCnt: 0, operBgngHour: 8, operEndHour: 20, alnCdList: ['YP'], peakStep: 34, peakWtng: 80 },
 ];
 
 /** T2 는 아일랜드가 더 적게 열린다 (운영 항공사가 적다) */
 const T2_ISLANDS: IslandSeed[] = [
     { island: 'A', totCnt: 36, counterCnt: 26, kioskCnt: 10, bagDropCnt: 6, operBgngHour: 5, operEndHour: 22, alnCdList: ['KE'], peakStep: 15, peakWtng: 220 },
-    { island: 'B', totCnt: 36, counterCnt: 22, kioskCnt: 8, bagDropCnt: 6, operBgngHour: 5, operEndHour: 22, alnCdList: ['KE', 'DL'], peakStep: 16, peakWtng: 260 },
-    { island: 'C', totCnt: 36, counterCnt: 18, kioskCnt: 6, bagDropCnt: 4, operBgngHour: 6, operEndHour: 21, alnCdList: ['DL', 'AF'], peakStep: 18, peakWtng: 160 },
-    { island: 'D', totCnt: 36, counterCnt: 14, kioskCnt: 6, bagDropCnt: 4, operBgngHour: 6, operEndHour: 21, alnCdList: ['AF', 'KL'], peakStep: 20, peakWtng: 120 },
+    {
+        island: 'B',
+        totCnt: 36,
+        counterCnt: 22,
+        kioskCnt: 8,
+        bagDropCnt: 6,
+        operBgngHour: 5,
+        operEndHour: 22,
+        alnCdList: ['KE', 'DL'],
+        peakStep: 16,
+        peakWtng: 260,
+    },
+    {
+        island: 'C',
+        totCnt: 36,
+        counterCnt: 18,
+        kioskCnt: 6,
+        bagDropCnt: 4,
+        operBgngHour: 6,
+        operEndHour: 21,
+        alnCdList: ['DL', 'AF'],
+        peakStep: 18,
+        peakWtng: 160,
+    },
+    {
+        island: 'D',
+        totCnt: 36,
+        counterCnt: 14,
+        kioskCnt: 6,
+        bagDropCnt: 4,
+        operBgngHour: 6,
+        operEndHour: 21,
+        alnCdList: ['AF', 'KL'],
+        peakStep: 20,
+        peakWtng: 120,
+    },
     { island: 'E', totCnt: 36, counterCnt: 0, kioskCnt: 0, bagDropCnt: 0, operBgngHour: 0, operEndHour: 0, alnCdList: [], peakStep: 0, peakWtng: 0 },
     { island: 'F', totCnt: 36, counterCnt: 0, kioskCnt: 0, bagDropCnt: 0, operBgngHour: 0, operEndHour: 0, alnCdList: [], peakStep: 0, peakWtng: 0 },
     { island: 'G', totCnt: 36, counterCnt: 12, kioskCnt: 4, bagDropCnt: 2, operBgngHour: 7, operEndHour: 20, alnCdList: ['CI'], peakStep: 22, peakWtng: 100 },
-    { island: 'H', totCnt: 36, counterCnt: 16, kioskCnt: 4, bagDropCnt: 4, operBgngHour: 6, operEndHour: 22, alnCdList: ['CI', 'GA'], peakStep: 24, peakWtng: 190 },
-    { island: 'J', totCnt: 36, counterCnt: 20, kioskCnt: 6, bagDropCnt: 4, operBgngHour: 5, operEndHour: 23, alnCdList: ['GA', 'MU'], peakStep: 26, peakWtng: 240 },
+    {
+        island: 'H',
+        totCnt: 36,
+        counterCnt: 16,
+        kioskCnt: 4,
+        bagDropCnt: 4,
+        operBgngHour: 6,
+        operEndHour: 22,
+        alnCdList: ['CI', 'GA'],
+        peakStep: 24,
+        peakWtng: 190,
+    },
+    {
+        island: 'J',
+        totCnt: 36,
+        counterCnt: 20,
+        kioskCnt: 6,
+        bagDropCnt: 4,
+        operBgngHour: 5,
+        operEndHour: 23,
+        alnCdList: ['GA', 'MU'],
+        peakStep: 26,
+        peakWtng: 240,
+    },
     { island: 'K', totCnt: 36, counterCnt: 14, kioskCnt: 4, bagDropCnt: 2, operBgngHour: 7, operEndHour: 21, alnCdList: ['MU'], peakStep: 28, peakWtng: 130 },
     { island: 'L', totCnt: 36, counterCnt: 0, kioskCnt: 0, bagDropCnt: 0, operBgngHour: 0, operEndHour: 0, alnCdList: [], peakStep: 0, peakWtng: 0 },
     { island: 'M', totCnt: 36, counterCnt: 18, kioskCnt: 6, bagDropCnt: 4, operBgngHour: 6, operEndHour: 22, alnCdList: ['CZ'], peakStep: 30, peakWtng: 200 },
@@ -142,18 +261,11 @@ function extraBoothCntAt(queuePsgCnt: number): number {
     return excess <= 0 ? 0 : Math.ceil(excess / (BOOTH_PRCS_PER_MIN * RECOMMEND_LEAD_MIN));
 }
 
-function toCgnClearMin(
-    queuePsgCnt: number,
-    oprBoothCnt: number,
-    extraBoothCnt: number,
-): number | null {
+function toCgnClearMin(queuePsgCnt: number, oprBoothCnt: number, extraBoothCnt: number): number | null {
     if (oprBoothCnt === 0) return null;
     if (extraBoothCnt === 0) return 0;
 
-    return Math.min(
-        RECOMMEND_SPAN_MIN,
-        Math.ceil((queuePsgCnt - NORMAL_MAX_QUEUE) / (BOOTH_PRCS_PER_MIN * extraBoothCnt)),
-    );
+    return Math.min(RECOMMEND_SPAN_MIN, Math.ceil((queuePsgCnt - NORMAL_MAX_QUEUE) / (BOOTH_PRCS_PER_MIN * extraBoothCnt)));
 }
 
 /* ================= 슬롯 ================= */
@@ -224,9 +336,7 @@ function toChknRslt(seed: IslandSeed, step: number): MapChknRsltDto {
 /** 알림은 혼잡(BUSY) 이상인 아일랜드만 Queue 내림차순으로 모은다 (뱃지와 같은 근거) */
 function toNotice(rsltList: MapChknRsltDto[]): MapNoticeDto {
     const sorted = [...rsltList].sort((a, b) => b.stat.wtngPsgCnt - a.stat.wtngPsgCnt);
-    const busy = sorted.filter(
-        (rslt) => rslt.cgnStatus === 'BUSY' || rslt.cgnStatus === 'VERY_BUSY',
-    );
+    const busy = sorted.filter((rslt) => rslt.cgnStatus === 'BUSY' || rslt.cgnStatus === 'VERY_BUSY');
 
     return {
         cgnStatus: sorted[0]?.cgnStatus ?? 'FREE',
@@ -246,7 +356,7 @@ function toSlot(tmnlId: TmnlId, hhmm: string, step: number): ChknCounterSlotDto 
     return { hhmm, notice: toNotice(chknRsltList), chknRsltList };
 }
 
-/* ================= 아일랜드 · 시간대별 자원 ================= */
+/* ================= 아일랜드 / 시간대별 자원 ================= */
 
 function toIsland(seed: IslandSeed): ChknCounterIslandDto {
     return {
@@ -257,8 +367,7 @@ function toIsland(seed: IslandSeed): ChknCounterIslandDto {
         kioskCnt: seed.kioskCnt,
         bagDropCnt: seed.bagDropCnt,
         alnCdList: seed.alnCdList,
-        oprTimeList:
-            seed.counterCnt > 0 ? [{ operBgngHour: seed.operBgngHour, operEndHour: seed.operEndHour }] : [],
+        oprTimeList: seed.counterCnt > 0 ? [{ operBgngHour: seed.operBgngHour, operEndHour: seed.operEndHour }] : [],
         useYn: seed.counterCnt > 0 ? 'Y' : 'N',
     };
 }
@@ -294,23 +403,12 @@ export const chknCounterMock = {
     getChknCounter: (tmnlId: TmnlId): ChknCounterDto => {
         const seeds = ISLAND_SEEDS[tmnlId];
         const totCnt = seeds.reduce((sum, seed) => sum + seed.totCnt, 0);
-        const rsrcList = Array.from({ length: HOUR_PER_DAY }, (_, hour) =>
-            toRsrc(seeds, totCnt, hour),
-        );
+        const rsrcList = Array.from({ length: HOUR_PER_DAY }, (_, hour) => toRsrc(seeds, totCnt, hour));
         const slotList = TIME_LIST.map((hhmm, step) => toSlot(tmnlId, hhmm, step));
         const oprSeeds = seeds.filter((seed) => seed.counterCnt > 0);
-        const queueList = slotList.map((slot) =>
-            slot.chknRsltList.reduce((sum, rslt) => sum + rslt.stat.wtngPsgCnt, 0),
-        );
-        const prcsPsgCnt = slotList.reduce(
-            (sum, slot) => sum + slot.chknRsltList.reduce((cnt, rslt) => cnt + rslt.stat.prcsPsgCnt, 0),
-            0,
-        );
-        const capacity = slotList.reduce(
-            (sum, slot) =>
-                sum + slot.chknRsltList.reduce((cnt, rslt) => cnt + toCapacity(rslt.oprBoothCnt), 0),
-            0,
-        );
+        const queueList = slotList.map((slot) => slot.chknRsltList.reduce((sum, rslt) => sum + rslt.stat.wtngPsgCnt, 0));
+        const prcsPsgCnt = slotList.reduce((sum, slot) => sum + slot.chknRsltList.reduce((cnt, rslt) => cnt + rslt.stat.prcsPsgCnt, 0), 0);
+        const capacity = slotList.reduce((sum, slot) => sum + slot.chknRsltList.reduce((cnt, rslt) => cnt + toCapacity(rslt.oprBoothCnt), 0), 0);
 
         return {
             error: false,

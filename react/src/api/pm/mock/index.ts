@@ -4,7 +4,7 @@ import { loadingBar } from '@/lib/loading-bar';
 /**
  * 목업 / 실통신 스위치.
  *
- * 서비스(api/pm/services/*)만 이 값을 본다. 화면·훅은 목업 여부를 모르고,
+ * 서비스(api/pm/services/*)만 이 값을 본다. 화면/훅은 목업 여부를 모르고,
  * 서비스가 늘 같은 DTO 를 돌려주므로 .env 만 바꾸면 그대로 서버 연동으로 넘어간다.
  *
  *   VITE_ENABLE_MOCK=true  → api/pm/mock 의 목업 데이터
@@ -12,7 +12,7 @@ import { loadingBar } from '@/lib/loading-bar';
  */
 export const USE_MOCK = ENV.USE_MOCK;
 
-/** 목업 응답 지연 (ms) — 즉시 반환하면 로딩·비동기 흐름이 화면에서 검증되지 않는다 */
+/** 목업 응답 지연 (ms) — 즉시 반환하면 로딩/비동기 흐름이 화면에서 검증되지 않는다 */
 const MOCK_DELAY = 200;
 
 interface MockOptions {

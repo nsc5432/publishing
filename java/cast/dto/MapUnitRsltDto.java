@@ -6,7 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 /**
- * 묶음 단위(아일랜드 · 출국장) 1곳의 한 시각 상태
+ * 묶음 단위(아일랜드 / 출국장) 1곳의 한 시각 상태
  */
 @Getter
 @Setter

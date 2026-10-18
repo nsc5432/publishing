@@ -1,4 +1,4 @@
--- 적용 전 화면·CAST 쓰기를 정지하고 전체 스키마를 백업한다. docs/resource-reference-cleanup.md를 따른다.
+-- 적용 전 화면/CAST 쓰기를 정지하고 전체 스키마를 백업한다. docs/resource-reference-cleanup.md를 따른다.
 SET SERVEROUTPUT ON
 WHENEVER SQLERROR EXIT SQL.SQLCODE
 
@@ -77,7 +77,7 @@ BEGIN
        OR (SUBSTR(U.SRC_PRPT_SET_RSRC_ID,3) BETWEEN '500' AND '998')
        OR NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP G
            WHERE G.FIX_ATRB_GROUP_ID=SUBSTR(U.SRC_PRPT_SET_RSRC_ID,3) AND G.DEL_YN='N');
-    IF n!=0 THEN RAISE_APPLICATION_ERROR(-20005,'원천 PS 형식·등록 여부를 확인해주세요.'); END IF;
+    IF n!=0 THEN RAISE_APPLICATION_ERROR(-20005,'원천 PS 형식/등록 여부를 확인해주세요.'); END IF;
 END;
 /
 DECLARE fs_no NUMBER; ps_no NUMBER; n NUMBER; old_no NUMBER;

@@ -11,10 +11,10 @@ import lombok.Getter;
 @Getter
 public enum CastConfigGroup {
 	CHECKIN("checkin", "체크인 영역", "Check-in Facility Group", "여객 체크인 관련 고정속성", roots("01", "02", "03", "04", "13"), true),
-	DEPARTURE("departure", "출국장 영역", "Departure Hall Facility Group", "여객 발생·이동 관련 고정속성", roots("05", "06", "17"), false),
+	DEPARTURE("departure", "출국장 영역", "Departure Hall Facility Group", "여객 발생/이동 관련 고정속성", roots("05", "06", "17"), false),
 	SECURITY("security", "시큐리티 영역", "Security Facility Group", "보안검색 관련 고정속성", roots("07", "15", "16"), false),
-	BORDER("border", "출입국심사 영역", "Border Control Facility Group", "출입국·세관 관련 고정속성", roots("08", "09", "18", "19", "20"), false),
-	GATE("gate", "게이트 영역", "Gate Facility Group", "환승·게이트 관련 고정속성", roots("10", "11", "12", "14"), false);
+	BORDER("border", "출입국심사 영역", "Border Control Facility Group", "출입국/세관 관련 고정속성", roots("08", "09", "18", "19", "20"), false),
+	GATE("gate", "게이트 영역", "Gate Facility Group", "환승/게이트 관련 고정속성", roots("10", "11", "12", "14"), false);
 
 	private final String groupId;
 	private final String groupNm;

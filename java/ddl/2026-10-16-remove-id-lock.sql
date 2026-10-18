@@ -30,7 +30,7 @@ BEGIN
     IF n!=0 THEN
         RAISE_APPLICATION_ERROR(-20003,'ID_LOCK을 참조하는 외래키가 있습니다.');
     END IF;
-    -- LAST_NO가 요청·결과의 최대 번호보다 크면 그 사이 번호가 제거 후 다시 할당된다
+    -- LAST_NO가 요청/결과의 최대 번호보다 크면 그 사이 번호가 제거 후 다시 할당된다
     FOR K IN (SELECT 'FS' KIND, 2 MIN_NO, 999 MAX_NO FROM DUAL UNION ALL SELECT 'PS', 500, 998 FROM DUAL) LOOP
         EXECUTE IMMEDIATE 'SELECT MAX(TO_NUMBER(LAST_NO)) FROM PMOWN.TN_PM_SMLT_ID_LOCK WHERE LOCK_ID=:1'
             INTO last_no USING 'RSRC_' || K.KIND;

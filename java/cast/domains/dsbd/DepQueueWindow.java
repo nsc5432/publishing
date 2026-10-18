@@ -109,8 +109,7 @@ public final class DepQueueWindow {
 				.avgQueuePsgCnt(windowList.isEmpty() ? null : windowList.stream().mapToInt(slot -> slot.wtngPsgCnt).average().getAsDouble())
 				.avgWtngSec(weightedAvg(windowList, slot -> slot.wtngSecSum, slot -> slot.wtngWeightCnt))
 				.oprCnt(oprCntMap.get(unitCd))
-				.sharedHomogeneousServers(true)
-				.mmSApplicable(true)
+				.erlangCApplicable(true)
 				.build();
 	}
 

@@ -14,7 +14,7 @@ import lombok.Getter;
 
 /**
  * @Classname : FcltQueueSource.java
- * @Description : 혼잡해소 시나리오 팝업의 원천 어댑터 결과 — 한 큐 · 한 관측구간의 값
+ * @Description : 혼잡해소 시나리오 팝업의 원천 어댑터 결과 — 한 큐 / 한 관측구간의 값
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
@@ -48,15 +48,13 @@ public final class FcltQueueSource {
 	private final Integer oprCnt;
 	private final Integer totCnt;
 	private final String totCntRsn;
-	private final boolean sharedHomogeneousServers;
-	private final boolean mmSApplicable;
+	private final boolean erlangCApplicable;
 	private final List<String> asmpList;
 
 	public FacilityQueueInput toArrivalInput() {
 		return FacilityQueueInput.builder()
 				.queuePsgCntAtStart(queueAtStart)
 				.wtngEndPsgCnt(wtngEndPsgCnt)
-				.noAbandonmentOrTransfers(true)
 				.build();
 	}
 
@@ -66,9 +64,7 @@ public final class FcltQueueSource {
 				.arrivalRatePerHour(arrival.hasValue() ? arrival.getValue() : null)
 				.prcsPsgCnt(prcsPsgCnt)
 				.arrivalRateEstimated(true)
-				.sharedHomogeneousServers(sharedHomogeneousServers)
-				.constantRates(true)
-				.mmSApplicable(mmSApplicable)
+				.erlangCApplicable(erlangCApplicable)
 				.build();
 	}
 }

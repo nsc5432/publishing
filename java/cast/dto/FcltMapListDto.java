@@ -16,5 +16,5 @@ public class FcltMapListDto extends JsonResponse {
 
 	private TerminalKind tmnlId;
 	private List<FcltMapItemDto> itemList = new ArrayList<>();
-	private List<MapMarkerDto> markerList = new ArrayList<>(); // 도면 마커 (아일랜드 · 출국장)
+	private List<MapMarkerDto> markerList = new ArrayList<>(); // 도면 마커 (아일랜드 / 출국장)
 }

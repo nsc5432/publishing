@@ -23,12 +23,12 @@ public enum TerminalKind {
 		return value;
 	}
 
-	// 시설(체크인카운터·출국장·검색대) 조회용 터미널 코드. 탑승동(P02)은 시설 결과가 없다
+	// 시설(체크인카운터/출국장/검색대) 조회용 터미널 코드. 탑승동(P02)은 시설 결과가 없다
 	public String getFcltTmnlId() {
 		return this == T1 ? TMNL_ID_P01 : TMNL_ID_P03;
 	}
 
-	// 운항편·여객수 집계용 터미널 코드. T1 은 제1여객터미널 + 탑승동 합산
+	// 운항편/여객수 집계용 터미널 코드. T1 은 제1여객터미널 + 탑승동 합산
 	public List<String> getFltTmnlIdList() {
 		return this == T1 ? List.of(TMNL_ID_P01, TMNL_ID_P02) : List.of(TMNL_ID_P03);
 	}

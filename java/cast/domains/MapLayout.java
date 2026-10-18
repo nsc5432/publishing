@@ -115,14 +115,14 @@ public final class MapLayout {
 		return new ArrayList<>(islandPointMap(tmnlId).keySet());
 	}
 
-	/** 출국장 마커 1개. 자리·표시 문구만 준다 (혼잡도는 슬롯이 갖는다) */
+	/** 출국장 마커 1개. 자리/표시 문구만 준다 (혼잡도는 슬롯이 갖는다) */
 	public static MapMarkerDto dptgtMarker(TerminalKind tmnlId, String dptgtNo) {
 		double[] point = dptgtPointMap(tmnlId).get(dptgtNo);
 
 		return toMarker(DPTGT_MARKER_PREFIX + dptgtNo, dptgtNo, point);
 	}
 
-	/** 아일랜드 마커 1개. 자리·표시 문구만 준다 (혼잡도는 슬롯이 갖는다) */
+	/** 아일랜드 마커 1개. 자리/표시 문구만 준다 (혼잡도는 슬롯이 갖는다) */
 	public static MapMarkerDto chknMarker(TerminalKind tmnlId, String islandCd) {
 		return toMarker(islandCd, islandCd, islandPointMap(tmnlId).get(islandCd));
 	}

@@ -21,9 +21,9 @@
 --   4) 체크인유형 시트가 읽는 TN_PM_SMLT_CKNCT_TYPE_ATRB 의 실재와 컬럼명
 --      SELECT COLUMN_NAME, DATA_TYPE FROM ALL_TAB_COLUMNS
 --       WHERE OWNER='PMOWN' AND TABLE_NAME='TN_PM_SMLT_CKNCT_TYPE_ATRB' ORDER BY COLUMN_ID;
---      모바일 비율·값 컬럼은 MOBL_RT/MOBL_VL 이어야 한다.
+--      모바일 비율/값 컬럼은 MOBL_RT/MOBL_VL 이어야 한다.
 --      LAST_MDFR_ID/LAST_MDFR_IP_ADDR/LAST_MDFCN_DT 도 함께 본다 —
---      copyFromGroup·updateAtrbValue 가 이 셋을 SET 한다. 파이프라인은 FRST_RGTR_* 만 쓴다.
+--      copyFromGroup/updateAtrbValue 가 이 셋을 SET 한다. 파이프라인은 FRST_RGTR_* 만 쓴다.
 --   5) 위 테이블에 CKNCT_TYPE_ATRB_ID = '001' 행이 있는가
 --      SELECT CKNCT_TYPE_ATRB_ID, COUNT(*) FROM PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB
 --       GROUP BY CKNCT_TYPE_ATRB_ID ORDER BY 1;
@@ -132,7 +132,7 @@ CREATE SEQUENCE PMOWN.SQ1_TN_PM_SMLT_ATRB_APLY
 
 -- -------------------------------------------------------------------------------------
 -- (4) 적용 이력 상세 = 적용 직전 값 스냅샷
---     시트마다 값 컬럼이 달라(PSG 3종 · SRVC 7종) 컬럼명을 행으로 눕힌다.
+--     시트마다 값 컬럼이 달라(PSG 3종 / SRVC 7종) 컬럼명을 행으로 눕힌다.
 --     되돌리기는 COLUMN_NM 을 그대로 updateAtrbValue 의 ${columnNm} 에 넘겨 BEF_VL 을 되돌린다.
 -- -------------------------------------------------------------------------------------
 CREATE TABLE PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY_DTL

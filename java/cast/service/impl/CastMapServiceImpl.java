@@ -192,7 +192,7 @@ public class CastMapServiceImpl implements CastMapService {
 
 	/* ================= 마커 ================= */
 
-	// 마커는 자리·표시 문구만 갖는다 (혼잡도는 슬롯이 채운다)
+	// 마커는 자리/표시 문구만 갖는다 (혼잡도는 슬롯이 채운다)
 	private List<MapMarkerDto> getDptgtMarkerList(TerminalKind tmnlId) {
 		List<MapMarkerDto> result = new ArrayList<>();
 
@@ -289,7 +289,7 @@ public class CastMapServiceImpl implements CastMapService {
 
 	/*
 	 * 아일랜드 값은 체크인 상세 화면과 같은 공용 Queue 계산기에서 나온다.
-	 * 같은 smltId · 터미널 · 시각이면 두 화면의 대기인원과 혼잡등급이 반드시 같아야 한다.
+	 * 같은 smltId / 터미널 / 시각이면 두 화면의 대기인원과 혼잡등급이 반드시 같아야 한다.
 	 */
 	private List<MapChknRsltDto> getChknRsltList(TerminalKind tmnlId, ChknQueueDay queueDay, int bgnMinute) {
 		List<MapChknRsltDto> result = new ArrayList<>();

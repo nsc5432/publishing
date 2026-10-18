@@ -332,7 +332,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		}
 
 		MapNoticeDto result = new MapNoticeDto();
-		// 알림 단계는 Queue 가 가장 긴 아일랜드를 따른다 (맵형태보기 · 출국장과 같은 기준)
+		// 알림 단계는 Queue 가 가장 긴 아일랜드를 따른다 (맵형태보기 / 출국장과 같은 기준)
 		result.setCgnStatus(sortedList.isEmpty() ? CongestionStatus.FREE : sortedList.get(0).getCgnStatus());
 		result.setItemList(itemList);
 

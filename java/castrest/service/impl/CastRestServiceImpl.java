@@ -2615,7 +2615,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         dto.setSmltMdlSn(sno);
 
         if (executionMapper.hasModel(simId, sno) > 0)
-            throw new IllegalStateException("동일 실행·모델에 다른 결과가 이미 저장되어 있습니다.");
+            throw new IllegalStateException("동일 실행/모델에 다른 결과가 이미 저장되어 있습니다.");
 
         List<SmltRsltDtlDto> details = processDetailList(dto, simId, sno, relatedEventCd);
         castRestMapper.insertSimSet(dto);

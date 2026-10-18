@@ -41,13 +41,11 @@ function toHhmm(minutes: number): string {
 }
 
 /** 슬롯 시각 49개 (00:00 ~ 24:00) */
-const TIME_LIST: string[] = Array.from({ length: MAX_STEP + 1 }, (_, step) =>
-    toHhmm(step * STEP_MIN),
-);
+const TIME_LIST: string[] = Array.from({ length: MAX_STEP + 1 }, (_, step) => toHhmm(step * STEP_MIN));
 
 /**
  * 시간대별 대기인원 — 오전 피크(08~10시)를 찍고 내려가는 곡선.
- * 마커 색·팝업 지표가 모두 이 값에서 나오므로 타임라인을 옮기면 함께 움직인다.
+ * 마커 색/팝업 지표가 모두 이 값에서 나오므로 타임라인을 옮기면 함께 움직인다.
  */
 function wtngAt(peakStep: number, peakWtng: number, step: number): number {
     const gap = Math.abs(step - peakStep);
@@ -207,18 +205,11 @@ function toExtraBoothCnt(queuePsgCnt: number): number {
     return excess <= 0 ? 0 : Math.ceil(excess / (BOOTH_PRCS_PER_MIN * RECOMMEND_LEAD_MIN));
 }
 
-function toCgnClearMin(
-    queuePsgCnt: number,
-    oprBoothCnt: number,
-    extraBoothCnt: number,
-): number | null {
+function toCgnClearMin(queuePsgCnt: number, oprBoothCnt: number, extraBoothCnt: number): number | null {
     if (oprBoothCnt === 0) return null;
     if (extraBoothCnt === 0) return 0;
 
-    return Math.min(
-        RECOMMEND_SPAN_MIN,
-        Math.ceil((queuePsgCnt - NORMAL_MAX_QUEUE) / (BOOTH_PRCS_PER_MIN * extraBoothCnt)),
-    );
+    return Math.min(RECOMMEND_SPAN_MIN, Math.ceil((queuePsgCnt - NORMAL_MAX_QUEUE) / (BOOTH_PRCS_PER_MIN * extraBoothCnt)));
 }
 
 function toChknRslt(seed: DepSeed, step: number): MapChknRsltDto {
@@ -303,7 +294,7 @@ function toSlot(tmnlId: TmnlId, hhmm: string, step: number): SmltMapSlotDto {
 /* ================= 운영시간 카드 ================= */
 
 /**
- * 운영시간 도넛은 출국장 1곳당 1개다 (마커와 같은 개수·같은 순서).
+ * 운영시간 도넛은 출국장 1곳당 1개다 (마커와 같은 개수/같은 순서).
  * 뒤쪽 두 곳은 미운영으로 두어 흐림 표기를 확인할 수 있게 한다.
  */
 function toOperCards(seeds: DepSeed[]): MapOperCardDto[] {

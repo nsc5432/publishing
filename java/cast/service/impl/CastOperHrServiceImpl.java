@@ -42,7 +42,7 @@ public class CastOperHrServiceImpl implements CastOperHrService {
 
 	/*
 	 * 운영시간은 출국장 1곳당 최대 3구간까지 갈라진다 (OPER_BGNG_1_HR ~ OPER_END_3_HR).
-	 * 2 · 3구간은 대부분 비어 있으므로 채워진 구간만 펼쳐 담는다.
+	 * 2 / 3구간은 대부분 비어 있으므로 채워진 구간만 펼쳐 담는다.
 	 */
 	@Override
 	public Map<String, List<DepOperHrRawDto>> retrieveDepOperHrMap(String fcltTmnlId, String ymd) {

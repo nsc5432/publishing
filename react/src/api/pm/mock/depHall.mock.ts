@@ -16,7 +16,7 @@ import type {
  * 서버 DTO 와 같은 모양으로 둔다. 화면은 목업이든 실통신이든 같은 DTO 를 받으므로
  * 연동 시 화면 코드를 고칠 일이 없다.
  *
- * 하루치를 한 번에 내려준다 — 맵·표·차트 세 보기가 이 한 건을 나눠 쓴다.
+ * 하루치를 한 번에 내려준다 — 맵/표/차트 세 보기가 이 한 건을 나눠 쓴다.
  *
  * ⚠ 도면 좌표는 서버(DepHallLayout.java)가 같은 값을 내려준다. 한쪽만 고치면 어긋난다.
  */
@@ -38,9 +38,7 @@ function toHhmm(minutes: number): string {
     return hh + mm;
 }
 
-const TIME_LIST: string[] = Array.from({ length: MAX_STEP + 1 }, (_, step) =>
-    toHhmm(BGN_MIN + step * STEP_MIN),
-);
+const TIME_LIST: string[] = Array.from({ length: MAX_STEP + 1 }, (_, step) => toHhmm(BGN_MIN + step * STEP_MIN));
 
 /* ================= 출국장 ================= */
 
@@ -106,7 +104,7 @@ function toStatus(wtngPsgCnt: number): CongestionStatus {
     return 'FREE';
 }
 
-/** 출국장 카드 — 자리·운영시간처럼 하루 내내 그대로인 부분만 담는다 */
+/** 출국장 카드 — 자리/운영시간처럼 하루 내내 그대로인 부분만 담는다 */
 function toGate(seed: GateSeed): DepHallGateDto {
     return {
         dptgtNo: seed.dptgtNo,
@@ -247,7 +245,7 @@ function toNotice(dptgtRsltList: MapUnitRsltDto[], seeds: GateSeed[]): MapNotice
                 fcltNm: `출국장 ${rslt.unitCd}`,
                 fcltCd: `DG${rslt.unitCd.padStart(2, '0')}`,
                 boothCnt: boothCntMap.get(rslt.unitCd) ?? 0,
-                // 총 소요 부스 · 해소시간은 체크인 공용 Queue 만 산정한다
+                // 총 소요 부스 / 해소시간은 체크인 공용 Queue 만 산정한다
                 reqCnt: null,
                 cgnClearMin: null,
             })),
@@ -256,17 +254,13 @@ function toNotice(dptgtRsltList: MapUnitRsltDto[], seeds: GateSeed[]): MapNotice
 
 function toSlot(tmnlId: TmnlId, hhmm: string, step: number): DepHallSlotDto {
     const seeds = GATE_SEEDS[tmnlId];
-    const dptgtRsltList = seeds.map((seed) =>
-        toUnitRslt(seed.dptgtNo, wtngAt(seed.peakStep, seed.peakWtng, step)),
-    );
+    const dptgtRsltList = seeds.map((seed) => toUnitRslt(seed.dptgtNo, wtngAt(seed.peakStep, seed.peakWtng, step)));
 
     return {
         hhmm,
         notice: toNotice(dptgtRsltList, seeds),
         dptgtRsltList,
-        chknRsltList: ISLAND_SEEDS[tmnlId].map(([label, , , peakStep, peakWtng]) =>
-            toUnitRslt(label, wtngAt(peakStep, peakWtng, step)),
-        ),
+        chknRsltList: ISLAND_SEEDS[tmnlId].map(([label, , , peakStep, peakWtng]) => toUnitRslt(label, wtngAt(peakStep, peakWtng, step))),
     };
 }
 
