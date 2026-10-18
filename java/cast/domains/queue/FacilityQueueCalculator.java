@@ -38,10 +38,6 @@ public final class FacilityQueueCalculator {
         Objects.requireNonNull(source, "source");
         LocalDateTime end = intervalEnd == null ? intervalStart.plusMinutes(10) : intervalEnd;
 
-        if (!end.isAfter(intervalStart)) {
-            throw new IllegalArgumentException("종료 시각은 시작 시각보다 뒤여야 합니다.");
-        }
-
         QueueInputValidation.nonNegative(avgPrcsTimeSec, "avgPrcsTimeSec");
         QueueInputValidation.nonNegative(avgWtngTimeSec, "avgWtngTimeSec");
         QueueInputValidation.nonNegative(avgQueuePsgCnt, "avgQueuePsgCnt");

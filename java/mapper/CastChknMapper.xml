@@ -41,7 +41,7 @@
         /* CastChknMapper.retrieveChknList */
         SELECT
             SUBSTR(A.CKNCT_ID, 0, 1) AS ISLAND,
-            TO_NUMBER(SUBSTR(A.CKNCT_ID, 2, 2)) AS COUNTER_NUM,
+            PMOWN.FN_PM_SAFE_TO_NUMBER(SUBSTR(A.CKNCT_ID, 2, 2)) AS COUNTER_NUM,
             A.ALN_CD,
             TO_NUMBER(SUBSTR(A.EST_BGNG_HM, 0, 2)) AS "START",
             CEIL((A.EST_END_HM) / 100) AS "END"
