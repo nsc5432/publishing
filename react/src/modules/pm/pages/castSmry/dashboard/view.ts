@@ -9,6 +9,7 @@ import type {
     QueueCalcMethod,
     QueueDataSrc,
     SmltType,
+    TmnlId,
     TmnlSmryDto,
 } from '@/types/api.types';
 import {
@@ -133,15 +134,21 @@ function toFcltCardChip(unit: FcltUnitDto): FcltCardChip {
     };
 }
 
-function toFcltCardData(fcltType: FcltCardType, cards: DsbdFcltCardDto[]): FcltCardData {
-    const busyCount = cards.filter((card) => BUSY_STATUS.includes(card.cgnStatus)).length;
+function toFcltCardData(fcltType: FcltCardType, cards: DsbdFcltCardDto[], tmnlId: TmnlId): FcltCardData {
+    const unitPattern = fcltType === 'CHKN' ? /^[A-N]$/ : tmnlId === 'T1' ? /^[1-6]$/ : /^[12]$/;
+    const visibleCards = cards.filter((card) =>
+        unitPattern.test(fcltType === 'CHKN' ? card.island : card.dptgtNo),
+    );
+    const busyCount = visibleCards.filter((card) => BUSY_STATUS.includes(card.cgnStatus)).length;
 
     return {
         fcltType,
         title: FCLT_CARD_TITLE[fcltType],
         warn: busyCount > 0 ? `혼잡 ${busyCount}개` : '원활',
-        variants: cards.map(toFcltCardVariant),
-        chips: (cards[0]?.unitList ?? []).map(toFcltCardChip),
+        variants: visibleCards.map(toFcltCardVariant),
+        chips: (cards[0]?.unitList ?? [])
+            .filter((unit) => unitPattern.test(unit.unitCd))
+            .map(toFcltCardChip),
     };
 }
 
@@ -197,7 +204,10 @@ export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCard
             { label: '최대\n대기시간', value: String(smry.peak.maxWtngHr), unit: '분' },
             { label: '시간당\n처리인원', value: formatCount(smry.peak.hrlyPrcsPsgCnt), unit: '명' },
         ],
-        fcltCards: [toFcltCardData('CHKN', chknCards), toFcltCardData('DEP', dptgtCards)],
+        fcltCards: [
+            toFcltCardData('CHKN', chknCards, smry.tmnlId),
+            toFcltCardData('DEP', dptgtCards, smry.tmnlId),
+        ],
         chart: { rsltList },
         tableRows: rsltList.map(toTableRow),
         defaultSelectedRow: Math.max(0, currentIndex),

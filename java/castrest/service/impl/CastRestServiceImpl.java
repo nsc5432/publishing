@@ -2601,6 +2601,10 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
             validateUserResult(dto, userReq);
             simId = userReq.getSmltId();
+            // StartTime 은 CAST 실행 시각이라 대상일이 아니다
+            dto.setExcnYmd(userReq.getExcnYmd());
+            if (isBlankResource(dto.getCheckInAllocationResourceID()))
+                dto.setCheckInAllocationResourceID(userReq.getCknctAlctnRsrcId());
         } else {
             simId = executionService.nextId();
         }
@@ -2630,11 +2634,11 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         return 1;
     }
     private void validateUserResult(CastResReqDto dto, UserSmltReqDto request) {
-        if (!request.getExcnYmd().equals(dateTime(dto.getStartTime()).substring(0, 10).replace("-", "")))
-            throw new IllegalStateException("사용자 결과의 대상 일자가 다릅니다.");
         requireResource(request.getMdlRsrcId(), dto.getModelResourceID());
         requireResource(request.getFltSchdlRsrcId(), dto.getFlightScheduleResourceID());
-        requireResource(request.getCknctAlctnRsrcId(), dto.getCheckInAllocationResourceID());
+        // CAST 는 Run 의 CheckInAllocationResourceID 를 "" 로 보낸다
+        if (!isBlankResource(dto.getCheckInAllocationResourceID()))
+            requireResource(request.getCknctAlctnRsrcId(), dto.getCheckInAllocationResourceID());
         requireResource(request.getSbdCntrlAlctnId(), dto.getSbdCounterAllocationResourceID());
         requireResource(request.getPrptStngRsrcId(), dto.getPropertySetResourceID());
         requireResource(request.getFcltyOpngDptcnySrngRsrcId(), dto.getFacilityOpeningTableDepartureGateResourceID());
@@ -2646,13 +2650,12 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         requireResource(request.getFcltyOpngTrScrtyCntrlRsrcId(), dto.getFacilityOpeningTableTransferSecurityControlResourceID());
     }
     private void requireResource(String expected, String actual) {
-        if (expected != null && !expected.isBlank() && !expected.equals(actual))
+        // CAST 는 CheckInCounterServiceTime001 처럼 발행한 ID 와 대소문자를 다르게 돌려보낸다
+        if (expected != null && !expected.isBlank() && !expected.equalsIgnoreCase(actual))
             throw new IllegalStateException("결과 입력 리소스가 요청과 다릅니다: " + expected);
     }
-    private String dateTime(String value) {
-        if (value == null || value.length() < 19)
-            throw new IllegalStateException("CAST 결과 시각이 누락됐습니다.");
-        return value.replace("T", " ").substring(0, 19);
+    private boolean isBlankResource(String value) {
+        return value == null || value.replace("\"", "").isBlank();
     }
 
     private int setupMasterDto(CastResReqDto dto) {

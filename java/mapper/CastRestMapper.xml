@@ -1645,7 +1645,8 @@ ORDER BY BlockID, DepArrTerminal, resourceID
               , #{resourceID}
               , #{smltType}
               , CURRENT_TIMESTAMP
-              , substr(replace(replace(#{startTime},'T',' '),'-',''),1,8)
+              -- 사용자 실행은 요청의 대상일. 일일은 예전대로 실행 시각의 일자
+              , NVL(#{excnYmd}, substr(replace(replace(#{startTime},'T',' '),'-',''),1,8))
               -- 사용자 실행이면 요청의 터미널을 따른다. 일일은 예전대로 P01
               , NVL(#{tmnlId}, 'P01')
               , #{selfID}

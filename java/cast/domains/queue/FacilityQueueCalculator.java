@@ -4,8 +4,6 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
-import lombok.Builder;
-
 /**
  * 특정 시설의 큐 한 개와 그 큐를 처리하는 시설 그룹에 대한 구간별 분석 객체
  */
@@ -23,7 +21,7 @@ public final class FacilityQueueCalculator {
     private final Double avgQueuePsgCnt;
     private final Integer queuePsgCntAtEnd;
 
-    @Builder(builderClassName = "Builder")
+    @lombok.Builder(builderClassName = "Builder")
     private FacilityQueueCalculator(
             String tmnlId, String fcltType, String fcltId, String queueId,
             LocalDateTime intervalStart, LocalDateTime intervalEnd, QueueDataSource source,

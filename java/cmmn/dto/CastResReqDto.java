@@ -43,6 +43,7 @@ public class CastResReqDto extends AomsDefaultDto {
 	private String simulationStopTime = "";
 	private String resourceID = "";
 	private String tmnlId = "";
+	private String excnYmd = "";
 	private String selfID = "";
 	private String parentID = "";
 	private String flightScheduleRowID = "";

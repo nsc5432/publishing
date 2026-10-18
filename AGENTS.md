@@ -478,8 +478,13 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 
 - 현재상태는 사용자별 비공개, 권한 있는 실행이력·결과·확정 조건 조회는 공개다.
   mode=view&smltId=...는 현재상태가 아닌 실행 당시 JSON을 읽는다.
-- 사용자 결과는 FS 번호 후보가 유일해야 하며, 확인 가능한 WI 식별자와 일자·모델·입력 리소스를 대조한다.
+- 사용자 결과는 FS 번호 후보가 유일해야 하며, 확인 가능한 WI 식별자와 모델·입력 리소스를 대조한다.
   모호하거나 다른 입력이면 최신 요청에 임의 연결하지 않는다. 사용자 결과에 새 ID를 발급하지 않는다.
+  일자는 대조하지 않는다 — `StartTime` 은 CAST 실행 시각이고, FS 가 요청 일자로 발행돼 리소스 대조로 충분하다.
+  STNG.EXCN_YMD 는 요청의 EXCN_YMD 를 쓴다. CAST 가 CA 를 `""` 로 보내므로 CA 는 값이 올 때만 대조하고
+  STNG 에는 요청의 CA 를 기록한다. 리소스 ID 는 대소문자를 구분하지 않는다 (`CheckInCounterServiceTime001`, 2026-10-19).
+- STNG 의 `PLAN_BGNG_DT`·`PLAN_END_DT` 는 CAST `StartTime`·`StopTime`(실제 수행 시각), `SMLT_BGNG_DT`·`SMLT_END_DT` 는
+  시뮬레이션 속 시각(대상일 전날 12시~)이다. 모니터링의 시작·종료·소요시간과 일일 기간 필터는 `PLAN_*` 를 읽는다 (2026-10-19).
 - 일일(Auto)은 Run 하나에 모델 결과 1건이라 결과마다 새 공통 ID를 받는다(2026-10-16 RESULT_GROUP·
   CAST_CONTRACT 제거). 다중 모델을 도입하면 STNG의 SMLT_TYPE·EXCN_ID(RunID)·계획/실제 시각·FS로 묶는다.
 - 원문은 REQUIRES_NEW 수신함에 먼저 보존한다. 파싱·매칭·저장 실패 이유도 남긴다.

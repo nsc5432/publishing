@@ -59,6 +59,7 @@
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
     </select>
 
+    <!-- 수행 시각은 STNG.PLAN_*(CAST StartTime/StopTime). SMLT_* 는 시뮬레이션 속 시각이다 -->
     <select id="retrieveSmltFlfmt" resultType="aoms.pm.cast.dto.SmltExcnDto">
         /* CastSmltMapper.retrieveSmltFlfmt */
         SELECT A.SMLT_ID, A.SMLT_TYPE, A.EXCN_YMD, A.TMNL_ID, A.SMLT_STTS,
@@ -78,8 +79,8 @@
             FROM PMOWN.TN_PM_SMLT_USER_MSTR U
             LEFT JOIN (
                 SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
-                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
-                    MAX(SMLT_END_DT) AS SMLT_END_DT,
+                    MIN(TMNL_ID) AS TMNL_ID, MIN(PLAN_BGNG_DT) AS SMLT_BGNG_DT,
+                    MAX(PLAN_END_DT) AS SMLT_END_DT,
                     MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
                     MIN(FRST_REG_DT) AS FRST_REG_DT
                 FROM PMOWN.TN_PM_SMLT_STNG
@@ -92,8 +93,8 @@
                 S.FRST_RGTR_ID, S.FRST_REG_DT, S.TMNL_ID
             FROM (
                 SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
-                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
-                    MAX(SMLT_END_DT) AS SMLT_END_DT,
+                    MIN(TMNL_ID) AS TMNL_ID, MIN(PLAN_BGNG_DT) AS SMLT_BGNG_DT,
+                    MAX(PLAN_END_DT) AS SMLT_END_DT,
                     MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
                     MIN(FRST_REG_DT) AS FRST_REG_DT
                 FROM PMOWN.TN_PM_SMLT_STNG
@@ -124,8 +125,8 @@
             FROM PMOWN.TN_PM_SMLT_USER_MSTR U
             LEFT JOIN (
                 SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
-                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
-                    MAX(SMLT_END_DT) AS SMLT_END_DT,
+                    MIN(TMNL_ID) AS TMNL_ID, MIN(PLAN_BGNG_DT) AS SMLT_BGNG_DT,
+                    MAX(PLAN_END_DT) AS SMLT_END_DT,
                     MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
                     MIN(FRST_REG_DT) AS FRST_REG_DT
                 FROM PMOWN.TN_PM_SMLT_STNG
@@ -138,8 +139,8 @@
                 S.FRST_RGTR_ID, S.FRST_REG_DT, S.TMNL_ID
             FROM (
                 SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
-                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
-                    MAX(SMLT_END_DT) AS SMLT_END_DT,
+                    MIN(TMNL_ID) AS TMNL_ID, MIN(PLAN_BGNG_DT) AS SMLT_BGNG_DT,
+                    MAX(PLAN_END_DT) AS SMLT_END_DT,
                     MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
                     MIN(FRST_REG_DT) AS FRST_REG_DT
                 FROM PMOWN.TN_PM_SMLT_STNG
@@ -171,8 +172,8 @@
             FROM PMOWN.TN_PM_SMLT_USER_MSTR U
             LEFT JOIN (
                 SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
-                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
-                    MAX(SMLT_END_DT) AS SMLT_END_DT,
+                    MIN(TMNL_ID) AS TMNL_ID, MIN(PLAN_BGNG_DT) AS SMLT_BGNG_DT,
+                    MAX(PLAN_END_DT) AS SMLT_END_DT,
                     MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
                     MIN(FRST_REG_DT) AS FRST_REG_DT
                 FROM PMOWN.TN_PM_SMLT_STNG
@@ -185,8 +186,8 @@
                 S.FRST_RGTR_ID, S.FRST_REG_DT, S.TMNL_ID
             FROM (
                 SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
-                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
-                    MAX(SMLT_END_DT) AS SMLT_END_DT,
+                    MIN(TMNL_ID) AS TMNL_ID, MIN(PLAN_BGNG_DT) AS SMLT_BGNG_DT,
+                    MAX(PLAN_END_DT) AS SMLT_END_DT,
                     MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
                     MIN(FRST_REG_DT) AS FRST_REG_DT
                 FROM PMOWN.TN_PM_SMLT_STNG

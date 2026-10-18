@@ -355,7 +355,7 @@ function waitLineSeries(line: WaitLineData, wait: WaitLine): LineSeriesOption {
             animation: false,
             symbol: 'roundRect',
             symbolSize: [PEAK_TIP.width, PEAK_TIP.height],
-            symbolOffset: [0, -(PEAK_TIP.gap + PEAK_TIP.height / 2)],
+            symbolOffset: [0, PEAK_TIP.gap + PEAK_TIP.height / 2],
             itemStyle: {
                 color: WAIT_COLOR,
                 shadowBlur: 8,
