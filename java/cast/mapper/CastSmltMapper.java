@@ -20,8 +20,6 @@ public interface CastSmltMapper {
 
     SmltKpiRawDto retrieveSmltKpiRaw(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId, @Param("upPsgFcltCdList") List<String> upPsgFcltCdList);
 
-    void insertSmltFlfmtHstry(SmltExcnDto dto);
-
     SmltExcnDto retrieveSmltFlfmt(@Param("smltId") String smltId);
 
     List<SmltExcnDto> retrieveSmltFlfmtList(@Param("bgnDt") String bgnDt, @Param("endDt") String endDt);

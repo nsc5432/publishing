@@ -147,7 +147,7 @@ M/M/s 정상상태는 `ρ=λ/(sμ)<1`을 요구하고, `μ`는 시설 하나의 
 | `FacilityQueueInput` | 운영수, 배정가능 최대수, 외부 유입률, 데이터/모형 가정 |
 | `Computed<T>` | `value`, `status`, `method`, `reason`, `hasValue()` |
 | `ErlangCResult` | 대기확률·이론 평균 대기시간·이론 평균 대기인원 |
-| `MetricStatus`, `CalculationMethod`, `QueueDataSource` | 계산 상태·계산 근거·원천 구분 |
+| `CalcOutcome`, `CalculationMethod`, `QueueDataSource` | 계산 상태·계산 근거·원천 구분 |
 | `QueueInputValidation` | 입력 검증. 프런트 검증과 별개로 서버 검증 유지 |
 | `FacilityQueueExample` | 학습용 검증 벡터. 실데이터 로더나 assertion 테스트가 아님 |
 

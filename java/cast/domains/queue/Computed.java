@@ -7,11 +7,11 @@ import java.util.Objects;
  */
 public final class Computed<T> {
     private final T value;
-    private final MetricStatus status;
+    private final CalcOutcome status;
     private final CalculationMethod method;
     private final String reason;
 
-    private Computed(T value, MetricStatus status, CalculationMethod method, String reason) {
+    private Computed(T value, CalcOutcome status, CalculationMethod method, String reason) {
         this.value = value;
         this.status = Objects.requireNonNull(status, "status");
         this.method = Objects.requireNonNull(method, "method");
@@ -19,19 +19,19 @@ public final class Computed<T> {
     }
 
     public static <T> Computed<T> calculated(T value, CalculationMethod method, String reason) {
-        return new Computed<>(requireValue(value), MetricStatus.CALCULATED, method, reason);
+        return new Computed<>(requireValue(value), CalcOutcome.CALCULATED, method, reason);
     }
 
     public static <T> Computed<T> estimated(T value, CalculationMethod method, String reason) {
-        return new Computed<>(requireValue(value), MetricStatus.ESTIMATED, method, reason);
+        return new Computed<>(requireValue(value), CalcOutcome.ESTIMATED, method, reason);
     }
 
     public static <T> Computed<T> unavailable(CalculationMethod method, String reason) {
-        return new Computed<>(null, MetricStatus.UNAVAILABLE, method, reason);
+        return new Computed<>(null, CalcOutcome.UNAVAILABLE, method, reason);
     }
 
     public static <T> Computed<T> unreachable(CalculationMethod method, String reason) {
-        return new Computed<>(null, MetricStatus.UNREACHABLE, method, reason);
+        return new Computed<>(null, CalcOutcome.UNREACHABLE, method, reason);
     }
 
     private static <T> T requireValue(T value) {
@@ -49,7 +49,7 @@ public final class Computed<T> {
     }
 
     public T getValue() { return value; }
-    public MetricStatus getStatus() { return status; }
+    public CalcOutcome getStatus() { return status; }
     public CalculationMethod getMethod() { return method; }
     public String getReason() { return reason; }
 

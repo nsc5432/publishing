@@ -21,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 public class CastUserSmltServiceImpl implements CastUserSmltService {
     private static final String EMPTY = "";
     private final CastExecutionService executionService;
-    private final CastSmltMapper castSmltMapper;
     private final CastUserReqMapper castUserReqMapper;
     private final CastUserSnapshotService castUserSnapshotService;
     private final CastFltPsgService fltService;
@@ -71,13 +70,6 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         
         UserSmltRsrcSnapshotDto snapshot = castUserSnapshotService.publish(id, request.getYmd(), customCondList);
         
-        SmltExcnDto history = new SmltExcnDto();
-        SessionUtils.setUserContext(history, sessionService);
-        history.setSmltId(id);
-        history.setSmltType(SmltType.USER.getDbCode());
-        history.setSmltFlfmtSttsCd(SmltExecStatus.RUNNING.getValue());
-        castSmltMapper.insertSmltFlfmtHstry(history);
-
         String reqId = "WI" + id;
         castUserReqMapper.insertUserReq(getUserReq(id, reqId, request.getYmd(), snapshot));
         

@@ -2,7 +2,7 @@ package aoms.pm.cast.dto;
 
 import aoms.pm.cast.domains.queue.CalculationMethod;
 import aoms.pm.cast.domains.queue.Computed;
-import aoms.pm.cast.domains.queue.MetricStatus;
+import aoms.pm.cast.domains.queue.CalcOutcome;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +11,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class QueueMetricDto {
-	private MetricStatus status; // CALCULATED / ESTIMATED / UNAVAILABLE / UNREACHABLE
+	private CalcOutcome status; // CALCULATED / ESTIMATED / UNAVAILABLE / UNREACHABLE
 	private CalculationMethod method;
 	private String reason;
 

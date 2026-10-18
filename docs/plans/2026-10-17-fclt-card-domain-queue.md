@@ -190,7 +190,7 @@ Xovis 적용 전에 확인할 것:
 - `FacilityQueueExample.java`
   - 실행 진입점용 예제라 운영 코드가 쓰지 않는다
   - 지우기 전에 10장에서 쓸 검증 입력·기대값을 이 문서(10장)로 옮겨 적는다
-- `QueueInputValidation`, `Computed`, `MetricStatus`, `QueueDataSource`는 남은 코드가 쓰는 범위만 남긴다.
+- `QueueInputValidation`, `Computed`, `CalcOutcome`, `QueueDataSource`는 남은 코드가 쓰는 범위만 남긴다.
   위 정리 후 쓰지 않게 된 메서드가 있으면 같이 지운다
 
 ## 5. 계약 변경
@@ -372,7 +372,7 @@ Xovis 적용 전에 확인할 것:
 | `QueueDataSource` / `QueueDataSrc` | `MANUAL` (화면 라벨 '수동 입력' 포함) |
 | 클래스 | `FacilityQueueExample` |
 
-남긴 것: Little's Law 일체(4.7 보류 목록), `XOVIS`, `QueueInputValidation` · `Computed` · `MetricStatus` 전부 (모두 사용 중).
+남긴 것: Little's Law 일체(4.7 보류 목록), `XOVIS`, `QueueInputValidation` · `Computed` · `CalcOutcome` 전부 (모두 사용 중).
 `estimateRequiredServerCnt` 주석이 삭제된 메서드를 가리켜 "실현 가능성은 호출자가 보유 수와 비교해 판단한다"로 고쳤다.
 
 검증: 임시 트리 전체 컴파일 통과, 12.3 회귀 하네스 151,129건 일치(정리 전과 같음), 10장 벡터 중 남은 메서드 값 일치,

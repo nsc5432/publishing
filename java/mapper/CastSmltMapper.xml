@@ -59,11 +59,6 @@
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
     </select>
 
-    <insert id="insertSmltFlfmtHstry">
-        /* CastSmltMapper.insertSmltFlfmtHstry */
-        INSERT INTO PMOWN.TH_PM_SMLT_FLFMT_HSTRY (SMLT_ID, SMLT_TYPE, SMLT_FLFMT_STTS_CD, FRST_RGTR_ID, FRST_REG_DT)
-        VALUES (#{smltId}, #{smltType}, #{smltFlfmtSttsCd}, #{loginUserId}, CURRENT_TIMESTAMP)
-    </insert>
     <select id="retrieveSmltFlfmt" resultType="aoms.pm.cast.dto.SmltExcnDto">
         /* CastSmltMapper.retrieveSmltFlfmt */
         SELECT A.SMLT_ID, A.SMLT_TYPE, A.EXCN_YMD, A.TMNL_ID,

@@ -8,7 +8,6 @@ import aoms.pm.cast.dto.UserSmltReqDto;
 
 @Mapper
 public interface CastExecutionMapper {
-    void syncHistory(@Param("smltId") String smltId);
     String nextSmltId();
     String retrieveSaveDt(UserSmltCurrentDto scope);
     int hasCurrentConditions(@Param("scope") UserSmltCurrentDto scope, @Param("area") String area);

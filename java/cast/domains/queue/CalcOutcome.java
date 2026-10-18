@@ -1,6 +1,6 @@
 package aoms.pm.cast.domains.queue;
 
-public enum MetricStatus {
+public enum CalcOutcome {
     CALCULATED,
     ESTIMATED,
     UNAVAILABLE, // 입력 부족

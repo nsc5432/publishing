@@ -119,48 +119,4 @@
         AND SUBSTR(U.PRPT_STNG_RSRC_ID, 3) BETWEEN '500' AND '998'
     </select>
     <!-- 리소스 내용은 지정된 원천 ID로 조회한다 -->
-    <update id="syncHistory">
-        /* CastExecutionMapper.syncHistory */
-        MERGE INTO PMOWN.TH_PM_SMLT_FLFMT_HSTRY H
-        USING (SELECT E.* FROM (
-            SELECT U.SMLT_ID, 'WhatIf' AS SMLT_TYPE, U.EXCN_YMD,
-                CASE WHEN U.SMLT_STTS = 'Failed' THEN 'Failed'
-                    WHEN S.SMLT_ID IS NOT NULL THEN 'Finished'
-                    WHEN U.SMLT_STTS = 'New' THEN 'New' ELSE 'Executing' END AS SMLT_STTS,
-                U.QUEUE_DT AS SMLT_REQ_DT, NVL(S.SMLT_BGNG_DT, U.EXCT_DT) AS SMLT_BGNG_DT,
-                CASE WHEN U.SMLT_STTS = 'Failed' THEN NVL(U.END_DT, S.SMLT_END_DT)
-                    ELSE S.SMLT_END_DT END AS SMLT_END_DT,
-                U.FRST_RGTR_ID, U.FRST_REG_DT, NVL(S.TMNL_ID, 'P01') AS TMNL_ID
-            FROM PMOWN.TN_PM_SMLT_USER_MSTR U
-            LEFT JOIN (
-                SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
-                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
-                    MAX(SMLT_END_DT) AS SMLT_END_DT,
-                    MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
-                    MIN(FRST_REG_DT) AS FRST_REG_DT
-                FROM PMOWN.TN_PM_SMLT_STNG
-                GROUP BY SMLT_ID
-            ) S ON S.SMLT_ID = U.SMLT_ID
-            UNION ALL
-            SELECT S.SMLT_ID, CASE WHEN S.SMLT_TYPE = 'Manual' THEN 'Manual' ELSE 'Auto' END AS SMLT_TYPE,
-                S.EXCN_YMD, 'Finished' AS SMLT_STTS,
-                CAST(NULL AS TIMESTAMP(6)) AS SMLT_REQ_DT, S.SMLT_BGNG_DT, S.SMLT_END_DT,
-                S.FRST_RGTR_ID, S.FRST_REG_DT, S.TMNL_ID
-            FROM (
-                SELECT SMLT_ID, MIN(SMLT_TYPE) AS SMLT_TYPE, MIN(EXCN_YMD) AS EXCN_YMD,
-                    MIN(TMNL_ID) AS TMNL_ID, MIN(SMLT_BGNG_DT) AS SMLT_BGNG_DT,
-                    MAX(SMLT_END_DT) AS SMLT_END_DT,
-                    MIN(FRST_RGTR_ID) KEEP (DENSE_RANK FIRST ORDER BY FRST_REG_DT) AS FRST_RGTR_ID,
-                    MIN(FRST_REG_DT) AS FRST_REG_DT
-                FROM PMOWN.TN_PM_SMLT_STNG
-                GROUP BY SMLT_ID
-            ) S
-            WHERE NOT EXISTS (SELECT 1 FROM PMOWN.TN_PM_SMLT_USER_MSTR U WHERE U.SMLT_ID = S.SMLT_ID)
-        ) E WHERE E.SMLT_ID = #{smltId}) M
-        ON (H.SMLT_ID = M.SMLT_ID)
-        WHEN MATCHED THEN UPDATE SET H.SMLT_FLFMT_STTS_CD = CASE M.SMLT_STTS WHEN 'Finished' THEN 'DONE' WHEN 'Failed' THEN 'FAILED' ELSE 'RUNNING' END,
-            H.SMLT_FLFMT_BGNG_DT = M.SMLT_BGNG_DT, H.SMLT_FLFMT_END_DT = M.SMLT_END_DT
-        WHEN NOT MATCHED THEN INSERT (SMLT_ID, SMLT_TYPE, SMLT_FLFMT_STTS_CD, SMLT_FLFMT_BGNG_DT, SMLT_FLFMT_END_DT, FRST_RGTR_ID, FRST_REG_DT)
-            VALUES (M.SMLT_ID, M.SMLT_TYPE, CASE M.SMLT_STTS WHEN 'Finished' THEN 'DONE' WHEN 'Failed' THEN 'FAILED' ELSE 'RUNNING' END, M.SMLT_BGNG_DT, M.SMLT_END_DT, M.FRST_RGTR_ID, CURRENT_TIMESTAMP)
-    </update>
 </mapper>

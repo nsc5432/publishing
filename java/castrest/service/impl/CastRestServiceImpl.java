@@ -2610,7 +2610,6 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             userReq.setRsltSmltId(simId); userReq.setLoginIpAddr(dto.getLoginIpAddr());
             castRestMapper.updateUserReqFinished(userReq);
         }
-        executionMapper.syncHistory(simId);
         return 1;
     }
     private void validateUserResult(CastResReqDto dto, UserSmltReqDto request) {
@@ -3291,22 +3290,8 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
             int updated = castRestMapper.updateWhatIfDefinitionTableStts(wDto);
             rRslt += updated;
-
-            if (updated > 0) {
-                closeFlfmtHstry(runId);
-            }
         }
         saveSimLog("22", "2");
         return rRslt;
-    }
-
-    private void closeFlfmtHstry(String smltReqId) {
-        UserSmltReqDto userReq = castRestMapper.retrieveUserReqByKey(smltReqId);
-
-        if (userReq == null) {
-            return;
-        }
-
-        executionMapper.syncHistory(userReq.getSmltId());
     }
 }

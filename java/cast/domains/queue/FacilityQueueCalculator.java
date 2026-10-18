@@ -364,7 +364,7 @@ public final class FacilityQueueCalculator {
 
     /** 선행 계산 실패의 사유를 보존한다. 실패를 기본값 0으로 바꿔 후속 계산을 계속하지 않는다. */
     private static <T> Computed<T> failure(Computed<?> cause, CalculationMethod method) {
-        return cause.getStatus() == MetricStatus.UNREACHABLE
+        return cause.getStatus() == CalcOutcome.UNREACHABLE
                 ? Computed.unreachable(method, cause.getReason())
                 : Computed.unavailable(method, cause.getReason());
     }
