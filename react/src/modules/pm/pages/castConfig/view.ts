@@ -169,6 +169,7 @@ export function toCastConfigDataset(dto: CastConfigDatasetDto): Dataset {
         })),
         rows: dto.rowList.map((row) => ({
             rowNo: row.rowNo,
+            groupKey: row.atrbCd,
             cells: Object.fromEntries(
                 row.cellList.map((cell) => [
                     cell.column,
@@ -219,26 +220,40 @@ function toNumber(text: string): number | null {
     return Number.isFinite(value) ? value : null;
 }
 
+export function toRowGroupKey(dataset: Dataset, row: GridRow, groupColumn: string, drafts: DraftChanges): string {
+    return row.groupKey || readCellValue(dataset.sheetName, row, groupColumn, drafts);
+}
+
+// 33.3 + 33.3 + 33.4 처럼 소수 합이 부동소수 오차로 target 과 어긋나는 것을 막는다
+function isSameNumber(left: number, right: number): boolean {
+    return Math.abs(left - right) < 1e-6;
+}
+
 export function validateDataset(dataset: Dataset, drafts: DraftChanges): string[] {
     const rule = dataset.validation;
     if (!rule) return [];
 
-    const groups = new Map<string, number[]>();
+    const groups = new Map<string, { name: string; values: number[] }>();
     for (const row of dataset.rows) {
         const value = toNumber(readCellValue(dataset.sheetName, row, rule.column, drafts));
         if (value === null) continue;
 
-        const name = readCellValue(dataset.sheetName, row, rule.groupColumn, drafts);
-        const bucket = groups.get(name);
-        if (bucket) bucket.push(value);
-        else groups.set(name, [value]);
+        const key = toRowGroupKey(dataset, row, rule.groupColumn, drafts);
+        const bucket = groups.get(key);
+        if (bucket) bucket.values.push(value);
+        else groups.set(key, { name: readCellValue(dataset.sheetName, row, rule.groupColumn, drafts), values: [value] });
     }
 
+    const nameCounts = new Map<string, number>();
+    for (const { name } of groups.values()) nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1);
+
     const messages: string[] = [];
-    for (const [name, values] of groups) {
+    for (const [key, { name: groupName, values }] of groups) {
+        const name = (nameCounts.get(groupName) ?? 0) > 1 ? `${groupName}(${key})` : groupName;
+
         if (rule.kind === 'sum') {
             const sum = values.reduce((total, value) => total + value, 0);
-            if (sum !== rule.target) {
+            if (!isSameNumber(sum, rule.target)) {
                 messages.push(`${name}: ${rule.column} 합계가 ${formatCount(rule.target)}이 아닙니다 (현재 ${formatCount(sum)})`);
             }
             continue;
@@ -248,7 +263,7 @@ export function validateDataset(dataset: Dataset, drafts: DraftChanges): string[
         if (decreasing) messages.push(`${name}: ${rule.column}이 순서대로 늘어나지 않습니다`);
 
         const last = values.at(-1) ?? 0;
-        if (last !== rule.target) {
+        if (!isSameNumber(last, rule.target)) {
             messages.push(`${name}: 마지막 ${rule.column}이 ${formatCount(rule.target)}이 아닙니다 (현재 ${formatCount(last)})`);
         }
     }

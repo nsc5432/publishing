@@ -86,6 +86,7 @@ export interface GridCell {
 
 export interface GridRow {
     rowNo: number;
+    groupKey: string;
     cells: Record<string, GridCell>;
 }
 

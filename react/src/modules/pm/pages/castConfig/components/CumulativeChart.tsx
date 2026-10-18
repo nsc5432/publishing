@@ -3,7 +3,7 @@ import { EChart } from '@/components/charts/EChart';
 import { AXIS_LABEL, CHART_FONT_FAMILY, TOOLTIP_TEXT_STYLE } from '@/lib/chart';
 import type { EChartsOption } from '@/lib/echarts';
 import type { Dataset, DraftChanges, Validation } from '../types';
-import { readCellValue } from '../view';
+import { readCellValue, toRowGroupKey } from '../view';
 
 interface CumulativeChartProps {
     dataset: Dataset;
@@ -15,17 +15,17 @@ const LINE_COLORS = ['#4441cc', '#12b09a', '#e8a318', '#e12b2b', '#1f9d3a'];
 
 function toOption(dataset: Dataset, rule: Validation, drafts: DraftChanges): EChartsOption {
     const stepColumn = dataset.columns.find((column) => column.type === 'time')?.key ?? '';
-    const groups = new Map<string, { steps: string[]; values: number[] }>();
+    const groups = new Map<string, { name: string; steps: string[]; values: number[] }>();
 
     for (const row of dataset.rows) {
-        const name = readCellValue(dataset.sheetName, row, rule.groupColumn, drafts);
-        const series = groups.get(name) ?? { steps: [], values: [] };
+        const key = toRowGroupKey(dataset, row, rule.groupColumn, drafts);
+        const series = groups.get(key) ?? { name: readCellValue(dataset.sheetName, row, rule.groupColumn, drafts), steps: [], values: [] };
         series.steps.push(readCellValue(dataset.sheetName, row, stepColumn, drafts));
         series.values.push(Number(readCellValue(dataset.sheetName, row, rule.column, drafts)) || 0);
-        groups.set(name, series);
+        groups.set(key, series);
     }
 
-    const names = [...groups.keys()];
+    const keys = [...groups.keys()];
 
     return {
         grid: { top: 28, right: 16, bottom: 24, left: 44 },
@@ -33,7 +33,7 @@ function toOption(dataset: Dataset, rule: Validation, drafts: DraftChanges): ECh
         tooltip: { trigger: 'axis', textStyle: TOOLTIP_TEXT_STYLE },
         xAxis: {
             type: 'category',
-            data: groups.get(names[0])?.steps ?? [],
+            data: groups.get(keys[0])?.steps ?? [],
             axisLabel: AXIS_LABEL,
         },
         yAxis: {
@@ -42,10 +42,10 @@ function toOption(dataset: Dataset, rule: Validation, drafts: DraftChanges): ECh
             axisLabel: { ...AXIS_LABEL, formatter: '{value}' },
             splitLine: { lineStyle: { color: 'rgba(255,255,255,0.08)' } },
         },
-        series: names.map((name, index) => ({
+        series: keys.map((key, index) => ({
             type: 'line',
-            name,
-            data: groups.get(name)?.values ?? [],
+            name: groups.get(key)?.name ?? key,
+            data: groups.get(key)?.values ?? [],
             smooth: true,
             symbolSize: 6,
             lineStyle: { width: 2, color: LINE_COLORS[index % LINE_COLORS.length] },

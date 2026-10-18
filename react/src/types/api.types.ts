@@ -738,6 +738,7 @@ export interface CastConfigDatasetDto extends JsonResponse {
 
 export interface CastConfigGridRowDto {
     rowNo: number;
+    atrbCd: string;
     cellList: CastConfigGridCellDto[];
 }
 

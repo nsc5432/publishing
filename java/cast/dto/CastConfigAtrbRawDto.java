@@ -11,8 +11,6 @@ public class CastConfigAtrbRawDto {
 	private String atrbCd;
 	private String dtlSeCd;
 	private String inptVl;
-	private String userDef1Vl;
-	private String userDef2Vl;
 	private BigDecimal minVl;
 	private BigDecimal maxVl;
 	private BigDecimal dstbMaxVl;

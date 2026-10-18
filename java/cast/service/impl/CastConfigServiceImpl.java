@@ -1148,6 +1148,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 
 			CastConfigGridRowDto row = new CastConfigGridRowDto();
 			row.setRowNo(index + FIRST_DATA_ROW_NO);
+			row.setAtrbCd(StringUtils.trimToEmpty(raw.getAtrbCd()));
 			row.setCellList(cellList);
 
 			result.add(row);
@@ -1167,10 +1168,6 @@ public class CastConfigServiceImpl implements CastConfigService {
 				return StringUtils.trimToEmpty(raw.getDtlSeCdNm());
 			case "INPT_VL":
 				return StringUtils.trimToEmpty(raw.getInptVl());
-			case "USER_DEF_1_VL":
-				return StringUtils.trimToEmpty(raw.getUserDef1Vl());
-			case "USER_DEF_2_VL":
-				return StringUtils.trimToEmpty(raw.getUserDef2Vl());
 			case "MIN_VL":
 				return formatDecimal(raw.getMinVl());
 			case "MAX_VL":

@@ -121,9 +121,7 @@ public enum CastConfigSheet {
 		return List.of(
 				column("제출속성코드", CastConfigColumnType.READONLY, "PSG_ATRB_CD", false, true),
 				column("제출상세구분코드", CastConfigColumnType.READONLY, "PSG_DTL_SE_CD", false, false),
-				column("입력값", CastConfigColumnType.NUMBER, "INPT_VL", true, false),
-				column("사용자정의값1", CastConfigColumnType.TEXT, "USER_DEF_1_VL", true, false),
-				column("사용자정의값2", CastConfigColumnType.TEXT, "USER_DEF_2_VL", true, false)
+				column("입력값", CastConfigColumnType.NUMBER, "INPT_VL", true, false)
 		);
 	}
 

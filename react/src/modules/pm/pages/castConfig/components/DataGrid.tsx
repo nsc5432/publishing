@@ -24,7 +24,7 @@ function toRowSpans(dataset: Dataset, rows: GridRow[], drafts: DraftChanges): Ma
 
         for (const row of rows) {
             const key = toCellKey(dataset.sheetName, row.rowNo, column.key);
-            const value = readCellValue(dataset.sheetName, row, column.key, drafts);
+            const value = `${row.groupKey}::${readCellValue(dataset.sheetName, row, column.key, drafts)}`;
 
             if (anchorValue === value) {
                 spans.set(key, 0);

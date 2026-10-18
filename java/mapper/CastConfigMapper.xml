@@ -101,8 +101,6 @@
             A.PSG_ATRB_CD AS ATRB_CD,
             A.PSG_DTL_SE_CD AS DTL_SE_CD,
             NVL(A.INPT_VL, ' ') AS INPT_VL,
-            NVL(A.USER_DEF_1_VL, ' ') AS USER_DEF_1_VL,
-            NVL(A.USER_DEF_2_VL, ' ') AS USER_DEF_2_VL,
             NVL(P.PSG_FIX_PARA_CD_NM, ' ') AS ATRB_CD_NM,
             NVL(D.PSG_FIX_PARA_CD_NM, ' ') AS DTL_SE_CD_NM,
             NVL(D.VL_TYPE, 'String') AS CATALOG_VL_TYPE,

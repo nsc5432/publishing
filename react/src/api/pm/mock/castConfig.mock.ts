@@ -242,6 +242,7 @@ function column(columnName: string, type: CastConfigColumnType, extra: Partial<P
 function toRow(columns: MockColumn[], rowNo: number, input: MockRowInput): CastConfigGridRowDto {
     return {
         rowNo,
+        atrbCd: input.values[0] ?? '',
         cellList: columns.map((col, index) => {
             const formula = input.formulas?.[col.column] ?? '';
             return {
