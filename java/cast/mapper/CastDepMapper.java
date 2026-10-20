@@ -20,6 +20,8 @@ public interface CastDepMapper {
         @Param("tmnlId") String tmnlId, @Param("scRsrcId") String scRsrcId
     );
 
+    List<DepGateDto> retrieveBaseLaneCntList(@Param("tmnlId") String tmnlId);
+
     List<DepGateDto> retrieveUserDepList(UserSmltCurrentDto scope);
 
     List<UserDepOperHrRawDto> retrieveUserDepOperHrList(UserSmltCurrentDto scope);

@@ -28,6 +28,21 @@
         ORDER BY DPTGT_NO
     </select>
 
+    <select id="retrieveBaseLaneCntList" resultType="aoms.pm.cast.dto.DepGateDto">
+        /* CastDepMapper.retrieveBaseLaneCntList */
+        SELECT
+            A.GATE_NO AS DPTGT_NO,
+            SUM(CASE WHEN A.FCLT_RCG = 'N' THEN A.FCLTY_CNT ELSE 0 END) AS GNRL_SRCH_CNTOM,
+            SUM(CASE WHEN A.FCLT_RCG = 'Y' THEN A.FCLTY_CNT ELSE 0 END) AS SMART_PASS_SRCH_CNTOM
+        FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB A
+        WHERE 1 = 1
+        AND A.DPTGT_ATRB_ID = '001'
+        AND A.OPER_BGNG_HM IS NULL
+        AND A.TMNL_ID = #{tmnlId}
+        GROUP BY A.GATE_NO
+        ORDER BY DPTGT_NO
+    </select>
+
     <select id="retrieveUserDepList" resultType="aoms.pm.cast.dto.DepGateDto">
         /* CastDepMapper.retrieveUserDepList */
         SELECT

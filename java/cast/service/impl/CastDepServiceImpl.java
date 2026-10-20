@@ -135,11 +135,14 @@ public class CastDepServiceImpl implements CastDepService {
         Map<String, Integer> scCntMap = castDepMapper
                 .retrieveScCntList(fcltTmnlId, "FacilityOpeningTable_SecurityControl001")
                 .stream().collect(Collectors.toMap(ScCntRawDto::getDptgtNo, ScCntRawDto::getScshCntom, (first, ignored) -> first));
+        Map<String, DepGateDto> laneCntMap = castDepMapper.retrieveBaseLaneCntList(fcltTmnlId)
+                .stream().collect(Collectors.toMap(DepGateDto::getDptgtNo, lane -> lane, (first, ignored) -> first));
 
         for (DepFcltRawDto facility : fcltList) {
             if (operHrMap.containsKey(facility.getDptgtNo()) && !scCntMap.containsKey(facility.getDptgtNo())) throw new IllegalStateException("출국장 " + facility.getDptgtNo() + " 기본 보안검색대 운영자료가 없습니다.");
+            if (operHrMap.containsKey(facility.getDptgtNo()) && !laneCntMap.containsKey(facility.getDptgtNo())) throw new IllegalStateException("출국장 " + facility.getDptgtNo() + " 기본 레인 운영자료가 없습니다.");
         }
-        return toGateList(fcltList, operHrMap, scCntMap);
+        return toGateList(fcltList, operHrMap, scCntMap, laneCntMap);
     }
 
     private Map<String, DepGateDto> getSavedGateMap(UserSmltDepSearchDto scope) {
@@ -170,7 +173,8 @@ public class CastDepServiceImpl implements CastDepService {
     private List<DepGateDto> toGateList(
             List<DepFcltRawDto> fcltList,
             Map<String, List<DepOperHrRawDto>> operHrMap,
-            Map<String, Integer> scCntMap
+            Map<String, Integer> scCntMap,
+            Map<String, DepGateDto> laneCntMap
     ) {
         List<DepGateDto> result = new ArrayList<>();
 
@@ -178,6 +182,7 @@ public class CastDepServiceImpl implements CastDepService {
             String dptgtNo = fclt.getDptgtNo();
             List<OprTimeDto> oprTimeList = toOprTimeList(operHrMap.getOrDefault(dptgtNo, new ArrayList<>()));
             int scshCntom = scCntMap.getOrDefault(dptgtNo, 0);
+            DepGateDto laneCnt = laneCntMap.get(dptgtNo);
 
             DepGateDto gate = new DepGateDto();
             gate.setDptgtNo(dptgtNo);
@@ -185,8 +190,8 @@ public class CastDepServiceImpl implements CastDepService {
             gate.setOprYn(fclt.getUseYn());
             gate.setScshCntom(scshCntom);
 
-            gate.setGnrlSrchCntom(0);
-            gate.setSmartPassSrchCntom(0);
+            gate.setGnrlSrchCntom(laneCnt == null ? 0 : laneCnt.getGnrlSrchCntom());
+            gate.setSmartPassSrchCntom(laneCnt == null ? 0 : laneCnt.getSmartPassSrchCntom());
             gate.setOprTimeList(oprTimeList);
 
             result.add(gate);

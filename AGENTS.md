@@ -465,9 +465,14 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   PK 때문에 같은 편 중복은 ROW_NUMBER로 1행만 남긴다.
 - 운항 조정은 국제선 출발 GREATEST(예약-환승,0) 몫만 늘린다. 조회와 발행의 필터·ROW_NUMBER를 맞춘다.
   기준 여객수는 FS001 값이고, 늘리는 몫만 조회 화면과 같은 예약 기준이다.
-- 사용자 DepartureGate는 운영 Y 출국장의 운영구간마다 1행이고 시각을 ATRB의 OPER_BGNG_HM·OPER_END_HM
+- 사용자 DepartureGate는 운영 Y 출국장 × 운영구간 × `001` 조합(East/West·SD·FR)마다 1행이다 (2026-10-20,
+  [계획](docs/plans/2026-10-20-user-smlt-dptgt-lane-chkn-type.md)). 레인은 스마트패스 = FR `Y`, 일반 = FR `N` 그룹 안에서
+  `001` 레인 비율로 나눈다(내림 후 잔여는 소수부 큰 순). `001` 조합이 없는 운영 Y 출국장은 발행 전에 실패한다.
+  운영자료 기본 레인 수도 출국장별 `001` FR 그룹 합계다. 시각은 ATRB의 OPER_BGNG_HM·OPER_END_HM
   (HHMM, 24시는 2359)에 싣는다. 이 칸이 빈 행(일일 001)만 운영계 출국장 운영시간을 조인한다.
   sideDoor·facialRecognition은 NVL(' ')로 감싸 배열 길이를 맞춘다.
+- 사용자 CA의 `CHKN_TYPE_CD`는 일일 CA001과 같은 `'C'`(항공사 기준)다. `'M'`이면 CAST가 편명 기준 배정으로 읽어
+  처리 인원이 0이 된다.
 - SecurityControl은 일일·사용자 모두 시각 없이 수량만 보낸다. 사용자는 운영 Y·scshCntom > 0 출국장마다 1행.
 - 사용자가 편집하지 않는 모델(ICN001)·원천 PS·서비스시간·체크인유형·출국심사·입국/환승보안 원천·리포팅은
   일일과 같은 001 원천이다. 원천 PS는 `CastRestServiceImpl`, 나머지는 `CastUserSnapshotServiceImpl` 상수다(2026-10-16 INPUT_BASE 제거). 실행 등록 시

@@ -151,7 +151,7 @@
             #{excnYmd} || LPAD(H.OPER_BGNG_HOUR, 2, '0') || '00',
             #{excnYmd} || LPAD(DECODE(H.OPER_END_HOUR, 24, 23, H.OPER_END_HOUR), 2, '0')
                        || DECODE(H.OPER_END_HOUR, 24, '59', '00'),
-            'M',
+            'C',
             B.ALN_CD,
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM BOOTH B
@@ -313,7 +313,7 @@
     <insert id="insertDptgtAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertDptgtAtrb */
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB (
-            DPTGT_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, FCLTY_CNT,
+            DPTGT_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, GATE_NO, SD_DR, FCLT_RCG, FCLTY_TYPE_ID, FCLTY_CNT,
             OPER_BGNG_HM, OPER_END_HM, GNRL_SRCH_CNTOM, SMART_PASS_SRCH_CNTOM,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
@@ -331,23 +331,60 @@
             <foreach collection="dptgtOperHrList" item="row">
             UNION ALL SELECT #{row.tmnlId}, #{row.fcltCd}, #{row.operHrSn}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
             </foreach>
+        ), LANE_RAW AS (
+            <!-- CAST 는 SD × FR 조합별 레인 블록을 쓰므로 001 행 구조를 틀로 삼고, 입력 수량을 FR 그룹 안에서 001 레인 비율로 나눈다 -->
+            SELECT
+                D.TMNL_ID, D.DPTGT_NO, D.GNRL_SRCH_CNTOM, D.SMART_PASS_SRCH_CNTOM,
+                T.FCLT_SE_CD, T.FCLTY_TYPE_ID, T.SD_DR, T.FCLT_RCG,
+                CASE T.FCLT_RCG
+                    WHEN 'Y' THEN NVL(D.SMART_PASS_SRCH_CNTOM, 0)
+                    WHEN 'N' THEN NVL(D.GNRL_SRCH_CNTOM, 0)
+                    ELSE 0
+                END * NVL(
+                    NVL(T.FCLTY_CNT, 0) / NULLIF(SUM(NVL(T.FCLTY_CNT, 0)) OVER (PARTITION BY D.TMNL_ID, D.DPTGT_NO, T.FCLT_RCG), 0),
+                    1 / COUNT(*) OVER (PARTITION BY D.TMNL_ID, D.DPTGT_NO, T.FCLT_RCG)
+                ) AS RAW_CNT,
+                CASE T.FCLT_RCG
+                    WHEN 'Y' THEN NVL(D.SMART_PASS_SRCH_CNTOM, 0)
+                    WHEN 'N' THEN NVL(D.GNRL_SRCH_CNTOM, 0)
+                    ELSE 0
+                END AS TRGT_CNT
+            FROM DPTGT D
+                INNER JOIN PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB T
+                    ON  T.DPTGT_ATRB_ID = '001'
+                    AND T.OPER_BGNG_HM IS NULL
+                    AND T.TMNL_ID = D.TMNL_ID
+                    AND T.GATE_NO = D.DPTGT_NO
+            WHERE D.OPER_YN = 'Y'
+        ), LANE_BASE AS (
+            SELECT
+                R.*,
+                FLOOR(R.RAW_CNT) AS BASE_CNT,
+                R.TRGT_CNT - SUM(FLOOR(R.RAW_CNT)) OVER (PARTITION BY R.TMNL_ID, R.DPTGT_NO, R.FCLT_RCG) AS REM_CNT,
+                ROW_NUMBER() OVER (
+                    PARTITION BY R.TMNL_ID, R.DPTGT_NO, R.FCLT_RCG
+                    ORDER BY R.RAW_CNT - FLOOR(R.RAW_CNT) DESC, R.FCLTY_TYPE_ID, R.SD_DR
+                ) AS REM_RN
+            FROM LANE_RAW R
         )
         SELECT
             #{rsrcNo},
-            ROW_NUMBER() OVER (ORDER BY D.TMNL_ID, D.DPTGT_NO, H.OPER_HR_SN),
-            D.TMNL_ID,
-            'D',
-            D.DPTGT_NO,
-            NVL(D.GNRL_SRCH_CNTOM, 0) + NVL(D.SMART_PASS_SRCH_CNTOM, 0),
+            ROW_NUMBER() OVER (ORDER BY L.TMNL_ID, L.DPTGT_NO, L.FCLTY_TYPE_ID, L.SD_DR, L.FCLT_RCG, H.OPER_HR_SN),
+            L.TMNL_ID,
+            L.FCLT_SE_CD,
+            L.DPTGT_NO,
+            L.SD_DR,
+            L.FCLT_RCG,
+            L.FCLTY_TYPE_ID,
+            L.BASE_CNT + CASE WHEN L.REM_RN &lt;= L.REM_CNT THEN 1 ELSE 0 END,
             LPAD(H.OPER_BGNG_HOUR, 2, '0') || '00',
             LPAD(DECODE(H.OPER_END_HOUR, 24, 23, H.OPER_END_HOUR), 2, '0') || DECODE(H.OPER_END_HOUR, 24, '59', '00'),
-            D.GNRL_SRCH_CNTOM, D.SMART_PASS_SRCH_CNTOM,
+            L.GNRL_SRCH_CNTOM, L.SMART_PASS_SRCH_CNTOM,
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM DPTGT D
+        FROM LANE_BASE L
             INNER JOIN OPER_HR H
-                ON  H.TMNL_ID = D.TMNL_ID
-                AND H.DPTGT_NO = D.DPTGT_NO
-        WHERE D.OPER_YN = 'Y'
+                ON  H.TMNL_ID = L.TMNL_ID
+                AND H.DPTGT_NO = L.DPTGT_NO
     </insert>
 
     <insert id="insertScrtyCntrlAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">

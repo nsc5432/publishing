@@ -1,7 +1,11 @@
 package aoms.pm.cast.service.impl;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -19,6 +23,7 @@ import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.ChknIslRow;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.DptgtRow;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.FltAjmtRow;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.OperHrRow;
+import aoms.pm.cast.mapper.CastDepMapper;
 import aoms.pm.cast.mapper.CastExecutionMapper;
 import aoms.pm.cast.mapper.CastUserSnapshotMapper;
 
@@ -40,6 +45,7 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
     private static final String IMMIGRATION = "FacilityOpeningTable_Immigration";
     private static final String TRANSFER_SECURITY_CONTROL = "FacilityOpeningTable_TransferSecurityControl";
     private static final String PS = "PS";
+    private static final String OPR_YN_Y = "Y";
 
     // 사용자 결과를 일일 결과와 KPI 비교하므로 편집하지 않는 리소스는 일일 시뮬레이션과 같은 001 원천을 쓴다
     private static final String DAILY_RSRC_NO = "001";
@@ -52,11 +58,13 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
     private final CastUserSnapshotMapper castUserSnapshotMapper;
     private final SessionService sessionService;
     private final CastExecutionMapper executionMapper;
+    private final CastDepMapper castDepMapper;
 
     @Override
     public UserSmltRsrcSnapshotDto publish(String smltId, String excnYmd, List<UserSmltCustomCondDto> customCondList) {
         UserSmltRsrcSnapshotDto snapshot = getSnapshot(smltId, excnYmd);
         for (UserSmltCustomCondDto cond : customCondList) addRows(snapshot, cond);
+        checkDptgtLaneTemplate(snapshot);
 
         publishRsrc(RsrcTable.FLT_SCHDL, snapshot, this::insertSchdlAtrb);
         publishRsrc(RsrcTable.CKNCT, snapshot, castUserSnapshotMapper::insertCknctAtrb);
@@ -122,6 +130,16 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         for (DepGateDto gate : list(cond.getDep().getDptgtList())) {
             snapshot.getDptgtList().add(new DptgtRow(tmnlId, gate.getDptgtNo(), gate.getOprYn(), gate.getScshCntom(), gate.getGnrlSrchCntom(), gate.getSmartPassSrchCntom()));
             addOperHrRows(snapshot.getDptgtOperHrList(), tmnlId, gate.getDptgtNo(), gate.getOprTimeList());
+        }
+    }
+
+    private void checkDptgtLaneTemplate(UserSmltRsrcSnapshotDto snapshot) {
+        Map<String, Set<String>> baseGateMap = new HashMap<>();
+        for (DptgtRow row : snapshot.getDptgtList()) {
+            if (!OPR_YN_Y.equals(row.getOprYn())) continue;
+            Set<String> baseGates = baseGateMap.computeIfAbsent(row.getTmnlId(), tmnlId -> castDepMapper.retrieveBaseLaneCntList(tmnlId)
+                    .stream().map(DepGateDto::getDptgtNo).collect(Collectors.toSet()));
+            if (!baseGates.contains(row.getDptgtNo())) throw new IllegalStateException("출국장 " + row.getDptgtNo() + " 레인 기준정보(" + DEPARTURE_GATE + DAILY_RSRC_NO + ")가 없습니다.");
         }
     }
 

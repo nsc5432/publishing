@@ -2574,28 +2574,11 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     }
 
     private int insertResult(CastResReqDto dto) {
-        int relatedEventCd = setupMasterDto(dto);
-        UserSmltReqDto userReq = null;
+        UserSmltReqDto userReq = resolveResultRequest(dto);
+        int relatedEventCd = userReq == null ? 2 : 0;
         String simId;
 
-        if (WHAT_IF.equals(dto.getSmltType())) {
-            List<UserSmltReqDto> candidates = castRestMapper.retrieveUserReqByFsRsrcId(dto.getFlightScheduleResourceID());
-            Matcher token = Pattern.compile("(?<![A-Za-z0-9])WI[0-9]{8}(?![A-Za-z0-9])").matcher(dto.getResourceID());
-            String reqId = token.find() ? token.group() : null;
-
-            if (token.find())
-                throw new IllegalStateException("결과에 요청 식별자가 둘 이상 있습니다.");
-
-            if (reqId != null) {
-                final String matched = reqId;
-                candidates = candidates.stream().filter(req -> matched.equals(req.getSmltReqId())).collect(Collectors.toList());
-            }
-
-            if (candidates.size() != 1)
-                throw new IllegalStateException("사용자 결과의 요청을 유일하게 식별할 수 없습니다.");
-
-            userReq = candidates.get(0);
-
+        if (userReq != null) {
             if ("Failed".equals(userReq.getSmltStts()))
                 throw new IllegalStateException("실패 종료한 요청의 결과입니다.");
 
@@ -2658,15 +2641,30 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         return value == null || value.replace("\"", "").isBlank();
     }
 
-    private int setupMasterDto(CastResReqDto dto) {
-        if (dto.getResourceID().contains(" Auto")) {
+    private UserSmltReqDto resolveResultRequest(CastResReqDto dto) {
+        String resourceId = dto.getResourceID() == null ? "" : dto.getResourceID();
+        if (resourceId.contains(" Auto")) {
             dto.setSmltType(AUTO);
-            return 2;
-        } else if (dto.getResourceID().contains(WHAT_IF)) {
-            dto.setSmltType(WHAT_IF);
-            return 0;
+            return null;
         }
-        throw new IllegalStateException("CAST 결과의 시뮬레이션 유형을 식별할 수 없습니다: " + dto.getResourceID());
+
+        List<UserSmltReqDto> candidates = castRestMapper.retrieveUserReqByFsRsrcId(dto.getFlightScheduleResourceID());
+        Matcher token = Pattern.compile("(?<![A-Za-z0-9])WI[0-9]{8}(?![A-Za-z0-9])").matcher(resourceId);
+        String reqId = token.find() ? token.group() : null;
+
+        if (token.find())
+            throw new IllegalStateException("결과에 요청 식별자가 둘 이상 있습니다.");
+
+        if (reqId != null) {
+            final String matched = reqId;
+            candidates = candidates.stream().filter(req -> matched.equals(req.getSmltReqId())).collect(Collectors.toList());
+        }
+
+        if (candidates.size() != 1)
+            throw new IllegalStateException("사용자 결과의 요청을 유일하게 식별할 수 없습니다.");
+
+        dto.setSmltType(WHAT_IF);
+        return candidates.get(0);
     }
 
     private List<SmltRsltDtlDto> processDetailList(CastResReqDto dto, String simId, String sno, int eventCd) {
