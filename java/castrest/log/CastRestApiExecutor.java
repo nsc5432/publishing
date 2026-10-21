@@ -1,7 +1,6 @@
 package aoms.pm.castrest.log;
 
 import java.util.Collections;
-import java.util.UUID;
 import java.util.function.Function;
 
 import org.apache.ibatis.exceptions.PersistenceException;
@@ -28,15 +27,14 @@ public class CastRestApiExecutor {
     }
 
     public String execute(String apiTypeCd, String payload, Function<CastRestApiContext, String> action) {
-        String clId = UUID.randomUUID().toString().replace("-", "");
         CastRestApiContext context = new CastRestApiContext();
-        CastRestLogSettings settings = retrieveSettings(apiTypeCd, clId);
-        saveLog(settings, clId, apiTypeCd, "payload", payload);
+        CastRestLogSettings settings = retrieveSettings(apiTypeCd);
+        saveLog(settings, apiTypeCd, "payload", payload);
 
         try {
             String result = action.apply(context);
             if (result != null) {
-                saveLog(settings, clId, apiTypeCd, "result", result);
+                saveLog(settings, apiTypeCd, "result", result);
             }
             return result;
         } catch (DataAccessException | TransactionException | PersistenceException
@@ -45,31 +43,31 @@ public class CastRestApiExecutor {
             throw e;
         } finally {
             if (settings.isEnabled("errorMsg") && context.hasErrors()) {
-                saveLog(settings, clId, apiTypeCd, "errorMsg", context.formatErrors(apiTypeCd, clId));
+                saveLog(settings, apiTypeCd, "errorMsg", context.formatErrors(apiTypeCd));
             }
         }
     }
 
-    private CastRestLogSettings retrieveSettings(String apiTypeCd, String clId) {
+    private CastRestLogSettings retrieveSettings(String apiTypeCd) {
         try {
             return castRestLogService.retrieveSettings(apiTypeCd);
         } catch (DataAccessException | TransactionException | PersistenceException
                 | IllegalStateException | IllegalArgumentException e) {
-            LOGGER.error("CAST REST log settings failed. API_TYPE_CD=" + apiTypeCd + ", CL_ID=" + clId, e);
+            LOGGER.error("CAST REST log settings failed. API_TYPE_CD=" + apiTypeCd, e);
             return new CastRestLogSettings(Collections.emptyList());
         }
     }
 
-    private void saveLog(CastRestLogSettings settings, String clId, String apiTypeCd,
+    private void saveLog(CastRestLogSettings settings, String apiTypeCd,
             String msgTypeCd, String logCn) {
         if (!settings.isEnabled(msgTypeCd)) {
             return;
         }
         try {
-            castRestLogService.saveLog(new CastRestLogEntry(clId, apiTypeCd, msgTypeCd, logCn));
+            castRestLogService.saveLog(new CastRestLogEntry(apiTypeCd, msgTypeCd, logCn));
         } catch (DataAccessException | TransactionException | PersistenceException
                 | IllegalStateException | IllegalArgumentException e) {
-            LOGGER.error("CAST REST log insert failed. API_TYPE_CD=" + apiTypeCd + ", CL_ID=" + clId
+            LOGGER.error("CAST REST log insert failed. API_TYPE_CD=" + apiTypeCd
                     + ", MSG_TYPE_CD=" + msgTypeCd, e);
         }
     }

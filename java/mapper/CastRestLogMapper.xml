@@ -9,10 +9,9 @@
 
     <insert id="insertLog" parameterType="aoms.pm.castrest.log.CastRestLogEntry">
         INSERT INTO PMOWN.TH_PM_CASTREST_LOG (
-            LOG_SN, CL_ID, API_TYPE_CD, MSG_TYPE_CD, LOG_CN, FRST_REG_DT
+            API_TYPE_CD, MSG_TYPE_CD, LOG_CN, FRST_REG_DT
         ) VALUES (
-            PMOWN.SQ1_TH_PM_CASTREST_LOG.NEXTVAL,
-            #{clId}, #{apiTypeCd}, #{msgTypeCd},
+            #{apiTypeCd}, #{msgTypeCd},
             #{logCn, jdbcType=CLOB, typeHandler=org.apache.ibatis.type.ClobTypeHandler},
             CURRENT_TIMESTAMP
         )

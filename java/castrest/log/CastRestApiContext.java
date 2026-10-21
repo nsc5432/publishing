@@ -21,11 +21,10 @@ public class CastRestApiContext {
         return !errors.isEmpty();
     }
 
-    public String formatErrors(String apiTypeCd, String clId) {
+    public String formatErrors(String apiTypeCd) {
         StringWriter output = new StringWriter();
         PrintWriter writer = new PrintWriter(output);
         writer.println("API_TYPE_CD=" + apiTypeCd);
-        writer.println("CL_ID=" + clId);
         for (int i = 0; i < errors.size(); i++) {
             writer.println("error[" + (i + 1) + "]");
             errors.get(i).accept(writer);

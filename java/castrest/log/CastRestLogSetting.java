@@ -1,22 +1,11 @@
 package aoms.pm.castrest.log;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class CastRestLogSetting {
     private String msgTypeCd;
     private String useYn;
-
-    public String getMsgTypeCd() {
-        return msgTypeCd;
-    }
-
-    public void setMsgTypeCd(String msgTypeCd) {
-        this.msgTypeCd = msgTypeCd;
-    }
-
-    public String getUseYn() {
-        return useYn;
-    }
-
-    public void setUseYn(String useYn) {
-        this.useYn = useYn;
-    }
 }

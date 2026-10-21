@@ -11,7 +11,7 @@ GET `_Test` 두 경로와 Delete는 기존 서비스를 직접 호출한다.
 String/DTO 서비스 오버로드는 유지하며, 세 POST는 요청별 `CastRestApiContext`를 받는 오버로드를 사용한다.
 새 모델은 `aoms.pm.castrest.log` 내부에만 두고 외부 XML/DTO 계약에 넣지 않았다.
 
-실행기는 하이픈 없는 UUID `CL_ID`를 만들고 해당 API의 설정 세 행을 한 번 읽는다.
+실행기는 해당 API의 설정 세 행을 한 번 읽는다.
 `CastRestLogSettings`는 조회 결과에서 활성 유형을 복사하므로 실행 중 설정이 바뀌어도 영향을 받지 않는다.
 다음 요청은 설정을 새로 읽으며, 누락된 행은 N으로 취급한다.
 설정 조회에 실패하면 해당 요청의 새 DB 로그 전체를 생략한다.
@@ -39,7 +39,7 @@ SetResource catch의 rollback-only 지정도 유지한다.
 SetResource의 `insertResult < 1` 분기는 원래 rollback-only가 없었고 현재 구현에서 항상 1을 반환한다.
 이 분기에 새 롤백을 추가하지 않았다.
 
-한 요청의 수집 오류를 API 유형·CL_ID와 함께 errorMsg CLOB 한 행으로 저장한다.
+한 요청의 수집 오류를 API 유형과 함께 errorMsg CLOB 한 행으로 저장한다.
 예외는 `printStackTrace`로 원인 체인·suppressed 예외·전체 스택을 보존한다.
 업무 실패 사유에는 스택을 만들지 않는다.
 요청·응답 본문을 errorMsg에 복사하지 않으며 payload/result는 수신·반환 문자열 그대로 전달한다.
@@ -61,9 +61,9 @@ XML/IO checked 예외는 기존 catch와 원인 포함 예외 변환에서 수�
 2. 표준단어에 맞춘 물리명·자료형·공통 감사 컬럼 정책을 실제 스키마와 대조한다.
    신규 DB는 최신 `cast-ddl.sql`, 기존 DB는 `2026-10-21-castrest-api-log.sql` 중 하나만 적용한다.
    마이그레이션은 신규 객체가 있으면 중단하며 DDL 자동 커밋 때문에 실패 시 이미 생성된 객체를 먼저 확인한다.
-3. 설정/로그 테이블, 로그 시퀀스, 제약, 등록일시 인덱스와 초기 9행이 생성됐는지 확인한다.
+3. 설정/로그 테이블, 제약, 등록일시 인덱스와 초기 9행이 생성됐는지 확인한다.
    초기 `USE_YN`은 모두 N이다. 앱이 PMOWN 외 계정이면 실제 앱 계정/롤에 필요한 권한을 부여한다.
-   앱에는 설정 SELECT, 로그 INSERT, 시퀀스 SELECT가 필요하며 운영 계정에는 설정 변경 권한을 부여한다.
+   앱에는 설정 SELECT, 로그 INSERT가 필요하며 운영 계정에는 설정 변경 권한을 부여한다.
    계정 이름을 알 수 없어 권한 대상을 SQL에 고정하지 않았다. 새 매퍼도 `PMOWN.`으로 스키마를 지정한다.
 4. 실제 백엔드에 새 `CastRestLogMapper.xml` 등록/스캔과 로그 서비스 Bean·트랜잭션 적용을 확인한 뒤 배포한다.
    별도의 전역 트랜잭션/AOP가 실행기 전체를 감싸지 않는지 확인한다.
@@ -84,14 +84,20 @@ DROP TABLE PMOWN.TT_PM_CASTREST_REQ_DEBUG;
 폐기된 구 로그 데이터의 복원은 대상이 아니다.
 새 로그에는 보관기한·자동 삭제 배치를 두지 않으며 운영자가 필요할 때 기간·대상을 정해 삭제한다.
 
-호출별 확인 예시:
+로그 테이블은 API 유형·메시지 유형·내용·등록일시 네 컬럼만 사용하며 PK·UNIQUE 제약을 두지 않는다.
+호출 연결 키가 없으므로 동시 호출의 요청·응답·오류를 정확히 짝지을 수 없다.
+동일 등록일시의 행 순서는 보장하지 않는다.
+
+기간·API 유형별 확인 예시:
 
 ```sql
-SELECT LOG_SN, CL_ID, API_TYPE_CD, MSG_TYPE_CD,
+SELECT API_TYPE_CD, MSG_TYPE_CD,
        DBMS_LOB.GETLENGTH(LOG_CN) LOG_LENGTH, FRST_REG_DT
 FROM PMOWN.TH_PM_CASTREST_LOG
-WHERE CL_ID = :clId
-ORDER BY LOG_SN;
+WHERE API_TYPE_CD = :apiTypeCd
+  AND FRST_REG_DT >= :fromDt
+  AND FRST_REG_DT < :toDt
+ORDER BY FRST_REG_DT;
 ```
 
 ## 4. 검증 범위
