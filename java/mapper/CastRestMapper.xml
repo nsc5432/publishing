@@ -933,6 +933,7 @@ ORDER BY
          , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
       FROM (
         <if test="resourceID == 'CA001'">
+            <![CDATA[
             SELECT
                    CASE
                    WHEN TER_ID = 'P03'
@@ -995,9 +996,7 @@ ORDER BY
                         , Y.OPR_DT
                         , Y.STA_HM
                         , Y.END_HM
-                        <![CDATA[
                         , CASE WHEN TO_NUMBER(Y.STA_HM) <= TO_NUMBER(Y.END_HM) THEN 'N' ELSE 'Y' END AS RON_YN
-                        ]]>
                         , Y.CHKIN_PG_NO
                     FROM (SELECT X.TER_ID
                                 , X.CIC_ID
@@ -1021,14 +1020,8 @@ ORDER BY
                                         , A.OPER_YMD AS OPR_DT
                                         , A.DOM_INTL_SE_CD AS DOM_INT_SE_CD
                                         , A.CHKN_TYPE_CD AS CHKIN_TY_CD
-                                        , CASE
-                                           WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_BGNG_HM
-                                           ELSE A.EST_BGNG_HM
-                                          END AS STA_HM
-                                        , CASE
-                                            WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_END_HM
-                                            ELSE A.EST_END_HM
-                                          END AS END_HM
+                                        , NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM) AS STA_HM
+                                        , NVL(A.EST_END_HM, A.LAST_END_HM) AS END_HM
                                         , A.ALN_CD
                                         , A.CHKN_PGE_NO AS CHKIN_PG_NO
                                         , CIC.UNIT_SYS_ID
@@ -1039,8 +1032,15 @@ ORDER BY
                                         , (SELECT C.CHKN_FWK_CD     FROM CAOWN.TN_CA_ALN_PGE C WHERE C.ALN_CD = A.ALN_CD AND C.PGE_NO = A.CHKN_PGE_NO AND C.TMNL_ID = A.TMNL_ID AND C.PGE_SE_CD = 'C' AND C.UNIT_SYS_ID = CIC.UNIT_SYS_ID ) AS NONFUNC_STAT
                                         , CIC.CKNCT_USE_CRG_APLCN_TYPE_CD
                                         , CASE
-                                            WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_RON_YN
-                                            ELSE A.EST_RON_YN
+                                            -- 1순위: 시작시간(22:00) > 종료시간(01:00) 이면 무조건 익일(Y)
+                                            WHEN TO_NUMBER(NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM)) > TO_NUMBER(NVL(A.EST_END_HM, A.LAST_END_HM))
+                                            THEN 'Y'
+                                            ELSE 
+                                                CASE
+                                                    WHEN NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM) IS NOT NULL AND NVL(A.EST_END_HM, A.LAST_END_HM) IS NOT NULL THEN
+                                                        CASE WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_RON_YN ELSE A.EST_RON_YN END
+                                                    ELSE A.EST_RON_YN
+                                                END
                                         END AS RON_YN
                                     FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
                                         JOIN CAOWN.TN_CA_CKNCT CIC ON A.CKNCT_ID = CIC.CKNCT_ID AND A.TMNL_ID = CIC.TMNL_ID
@@ -1068,6 +1068,7 @@ ORDER BY
                     WHERE Y.STA_HM != Y.END_HM
             ) Z
             ORDER BY Z.TER_ID, Z.CIC_ID, Z.T1
+            ]]>
         </if>
         <if test="resourceID != 'CA001'">
             SELECT CASE
