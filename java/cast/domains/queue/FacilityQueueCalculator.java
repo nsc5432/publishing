@@ -9,13 +9,8 @@ import java.util.Objects;
  */
 public final class FacilityQueueCalculator {
     private static final double SECONDS_PER_HOUR = 3600.0;
-    private final String tmnlId;
-    private final String fcltType;
-    private final String fcltId;
-    private final String queueId;
     private final LocalDateTime intervalStart;
     private final LocalDateTime intervalEnd;
-    private final QueueDataSource source;
     private final Double avgPrcsTimeSec;
     private final Double avgWtngTimeSec;
     private final Double avgQueuePsgCnt;
@@ -41,13 +36,8 @@ public final class FacilityQueueCalculator {
         QueueInputValidation.nonNegative(avgQueuePsgCnt, "avgQueuePsgCnt");
         QueueInputValidation.nonNegative(queuePsgCntAtEnd, "queuePsgCntAtEnd");
 
-        this.tmnlId = tmnlId;
-        this.fcltType = fcltType;
-        this.fcltId = fcltId;
-        this.queueId = queueId;
         this.intervalStart = intervalStart;
         this.intervalEnd = end;
-        this.source = source;
         this.avgPrcsTimeSec = avgPrcsTimeSec;
         this.avgWtngTimeSec = avgWtngTimeSec;
         this.avgQueuePsgCnt = avgQueuePsgCnt;

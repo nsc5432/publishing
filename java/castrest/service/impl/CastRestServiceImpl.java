@@ -30,6 +30,7 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.egovframe.rte.fdl.cmmn.EgovAbstractServiceImpl;
 import org.egovframe.rte.fdl.string.EgovDateUtil;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
@@ -2566,7 +2567,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
             saveSimLog("16", "2");
             return buildReturnXml(true);
-        } catch (RuntimeException | ParserConfigurationException | SAXException | IOException e) {
+        } catch (IllegalStateException | NumberFormatException | DataAccessException | ParserConfigurationException | SAXException | IOException e) {
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             saveSimLog("16", "9");
             return buildReturnXml(false);

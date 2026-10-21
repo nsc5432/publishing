@@ -162,6 +162,10 @@ DTO→화면 변환은 전부 `view.ts` 에 모은다. 컴포넌트가 직접 `t
 - import 경로: **레이어를 넘으면 `@/`, 같은 기능 안이면 상대경로**
 - Prettier: 4칸 들여쓰기 · 작은따옴표 · 100칸 · trailing comma · 세미콜론
 - 타입 전용 import 는 `import type` (verbatimModuleSyntax 가 켜져 있어 필수)
+- Java 문자열의 빈 값 검사는 `isEmpty()`를 사용한다. `trim().isEmpty()`처럼 두 메서드를 함께 사용하지 않는다.
+- Java 예외 처리는 PMD `AvoidCatchingGenericException`을 따른다. 발생 가능한 구체적인 예외 타입만 `catch`하고,
+  `Exception`·`RuntimeException`·`Throwable`·`NullPointerException`을 포괄 처리용으로 잡지 않는다.
+  null은 사전에 검사하고 예상하지 못한 예외는 상위로 전파한다.
 - **새로 작성하는 주석은 필요한 경우에만 단다.** 코드가 무엇을 하는지 설명하는 주석(변수·함수명으로 이미 드러나는 내용),
   작업 이력·호출자 설명("~때문에 추가", "~에서 사용")은 달지 않는다. 없어도 읽는 사람이 헷갈리지
   않으면 주석을 달지 않는다. 예외적으로 남길 만한 것은 코드만 봐서는 알 수 없는 이유

@@ -4,7 +4,7 @@ final class QueueInputValidation {
     private QueueInputValidation() { }
 
     static String requiredText(String value, String name) {
-        if (value == null || value.trim().isEmpty()) {
+        if (value == null || value.isEmpty()) {
             throw new IllegalArgumentException(name + " 값은 비어 있을 수 없습니다.");
         }
         return value;
