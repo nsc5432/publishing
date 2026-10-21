@@ -754,7 +754,7 @@ SELECT
     FFF.SBDAvailable,
     FFF.FlightType,
     FFF.Triangle,
-    B.BUS_NEED_YN AS BUS,
+    NVL(B.BUS_NEED_YN, 'N') AS BUS,
     B.WAYO_ID AS ArrivalGate,
     CASE
         WHEN B.FRST_BAG_INPUT_DT IS NULL OR B.FRST_BAG_INPUT_DT = '' THEN NULL

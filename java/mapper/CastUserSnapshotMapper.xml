@@ -106,7 +106,7 @@
                 ), 0) / 100
             ),
             A.TRNS_BDPSG_CNT, A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.CKNCT_RANGE_CN,
-            A.SLF_CHKN_PSBLTY_YN, A.IRR_FLT_YN, A.TDFLT_YN, A.BUS_NEED_YN, A.WAYO_ID,
+            A.SLF_CHKN_PSBLTY_YN, A.IRR_FLT_YN, A.TDFLT_YN, NVL(A.BUS_NEED_YN, 'N'), A.WAYO_ID,
             A.FRST_BAG_INPUT_DT, A.LAST_BAG_INPUT_DT,
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB A
