@@ -52,6 +52,7 @@ import aoms.pm.cast.enums.UserSmltReqStatus;
 import aoms.pm.cast.mapper.CastExecutionMapper;
 import aoms.pm.cast.service.impl.CastExecutionService;
 
+import aoms.pm.castrest.log.CastRestApiContext;
 import aoms.pm.castrest.mapper.CastRestMapper;
 import aoms.pm.castrest.service.CastRestService;
 import aoms.pm.cmmn.dto.CastCheckInCounterServiceTimeDto;
@@ -728,20 +729,26 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     @Override
     public String retrieveResourceInformation(String param){
+        return retrieveResourceInformation(param, new CastRestApiContext());
+    }
+
+    @Override
+    public String retrieveResourceInformation(String param, CastRestApiContext context) {
         return retrieveResourceInformation(() -> {
             Document doc = parseXmlSafely(param);
             CastReqGetResourceInformationDto infoDto = new CastReqGetResourceInformationDto();
             resourceInfoList(doc.getDocumentElement(), null, infoDto);
             return infoDto;
-        });
+        }, context);
     }
 
     @Override
     public String retrieveResourceInformation(CastReqGetResourceInformationDto infoDto) {
-        return retrieveResourceInformation(() -> infoDto);
+        return retrieveResourceInformation(() -> infoDto, new CastRestApiContext());
     }
 
-    private String retrieveResourceInformation(ResourceRequestParser<CastReqGetResourceInformationDto> requestParser) {
+    private String retrieveResourceInformation(ResourceRequestParser<CastReqGetResourceInformationDto> requestParser,
+            CastRestApiContext context) {
         colTable.remove();
 
         saveSimLog("1", "1");
@@ -758,6 +765,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             saveSimLog("1", "2");
             return buildResponseXml(dbResults, true);
         } catch (IllegalStateException | ParserConfigurationException | SAXException | IOException e) {
+            context.addException(e);
             saveSimLog("1", "9");
 
             return buildResponseXml(dbResults, false);
@@ -887,20 +895,26 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     @Override
     public String retrieveResource(String param){
+        return retrieveResource(param, new CastRestApiContext());
+    }
+
+    @Override
+    public String retrieveResource(String param, CastRestApiContext context) {
         return retrieveResource(() -> {
             Document doc = parseXmlSafely(param);
             CastReqGetResourceDto resourceDto = new CastReqGetResourceDto();
             resourceList(doc.getDocumentElement(), null, resourceDto);
             return resourceDto;
-        });
+        }, context);
     }
 
     @Override
     public String retrieveResource(CastReqGetResourceDto resourceDto) {
-        return retrieveResource(() -> resourceDto);
+        return retrieveResource(() -> resourceDto, new CastRestApiContext());
     }
 
-    private String retrieveResource(ResourceRequestParser<CastReqGetResourceDto> requestParser) {
+    private String retrieveResource(ResourceRequestParser<CastReqGetResourceDto> requestParser,
+            CastRestApiContext context) {
         colTable.remove();
 
         saveSimLog("2", "2");
@@ -928,9 +942,10 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             saveSimLog("2", "2");
 
             StringBuilder contentSb = new StringBuilder();
-            processResourceData(resourceDto.getResourceType(), resourceDto, contentSb);
+            processResourceData(resourceDto.getResourceType(), resourceDto, contentSb, context);
             return contentSb.toString();
         } catch (IllegalStateException | ParserConfigurationException | SAXException | IOException e) {
+            context.addException(e);
             saveSimLog("2", "9");
         }
 
@@ -1039,7 +1054,8 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         return xml;
     }
 
-    private void processResourceData(String type, CastReqGetResourceDto idto, StringBuilder sb) {
+    private void processResourceData(String type, CastReqGetResourceDto idto, StringBuilder sb,
+            CastRestApiContext context) {
         switch (type) {
             case FLIGHT_SCHEDULE:
                 handleFlightSchedule(idto, sb);
@@ -1056,7 +1072,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
                 break;
             case CAST_MODEL:
             case CAST_EXPRESS_MODEL:
-                handleCastModel(type, idto, sb);
+                handleCastModel(type, idto, sb, context);
                 break;
             case GENERIC_TABLE:
                 if(idto.getResourceID().contains(CHECK_IN_TYPE)) {
@@ -1080,6 +1096,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
                 }
                 break;
             default:
+                context.addFailure("Unsupported Resource Type");
                 sb.append(RESOURCE_ERROR);
         }
     }
@@ -1916,7 +1933,8 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         }
     }
 
-    private void handleCastModel(String type, CastReqGetResourceDto idto, StringBuilder sb) {
+    private void handleCastModel(String type, CastReqGetResourceDto idto, StringBuilder sb,
+            CastRestApiContext context) {
         saveSimLog("7", "1");
         CastModelDto ms = CAST_EXPRESS_MODEL.equals(type) ? castRestMapper.retrieveCASTExModel(idto) : castRestMapper.retrieveCASTModel(idto);
         if (ms == null) throw new IllegalStateException("CAST 모델 리소스가 없습니다.");
@@ -1931,6 +1949,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
                     fileValue = FileUtil.readTextFile(filePath,false);
                 }
             } catch (IOException e) {
+                context.addException(e);
                 saveSimLog("7", "9");
             }
         }
@@ -2523,6 +2542,11 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     @Override
     public String saveResult(String param){
+        return saveResult(param, new CastRestApiContext());
+    }
+
+    @Override
+    public String saveResult(String param, CastRestApiContext context) {
         colTable.remove();
         saveSimLog("16", "1");
 
@@ -2548,7 +2572,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
                     mDto.setLoginIpAddr(request.getRemoteAddr());
                 }
                 modelParser(node, mDto);
-                saveModel(mDto);
+                saveModel(mDto, context);
             } else if(simRslt.getResourceType().equals(GENERIC_TABLE)) {
                 updateWhatIf(wDto);
             } else {
@@ -2561,6 +2585,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
                 int result = insertResult(simRslt);
 
                 if(result < 1) {
+                    context.addFailure("시뮬레이션 결과가 저장되지 않았습니다.");
                     return buildReturnXml(false);
                 }
             }
@@ -2568,6 +2593,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             saveSimLog("16", "2");
             return buildReturnXml(true);
         } catch (IllegalStateException | NumberFormatException | DataAccessException | ParserConfigurationException | SAXException | IOException e) {
+            context.addException(e);
             TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
             saveSimLog("16", "9");
             return buildReturnXml(false);
@@ -3038,7 +3064,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
           .append(SOAP_ENVELOPE_END);
         return sb.toString();
     }
-    private CastModelDto saveModel(CastModelDto dto) throws IOException{
+    private CastModelDto saveModel(CastModelDto dto, CastRestApiContext context) throws IOException{
         saveSimLog("18", "1");
         CastModelDto rslt = new CastModelDto();
 
@@ -3094,6 +3120,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             {
                 writer.write(dto.getValues());
             } catch (IOException e) {
+                context.addException(e);
                 saveSimLog("18", "9");
             }
 
@@ -3128,6 +3155,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(chk.getFileNm()),StandardCharsets.UTF_8))){
                 writer.write(dto.getValues());
             } catch (IOException e) {
+                context.addException(e);
                  saveSimLog("18", "9");
             }
             castRestMapper.updateCASTModel(dto);

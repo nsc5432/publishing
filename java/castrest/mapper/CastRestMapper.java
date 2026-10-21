@@ -84,5 +84,4 @@ public interface CastRestMapper {
     int updateUserReqFinished(UserSmltReqDto dto);
 
     String selectBaseYmdForCalibration();
-    int insertSetResourceRequest(@Param("payload") String payload);
 }

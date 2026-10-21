@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import aoms.framework.cmmn.controller.BaseAomsRestController;
-import aoms.pm.castrest.service.CastRestDebugService;
+import aoms.pm.castrest.log.CastRestApiExecutor;
 import aoms.pm.castrest.service.CastRestService;
 import aoms.pm.cmmn.dto.CastReqGetResourceDto;
 import aoms.pm.cmmn.dto.CastReqGetResourceInformationDto;
@@ -36,7 +36,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CastRestController extends BaseAomsRestController {
     private final CastRestService castRestService;
-    private final CastRestDebugService castRestDebugService;
+    private final CastRestApiExecutor castRestApiExecutor;
 
     /**
      * 자료 목록 조회
@@ -48,7 +48,8 @@ public class CastRestController extends BaseAomsRestController {
      **/    
 	@PostMapping(value = "/REQ_GetResourceInformation.do")
     public String resGetResourceInformation(@RequestBody String param) {
-		return castRestService.retrieveResourceInformation(param);
+        return castRestApiExecutor.execute(CastRestApiExecutor.GET_RESOURCE_INFORMATION, param,
+                context -> castRestService.retrieveResourceInformation(param, context));
     }
 
     // GET /castrest/rest/json/REQ_GetResourceInformation_Test.do?resourceTypes=CASTModel,FlightSchedule,CounterAllocation,GenericTable,PropertySet
@@ -69,9 +70,8 @@ public class CastRestController extends BaseAomsRestController {
      **/	
 	@PostMapping(value = "/REQ_GetResource.do")
     public String resGetResource(@RequestBody String param) {
-        String str = castRestService.retrieveResource(param);
-        castRestDebugService.saveRequest(str);
-		return str;
+        return castRestApiExecutor.execute(CastRestApiExecutor.GET_RESOURCE, param,
+                context -> castRestService.retrieveResource(param, context));
     }
 
     // 운항편
@@ -118,8 +118,8 @@ public class CastRestController extends BaseAomsRestController {
      **/	
 	@PostMapping(value = "/REQ_SetResource.do")
     public String resSetResource(@RequestBody String param) {
-        castRestDebugService.saveRequest(param);
-		return castRestService.saveResult(param);
+        return castRestApiExecutor.execute(CastRestApiExecutor.SET_RESOURCE, param,
+                context -> castRestService.saveResult(param, context));
     }
     /**
      *  자료 삭제
