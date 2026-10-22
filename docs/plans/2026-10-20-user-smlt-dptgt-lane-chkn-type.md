@@ -196,7 +196,7 @@ WHERE NVL(U.GNRL_SRCH_CNTOM, 0) = 0
 
 ## 6. 범위 밖 (별건)
 
-- `saveResult` 실패 사유 로깅 — 보류 (catch 의 `saveSimLog("16","9")` 가 같은 트랜잭션이라 롤백되는 문제 포함)
+- `saveResult` 실패 사유 로깅 — 당시 보류. 후속 CAST API 로그로 통합하고 실행 단계 로그는 제거했다 ([현재 절차](../castrest-api-log.md#5-실행-단계-로그-제거)).
 - PS001 `FacialRecognition` 50/50 vs 실적 안면인식 85% — 일일 시뮬레이션 입력 정확도 문제. 전처리에 계산 태스크가 없다
 - `USER_MSTR` 에 남은 구 형식 요청(`WHATIF801` 등)과 `retrieveWhatIfCntrl` 의 상태 필터 부재 (`WHERE 1 = 1`)
 - 확정 조건 조회 `retrieveGates` 가 일일(`001`) 리소스에서 일반 레인을 `MAX(FCLTY_CNT)` 로 읽는 점

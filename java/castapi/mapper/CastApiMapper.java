@@ -28,13 +28,11 @@ import aoms.pm.cmmn.dto.CastSelfCheckInCountAndBagDropDto;
 import aoms.pm.cmmn.dto.CastWhatIfCntrlDto;
 import aoms.pm.cmmn.dto.DwDelKeyValHstDto;
 import aoms.pm.cmmn.dto.PmAtchFileDto;
-import aoms.pm.cmmn.dto.SimRunStatDto;
 import aoms.pm.cmmn.dto.SmltMdlDto;
 import aoms.pm.cmmn.dto.SmltRsltDtlDto;
 
 @Mapper
 public interface CastApiMapper {
-    int insertSimRunStat(SimRunStatDto dto);
     List<Object> retrieveResourceInformation(CastReqGetResourceInformationDto dto);
     CastFlightScheduleDto retrieveFlightSchedule(CastReqGetResourceDto dto);
     CastCounterAllocationDto retrieveCounterAllocation(CastReqGetResourceDto dto);

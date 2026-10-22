@@ -23,8 +23,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CastApiDto extends AomsDefaultDto {
-	private String smltExcnStepCd 			= "";
-	private String smltExcnSttsCd 			= "";
 	private String param 					= "";
 	private String msg 						= "";
 }

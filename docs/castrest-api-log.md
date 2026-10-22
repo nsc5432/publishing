@@ -13,6 +13,7 @@
 
 `CastApiController`의 세 POST만 `CastApiExecutor`를 호출한다.
 GET `_Test` 두 경로와 Delete는 기존 서비스를 직접 호출한다.
+GET `_Test` 두 경로는 DB 로그를 저장하지 않는다.
 String/DTO 서비스 오버로드는 유지하며, 세 POST는 요청별 `CastApiContext`를 받는 오버로드를 사용한다.
 새 모델은 `aoms.pm.castapi.log` 내부에만 두고 외부 XML/DTO 계약에 넣지 않았다.
 
@@ -30,7 +31,7 @@ String/DTO 서비스 오버로드는 유지하며, 세 POST는 요청별 `CastAp
 
 ## 2. 오류와 기존 동작
 
-기존 Information/Resource/SetResource catch는 응답 XML과 단계 로그를 보존하면서 예외를 컨텍스트에 먼저 넣는다.
+기존 Information/Resource/SetResource catch는 응답 XML을 보존하면서 예외를 컨텍스트에 먼저 넣는다.
 SetResource catch의 rollback-only 지정도 유지한다.
 예외 없이 발생하는 미지원 리소스 유형과 결과 미저장 분기는 실패 사유를 넣는다.
 미지원 GenericTable ID의 빈 응답과 비어 있는 WhatIf 상태 목록은 기존 정상 동작을 유지한다.
@@ -40,7 +41,7 @@ SetResource catch의 rollback-only 지정도 유지한다.
 읽기 실패 후 정상 XML 생성, 쓰기 실패 후 모델/첨부 DB 변경도 그대로 진행한다.
 이 오류 수집은 rollback-only를 지정하지 않는다.
 이후 다른 중단 예외가 발생해도 실행기가 가진 컨텍스트에서 앞선 파일 오류를 함께 기록한다.
-기존 `TH_PM_SMLT_EXCN_LOG`와 파일 변경의 원자성은 새 로그 스위치의 제어 대상이 아니다.
+파일 변경의 원자성은 로그 스위치의 제어 대상이 아니다.
 SetResource의 `insertResult < 1` 분기는 원래 rollback-only가 없었고 현재 구현에서 항상 1을 반환한다.
 이 분기에 새 롤백을 추가하지 않았다.
 
@@ -116,7 +117,26 @@ ORDER BY FRST_REG_DT;
 - 신규 DDL·제약/권한·초기 9행, 대형 CLOB의 실제 DB 왕복 보존.
 - 세 API의 정상·잘못된 XML·없는 모델/PropertySet·미지원 리소스·결과 미저장·DB/커밋 실패.
 - 파일 읽기/신규 쓰기/덮어쓰기 실패 후 응답·후속 DB 처리·커밋 판단과 errorMsg 스위치 동작.
-- SetResource 실패의 업무 롤백 및 새 로그의 독립 커밋. 초기화·단계 로그 실패의 원인 기록.
+- SetResource 실패의 업무 롤백 및 새 로그의 독립 커밋. 초기화 실패의 원인 기록.
 - 로그용 SELECT/INSERT/커밋 실패에도 업무 성공/실패가 유지되고 서버 파일에 장애가 출력되는지 확인.
-- GET 테스트·Delete·기존 단계 로그·외부 응답 형식 유지, 동시 호출 시 연결 풀·지연·저장량.
+- GET 테스트·Delete·외부 응답 형식 유지, 동시 호출 시 연결 풀·지연·저장량.
 - 구버전/외부 의존성 종료와 최종 구 테이블 제거 및 빈 테이블 복구 절차.
+
+## 5. 실행 단계 로그 제거
+
+2026-10-22에 `TH_PM_SMLT_EXCN_LOG` 기록 경로를 제거했다.
+`saveSimLog` 호출·헬퍼, `insertSimRunStat` 매퍼, 전용 `SimRunStatDto`,
+`CastApiDto`의 단계·상태 필드와 신규 생성 DDL·테이블 목록을 정리했다.
+기존 catch의 오류 수집·실패 응답·rollback-only 처리는 유지한다.
+CAST API 로그는 `TH_PM_SMLT_CAST_LOG`로 통합하며 내부 단계별 기록과 실제 호출 IP는 대체하지 않는다.
+설정 초기값은 여전히 모두 N이므로 필요한 API·메시지 유형을 활성화해야 한다.
+
+기존 DB는 아래 순서로 적용한다. 실제 DB 삭제는 아직 수행하지 않았다.
+
+1. `2026-10-21-castrest-api-log-preflight.sql`로 실행 로그 테이블의 실제 DDL·권한·동의어·의존성을 확보한다.
+   외부 조회·배치와 구버전 인스턴스 사용도 확인한다. `ALL_*` 결과는 현재 계정에 보이는 범위다.
+2. 기록 경로를 제거한 백엔드를 배포하고 세 POST의 로그·실패 응답·롤백과 GET 테스트의 정상 응답을 검증한다.
+3. 사용 종료 확인 후 `java/ddl/2026-10-22-remove-smlt-excn-log.sql`을 PMOWN에서 실행한다.
+   DB 의존 객체·외래키·동의어가 남아 있으면 중단한다. CASCADE·PURGE는 사용하지 않는다.
+4. 구버전으로 롤백하려면 확보한 실제 DDL·권한·동의어로 테이블을 먼저 복구한다.
+   삭제 SQL은 기존 로그 데이터의 백업이나 이관을 수행하지 않는다.

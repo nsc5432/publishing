@@ -1,26 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="aoms.pm.castapi.mapper.CastApiMapper">
-    <insert id="insertSimRunStat"  parameterType="aoms.pm.cmmn.dto.SimRunStatDto" >
-        /* CastApiMapper.insertSimRunStat(SimRunStatDto dto) */
-    INSERT INTO PMOWN.TH_PM_SMLT_EXCN_LOG
-    (
-          SMLT_EXCN_DT
-        , SMLT_EXCN_STEP_CD
-        , SMLT_EXCN_STTS_CD
-        , FRST_RGTR_ID
-        , FRST_RGTR_IP_ADDR
-        , FRST_REG_DT
-    )
-    VALUES
-    (
-        CURRENT_TIMESTAMP
-        , #{smltExcnStepCd}
-        , #{smltExcnSttsCd}
-        , 'CAST'
-        , #{loginIpAddr}
-        , CURRENT_TIMESTAMP)
-    </insert>
     <select id="retrieveResourceInformation" parameterType="aoms.pm.cmmn.dto.CastResourceInformationDto" resultType="aoms.pm.cmmn.dto.CastResourceInformationDto">
         /* CastApiMapper.retrieveResourceInformation(CastResourceInformationDto dto) */
         SELECT 'CASTModel' ResourceType
