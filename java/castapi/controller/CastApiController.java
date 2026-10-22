@@ -31,7 +31,7 @@ import lombok.RequiredArgsConstructor;
  *
  * </pre>
  */
-@RestController
+// @RestController
 @RequestMapping("/castrest/rest/json")
 @RequiredArgsConstructor
 public class CastApiController extends BaseAomsRestController {
@@ -48,16 +48,11 @@ public class CastApiController extends BaseAomsRestController {
      **/    
 	@PostMapping(value = "/REQ_GetResourceInformation.do")
     public String resGetResourceInformation(@RequestBody String param) {
-        return castApiExecutor.execute(CastApiExecutor.GET_RESOURCE_INFORMATION, param,
-                context -> castApiService.retrieveResourceInformation(param, context));
-    }
-
-    // GET /castrest/rest/json/REQ_GetResourceInformation_Test.do?resourceTypes=CASTModel,FlightSchedule,CounterAllocation,GenericTable,PropertySet
-    @GetMapping(value = "/REQ_GetResourceInformation_Test.do")
-    public String getResourceInformation(@RequestParam("resourceTypes") String resourceTypes) {
-        CastReqGetResourceInformationDto infoDto = new CastReqGetResourceInformationDto();
-        infoDto.setResourceTypes(resourceTypes);
-        return castApiService.retrieveResourceInformation(infoDto);
+        return castApiExecutor.execute(
+            CastApiExecutor.GET_RESOURCE_INFORMATION, 
+            param,
+            context -> castApiService.retrieveResourceInformation(param, context)
+        );
     }
 
     /**
@@ -72,6 +67,28 @@ public class CastApiController extends BaseAomsRestController {
     public String resGetResource(@RequestBody String param) {
         return castApiExecutor.execute(CastApiExecutor.GET_RESOURCE, param,
                 context -> castApiService.retrieveResource(param, context));
+    }
+
+    /**
+     * 결과 정보 수신
+     *
+     * @Method Name : reqSetResourceTest
+     * @param ncDto
+     * @param model
+     * @return
+     **/	
+	@PostMapping(value = "/REQ_SetResource.do")
+    public String resSetResource(@RequestBody String param) {
+        return castApiExecutor.execute(CastApiExecutor.SET_RESOURCE, param,
+                context -> castApiService.saveResult(param, context));
+    }
+
+    // GET /castrest/rest/json/REQ_GetResourceInformation_Test.do?resourceTypes=CASTModel,FlightSchedule,CounterAllocation,GenericTable,PropertySet
+    @GetMapping(value = "/REQ_GetResourceInformation_Test.do")
+    public String getResourceInformation(@RequestParam("resourceTypes") String resourceTypes) {
+        CastReqGetResourceInformationDto infoDto = new CastReqGetResourceInformationDto();
+        infoDto.setResourceTypes(resourceTypes);
+        return castApiService.retrieveResourceInformation(infoDto);
     }
 
     // 운항편
@@ -106,31 +123,5 @@ public class CastApiController extends BaseAomsRestController {
         resourceDto.setResourceType(resourceType);
         resourceDto.setResourceID(resourceID);
         return castApiService.retrieveResource(resourceDto);
-    }
-
-    /**
-     * 결과 정보 수신
-     *
-     * @Method Name : reqSetResourceTest
-     * @param ncDto
-     * @param model
-     * @return
-     **/	
-	@PostMapping(value = "/REQ_SetResource.do")
-    public String resSetResource(@RequestBody String param) {
-        return castApiExecutor.execute(CastApiExecutor.SET_RESOURCE, param,
-                context -> castApiService.saveResult(param, context));
-    }
-    /**
-     *  자료 삭제
-     *
-     * @Method Name : REQ_DeleteResourceTest
-     * @param ncDto
-     * @param model
-     * @return
-     **/	
-	@PostMapping(value = "/REQ_DeleteResource.do")
-    public String reqDeleteResource(@RequestBody String param) {
-		return castApiService.deleteResult(param);
     }
 }

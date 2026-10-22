@@ -1572,16 +1572,6 @@ ORDER BY BlockID, DepArrTerminal, resourceID
         WHERE SMLT_MDL_EXPLN = #{resourceID}
     </update>
 
-    <update  id="deleteCASTModel" parameterType="aoms.pm.cmmn.dto.CastResReqDto" >
-        /* CastApiMapper.deleteCASTModel(CastResReqDto dto) */
-       UPDATE PMOWN.TN_PM_SMLT_MDL SET
-             DEL_YN = 'Y'
-           , LAST_MDFR_ID = 'SYSTEM'
-           , LAST_MDFR_IP_ADDR = #{loginIpAddr}
-           , LAST_MDFCN_DT = CURRENT_TIMESTAMP
-       WHERE SMLT_MDL_EXPLN = #{resourceID}
-    </update>
-
     <select id="retrieveModelInfo" parameterType="aoms.pm.cmmn.dto.CastModelDto" resultType="aoms.pm.cmmn.dto.SmltMdlDto">
         /* CastApiMapper.retrieveModelInfo(CastModelDto dto) */
     SELECT SMLT_MDL_SN AS smltMdlSn

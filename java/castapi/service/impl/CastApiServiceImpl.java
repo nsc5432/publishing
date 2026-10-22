@@ -268,8 +268,6 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
     private static final String XML_ID = "\" id=\"";
     private static final String RES_SET_RESURCE_START = "<m:RES_SetResource xmlns:m=\"RES_SetResource.xsd\">";
     private static final String RES_SET_RESURCE_END = "</m:RES_SetResource>";
-    private static final String RES_DELETE_RESOURCE_START = "<m:RES_DeleteResource xmlns:m=\"RES_DeleteResource.xsd\">";
-    private static final String RES_DELETE_RESOURCE_END = "</m:RES_DeleteResource>";
     private static final String DISALLOW_DOCTYPE_DECL = "http://apache.org/xml/features/disallow-doctype-decl";
     private static final String EXTERNAL_GENERAL_ENTITIES = "http://xml.org/sax/features/external-general-entities";
     private static final String EXTERNAL_PARAMETER_ENTITIES = "http://xml.org/sax/features/external-parameter-entities";
@@ -2973,97 +2971,6 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         }
     }
 
-    @Override
-    public String deleteResult(String param) {
-        colTable.remove();
-
-        saveSimLog("4", "1");
-
-        try {
-
-            Document doc = parseXmlSafely(param);
-            Element node = doc.getDocumentElement();
-
-            CastResReqDto requestDto = new CastResReqDto();
-            SessionUtils.setUserContext(requestDto, sessionService);
-
-            resourceDelete(node, null, requestDto);
-
-            int result = castApiMapper.deleteCASTModel(requestDto);
-            if (result < 1) {
-                return buildDeleteXml(false);
-            }
-
-            saveSimLog("4", "2");
-
-            return buildDeleteXml(true);
-        } catch (IllegalStateException | ParserConfigurationException | SAXException | IOException e) {
-            saveSimLog("4", "9");
-        }
-
-        return INVALID_REQUEST;
-    }
-
-    private void resourceDelete(Node node, String str, CastResReqDto sDto) {
-        NamedNodeMap attributeMap = node.getAttributes();
-        if (PARAMETER.equals(str)) {
-            colTable.set(getAttributeValue(attributeMap, "id").orElse(""));
-            processResourceDelete(node, colTable.get(), sDto);
-        } else if (RESOURCE_DESCRIPTION.equals(str)) {
-            String resourceType = getAttributeValue(attributeMap, RESOURCE_TYPE).orElse("");
-            sDto.setResourceType(resourceType);
-            String resourceId = getAttributeValue(attributeMap, RESOURCE_ID).orElse("");
-            sDto.setResourceID(resourceId);
-        }
-
-        if (node.hasChildNodes()) {
-            processResourceDeleteNodes(node, sDto);
-        }
-    }
-
-    private void processResourceDelete(Node node, String str, CastResReqDto sDto) {
-        if (RESOURCE_TYPE.equals(str)) {
-            sDto.setResourceType(node.getTextContent());
-        } else if (RESOURCE_ID.equals(str)) {
-            sDto.setResourceID(node.getTextContent());
-        }
-    }
-
-    private void processResourceDeleteNodes(Node node, CastResReqDto sDto) {
-        NodeList nodeList = node.getChildNodes();
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            Node childNode = nodeList.item(i);
-
-            if (childNode.getNodeType() == Node.TEXT_NODE) {
-                continue;
-            }
-
-            resourceDelete(childNode, childNode.getNodeName(), sDto);
-        }
-    }
-    private String buildDeleteXml(boolean result) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(XML_VERSION)
-          .append(System.lineSeparator())
-          .append(SOAP_ENVELOPE_START)
-          .append(System.lineSeparator())
-          .append(SOAP_BODY_START)
-          .append(System.lineSeparator())
-          .append(RES_DELETE_RESOURCE_START)
-          .append(System.lineSeparator())
-          .append(INVOCATION_RESULT)
-          .append(result ? TRUE : FALSE)
-          .append(INVOCATION_RESULT_MESSAGE)
-          .append(result ? MESSAGE_OK : MESSAGE_NOT_OK)
-          .append("\"/>")
-          .append(System.lineSeparator())
-          .append(RES_DELETE_RESOURCE_END)
-          .append(System.lineSeparator())
-          .append(SOAP_BODY_END)
-          .append(System.lineSeparator())
-          .append(SOAP_ENVELOPE_END);
-        return sb.toString();
-    }
     private CastModelDto saveModel(CastModelDto dto, CastApiContext context) throws IOException{
         saveSimLog("18", "1");
         CastModelDto rslt = new CastModelDto();

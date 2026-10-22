@@ -54,7 +54,6 @@ public interface CastApiMapper {
     int insertResult(CastResReqDto dto);
 
     int insertSimResultDtlRegExcl(SmltRsltDtlDto dto);
-    int deleteCASTModel(CastResReqDto dto);
     SmltMdlDto retrieveModelInfo(CastResReqDto dto);
     String checkFcltCd(CastResReqDto dto);
     List<CastRsltFcltCdDto> checkFcltCdList(CastResReqDto dto);

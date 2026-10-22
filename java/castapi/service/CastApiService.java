@@ -13,5 +13,4 @@ public interface CastApiService {
     public String retrieveResource(CastReqGetResourceDto resourceDto);
     public String saveResult(String param);
     public String saveResult(String param, CastApiContext context);
-    public String deleteResult(String param);
 }
