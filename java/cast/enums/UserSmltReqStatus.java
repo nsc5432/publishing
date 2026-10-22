@@ -22,7 +22,8 @@ public enum UserSmltReqStatus {
 	NEW("New"),
 	EXECUTING("Executing"),
 	FINISHED("Finished"),
-	FAILED("Failed");
+	FAILED("Failed"),
+	CANCELLED("Cancelled");
 
 	private final String value;
 
@@ -45,7 +46,7 @@ public enum UserSmltReqStatus {
 	}
 
 	public static List<UserSmltReqStatus> getList() {
-		return List.of(NEW, EXECUTING, FINISHED, FAILED);
+		return List.of(NEW, EXECUTING, FINISHED, FAILED, CANCELLED);
 	}
 
 	public boolean canTransitTo(UserSmltReqStatus next) {
@@ -57,7 +58,7 @@ public enum UserSmltReqStatus {
 	}
 
 	public boolean isClosed() {
-		return this == FINISHED || this == FAILED;
+		return this == FINISHED || this == FAILED || this == CANCELLED;
 	}
 
 	public SmltExecStatus toExecStatus() {
@@ -68,6 +69,8 @@ public enum UserSmltReqStatus {
 				return SmltExecStatus.DONE;
 			case FAILED:
 				return SmltExecStatus.FAILED;
+			case CANCELLED:
+				return SmltExecStatus.CANCELLED;
 			default:
 				return SmltExecStatus.RUNNING;
 		}
@@ -76,9 +79,9 @@ public enum UserSmltReqStatus {
 	private Set<UserSmltReqStatus> allowedNext() {
 		switch (this) {
 			case NEW:
-				return Set.of(EXECUTING, FAILED);
+				return Set.of(EXECUTING, FAILED, CANCELLED);
 			case EXECUTING:
-				return Set.of(FINISHED, FAILED);
+				return Set.of(FINISHED, FAILED, CANCELLED);
 			default:
 				return Set.of();
 		}

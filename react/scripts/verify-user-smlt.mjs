@@ -157,8 +157,11 @@ try {
     const otherWaiting = remaining.userList.find((row) => row.smltFlfmtSttsCd === 'WAITING' && row.rgtrId !== session.userId);
     const running = remaining.userList.find((row) => row.smltFlfmtSttsCd === 'RUNNING');
     const failed = remaining.userList.find((row) => row.smltFlfmtSttsCd === 'FAILED');
+    const cancelled = remaining.userList.find((row) => row.smltFlfmtSttsCd === 'CANCELLED');
     const done = remaining.userList.find((row) => row.smltFlfmtSttsCd === 'DONE');
     check(toHistoryRows([ownWaiting, running, done, failed]).map((row) => row.status).join(',') === 'waiting,running,done,failed', 'waiting, executing, finished and failed map to separate labels');
+    check(toHistoryRows([cancelled])[0].status === 'cancelled', 'CAST cancellation maps to a separate status');
+    check(Boolean(cancelled.smltFlfmtEndDt), 'CAST cancellation has an end time');
     const { HistoryTable } = await server.ssrLoadModule('/src/modules/pm/pages/monitoring/components/HistoryTable.tsx');
     const { createElement } = await import('react');
     const { renderToStaticMarkup } = await import('react-dom/server');
@@ -170,6 +173,10 @@ try {
     check(!cancelButton.test(renderHistory(otherWaiting, session.userId)), 'other user waiting request hides cancel button');
     check(!cancelButton.test(renderHistory(ownWaiting, undefined)), 'unknown session hides cancel button');
     check(!cancelButton.test(renderHistory(running, running.rgtrId)), 'executing request hides cancel button');
+    const cancelledMarkup = renderHistory(cancelled, cancelled.rgtrId);
+    check(cancelledMarkup.includes('is-cancelled\">취소</div>'), 'CAST cancellation renders its label');
+    check(!cancelButton.test(cancelledMarkup), 'CAST cancellation hides cancel button');
+    check(/<button[^>]*disabled=""[^>]*>보기<\/button>/.test(cancelledMarkup), 'CAST cancellation disables result viewing');
     check(/<button[^>]*disabled=""[^>]*>취소<\/button>/.test(renderHistory(ownWaiting, session.userId, true)), 'pending cancellation disables cancel button');
     check(remaining.stdList.every((row) => row.smltFlfmtSttsCd === 'DONE'), 'daily history only contains received results');
     check(monitor.cancelUserSmlt(otherWaiting.smltId).error, 'cannot cancel another user waiting request');
@@ -179,6 +186,8 @@ try {
     check(monitor.cancelUserSmlt(done.smltId).error, 'cannot cancel own completed request');
     session.userId = failed.rgtrId;
     check(monitor.cancelUserSmlt(failed.smltId).error, 'cannot cancel own failed request');
+    session.userId = cancelled.rgtrId;
+    check(monitor.cancelUserSmlt(cancelled.smltId).error, 'cannot cancel own CAST-cancelled request');
     session.userId = ownWaiting.rgtrId;
     const cancelResources = mockExecutions.get(first.smltId).resourceIds;
     const savedRatio = ratio();

@@ -369,7 +369,7 @@ BEGIN
 	CONSTRAINT "TN_PM_SMLT_USER_MSTR_V2_PK" PRIMARY KEY ("SMLT_REQ_ID"),
 	CONSTRAINT "TN_PM_SMLT_USER_MSTR_V2_UK1" UNIQUE ("SMLT_ID"),
 	-- 상태값은 CAST 가 REQ_SetResource 로 보내는 문자열을 그대로 쓴다
-	CONSTRAINT "TN_PM_SMLT_USER_MSTR_V2_CK1" CHECK ("SMLT_STTS" IN ('New', 'Executing', 'Finished', 'Failed'))
+	CONSTRAINT "TN_PM_SMLT_USER_MSTR_V2_CK1" CHECK ("SMLT_STTS" IN ('New', 'Executing', 'Finished', 'Failed', 'Cancelled'))
 )~'; END IF;
 END;
 /

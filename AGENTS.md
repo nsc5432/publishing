@@ -428,7 +428,7 @@ docs/user-smlt-master-redesign.md를 따른다.
 | 이름 / 테이블 | 의미 |
 |---|---|
 | SQ1_TN_PM_SMLT_RSLT | 사용자 등록·일일 결과 최초 수신 양쪽에서 공통 SMLT_ID 채번 |
-| TN_PM_SMLT_USER_MSTR | 사용자 실행의 원천이자 CAST WhatIf 요청. 신규 요청 ID는 WI + 공통 ID를 8자리로 0 채움(WI00008061). 정상 비어 있지 않은 CAST 상태 목록에 없는 Finished 요청만 삭제한다 |
+| TN_PM_SMLT_USER_MSTR | 사용자 실행의 원천이자 CAST WhatIf 요청. 신규 요청 ID는 WI + 공통 ID를 8자리로 0 채움(WI00008061). 정상 비어 있지 않은 CAST 상태 목록에 없는 요청은 DB 상태와 관계없이 삭제한다 |
 | TN_PM_SMLT_STNG | 같은 실행 ID 아래의 모델별 설정. PK는 (SMLT_ID, SMLT_MDL_SN). SMLT_TYPE은 Auto·WhatIf만 사용한다. USER_MSTR에 없는 Auto만 모니터링에 표시하고, 삭제된 WhatIf 결과는 보존하되 표시하지 않는다 |
 | TN_PM_SMLT_RSLT_DTL(_REG_EXCL) | 같은 실행 ID의 상세·미매핑 결과 |
 
@@ -506,8 +506,8 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 - 결과 저장·이력·요청 완료는 같은 트랜잭션이다. 사용자 실행은 Failed이면 FAILED, STNG 결과가
   있으면 DONE, 나머지는 RUNNING이다. Finished 통보만으로 결과 없는 실행을 완료시키지 않는다.
 - 상태는 이전 상태 조건의 CAS UPDATE다. CAST는 결과 저장 성공 응답 후 Finished를 통보한다.
-  정상 비어 있지 않은 상태 목록을 기준으로 목록에 없는 DB Finished 요청만 삭제한다.
-  빈 목록·잘못된 형식·파싱 실패는 삭제하지 않고 New·Executing·Failed도 유지한다.
+  정상 비어 있지 않은 상태 목록을 기준으로 목록에 없는 요청은 DB 상태와 관계없이 삭제한다.
+  빈 목록·잘못된 형식·파싱 실패 시에는 삭제하지 않는다.
   삭제된 요청은 모니터링 목록·집계·상세에서 제외하고 해당 사용자 PS의 목록 제공·재조회를 종료한다.
   STNG·결과 상세·발행 원천은 보존하며, 요청 삭제만으로 리소스 번호를 회수하지 않는다.
   활성 요청 부분 유니크 제약과 추가 실행 차단을 사용하지 않는다.

@@ -1469,7 +1469,7 @@ CREATE TABLE "PMOWN"."TN_PM_SMLT_USER_MSTR"
 	CONSTRAINT "TN_PM_SMLT_USER_MSTR_PK" PRIMARY KEY ("SMLT_REQ_ID"),
 	CONSTRAINT "TN_PM_SMLT_USER_MSTR_UK1" UNIQUE ("SMLT_ID"),
 	-- 상태값은 CAST 가 REQ_SetResource 로 보내는 문자열을 그대로 쓴다
-	CONSTRAINT "TN_PM_SMLT_USER_MSTR_CK1" CHECK ("SMLT_STTS" IN ('New', 'Executing', 'Finished', 'Failed'))
+	CONSTRAINT "TN_PM_SMLT_USER_MSTR_CK1" CHECK ("SMLT_STTS" IN ('New', 'Executing', 'Finished', 'Failed', 'Cancelled'))
 );
 
 -- 중복 실행 방어. 한 draft 의 미완료 요청은 동시에 1건만 존재한다.

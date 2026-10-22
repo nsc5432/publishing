@@ -2277,7 +2277,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
                             ELSE EXCT_DT
                          END
              , END_DT = CASE
-                          WHEN #{status} IN ('Finished', 'Failed') THEN CURRENT_TIMESTAMP
+                           WHEN #{status} IN ('Finished', 'Failed', 'Cancelled') THEN CURRENT_TIMESTAMP
                            ELSE END_DT
                         END
              , LAST_MDFR_ID = 'SYSTEM'
@@ -2295,7 +2295,6 @@ ORDER BY BlockID, DepArrTerminal, resourceID
     <delete id="deleteWhatIfDefinitionTable">
         DELETE FROM PMOWN.TN_PM_SMLT_USER_MSTR
         WHERE SMLT_REQ_ID = #{whatIfRunId}
-        AND SMLT_STTS = 'Finished'
     </delete>
     <select id="retrieveUserReqByFsRsrcId" resultType="aoms.pm.cast.dto.UserSmltReqDto">
         /* CastApiMapper.retrieveUserReqByFsRsrcId(String fltSchdlRsrcId) */

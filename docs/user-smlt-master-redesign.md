@@ -99,16 +99,21 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
   XML과 원천 PS ID는 저장하지 않는다. PS001 내용의 의도된 변경은 기존 실행의 PS 재조회에도 반영된다.
 - 모델·서비스시간·체크인유형·출국심사·리포팅은 원본 ID로 조회한다. 리소스 목록은 USER_MSTR의 사용자 PS도 포함한다.
 - 2026-10-18 완료 요청 정리는 배치 대신 CAST 상태 통보 목록을 기준으로 한다.
-  정상 비어 있지 않은 목록에 없는 DB Finished 요청만 USER_MSTR에서 삭제한다.
-  New·Executing·Failed는 유지하고, 빈 목록·잘못된 형식·파싱 실패 시에는 삭제하지 않는다.
+  정상 비어 있지 않은 목록에 없는 요청은 DB 상태와 관계없이 USER_MSTR에서 삭제한다.
+  빈 목록·잘못된 형식·파싱 실패 시에는 삭제하지 않는다.
   CAST는 결과 저장 성공 응답을 받은 뒤 Finished를 통보한다. 별도 결과 저장 조건은 추가하지 않는다.
   요청 삭제 후 해당 사용자 PS의 목록 제공·재조회를 종료한다. STNG·결과 상세·발행 원천은 보존한다.
   보존된 결과·원천의 번호는 계속 점유하므로 요청 삭제만으로 리소스 번호를 회수하지 않는다.
   화면의 조건·결과 보기 중 상세 조회가 실패하면 목록·집계를 재조회한다.
 - 모니터링은 New를 WAITING(대기), Executing을 RUNNING(진행중)으로 구분한다.
   Finished 통보만 있고 STNG가 없으면 결과 수신 전이므로 진행중이며, STNG가 있으면 완료다.
-  Failed는 STNG 유무와 관계없이 실패를 우선한다. 상단 '대기·진행중' 집계는 두 상태를 합산한다.
+  Failed·Cancelled는 STNG 유무와 관계없이 실패·취소를 우선한다. 상단 '대기·진행중' 집계는 New·Executing을 합산한다.
   실행 등록 응답도 WAITING이며 일일 Auto 이력은 STNG가 생긴 완료 건만 조회한다.
+- CAST의 Cancelled 통보는 New·Executing 요청을 취소 종료하고 END_DT를 기록한다.
+  종료된 Finished·Failed·Cancelled 요청은 다른 상태로 전환하지 않는다. 반복 통보는 종료시각을 바꾸지 않는다.
+  모니터링은 CANCELLED(취소)로 표시하며 전체 건수에 포함하고 완료·진행·평균 수행시간에서는 제외한다.
+  취소된 요청의 결과 수신은 거부한다. 취소 이력은 CAST 목록에 있는 동안 유지하고 발행 원천은 보존한다.
+  배포 전에 `java/ddl/2026-10-22-user-smlt-cancelled.sql`로 USER_MSTR 상태 제약조건을 확장한다.
 - 대기 요청 취소는 POST `/pm/cast/mntr/cancelUserSmlt`에 `{ smltId }`를 보낸다.
   화면은 대기 중인 본인 요청에만 취소 버튼을 표시하고, 서버는 세션 사용자와 FRST_RGTR_ID 일치,
   SMLT_STTS='New', STNG 부재를 하나의 DELETE 조건으로 검사한다. 삭제 0건은 실패다.
@@ -119,13 +124,13 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
   요청을 찾지 못하는 결과는 거부한다. 삭제 전에 요청을 읽은 결과 수신과의 동시 처리까지 막지는 않는다.
 - 사용자 결과는 FS 후보를 WI 토큰으로 먼저 좁혀 유일하게 식별하고 날짜·모델·입력 ID를 대조한다.
   실행 연결은 리소스 ID 외에 WI 토큰과 입력 참조를 함께 검증한다.
-  입력 누락·불일치, 여러 WI 토큰, 여러 후보, 실패 종료 요청은 임의로 연결하지 않는다.
+  입력 누락·불일치, 여러 WI 토큰, 여러 후보, 실패·취소 종료 요청은 임의로 연결하지 않는다.
 - CAST는 결과를 재전송하지 않는다. RESULT_IDENTITY와 원천 식별키·XML 원문 해시 비교를 제거했으며,
   동일 실행·모델의 결과가 이미 STNG에 있으면 내용 비교 없이 실패 처리한다.
 - 일일(Auto)은 Run 하나에 모델 결과 1건이므로 결과마다 새 공통 ID를 받는다.
   2026-10-16 RESULT_GROUP 묶음과 CAST_CONTRACT 활성화 검사를 제거했다.
   다중 모델을 도입하면 STNG의 SMLT_TYPE·EXCN_ID(RunID)·계획/실제 시각·FLT_SCHDL_RSRC_ID로 묶는다.
-- New는 WAITING, Executing은 RUNNING, 결과 저장 성공은 DONE, Failed는 FAILED다.
+- New는 WAITING, Executing은 RUNNING, 결과 저장 성공은 DONE, Failed는 FAILED, Cancelled는 CANCELLED다.
   Finished 상태 통보만 도착하고 결과가 없으면 모니터링은 RUNNING을 유지한다.
   사용자 상태는 `USER_MSTR`와 결과 존재 여부로 판단하고, 비사용자는 저장된 `STNG`를 실행별로 집계한다.
   COND_SNAPSHOT·INPUT_SNAPSHOT·RSRC_LEASE는 제거했다. 적용 절차와 전체 테이블 목록은

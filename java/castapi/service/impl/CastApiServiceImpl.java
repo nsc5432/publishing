@@ -2606,6 +2606,8 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         if (userReq != null) {
             if ("Failed".equals(userReq.getSmltStts()))
                 throw new IllegalStateException("실패 종료한 요청의 결과입니다.");
+            if (UserSmltReqStatus.CANCELLED.getValue().equals(userReq.getSmltStts()))
+                throw new IllegalStateException("취소 종료한 요청의 결과입니다.");
 
             validateUserResult(dto, userReq);
             simId = userReq.getSmltId();
@@ -3274,12 +3276,9 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
             rRslt += updated;
         }
 
-        for (Map.Entry<String, String> current : currentSttsMap.entrySet()) {
-            if (
-                UserSmltReqStatus.FINISHED.getValue().equals(current.getValue()) &&
-                !reportedSttsMap.containsKey(current.getKey())
-            ) {
-                rRslt += castApiMapper.deleteWhatIfDefinitionTable(current.getKey());
+        for (String runId : currentSttsMap.keySet()) {
+            if (!reportedSttsMap.containsKey(runId)) {
+                rRslt += castApiMapper.deleteWhatIfDefinitionTable(runId);
             }
         }
         saveSimLog("22", "2");

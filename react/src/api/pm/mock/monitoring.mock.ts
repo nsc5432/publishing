@@ -17,6 +17,7 @@ const FAILED_NOS: Record<SmltType, number[]> = {
 
 const EXEC_MIN = 15;
 const WAITING_NOS = [1, 2];
+const CANCELLED_NOS = [8, 26];
 const seededDays = new Set<string>();
 
 function toYmd(bgnDt: string): string {
@@ -37,6 +38,7 @@ function buildRows(smltType: SmltType, ymd: string): SmltCastExecDto[] {
         const running = RUNNING_NOS[smltType].includes(rowNum);
         const failed = FAILED_NOS[smltType].includes(rowNum);
         const waiting = smltType === 'USER' && WAITING_NOS.includes(rowNum);
+        const cancelled = smltType === 'USER' && CANCELLED_NOS.includes(rowNum);
         const smltFlfmtBgngDt = toDateTime(ymd, i);
 
         return {
@@ -49,7 +51,7 @@ function buildRows(smltType: SmltType, ymd: string): SmltCastExecDto[] {
             smltFlfmtBgngDt,
             smltFlfmtEndDt: running || waiting ? '' : toDateTime(ymd, i + EXEC_MIN),
             execMin: running || waiting ? 0 : EXEC_MIN,
-            smltFlfmtSttsCd: waiting ? 'WAITING' : toSttsCd(running, failed),
+            smltFlfmtSttsCd: cancelled ? 'CANCELLED' : waiting ? 'WAITING' : toSttsCd(running, failed),
         };
     });
 }

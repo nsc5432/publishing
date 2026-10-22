@@ -8,7 +8,8 @@ public enum SmltExecStatus {
 	WAITING("WAITING"), // 대기
 	RUNNING("RUNNING"),	// 진행중
 	DONE("DONE"),		// 완료
-	FAILED("FAILED");	// 실패
+	FAILED("FAILED"),	// 실패
+	CANCELLED("CANCELLED");
 
 	private final String value;
 
@@ -22,6 +23,6 @@ public enum SmltExecStatus {
 	}
 
 	public static List<SmltExecStatus> getList() {
-		return List.of(SmltExecStatus.WAITING, SmltExecStatus.RUNNING, SmltExecStatus.DONE, SmltExecStatus.FAILED);
+		return List.of(SmltExecStatus.WAITING, SmltExecStatus.RUNNING, SmltExecStatus.DONE, SmltExecStatus.FAILED, SmltExecStatus.CANCELLED);
 	}
 }

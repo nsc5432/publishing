@@ -7,13 +7,14 @@ export const HISTORY_LABEL: Record<HistoryKind, string> = {
     user: '사용자',
 };
 
-export type RunStatus = 'waiting' | 'done' | 'running' | 'failed';
+export type RunStatus = 'waiting' | 'done' | 'running' | 'failed' | 'cancelled';
 
 export const RUN_STATUS_LABEL: Record<RunStatus, string> = {
     waiting: '대기',
     done: '완료',
     running: '진행중',
     failed: '실패',
+    cancelled: '취소',
 };
 
 /** 이력 그리드 상태 필터 — KPI 카드 클릭으로 바뀐다 */
