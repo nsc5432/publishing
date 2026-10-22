@@ -1094,7 +1094,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
                 }
                 break;
             default:
-                context.addFailure("Unsupported Resource Type");
+                context.addFailure("지원하지 않는 리소스 유형입니다.");
                 sb.append(RESOURCE_ERROR);
         }
     }

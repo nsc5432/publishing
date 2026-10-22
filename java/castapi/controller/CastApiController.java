@@ -49,7 +49,7 @@ public class CastApiController extends BaseAomsRestController {
 	@PostMapping(value = "/REQ_GetResourceInformation.do")
     public String resGetResourceInformation(@RequestBody String param) {
         return castApiExecutor.execute(
-            CastApiExecutor.GET_RESOURCE_INFORMATION, 
+            "GetResourceInformation", 
             param,
             context -> castApiService.retrieveResourceInformation(param, context)
         );
@@ -65,8 +65,11 @@ public class CastApiController extends BaseAomsRestController {
      **/	
 	@PostMapping(value = "/REQ_GetResource.do")
     public String resGetResource(@RequestBody String param) {
-        return castApiExecutor.execute(CastApiExecutor.GET_RESOURCE, param,
-                context -> castApiService.retrieveResource(param, context));
+        return castApiExecutor.execute(
+            "GetResource", 
+            param,
+            context -> castApiService.retrieveResource(param, context)
+        );
     }
 
     /**
@@ -79,8 +82,11 @@ public class CastApiController extends BaseAomsRestController {
      **/	
 	@PostMapping(value = "/REQ_SetResource.do")
     public String resSetResource(@RequestBody String param) {
-        return castApiExecutor.execute(CastApiExecutor.SET_RESOURCE, param,
-                context -> castApiService.saveResult(param, context));
+        return castApiExecutor.execute(
+            "SetResource", 
+            param,
+            context -> castApiService.saveResult(param, context)
+        );
     }
 
     // GET /castrest/rest/json/REQ_GetResourceInformation_Test.do?resourceTypes=CASTModel,FlightSchedule,CounterAllocation,GenericTable,PropertySet

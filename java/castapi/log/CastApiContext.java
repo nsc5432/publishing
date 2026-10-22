@@ -24,11 +24,14 @@ public class CastApiContext {
     public String formatErrors(String apiTypeCd) {
         StringWriter output = new StringWriter();
         PrintWriter writer = new PrintWriter(output);
-        writer.println("API_TYPE_CD=" + apiTypeCd);
+
+        writer.println("API 유형 코드=" + apiTypeCd);
+        
         for (int i = 0; i < errors.size(); i++) {
-            writer.println("error[" + (i + 1) + "]");
+            writer.println("오류[" + (i + 1) + "]");
             errors.get(i).accept(writer);
         }
+        
         writer.flush();
         return output.toString();
     }

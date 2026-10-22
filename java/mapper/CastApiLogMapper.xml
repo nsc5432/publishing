@@ -13,8 +13,7 @@
         ) VALUES (
             #{apiTypeCd}, #{msgTypeCd},
             #{logCn, jdbcType=CLOB, typeHandler=org.apache.ibatis.type.ClobTypeHandler},
-            'SYSTEM', '0.0.0.0',
-            CURRENT_TIMESTAMP
+            'SYSTEM', '0.0.0.0', CURRENT_TIMESTAMP
         )
     </insert>
 </mapper>
