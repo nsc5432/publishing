@@ -40,7 +40,6 @@ Java·SQL 은 전부 코드 판독 기준이다.
 | 8 | 출국장 | `TN_PM_SMLT_FCLTY_OPNG_DPTGT_MSTR/ATRB` | `#insertDptgtAtrb` | `#retrieveFcltyOpngTblDptg` | 운영시간·NULL → 1번 |
 | 9 | 보안검색 | `TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_MSTR/ATRB` | `#insertScrtyCntrlAtrb` | `#retrieveFcltyOpngTblScrtyCntrl` | 단일 수량 → 1번 |
 | 10 | 리소스 XML 보관 | `TN_PM_SMLT_INPUT_SNAPSHOT` | `CastUserSnapshotServiceImpl.archive()` | `CastRestServiceImpl.retrieveResource()` 가 먼저 조회 (`:880-881`) | 키·응답 규칙 변경 → 3번 |
-| 11 | 수행이력 | `TH_PM_SMLT_FLFMT_HSTRY` (`RUNNING`) | `CastSmltMapper#insertSmltFlfmtHstry` | – | 유지 |
 | 12 | 실행 요청 | `TN_PM_SMLT_USER_MSTR` (`New`) | `CastUserReqMapper.xml#insertUserReq` | `CastRestMapper.xml#retrieveWhatIfCntrl` | 리소스 ID 값 변경 → 3번 |
 
 맞물리는 근거:

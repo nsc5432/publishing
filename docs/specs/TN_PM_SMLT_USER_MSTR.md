@@ -4,12 +4,11 @@
 `REQ_GetResource(WhatIfDefinitionTable)` 로 읽어 가는 큐 테이블이다.
 
 - 편집 draft 가 아니다 → `TN_PM_SMLT_USER_*`
-- 수행이력이 아니다 → `TH_PM_SMLT_FLFMT_HSTRY`
 - 결과 세트가 아니다 → `TN_PM_SMLT_STNG` · `TN_PM_SMLT_RSLT_DTL`
 
 ```
 SMLT_ID (draft)
-  └─1:N─ SMLT_FLFMT_SN (수행 회차)          TH_PM_SMLT_FLFMT_HSTRY
+  └─1:N─ SMLT_FLFMT_SN (수행 회차)
            └─1:1─ SMLT_REQ_ID (실행 요청)    TN_PM_SMLT_USER_MSTR   ← 이 테이블
                     └─0:1─ RSLT_SMLT_ID (결과 세트)  TN_PM_SMLT_STNG
 ```
@@ -227,12 +226,12 @@ Finished  → (종착)
 Failed    → (종착)
 ```
 
-| `SMLT_STTS` | 찍히는 시각 | `TH_PM_SMLT_FLFMT_HSTRY.SMLT_FLFMT_STTS_CD` | 화면 `SmltExecStatus` |
-|---|---|---|---|
-| `New` | `QUEUE_DT` | `RUNNING` | `RUNNING` |
-| `Executing` | `EXCT_DT` | `RUNNING` | `RUNNING` |
-| `Finished` | `END_DT` | `DONE` | `DONE` |
-| `Failed` | `END_DT` | `FAILED` | `FAILED` |
+| `SMLT_STTS` | 찍히는 시각 | 화면 `SmltExecStatus` |
+|---|---|---|
+| `New` | `QUEUE_DT` | `RUNNING` |
+| `Executing` | `EXCT_DT` | `RUNNING` |
+| `Finished` | `END_DT` | `DONE` |
+| `Failed` | `END_DT` | `FAILED` |
 
 세 축을 하나로 합치지 않는다. 접는 지점은 `UserSmltReqStatus.toExecStatus()` 한 곳뿐이다.
 
@@ -281,7 +280,6 @@ Failed    → (종착)
 | 발행된 CAST 리소스 (`SCHDL`/`CKNCT`/`SBD`/시설운영 `ATRB`) | 행 컬럼 | 한 리소스에 T1·T2 가 섞여 들어가고, 행마다 자기 `TMNL_ID` 를 싣는다 |
 | `TN_PM_SMLT_USER_MSTR` (실행 요청) | **없음** | 실행 단위가 공항 전체다 |
 | `TN_PM_SMLT_STNG.TMNL_ID` (결과 세트) | 컬럼만 | 사용자 결과는 아무도 안 실어 `NVL` 기본값 `'P01'` 로 떨어진다. 결과 조회는 시설코드(`TN_PM_SMLT_PSG_FCLT.TMNL_ID`)로 터미널을 가른다 |
-| `TH_PM_SMLT_FLFMT_HSTRY.TMNL_ID` (수행이력) | 컬럼만 | 사용자 실행은 채울 값이 없어 NULL 로 남는다 — §8 |
 
 발행 SQL 에서 주의할 점 두 가지.
 

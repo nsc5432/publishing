@@ -72,7 +72,6 @@
 - TN_PM_SMLT_STNG는 SMLT_ID로 마스터를 참조하는 모델·터미널·입력 리소스 등의 설정 정보로 유지한다.
 - TN_PM_SMLT_RSLT_DTL 등 결과 테이블도 동일한 SMLT_ID를 사용한다.
 - TN_PM_SMLT_USER_MSTR의 사용자 실행 요청은 공통 마스터를 참조한다.
-- TH_PM_SMLT_FLFMT_HSTRY는 회차 축을 제거하고 실행 SMLT_ID 기준으로 관리한다. 기존 이력 상세는 보존한다.
 - 요청 상태 New / Executing / Finished / Failed와 화면 RUNNING / DONE / FAILED의 기존 매핑을 유지한다.
 - 일일 마스터는 결과 저장 성공 시 완료 상태로 생성한다. 수신 전의 요청·진행 상태를 추정해 넣지 않는다.
 - MASTER와 STNG 사이의 FK, 결과 테이블 FK, 사용자 요청 FK를 실제 PK 구조에 맞춰 정의한다.

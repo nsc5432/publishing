@@ -39,7 +39,6 @@
 |---|---|---|
 | `TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT` | 시간대별 운항·여객 조정 기능 제거 | DROP DDL 존재 |
 | `TN_PM_SMLT_SCSH_OPER_PLAN` | 보안검색대 시간별 운영계획 제거 | 이관 시 `_OLD`로 보존하고 업무 사용 종료 |
-| `TH_PM_SMLT_FLFMT_HSTRY` | 수행이력 테이블 제거. 모니터링은 `USER_MSTR + STNG`에서 조회 | `_BAK_1018` 백업 후 DROP하는 DDL 존재 |
 
 `TN_PM_SMLT_SCSH_OPER_PLAN`은 업무 스키마·쿼리에서 제거됐지만, 이관 스크립트는 원본을 `_OLD`로 보존한다. 운영 사용 종료와 물리 DROP을 구분해야 한다.
 
