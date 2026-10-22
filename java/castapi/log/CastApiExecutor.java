@@ -21,15 +21,15 @@ public class CastApiExecutor {
         this.castApiLogService = castApiLogService;
     }
 
-    public String execute(String apiTypeCd, String payload, Function<CastApiContext, String> action) {
+    public String execute(String castApiTypeCd, String payload, Function<CastApiContext, String> action) {
         CastApiContext context = new CastApiContext();
-        CastApiLogSettings settings = retrieveSettings(apiTypeCd);
-        saveLog(settings, apiTypeCd, "payload", payload);
+        CastApiLogSettings settings = retrieveSettings(castApiTypeCd);
+        saveLog(settings, castApiTypeCd, "payload", payload);
 
         try {
             String result = action.apply(context);
             if (result != null) {
-                saveLog(settings, apiTypeCd, "result", result);
+                saveLog(settings, castApiTypeCd, "result", result);
             }
             return result;
         } catch (DataAccessException | TransactionException | PersistenceException | NumberFormatException e) {
@@ -37,29 +37,29 @@ public class CastApiExecutor {
             throw e;
         } finally {
             if (settings.isEnabled("errorMsg") && context.hasErrors()) {
-                saveLog(settings, apiTypeCd, "errorMsg", context.formatErrors(apiTypeCd));
+                saveLog(settings, castApiTypeCd, "errorMsg", context.formatErrors(castApiTypeCd));
             }
         }
     }
 
-    private CastApiLogSettings retrieveSettings(String apiTypeCd) {
+    private CastApiLogSettings retrieveSettings(String castApiTypeCd) {
         try {
-            return castApiLogService.retrieveSettings(apiTypeCd);
+            return castApiLogService.retrieveSettings(castApiTypeCd);
         } catch (DataAccessException | TransactionException | PersistenceException e) {
-            log.error("CAST REST 로그 설정 조회에 실패했습니다. API 유형 코드=" + apiTypeCd, e);
+            log.error("CAST REST 로그 설정 조회에 실패했습니다. API 유형 코드=" + castApiTypeCd, e);
             return new CastApiLogSettings(Collections.emptyList());
         }
     }
 
-    private void saveLog(CastApiLogSettings settings, String apiTypeCd, String msgTypeCd, String logCn) {
-        if (!settings.isEnabled(msgTypeCd)) {
+    private void saveLog(CastApiLogSettings settings, String castApiTypeCd, String castLogTypeCd, String logCn) {
+        if (!settings.isEnabled(castLogTypeCd)) {
             return;
         }
 
         try {
-            castApiLogService.saveLog(new CastApiLogEntry(apiTypeCd, msgTypeCd, logCn));
+            castApiLogService.saveLog(new CastApiLogEntry(castApiTypeCd, castLogTypeCd, logCn));
         } catch (DataAccessException | TransactionException | PersistenceException e) {
-            log.error("CAST REST 로그 저장에 실패했습니다. API 유형 코드=" + apiTypeCd + ", 메시지 유형 코드=" + msgTypeCd, e);
+            log.error("CAST REST 로그 저장에 실패했습니다. API 유형 코드=" + castApiTypeCd + ", 메시지 유형 코드=" + castLogTypeCd, e);
         }
     }
 }

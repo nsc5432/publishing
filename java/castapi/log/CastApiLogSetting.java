@@ -6,6 +6,6 @@ import lombok.Setter;
 @Getter
 @Setter
 public class CastApiLogSetting {
-    private String msgTypeCd;
+    private String castLogTypeCd;
     private String useYn;
 }

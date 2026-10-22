@@ -10,6 +10,6 @@ import aoms.pm.castapi.log.CastApiLogSetting;
 
 @Mapper
 public interface CastApiLogMapper {
-    List<CastApiLogSetting> retrieveSettings(@Param("apiTypeCd") String apiTypeCd);
+    List<CastApiLogSetting> retrieveSettings(@Param("castApiTypeCd") String castApiTypeCd);
     int insertLog(CastApiLogEntry entry);
 }

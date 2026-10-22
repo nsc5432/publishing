@@ -79,9 +79,9 @@ GET `_Test` API는 사용자가 지정한 세 POST API 범위에 포함하지 �
 
 | 한글 | 표준 약어 | 사용 예 |
 |---|---|---|
-| API / 유형 / 코드 | API / TYPE / CD | API_TYPE_CD |
-| 메시지 / 유형 / 코드 | MSG / TYPE / CD | MSG_TYPE_CD |
-| 로그 / 설정 | LOG / STNG | TN_PM_CASTREST_LOG_STNG |
+| API / 유형 / 코드 | API / TYPE / CD | CAST_API_TYPE_CD |
+| 메시지 / 유형 / 코드 | MSG / TYPE / CD | CAST_LOG_TYPE_CD |
+| 로그 / 설정 | LOG / STNG | TN_PM_SMLT_CAST_LOG_STNG |
 | 사용 / 여부 | USE / YN | USE_YN |
 | 로그 / 내용 | LOG / CN | LOG_CN |
 | 최초 / 등록 / 일시 | FRST / REG / DT | FRST_REG_DT |
@@ -89,14 +89,14 @@ GET `_Test` API는 사용자가 지정한 세 POST API 범위에 포함하지 �
 
 `CASTREST`는 기존 연계 모듈 식별어를 유지한 것이다. `TN`·`TH` 접두사는 저장소의 기존 테이블 관례를 따른다. 아래 물리명·길이는 제안이며 실제 DB 명명 규칙과 대조한 뒤 확정한다.
 
-### 4.2 설정: PMOWN.TN_PM_CASTREST_LOG_STNG
+### 4.2 설정: PMOWN.TN_PM_SMLT_CAST_LOG_STNG
 
 한 행은 하나의 API Type × MSG Type 조합이다. 초기 데이터는 반드시 9행을 제공하며 USE_YN은 모두 N이다. 설정 행이 누락된 조합도 N으로 처리한다.
 
 | 컬럼 | 자료형 제안 | 제약·의미 |
 |---|---|---|
-| API_TYPE_CD | VARCHAR2(30 CHAR) | PK 1. 지정한 API Type 3종 |
-| MSG_TYPE_CD | VARCHAR2(10 CHAR) | PK 2. payload/result/errorMsg |
+| CAST_API_TYPE_CD | VARCHAR2(30 CHAR) | PK 1. 지정한 API Type 3종 |
+| CAST_LOG_TYPE_CD | VARCHAR2(10 CHAR) | PK 2. payload/result/errorMsg |
 | USE_YN | CHAR(1 CHAR) | NOT NULL, DEFAULT 'N', CHECK Y/N |
 | FRST_REG_DT | TIMESTAMP(6) | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
 | LAST_MDFCN_DT | TIMESTAMP(6) | 설정 수정 시 명시적으로 갱신 |
@@ -107,14 +107,14 @@ API·메시지 유형에도 CHECK 제약을 둔다. 관리 화면 없이 DB에�
 
 설정은 업무 트랜잭션을 오염시키지 않는 별도 읽기 경계에서 조회한다. 조회 실패 시 본처리는 계속하고 그 요청의 신규 DB 로그는 모두 생략하며 서버 파일 로그에 조회 실패를 남긴다. 다른 요청의 설정을 대신 사용하지 않는다.
 
-### 4.3 로그: PMOWN.TH_PM_CASTREST_LOG
+### 4.3 로그: PMOWN.TH_PM_SMLT_CAST_LOG
 
 한 행은 한 메시지다. 정상 요청은 활성 설정에 따라 payload/result 최대 2행, 실패 요청은 payload/result/errorMsg 최대 3행이다. result는 실제 생성된 응답이 있을 때만 저장한다.
 
 | 컬럼 | 자료형 제안 | 제약·의미 |
 |---|---|---|
-| API_TYPE_CD | VARCHAR2(30 CHAR) | NOT NULL. API Type |
-| MSG_TYPE_CD | VARCHAR2(10 CHAR) | NOT NULL. MSG Type |
+| CAST_API_TYPE_CD | VARCHAR2(30 CHAR) | NOT NULL. API Type |
+| CAST_LOG_TYPE_CD | VARCHAR2(10 CHAR) | NOT NULL. MSG Type |
 | LOG_CN | CLOB | 요청·응답 원문 또는 오류 상세 |
 | FRST_REG_DT | TIMESTAMP(6) | NOT NULL, DEFAULT CURRENT_TIMESTAMP |
 

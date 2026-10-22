@@ -21,11 +21,11 @@ public class CastApiContext {
         return !errors.isEmpty();
     }
 
-    public String formatErrors(String apiTypeCd) {
+    public String formatErrors(String castApiTypeCd) {
         StringWriter output = new StringWriter();
         PrintWriter writer = new PrintWriter(output);
 
-        writer.println("API 유형 코드=" + apiTypeCd);
+        writer.println("API 유형 코드=" + castApiTypeCd);
         
         for (int i = 0; i < errors.size(); i++) {
             writer.println("오류[" + (i + 1) + "]");

@@ -18,8 +18,8 @@ public class CastApiLogServiceImpl implements CastApiLogService {
 
     @Override
     @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
-    public CastApiLogSettings retrieveSettings(String apiTypeCd) {
-        return new CastApiLogSettings(castApiLogMapper.retrieveSettings(apiTypeCd));
+    public CastApiLogSettings retrieveSettings(String castApiTypeCd) {
+        return new CastApiLogSettings(castApiLogMapper.retrieveSettings(castApiTypeCd));
     }
 
     @Override

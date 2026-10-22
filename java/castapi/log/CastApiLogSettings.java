@@ -10,12 +10,12 @@ public class CastApiLogSettings {
     public CastApiLogSettings(List<CastApiLogSetting> settings) {
         for (CastApiLogSetting setting : settings) {
             if ("Y".equals(setting.getUseYn())) {
-                enabledTypes.add(setting.getMsgTypeCd());
+                enabledTypes.add(setting.getCastLogTypeCd());
             }
         }
     }
 
-    public boolean isEnabled(String msgTypeCd) {
-        return enabledTypes.contains(msgTypeCd);
+    public boolean isEnabled(String castLogTypeCd) {
+        return enabledTypes.contains(castLogTypeCd);
     }
 }

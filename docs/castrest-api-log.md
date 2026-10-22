@@ -73,7 +73,7 @@ XML/IO checked 예외는 기존 catch와 원인 포함 예외 변환에서 수�
 4. 실제 백엔드에 새 `CastApiLogMapper.xml` 등록/스캔과 로그 서비스 Bean·트랜잭션 적용을 확인한 뒤 배포한다.
    별도의 전역 트랜잭션/AOP가 실행기 전체를 감싸지 않는지 확인한다.
    이때 구 테이블은 남겨 둔다.
-5. `2026-10-21-castrest-api-log-setting.sql`의 `api_type_cd`, `msg_type_cd`, `use_yn`을 수정해 실행한다.
+5. `2026-10-21-castrest-api-log-setting.sql`의 `cast_api_type_cd`, `cast_log_type_cd`, `use_yn`을 수정해 실행한다.
    기본 예시는 `GetResource/errorMsg/N`이다. MERGE는 누락된 설정도 복원하고 수정일시를 함께 기록한다.
    COMMIT 후 다음 요청부터 반영되는지 검증한다.
 6. 아래 통합 검증을 마친 뒤 구버전 앱·외부 의존성·구 테이블 관련 권한/동의어를 다시 확인한다.
@@ -96,10 +96,10 @@ DROP TABLE PMOWN.TT_PM_CASTREST_REQ_DEBUG;
 기간·API 유형별 확인 예시:
 
 ```sql
-SELECT API_TYPE_CD, MSG_TYPE_CD,
+SELECT CAST_API_TYPE_CD, CAST_LOG_TYPE_CD,
        DBMS_LOB.GETLENGTH(LOG_CN) LOG_LENGTH, FRST_REG_DT
-FROM PMOWN.TH_PM_CASTREST_LOG
-WHERE API_TYPE_CD = :apiTypeCd
+FROM PMOWN.TH_PM_SMLT_CAST_LOG
+WHERE CAST_API_TYPE_CD = :castApiTypeCd
   AND FRST_REG_DT >= :fromDt
   AND FRST_REG_DT < :toDt
 ORDER BY FRST_REG_DT;

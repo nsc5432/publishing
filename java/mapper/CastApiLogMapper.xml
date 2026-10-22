@@ -2,16 +2,16 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="aoms.pm.castapi.mapper.CastApiLogMapper">
     <select id="retrieveSettings" resultType="aoms.pm.castapi.log.CastApiLogSetting">
-        SELECT MSG_TYPE_CD AS "msgTypeCd", USE_YN AS "useYn"
-        FROM PMOWN.TN_PM_CASTREST_LOG_STNG
-        WHERE API_TYPE_CD = #{apiTypeCd}
+        SELECT CAST_LOG_TYPE_CD AS "castLogTypeCd", USE_YN AS "useYn"
+        FROM PMOWN.TN_PM_SMLT_CAST_LOG_STNG
+        WHERE CAST_API_TYPE_CD = #{castApiTypeCd}
     </select>
 
     <insert id="insertLog" parameterType="aoms.pm.castapi.log.CastApiLogEntry">
-        INSERT INTO PMOWN.TH_PM_CASTREST_LOG (
-            API_TYPE_CD, MSG_TYPE_CD, LOG_CN, FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
+        INSERT INTO PMOWN.TH_PM_SMLT_CAST_LOG (
+            CAST_API_TYPE_CD, CAST_LOG_TYPE_CD, LOG_CN, FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         ) VALUES (
-            #{apiTypeCd}, #{msgTypeCd},
+            #{castApiTypeCd}, #{castLogTypeCd},
             #{logCn, jdbcType=CLOB, typeHandler=org.apache.ibatis.type.ClobTypeHandler},
             'SYSTEM', '0.0.0.0', CURRENT_TIMESTAMP
         )
