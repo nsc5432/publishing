@@ -38,7 +38,7 @@ try {
     check(ratio() === 10 && ratio('T2') === 20, 'owner and terminal drafts stay separate');
 
     const first = api.execute(request({ fltPsgList: [{ ymd, tmnlId: 'T1', ajmtRt: 30 }] }));
-    check(first.smltId.length === 8 && first.smltFlfmtSttsCd === 'RUNNING', 'execution has a new eight-digit ID');
+    check(first.smltId.length === 8 && first.smltFlfmtSttsCd === 'WAITING', 'new execution is waiting');
     check(ratio() === 30, 'changed area auto saves');
     const initialPax = api.getFltPsgInfo({ ymd }, 'T1').hourList.reduce((sum, hour) => sum + hour.psgCnt, 0);
     const expectedPax = (terminal, factor) => api.getFltPsgInfo({ ymd }, terminal).hourList.reduce((sum, hour) => sum + Math.round(hour.psgCnt * factor), 0);
@@ -128,7 +128,7 @@ try {
     const summary = monitor.getExecSmry(day + '0000', day + '2359');
     const all = [...list.stdList, ...list.userList];
     check(summary.totCnt === all.length, 'summary and list use the same period');
-    check(summary.runningCnt === all.filter((row) => row.smltFlfmtSttsCd === 'RUNNING').length, 'running count matches rows');
+    check(summary.runningCnt === all.filter((row) => ['WAITING', 'RUNNING'].includes(row.smltFlfmtSttsCd)).length, 'waiting and running count matches rows');
     check(
         list.userList.some((row) => row.smltId === first.smltId),
         'new execution appears in public history',
@@ -150,6 +150,53 @@ try {
     check(monitor.getExecDetail(list.stdList[0].smltId).smltType === 'DAILY', 'daily execution details remain available');
     const future = monitor.getExecList('209901010000', '209901012359');
     check(!future.userList.some((row) => row.smltId === first.smltId), 'period filter excludes new executions outside the period');
+
+    const { toHistoryRows } = await server.ssrLoadModule('/src/modules/pm/pages/monitoring/view.ts');
+    session.userId = mockExecutions.get(first.smltId).rgtrId;
+    const ownWaiting = remaining.userList.find((row) => row.smltId === first.smltId);
+    const otherWaiting = remaining.userList.find((row) => row.smltFlfmtSttsCd === 'WAITING' && row.rgtrId !== session.userId);
+    const running = remaining.userList.find((row) => row.smltFlfmtSttsCd === 'RUNNING');
+    const failed = remaining.userList.find((row) => row.smltFlfmtSttsCd === 'FAILED');
+    const done = remaining.userList.find((row) => row.smltFlfmtSttsCd === 'DONE');
+    check(toHistoryRows([ownWaiting, running, done, failed]).map((row) => row.status).join(',') === 'waiting,running,done,failed', 'waiting, executing, finished and failed map to separate labels');
+    const { HistoryTable } = await server.ssrLoadModule('/src/modules/pm/pages/monitoring/components/HistoryTable.tsx');
+    const { createElement } = await import('react');
+    const { renderToStaticMarkup } = await import('react-dom/server');
+    const renderHistory = (row, userId, cancelPending = false) => renderToStaticMarkup(createElement(HistoryTable, {
+        kind: 'user', rows: toHistoryRows([row]), userId, cancelPending,
+    }));
+    const cancelButton = /<button[^>]*>취소<\/button>/g;
+    check((renderHistory(ownWaiting, session.userId).match(cancelButton) ?? []).length === 1, 'own waiting request renders cancel button');
+    check(!cancelButton.test(renderHistory(otherWaiting, session.userId)), 'other user waiting request hides cancel button');
+    check(!cancelButton.test(renderHistory(ownWaiting, undefined)), 'unknown session hides cancel button');
+    check(!cancelButton.test(renderHistory(running, running.rgtrId)), 'executing request hides cancel button');
+    check(/<button[^>]*disabled=""[^>]*>취소<\/button>/.test(renderHistory(ownWaiting, session.userId, true)), 'pending cancellation disables cancel button');
+    check(remaining.stdList.every((row) => row.smltFlfmtSttsCd === 'DONE'), 'daily history only contains received results');
+    check(monitor.cancelUserSmlt(otherWaiting.smltId).error, 'cannot cancel another user waiting request');
+    session.userId = running.rgtrId;
+    check(monitor.cancelUserSmlt(running.smltId).error, 'cannot cancel own executing request');
+    session.userId = done.rgtrId;
+    check(monitor.cancelUserSmlt(done.smltId).error, 'cannot cancel own completed request');
+    session.userId = failed.rgtrId;
+    check(monitor.cancelUserSmlt(failed.smltId).error, 'cannot cancel own failed request');
+    session.userId = ownWaiting.rgtrId;
+    const cancelResources = mockExecutions.get(first.smltId).resourceIds;
+    const savedRatio = ratio();
+    check(!monitor.cancelUserSmlt(first.smltId).error, 'can cancel own waiting request');
+    check(monitor.cancelUserSmlt(first.smltId).error, 'repeated cancellation fails');
+    check(monitor.cancelUserSmlt('missing-request').error, 'missing request cannot be canceled');
+    const stale = mockExecutions.get(otherWaiting.smltId);
+    session.userId = otherWaiting.rgtrId;
+    stale.detail.smltFlfmtSttsCd = 'RUNNING';
+    check(monitor.cancelUserSmlt(otherWaiting.smltId).error, 'request that started after listing cannot be canceled');
+    stale.detail.smltFlfmtSttsCd = 'WAITING';
+    session.userId = ownWaiting.rgtrId;
+    const afterCancel = monitor.getExecList(day + '0000', day + '2359');
+    const afterCancelSummary = monitor.getExecSmry(day + '0000', day + '2359');
+    check(!afterCancel.userList.some((row) => row.smltId === first.smltId), 'canceled request disappears from history');
+    check(afterCancelSummary.totCnt === remainingSummary.totCnt - 1 && afterCancelSummary.runningCnt === remainingSummary.runningCnt - 1, 'cancellation refreshes total and waiting/running counts');
+    check(ratio() === savedRatio, 'cancellation preserves saved current conditions');
+    check(Object.values(cancelResources).every((id) => mockResources.has(id)), 'cancellation preserves published resources');
     session.userId = originalUser;
     console.log('User simulation scenarios passed: ' + assertions);
 } finally {

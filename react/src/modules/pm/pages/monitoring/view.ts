@@ -12,6 +12,7 @@ const EMPTY = '-';
 
 /** 수행 상태 (서버 코드 → 화면 표기) */
 const EXEC_STATUS_TO_RUN_STATUS: Record<SmltExecStatus, RunStatus> = {
+    WAITING: 'waiting',
     DONE: 'done',
     RUNNING: 'running',
     FAILED: 'failed',
@@ -43,7 +44,7 @@ export function toStatCards(execSmry: SmltExecSmryDto): StatCard[] {
         {
             id: 'running',
             icon: 'spinner',
-            label: '진행중',
+            label: '대기·진행중',
             values: [{ value: formatCount(execSmry.runningCnt), unit: '건' }],
         },
         {
@@ -63,6 +64,7 @@ export function toHistoryRows(execList: SmltCastExecDto[]): HistoryRow[] {
     return execList.map((exec) => ({
         rowNo: exec.rowNum,
         smltId: exec.smltId,
+        rgtrId: exec.rgtrId,
         dept: exec.deptNm,
         name: exec.userNm,
         startAt: formatExecDt(exec.smltFlfmtBgngDt),

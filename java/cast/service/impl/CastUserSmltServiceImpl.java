@@ -76,7 +76,7 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         UserSmltExecDto result = new UserSmltExecDto();
         result.setSmltId(id);
         result.setSmltReqId(reqId);
-        result.setSmltFlfmtSttsCd(SmltExecStatus.RUNNING);
+        result.setSmltFlfmtSttsCd(SmltExecStatus.WAITING);
         result.setSmltFlfmtBgngDt(EMPTY);
         return result;
     }

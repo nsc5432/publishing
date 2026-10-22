@@ -580,7 +580,7 @@ export interface UserSmltExecDto extends JsonResponse {
 
 /* ================= 시뮬레이션 모니터링 ================= */
 
-export type SmltExecStatus = 'DONE' | 'RUNNING' | 'FAILED';
+export type SmltExecStatus = 'WAITING' | 'DONE' | 'RUNNING' | 'FAILED';
 
 export interface SmltExecSmryDto extends JsonResponse {
     totCnt: number;

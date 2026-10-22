@@ -6,6 +6,8 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import aoms.framework.cmmn.service.SessionService;
+import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.MntrSearchDto;
 import aoms.pm.cast.dto.SmltCastExecDto;
 import aoms.pm.cast.dto.SmltExcnCntRawDto;
@@ -31,6 +33,23 @@ public class CastMntrServiceImpl implements CastMntrService {
     private static final int SEC_PER_MIN = 60;
 
     private final CastSmltMapper castSmltMapper;
+    private final SessionService sessionService;
+
+    @Override
+    public JsonResponse cancelUserSmlt(MntrSearchDto searchDto) {
+        JsonResponse result = new JsonResponse();
+        if (sessionService.getLoginUserInfo() == null) {
+            return result.error("로그인 사용자를 확인해 주세요.");
+        }
+
+        String userId = sessionService.getLoginUserInfo().getLoginUserId();
+        if (userId == null || userId.isEmpty() || searchDto.getSmltId() == null || searchDto.getSmltId().isEmpty()) {
+            return result.error("로그인 사용자와 시뮬레이션 ID를 확인해 주세요.");
+        }
+
+        int deleted = castSmltMapper.deleteWaitingUserSmlt(searchDto.getSmltId(), userId);
+        return deleted == 1 ? result : result.error("대기 중인 본인 요청만 취소할 수 있습니다. 상태를 다시 확인해 주세요.");
+    }
 
     @Override
     public SmltExecSmryDto retrieveSmltExecSmry(MntrSearchDto searchDto) {

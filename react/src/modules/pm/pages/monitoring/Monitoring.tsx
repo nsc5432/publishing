@@ -1,11 +1,12 @@
 import './monitoring.css';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { monitoringService } from '@/api/pm/services/monitoring.service';
 import { unwrap } from '@/api/pm/result';
 import { Lnb } from '@/components/lnb';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
+import { useUserInfo } from '@/hooks/useUserInfo';
 import { dialog } from '@/lib/dialog';
 import type { ApiError } from '@/types/api.types';
 import { HistoryTable } from './components/HistoryTable';
@@ -16,10 +17,14 @@ import { defaultRange, TITLE, toDateTime } from './options';
 import type { HistoryRow, RangeCondition, StatusFilter } from './types';
 
 function filterByStatus(rows: HistoryRow[], filter: StatusFilter): HistoryRow[] {
+    if (filter === 'running') {
+        return rows.filter((row) => row.status === 'waiting' || row.status === 'running');
+    }
     return filter === 'all' ? rows : rows.filter((row) => row.status === filter);
 }
 
 const DETAIL_FAIL = '시뮬레이션 결과를 불러오지 못했습니다.';
+const CANCEL_FAIL = '대기 중인 본인 요청만 취소할 수 있습니다. 상태를 다시 확인해 주세요.';
 const DAILY_DASHBOARD_PATH = '/rui/pm/daily-smlt/dashboard';
 const USER_DASHBOARD_PATH = '/rui/pm/user-smlt/dashboard';
 const USER_SMLT_CONFIG_PATH = '/rui/pm/user-smlt/config';
@@ -34,10 +39,13 @@ function toQuery(range: RangeCondition): MonitoringQuery {
 function Monitoring() {
     usePageScope('monitoring');
     const navigate = useNavigate();
+    const { userInfo } = useUserInfo();
 
     const [range, setRange] = useState<RangeCondition>(defaultRange);
     const [query, setQuery] = useState<MonitoringQuery>(() => toQuery(defaultRange()));
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+    const [cancelPending, setCancelPending] = useState(false);
+    const cancelInFlight = useRef(false);
 
     const { data, error, responseSeq } = useMonitoring(query);
 
@@ -50,6 +58,37 @@ function Monitoring() {
 
     const standardRows = useMemo(() => filterByStatus(data?.history.standard ?? [], statusFilter), [data, statusFilter]);
     const userRows = useMemo(() => filterByStatus(data?.history.user ?? [], statusFilter), [data, statusFilter]);
+
+    const handleCancel = async (row: HistoryRow) => {
+        if (
+            cancelInFlight.current ||
+            row.status !== 'waiting' ||
+            !userInfo?.userId ||
+            row.rgtrId !== userInfo.userId
+        ) return;
+
+        cancelInFlight.current = true;
+        setCancelPending(true);
+        try {
+            const confirmed = await dialog.confirm({
+                title: '시뮬레이션 요청 취소',
+                description: '대기 중인 요청을 취소하시겠습니까? 저장한 조건은 유지됩니다.',
+                confirmText: '요청 취소',
+                cancelText: '닫기',
+            });
+            if (!confirmed) return;
+
+            unwrap(await monitoringService.cancelUserSmlt(row.smltId), CANCEL_FAIL);
+            setQuery((current) => ({ ...current }));
+        } catch (error: unknown) {
+            setQuery((current) => ({ ...current }));
+            const message = error instanceof Error ? error.message : (error as ApiError)?.message;
+            await dialog.alert({ title: '취소 실패', description: message || CANCEL_FAIL }).catch(() => {});
+        } finally {
+            cancelInFlight.current = false;
+            setCancelPending(false);
+        }
+    };
 
     const handleView = (row: HistoryRow) => {
         monitoringService
@@ -101,7 +140,15 @@ function Monitoring() {
 
                     <div className="history">
                         <HistoryTable kind="standard" rows={standardRows} onView={handleView} />
-                        <HistoryTable kind="user" rows={userRows} onView={handleView} onViewConfig={handleViewConfig} />
+                        <HistoryTable
+                            kind="user"
+                            rows={userRows}
+                            onView={handleView}
+                            onViewConfig={handleViewConfig}
+                            userId={userInfo?.userId}
+                            cancelPending={cancelPending}
+                            onCancel={handleCancel}
+                        />
                     </div>
                 </main>
             </div>

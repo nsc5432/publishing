@@ -5,6 +5,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum SmltExecStatus {
+	WAITING("WAITING"), // 대기
 	RUNNING("RUNNING"),	// 진행중
 	DONE("DONE"),		// 완료
 	FAILED("FAILED");	// 실패
@@ -21,6 +22,6 @@ public enum SmltExecStatus {
 	}
 
 	public static List<SmltExecStatus> getList() {
-		return List.of(SmltExecStatus.RUNNING, SmltExecStatus.DONE, SmltExecStatus.FAILED);
+		return List.of(SmltExecStatus.WAITING, SmltExecStatus.RUNNING, SmltExecStatus.DONE, SmltExecStatus.FAILED);
 	}
 }

@@ -286,6 +286,7 @@ interface CurrentConditions {
 }
 interface Execution {
     detail: SmltExecDetailDto;
+    rgtrId: string;
     requestedDt: string;
     resourceIds: Record<TmnlId, string>;
 }
@@ -392,11 +393,12 @@ function publishResources(id: string, values: Record<TmnlId, Conditions>): Recor
         }),
     ) as Record<TmnlId, string>;
 }
-export function seedExecution(detail: SmltExecDetailDto): void {
+export function seedExecution(detail: SmltExecDetailDto, rgtrId: string, requestedDt = detail.smltFlfmtBgngDt): void {
     if (mockExecutions.has(detail.smltId)) return;
     mockExecutions.set(detail.smltId, {
         detail: structuredClone(detail),
-        requestedDt: detail.smltFlfmtBgngDt,
+        rgtrId,
+        requestedDt,
         resourceIds: publishResources(detail.smltId, { T1: defaults('T1'), T2: defaults('T2') }),
     });
 }
@@ -444,6 +446,7 @@ export const userSmltMock = {
         const smltId = String(++nextId);
         const user = commonMock.getUserInfoBySession();
         mockExecutions.set(smltId, {
+            rgtrId: user.userId,
             resourceIds: publishResources(smltId, resolved),
             requestedDt: stamp(),
             detail: {
@@ -457,10 +460,10 @@ export const userSmltMock = {
                 smltFlfmtBgngDt: '',
                 smltFlfmtEndDt: '',
                 execMin: 0,
-                smltFlfmtSttsCd: 'RUNNING',
+                smltFlfmtSttsCd: 'WAITING',
             },
         });
         staged.forEach((value, id) => current.set(id, value));
-        return { ...OK, smltId, smltReqId: 'WI' + smltId, smltFlfmtSttsCd: 'RUNNING', smltFlfmtBgngDt: '' };
+        return { ...OK, smltId, smltReqId: 'WI' + smltId, smltFlfmtSttsCd: 'WAITING', smltFlfmtBgngDt: '' };
     },
 };

@@ -1,6 +1,7 @@
 package aoms.pm.cast.service;
 
 import aoms.pm.cast.dto.MntrSearchDto;
+import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.SmltExecDetailDto;
 import aoms.pm.cast.dto.SmltExecListDto;
 import aoms.pm.cast.dto.SmltExecSmryDto;
@@ -21,6 +22,8 @@ import aoms.pm.cast.dto.SmltExecSmryDto;
  * </pre>
  */
 public interface CastMntrService {
+	JsonResponse cancelUserSmlt(MntrSearchDto searchDto);
+
 	SmltExecSmryDto retrieveSmltExecSmry(MntrSearchDto searchDto);
 
 	SmltExecListDto retrieveSmltExecList(MntrSearchDto searchDto);

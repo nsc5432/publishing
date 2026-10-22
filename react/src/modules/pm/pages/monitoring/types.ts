@@ -7,9 +7,10 @@ export const HISTORY_LABEL: Record<HistoryKind, string> = {
     user: '사용자',
 };
 
-export type RunStatus = 'done' | 'running' | 'failed';
+export type RunStatus = 'waiting' | 'done' | 'running' | 'failed';
 
 export const RUN_STATUS_LABEL: Record<RunStatus, string> = {
+    waiting: '대기',
     done: '완료',
     running: '진행중',
     failed: '실패',
@@ -23,6 +24,7 @@ export interface HistoryRow {
     rowNo: number;
     /** 결과 보기(상세 조회)에 쓰는 시뮬레이션 ID */
     smltId: string;
+    rgtrId: string;
     dept: string;
     name: string;
     startAt: string;

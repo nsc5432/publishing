@@ -1,20 +1,22 @@
 import { mockExecutions, seedExecution } from './userSmlt.mock';
+import { commonMock } from './common.mock';
 import { todayYmd } from '@/lib/format';
-import type { SmltCastExecDto, SmltExecDetailDto, SmltExecListDto, SmltExecSmryDto, SmltExecStatus, SmltType } from '@/types/api.types';
+import type { JsonResponse, SmltCastExecDto, SmltExecDetailDto, SmltExecListDto, SmltExecSmryDto, SmltExecStatus, SmltType } from '@/types/api.types';
 
 const ROW_COUNT = 30;
 
 const RUNNING_NOS: Record<SmltType, number[]> = {
-    DAILY: [3, 4, 19, 20],
+    DAILY: [],
     USER: [3, 4, 22],
 };
 
 const FAILED_NOS: Record<SmltType, number[]> = {
-    DAILY: [12],
+    DAILY: [],
     USER: [7, 25],
 };
 
 const EXEC_MIN = 15;
+const WAITING_NOS = [1, 2];
 const seededDays = new Set<string>();
 
 function toYmd(bgnDt: string): string {
@@ -34,19 +36,20 @@ function buildRows(smltType: SmltType, ymd: string): SmltCastExecDto[] {
         const rowNum = i + 1;
         const running = RUNNING_NOS[smltType].includes(rowNum);
         const failed = FAILED_NOS[smltType].includes(rowNum);
+        const waiting = smltType === 'USER' && WAITING_NOS.includes(rowNum);
         const smltFlfmtBgngDt = toDateTime(ymd, i);
 
         return {
             rowNum,
             smltId: `${smltType === 'DAILY' ? 'STD' : 'USR'}-${ymd}-${String(rowNum).padStart(4, '0')}`,
             smltType,
-            rgtrId: `mock-user-${String(rowNum).padStart(2, '0')}`,
+            rgtrId: rowNum === 1 ? commonMock.getUserInfoBySession().userId : `mock-user-${String(rowNum).padStart(2, '0')}`,
             deptNm: '시설관리팀',
             userNm: '김민수',
             smltFlfmtBgngDt,
-            smltFlfmtEndDt: running ? '' : toDateTime(ymd, i + EXEC_MIN),
-            execMin: running ? 0 : EXEC_MIN,
-            smltFlfmtSttsCd: toSttsCd(running, failed),
+            smltFlfmtEndDt: running || waiting ? '' : toDateTime(ymd, i + EXEC_MIN),
+            execMin: running || waiting ? 0 : EXEC_MIN,
+            smltFlfmtSttsCd: waiting ? 'WAITING' : toSttsCd(running, failed),
         };
     });
 }
@@ -61,7 +64,18 @@ function rows(bgnDt: string, endDt: string) {
     const ymd = toYmd(bgnDt);
     if (!seededDays.has(ymd)) {
         const demos = buildRows('USER', ymd);
-        demos.forEach((row) => seedExecution({ ...row, error: false, errorMessage: '', ymd, tmnlId: 'T1' }));
+        demos.forEach((row) => seedExecution(
+            {
+                ...row,
+                error: false,
+                errorMessage: '',
+                ymd,
+                tmnlId: 'T1',
+                smltFlfmtBgngDt: row.smltFlfmtSttsCd === 'WAITING' ? '' : row.smltFlfmtBgngDt,
+            },
+            row.rgtrId,
+            row.smltFlfmtBgngDt,
+        ));
         seededDays.add(ymd);
     }
     const within = (stamp: string) => stamp.slice(0, 12) >= bgnDt && stamp.slice(0, 12) <= endDt;
@@ -69,10 +83,27 @@ function rows(bgnDt: string, endDt: string) {
         stdList: buildRows('DAILY', ymd).filter((row) => within(row.smltFlfmtBgngDt)),
         userList: [...mockExecutions.values()]
             .filter((item) => within(item.requestedDt))
-            .map<SmltCastExecDto>(({ detail }, index) => ({ ...detail, rowNum: index + 1, rgtrId: detail.userNm })),
+            .map<SmltCastExecDto>(({ detail, rgtrId }, index) => ({ ...detail, rowNum: index + 1, rgtrId })),
     };
 }
 export const monitoringMock = {
+    cancelUserSmlt: (smltId: string): JsonResponse => {
+        const execution = mockExecutions.get(smltId);
+        const userId = commonMock.getUserInfoBySession().userId;
+        if (
+            !userId ||
+            !execution ||
+            execution.detail.smltType !== 'USER' ||
+            execution.rgtrId !== userId ||
+            execution.detail.smltFlfmtSttsCd !== 'WAITING'
+        ) {
+            return { error: true, errorMessage: '대기 중인 본인 요청만 취소할 수 있습니다. 상태를 다시 확인해 주세요.' };
+        }
+
+        mockExecutions.delete(smltId);
+        return { error: false, errorMessage: '' };
+    },
+
     getExecSmry: (bgnDt: string, endDt: string): SmltExecSmryDto => {
         const list = rows(bgnDt, endDt);
         const all = [...list.stdList, ...list.userList];
@@ -83,7 +114,7 @@ export const monitoringMock = {
             errorMessage: '',
             totCnt: all.length,
             doneCnt: done.length,
-            runningCnt: all.filter((row) => row.smltFlfmtSttsCd === 'RUNNING').length,
+            runningCnt: all.filter((row) => row.smltFlfmtSttsCd === 'WAITING' || row.smltFlfmtSttsCd === 'RUNNING').length,
             avgExecMin: Math.floor(average),
             avgExecSec: Math.round((average % 1) * 60),
         };

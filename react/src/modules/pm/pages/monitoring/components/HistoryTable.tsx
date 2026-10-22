@@ -6,19 +6,24 @@ interface HistoryTableProps {
     rows: HistoryRow[];
     onView?: (row: HistoryRow) => void;
     onViewConfig?: (row: HistoryRow) => void;
+    userId?: string;
+    cancelPending?: boolean;
+    onCancel?: (row: HistoryRow) => void;
 }
 
 const COLUMNS: Record<HistoryKind, string[]> = {
     standard: ['번호', '시작일시', '종료일시', '소요시간', '상태', '결과'],
-    user: ['번호', '부서', '성명', '시작일시', '종료일시', '소요시간', '상태', '조건', '결과'],
+    user: ['번호', '부서', '성명', '시작일시', '종료일시', '소요시간', '상태', '조건', '결과', '취소'],
 };
 
 const TBL_COLS: Record<HistoryKind, string> = {
     standard: '54px 1.7fr 1.7fr 0.85fr 0.8fr 74px',
-    user: '54px 1.15fr 0.9fr 1.7fr 1.7fr 0.85fr 0.8fr 74px 74px',
+    user: '54px 1.15fr 0.9fr 1.7fr 1.7fr 0.85fr 0.8fr 64px 64px 64px',
 };
 
-export function HistoryTable({ kind, rows, onView, onViewConfig }: HistoryTableProps) {
+export function HistoryTable({
+    kind, rows, onView, onViewConfig, userId, cancelPending, onCancel,
+}: HistoryTableProps) {
     const showUser = kind === 'user';
 
     return (
@@ -60,6 +65,20 @@ export function HistoryTable({ kind, rows, onView, onViewConfig }: HistoryTableP
                                         보기
                                     </button>
                                 </div>
+                                {showUser && (
+                                    <div>
+                                        {row.status === 'waiting' && userId && row.rgtrId === userId && (
+                                            <button
+                                                type="button"
+                                                className="btn-view"
+                                                disabled={cancelPending}
+                                                onClick={() => onCancel?.(row)}
+                                            >
+                                                취소
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

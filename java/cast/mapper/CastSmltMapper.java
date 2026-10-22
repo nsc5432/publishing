@@ -14,6 +14,8 @@ import aoms.pm.cast.dto.WaitPsgDto;
 
 @Mapper
 public interface CastSmltMapper {
+    int deleteWaitingUserSmlt(@Param("smltId") String smltId, @Param("userId") String userId);
+
     List<SmltStngDto> retrieveSmltStng(SmltStngSearchDto searchDto);
 
     List<WaitPsgDto> retrieveWaitPsgList(@Param("smltId") String smltId, @Param("tmnlId") String tmnlId, @Param("upPsgFcltCdList") List<String> upPsgFcltCdList);

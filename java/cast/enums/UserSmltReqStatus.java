@@ -62,6 +62,8 @@ public enum UserSmltReqStatus {
 
 	public SmltExecStatus toExecStatus() {
 		switch (this) {
+			case NEW:
+				return SmltExecStatus.WAITING;
 			case FINISHED:
 				return SmltExecStatus.DONE;
 			case FAILED:

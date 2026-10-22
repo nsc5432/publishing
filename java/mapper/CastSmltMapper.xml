@@ -59,7 +59,16 @@
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
     </select>
 
-    <!-- 수행 시각은 STNG.PLAN_*(CAST StartTime/StopTime). SMLT_* 는 시뮬레이션 속 시각이다 -->
+    <delete id="deleteWaitingUserSmlt">
+        DELETE FROM PMOWN.TN_PM_SMLT_USER_MSTR U
+        WHERE U.SMLT_ID = #{smltId}
+          AND U.FRST_RGTR_ID = #{userId}
+          AND U.SMLT_STTS = 'New'
+          AND NOT EXISTS (
+              SELECT 1 FROM PMOWN.TN_PM_SMLT_STNG S WHERE S.SMLT_ID = U.SMLT_ID
+          )
+    </delete>
+
     <select id="retrieveSmltFlfmt" resultType="aoms.pm.cast.dto.SmltExcnDto">
         /* CastSmltMapper.retrieveSmltFlfmt */
         SELECT A.SMLT_ID, A.SMLT_TYPE, A.EXCN_YMD, A.TMNL_ID, A.SMLT_STTS,

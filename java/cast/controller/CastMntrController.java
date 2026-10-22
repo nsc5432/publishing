@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import aoms.pm.cast.dto.MntrSearchDto;
+import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.SmltExecDetailDto;
 import aoms.pm.cast.dto.SmltExecListDto;
 import aoms.pm.cast.dto.SmltExecSmryDto;
@@ -23,6 +24,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CastMntrController {
 	private final CastMntrService castMntrService;
+
+	@PostMapping(value = "/cancelUserSmlt")
+	public ResponseEntity<JsonResponse> cancelUserSmlt(@RequestBody MntrSearchDto searchDto) {
+		return ResponseUtils.res(castMntrService.cancelUserSmlt(searchDto));
+	}
 
 	@PostMapping(value = "/retrieveSmltExecSmry")
 	public ResponseEntity<SmltExecSmryDto> retrieveSmltExecSmry(@RequestBody MntrSearchDto searchDto) {

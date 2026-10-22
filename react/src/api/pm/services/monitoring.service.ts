@@ -2,9 +2,17 @@ import apiClient from '../client';
 import { API_ENDPOINTS } from '../endpoints';
 import { monitoringMock } from '../mock/monitoring.mock';
 import { USE_MOCK, mockResponse } from '../mock';
-import type { SmltExecDetailDto, SmltExecListDto, SmltExecSmryDto } from '@/types/api.types';
+import type { JsonResponse, SmltExecDetailDto, SmltExecListDto, SmltExecSmryDto } from '@/types/api.types';
 
 export const monitoringService = {
+    cancelUserSmlt: async (smltId: string): Promise<JsonResponse> => {
+        if (USE_MOCK) return mockResponse(monitoringMock.cancelUserSmlt(smltId), { loading: true });
+
+        const response = await apiClient.post<JsonResponse>(API_ENDPOINTS.MNTR_EXEC_CANCEL, { smltId }, { params: { loading: true } });
+
+        return response.data;
+    },
+
     getExecSmry: async (bgnDt: string, endDt: string): Promise<SmltExecSmryDto> => {
         if (USE_MOCK) return mockResponse(monitoringMock.getExecSmry(bgnDt, endDt), { loading: true });
 
