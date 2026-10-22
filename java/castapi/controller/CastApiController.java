@@ -16,7 +16,7 @@ import aoms.pm.cmmn.dto.CastReqGetResourceInformationDto;
 import lombok.RequiredArgsConstructor;
 
 /**
- * @Classname   : CastApiTestController.java
+ * @Classname   : CastApiController.java
  * @Description : 소스생성 관리 Controller
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
