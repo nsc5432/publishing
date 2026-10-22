@@ -29,7 +29,7 @@
 
 다만 `PMOWN.DROP_TMP`의 `BASE_DT`를 조회하는 쿼리가 추가됐다. 저장소에서 생성 DDL을 확인할 수 없어 **테이블 신설이 아니라 신규 참조**로 분류한다. `BASE_DT` 역시 새로 생성된 컬럼이라고 단정할 수 없다.
 
-- 근거: [CastRestMapper.xml](../java/mapper/CastRestMapper.xml), `selectBaseYmdForCalibration`
+- 근거: [CastApiMapper.xml](../java/mapper/CastApiMapper.xml), `selectBaseYmdForCalibration`
 
 `CastExecutionMapper.xml`, `CastResourceConditionMapper.xml`, `CastDepHallMapper.xml` 파일 신설도 기존 테이블에 대한 쿼리 추가이며 신규 테이블 생성을 의미하지 않는다.
 
@@ -164,7 +164,7 @@
 
 - [2026-10-18-smlt-type-whatif.sql](../java/ddl/2026-10-18-smlt-type-whatif.sql)
 - [CastUserSnapshotMapper.xml](../java/mapper/CastUserSnapshotMapper.xml), `BDPSG_CNT` 계산식
-- [CastRestMapper.xml](../java/mapper/CastRestMapper.xml), 결과 저장 및 요청 연결 SQL
+- [CastApiMapper.xml](../java/mapper/CastApiMapper.xml), 결과 저장 및 요청 연결 SQL
 - [사용자 시뮬레이션 재설계 문서](user-smlt-master-redesign.md)
 
 ### 6.3 PK·UK·FK·고유 인덱스 변경

@@ -1,4 +1,4 @@
-package aoms.pm.castrest.service.impl;
+package aoms.pm.castapi.service.impl;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -52,9 +52,9 @@ import aoms.pm.cast.enums.UserSmltReqStatus;
 import aoms.pm.cast.mapper.CastExecutionMapper;
 import aoms.pm.cast.service.impl.CastExecutionService;
 
-import aoms.pm.castrest.log.CastRestApiContext;
-import aoms.pm.castrest.mapper.CastRestMapper;
-import aoms.pm.castrest.service.CastRestService;
+import aoms.pm.castapi.log.CastApiContext;
+import aoms.pm.castapi.mapper.CastApiMapper;
+import aoms.pm.castapi.service.CastApiService;
 import aoms.pm.cmmn.dto.CastCheckInCounterServiceTimeDto;
 import aoms.pm.cmmn.dto.CastCheckinTypeDto;
 import aoms.pm.cmmn.dto.CastCounterAllocationDto;
@@ -86,10 +86,10 @@ import aoms.pm.utils.StringUtils;
 
 import lombok.RequiredArgsConstructor;
 
-@Service("castRestService")
+@Service("castApiService")
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
-public class CastRestServiceImpl extends EgovAbstractServiceImpl implements CastRestService {
+public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastApiService {
 
     @FunctionalInterface
     private interface ResourceRequestParser<T> {
@@ -357,7 +357,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     private static final String STATUS = "Status";
     private static final String WHAT_IF_RUN_ID = "WhatIfRunID";
 
-    private final CastRestMapper castRestMapper;
+    private final CastApiMapper castApiMapper;
 
     private final CastExecutionMapper executionMapper;
     private final CastExecutionService executionService;
@@ -724,16 +724,16 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     private String resolveBaseYmd() {
         return FIXED_BASE_YMD.isEmpty()
                 ? LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
-                : castRestMapper.selectBaseYmdForCalibration();
+                : castApiMapper.selectBaseYmdForCalibration();
     }
 
     @Override
     public String retrieveResourceInformation(String param){
-        return retrieveResourceInformation(param, new CastRestApiContext());
+        return retrieveResourceInformation(param, new CastApiContext());
     }
 
     @Override
-    public String retrieveResourceInformation(String param, CastRestApiContext context) {
+    public String retrieveResourceInformation(String param, CastApiContext context) {
         return retrieveResourceInformation(() -> {
             Document doc = parseXmlSafely(param);
             CastReqGetResourceInformationDto infoDto = new CastReqGetResourceInformationDto();
@@ -744,11 +744,11 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     @Override
     public String retrieveResourceInformation(CastReqGetResourceInformationDto infoDto) {
-        return retrieveResourceInformation(() -> infoDto, new CastRestApiContext());
+        return retrieveResourceInformation(() -> infoDto, new CastApiContext());
     }
 
     private String retrieveResourceInformation(ResourceRequestParser<CastReqGetResourceInformationDto> requestParser,
-            CastRestApiContext context) {
+            CastApiContext context) {
         colTable.remove();
 
         saveSimLog("1", "1");
@@ -760,7 +760,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
             mapResourceFlags(infoDto);
 
-            dbResults = castRestMapper.retrieveResourceInformation(infoDto);
+            dbResults = castApiMapper.retrieveResourceInformation(infoDto);
 
             saveSimLog("1", "2");
             return buildResponseXml(dbResults, true);
@@ -895,11 +895,11 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     @Override
     public String retrieveResource(String param){
-        return retrieveResource(param, new CastRestApiContext());
+        return retrieveResource(param, new CastApiContext());
     }
 
     @Override
-    public String retrieveResource(String param, CastRestApiContext context) {
+    public String retrieveResource(String param, CastApiContext context) {
         return retrieveResource(() -> {
             Document doc = parseXmlSafely(param);
             CastReqGetResourceDto resourceDto = new CastReqGetResourceDto();
@@ -910,11 +910,11 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     @Override
     public String retrieveResource(CastReqGetResourceDto resourceDto) {
-        return retrieveResource(() -> resourceDto, new CastRestApiContext());
+        return retrieveResource(() -> resourceDto, new CastApiContext());
     }
 
     private String retrieveResource(ResourceRequestParser<CastReqGetResourceDto> requestParser,
-            CastRestApiContext context) {
+            CastApiContext context) {
         colTable.remove();
 
         saveSimLog("2", "2");
@@ -1055,7 +1055,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     }
 
     private void processResourceData(String type, CastReqGetResourceDto idto, StringBuilder sb,
-            CastRestApiContext context) {
+            CastApiContext context) {
         switch (type) {
             case FLIGHT_SCHEDULE:
                 handleFlightSchedule(idto, sb);
@@ -1103,7 +1103,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handleFlightSchedule(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("3", "1");
-        CastFlightScheduleDto fs = castRestMapper.retrieveFlightSchedule(idto);
+        CastFlightScheduleDto fs = castApiMapper.retrieveFlightSchedule(idto);
 
         sb.append(XML_VERSION);
         sb.append(System.lineSeparator());
@@ -1160,7 +1160,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handleCounterAllocation(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("4", "1");
-        CastCounterAllocationDto ca = castRestMapper.retrieveCounterAllocation(idto);
+        CastCounterAllocationDto ca = castApiMapper.retrieveCounterAllocation(idto);
         sb.append(XML_VERSION);
         sb.append(System.lineSeparator());
         sb.append(SOAP_ENVELOPE_START);
@@ -1219,7 +1219,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handleSbdAllocation(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("5", "1");
-        CastSelfCheckInCountAndBagDropDto sf = castRestMapper.retrieveSelfCheckInCountAndBagDrop(idto);
+        CastSelfCheckInCountAndBagDropDto sf = castApiMapper.retrieveSelfCheckInCountAndBagDrop(idto);
         sb.append(XML_VERSION);
         sb.append(System.lineSeparator());
         sb.append(SOAP_ENVELOPE_START);
@@ -1286,7 +1286,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         StringBuilder unitNameSb = new StringBuilder();
         StringBuilder valSb = new StringBuilder();
 
-        CastPropertySetDto propertySetMstr = castRestMapper.retrievePropertySetMst(idto);
+        CastPropertySetDto propertySetMstr = castApiMapper.retrievePropertySetMst(idto);
         // 서비스 관련 속성
         processServiceProperties(idto, pNameSb, pFriendlyNameSb, pEnumTypeSb, pKindSb, unitNameSb, valSb);
         // 여객/자원 정보
@@ -1372,7 +1372,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     }
 
     private void processServiceProperties(CastReqGetResourceDto idto, StringBuilder pNameSb, StringBuilder pFriendlyNameSb, StringBuilder pEnumTypeSb, StringBuilder pKindSb, StringBuilder unitNameSb, StringBuilder valSb) {
-        List<Object> arrSvc = castRestMapper.retrievePropertySetSvc(idto);
+        List<Object> arrSvc = castApiMapper.retrievePropertySetSvc(idto);
         if (arrSvc != null) {
             for (int i = 0; i < arrSvc.size(); i++) {
                 CastPropertySetDto step = (CastPropertySetDto) arrSvc.get(i);
@@ -1777,7 +1777,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     }
 
     private void processPaxAndResourceInfo(CastReqGetResourceDto idto, StringBuilder pNameSb, StringBuilder pFriendlyNameSb, StringBuilder pEnumTypeSb, StringBuilder pKindSb, StringBuilder unitNameSb, StringBuilder valSb) {
-        List<Object> arrPax = castRestMapper.retrievePropertySetPax(idto);
+        List<Object> arrPax = castApiMapper.retrievePropertySetPax(idto);
         if (arrPax != null) {
             for (int i = 0; i < arrPax.size(); i++) {
                 CastPropertySetDto step = (CastPropertySetDto) arrPax.get(i);
@@ -1797,7 +1797,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         CastProPertySetDtlDto pax = new CastProPertySetDtlDto();
         pax.setCd(step.getCd());
         pax.setResourceID(step.getResourceID());
-        List<Object> paxDtl = castRestMapper.retrievePropertySetPaxDtl(pax);
+        List<Object> paxDtl = castApiMapper.retrievePropertySetPaxDtl(pax);
 
         for (int i = 0; i < paxDtl.size(); i++) {
             CastProPertySetDtlDto paxInput = (CastProPertySetDtlDto) paxDtl.get(i);
@@ -1919,7 +1919,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     }
 
     private void processPropertySetId(CastReqGetResourceDto idto, StringBuilder pNameSb, StringBuilder pFriendlyNameSb, StringBuilder pEnumTypeSb, StringBuilder pKindSb, StringBuilder unitNameSb, StringBuilder valSb) {
-        List<Object> arrId = castRestMapper.retrievePropertySetId(idto);
+        List<Object> arrId = castApiMapper.retrievePropertySetId(idto);
         if (arrId != null) {
             for (int i = 0; i < arrId.size(); i++) {
                 CastPropertySetDto step = (CastPropertySetDto) arrId.get(i);
@@ -1934,9 +1934,9 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     }
 
     private void handleCastModel(String type, CastReqGetResourceDto idto, StringBuilder sb,
-            CastRestApiContext context) {
+            CastApiContext context) {
         saveSimLog("7", "1");
-        CastModelDto ms = CAST_EXPRESS_MODEL.equals(type) ? castRestMapper.retrieveCASTExModel(idto) : castRestMapper.retrieveCASTModel(idto);
+        CastModelDto ms = CAST_EXPRESS_MODEL.equals(type) ? castApiMapper.retrieveCASTExModel(idto) : castApiMapper.retrieveCASTModel(idto);
         if (ms == null) throw new IllegalStateException("CAST 모델 리소스가 없습니다.");
 
         String filePath = ms.getFileNm();
@@ -1995,7 +1995,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handleServiceTime(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("9", "1");
-        CastCheckInCounterServiceTimeDto st = castRestMapper.retrieveCheckInCounterServiceTime(idto);
+        CastCheckInCounterServiceTimeDto st = castApiMapper.retrieveCheckInCounterServiceTime(idto);
 
         sb.append(XML_VERSION);
         sb.append(System.lineSeparator());
@@ -2052,7 +2052,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handleCheckinType(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("10", "1");
-        CastCheckinTypeDto ct = castRestMapper.retrieveCheckinType(idto);
+        CastCheckinTypeDto ct = castApiMapper.retrieveCheckinType(idto);
 
         sb.append(XML_VERSION);
         sb.append(System.lineSeparator());
@@ -2110,7 +2110,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handleDepartureGate(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("11", "1");
-        CastFcltyOpngTblDptgDto dg = castRestMapper.retrieveFcltyOpngTblDptg(idto);
+        CastFcltyOpngTblDptgDto dg = castApiMapper.retrieveFcltyOpngTblDptg(idto);
 
         sb.append(XML_VERSION);
         sb.append(System.lineSeparator());
@@ -2174,7 +2174,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handleEmigration(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("12", "1");
-        CastFcltyOpngTblEmigDto em = castRestMapper.retrieveFcltyOpngTblEmig(idto);
+        CastFcltyOpngTblEmigDto em = castApiMapper.retrieveFcltyOpngTblEmig(idto);
 
         sb.append(XML_VERSION);
         sb.append(System.lineSeparator());
@@ -2231,7 +2231,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handleImmigration(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("13", "1");
-        CastFcltyOpngTblImmigDto im = castRestMapper.retrieveFcltyOpngTblImmig(idto);
+        CastFcltyOpngTblImmigDto im = castApiMapper.retrieveFcltyOpngTblImmig(idto);
 
         sb.append(XML_VERSION);
         sb.append(System.lineSeparator());
@@ -2294,7 +2294,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handleSecurityControl(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("14", "1");
-        CastFcltyOpngTblScrtyCntrlDto sc = castRestMapper.retrieveFcltyOpngTblScrtyCntrl(idto);
+        CastFcltyOpngTblScrtyCntrlDto sc = castApiMapper.retrieveFcltyOpngTblScrtyCntrl(idto);
 
         sb.append(XML_VERSION);
         sb.append(System.lineSeparator());
@@ -2351,7 +2351,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handleTransferSecurityControl(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("15", "1");
-        CastFcltyOpngTblTrnstScrtyCntrlDto ts = castRestMapper.retrieveFcltyOpngTblTrnstScrtyCntrl(idto);
+        CastFcltyOpngTblTrnstScrtyCntrlDto ts = castApiMapper.retrieveFcltyOpngTblTrnstScrtyCntrl(idto);
 
         sb.append(XML_VERSION);
         sb.append(System.lineSeparator());
@@ -2414,7 +2414,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handleRrpStngHrGroupControl(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("21", "1");
-        CastRptStngHrGroupCntrlDto rs = castRestMapper.retrieveRptStngHrGroupCntrl(idto);
+        CastRptStngHrGroupCntrlDto rs = castApiMapper.retrieveRptStngHrGroupCntrl(idto);
 
         sb.append(XML_VERSION);
         sb.append(System.lineSeparator());
@@ -2536,17 +2536,17 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             HttpServletRequest request = attributes.getRequest();
             logDto.setLoginIpAddr(request.getRemoteAddr());
         }
-        castRestMapper.insertSimRunStat(logDto);
+        castApiMapper.insertSimRunStat(logDto);
 
     }
 
     @Override
     public String saveResult(String param){
-        return saveResult(param, new CastRestApiContext());
+        return saveResult(param, new CastApiContext());
     }
 
     @Override
-    public String saveResult(String param, CastRestApiContext context) {
+    public String saveResult(String param, CastApiContext context) {
         colTable.remove();
         saveSimLog("16", "1");
 
@@ -2620,7 +2620,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         }
 
         dto.setSimId(simId);
-        SmltMdlDto modelDto = castRestMapper.retrieveModelInfo(dto);
+        SmltMdlDto modelDto = castApiMapper.retrieveModelInfo(dto);
 
         if (modelDto == null || modelDto.getSmltMdlSn() == null)
             throw new IllegalStateException("CAST 모델 정보를 찾을 수 없습니다.");
@@ -2632,14 +2632,14 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             throw new IllegalStateException("동일 실행/모델에 다른 결과가 이미 저장되어 있습니다.");
 
         List<SmltRsltDtlDto> details = processDetailList(dto, simId, sno, relatedEventCd);
-        castRestMapper.insertSimSet(dto);
+        castApiMapper.insertSimSet(dto);
 
         if (!details.isEmpty())
             executeBatchInsert(details);
 
         if (userReq != null) {
             userReq.setRsltSmltId(simId); userReq.setLoginIpAddr(dto.getLoginIpAddr());
-            castRestMapper.updateUserReqFinished(userReq);
+            castApiMapper.updateUserReqFinished(userReq);
         }
         return 1;
     }
@@ -2675,7 +2675,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             return null;
         }
 
-        List<UserSmltReqDto> candidates = castRestMapper.retrieveUserReqByFsRsrcId(dto.getFlightScheduleResourceID());
+        List<UserSmltReqDto> candidates = castApiMapper.retrieveUserReqByFsRsrcId(dto.getFlightScheduleResourceID());
         Matcher token = Pattern.compile("(?<![A-Za-z0-9])WI[0-9]{8}(?![A-Za-z0-9])").matcher(resourceId);
         String reqId = token.find() ? token.group() : null;
 
@@ -2723,7 +2723,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         String[] minWtngLen = run.getWaitingClientsMin().split(",");
         String[] maxWtngLen = run.getWaitingClientsMax().split(",");
 
-        List<CastRsltFcltCdDto> fcltCdList = castRestMapper.checkFcltCdList(dto);
+        List<CastRsltFcltCdDto> fcltCdList = castApiMapper.checkFcltCdList(dto);
 
         for (int j = 0; j < sIDs.length; j++) {
             if (sIDs[j] == null || sIDs[j].isBlank() || pID[j].equals("")) {
@@ -2769,7 +2769,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
                 dtl.setSmltId(simId);
                 dtl.setPsgFcltDesc(fcltCd);
-                castRestMapper.insertSimResultDtlRegExcl(dtl);
+                castApiMapper.insertSimResultDtlRegExcl(dtl);
             }
         }
     }
@@ -2799,7 +2799,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
             Map<String, Object> paramMap = new HashMap<>();
             paramMap.put(LIST, batchList);
-            castRestMapper.insertSimResultDtl(paramMap);
+            castApiMapper.insertSimResultDtl(paramMap);
         }
     }
 
@@ -2989,7 +2989,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
             resourceDelete(node, null, requestDto);
 
-            int result = castRestMapper.deleteCASTModel(requestDto);
+            int result = castApiMapper.deleteCASTModel(requestDto);
             if (result < 1) {
                 return buildDeleteXml(false);
             }
@@ -3064,17 +3064,17 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
           .append(SOAP_ENVELOPE_END);
         return sb.toString();
     }
-    private CastModelDto saveModel(CastModelDto dto, CastRestApiContext context) throws IOException{
+    private CastModelDto saveModel(CastModelDto dto, CastApiContext context) throws IOException{
         saveSimLog("18", "1");
         CastModelDto rslt = new CastModelDto();
 
         SmltMdlDto model = new SmltMdlDto();
         PmAtchFileDto fdto = new PmAtchFileDto();
 
-        CastModelDto chk = castRestMapper.checkCASTModel(dto);
+        CastModelDto chk = castApiMapper.checkCASTModel(dto);
         if (chk == null) {
 
-            String newId = castRestMapper.retrieveNewCastModelId(dto);
+            String newId = castApiMapper.retrieveNewCastModelId(dto);
 
             String savedPath = "";
             String storeFileNm = "";
@@ -3124,16 +3124,16 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
                 saveSimLog("18", "9");
             }
 
-            atchFileId = castRestMapper.retrieveIdMaxPk();
+            atchFileId = castApiMapper.retrieveIdMaxPk();
 
             model.setSmltMdlFilePathNm(atchFileId);
             model.setSmltMdlSn(newId);
 
-            castRestMapper.insertCASTModel(model);
+            castApiMapper.insertCASTModel(model);
 
             fdto.setAtchFileSn(atchFileSno);
 
-            atchFileSno = castRestMapper.retrieveSnoMaxPk(fdto);
+            atchFileSno = castApiMapper.retrieveSnoMaxPk(fdto);
 
             fdto.setAtchFileId(atchFileId);
             if (dto.getResourceID().equals("")) {
@@ -3150,7 +3150,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             fdto.setAtchFileExtnNm("txt");
             fdto.setLoginUserId("system");
             fdto.setFrstRgtrId("system");
-            castRestMapper.insertAtchFile(fdto);
+            castApiMapper.insertAtchFile(fdto);
         } else {
             try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(chk.getFileNm()),StandardCharsets.UTF_8))){
                 writer.write(dto.getValues());
@@ -3158,7 +3158,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
                 context.addException(e);
                  saveSimLog("18", "9");
             }
-            castRestMapper.updateCASTModel(dto);
+            castApiMapper.updateCASTModel(dto);
         }
         return rslt;
     }
@@ -3214,7 +3214,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
     private void handleWhatIfControl(CastReqGetResourceDto idto, StringBuilder sb) {
         saveSimLog("20", "1");
-        CastWhatIfCntrlDto wi = castRestMapper.retrieveWhatIfCntrl(idto);
+        CastWhatIfCntrlDto wi = castApiMapper.retrieveWhatIfCntrl(idto);
 
         sb.append(XML_VERSION);
         sb.append(System.lineSeparator());
@@ -3337,7 +3337,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             return 0;
         }
 
-        Map<String, String> currentSttsMap = castRestMapper.checkWhatIfIdList(dto).stream()
+        Map<String, String> currentSttsMap = castApiMapper.checkWhatIfIdList(dto).stream()
                 .collect(Collectors.toMap(CastWhatIfCntrlDto::getWhatIfRunId, CastWhatIfCntrlDto::getStatus,
                         (first, ignored) -> first));
 
@@ -3363,7 +3363,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             wDto.setFromStatus(from.getValue());
             wDto.setStatus(to.getValue());
 
-            int updated = castRestMapper.updateWhatIfDefinitionTableStts(wDto);
+            int updated = castApiMapper.updateWhatIfDefinitionTableStts(wDto);
             rRslt += updated;
         }
 
@@ -3372,7 +3372,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
                 UserSmltReqStatus.FINISHED.getValue().equals(current.getValue()) &&
                 !reportedSttsMap.containsKey(current.getKey())
             ) {
-                rRslt += castRestMapper.deleteWhatIfDefinitionTable(current.getKey());
+                rRslt += castApiMapper.deleteWhatIfDefinitionTable(current.getKey());
             }
         }
         saveSimLog("22", "2");

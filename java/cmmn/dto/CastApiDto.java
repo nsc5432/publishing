@@ -15,14 +15,14 @@ import lombok.Setter;
 * Modification Information
 * ---------------------------------------------------------------------------------
 * 수정일 / 수정자 / 수정내용
-* 2025. 09. 12 / 이순영 / 최초작성
+* 2026.10.22 / 노세찬 / 최초작성
 * ---------------------------------------------------------------------------------
 *
 * </pre>
 */
 @Getter
 @Setter
-public class CastRestDto extends AomsDefaultDto {
+public class CastApiDto extends AomsDefaultDto {
 	private String smltExcnStepCd 			= "";
 	private String smltExcnSttsCd 			= "";
 	private String param 					= "";

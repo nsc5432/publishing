@@ -4,20 +4,25 @@
 이 저장소에는 백엔드 빌드·전역 예외 처리·Spring 트랜잭션/매퍼 스캔 설정과 DB 접속 정보가 없다.
 실제 백엔드 컴파일·PMD·Oracle 적용·CAST 왕복 검증·구 테이블 제거는 아직 수행하지 않았다.
 
+현재 구현 패키지는 `aoms.pm.castapi` (`java/castapi/`)이며 이 저장소에는 `castapi`만 둔다.
+외부 URL은 `/castrest/rest/json`을 유지한다. 실제 백엔드에서 `castrest`와 함께 두면 사용할
+컨트롤러의 `@RestController`만 활성화하고 다른 컨트롤러는 해당 어노테이션을 주석 처리한다.
+서비스 빈 이름과 Mapper namespace는 `castApi` / `CastApi`로 구분한다.
+
 ## 1. 호출과 저장 경계
 
-`CastRestController`의 세 POST만 `CastRestApiExecutor`를 호출한다.
+`CastApiController`의 세 POST만 `CastApiExecutor`를 호출한다.
 GET `_Test` 두 경로와 Delete는 기존 서비스를 직접 호출한다.
-String/DTO 서비스 오버로드는 유지하며, 세 POST는 요청별 `CastRestApiContext`를 받는 오버로드를 사용한다.
-새 모델은 `aoms.pm.castrest.log` 내부에만 두고 외부 XML/DTO 계약에 넣지 않았다.
+String/DTO 서비스 오버로드는 유지하며, 세 POST는 요청별 `CastApiContext`를 받는 오버로드를 사용한다.
+새 모델은 `aoms.pm.castapi.log` 내부에만 두고 외부 XML/DTO 계약에 넣지 않았다.
 
 실행기는 해당 API의 설정 세 행을 한 번 읽는다.
-`CastRestLogSettings`는 조회 결과에서 활성 유형을 복사하므로 실행 중 설정이 바뀌어도 영향을 받지 않는다.
+`CastApiLogSettings`는 조회 결과에서 활성 유형을 복사하므로 실행 중 설정이 바뀌어도 영향을 받지 않는다.
 다음 요청은 설정을 새로 읽으며, 누락된 행은 N으로 취급한다.
 설정 조회에 실패하면 해당 요청의 새 DB 로그 전체를 생략한다.
 
-설정 조회와 개별 로그 INSERT는 별도 Bean인 `CastRestLogService`의 `REQUIRES_NEW` 프록시를 통과한다.
-실행기는 업무 `CastRestService` 프록시가 반환한 뒤 result를 저장한다.
+설정 조회와 개별 로그 INSERT는 별도 Bean인 `CastApiLogService`의 `REQUIRES_NEW` 프록시를 통과한다.
+실행기는 업무 `CastApiService` 프록시가 반환한 뒤 result를 저장한다.
 업무 트랜잭션 종료 예외가 전파되면 result를 만들지 않고 원래 예외를 다시 전파한다.
 로그 조회·INSERT·커밋에서 포착한 예외는 서버 로거에 기록하고 업무 결과를 유지한다.
 한 유형의 저장이 실패해도 나머지 활성 유형의 저장을 각각 한 번 시도하며 재시도나 재귀 DB 기록은 없다.
@@ -65,7 +70,7 @@ XML/IO checked 예외는 기존 catch와 원인 포함 예외 변환에서 수�
    초기 `USE_YN`은 모두 N이다. 앱이 PMOWN 외 계정이면 실제 앱 계정/롤에 필요한 권한을 부여한다.
    앱에는 설정 SELECT, 로그 INSERT가 필요하며 운영 계정에는 설정 변경 권한을 부여한다.
    계정 이름을 알 수 없어 권한 대상을 SQL에 고정하지 않았다. 새 매퍼도 `PMOWN.`으로 스키마를 지정한다.
-4. 실제 백엔드에 새 `CastRestLogMapper.xml` 등록/스캔과 로그 서비스 Bean·트랜잭션 적용을 확인한 뒤 배포한다.
+4. 실제 백엔드에 새 `CastApiLogMapper.xml` 등록/스캔과 로그 서비스 Bean·트랜잭션 적용을 확인한 뒤 배포한다.
    별도의 전역 트랜잭션/AOP가 실행기 전체를 감싸지 않는지 확인한다.
    이때 구 테이블은 남겨 둔다.
 5. `2026-10-21-castrest-api-log-setting.sql`의 `api_type_cd`, `msg_type_cd`, `use_yn`을 수정해 실행한다.
@@ -105,7 +110,7 @@ ORDER BY FRST_REG_DT;
 JDK 17과 Python으로 저장소 루트에서 실행한다.
 
 ```text
-python java/verification/castrest-api-log/verify.py
+python java/verification/castapi-log/verify.py
 ```
 
 로컬 검증은 실제 실행기·컨텍스트·설정 모델을 컴파일해 호출한다.
@@ -118,7 +123,7 @@ Spring/MyBatis 예외·Component·SLF4J는 임시 대체 클래스이고 로그 
 - 설정 조회와 각 유형의 INSERT/커밋 실패를 대신하는 예외 주입, 비재귀 처리.
 - 한글·개행·XML 특수문자·대형 문자열 보존, 요청 120개의 동시 실행 분리.
 - 매퍼 XML 구문, 기준 DDL/마이그레이션 일치, 범위 밖 경로 보존, 포괄 catch 금지.
-- `java/castrest` 소스의 JDK 구문 파싱. 의존성/타입/어노테이션 처리 검증은 제외한다.
+- `java/castapi` 소스의 JDK 구문 파싱. 의존성/타입/어노테이션 처리 검증은 제외한다.
 
 실제 환경에서는 다음을 별도로 검증한다.
 

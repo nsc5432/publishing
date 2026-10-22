@@ -64,7 +64,7 @@
                     ORDER BY F.RSVT_BDPSG_CNT DESC NULLS LAST
                 ) AS RN
             FROM (
-                <include refid="aoms.pm.castrest.mapper.CastRestMapper.dailyFlightScheduleRows">
+                <include refid="aoms.pm.castapi.mapper.CastApiMapper.dailyFlightScheduleRows">
                     <property name="ymdParam" value="excnYmd"/>
                 </include>
             ) F

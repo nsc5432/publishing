@@ -48,10 +48,10 @@ public class LoggerFactory {
 
 
 def check_sources():
-    for name in ('CastRestMapper.xml', 'CastRestLogMapper.xml'):
+    for name in ('CastApiMapper.xml', 'CastApiLogMapper.xml'):
         ET.parse(JAVA_ROOT / 'mapper' / name)
-    mapper = ET.parse(JAVA_ROOT / 'mapper' / 'CastRestLogMapper.xml').getroot()
-    assert mapper.attrib['namespace'] == 'aoms.pm.castrest.mapper.CastRestLogMapper'
+    mapper = ET.parse(JAVA_ROOT / 'mapper' / 'CastApiLogMapper.xml').getroot()
+    assert mapper.attrib['namespace'] == 'aoms.pm.castapi.mapper.CastApiLogMapper'
     assert {node.attrib['id'] for node in mapper} == {'retrieveSettings', 'insertLog'}
     insert_sql = mapper.find('insert').text
     assert 'jdbcType=CLOB' in insert_sql and 'ClobTypeHandler' in insert_sql
@@ -64,22 +64,22 @@ def check_sources():
     assert 'FOREIGN KEY' not in core and 'DROP ' not in migration and 'PURGE' not in migration
     for name in re.findall(r'(?:CONSTRAINT|SEQUENCE|INDEX)\s+(?:PMOWN\.)?(\w+)', core):
         assert len(name) <= 30, f'Oracle identifier too long: {name}'
-    for path in (JAVA_ROOT / 'castrest').rglob('*.java'):
+    for path in (JAVA_ROOT / 'castapi').rglob('*.java'):
         source = path.read_text(encoding='utf-8')
-        assert 'CastRestDebugService' not in source and 'insertSetResourceRequest' not in source
+        assert 'CastApiDebugService' not in source and 'insertSetResourceRequest' not in source
         for catch in re.findall(r'catch\s*\(([^)]+)\)', source):
             assert not re.search(r'\b(?:Exception|RuntimeException|Throwable|NullPointerException)\b', catch)
-    controller = (JAVA_ROOT / 'castrest/controller/CastRestController.java').read_text(encoding='utf-8')
-    assert controller.count('castRestApiExecutor.execute(') == 3
-    assert 'return castRestService.retrieveResourceInformation(infoDto);' in controller
-    assert 'return castRestService.retrieveResource(resourceDto);' in controller
-    assert 'return castRestService.deleteResult(param);' in controller
+    controller = (JAVA_ROOT / 'castapi/controller/CastApiController.java').read_text(encoding='utf-8')
+    assert controller.count('castApiExecutor.execute(') == 3
+    assert 'return castApiService.retrieveResourceInformation(infoDto);' in controller
+    assert 'return castApiService.retrieveResource(resourceDto);' in controller
+    assert 'return castApiService.deleteResult(param);' in controller
     print('PASS: mapper XML, DDL consistency, API scope and concrete catches', flush=True)
 
 
 def main():
     check_sources()
-    with tempfile.TemporaryDirectory(prefix='castrest-api-log-') as temporary:
+    with tempfile.TemporaryDirectory(prefix='castapi-log-') as temporary:
         work = Path(temporary)
         stub_sources = []
         for name, source in STUBS.items():
@@ -87,18 +87,18 @@ def main():
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(source, encoding='utf-8')
             stub_sources.append(path)
-        real_sources = sorted((JAVA_ROOT / 'castrest/log').glob('*.java'))
-        real_sources.append(JAVA_ROOT / 'castrest/service/CastRestLogService.java')
+        real_sources = sorted((JAVA_ROOT / 'castapi/log').glob('*.java'))
+        real_sources.append(JAVA_ROOT / 'castapi/service/CastApiLogService.java')
         subprocess.run([
             'javac', '--release', '8', '-encoding', 'UTF-8', '-d', str(work),
             *map(str, stub_sources), *map(str, real_sources),
-            str(CHECK_ROOT / 'CastRestApiExecutorCheck.java'),
+            str(CHECK_ROOT / 'CastApiExecutorCheck.java'),
         ], check=True)
-        subprocess.run(['java', '-cp', str(work), 'CastRestApiExecutorCheck'], check=True)
+        subprocess.run(['java', '-cp', str(work), 'CastApiExecutorCheck'], check=True)
         subprocess.run([
             'javac', '-encoding', 'UTF-8', '-d', str(work), str(CHECK_ROOT / 'JavaSyntaxCheck.java'),
         ], check=True)
-        sources = sorted((JAVA_ROOT / 'castrest').rglob('*.java'))
+        sources = sorted((JAVA_ROOT / 'castapi').rglob('*.java'))
         subprocess.run(['java', '-cp', str(work), 'JavaSyntaxCheck', *map(str, sources)], check=True)
 
 

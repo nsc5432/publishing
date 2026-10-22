@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="aoms.pm.castrest.mapper.CastRestLogMapper">
-    <select id="retrieveSettings" resultType="aoms.pm.castrest.log.CastRestLogSetting">
+<mapper namespace="aoms.pm.castapi.mapper.CastApiLogMapper">
+    <select id="retrieveSettings" resultType="aoms.pm.castapi.log.CastApiLogSetting">
         SELECT MSG_TYPE_CD AS "msgTypeCd", USE_YN AS "useYn"
         FROM PMOWN.TN_PM_CASTREST_LOG_STNG
         WHERE API_TYPE_CD = #{apiTypeCd}
     </select>
 
-    <insert id="insertLog" parameterType="aoms.pm.castrest.log.CastRestLogEntry">
+    <insert id="insertLog" parameterType="aoms.pm.castapi.log.CastApiLogEntry">
         INSERT INTO PMOWN.TH_PM_CASTREST_LOG (
             API_TYPE_CD, MSG_TYPE_CD, LOG_CN, FRST_REG_DT
         ) VALUES (

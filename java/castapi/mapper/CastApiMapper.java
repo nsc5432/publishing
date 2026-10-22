@@ -1,4 +1,4 @@
-package aoms.pm.castrest.mapper;
+package aoms.pm.castapi.mapper;
 
 import java.util.List;
 import java.util.Map;
@@ -33,7 +33,7 @@ import aoms.pm.cmmn.dto.SmltMdlDto;
 import aoms.pm.cmmn.dto.SmltRsltDtlDto;
 
 @Mapper
-public interface CastRestMapper {    
+public interface CastApiMapper {
     int insertSimRunStat(SimRunStatDto dto);
     List<Object> retrieveResourceInformation(CastReqGetResourceInformationDto dto);
     CastFlightScheduleDto retrieveFlightSchedule(CastReqGetResourceDto dto);

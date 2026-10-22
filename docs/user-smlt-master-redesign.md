@@ -85,7 +85,7 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
 - 사용자가 편집하지 않는 리소스는 일일 시뮬레이션과 같은 001 원천을 쓴다. 2026-10-16 날짜 유효 설정
   TN_PM_SMLT_INPUT_BASE를 제거하고 소스 상수로 고정했다. 모델 ICN001, 원천 PS001,
   CheckinCounterServiceTime001, CheckinType001, FacilityOpeningTable_Emigration001,
-  ReportingProfilesTimeGroups001이다. 원천 PS는 CastRestServiceImpl, 나머지는 CastUserSnapshotServiceImpl에 정의한다.
+  ReportingProfilesTimeGroups001이다. 원천 PS는 CastApiServiceImpl, 나머지는 CastUserSnapshotServiceImpl에 정의한다.
   실행별 조합은 USER_MSTR의 리소스 컬럼에 기록하되 원천 PS는 저장하지 않는다.
   실행 등록 시 리소스를 미리 렌더해 보던 검사(capture)도 함께 제거했다. 원천 누락은 CAST 단계에서 드러난다.
 - 002~999는 실행 ID와 별개인 전송 번호다. 한 요청이 FS·CA·SBD·DepartureGate·SecurityControl·

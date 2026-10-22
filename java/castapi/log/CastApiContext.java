@@ -1,4 +1,4 @@
-package aoms.pm.castrest.log;
+package aoms.pm.castapi.log;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-public class CastRestApiContext {
+public class CastApiContext {
     private final List<Consumer<PrintWriter>> errors = new ArrayList<>();
 
     public void addException(Exception exception) {

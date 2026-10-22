@@ -38,7 +38,7 @@ SMLT_ID (draft)
 | 26–31 | 공통 감사 | 전 테이블 공통 6종, 항상 맨 뒤 |
 
 리소스 블록(6–19)의 순서는 장식이 아니다. `CastUserReqMapper.xml#insertUserReq` 의 컬럼
-나열과 `CastRestMapper.xml#retrieveWhatIfCntrl` 의 `LISTAGG` 나열이 **같은 순서**를 쓴다.
+나열과 `CastApiMapper.xml#retrieveWhatIfCntrl` 의 `LISTAGG` 나열이 **같은 순서**를 쓴다.
 한쪽에 끼워 넣으면 세 곳을 같이 고친다.
 
 **한 가지는 순서상 어색하지만 그대로 둔다.** `CKNCT_TYPE_CNTRL_RSRC_ID`(17) 는 아무도 읽지
@@ -92,7 +92,7 @@ SMLT_ID (draft)
 리소스번호(7~9 · 11 · 14)는 `SQ1_TN_PM_SMLT_USER_RSRC`(`MINVALUE 2 MAXVALUE 999 CYCLE`)
 **하나를 공유**한다. 한 요청이 `FS007` · `CA007` · `SBD007` ·
 `FacilityOpeningTable_DepartureGate007` · `FacilityOpeningTable_SecurityControl007` 을 통째로
-받는다 — 타입별로 따로 돌리면 `CastRestMapper.xml#retrieveFcltyOpngTblDptg` 가 깨진다.
+받는다 — 타입별로 따로 돌리면 `CastApiMapper.xml#retrieveFcltyOpngTblDptg` 가 깨진다.
 그 SQL 이 출국장 번호로 `TN_PM_SMLT_SCHDL_ATRB.SCHDL_ATRB_GROUP_ID` 를 뒤지기 때문이다.
 
 ---
@@ -254,8 +254,8 @@ Failed    → (종착)
 |---|---|---|
 | `insertUserReq` | `CastUserReqMapper.xml` | 앱이 `New` 로 등록. 리소스 ID 칸을 snapshot 에서 채운다 |
 | `retrieveActiveReqCnt` | 〃 | draft 단위 미완료 건 사전 검사(메시지용) |
-| `retrieveUserReqByKey` | 〃 · `CastRestMapper.xml` | 요청 1건 조회 |
-| `retrieveWhatIfCntrl` | `CastRestMapper.xml` | CAST polling. **`WHERE SMLT_STTS = 'New'` 필수** |
+| `retrieveUserReqByKey` | 〃 · `CastApiMapper.xml` | 요청 1건 조회 |
+| `retrieveWhatIfCntrl` | `CastApiMapper.xml` | CAST polling. **`WHERE SMLT_STTS = 'New'` 필수** |
 | `updateWhatIfDefinitionTableStts` | 〃 | CAS 전이 + `EXCT_DT` · `END_DT` |
 | `checkWhatIfIdList` | 〃 | 요청 ID · 상태 목록 |
 | `deleteWhatIfDefinitionTable` | 〃 | CAST 목록에서 빠진 Finished 요청 삭제 |

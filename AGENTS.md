@@ -282,7 +282,7 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
 - 체크인유형도 `TN_PM_SMLT_CKNCT_TYPE_ATRB` 하나에서 관리한다. `CKNCT_TYPE_ATRB_ID` 가 카테고리
   축이며 전처리 결과는 `999`, 운영 기준정보는 `001` 이다. `_PRC` 별도 테이블은 사용하지 않는다.
 - `TN_PM_SMLT_STNG.PRPT_SET_RSRC_ID` 는 CAST 가 결과에 실어 보내는 값을 서버가 **기록만** 하는 칸이다
-  (`CastRestMapper.xml#insertSimSet`). 앱에서 일일 시뮬레이션이 쓸 PropertySet 을 바꿔 지정할 수 없고,
+  (`CastApiMapper.xml#insertSimSet`). 앱에서 일일 시뮬레이션이 쓸 PropertySet 을 바꿔 지정할 수 없고,
   **`001` 의 내용을 바꾸는 길뿐이다.**
 - 반영 대상 행은 카탈로그 `TN_PM_SMLT_PSG_FIX_PARA_CD.PRE_PRCS_YN = 'Y'` 로 가른다.
   파이프라인에 태스크를 더하면 `java/ddl/2026-09-02-atrb-pre-process.sql` (2) 의 코드 목록도 함께 늘린다.
@@ -318,7 +318,7 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
 **CAST 가 가져가는 일일 자료(`001`)의 기준일자는 서버가 정해 `#{baseYmd}` 로 바인딩한다.**
 CAST 는 `REQ_GetResource` 요청에 날짜를 싣지 않는다 — 본문이 `@RequestBody String` 으로 들어와
 `resourceType` · `resourceID` 두 개만 파싱되므로 서버가 채우는 수밖에 없다. 결정 지점은
-`CastRestServiceImpl.resolveBaseYmd()` 하나뿐이고, **mapper 에 `SYSDATE` 를 기준일자로 다시 쓰지
+`CastApiServiceImpl.resolveBaseYmd()` 하나뿐이고, **mapper 에 `SYSDATE` 를 기준일자로 다시 쓰지
 않는다** (`LastModified` 표기·ID 채번용은 예외). 테스트 중에는 `FIXED_BASE_YMD` 상수로 고정하고,
 비우면 당일로 떨어진다. 사용자 자료(`002~999`)는 발행 시점에 `#{excnYmd}` 로 행에 굳으므로
 이 값과 무관하다 (§11.2).
@@ -442,6 +442,10 @@ RSLT_SMLT_ID는 호환 컬럼으로 남지만 결과 연결 후 공통 SMLT_ID�
 
 ### 11.3 CAST 리소스 참조
 
+이 저장소의 CAST 연계 구현은 `java/castapi/` (`aoms.pm.castapi`)에 둔다. 클래스명은 `CastApi`로
+시작하며 외부 API URL은 기존 `/castrest/rest/json`을 유지한다. 실제 백엔드에서 동료의 `castrest`와
+함께 둘 경우 두 컨트롤러의 `@RestController`를 주석 전환해 하나만 등록한다.
+
 CAST는 /castrest/rest/json/REQ_GetResourceInformation.do, REQ_GetResource.do,
 REQ_SetResource.do를 호출한다. 서버가 CAST를 호출하거나 선점하는 스케줄러를 두지 않는다.
 CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한다.
@@ -454,7 +458,7 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 - 사용자 FS002~999·PS500~998은 USER_MSTR·STNG에 쓰인 최대 번호 다음의 미사용 번호를 할당하고, 그 위가 차면
   가장 작은 미사용 번호로 돌아간다. 요청·결과·원천에 남아 있는 번호는 상태와 관계없이 제외하고, 빈 번호가 없으면
   명확히 실패한다. 다시 쓰이는 번호는 운영자가 오래된 실행을 정리해 비운 번호뿐이다. 리소스 DELETE 후 INSERT·lease를 두지 않는다.
-- PropertySet은 `CastRestServiceImpl.DAILY_PRPT_SET_RSRC_ID`로 고정한 PS001을 읽고 해당 요청의 시설 리소스 ID로 참조를 바꿔 렌더한다.
+- PropertySet은 `CastApiServiceImpl.DAILY_PRPT_SET_RSRC_ID`로 고정한 PS001을 읽고 해당 요청의 시설 리소스 ID로 참조를 바꿔 렌더한다.
   원천 PS ID는 USER_MSTR에 저장하지 않는다(2026-10-17 SRC_PRPT_SET_RSRC_ID 제거).
   XML 사본을 저장하지 않는다. 모델·서비스시간·체크인유형·출국심사·리포팅은 지정된 원본 ID로 조회한다.
 - COND_SNAPSHOT·INPUT_SNAPSHOT·RSRC_LEASE를 제거했다. 적용·복구 절차와 최종 목록은
@@ -463,7 +467,7 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   키오스크는 P01Self / P03Self다. 발행과 조회의 값이 같아야 한다.
   SBD AirlineCode는 ALN_CD가 아니라 CHKN_TYPE_DTL_INFO다.
   키오스크 기기 ID는 ICN1SB01 형식이라 아일랜드는 SUBSTR(ID, -3, 1)이다. 첫 글자로 자르면 전부 I가 되어 키오스크가 0대로 발행된다.
-- 사용자 FS(일일 운영자료 기반)는 FS001과 같은 SQL 조각 `CastRestMapper.dailyFlightScheduleRows`의 행을 저장한다
+- 사용자 FS(일일 운영자료 기반)는 FS001과 같은 SQL 조각 `CastApiMapper.dailyFlightScheduleRows`의 행을 저장한다
   (2026-10-19). 게이트·주기장 3자리 패딩·fallback, OperatorCat·ContactRemote·CheckinRange·SBDAvailable 등을
   따로 만들지 않는다 — GO 원값을 그대로 쓰면 출발편이 게이트에 배정되지 않고 CAST가 계산 없이 끝난다.
   PK 때문에 같은 편 중복은 ROW_NUMBER로 1행만 남긴다.
@@ -479,7 +483,7 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   처리 인원이 0이 된다.
 - SecurityControl은 일일·사용자 모두 시각 없이 수량만 보낸다. 사용자는 운영 Y·scshCntom > 0 출국장마다 1행.
 - 사용자가 편집하지 않는 모델(ICN001)·원천 PS·서비스시간·체크인유형·출국심사·입국/환승보안 원천·리포팅은
-  일일과 같은 001 원천이다. 원천 PS는 `CastRestServiceImpl`, 나머지는 `CastUserSnapshotServiceImpl` 상수다(2026-10-16 INPUT_BASE 제거). 실행 등록 시
+  일일과 같은 001 원천이다. 원천 PS는 `CastApiServiceImpl`, 나머지는 `CastUserSnapshotServiceImpl` 상수다(2026-10-16 INPUT_BASE 제거). 실행 등록 시
   리소스를 미리 렌더해 검사하지 않으므로 원천 누락은 CAST 단계에서 드러난다.
   운영자료가 없는 것과 사용자가 저장한 미운영 조건을 구분한다.
 

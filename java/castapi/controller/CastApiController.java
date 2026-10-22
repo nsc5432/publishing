@@ -1,4 +1,4 @@
-package aoms.pm.castrest.controller;
+package aoms.pm.castapi.controller;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -8,15 +8,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import aoms.framework.cmmn.controller.BaseAomsRestController;
-import aoms.pm.castrest.log.CastRestApiExecutor;
-import aoms.pm.castrest.service.CastRestService;
+import aoms.pm.castapi.log.CastApiExecutor;
+import aoms.pm.castapi.service.CastApiService;
 import aoms.pm.cmmn.dto.CastReqGetResourceDto;
 import aoms.pm.cmmn.dto.CastReqGetResourceInformationDto;
 
 import lombok.RequiredArgsConstructor;
 
 /**
- * @Classname   : CastRestTestController.java
+ * @Classname   : CastApiTestController.java
  * @Description : 소스생성 관리 Controller
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
@@ -26,7 +26,7 @@ import lombok.RequiredArgsConstructor;
  *------------------------------------------------------------------------------
  * 수정일 / 수정자 /수정내용
  * ----------  ------  ---------------------------------------------------------
- * 2025. 09. 12 / 이순영 / 최초작성
+ * 2026.10.22 / 노세찬 / 최초작성
  *------------------------------------------------------------------------------
  *
  * </pre>
@@ -34,9 +34,9 @@ import lombok.RequiredArgsConstructor;
 @RestController
 @RequestMapping("/castrest/rest/json")
 @RequiredArgsConstructor
-public class CastRestController extends BaseAomsRestController {
-    private final CastRestService castRestService;
-    private final CastRestApiExecutor castRestApiExecutor;
+public class CastApiController extends BaseAomsRestController {
+    private final CastApiService castApiService;
+    private final CastApiExecutor castApiExecutor;
 
     /**
      * 자료 목록 조회
@@ -48,8 +48,8 @@ public class CastRestController extends BaseAomsRestController {
      **/    
 	@PostMapping(value = "/REQ_GetResourceInformation.do")
     public String resGetResourceInformation(@RequestBody String param) {
-        return castRestApiExecutor.execute(CastRestApiExecutor.GET_RESOURCE_INFORMATION, param,
-                context -> castRestService.retrieveResourceInformation(param, context));
+        return castApiExecutor.execute(CastApiExecutor.GET_RESOURCE_INFORMATION, param,
+                context -> castApiService.retrieveResourceInformation(param, context));
     }
 
     // GET /castrest/rest/json/REQ_GetResourceInformation_Test.do?resourceTypes=CASTModel,FlightSchedule,CounterAllocation,GenericTable,PropertySet
@@ -57,7 +57,7 @@ public class CastRestController extends BaseAomsRestController {
     public String getResourceInformation(@RequestParam("resourceTypes") String resourceTypes) {
         CastReqGetResourceInformationDto infoDto = new CastReqGetResourceInformationDto();
         infoDto.setResourceTypes(resourceTypes);
-        return castRestService.retrieveResourceInformation(infoDto);
+        return castApiService.retrieveResourceInformation(infoDto);
     }
 
     /**
@@ -70,8 +70,8 @@ public class CastRestController extends BaseAomsRestController {
      **/	
 	@PostMapping(value = "/REQ_GetResource.do")
     public String resGetResource(@RequestBody String param) {
-        return castRestApiExecutor.execute(CastRestApiExecutor.GET_RESOURCE, param,
-                context -> castRestService.retrieveResource(param, context));
+        return castApiExecutor.execute(CastApiExecutor.GET_RESOURCE, param,
+                context -> castApiService.retrieveResource(param, context));
     }
 
     // 운항편
@@ -105,7 +105,7 @@ public class CastRestController extends BaseAomsRestController {
         CastReqGetResourceDto resourceDto = new CastReqGetResourceDto();
         resourceDto.setResourceType(resourceType);
         resourceDto.setResourceID(resourceID);
-        return castRestService.retrieveResource(resourceDto);
+        return castApiService.retrieveResource(resourceDto);
     }
 
     /**
@@ -118,8 +118,8 @@ public class CastRestController extends BaseAomsRestController {
      **/	
 	@PostMapping(value = "/REQ_SetResource.do")
     public String resSetResource(@RequestBody String param) {
-        return castRestApiExecutor.execute(CastRestApiExecutor.SET_RESOURCE, param,
-                context -> castRestService.saveResult(param, context));
+        return castApiExecutor.execute(CastApiExecutor.SET_RESOURCE, param,
+                context -> castApiService.saveResult(param, context));
     }
     /**
      *  자료 삭제
@@ -131,6 +131,6 @@ public class CastRestController extends BaseAomsRestController {
      **/	
 	@PostMapping(value = "/REQ_DeleteResource.do")
     public String reqDeleteResource(@RequestBody String param) {
-		return castRestService.deleteResult(param);
+		return castApiService.deleteResult(param);
     }
 }

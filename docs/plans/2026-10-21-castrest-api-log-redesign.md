@@ -225,5 +225,5 @@ API·메시지 유형에도 CHECK 제약을 둔다. 관리 화면 없이 DB에�
 구 테이블의 실제 DROP은 사용 종료 확인 후 수행하도록 분리했다.
 
 적용 SQL·전환/복구 절차·오류 포착 범위와 검증 한계는 [CAST REST API 로그 적용·검증](../castrest-api-log.md)에 정리했다.
-로컬 검증은 `python java/verification/castrest-api-log/verify.py`로 실행하며 Spring/Oracle 실검증을 대신하지 않는다.
+로컬 검증은 `python java/verification/castapi-log/verify.py`로 실행하며 Spring/Oracle 실검증을 대신하지 않는다.
 실제 백엔드/DB 접속 및 전역 예외 처리·트랜잭션 설정은 참조 사본에 없어 확인하지 못했다.

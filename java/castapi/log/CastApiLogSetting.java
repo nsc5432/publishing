@@ -1,11 +1,11 @@
-package aoms.pm.castrest.log;
+package aoms.pm.castapi.log;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class CastRestLogSetting {
+public class CastApiLogSetting {
     private String msgTypeCd;
     private String useYn;
 }

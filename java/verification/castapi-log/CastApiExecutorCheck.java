@@ -18,14 +18,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.transaction.TransactionException;
 
-import aoms.pm.castrest.log.CastRestApiContext;
-import aoms.pm.castrest.log.CastRestApiExecutor;
-import aoms.pm.castrest.log.CastRestLogEntry;
-import aoms.pm.castrest.log.CastRestLogSetting;
-import aoms.pm.castrest.log.CastRestLogSettings;
-import aoms.pm.castrest.service.CastRestLogService;
+import aoms.pm.castapi.log.CastApiContext;
+import aoms.pm.castapi.log.CastApiExecutor;
+import aoms.pm.castapi.log.CastApiLogEntry;
+import aoms.pm.castapi.log.CastApiLogSetting;
+import aoms.pm.castapi.log.CastApiLogSettings;
+import aoms.pm.castapi.service.CastApiLogService;
 
-public class CastRestApiExecutorCheck {
+public class CastApiExecutorCheck {
     private static final List<String> APIS = Arrays.asList(
             "GetResourceInformation", "GetResource", "SetResource");
     private static final List<String> TYPES = Arrays.asList("payload", "result", "errorMsg");
@@ -39,9 +39,9 @@ public class CastRestApiExecutorCheck {
         TxFailure(String message) { super(message); }
     }
 
-    private static class FakeLogService implements CastRestLogService {
-        final Map<String, List<CastRestLogSetting>> rows = new HashMap<>();
-        final List<CastRestLogEntry> entries = Collections.synchronizedList(new ArrayList<>());
+    private static class FakeLogService implements CastApiLogService {
+        final Map<String, List<CastApiLogSetting>> rows = new HashMap<>();
+        final List<CastApiLogEntry> entries = Collections.synchronizedList(new ArrayList<>());
         final List<String> attempts = new ArrayList<>();
         final AtomicInteger reads = new AtomicInteger();
         RuntimeException readFailure;
@@ -49,9 +49,9 @@ public class CastRestApiExecutorCheck {
         String failingType;
 
         void configure(String api, int mask) {
-            List<CastRestLogSetting> settings = new ArrayList<>();
+            List<CastApiLogSetting> settings = new ArrayList<>();
             for (int i = 0; i < TYPES.size(); i++) {
-                CastRestLogSetting setting = new CastRestLogSetting();
+                CastApiLogSetting setting = new CastApiLogSetting();
                 setting.setMsgTypeCd(TYPES.get(i));
                 setting.setUseYn((mask & (1 << i)) == 0 ? "N" : "Y");
                 settings.add(setting);
@@ -59,15 +59,15 @@ public class CastRestApiExecutorCheck {
             rows.put(api, settings);
         }
 
-        public CastRestLogSettings retrieveSettings(String api) {
+        public CastApiLogSettings retrieveSettings(String api) {
             reads.incrementAndGet();
             if (readFailure != null) {
                 throw readFailure;
             }
-            return new CastRestLogSettings(rows.getOrDefault(api, Collections.emptyList()));
+            return new CastApiLogSettings(rows.getOrDefault(api, Collections.emptyList()));
         }
 
-        public synchronized void saveLog(CastRestLogEntry entry) {
+        public synchronized void saveLog(CastApiLogEntry entry) {
             attempts.add(entry.getMsgTypeCd());
             if (writeFailure != null && entry.getMsgTypeCd().equals(failingType)) {
                 throw writeFailure;
@@ -83,10 +83,10 @@ public class CastRestApiExecutorCheck {
         }
     }
 
-    private static Map<String, CastRestLogEntry> byType(List<CastRestLogEntry> entries, String api) {
-        Map<String, CastRestLogEntry> result = new HashMap<>();
+    private static Map<String, CastApiLogEntry> byType(List<CastApiLogEntry> entries, String api) {
+        Map<String, CastApiLogEntry> result = new HashMap<>();
         String clId = null;
-        for (CastRestLogEntry entry : entries) {
+        for (CastApiLogEntry entry : entries) {
             require(api.equals(entry.getApiTypeCd()), "API type changed");
             require(entry.getClId().matches("[0-9a-f]{32}"), "Invalid call ID");
             require(clId == null || clId.equals(entry.getClId()), "Call IDs differ within a request");
@@ -105,7 +105,7 @@ public class CastRestApiExecutorCheck {
                     int currentScenario = scenario;
                     String payload = "<request>한글 &amp; \"원문\"\r\n</request>";
                     String response = scenario == 2 ? "<InvocationResult Success=\"false\"/>" : "응답\n";
-                    String actual = new CastRestApiExecutor(logs).execute(api, payload, context -> {
+                    String actual = new CastApiExecutor(logs).execute(api, payload, context -> {
                         if (currentScenario == 1 || currentScenario == 3) {
                             context.addException(new IOException("read failed", new IOException("disk cause")));
                             context.addException(new IOException("write failed"));
@@ -117,7 +117,7 @@ public class CastRestApiExecutorCheck {
                     });
                     require(actual == response, "Response changed");
                     require(logs.reads.get() == 1, "Settings not read exactly once");
-                    Map<String, CastRestLogEntry> saved = byType(logs.entries, api);
+                    Map<String, CastApiLogEntry> saved = byType(logs.entries, api);
                     for (int i = 0; i < TYPES.size(); i++) {
                         boolean expected = (mask & (1 << i)) != 0 && (i != 2 || scenario != 0);
                         require(saved.containsKey(TYPES.get(i)) == expected, "Independent switch failed");
@@ -150,12 +150,12 @@ public class CastRestApiExecutorCheck {
 
     private static void settingsAndBodies() {
         FakeLogService logs = new FakeLogService();
-        CastRestApiExecutor executor = new CastRestApiExecutor(logs);
+        CastApiExecutor executor = new CastApiExecutor(logs);
         executor.execute(APIS.get(0), "missing", context -> "ok");
         require(logs.entries.isEmpty(), "Missing settings must disable logging");
         logs.configure(APIS.get(0), 7);
         executor.execute(APIS.get(0), "snapshot", context -> {
-            for (CastRestLogSetting row : logs.rows.get(APIS.get(0))) {
+            for (CastApiLogSetting row : logs.rows.get(APIS.get(0))) {
                 row.setUseYn("N");
             }
             context.addFailure("failure");
@@ -188,7 +188,7 @@ public class CastRestApiExecutorCheck {
             FakeLogService logs = new FakeLogService();
             logs.configure(APIS.get(2), 7);
             try {
-                new CastRestApiExecutor(logs).execute(APIS.get(2), "request", context -> {
+                new CastApiExecutor(logs).execute(APIS.get(2), "request", context -> {
                     context.addException(new IOException("earlier file error"));
                     throw failure;
                 });
@@ -197,7 +197,7 @@ public class CastRestApiExecutorCheck {
                     | IllegalStateException | IllegalArgumentException | SecurityException actual) {
                 require(actual == failure, "Original failure replaced");
             }
-            Map<String, CastRestLogEntry> saved = byType(logs.entries, APIS.get(2));
+            Map<String, CastApiLogEntry> saved = byType(logs.entries, APIS.get(2));
             require(!saved.containsKey("result"), "Result fabricated after failure");
             String error = saved.get("errorMsg").getLogCn();
             require(error.contains("earlier file error") && error.contains(failure.toString()),
@@ -212,7 +212,7 @@ public class CastRestApiExecutorCheck {
             FakeLogService readLogs = new FakeLogService();
             readLogs.configure(APIS.get(0), 7);
             readLogs.readFailure = failure;
-            String response = new CastRestApiExecutor(readLogs).execute(APIS.get(0), "request", context -> {
+            String response = new CastApiExecutor(readLogs).execute(APIS.get(0), "request", context -> {
                 context.addFailure("business error");
                 return "failure XML";
             });
@@ -222,7 +222,7 @@ public class CastRestApiExecutorCheck {
                 logs.configure(APIS.get(1), 7);
                 logs.failingType = type;
                 logs.writeFailure = failure;
-                response = new CastRestApiExecutor(logs).execute(APIS.get(1), "request", context -> {
+                response = new CastApiExecutor(logs).execute(APIS.get(1), "request", context -> {
                     context.addFailure("business error");
                     return "failure XML";
                 });
@@ -237,7 +237,7 @@ public class CastRestApiExecutorCheck {
         logs.writeFailure = new TxFailure("log commit");
         DbFailure businessFailure = new DbFailure("business rollback");
         try {
-            new CastRestApiExecutor(logs).execute(APIS.get(2), "request", context -> { throw businessFailure; });
+            new CastApiExecutor(logs).execute(APIS.get(2), "request", context -> { throw businessFailure; });
             throw new AssertionError("Business failure swallowed");
         } catch (DbFailure actual) {
             require(actual == businessFailure, "Log outage replaced business exception");
@@ -251,7 +251,7 @@ public class CastRestApiExecutorCheck {
             logs.configure(APIS.get(1), 7);
             UnsupportedOperationException failure = new UnsupportedOperationException("unhandled");
             try {
-                new CastRestApiExecutor(logs).execute(APIS.get(1), "request", context -> {
+                new CastApiExecutor(logs).execute(APIS.get(1), "request", context -> {
                     if (priorError) {
                         context.addException(new IOException("earlier file error"));
                     }
@@ -261,7 +261,7 @@ public class CastRestApiExecutorCheck {
             } catch (UnsupportedOperationException actual) {
                 require(actual == failure, "Unhandled exception replaced");
             }
-            Map<String, CastRestLogEntry> saved = byType(logs.entries, APIS.get(1));
+            Map<String, CastApiLogEntry> saved = byType(logs.entries, APIS.get(1));
             require(!saved.containsKey("result"), "Result fabricated for unhandled exception");
             require(saved.containsKey("errorMsg") == priorError, "Unhandled error coverage misrepresented");
             if (priorError) {
@@ -276,7 +276,7 @@ public class CastRestApiExecutorCheck {
         for (String api : APIS) {
             logs.configure(api, 7);
         }
-        CastRestApiExecutor executor = new CastRestApiExecutor(logs);
+        CastApiExecutor executor = new CastApiExecutor(logs);
         ExecutorService pool = Executors.newFixedThreadPool(8);
         try {
             List<Callable<String>> calls = new ArrayList<>();
@@ -294,14 +294,14 @@ public class CastRestApiExecutorCheck {
         } finally {
             pool.shutdownNow();
         }
-        Map<String, List<CastRestLogEntry>> groups = new HashMap<>();
-        for (CastRestLogEntry entry : logs.entries) {
+        Map<String, List<CastApiLogEntry>> groups = new HashMap<>();
+        for (CastApiLogEntry entry : logs.entries) {
             groups.computeIfAbsent(entry.getClId(), ignored -> new ArrayList<>()).add(entry);
         }
         require(groups.size() == 120 && logs.reads.get() == 120, "Request ID collision or settings reuse");
         Set<String> tokens = new HashSet<>();
-        for (List<CastRestLogEntry> group : groups.values()) {
-            Map<String, CastRestLogEntry> saved = byType(group, group.get(0).getApiTypeCd());
+        for (List<CastApiLogEntry> group : groups.values()) {
+            Map<String, CastApiLogEntry> saved = byType(group, group.get(0).getApiTypeCd());
             require(saved.size() == 3, "Concurrent request lost a row");
             String token = saved.get("payload").getLogCn();
             require(tokens.add(token), "Request shared multiple IDs");
@@ -318,7 +318,7 @@ public class CastRestApiExecutorCheck {
         logFailures();
         unhandledFailures();
         concurrentCalls();
-        require(!new CastRestApiContext().hasErrors(), "New context is not empty");
+        require(!new CastApiContext().hasErrors(), "New context is not empty");
         System.out.println("PASS: " + checks + " executor assertions; no Spring/Oracle runtime involved");
     }
 }
