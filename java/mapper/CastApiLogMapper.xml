@@ -9,10 +9,11 @@
 
     <insert id="insertLog" parameterType="aoms.pm.castapi.log.CastApiLogEntry">
         INSERT INTO PMOWN.TH_PM_CASTREST_LOG (
-            API_TYPE_CD, MSG_TYPE_CD, LOG_CN, FRST_REG_DT
+            API_TYPE_CD, MSG_TYPE_CD, LOG_CN, FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         ) VALUES (
             #{apiTypeCd}, #{msgTypeCd},
             #{logCn, jdbcType=CLOB, typeHandler=org.apache.ibatis.type.ClobTypeHandler},
+            'SYSTEM', '0.0.0.0',
             CURRENT_TIMESTAMP
         )
     </insert>
