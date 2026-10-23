@@ -40,8 +40,6 @@ import aoms.pm.cast.dto.DsbdFcltCardDto;
 import aoms.pm.cast.dto.DsbdHeaderDto;
 import aoms.pm.cast.dto.DsbdRsltDto;
 import aoms.pm.cast.dto.DsbdSearchDto;
-import aoms.pm.cast.dto.FcltQueueScenarioDto;
-import aoms.pm.cast.dto.FcltQueueScenarioSearchDto;
 import aoms.pm.cast.dto.FcltRecommendDto;
 import aoms.pm.cast.dto.FcltUnitDto;
 import aoms.pm.cast.dto.FcltUnitRawDto;
@@ -68,7 +66,6 @@ import aoms.pm.cast.service.CastCgnGradeService;
 import aoms.pm.cast.service.CastChknQueueService;
 import aoms.pm.cast.service.CastDepQueueService;
 import aoms.pm.cast.service.CastDsbdService;
-import aoms.pm.cast.service.CastFcltQueueScenarioService;
 import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
@@ -96,7 +93,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private final CastChknQueueService castChknQueueService;
 	private final CastDepQueueService castDepQueueService;
 	private final CastCgnGradeService castCgnGradeService;
-	private final CastFcltQueueScenarioService castFcltQueueScenarioService;
 
 	@Override
 	public DsbdBaseInfoDto retrieveDailySmltBaseInfo(DsbdSearchDto searchDto) {
@@ -241,7 +237,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	public List<DsbdFcltCardDto> retrieveDailySmltFcltCard(DsbdSearchDto searchDto) {
 		FcltType fcltType = searchDto.getFcltType();
 
-		if (fcltType != FcltType.DEP) {
+		if (fcltType == FcltType.CHKN) {
 			return getChknFcltCardList(searchDto);
 		}
 
@@ -274,11 +270,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return result;
 	}
 
-	@Override
-	public FcltQueueScenarioDto retrieveFcltQueueScenario(FcltQueueScenarioSearchDto searchDto) {
-		return castFcltQueueScenarioService.retrieveFcltQueueScenario(searchDto);
-	}
-
 	private List<DsbdFcltCardDto> getChknFcltCardList(DsbdSearchDto searchDto) {
 		TerminalKind tmnlId = searchDto.getTmnlId();
 		String smltId = searchDto.getSmltId();
@@ -291,7 +282,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltId, tmnlId, smltStng.getExcnYmd());
 		RecommendationResources resources = getRecommendationResources(smltStng, fcltTmnlId, parseYmd(smltStng.getExcnYmd()).atStartOfDay().plusMinutes(bgnMinute));
 
-		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, List.of("CC", "CK", "SBD"))
+		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, List.of("CC"))
 				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
 
 		List<FcltUnitDto> unitList = getChknUnitList(unitMap, queueDay, bgnMinute, baseContext);
@@ -321,10 +312,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	private List<FcltUnitDto> getChknUnitList(
-			Map<String, FcltUnitRawDto> unitMap,
-			ChknQueueDay queueDay,
-			int bgnMinute,
-			String baseContext
+        Map<String, FcltUnitRawDto> unitMap, ChknQueueDay queueDay, int bgnMinute, String baseContext
 	) {
 		List<FcltUnitDto> result = new ArrayList<>();
 
@@ -335,11 +323,13 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				continue;
 			}
 
-			result.add(new FcltUnitDto()
+			result.add(
+                new FcltUnitDto()
 					.withUnitCd(unitCd)
 					.withCgnStatus(queueDay.statusOf(
-							queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN).getCurrentQueue(),
-							gradeContext(baseContext, unitCd)))
+                        queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN).getCurrentQueue(),
+                        gradeContext(baseContext, unitCd)
+                    ))
 					.withUseYn(unit.getOprCnt() > 0 ? "Y" : "N"));
 		}
 
@@ -379,10 +369,10 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	private List<FcltUnitDto> getDepUnitList(
-			Map<String, FcltUnitRawDto> unitMap,
-			DepQueueWindow window,
-			CgnGradeScale gradeScale,
-			String baseContext
+        Map<String, FcltUnitRawDto> unitMap,
+        DepQueueWindow window,
+        CgnGradeScale gradeScale,
+        String baseContext
 	) {
 		List<FcltUnitDto> result = new ArrayList<>();
 

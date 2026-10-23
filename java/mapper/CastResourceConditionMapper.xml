@@ -5,7 +5,7 @@
         SELECT SUBSTR(NVL(A.PREDC_HM, A.DEP_ARR_HM), 1, 2) AS HOUR, COUNT(*) AS FLT_CNT,
                NVL(SUM(GREATEST(NVL(A.BDPSG_CNT, 0) - NVL(A.TRNS_BDPSG_CNT, 0), 0)), 0) AS PSG_CNT
         FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB A
-        WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{resourceId}, '^FS', '')
+        WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceId}, 'FS', '')
         AND A.ARR_DEP_SE_CD = 'D' AND A.DOM_INTL_SE_CD != 'D'
         AND A.TMNL_ID IN (<foreach collection="tmnlIds" item="terminal" separator=",">#{terminal}</foreach>)
         GROUP BY SUBSTR(NVL(A.PREDC_HM, A.DEP_ARR_HM), 1, 2)
@@ -19,14 +19,14 @@
                    CAST(NULL AS VARCHAR2(100)) AS KIOSK_ID, CAST(NULL AS VARCHAR2(100)) AS SBD_ID,
                    A.CHKN_OPEN_PRNMNT_DT AS BGN_DT, A.CHKN_CLOSE_PRNMNT_DT AS END_DT
             FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
-            WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{caId}, '^CA', '') AND A.TMNL_ID = #{tmnlId}
+            WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{caId}, 'CA', '') AND A.TMNL_ID = #{tmnlId}
             UNION ALL
             SELECT CASE WHEN A.BLCK_ID IN ('P01Self', 'P03Self') THEN SUBSTR(A.CKNCT_ID, -3, 1) ELSE SUBSTR(A.CKNCT_ID, 1, 1) END, NULL,
                    CASE WHEN A.BLCK_ID IN ('P01Self', 'P03Self') THEN A.CKNCT_ID END,
                    CASE WHEN A.BLCK_ID IN ('P01SBD', 'P03SBD') THEN A.CKNCT_ID END,
                    A.OPER_BGNG_DT, A.OPER_END_DT
             FROM PMOWN.TN_PM_SMLT_SBD_ATRB A
-            WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{sbdId}, '^SBD', '') AND A.TMNL_ID = #{tmnlId}
+            WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{sbdId}, 'SBD', '') AND A.TMNL_ID = #{tmnlId}
         ) GROUP BY ISLAND ORDER BY ISLAND
     </select>
     <select id="retrieveBooths" resultType="aoms.pm.cast.dto.ChknBoothDto">
@@ -39,7 +39,7 @@
             FROM CAOWN.TN_CA_CKNCT K
             WHERE K.USE_YN = 'Y' AND K.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
         ) C ON C.TMNL_ID = A.TMNL_ID AND C.CKNCT_ID = A.CKNCT_ID
-        WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{caId}, '^CA', '')
+        WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{caId}, 'CA', '')
         AND A.TMNL_ID = #{tmnlId} AND SUBSTR(A.CKNCT_ID, 1, 1) = #{island}
         GROUP BY A.CKNCT_ID, C.BOOTH_NO ORDER BY BOOTH_NO
     </select>
@@ -51,14 +51,14 @@
                    CAST(NULL AS VARCHAR2(100)) AS KIOSK_ID, CAST(NULL AS VARCHAR2(100)) AS SBD_ID,
                    A.CHKN_OPEN_PRNMNT_DT AS BGN_DT, A.CHKN_CLOSE_PRNMNT_DT AS END_DT
             FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
-            WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{caId}, '^CA', '') AND A.TMNL_ID = #{tmnlId}
+            WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{caId}, 'CA', '') AND A.TMNL_ID = #{tmnlId}
             UNION ALL
             SELECT CASE WHEN A.BLCK_ID IN ('P01Self', 'P03Self') THEN SUBSTR(A.CKNCT_ID, -3, 1) ELSE SUBSTR(A.CKNCT_ID, 1, 1) END, NULL,
                    CASE WHEN A.BLCK_ID IN ('P01Self', 'P03Self') THEN A.CKNCT_ID END,
                    CASE WHEN A.BLCK_ID IN ('P01SBD', 'P03SBD') THEN A.CKNCT_ID END,
                    A.OPER_BGNG_DT, A.OPER_END_DT
             FROM PMOWN.TN_PM_SMLT_SBD_ATRB A
-            WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{sbdId}, '^SBD', '') AND A.TMNL_ID = #{tmnlId}
+            WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{sbdId}, 'SBD', '') AND A.TMNL_ID = #{tmnlId}
         ) WHERE ISLAND = #{island}
         ORDER BY OPER_BGNG_HOUR, OPER_END_HOUR
     </select>
@@ -69,9 +69,9 @@
                NVL(MAX(D.SMART_PASS_SRCH_CNTOM), 0) AS SMART_PASS_SRCH_CNTOM
         FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB D
         LEFT JOIN PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB S
-          ON S.SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{scId}, '^(FOTSC|FacilityOpeningTable_SecurityControl)', '')
+          ON S.SCRTY_CNTRL_ATRB_ID = REPLACE(#{scId}, 'FacilityOpeningTable_SecurityControl', '')
          AND S.TMNL_ID = D.TMNL_ID AND S.GATE_NO = D.GATE_NO
-        WHERE D.DPTGT_ATRB_ID = REGEXP_REPLACE(#{depId}, '^(FOTDG|FacilityOpeningTable_DepartureGate)', '')
+        WHERE D.DPTGT_ATRB_ID = REPLACE(#{depId}, 'FacilityOpeningTable_DepartureGate', '')
         AND D.TMNL_ID = #{tmnlId}
         GROUP BY D.GATE_NO ORDER BY D.GATE_NO
     </select>
@@ -79,7 +79,7 @@
         SELECT DISTINCT TO_NUMBER(SUBSTR(OPER_BGNG_HM, 1, 2)) AS OPER_BGNG_HOUR,
                CASE WHEN OPER_END_HM = '2359' THEN 24 ELSE TO_NUMBER(SUBSTR(OPER_END_HM, 1, 2)) END AS OPER_END_HOUR
         FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB
-        WHERE DPTGT_ATRB_ID = REGEXP_REPLACE(#{depId}, '^(FOTDG|FacilityOpeningTable_DepartureGate)', '')
+        WHERE DPTGT_ATRB_ID = REPLACE(#{depId}, 'FacilityOpeningTable_DepartureGate', '')
         AND TMNL_ID = #{tmnlId} AND GATE_NO = #{gateNo} AND OPER_BGNG_HM IS NOT NULL
         ORDER BY OPER_BGNG_HOUR, OPER_END_HOUR
     </select>

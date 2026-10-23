@@ -7,8 +7,6 @@ import aoms.pm.cast.dto.DsbdFcltCardDto;
 import aoms.pm.cast.dto.DsbdHeaderDto;
 import aoms.pm.cast.dto.DsbdRsltDto;
 import aoms.pm.cast.dto.DsbdSearchDto;
-import aoms.pm.cast.dto.FcltQueueScenarioDto;
-import aoms.pm.cast.dto.FcltQueueScenarioSearchDto;
 import aoms.pm.cast.dto.TmnlSmryDto;
 
 /**
@@ -36,6 +34,4 @@ public interface CastDsbdService {
 	List<DsbdRsltDto> retrieveDailySmltTmnlRsltByTime(DsbdSearchDto searchDto);
 
 	List<DsbdFcltCardDto> retrieveDailySmltFcltCard(DsbdSearchDto searchDto);
-
-	FcltQueueScenarioDto retrieveFcltQueueScenario(FcltQueueScenarioSearchDto searchDto);
 }

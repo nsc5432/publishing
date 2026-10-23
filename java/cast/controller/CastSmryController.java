@@ -17,6 +17,7 @@ import aoms.pm.cast.dto.FcltQueueScenarioDto;
 import aoms.pm.cast.dto.FcltQueueScenarioSearchDto;
 import aoms.pm.cast.dto.TmnlSmryDto;
 import aoms.pm.cast.service.CastDsbdService;
+import aoms.pm.cast.service.CastFcltQueueScenarioService;
 import aoms.pm.utils.ResponseUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class CastSmryController {
 	private final CastDsbdService castDsbdService;
+	private final CastFcltQueueScenarioService castFcltQueueScenarioService;
 
 	@PostMapping(value = "/retrieveDailySmltBaseInfo")
 	public ResponseEntity<DsbdBaseInfoDto> retrieveDailySmltBaseInfo(@RequestBody DsbdSearchDto searchDto) {
@@ -57,6 +59,6 @@ public class CastSmryController {
 
 	@PostMapping(value = "/retrieveFcltQueueScenario")
 	public ResponseEntity<FcltQueueScenarioDto> retrieveFcltQueueScenario(@RequestBody FcltQueueScenarioSearchDto searchDto) {
-		return ResponseUtils.res(castDsbdService.retrieveFcltQueueScenario(searchDto));
+		return ResponseUtils.res(castFcltQueueScenarioService.retrieveFcltQueueScenario(searchDto));
 	}
 }

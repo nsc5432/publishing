@@ -336,7 +336,7 @@
             <otherwise>
             SELECT A.CKNCT_ID, A.ALN_CD
             FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
-            WHERE A.SCHDL_ATRB_GROUP_ID = REGEXP_REPLACE(#{cknctAlctnRsrcId}, '^CA', '')
+            WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{cknctAlctnRsrcId}, 'CA', '')
             AND A.TMNL_ID = #{tmnlId}
             AND A.CHKN_OPEN_PRNMNT_DT IS NOT NULL
             AND A.CHKN_CLOSE_PRNMNT_DT IS NOT NULL
@@ -375,11 +375,7 @@
             COUNT(*) AS TOT_CNT,
             MAX(A.FCLTY_CNT) AS OPR_CNT
         FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB A
-        WHERE A.SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(
-            #{scrtyCntrlRsrcId},
-            'FOTSC|FacilityOpeningTable_SecurityControl',
-            ''
-        )
+        WHERE A.SCRTY_CNTRL_ATRB_ID = REPLACE(#{scrtyCntrlRsrcId}, 'FacilityOpeningTable_SecurityControl', '')
         AND A.TMNL_ID = #{tmnlId}
         GROUP BY A.GATE_NO
         ORDER BY UNIT_CD
