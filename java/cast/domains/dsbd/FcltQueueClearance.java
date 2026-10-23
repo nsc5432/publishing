@@ -1,7 +1,6 @@
 package aoms.pm.cast.domains.dsbd;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 import lombok.Getter;
@@ -46,11 +45,9 @@ public final class FcltQueueClearance {
 		this.service = calculator.estimateServiceRatePerHour();
 	}
 
-	/** 혼잡등급 NORMAL 상한(양끝 포함)의 정수 내림. int 범위를 넘으면 null */
-	public static Integer toTargetQueueCnt(BigDecimal normalMax) {
-		BigDecimal floor = normalMax.setScale(0, RoundingMode.FLOOR);
-
-		return floor.compareTo(BigDecimal.valueOf(Integer.MAX_VALUE)) > 0 ? null : floor.intValueExact();
+	/** 혼잡등급 NORMAL 상한(양끝 포함)의 정수 내림. */
+	public static int toTargetQueueCnt(BigDecimal normalMax) {
+		return normalMax.intValue();
 	}
 
 	public FcltQueueSource getSource() {

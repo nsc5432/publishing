@@ -113,12 +113,12 @@ public final class ChknQueueDay {
 				.build();
 	}
 
-	// 없는 아일랜드거나 NORMAL 상한이 int 범위를 넘으면 null
+	// 없는 아일랜드면 null
 	public FcltQueueClearance clearanceOf(String island, int bgnMinute, int slotMin) {
 		FcltQueueSource source = sourceOf(island, bgnMinute, slotMin);
-		Integer targetQueueCnt = FcltQueueClearance.toTargetQueueCnt(gradeScale.getNormalMax());
+		int targetQueueCnt = FcltQueueClearance.toTargetQueueCnt(gradeScale.getNormalMax());
 
-		return source == null || targetQueueCnt == null ? null : new FcltQueueClearance(source, targetQueueCnt);
+		return source == null ? null : new FcltQueueClearance(source, targetQueueCnt);
 	}
 
 	// 요약보기 카드 / 혼잡해소 팝업 기본값(목표 30분)과 같은 추천. 맵형태보기 / 체크인 상세가 쓴다

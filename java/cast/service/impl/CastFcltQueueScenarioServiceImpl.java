@@ -109,15 +109,11 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 			return fail("선택한 시설의 시뮬레이션 결과를 찾을 수 없습니다. " + context);
 		}
 
-		Integer targetQueueCnt;
+		int targetQueueCnt;
 
 		try {
 			CgnGradeScale gradeScale = castCgnGradeService.retrieveGradeScale(searchDto.getFcltType(), context);
 			targetQueueCnt = FcltQueueClearance.toTargetQueueCnt(gradeScale.getNormalMax());
-
-            if (targetQueueCnt == null) {
-                return fail("혼잡등급 NORMAL 상한이 정수 범위를 벗어났습니다. " + context);
-            }
 		} catch (IllegalStateException exception) {
 			return fail(exception.getMessage());
 		}

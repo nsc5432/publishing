@@ -1,7 +1,5 @@
 package aoms.pm.cast.service.impl;
 
-import java.util.Map;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,23 +29,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastCgnGradeServiceImpl implements CastCgnGradeService {
-	private static final Map<String, String> FCLT_GROUP_CD_MAP = Map.of(
-			"CK", "01",
-			"CC", "02",
-			"LGT", "03",
-			"SC", "04",
-			"SR", "04");
+	private static final String CHKN_GROUP_CD = "02";
+	private static final String DEP_GROUP_CD = "04";
 
 	private final CastDsbdMapper castDsbdMapper;
 
 	@Override
 	public CgnGradeScale retrieveGradeScale(FcltType fcltType, String context) {
-		String upPsgFcltCd = fcltType == FcltType.DEP ? "SC" : "CC";
-		String fcltGroupCd = FCLT_GROUP_CD_MAP.get(upPsgFcltCd);
-
-		if (fcltGroupCd == null) {
-			throw new IllegalStateException("시설 그룹 매핑을 찾을 수 없습니다. upPsgFcltCd=" + upPsgFcltCd);
-		}
+		String fcltGroupCd = fcltType == FcltType.DEP ? DEP_GROUP_CD : CHKN_GROUP_CD;
 
 		return new CgnGradeScale(
 				fcltGroupCd,

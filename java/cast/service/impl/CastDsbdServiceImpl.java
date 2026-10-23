@@ -250,7 +250,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(smltId);
 		DepQueueWindow window = castDepQueueService.retrieveDepQueueWindow(smltStng, tmnlId, hhmm);
 		CgnGradeScale gradeScale = castCgnGradeService.retrieveGradeScale(fcltType, baseContext);
-		int targetQueueCnt = toTargetQueueCnt(gradeScale, baseContext);
+		int targetQueueCnt = FcltQueueClearance.toTargetQueueCnt(gradeScale.getNormalMax());
 
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(tmnlId.getFcltTmnlId(), DEP_CARD_FCLT_CD_LIST)
 				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
@@ -324,7 +324,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				continue;
 			}
 
-			int currentQueueCnt = queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN).getCurrentQueue();
+			ChknQueueSlot slot = queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN);
+			int currentQueueCnt = slot.getCurrentQueue();
 
 			result.add(new FcltUnitDto()
                 .withUnitCd(unitCd)
@@ -332,7 +333,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
                     currentQueueCnt,
                     gradeContext(baseContext, unitCd)
                 ))
-                .withUseYn(unit.getOprCnt() > 0 ? "Y" : "N")
+                .withUseYn(slot.getOprBoothCnt() > 0 ? "Y" : "N")
             );
 		}
 
@@ -344,7 +345,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		FcltQueueClearance clearance = queueDay.clearanceOf(unitCd, bgnMinute, CARD_SLOT_MIN);
 
 		if (clearance == null) {
-			throw new IllegalStateException("혼잡등급 NORMAL 상한이 정수 범위를 벗어났습니다. " + unitContext);
+			throw new IllegalStateException("선택한 시설의 시뮬레이션 결과를 찾을 수 없습니다. " + unitContext);
 		}
 
 		ChknQueueSlot slot = queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN);
@@ -361,7 +362,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setDptgtNo(EMPTY);
 		result.setFcltNm(unitCd);
 		result.setTotCnt(unit != null ? unit.getTotCnt() : 0);
-		result.setOprCnt(unit != null ? unit.getOprCnt() : 0);
+		result.setOprCnt(slot.getOprBoothCnt());
 		result.setWtngPsgCnt(queuePsgCnt);
 		applyClearance(result, clearance, recommend);
 		result.setCgnStatus(queueDay.statusOf(queuePsgCnt, gradeContext(baseContext, unitCd)));
@@ -463,16 +464,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	private int queueOf(FcltQueueSource source) {
 		return source.getQueueAtEnd() == null ? 0 : source.getQueueAtEnd();
-	}
-
-	private int toTargetQueueCnt(CgnGradeScale gradeScale, String context) {
-		Integer result = FcltQueueClearance.toTargetQueueCnt(gradeScale.getNormalMax());
-
-		if (result == null) {
-			throw new IllegalStateException("혼잡등급 NORMAL 상한이 정수 범위를 벗어났습니다. " + context);
-		}
-
-		return result;
 	}
 
 	private FltPlanDto getFltPlan(FltSmryRawDto raw) {
