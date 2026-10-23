@@ -30,7 +30,7 @@ import aoms.pm.cast.domains.dsbd.AssignmentSummary;
 import aoms.pm.cast.domains.dsbd.DepQueueWindow;
 import aoms.pm.cast.domains.dsbd.FcltQueueClearance;
 import aoms.pm.cast.domains.dsbd.FcltQueueSource;
-import aoms.pm.cast.domains.dsbd.RecommendationResources;
+import aoms.pm.cast.domains.dsbd.IslandMainAln;
 import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.dto.BdpsgAnceRawDto;
 import aoms.pm.cast.dto.ChknAlnAssignmentRawDto;
@@ -86,6 +86,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private static final int CARD_SLOT_MIN = 30;
 	private static final String DEP_TARGET_NM = "보안검색대";
 	private static final List<String> DEP_CARD_FCLT_CD_LIST = List.of("LGT", "SC", "SR");
+	private static final Comparator<AssignmentSummary> MAIN_ALN_ORDER = Comparator.comparingInt(AssignmentSummary::getAssignedCount).reversed().thenComparing(AssignmentSummary::getAlnCd);
 
 	private final CastDsbdMapper castDsbdMapper;
 	private final CastFltPsgMapper castFltPsgMapper;
@@ -280,7 +281,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(smltId);
 		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltId, tmnlId, smltStng.getExcnYmd());
-		RecommendationResources resources = getRecommendationResources(smltStng, fcltTmnlId, parseYmd(smltStng.getExcnYmd()).atStartOfDay().plusMinutes(bgnMinute));
+		IslandMainAln islandMainAln = retrieveIslandMainAln(smltStng, fcltTmnlId, parseYmd(smltStng.getExcnYmd()).atStartOfDay().plusMinutes(bgnMinute));
 
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, List.of("CC"))
 				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
@@ -289,7 +290,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
 		for (String unitCd : sortedByQueue(queueDay, bgnMinute)) {
-			result.add(getChknFcltCard(unitCd, queueDay, bgnMinute, unitMap.get(unitCd), unitList, resources, baseContext));
+			result.add(getChknFcltCard(unitCd, queueDay, bgnMinute, unitMap.get(unitCd), unitList, islandMainAln, baseContext));
 		}
 
 		return result;
@@ -323,21 +324,23 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				continue;
 			}
 
-			result.add(
-                new FcltUnitDto()
-					.withUnitCd(unitCd)
-					.withCgnStatus(queueDay.statusOf(
-                        queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN).getCurrentQueue(),
-                        gradeContext(baseContext, unitCd)
-                    ))
-					.withUseYn(unit.getOprCnt() > 0 ? "Y" : "N"));
+			int currentQueueCnt = queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN).getCurrentQueue();
+
+			result.add(new FcltUnitDto()
+                .withUnitCd(unitCd)
+                .withCgnStatus(queueDay.statusOf(
+                    currentQueueCnt,
+                    gradeContext(baseContext, unitCd)
+                ))
+                .withUseYn(unit.getOprCnt() > 0 ? "Y" : "N")
+            );
 		}
 
 		return result;
 	}
 
-	private DsbdFcltCardDto getChknFcltCard(String unitCd, ChknQueueDay queueDay, int bgnMinute, FcltUnitRawDto unit, List<FcltUnitDto> unitList, RecommendationResources resources, String baseContext) {
-		String unitContext = recommendContext(baseContext, FcltType.CHKN, unitCd);
+	private DsbdFcltCardDto getChknFcltCard(String unitCd, ChknQueueDay queueDay, int bgnMinute, FcltUnitRawDto unit, List<FcltUnitDto> unitList, IslandMainAln islandMainAln, String baseContext) {
+		String unitContext = unitContext(baseContext, FcltType.CHKN, unitCd);
 		FcltQueueClearance clearance = queueDay.clearanceOf(unitCd, bgnMinute, CARD_SLOT_MIN);
 
 		if (clearance == null) {
@@ -348,8 +351,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		FcltQueueClearance.Recommend recommend = clearance.recommendOf(FcltQueueClearance.DFLT_TARGET_MIN);
 		Integer reqCnt = recommend.getReqCnt();
 		int queuePsgCnt = slot.getCurrentQueue();
-		String targetName = reqCnt == null ? EMPTY : resources.getTargetName(unitCd, unitContext);
-		boolean needAssign = reqCnt != null && reqCnt > slot.getOprBoothCnt() && !targetName.isEmpty();
+		String mainAlnNm = reqCnt == null ? EMPTY : islandMainAln.getAlnNm(unitCd, unitContext);
+		boolean needAssign = reqCnt != null && reqCnt > slot.getOprBoothCnt() && !mainAlnNm.isEmpty();
 
 		DsbdFcltCardDto result = new DsbdFcltCardDto();
 		result.setCardId(FcltType.CHKN.getValue() + "-" + unitCd);
@@ -362,7 +365,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setWtngPsgCnt(queuePsgCnt);
 		applyClearance(result, clearance, recommend);
 		result.setCgnStatus(queueDay.statusOf(queuePsgCnt, gradeContext(baseContext, unitCd)));
-		result.setRecommend(getRecommend(targetName, reqCnt, needAssign));
+		result.setRecommend(getRecommend(mainAlnNm, reqCnt, needAssign));
 		result.setUnitList(unitList);
 
 		return result;
@@ -718,13 +721,17 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				.intValueExact();
 	}
 
-	private RecommendationResources getRecommendationResources(SmltStngDto smltStng, String fcltTmnlId, LocalDateTime bgnDt) {
+	private IslandMainAln retrieveIslandMainAln(SmltStngDto smltStng, String fcltTmnlId, LocalDateTime bgnDt) {
 		String resourceId = smltStng.getCknctAlctnRsrcId();
-		requireResourceId(resourceId, "CKNCT_ALCTN_RSRC_ID", smltStng);
+		
+        if (resourceId == null || resourceId.isEmpty()) {
+			throw new IllegalStateException("실행 리소스 정보를 찾을 수 없습니다. smltId=" + smltStng.getSmltId() + ", column=CKNCT_ALCTN_RSRC_ID");
+		}
+
 		List<ChknAlnAssignmentRawDto> assignmentList = castDsbdMapper.retrieveChknAlnAssignmentList(smltStng.getExcnYmd(), fcltTmnlId, bgnDt, resourceId);
 		Map<String, Integer> openCountMap = new LinkedHashMap<>();
 		Map<String, Integer> assignedCountMap = new LinkedHashMap<>();
-		Map<String, AssignmentSummary> targetMap = new LinkedHashMap<>();
+		Map<String, AssignmentSummary> mainAlnMap = new LinkedHashMap<>();
 
 		for (ChknAlnAssignmentRawDto assignment : assignmentList) {
 			String unitCd = normalizeUnitCd(assignment.getUnitCd());
@@ -745,11 +752,11 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 								+ ", unitCd=" + unitCd);
 			}
 			assignedCountMap.merge(unitCd, assignment.getAssignedCnt(), Integer::sum);
-			AssignmentSummary current = targetMap.get(unitCd);
-			if (current == null
-					|| assignment.getAssignedCnt() > current.getAssignedCount()
-					|| assignment.getAssignedCnt() == current.getAssignedCount() && alnCd.compareTo(current.getAlnCd()) < 0) {
-				targetMap.put(unitCd, new AssignmentSummary(alnCd, alnNm, assignment.getAssignedCnt()));
+			AssignmentSummary candidate = new AssignmentSummary(alnCd, alnNm, assignment.getAssignedCnt());
+			AssignmentSummary current = mainAlnMap.get(unitCd);
+
+			if (current == null || MAIN_ALN_ORDER.compare(candidate, current) < 0) {
+				mainAlnMap.put(unitCd, candidate);
 			}
 		}
 
@@ -767,13 +774,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			}
 		});
 
-		return new RecommendationResources(targetMap);
-	}
-
-	private void requireResourceId(String resourceId, String columnName, SmltStngDto smltStng) {
-		if (resourceId == null || resourceId.isEmpty()) {
-			throw new IllegalStateException("실행 리소스 정보를 찾을 수 없습니다. smltId=" + smltStng.getSmltId() + ", column=" + columnName);
-		}
+		return new IslandMainAln(mainAlnMap);
 	}
 
 	private String normalizeUnitCd(String unitCd) {
@@ -788,7 +789,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return baseContext + ", unitCd=" + unitCd;
 	}
 
-	private String recommendContext(String baseContext, FcltType fcltType, String unitCd) {
+	private String unitContext(String baseContext, FcltType fcltType, String unitCd) {
 		return baseContext + ", fcltType=" + fcltType.getValue() + ", unitCd=" + unitCd;
 	}
 
