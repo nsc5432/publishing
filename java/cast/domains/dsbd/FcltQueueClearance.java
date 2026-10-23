@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
+import lombok.Getter;
+
 import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.queue.ErlangCResult;
 import aoms.pm.cast.domains.queue.FacilityQueueCalculator;
@@ -59,57 +61,56 @@ public final class FcltQueueClearance {
 		return targetQueueCnt;
 	}
 
-	/** 유입률 lambda (명/시간) */
+	// 유입률 lambda (명/시간)
 	public Computed<Double> getArrival() {
 		return arrival;
 	}
 
-	/** 시설 1개 처리율 mu (명/시간) */
+	// 시설 1개 처리율 mu (명/시간)
 	public Computed<Double> getService() {
 		return service;
 	}
 
-	/** 현재 운영 수량 기준 부하율 rho = lambda / (s × mu). 1 을 넘을 수 있다 */
+	// 현재 운영 수량 기준 부하율 rho
 	public Computed<Double> getLoadRatio() {
 		return calculator.estimateLoadRatio(inputOf(source.getOprCnt()));
 	}
 
-	/** 관측구간 처리완료 인원의 시간당 환산 (명/시간) */
+	// 관측구간 처리완료 인원의 시간당 환산 (명/시간)
 	public Computed<Double> getThroughputPerHour() {
 		return calculator.getObservedThroughputPerHour(inputOf(source.getOprCnt()));
 	}
 
-	public Clear clearOf(Integer serverCnt) {
+	// 지정한 운영 수량으로 목표 대기인원까지의 해소시간
+	public ClearanceResult clearOf(Integer serverCnt) {
 		FacilityQueueInput input = inputOf(serverCnt);
 		Computed<Double> clearSec = calculator.estimateClearTimeSec(input, targetQueueCnt);
 
-		return new Clear(
-				serverCnt,
-				clearSec,
-				clearSec.hasValue() ? toClearDt(source.getObsEndDt(), clearSec.getValue()) : null,
-				calculator.estimateNextArrivalWaitSec(input),
-				calculator.analyzeErlangC(input));
+		return new ClearanceResult(
+            serverCnt,
+            clearSec,
+            clearSec.hasValue() ? toClearDt(source.getObsEndDt(), clearSec.getValue()) : null,
+            calculator.estimateNextArrivalWaitSec(input),
+            calculator.analyzeErlangC(input)
+        );
 	}
 
-	/**
-	 * 목표 해소시간 안에 Q* 까지 해소되는 총 소요 수량. 보유 수량을 넘어도 자르지 않는다.
-	 * 유입/처리 차이 계산 소요에 안정 하한 floor(lambda/mu)+1 을 적용한다 (정책 STABLE_MMS_FLUID_TARGET).
-	 */
+	/** 지정한 목표 시간으로 목표 대기인원까지 줄이는 데 필요한 운영 수량 */
 	public Recommend recommendOf(int targetMin) {
 		double targetSec = targetMin * SEC_PER_MIN;
-		Computed<Integer> fluid = calculator.estimateRequiredServerCnt(inputOf(source.getOprCnt()), targetQueueCnt, targetSec);
+		Computed<Integer> flowBasedReqCnt = calculator.estimateRequiredServerCnt(inputOf(source.getOprCnt()), targetQueueCnt, targetSec);
 		Integer stableMinCnt = toStableMinCnt();
 
-		if (!fluid.hasValue()) {
-			return new Recommend(targetMin, fluid, stableMinCnt, null, null, null);
+		if (!flowBasedReqCnt.hasValue()) {
+			return new Recommend(targetMin, flowBasedReqCnt, stableMinCnt, null, null, null);
 		}
 
-		// 기존 fluid 추천의 의미는 바꾸지 않고, 양의 유입에서 rho < 1 이 되도록 이번 정책으로만 하한을 둔다
-		int reqCnt = stableMinCnt == null ? fluid.getValue() : Math.max(fluid.getValue(), stableMinCnt);
-		Clear reqClear = clearOf(reqCnt);
+		// 기존 flowBasedReqCnt 추천의 의미는 바꾸지 않고, 양의 유입에서 rho < 1 이 되도록 이번 정책으로만 하한을 둔다
+		int reqCnt = stableMinCnt == null ? flowBasedReqCnt.getValue() : Math.max(flowBasedReqCnt.getValue(), stableMinCnt);
+		ClearanceResult reqClear = clearOf(reqCnt);
 		Boolean goalMet = reqClear.getClearSec().hasValue() ? reqClear.getClearSec().getValue() <= targetSec : null;
 
-		return new Recommend(targetMin, fluid, stableMinCnt, reqCnt, reqClear, goalMet);
+		return new Recommend(targetMin, flowBasedReqCnt, stableMinCnt, reqCnt, reqClear, goalMet);
 	}
 
 	private FacilityQueueInput inputOf(Integer serverCnt) {
@@ -156,15 +157,17 @@ public final class FcltQueueClearance {
 				.build();
 	}
 
-	/** 운영 수량 하나를 가정한 해소 결과. 기준시각은 관측구간 끝(Q0 스냅샷) */
-	public static final class Clear {
+	/** 지정한 운영 수량으로 계산한 해소시간 */
+	@Getter
+	public static final class ClearanceResult {
 		private final Integer serverCnt;
 		private final Computed<Double> clearSec;
+		/** 기준시각 + 해소 초(올림). 산정 불가 / 해소 불가 / 하루 초과면 null */
 		private final LocalDateTime clearDt;
 		private final Computed<Double> nextWtngSec;
 		private final Computed<ErlangCResult> erlang;
 
-		private Clear(
+		private ClearanceResult(
 				Integer serverCnt,
 				Computed<Double> clearSec,
 				LocalDateTime clearDt,
@@ -178,75 +181,31 @@ public final class FcltQueueClearance {
 			this.erlang = erlang;
 		}
 
-		public Integer getServerCnt() {
-			return serverCnt;
-		}
-
-		public Computed<Double> getClearSec() {
-			return clearSec;
-		}
-
-		/** 기준시각 + 해소 초(올림). 산정 불가 / 해소 불가 / 하루 초과면 null */
-		public LocalDateTime getClearDt() {
-			return clearDt;
-		}
-
 		/** 해소 분(올림). clearDt 가 null 이면 null */
 		public Integer getClearMin() {
 			return clearDt == null ? null : (int) Math.ceil(clearSec.getValue() / SEC_PER_MIN);
 		}
-
-		public Computed<Double> getNextWtngSec() {
-			return nextWtngSec;
-		}
-
-		public Computed<ErlangCResult> getErlang() {
-			return erlang;
-		}
 	}
 
+	@Getter
 	public static final class Recommend {
 		private final int targetMin;
-		private final Computed<Integer> fluid;
+		private final Computed<Integer> flowBasedReqCnt;
 		private final Integer stableMinCnt;
+		/** 최종 총 소요 수량 (현재 운영분 포함). 산정 불가면 null */
 		private final Integer reqCnt;
-		private final Clear reqClear;
+		/** 추천 수량을 적용했을 때의 해소 결과. reqCnt 가 null 이면 null */
+		private final ClearanceResult reqClear;
+		/** 추천 수량의 해소시간이 목표 이내인지. 검증할 수 없으면 null */
 		private final Boolean goalMet;
 
-		private Recommend(int targetMin, Computed<Integer> fluid, Integer stableMinCnt, Integer reqCnt, Clear reqClear, Boolean goalMet) {
+		private Recommend(int targetMin, Computed<Integer> flowBasedReqCnt, Integer stableMinCnt, Integer reqCnt, ClearanceResult reqClear, Boolean goalMet) {
 			this.targetMin = targetMin;
-			this.fluid = fluid;
+			this.flowBasedReqCnt = flowBasedReqCnt;
 			this.stableMinCnt = stableMinCnt;
 			this.reqCnt = reqCnt;
 			this.reqClear = reqClear;
 			this.goalMet = goalMet;
-		}
-
-		public int getTargetMin() {
-			return targetMin;
-		}
-
-		public Computed<Integer> getFluid() {
-			return fluid;
-		}
-
-		public Integer getStableMinCnt() {
-			return stableMinCnt;
-		}
-
-		/** 최종 총 소요 수량 (현재 운영분 포함). 산정 불가면 null */
-		public Integer getReqCnt() {
-			return reqCnt;
-		}
-
-		/** 추천 수량을 적용했을 때의 해소 결과. reqCnt 가 null 이면 null */
-		public Clear getReqClear() {
-			return reqClear;
-		}
-
-		/** 추천 수량의 해소시간이 목표 이내인지. 검증할 수 없으면 null */
-		public Boolean getGoalMet() {
-			return goalMet;
 		}
 	}
 }

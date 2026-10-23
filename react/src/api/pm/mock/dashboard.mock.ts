@@ -619,7 +619,7 @@ function toQueueRecommend(profile: QueueScenarioProfile, targetMin: number): Fcl
         reqCnt: null,
         extraCnt: null,
         reduceCnt: null,
-        fluidReqCnt: null,
+        flowBasedReqCnt: null,
         stableMinCnt: lambda === 0 ? 0 : mu === null ? null : Math.floor(lambda / mu + 1e-9) + 1,
         stableAplyYn: null,
         capaAvlYn: null,
@@ -629,16 +629,16 @@ function toQueueRecommend(profile: QueueScenarioProfile, targetMin: number): Fcl
 
     if (requiredRate > 0 && mu === null) return base;
 
-    const fluidReqCnt = requiredRate === 0 ? 0 : Math.max(1, Math.ceil(requiredRate / (mu ?? 1)));
-    const reqCnt = Math.max(fluidReqCnt, base.stableMinCnt ?? 0);
+    const flowBasedReqCnt = requiredRate === 0 ? 0 : Math.max(1, Math.ceil(requiredRate / (mu ?? 1)));
+    const reqCnt = Math.max(flowBasedReqCnt, base.stableMinCnt ?? 0);
 
     return {
         ...base,
         reqCnt,
         extraCnt: Math.max(reqCnt - profile.oprCnt, 0),
         reduceCnt: Math.max(profile.oprCnt - reqCnt, 0),
-        fluidReqCnt,
-        stableAplyYn: reqCnt > fluidReqCnt ? 'Y' : 'N',
+        flowBasedReqCnt,
+        stableAplyYn: reqCnt > flowBasedReqCnt ? 'Y' : 'N',
         capaAvlYn: profile.totCnt === null ? null : reqCnt <= profile.totCnt ? 'Y' : 'N',
         reqMetric: queueMetric('ESTIMATED', 'FLOW_BALANCE', '현재 운영분을 포함한 총 소요 수'),
     };

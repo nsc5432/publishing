@@ -437,7 +437,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private void applyClearance(DsbdFcltCardDto card, FcltQueueClearance clearance, FcltQueueClearance.Recommend recommend) {
 		Computed<Double> throughput = clearance.getThroughputPerHour();
 		Computed<Double> loadRatio = clearance.getLoadRatio();
-		FcltQueueClearance.Clear clear = recommend.getReqClear();
+		FcltQueueClearance.ClearanceResult clear = recommend.getReqClear();
 		Integer clearMin = clear == null ? null : clear.getClearMin();
 
 		card.setHrlyPrcsPsgCnt(throughput.hasValue() ? toRoundedInt(throughput.getValue()) : 0);

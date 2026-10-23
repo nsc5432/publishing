@@ -2,9 +2,12 @@ package aoms.pm.cast.domains.queue;
 
 import java.util.Objects;
 
+import lombok.Getter;
+
 /**
  * 계산값과 산출 방법을 관리.
  */
+@Getter
 public final class Computed<T> {
     private final T value;
     private final CalcOutcome status;
@@ -48,14 +51,8 @@ public final class Computed<T> {
         return value != null;
     }
 
-    public T getValue() { return value; }
-    public CalcOutcome getStatus() { return status; }
-    public CalculationMethod getMethod() { return method; }
-    public String getReason() { return reason; }
-
     @Override
     public String toString() {
-        return "Computed{value=" + value + ", status=" + status + ", method=" + method
-                + ", reason='" + reason + "'}";
+        return "Computed{value=" + value + ", status=" + status + ", method=" + method + ", reason='" + reason + "'}";
     }
 }

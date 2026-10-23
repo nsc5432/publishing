@@ -226,11 +226,11 @@ drainRatePerHour = s × μh − λh
 
 ```text
 targetTimeSec = 입력 분 × 60
-sFluid = estimateRequiredServerCnt(currentContext, Q*, targetTimeSec)
+flowBasedReqCnt = estimateRequiredServerCnt(currentContext, Q*, targetTimeSec)
        = ceil((λh + ΔQ × 3600 / targetTimeSec) / μh)
 
 sStableMin = λh > 0 ? floor(λh / μh) + 1 : 0
-reqCnt = max(sFluid, sStableMin)
+reqCnt = max(flowBasedReqCnt, sStableMin)
 additionalCnt = max(reqCnt − s0, 0)
 capacityFeasible = reqCnt ≤ 해당 큐의 배정가능 최대수
 ```

@@ -212,7 +212,7 @@ export interface FcltQueueRecommendDto {
     reqCnt: number | null;
     extraCnt: number | null;
     reduceCnt: number | null;
-    fluidReqCnt: number | null;
+    flowBasedReqCnt: number | null;
     stableMinCnt: number | null;
     stableAplyYn: YnFlag | null;
     capaAvlYn: YnFlag | null;

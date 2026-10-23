@@ -232,7 +232,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return new MaxCount(masterCnt, EMPTY);
 	}
 
-	private FcltQueueClearDto toClear(FcltQueueClearance.Clear clear) {
+	private FcltQueueClearDto toClear(FcltQueueClearance.ClearanceResult clear) {
 		Computed<Double> clearSec = clear.getClearSec();
 		Computed<Double> nextWtng = clear.getNextWtngSec();
 		Computed<ErlangCResult> erlang = clear.getErlang();
@@ -261,12 +261,12 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		Integer currentCnt = clearance.getSource().getOprCnt();
 		Integer totCnt = clearance.getSource().getTotCnt();
 		FcltQueueClearance.Recommend calculated = clearance.recommendOf(targetMin);
-		Computed<Integer> fluid = calculated.getFluid();
+		Computed<Integer> flowBasedReqCnt = calculated.getFlowBasedReqCnt();
 
 		FcltQueueRecommendDto recommend = new FcltQueueRecommendDto();
 		recommend.setTargetMin(targetMin);
-		recommend.setReqMetric(QueueMetricDto.of(fluid));
-		recommend.setFluidReqCnt(fluid.hasValue() ? fluid.getValue() : null);
+		recommend.setReqMetric(QueueMetricDto.of(flowBasedReqCnt));
+		recommend.setFlowBasedReqCnt(flowBasedReqCnt.hasValue() ? flowBasedReqCnt.getValue() : null);
 		recommend.setStableMinCnt(calculated.getStableMinCnt());
 		result.setRecommend(recommend);
 
@@ -277,7 +277,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		}
 
 		recommend.setReqCnt(reqCnt);
-		recommend.setStableAplyYn(reqCnt > fluid.getValue() ? "Y" : "N");
+		recommend.setStableAplyYn(reqCnt > flowBasedReqCnt.getValue() ? "Y" : "N");
 
 		if (currentCnt != null) {
 			recommend.setExtraCnt(Math.max(reqCnt - currentCnt, 0));
