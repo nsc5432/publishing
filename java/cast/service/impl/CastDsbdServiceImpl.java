@@ -385,12 +385,16 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				continue;
 			}
 
-			result.add(new FcltUnitDto()
-					.withUnitCd(unitCd)
-					.withCgnStatus(gradeScale.statusOf(
-							queueOf(window.sourceOf(unitCd)),
-							gradeContext(baseContext, unitCd)))
-					.withUseYn(unit.getOprCnt() > 0 ? "Y" : "N"));
+			result.add(
+                new FcltUnitDto()
+                    .withUnitCd(unitCd)
+                    .withCgnStatus(
+                        gradeScale.statusOf(
+                            queueOf(window.sourceOf(unitCd)), gradeContext(baseContext, unitCd)
+                        )
+                    )
+                    .withUseYn(unit.getOprCnt() > 0 ? "Y" : "N")
+            );
 		}
 
 		return result;

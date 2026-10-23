@@ -9,7 +9,7 @@ import java.util.List;
 
 /**
  * @Classname : ChknQueueSeries.java
- * @Description : 아일랜드 1곳의 하루치 공용 Queue 분 단위 궤적
+ * @Description : 아일랜드 1곳의 하루치 공용 Queue 분 단위
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
@@ -64,7 +64,7 @@ public final class ChknQueueSeries {
 		int[] capacity = new int[MINUTE_PER_DAY];
 		long[] waitMinSum = new long[MINUTE_PER_DAY];
 		long[] prcsSecSum = new long[MINUTE_PER_DAY];
-		long[] waitDistribution = new long[MINUTE_PER_DAY + 1];
+		long[] waitDistribution = new long[MINUTE_PER_DAY];
 		List<String> warningList = new ArrayList<>();
 
 		for (ChknQueueSeries series : seriesList) {
@@ -77,7 +77,7 @@ public final class ChknQueueSeries {
 				prcsSecSum[minute] += series.prcsSecSum[minute];
 			}
 
-			for (int wait = 0; wait <= MINUTE_PER_DAY; wait++) {
+			for (int wait = 0; wait < MINUTE_PER_DAY; wait++) {
 				waitDistribution[wait] += series.waitDistribution[wait];
 			}
 

@@ -159,9 +159,10 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 
 			int minute = Math.toIntExact(Duration.between(baseDate.atStartOfDay(), raw.getSmltActlDt()).toMinutes());
 
-			result.computeIfAbsent(island, ignored -> new TreeMap<>())
-					.computeIfAbsent(minute, ignored -> new ArrayList<>())
-					.add(raw);
+			result
+                .computeIfAbsent(island, ignored -> new TreeMap<>())
+                .computeIfAbsent(minute, ignored -> new ArrayList<>())
+                .add(raw);
 		}
 
 		return result;
