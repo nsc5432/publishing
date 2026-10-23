@@ -1,0 +1,20 @@
+Tool: built-in image_gen.imagegen
+transparent_background: false
+
+Create a polished, exceptionally readable Korean educational infographic as an actual image, portrait format about 1800x2400 or larger. This is page 1 of 2 explaining an existing Java method ChknQueueCalculator.calculate, not code to implement. All text Korean except exact code identifiers and formulas. White/offwhite background, dark navy typography, restrained blue for arrivals, teal for processing, amber for waiting, lots of whitespace. Use precise crisp Hangul, large text, clear numbered arrows, explanatory airport check-in queue pictograms. No meaningless decoration. Title: "calculate, 대기열을 다시 만드는 과정". Subtitle: "구간별 결과 → 1분 단위 유입 → 선입선출 처리 → 하루치 배열". Make the explanation easy enough for a junior developer.
+
+Layout sequential top to bottom with clear nested loop framing and one compact side note column if useful. Required accurate content:
+1. "입력과 준비" (code L44–65). Inputs island, intervalList (구간별 종료 대기인원·처리인원·처리시간·부스 수), assignedBoothCnt (1,440분 배정 부스), fallbackPrcsSec (대체 처리시간). "구간을 시작 시각순 정렬". "대기열 0명, 직전 원본 종료 대기 0명, 소수 이월 carry=0". Output arrays length1440; distribution length1441, keep exact but can put output below.
+Outer frame label "각 구간마다 반복 · L67–108".
+2. "유입 인원을 거꾸로 계산". Formula in a big legible box: "유입 = 이번 원본 종료 대기 − 직전 원본 종료 대기 + 이번 원본 처리인원". Helpful explanation "줄이 늘어난 만큼 + 이미 처리해 나간 만큼 = 새로 온 사람". If negative, "음수면 경고 후 0명". Advance previous original endpoint for next interval. "하루 범위로 자르고, 유효한 시간이 없으면 건너뜀".
+3. "처리속도와 유입 배분 결정". Processing-time fallback chain: "현재 구간의 양수 처리시간 → 시작 시각 기준 이전 60분 구간의 처리인원 가중평균 → 양수 fallback → 없음". Weight only positive processing-time and positive processed-count records. Tiny readable formula "가중평균 = Σ(처리시간 × 처리인원) ÷ Σ처리인원". Arrivals: "유입 ÷ 원래 구간 길이의 몫을 매분 배분 / 나머지는 앞쪽 분에 1명씩".
+Inner frame label "구간 안에서 1분마다 반복 · L109–150".
+4. "이번 분에 처리할 수 있는 인원". "부스 = max(그 분 배정 부스, 구간 activeBoothCnt)". Capacity branch chain: "처리시간 있고 부스>0 → 부스 × 60 ÷ 처리시간(초)" ; "그 외 원본 처리인원>0 → 원본 처리인원 ÷ 원래 구간 길이(분)" ; "둘 다 안 되면 0". "carry에 용량을 더하고 정수 부분만 사용, 소수만 다음 분으로 이월".
+5. "유입을 줄 뒤에 넣고, 먼저 온 사람부터 처리". Draw arrivals → FIFO queue groups labeled "[도착 분, 인원]" → counter. Formula "실제 처리 = min(현재 대기 + 이번 유입, 이번 처리용량)". "도착 묶음별 대기시간 = 현재 분 − 도착 분". "남은 대기 = 현재 대기 + 이번 유입 − 실제 처리".
+6. "이번 분 결과 저장". Compact exact mapping: "queue: 처리 후 남은 인원 / processed: 실제 처리인원 / boothCnt: 적용 부스 / capacity: 정수 처리용량 / waitMinSum: 처리된 사람들의 대기시간 합 / prcsSecSum: 처리인원 × 적용 평균 처리초 / waitDistribution: 대기시간별 처리인원". Formula for applied processing seconds compact note: "적용 평균 처리초 = 부스 × 60 ÷ 분당 처리량 (반올림, 계산 불가 시 0)". Output "ChknQueueSeries 반환 · L154".
+Bottom 3 key accurate cautions in a quiet strip titled "이 부분이 중요해요": "원본 종료 대기인원을 그대로 복사하지 않고 유입만 역산합니다." "매분 유입 후 처리하므로 같은 분에 온 사람은 대기 0분도 가능합니다." "구간이 바뀌어도 남은 줄·도착 묶음·carry는 이어집니다. 빈 정수 처리용량은 이월하지 않습니다."
+Footer "현재 로컬 코드 기준 · ChknQueueCalculator.java L44–155 · 보조 계산 L157–218".
+Prioritize readability; fewer words can be shortened semantically but every formula and ordering must be correct. Do not depict activeBoothCnt being capped to assigned; actual code takes max. No charts inventing data. No claim that all1440minutes are iterated; arrays have1440 indices but only interval-covered minutes processed.
+
+The separate numeric example image was drawn deterministically using Pillow.
+Its editable source is draw-example.py in this directory.
