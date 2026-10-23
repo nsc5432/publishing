@@ -73,9 +73,9 @@ public final class FcltQueueClearance {
 		return calculator.estimateLoadRatio(inputOf(source.getOprCnt()));
 	}
 
-	// 관측구간 처리완료 인원의 시간당 환산 (명/시간)
-	public Computed<Double> getThroughputPerHour() {
-		return calculator.getObservedThroughputPerHour(inputOf(source.getOprCnt()));
+	// 시설 전체에 대한 처리율 (명/시간)
+	public Computed<Double> getObservedPrcsPerHour() {
+		return calculator.getObservedPrcsPerHour(inputOf(source.getOprCnt()));
 	}
 
 	// 지정한 운영 수량으로 목표 대기인원까지의 해소시간

@@ -180,7 +180,7 @@ public final class FacilityQueueCalculator {
     }
 
     // 구간 완료인원 / 구간초 × 3600(명/시간)
-    public Computed<Double> getObservedThroughputPerHour(FacilityQueueInput input) {
+    public Computed<Double> getObservedPrcsPerHour(FacilityQueueInput input) {
         Objects.requireNonNull(input, "input");
         if (input.getPrcsPsgCnt() == null) {
             return Computed.unavailable(CalculationMethod.OBSERVED_FLOW, "구간 처리 완료인원이 없습니다.");

@@ -3,8 +3,6 @@ package aoms.pm.cast.service.impl;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -425,16 +423,15 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	/*
-	 * 카드 값은 혼잡해소 팝업의 첫 화면(TIME 모드 / 목표 30분)과 같은 계산이다.
-	 * 해소값은 보유 수량을 넘어도 추천 수량을 가정한다 — 팝업은 그때 최대수 전량 배정 결과를 따로 보여준다.
+	 * 해소값은 보유 수량을 넘어도 추천 수량을 가정
 	 */
 	private void applyClearance(DsbdFcltCardDto card, FcltQueueClearance clearance, FcltQueueClearance.Recommend recommend) {
-		Computed<Double> throughput = clearance.getThroughputPerHour();
+		Computed<Double> prcsPerHour = clearance.getObservedPrcsPerHour();
 		Computed<Double> loadRatio = clearance.getLoadRatio();
 		FcltQueueClearance.ClearanceResult clear = recommend.getReqClear();
 		Integer clearMin = clear == null ? null : clear.getClearMin();
 
-		card.setHrlyPrcsPsgCnt(throughput.hasValue() ? toRoundedInt(throughput.getValue()) : 0);
+		card.setHrlyPrcsPsgCnt(prcsPerHour.hasValue() ? toRoundedInt(prcsPerHour.getValue()) : 0);
 		card.setHrlyPrcsRate(loadRatio.hasValue() ? toRoundedInt(loadRatio.getValue() * 100) : 0);
 		card.setCgnClearTime(clearMin == null ? EMPTY : clear.getClearDt().format(DateTimeFormatter.ofPattern("HHmm")));
 		card.setCgnClearRate(clearMin == null ? 0 : toClearRate(clearMin));
@@ -452,10 +449,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private int toClearRate(int clearMin) {
 		int remainingMinutes = Math.max(FcltQueueClearance.DFLT_TARGET_MIN - clearMin, 0);
 
-		return BigDecimal.valueOf(remainingMinutes)
-				.multiply(BigDecimal.valueOf(100))
-				.divide(BigDecimal.valueOf(FcltQueueClearance.DFLT_TARGET_MIN), 0, RoundingMode.HALF_UP)
-				.intValueExact();
+		return remainingMinutes * 100 / FcltQueueClearance.DFLT_TARGET_MIN;
 	}
 
 	private int toRoundedInt(double value) {
@@ -706,10 +700,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			return 0;
 		}
 
-		return BigDecimal.valueOf(fltSmry.getActlBrdgPsgCnt())
-				.multiply(BigDecimal.valueOf(100))
-				.divide(BigDecimal.valueOf(fltSmry.getRsvtBrdgPsgCnt()), 0, RoundingMode.HALF_UP)
-				.intValueExact();
+		return Math.toIntExact(fltSmry.getActlBrdgPsgCnt() * 100L / fltSmry.getRsvtBrdgPsgCnt());
 	}
 
 	private IslandMainAln retrieveIslandMainAln(SmltStngDto smltStng, String fcltTmnlId, LocalDateTime bgnDt) {

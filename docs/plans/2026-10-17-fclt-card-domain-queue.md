@@ -26,7 +26,7 @@
 | 추천 개수 | 팝업 기본값과 같다. 목표 해소시간 30분(`DFLT_TARGET_MIN`) + 안정 하한 `floor(λ/μ)+1` (`STABLE_MMS_FLUID_TARGET`) |
 | 혼잡해소 예상 | **추천 수량을 적용했을 때**의 해소값. 팝업 TIME 모드 기본 시나리오와 같다 |
 | 보유 수량 초과 | 추천 수량을 자르지 않고, 해소값도 추천 수량을 가정해 계산한다. 팝업의 `totScenario`는 팝업에서만 보여준다 |
-| 시간당 처리율 | 중앙 숫자는 슬롯 처리인원의 시간당 환산(`getObservedThroughputPerHour`), 링은 부하율 ρ = λ/(s·μ) (`estimateLoadRatio`) |
+| 시간당 처리율 | 중앙 숫자는 슬롯 처리인원의 시간당 환산(`getObservedPrcsPerHour`), 링은 부하율 ρ = λ/(s·μ) (`estimateLoadRatio`) |
 | 출국장 예상인원·등급 | SC+SR 슬롯 끝 Q0. 카드 혼잡등급과 칩 색도 같은 값으로 낸다. LGT는 빠진다 |
 | 산정 불가 | 그 값만 `-`로 표시한다. `FcltRecommendDto.reqCnt`는 nullable이 되고, 다른 카드와 다른 값은 그대로 그린다 |
 | 혼잡해소 게이지 | `max(30 − 해소분, 0) / 30`. 해소분이 0이면 100%, 산정 불가면 0 |
@@ -61,7 +61,7 @@
 평가기의 시나리오 계산 메서드를 수량만 바꿔 다시 부른다. 팝업 응답 값은 바뀌지 않아야 한다(회귀 기준).
 
 `FcltQueueSource`에 처리완료 인원(`prcsPsgCnt`)을 추가하고 `toScenarioInput`에 실어 보낸다.
-`getObservedThroughputPerHour`가 이 값을 쓴다.
+`getObservedPrcsPerHour`가 이 값을 쓴다.
 
 ### 4.2 원천 어댑터
 
@@ -147,7 +147,7 @@ grep으로 다시 확인하고, 이 패키지에서 어디서도 쓰지 않는 �
 - `estimateServiceRatePerHour`
 - `estimateClearTimeSec` → `estimateNetDrainRatePerHour` → `estimateCapacityPerHour`, `estimateArrivalRatePerHour`
 - `estimateNextArrivalWaitSec`, `analyzeErlangC`, `estimateRequiredServerCnt`
-- 새로 쓰는 것: `estimateLoadRatio`, `getObservedThroughputPerHour`
+- 새로 쓰는 것: `estimateLoadRatio`, `getObservedPrcsPerHour`
 - `getIntervalSeconds`
 
 **삭제 후보 — 메서드**
@@ -313,7 +313,7 @@ Xovis 적용 전에 확인할 것:
 
 | 무엇 | 어디 |
 |---|---|
-| 공용 평가기 | `domains/dsbd/FcltQueueClearance` — `clearOf(s)`, `recommendOf(목표분)`, `getLoadRatio`, `getThroughputPerHour`, `toTargetQueueCnt` |
+| 공용 평가기 | `domains/dsbd/FcltQueueClearance` — `clearOf(s)`, `recommendOf(목표분)`, `getLoadRatio`, `getObservedPrcsPerHour`, `toTargetQueueCnt` |
 | 원천 | `FcltQueueSource`에 `tmnlId` · `fcltType` · `unitCd` · `prcsPsgCnt` 추가, `toBuilder` 사용. `toScenarioInput`은 `totServerCnt`를 싣지 않는다 (추천 수량이 보유 수량을 넘어도 계산해야 해서) |
 | 체크인 어댑터 | `ChknQueueDay.sourceOf` / `clearanceOf` / `recommendOf`. 생성자에 터미널 · 기준일자 추가 |
 | 출국장 어댑터 | `domains/dsbd/DepQueueWindow` + `CastDepQueueService`. 결과 · 보안검색 운영표를 터미널 단위로 한 번씩 조회 |

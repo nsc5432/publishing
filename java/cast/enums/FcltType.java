@@ -5,8 +5,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 /**
- * 화면이 쓰는 여객시설 구분.
- * DB 의 UP_PSG_FCLT_CD 는 19종이라 1:1 이 아니다 — 화면 묶음 단위로 접는다.
+ * 여객시설 구분.
  */
 public enum FcltType {
 	CHKN("CHKN"), // 체크인카운터
