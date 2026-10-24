@@ -77,6 +77,11 @@ const FCLT_TYPE_TO_KIND: Partial<Record<FcltType, FacilityKind>> = {
     CMRC: 'store',
 };
 
+/** 산정 불가(null)는 3색에 넣지 않는다 */
+function toLevel(cgnStatus: CongestionStatus | null): CongestionLevel | null {
+    return cgnStatus === null ? null : CONGESTION_TO_LEVEL[cgnStatus];
+}
+
 function toSummary(summary: MapSmryDto): HeaderSummary {
     return { flight: formatCount(summary.fltCnt), pax: formatCount(summary.psgCnt) };
 }
@@ -110,7 +115,7 @@ function toOperCards(cardList: MapOperCardDto[]): OperCard[] {
 
 function toNotice(notice: MapNoticeDto): NoticeData {
     return {
-        level: CONGESTION_TO_NOTICE_LEVEL[notice.cgnStatus],
+        level: notice.cgnStatus === null ? null : CONGESTION_TO_NOTICE_LEVEL[notice.cgnStatus],
         items: notice.itemList.map((item) => ({
             id: item.fcltCd,
             facility: item.fcltNm,
@@ -127,7 +132,7 @@ function toRsltMap<T extends MapUnitRsltDto>(rsltList: T[]): Map<string, T> {
 
 /**
  * 혼잡도를 함께 그리는 마커 (아일랜드 / 출국장이 같은 모양이다).
- * 마커는 자리만 알고 색은 그 시각 결과에서 온다 — 결과가 없는 시각은 원활로 둔다.
+ * 마커는 자리만 알고 색은 그 시각 결과에서 온다 — 결과가 없거나 산정 불가인 시각은 중립색이다.
  */
 function toCongestionMarker(
     terminal: TerminalKind,
@@ -135,7 +140,7 @@ function toCongestionMarker(
     marker: MapMarkerDto,
     rslt: MapUnitRsltDto | undefined,
 ): IslandMarker & DepGateMarker {
-    const cgnStatus = rslt?.cgnStatus ?? 'NORMAL';
+    const cgnStatus = rslt?.cgnStatus ?? null;
     const point = toPlanPoint(terminal, kind, marker.label, {
         x: marker.cdntX,
         y: marker.cdntY,
@@ -144,7 +149,7 @@ function toCongestionMarker(
     return {
         id: marker.markerId,
         label: marker.label,
-        level: CONGESTION_TO_LEVEL[cgnStatus],
+        level: toLevel(cgnStatus),
         cgnStatus,
         ...point,
     };
@@ -191,7 +196,7 @@ function toIslandDetail(info: MapChknInfoDto, rslt: MapChknRsltDto | undefined):
         id: info.island,
         title: `${info.island}아일랜드`,
         code: info.fcltCd,
-        level: CONGESTION_TO_LEVEL[rslt?.cgnStatus ?? 'NORMAL'],
+        level: toLevel(rslt?.cgnStatus ?? null),
         facilities: info.fcltList.map((fclt) => ({
             kind: FCLT_TYPE_TO_KIND[fclt.fcltType] ?? 'counter',
             name: fclt.fcltNm,
@@ -219,7 +224,7 @@ function toFacilityDetail(rslt: MapUnitRsltDto): FacilityDetail {
     return {
         id: `dg${rslt.unitCd}`,
         title: DPTGT_TITLE_PREFIX + rslt.unitCd,
-        level: CONGESTION_TO_LEVEL[rslt.cgnStatus],
+        level: toLevel(rslt.cgnStatus),
         stats: toStats(rslt.stat),
     };
 }
@@ -282,7 +287,7 @@ export const EMPTY_MAP_DATA: TerminalMapData = {
 
 export const EMPTY_SUMMARY: HeaderSummary = { flight: '-', pax: '-' };
 
-export const EMPTY_NOTICE: NoticeData = { level: 'normal', items: [] };
+export const EMPTY_NOTICE: NoticeData = { level: null, items: [] };
 
 /** 응답 전이거나 슬롯에 없는 시각 */
 export const EMPTY_MAP_SLOT: MapSlot = {

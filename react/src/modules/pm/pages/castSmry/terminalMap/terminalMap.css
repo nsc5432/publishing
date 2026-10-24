@@ -265,6 +265,10 @@ html[data-page='terminalMap'] .notice--normal {
     --c-notice: #2f7ff0;
 }
 
+html[data-page='terminalMap'] .notice--unknown {
+    --c-notice: #8a93a3;
+}
+
 html[data-page='terminalMap'] .notice--busy {
     --c-notice: #f47b20;
 }
@@ -567,6 +571,12 @@ html[data-page='terminalMap'] .marker--dep-gate[data-congestion='BUSY'] {
 
 html[data-page='terminalMap'] .marker--dep-gate[data-congestion='VERY_BUSY'] {
     background: var(--c-red);
+}
+
+/* 혼잡도 산정 불가 (직전 30분 미관측 / 처리 여객 0명) — 등급 색과 구분되는 중립색 */
+html[data-page='terminalMap'] .marker--dep-gate:not([data-congestion]),
+html[data-page='terminalMap'] .marker--island.is-unknown {
+    background: #9aa3b2;
 }
 
 html[data-page='terminalMap'] .marker--island {
@@ -891,6 +901,11 @@ html[data-page='terminalMap'] .state-badge--normal {
     background: var(--c-green);
 }
 
+html[data-page='terminalMap'] .sec-head--unknown .sec-head__title::before,
+html[data-page='terminalMap'] .state-badge--unknown {
+    background: #9aa3b2;
+}
+
 /* 지표 ------------------------------------------------------------------ */
 html[data-page='terminalMap'] .stat {
     display: grid;
@@ -1088,7 +1103,8 @@ html[data-page='terminalMap'] .ico-calendar {
 html[data-page='terminalMap'] .ico-notice-easy,
 html[data-page='terminalMap'] .ico-notice-normal,
 html[data-page='terminalMap'] .ico-notice-busy,
-html[data-page='terminalMap'] .ico-notice-severe {
+html[data-page='terminalMap'] .ico-notice-severe,
+html[data-page='terminalMap'] .ico-notice-unknown {
     width: 30px;
     height: 30px;
     background-color: transparent;
@@ -1111,6 +1127,11 @@ html[data-page='terminalMap'] .ico-notice-busy {
 
 html[data-page='terminalMap'] .ico-notice-severe {
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M8.1 1.6h7.8l5.5 5.5v7.8l-5.5 5.5H8.1l-5.5-5.5V7.1z' fill='%23e12b2b'/%3E%3Cpath d='M12 6.2v6.4M12 16.4v.1' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");
+}
+
+/* 산정 불가: 회색 원 + 가로줄 */
+html[data-page='terminalMap'] .ico-notice-unknown {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10' fill='%238a93a3'/%3E%3Cpath d='M7.5 12h9' stroke='%23fff' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E");
 }
 
 html[data-page='terminalMap'] .ico-close {

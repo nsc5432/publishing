@@ -1,5 +1,12 @@
 import { NoticeWarnIcon } from '@/components/icons';
-import { NOTICE_LEVEL, type ChknKpi, type ChknSummaryItem, type NoticeData } from '../types';
+import {
+    NOTICE_LEVEL,
+    UNKNOWN_NOTICE,
+    toLevelKey,
+    type ChknKpi,
+    type ChknSummaryItem,
+    type NoticeData,
+} from '../types';
 
 interface SummaryBarProps {
     summary: ChknSummaryItem[];
@@ -14,7 +21,7 @@ interface SummaryBarProps {
  * ("이만큼 열어서 이만큼 기다린다"). 알림만 타임라인을 따라 바뀐다.
  */
 export function SummaryBar({ summary, kpis, notice }: SummaryBarProps) {
-    const preset = NOTICE_LEVEL[notice.level];
+    const preset = notice.level === null ? UNKNOWN_NOTICE : NOTICE_LEVEL[notice.level];
 
     return (
         <section className="chkn-summary">
@@ -47,7 +54,7 @@ export function SummaryBar({ summary, kpis, notice }: SummaryBarProps) {
                 </ul>
             </div>
 
-            <div className={`chkn-notice chkn-notice--${notice.level}`}>
+            <div className={`chkn-notice chkn-notice--${toLevelKey(notice.level)}`}>
                 <h2 className="chkn-notice__badge">
                     <NoticeWarnIcon
                         className="chkn-notice__ico"

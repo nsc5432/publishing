@@ -1,6 +1,6 @@
 import { formatCount } from '@/lib/format';
 import { toWaitMin } from '../view';
-import { CONGESTION_LABEL, type ChknIslandView } from '../types';
+import { toLevelKey, toLevelLabel, type ChknIslandView } from '../types';
 
 interface IslandTableProps {
     islands: ChknIslandView[];
@@ -61,8 +61,8 @@ export function IslandTable({ islands, time }: IslandTableProps) {
                                     {island.isClosed ? (
                                         <span className="state-badge state-badge--off">미운영</span>
                                     ) : (
-                                        <span className={`state-badge state-badge--${island.level}`}>
-                                            {CONGESTION_LABEL[island.level]}
+                                        <span className={`state-badge state-badge--${toLevelKey(island.level)}`}>
+                                            {toLevelLabel(island.level)}
                                         </span>
                                     )}
                                 </td>

@@ -11,6 +11,6 @@ public class MapChknRsltDto extends MapUnitRsltDto {
 	private int avgQueuePsgCnt; // 30분 평균 Queue 인원 (명)
 	private int maxQueuePsgCnt; // 30분 최대 Queue 인원 (명)
 	private int oprBoothCnt; // 슬롯 마지막 운영 부스 수 (개)
-	private Integer reqCnt; // NORMAL 이하를 위한 총 소요 부스 수 — 산정 불가면 null
-	private Integer cgnClearMin; // 추천 적용 후 NORMAL 도달 예상 분 — 산정 불가면 null
+	private Integer reqCnt; // 처리 여객 평균 대기시간 NORMAL 이하를 위한 총 소요 부스 수 (평가시각 hhmm 기준) — 산정 불가면 null
+	private Integer cgnClearMin; // 추천 적용 후 NORMAL 도달 예상 분 (평가시각 hhmm 부터) — 산정 불가면 null
 }

@@ -1,4 +1,4 @@
-import { CONGESTION_LABEL, type DepGateCard } from '../types';
+import { toLevelKey, toLevelLabel, type DepGateCard } from '../types';
 
 interface DepTableViewProps {
     cards: DepGateCard[];
@@ -53,8 +53,8 @@ export function DepTableView({ cards, time }: DepTableViewProps) {
                             <tr key={card.id}>
                                 <th scope="row">{card.title}</th>
                                 <td>
-                                    <span className={`state-badge state-badge--${card.level}`}>
-                                        {CONGESTION_LABEL[card.level]}
+                                    <span className={`state-badge state-badge--${toLevelKey(card.level)}`}>
+                                        {toLevelLabel(card.level)}
                                     </span>
                                 </td>
                                 {card.stats.map((stat) => (

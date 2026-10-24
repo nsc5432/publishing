@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -71,18 +72,28 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		Map<String, List<UserConfigChknDto>> boothListByIsland = castChknService.retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
 		Map<String, Map<Integer, List<ChknQueueRawDto>>> rawListByIslandAndMinute = groupByIslandAndMinute(rawList, baseDate);
 		BigDecimal tmnlAvgPrcsSec = weightedPrcsSec(rawList);
+		TreeSet<Integer> resultMinuteSet = toResultMinuteSet(rawListByIslandAndMinute);
+		int originMinute = resultMinuteSet.isEmpty() ? 0 : Math.max(Math.min(resultMinuteSet.first(), 0), -MINUTE_PER_DAY);
 		Map<String, ChknQueueSeries> seriesByIsland = new LinkedHashMap<>();
 
 		for (String island : boothListByIsland.keySet()) {
 			seriesByIsland.put(island, ChknQueueCalculator.calculate(
-                island, 
-                toIntervalList(rawListByIslandAndMinute.getOrDefault(island, Map.of())), 
-                toAssignedBoothCnt(boothListByIsland.get(island)), 
-                tmnlAvgPrcsSec
+                island,
+                toIntervalList(rawListByIslandAndMinute.getOrDefault(island, Map.of())),
+                toAssignedBoothCnt(boothListByIsland.get(island)),
+                tmnlAvgPrcsSec,
+                originMinute
             ));
 		}
 
-		ChknQueueDay result = new ChknQueueDay(tmnlId, baseDate, seriesByIsland, castCgnGradeService.retrieveGradeScale(FcltType.CHKN, context));
+		ChknQueueDay result = new ChknQueueDay(
+                tmnlId,
+                baseDate,
+                originMinute,
+                toCovered(resultMinuteSet, originMinute),
+                seriesByIsland,
+                castCgnGradeService.retrieveGradeScale(FcltType.CHKN, context)
+        );
 
 		for (String warning : result.warningList()) {
 			log.warn("체크인 공용 Queue 계산 보정: {}, {}", context, warning);
@@ -163,6 +174,44 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
                 .computeIfAbsent(island, ignored -> new TreeMap<>())
                 .computeIfAbsent(minute, ignored -> new ArrayList<>())
                 .add(raw);
+		}
+
+		return result;
+	}
+
+	private TreeSet<Integer> toResultMinuteSet(Map<String, Map<Integer, List<ChknQueueRawDto>>> rawListByIslandAndMinute) {
+		TreeSet<Integer> result = new TreeSet<>();
+
+		rawListByIslandAndMinute.values().forEach(rawListByMinute -> result.addAll(rawListByMinute.keySet()));
+
+		return result;
+	}
+
+	/*
+	 * 결과 시각 m 은 구간 [m, m + 결과 간격) 을 덮는다. 결과 간격은 터미널 CC 결과 시각의 최소 간격이며,
+	 * 그보다 벌어진 시각 사이와 마지막 결과 뒤(꼬리 구간)는 관측하지 않은 구간으로 둔다.
+	 */
+	private boolean[] toCovered(TreeSet<Integer> resultMinuteSet, int originMinute) {
+		boolean[] result = new boolean[MINUTE_PER_DAY - originMinute];
+		int stepMin = Integer.MAX_VALUE;
+		Integer previous = null;
+
+		for (int minute : resultMinuteSet) {
+			if (previous != null) {
+				stepMin = Math.min(stepMin, minute - previous);
+			}
+
+			previous = minute;
+		}
+
+		if (stepMin == Integer.MAX_VALUE) {
+			stepMin = DEFAULT_INTRVL_MIN;
+		}
+
+		for (int minute : resultMinuteSet) {
+			for (int covered = Math.max(minute, originMinute); covered < Math.min(minute + stepMin, MINUTE_PER_DAY); covered++) {
+				result[covered - originMinute] = true;
+			}
 		}
 
 		return result;

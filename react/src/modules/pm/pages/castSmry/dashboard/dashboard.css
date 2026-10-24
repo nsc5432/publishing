@@ -534,6 +534,46 @@ html[data-page='dashboard'] .panel-red {
     --title: #b91c1c;
 }
 
+/* 혼잡도 산정 불가 (조회 시각에 처리 여객 평균을 낼 수 있는 시설이 없음) — 등급 색과 구분되는 중립 테마 */
+html[data-page='dashboard'] .panel-gray {
+    --acc: #6b7484;
+    --acc-soft: #8a93a3;
+    --title: #5b6372;
+}
+
+html[data-page='dashboard'] .panel-gray .wm {
+    opacity: 0.12;
+}
+
+html[data-page='dashboard'] .panel-gray .p-iconbox {
+    background: linear-gradient(180deg, #a4acb9 0%, #8a93a3 50%, #6b7484 100%);
+}
+
+html[data-page='dashboard'] .panel-gray .p-peak {
+    border-color: #d3d7de;
+}
+
+html[data-page='dashboard'] .panel-gray .peak-badge {
+    background: #eceef2;
+}
+
+html[data-page='dashboard'] .panel-gray .p-bar {
+    background: linear-gradient(90deg, #6b7484 0%, #8a93a3 60%, #a4acb9 100%);
+}
+
+html[data-page='dashboard'] .panel-gray .sum-info {
+    background: linear-gradient(102deg, #f1f3f6 0%, #e6e9ee 20%, #f5f6f8 70%, #fafbfc 100%);
+    border-color: #d3d7de;
+}
+
+html[data-page='dashboard'] .panel-gray .fclt-card-head .plus {
+    background: #eceef2;
+}
+
+html[data-page='dashboard'] .panel-gray .rec {
+    background: #f1f3f6;
+}
+
 /* --- panel top --- */
 html[data-page='dashboard'] .p-top {
     display: flex;

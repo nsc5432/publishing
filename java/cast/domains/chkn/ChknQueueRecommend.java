@@ -26,12 +26,12 @@ public final class ChknQueueRecommend {
 		this.cgnClearMin = cgnClearMin;
 	}
 
-	/** 현재 슬롯이 이어진다고 볼 때 30분 안에 NORMAL 이하로 해소되는 총 소요 부스 수 (현재 운영분 포함) */
+	/** 직전 30분 유입이 이어진다고 볼 때 30분 안에 처리 여객 평균 대기시간이 NORMAL 이하가 되는 총 소요 부스 수 (현재 운영분 포함) */
 	public Integer getReqCnt() {
 		return reqCnt;
 	}
 
-	/** 추천 부스를 적용했을 때 슬롯 끝부터 NORMAL 이하가 되는 경과 분 (올림) */
+	/** 추천 부스를 적용했을 때 평가시각부터 처리 여객 평균 대기시간이 NORMAL 이하가 되는 경과 분 */
 	public Integer getCgnClearMin() {
 		return cgnClearMin;
 	}

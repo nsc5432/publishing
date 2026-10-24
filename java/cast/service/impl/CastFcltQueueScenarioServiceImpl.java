@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.domains.CgnGradeScale;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
+import aoms.pm.cast.domains.dsbd.DepQueueDay;
 import aoms.pm.cast.domains.dsbd.DepQueueWindow;
 import aoms.pm.cast.domains.dsbd.FcltQueueClearance;
 import aoms.pm.cast.domains.dsbd.FcltQueueSource;
@@ -55,7 +56,6 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioService {
 	private static final String EMPTY = "";
-	private static final int OBS_MIN = 30; // 관측구간 길이(분)
 	private static final int MIN_PER_HOUR = 60; // 1시간 = 60분
 	private static final double SEC_PER_MIN = 60.0; // 1분 = 60초
 
@@ -68,19 +68,24 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 	private static final List<String> DEP_MAX_FCLT_CD_LIST = List.of("SC");
 
 	private static final List<String> COMMON_ASMP_LIST = List.of(
-			"M/M/s 적용 가정: 포아송 도착 / 지수 처리시간 / 동일 처리율의 병렬 시설 / 공용 대기열 선착순 / 무한 대기공간 / 이탈 없음 (통계 검증 아님)",
+			"혼잡등급 / 해소 목표는 기준시각 직전 30분 [t-30분, t) 에 처리된 여객의 처리인원 가중평균 대기시간이다. 해소는 이 평균이 NORMAL 상한 미만이 되는 시각",
+			"미래 평균은 같은 정의의 이동평균이다. 창의 기준시각 이전은 실제 처리 이력, 이후는 1분 단위 유체 FIFO 예측이며 남은 대기자의 대기시간은 이어서 센다",
+			"추천 수량은 목표 시간 안에 목표 미만이 되고 처리능력(수량 × 처리율)이 유입률보다 큰 최소 총수다",
 			"예측 구간 동안 유입률 / 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다",
-			"유입률은 관측구간 인원 보존식(종료 대기 - 시작 대기 + 서비스 시작)으로 역산한다");
+			"유입률은 관측구간 인원 보존식(종료 대기 - 시작 대기 + 서비스 시작)으로 역산한다",
+			"M/M/s 적용 가정(정상상태 참고지표 전용): 포아송 도착 / 지수 처리시간 / 동일 처리율의 병렬 시설 / 공용 대기열 선착순 / 무한 대기공간 / 이탈 없음 (통계 검증 아님)");
 
 	private static final List<String> CHKN_ASMP_LIST = List.of(
-			"아일랜드 유인 카운터(CC) 공용 Queue — 부스별 결과를 재구성한 값",
+			"아일랜드 유인 카운터(CC) 공용 Queue — 부스별 결과를 재구성한 값. 처리 이력과 잔여 대기열 도착 시각도 같은 재구성에서 나온다",
 			"운영 부스 수는 관측구간 마지막 분의 배정 부스, 처리율은 같은 구간의 부스/분당 처리용량 평균",
 			"배정 가능 최대 수량은 시설 마스터의 아일랜드 CC 수");
 
 	private static final List<String> DEP_ASMP_LIST = List.of(
 			"SC / SR 결과를 합산한 하나의 보안검색 Queue (요약보기 카드 추천과 같은 구성, 직렬 / 병렬 관계 미검증)",
 			"통과여객수를 서비스 시작인원으로 근사한다 (처리 중 인원 변화 무시)",
-			"CAST 10분 결과의 대기여객수를 결과 시각의 스냅샷으로 본다",
+			"CAST 10분 결과의 대기여객수를 결과 시각(구간 끝)의 스냅샷으로 본다",
+			"10분 결과의 처리인원 / 대기시간 합은 그 10분에 균등하게 나뉜다고 본다 (분 단위 이동평균 계산용 근사)",
+			"잔여 대기열의 도착 시각은 10분 보존식 유입을 분 단위로 균등 분배해 FIFO 로 되짚은 근사다 (최대 " + DepQueueDay.LOOKBACK_MIN + "분)",
 			"운영 수량은 실행 리소스 보안검색 운영표의 FCLTY_CNT, 최대 수량은 시설 마스터 SC 수");
 
 	private final CastDsbdMapper castDsbdMapper;
@@ -109,21 +114,23 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 			return fail("선택한 시설의 시뮬레이션 결과를 찾을 수 없습니다. " + context);
 		}
 
-		int targetQueueCnt;
+		CgnGradeScale gradeScale;
 
 		try {
-			CgnGradeScale gradeScale = castCgnGradeService.retrieveGradeScale(searchDto.getFcltType(), context);
-			targetQueueCnt = FcltQueueClearance.toTargetQueueCnt(gradeScale.getNormalMax());
+			gradeScale = castCgnGradeService.retrieveGradeScale(searchDto.getFcltType(), context);
 		} catch (IllegalStateException exception) {
 			return fail(exception.getMessage());
 		}
 
-		FcltQueueClearance clearance = new FcltQueueClearance(source, targetQueueCnt);
+		FcltQueueClearance clearance = new FcltQueueClearance(source, gradeScale.getNormalUpperExclusiveSec());
+		boolean isCount = searchDto.getMode() == FcltQueueScenarioMode.COUNT;
+		int targetMin = isCount || searchDto.getTargetMinutes() == null ? DFLT_TARGET_MIN : searchDto.getTargetMinutes().intValueExact();
 
 		FcltQueueScenarioDto result = toBaseResult(searchDto, unitCd, clearance);
-		result.setCurrent(toClear(clearance.clearOf(source.getOprCnt())));
+		result.setCgnStatus(gradeScale.gradeOf(clearance.getObservedWait()).getValue());
+		result.setCurrent(toClear(clearance, source.getOprCnt(), targetMin));
 
-		if (searchDto.getMode() == FcltQueueScenarioMode.COUNT) {
+		if (isCount) {
 			Integer count = searchDto.getOprFcltCnt() == null ? source.getOprCnt() : searchDto.getOprFcltCnt().intValueExact();
 			String countInvalid = searchDto.getOprFcltCnt() == null ? null : validateCount(count, source);
 
@@ -131,11 +138,10 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 				return fail(countInvalid);
 			}
 
-			result.setScenario(toClear(clearance.clearOf(count)));
+			result.setScenario(toClear(clearance, count, targetMin));
 			return result;
 		}
 
-		int targetMin = searchDto.getTargetMinutes() == null ? DFLT_TARGET_MIN : searchDto.getTargetMinutes().intValueExact();
 		applyRecommend(result, clearance, targetMin);
 
 		return result;
@@ -175,7 +181,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 	private FcltQueueSource getChknSource(SmltStngDto smltStng, TerminalKind tmnlId, String hhmm, String unitCd) {
 		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltStng.getSmltId(), tmnlId, smltStng.getExcnYmd());
-		FcltQueueSource source = queueDay.sourceOf(unitCd, toMinutes(hhmm), OBS_MIN);
+		FcltQueueSource source = queueDay.sourceOf(unitCd, toMinutes(hhmm));
 
 		if (source == null) {
 			return null;
@@ -228,16 +234,24 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return new MaxCount(masterCnt, EMPTY);
 	}
 
-	private FcltQueueClearDto toClear(FcltQueueClearance.ClearanceResult clear) {
+	private FcltQueueClearDto toClear(FcltQueueClearance clearance, Integer serverCnt, int targetMin) {
+		return toClear(clearance.clearOf(serverCnt, targetMin), clearance.getSource().getObsEndDt());
+	}
+
+	private FcltQueueClearDto toClear(FcltQueueClearance.ClearanceResult clear, LocalDateTime baseDt) {
 		Computed<Double> clearSec = clear.getClearSec();
+		Computed<Double> fcstWtng = clear.getFcstWtngSec();
 		Computed<Double> nextWtng = clear.getNextWtngSec();
 		Computed<ErlangCResult> erlang = clear.getErlang();
 
 		FcltQueueClearDto result = new FcltQueueClearDto();
 		result.setFcltCnt(clear.getServerCnt());
-		result.setCgnClearMin(clearSec.hasValue() ? clearSec.getValue() / SEC_PER_MIN : null);
+		result.setCgnClearMin(clear.getClearDt() == null ? null : clearSec.getValue() / SEC_PER_MIN);
 		result.setCgnClearDt(clear.getClearDt() == null ? EMPTY : formatDt(clear.getClearDt()));
 		result.setClearMetric(QueueMetricDto.of(clearSec));
+		result.setFcstWtngSec(fcstWtng.hasValue() ? fcstWtng.getValue() : null);
+		result.setFcstDt(formatDt(baseDt.plusMinutes(clear.getFcstMin())));
+		result.setFcstWtngMetric(QueueMetricDto.of(fcstWtng));
 		result.setNextWtngSec(nextWtng.hasValue() ? nextWtng.getValue() : null);
 		result.setNextWtngMetric(QueueMetricDto.of(nextWtng));
 		result.setErlangMetric(QueueMetricDto.of(erlang));
@@ -257,12 +271,11 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		Integer currentCnt = clearance.getSource().getOprCnt();
 		Integer totCnt = clearance.getSource().getTotCnt();
 		FcltQueueClearance.Recommend calculated = clearance.recommendOf(targetMin);
-		Computed<Integer> flowBasedReqCnt = calculated.getFlowBasedReqCnt();
+		Integer goalOnlyMinCnt = calculated.getGoalOnlyMinCnt();
 
 		FcltQueueRecommendDto recommend = new FcltQueueRecommendDto();
 		recommend.setTargetMin(targetMin);
-		recommend.setReqMetric(QueueMetricDto.of(flowBasedReqCnt));
-		recommend.setFlowBasedReqCnt(flowBasedReqCnt.hasValue() ? flowBasedReqCnt.getValue() : null);
+		recommend.setReqMetric(QueueMetricDto.of(calculated.getReqMetric()));
 		recommend.setStableMinCnt(calculated.getStableMinCnt());
 		result.setRecommend(recommend);
 
@@ -273,7 +286,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		}
 
 		recommend.setReqCnt(reqCnt);
-		recommend.setStableAplyYn(reqCnt > flowBasedReqCnt.getValue() ? "Y" : "N");
+		recommend.setStableAplyYn(goalOnlyMinCnt != null && reqCnt > goalOnlyMinCnt ? "Y" : "N");
 
 		if (currentCnt != null) {
 			recommend.setExtraCnt(Math.max(reqCnt - currentCnt, 0));
@@ -284,18 +297,19 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 		// 카드는 보유 수량을 넘어도 추천 수량 가정값을 그리지만, 팝업은 최대수 전량 배정 결과를 따로 보여준다
 		if (totCnt != null && reqCnt > totCnt) {
-			result.setTotScenario(toClear(clearance.clearOf(totCnt)));
+			result.setTotScenario(toClear(clearance, totCnt, targetMin));
 			return;
 		}
 
 		recommend.setGoalMetYn(calculated.getGoalMet() == null ? null : calculated.getGoalMet() ? "Y" : "N");
-		result.setScenario(toClear(calculated.getReqClear()));
+		result.setScenario(toClear(calculated.getReqClear(), clearance.getSource().getObsEndDt()));
 	}
 
 	private FcltQueueScenarioDto toBaseResult(FcltQueueScenarioSearchDto searchDto, String unitCd, FcltQueueClearance clearance) {
 		FcltQueueSource source = clearance.getSource();
 		Computed<Double> arrival = clearance.getArrival();
 		Computed<Double> service = clearance.getService();
+		Computed<Double> observedWait = clearance.getObservedWait();
 		List<String> asmpList = new ArrayList<>(COMMON_ASMP_LIST);
 		asmpList.addAll(source.getAsmpList());
 
@@ -310,7 +324,11 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		result.setObsEndDt(formatDt(source.getObsEndDt()));
 		result.setDataSrc(source.getDataSrc().name());
 		result.setWtngPsgCnt(source.getQueueAtEnd());
-		result.setTargetQueueCnt(clearance.getTargetQueueCnt());
+		result.setTargetQueueCnt(null);
+		result.setNormalUpperExclusiveSec(clearance.getNormalUpperExclusiveSec());
+		result.setWtngAvgSec(observedWait.hasValue() ? observedWait.getValue() : null);
+		result.setWtngAvgPrcsPsgCnt(source.getPrcsPsgCnt());
+		result.setWtngAvgMetric(QueueMetricDto.of(observedWait));
 		result.setOprFcltCnt(source.getOprCnt());
 		result.setTotCnt(source.getTotCnt());
 		result.setTotCntRsn(source.getTotCntRsn());

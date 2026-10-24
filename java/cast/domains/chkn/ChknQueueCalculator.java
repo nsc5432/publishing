@@ -39,22 +39,32 @@ public final class ChknQueueCalculator {
      * 구간별 대기인원 변화에서 유입을 거꾸로 계산해 1분 단위로 쪼개 넣고, 부스 처리용량만큼 순차적으로 빼면서 분 단위 대기열/대기시간을 재구성
 	 * @param assignedBoothCnt 분 단위 배정 부스 수 (길이 1440)
 	 * @param fallbackPrcsSec 터미널 CC 처리인원 가중평균 처리시간 (fallback)
+	 * @param originMinute 계산 시작 분 (0 이하). 전날 결과가 있으면 음수라 자정의 대기열과 직전 30분을 이어 받는다
      * @return ChknQueueSeries(queue(대기인원), processed(처리인원), boothCnt, capacity...)
 	 */
 	public static ChknQueueSeries calculate(
         String island,
         List<ChknQueueInterval> intervalList,
         int[] assignedBoothCnt,
-        BigDecimal fallbackPrcsSec
+        BigDecimal fallbackPrcsSec,
+        int originMinute
 	) {
-		int[] queue = new int[MINUTE_PER_DAY];
-		int[] processed = new int[MINUTE_PER_DAY];
-		int[] boothCnt = Arrays.copyOf(assignedBoothCnt, MINUTE_PER_DAY);
-		int[] capacity = new int[MINUTE_PER_DAY];
-		long[] waitMinSum = new long[MINUTE_PER_DAY];
-		long[] prcsSecSum = new long[MINUTE_PER_DAY];
+		if (originMinute > 0) {
+			throw new IllegalArgumentException("originMinute 는 0 이하입니다: " + originMinute);
+		}
+
+		int length = MINUTE_PER_DAY - originMinute;
+		int[] queue = new int[length];
+		int[] processed = new int[length];
+		int[] arrivalCnt = new int[length];
+		int[] boothCnt = new int[length];
+		int[] capacity = new int[length];
+		long[] waitMinSum = new long[length];
+		long[] prcsSecSum = new long[length];
 		long[] waitDistribution = new long[MINUTE_PER_DAY];
 		List<String> warningList = new ArrayList<>();
+
+		System.arraycopy(Arrays.copyOf(assignedBoothCnt, MINUTE_PER_DAY), 0, boothCnt, -originMinute, MINUTE_PER_DAY);
 
 		List<ChknQueueInterval> intervalListByBgnMinute = new ArrayList<>(intervalList);
 		intervalListByBgnMinute.sort(Comparator.comparingInt(ChknQueueInterval::getBgnMinute));
@@ -66,7 +76,7 @@ public final class ChknQueueCalculator {
 
 		for (int index = 0; index < intervalListByBgnMinute.size(); index++) {
 			ChknQueueInterval interval = intervalListByBgnMinute.get(index);
-			int bgn = Math.max(interval.getBgnMinute(), 0);
+			int bgn = Math.max(interval.getBgnMinute(), originMinute);
 			int end = Math.min(interval.getBgnMinute() + interval.getDurationMin(), MINUTE_PER_DAY);
 
             // 유입 = 이번 구간 끝 대기인원 − 직전 구간 끝 대기인원 + 구간 처리인원
@@ -87,10 +97,12 @@ public final class ChknQueueCalculator {
 			}
 
             // Cast 결과의 부스갯수가 실제 운영 부스 갯수보다 클때
-			if (interval.getActiveBoothCnt() > assignedBoothCnt[bgn]) {
+			int assignedAtBgn = bgn >= 0 ? assignedBoothCnt[bgn] : 0;
+
+			if (bgn >= 0 && interval.getActiveBoothCnt() > assignedAtBgn) {
 				String message = String.format(
                     "시뮬레이션 결과의 부스 갯수가 실적에 할당된 부스 갯수보다 커서 보정했습니다. activeBoothCnt=%d, assignedBoothCnt=%d",
-                    interval.getActiveBoothCnt(), assignedBoothCnt[bgn]
+                    interval.getActiveBoothCnt(), assignedAtBgn
                 );
 
 				warningList.add(warning(island, interval, message));
@@ -107,21 +119,23 @@ public final class ChknQueueCalculator {
 			int arrivalRemainder = arrivals % interval.getDurationMin();
 
 			for (int minute = bgn; minute < end; minute++) {
-				int booth = Math.max(assignedBoothCnt[minute], interval.getActiveBoothCnt());
-				boothCnt[minute] = booth;
+				int at = minute - originMinute;
+				int booth = Math.max(boothCnt[at], interval.getActiveBoothCnt());
+				boothCnt[at] = booth;
 
 				BigDecimal capacityPerMin = capacityPerMin(interval, prcsSec, booth);
 				carry = carry.add(capacityPerMin, MATH_CONTEXT);
 
 				int serveCapacity = carry.setScale(0, RoundingMode.FLOOR).intValueExact();
 				carry = carry.subtract(BigDecimal.valueOf(serveCapacity));
-				capacity[minute] = serveCapacity;
+				capacity[at] = serveCapacity;
 
 				int arrival = arrivalBase + (minute - bgn < arrivalRemainder ? 1 : 0);
 
 				if (arrival > 0) {
 					arrivalGroupQueue.add(new int[] { minute, arrival });
 					wtngPsgCnt += arrival;
+					arrivalCnt[at] = arrival;
 				}
 
 				int served = Math.min(wtngPsgCnt, serveCapacity);
@@ -134,7 +148,11 @@ public final class ChknQueueCalculator {
 					int wait = minute - arrivalGroup[0];
 
 					waitSum += (long) wait * take;
-					waitDistribution[Math.min(wait, MINUTE_PER_DAY - 1)] += take;
+
+					if (minute >= 0) {
+						waitDistribution[Math.min(wait, MINUTE_PER_DAY - 1)] += take;
+					}
+
 					arrivalGroup[1] -= take;
 					rest -= take;
 
@@ -144,14 +162,14 @@ public final class ChknQueueCalculator {
 				}
 
 				wtngPsgCnt -= served;
-				processed[minute] = served;
-				waitMinSum[minute] = waitSum;
-				prcsSecSum[minute] = (long) served * avgPrcsSecPerBooth(capacityPerMin, booth);
-				queue[minute] = wtngPsgCnt;
+				processed[at] = served;
+				waitMinSum[at] = waitSum;
+				prcsSecSum[at] = (long) served * avgPrcsSecPerBooth(capacityPerMin, booth);
+				queue[at] = wtngPsgCnt;
 			}
 		}
 
-		return new ChknQueueSeries(island, queue, processed, boothCnt, capacity, waitMinSum, prcsSecSum, waitDistribution, warningList);
+		return new ChknQueueSeries(island, originMinute, queue, processed, arrivalCnt, boothCnt, capacity, waitMinSum, prcsSecSum, waitDistribution, warningList);
 	}
 
 	private static BigDecimal capacityPerMin(ChknQueueInterval interval, BigDecimal prcsSec, int boothCnt) {

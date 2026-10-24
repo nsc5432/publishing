@@ -15,7 +15,7 @@ import lombok.Setter;
 public class FcltQueueScenarioSearchDto {
 	private String smltId;
 	private String ymd; // 확정 조회일자 yyyyMMdd
-	private String hhmm; // 확정 조회시각 HHmm (카드 30분 슬롯 시작)
+	private String hhmm; // 확정 조회시각 HHmm = 평가시각 t (관측구간은 [t-30분, t))
 	private TerminalKind tmnlId;
 	private FcltType fcltType; // CHKN / DEP
 	private String unitCd; // 아일랜드 문자 / 출국장 번호

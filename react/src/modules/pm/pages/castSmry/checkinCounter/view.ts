@@ -57,6 +57,11 @@ export function toWaitMin(waitSec: number): number {
     return Math.round(waitSec / SEC_PER_MIN);
 }
 
+/** 산정 불가(null)는 3색에 넣지 않는다 */
+function toLevel(cgnStatus: CongestionStatus | null): CongestionLevel | null {
+    return cgnStatus === null ? null : CONGESTION_TO_LEVEL[cgnStatus];
+}
+
 /* ================= 요약 / 결과 지표 ================= */
 
 /** 요약 바 — 시뮬레이션이 배치한 자원의 규모를 한 줄로 읽는다 */
@@ -187,7 +192,7 @@ function toIslandView(island: ChknCounterIslandDto, rslt: MapChknRsltDto | undef
         id: island.island,
         island: island.island,
         title: island.fcltNm,
-        level: CONGESTION_TO_LEVEL[rslt?.cgnStatus ?? 'NORMAL'],
+        level: toLevel(rslt?.cgnStatus ?? null),
         isClosed: (rslt?.oprBoothCnt ?? 0) === 0,
         oprBoothCnt: rslt?.oprBoothCnt ?? 0,
         queuePsgCnt: stat?.wtngPsgCnt ?? 0,
@@ -208,6 +213,7 @@ function toIslandView(island: ChknCounterIslandDto, rslt: MapChknRsltDto | undef
 function toNoticeDesc(item: MapNoticeItemDto): string {
     const parts = [`운영 ${formatCount(item.boothCnt)}개`];
 
+    if (item.cgnWtngSec != null) parts.push(`평균대기 ${formatCount(toWaitMin(item.cgnWtngSec))}분`);
     if (item.reqCnt != null) parts.push(`필요 ${formatCount(item.reqCnt)}개`);
     if (item.cgnClearMin != null) parts.push(`해소 ${formatCount(item.cgnClearMin)}분`);
 
@@ -216,7 +222,7 @@ function toNoticeDesc(item: MapNoticeItemDto): string {
 
 function toNotice(notice: MapNoticeDto): NoticeData {
     return {
-        level: CONGESTION_TO_NOTICE_LEVEL[notice.cgnStatus],
+        level: notice.cgnStatus === null ? null : CONGESTION_TO_NOTICE_LEVEL[notice.cgnStatus],
         items: notice.itemList.map((item) => ({
             id: item.fcltCd,
             facility: item.fcltNm,
@@ -250,7 +256,7 @@ export function toChknDay(dto: ChknCounterDto): ChknDay {
 
 /* ================= 빈 값 ================= */
 
-export const EMPTY_NOTICE: NoticeData = { level: 'normal', items: [] };
+export const EMPTY_NOTICE: NoticeData = { level: null, items: [] };
 
 export const EMPTY_QUEUE: ChknQueueSeries = {
     timeLabels: [],

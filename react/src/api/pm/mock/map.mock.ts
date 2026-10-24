@@ -1,5 +1,4 @@
 import type {
-    CongestionStatus,
     MapCgnStatDto,
     MapChknInfoDto,
     MapChknRsltDto,
@@ -12,6 +11,7 @@ import type {
     SmltMapSlotDto,
     TmnlId,
 } from '@/types/api.types';
+import { mockAvgWtngSec, mockByWaitDesc, mockChknRecommend, mockGradeOf, mockWorstOf } from './cgnGrade.mock';
 import { MOCK_ROLE_ID_LIST } from './common.mock';
 
 /**
@@ -63,12 +63,12 @@ function toStat(wtngPsgCnt: number): MapCgnStatDto {
     };
 }
 
-function toStatus(wtngPsgCnt: number): CongestionStatus {
-    if (wtngPsgCnt >= 240) return 'VERY_BUSY';
-    if (wtngPsgCnt >= 140) return 'BUSY';
-    if (wtngPsgCnt >= 50) return 'NORMAL';
+/** 대기인원 1명당 평균 대기 환산(초) — 피크 300명이 약 65분(VERY_BUSY), 190명이 약 41분(BUSY)이 된다 */
+const WAIT_SEC_PER_PSG = 13;
 
-    return 'FREE';
+/** 평가시각(슬롯 시각) 직전 30분 처리 여객 평균 대기시간 — 첫 슬롯은 전날 결과가 없어 null */
+function toAvgWtngSec(seed: DepSeed, step: number): number | null {
+    return mockAvgWtngSec(step === 0 ? null : wtngAt(seed[3], seed[4], step - 1), WAIT_SEC_PER_PSG);
 }
 
 /* ================= 도면 마커 =================
@@ -175,48 +175,27 @@ function toPrcsRate(wtngPsgCnt: number): number {
     return Math.round((prcs * 100) / (prcs + wtngPsgCnt));
 }
 
+/** 지표 4종은 슬롯 [hhmm, hhmm+30) 값, 혼잡등급은 평가시각 hhmm 직전 30분 처리 여객 평균 대기시간이다 */
 function toUnitRslt(seed: DepSeed, step: number): MapUnitRsltDto {
     const wtngPsgCnt = wtngAt(seed[3], seed[4], step);
+    const cgnWtngSec = toAvgWtngSec(seed, step);
 
-    return { unitCd: seed[0], cgnStatus: toStatus(wtngPsgCnt), stat: toStat(wtngPsgCnt) };
+    return { unitCd: seed[0], cgnStatus: mockGradeOf(cgnWtngSec), cgnWtngSec, stat: toStat(wtngPsgCnt) };
 }
 
 /* ================= 아일랜드 공용 Queue ================= */
 
-/** NORMAL 등급 상한 (서버 혼잡등급 기준정보와 같은 값) */
-const NORMAL_MAX_QUEUE = 220;
 /** 부스 1대가 감당하는 Queue 인원 */
 const QUEUE_PER_BOOTH = 12;
-/** 부스 1대의 분당 처리량 */
-const BOOTH_PRCS_PER_MIN = 2;
-/** 추천 리드타임 (분) */
-const RECOMMEND_LEAD_MIN = 30;
-/** 추천 궤적 구간 (분) */
-const RECOMMEND_SPAN_MIN = 60;
 
 function toBoothCnt(queuePsgCnt: number): number {
     return queuePsgCnt === 0 ? 0 : Math.max(1, Math.round(queuePsgCnt / QUEUE_PER_BOOTH));
-}
-
-/** 피크를 NORMAL 이하로 만드는 추가 부스 수 */
-function toExtraBoothCnt(queuePsgCnt: number): number {
-    const excess = queuePsgCnt - NORMAL_MAX_QUEUE;
-
-    return excess <= 0 ? 0 : Math.ceil(excess / (BOOTH_PRCS_PER_MIN * RECOMMEND_LEAD_MIN));
-}
-
-function toCgnClearMin(queuePsgCnt: number, oprBoothCnt: number, extraBoothCnt: number): number | null {
-    if (oprBoothCnt === 0) return null;
-    if (extraBoothCnt === 0) return 0;
-
-    return Math.min(RECOMMEND_SPAN_MIN, Math.ceil((queuePsgCnt - NORMAL_MAX_QUEUE) / (BOOTH_PRCS_PER_MIN * extraBoothCnt)));
 }
 
 function toChknRslt(seed: DepSeed, step: number): MapChknRsltDto {
     const rslt = toUnitRslt(seed, step);
     const queuePsgCnt = rslt.stat.wtngPsgCnt;
     const oprBoothCnt = toBoothCnt(queuePsgCnt);
-    const extraBoothCnt = toExtraBoothCnt(queuePsgCnt);
 
     return {
         ...rslt,
@@ -224,9 +203,7 @@ function toChknRslt(seed: DepSeed, step: number): MapChknRsltDto {
         avgQueuePsgCnt: Math.round(queuePsgCnt * 0.92),
         maxQueuePsgCnt: Math.round(queuePsgCnt * 1.08),
         oprBoothCnt,
-        // 운영 부스가 없으면 서비스율을 알 수 없어 추천을 내지 못한다 (서버와 같은 규칙)
-        reqCnt: oprBoothCnt === 0 ? null : oprBoothCnt + extraBoothCnt,
-        cgnClearMin: toCgnClearMin(queuePsgCnt, oprBoothCnt, extraBoothCnt),
+        ...mockChknRecommend(rslt.cgnWtngSec, oprBoothCnt),
     };
 }
 
@@ -250,6 +227,7 @@ function toChknNoticeSeed(rslt: MapChknRsltDto): NoticeSeed {
             boothCnt: rslt.oprBoothCnt,
             reqCnt: rslt.reqCnt,
             cgnClearMin: rslt.cgnClearMin,
+            cgnWtngSec: rslt.cgnWtngSec,
         },
     };
 }
@@ -263,18 +241,26 @@ function toDptgtNoticeSeed(rslt: MapUnitRsltDto): NoticeSeed {
             boothCnt: Math.max(1, Math.floor(rslt.stat.wtngPsgCnt / BOOTH_PER_STEP)),
             reqCnt: null,
             cgnClearMin: null,
+            cgnWtngSec: rslt.cgnWtngSec,
         },
     };
 }
 
-/** 알림은 혼잡(BUSY) 이상인 곳만, 혼잡한 순으로 모은다 */
+/** 알림은 혼잡(BUSY) 이상인 곳만, 평균 대기시간이 긴 순으로 모은다. 단계는 산정 가능한 시설 중 최고 등급 */
 function toNotice(chknList: MapChknRsltDto[], dptgtList: MapUnitRsltDto[]): MapNoticeDto {
-    const busy = [...chknList.map(toChknNoticeSeed), ...dptgtList.map(toDptgtNoticeSeed)]
+    const seedList = [...chknList.map(toChknNoticeSeed), ...dptgtList.map(toDptgtNoticeSeed)];
+    const busy = seedList
         .filter(({ rslt }) => rslt.cgnStatus === 'BUSY' || rslt.cgnStatus === 'VERY_BUSY')
-        .sort((a, b) => b.rslt.stat.wtngPsgCnt - a.rslt.stat.wtngPsgCnt);
+        .sort(
+            mockByWaitDesc(
+                ({ rslt }) => rslt.cgnWtngSec,
+                ({ rslt }) => rslt.stat.wtngPsgCnt,
+                ({ item }) => item.fcltNm + item.fcltCd,
+            ),
+        );
 
     return {
-        cgnStatus: toStatus(busy[0]?.rslt.stat.wtngPsgCnt ?? 0),
+        cgnStatus: mockWorstOf(seedList.map(({ rslt }) => rslt.cgnStatus)),
         itemList: busy.slice(0, NOTICE_ITEM_LIMIT).map(({ item }) => item),
     };
 }

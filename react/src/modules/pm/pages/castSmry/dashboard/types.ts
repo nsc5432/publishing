@@ -138,7 +138,7 @@ export const FCLT_QUEUE_LABEL: Record<FcltCardType, FcltQueueLabel> = {
     },
 };
 
-/** value 는 해소 소요시간이 있는 경우, none 은 이미 목표 이하(0분) */
+/** value 는 해소 소요시간이 있는 경우, none 은 이미 목표 미만(0분) */
 export type QueueClearKind = 'value' | 'none' | 'unreachable' | 'unavailable';
 
 export interface QueueClearView {
@@ -151,6 +151,8 @@ export interface QueueClearView {
     note: string;
     /** 계산 기준 시각에 새로 줄 선 여객의 예상 대기. 산정할 수 없으면 '' */
     nextWtngText: string;
+    /** 목표 시각의 직전 30분 처리 여객 예측 평균 대기. 산정할 수 없으면 '' */
+    fcstWtngText: string;
 }
 
 export interface QueueErlangView {
@@ -179,7 +181,12 @@ export interface FcltQueueContextView {
     obsText: string;
     dataSrcText: string;
     queueText: string;
-    targetQueueText: string;
+    /** 해소 기준 — 처리 여객 평균 대기시간 NORMAL 상한 미만 */
+    targetText: string;
+    /** 관측구간 처리 여객 평균 대기 + 등급 (근거 목록용) */
+    wtngAvgText: string;
+    /** 기준선 요약 한 줄용. 산정할 수 없으면 '' */
+    wtngAvgShort: string;
     arvlText: string;
     srvcText: string;
     asmpList: string[];
@@ -202,8 +209,8 @@ export interface FcltQueueResultView {
 export interface TerminalView {
     /** 기준시각 바 문구 (예: 2026-07-10 FRI 10:00 AM) */
     barText: string;
-    /** 패널 전체 혼잡도 — p-iconbox/p-title/p-bar 색을 결정한다 */
-    cgnStatus: CongestionStatus;
+    /** 패널 전체 혼잡도 — p-iconbox/p-title/p-bar 색을 결정한다. 산정 불가면 null (중립색) */
+    cgnStatus: CongestionStatus | null;
     /** 헤더 통계(지난주 同요일 대비) */
     stats: {
         flights: { delta: string; value: string };

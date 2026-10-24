@@ -1,6 +1,6 @@
 import { PlusIcon } from '@/components/icons';
 import { useModalDismiss } from '../hooks/useModalDismiss';
-import { CONGESTION_LABEL, type FacilityDetail } from '../types';
+import { toLevelKey, toLevelLabel, type FacilityDetail } from '../types';
 
 interface FacilityMiniModalProps {
     detail: FacilityDetail;
@@ -32,8 +32,8 @@ export function FacilityMiniModal({ detail, onClose, onDetailClick }: FacilityMi
                     </h2>
 
                     <div className="modal__head-right">
-                        <span className={`state-badge state-badge--${detail.level}`}>
-                            {CONGESTION_LABEL[detail.level]}
+                        <span className={`state-badge state-badge--${toLevelKey(detail.level)}`}>
+                            {toLevelLabel(detail.level)}
                         </span>
                         <button ref={closeRef} type="button" className="modal__close" onClick={onClose}>
                             <i className="ico ico-close" aria-hidden="true" />

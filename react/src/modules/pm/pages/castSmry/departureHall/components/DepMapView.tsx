@@ -1,5 +1,5 @@
 import { toStagePosition } from '@/lib/chart';
-import type { DepGateMarker, TerminalDepMap } from '../types';
+import { toLevelKey, type DepGateMarker, type TerminalDepMap } from '../types';
 import { DepGateCardBox } from './DepGateCardBox';
 
 interface DepMapViewProps {
@@ -44,7 +44,7 @@ export function DepMapView({ data, activeId, onDepGateHover }: DepMapViewProps) 
             {data.islands.map((island) => (
                 <span
                     key={island.id}
-                    className={`marker marker--island is-${island.level}`}
+                    className={`marker marker--island is-${toLevelKey(island.level)}`}
                     style={toStagePosition(island.x, island.y)}
                 >
                     {island.label}

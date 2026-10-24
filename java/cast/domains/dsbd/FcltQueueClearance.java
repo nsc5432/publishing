@@ -1,6 +1,5 @@
 package aoms.pm.cast.domains.dsbd;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import lombok.Getter;
@@ -9,6 +8,8 @@ import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.queue.ErlangCResult;
 import aoms.pm.cast.domains.queue.FacilityQueueCalculator;
 import aoms.pm.cast.domains.queue.FacilityQueueInput;
+import aoms.pm.cast.domains.queue.QueueWaitWindow;
+import aoms.pm.cast.domains.queue.WaitAvgForecast;
 
 /**
  * @Classname : FcltQueueClearance.java
@@ -29,33 +30,34 @@ public final class FcltQueueClearance {
 	public static final int DFLT_TARGET_MIN = 30; // 목표 해소시간 기본값(분)
 
 	private static final double SEC_PER_MIN = 60.0;
-	private static final double MAX_CLEAR_SEC = 24 * 60 * SEC_PER_MIN; // 혼잡해소 시각으로 표기할 상한(초) = 하루(86400초), 넘으면 빈 값
 
 	private final FcltQueueSource source;
-	private final int targetQueueCnt;
 	private final FacilityQueueCalculator calculator;
 	private final Computed<Double> arrival;
 	private final Computed<Double> service;
+	private final Computed<Double> observedWait;
+	private final WaitAvgForecast forecast;
 
-	public FcltQueueClearance(FcltQueueSource source, int targetQueueCnt) {
+	/** @param normalUpperExclusiveSec 해소 목표 — 직전 30분 처리 여객 평균 대기시간이 이 값(초) 미만 */
+	public FcltQueueClearance(FcltQueueSource source, int normalUpperExclusiveSec) {
+		QueueWaitWindow window = source.getWaitWindow() != null
+				? source.getWaitWindow()
+				: QueueWaitWindow.unavailable("혼잡 판정 원천(직전 30분 처리 이력)이 없습니다.");
+
 		this.source = source;
-		this.targetQueueCnt = targetQueueCnt;
 		this.calculator = toCalculator(source);
 		this.arrival = calculator.estimateArrivalRateByQueueBalance(source.toArrivalInput());
 		this.service = calculator.estimateServiceRatePerHour();
-	}
-
-	/** 혼잡등급 NORMAL 상한(양끝 포함)의 정수 내림. */
-	public static int toTargetQueueCnt(BigDecimal normalMax) {
-		return normalMax.intValue();
+		this.observedWait = window.observedAvgWtngSec();
+		this.forecast = new WaitAvgForecast(window, arrival, service, normalUpperExclusiveSec);
 	}
 
 	public FcltQueueSource getSource() {
 		return source;
 	}
 
-	public int getTargetQueueCnt() {
-		return targetQueueCnt;
+	public int getNormalUpperExclusiveSec() {
+		return forecast.getTargetExclusiveSec();
 	}
 
 	// 유입률 lambda (명/시간)
@@ -68,6 +70,11 @@ public final class FcltQueueClearance {
 		return service;
 	}
 
+	// 직전 30분 처리 여객 평균 대기시간 (초) — 혼잡등급 판정값
+	public Computed<Double> getObservedWait() {
+		return observedWait;
+	}
+
 	// 현재 운영 수량 기준 부하율 rho
 	public Computed<Double> getLoadRatio() {
 		return calculator.estimateLoadRatio(inputOf(source.getOprCnt()));
@@ -78,62 +85,50 @@ public final class FcltQueueClearance {
 		return calculator.getObservedPrcsPerHour(inputOf(source.getOprCnt()));
 	}
 
-	// 지정한 운영 수량으로 목표 대기인원까지의 해소시간
-	public ClearanceResult clearOf(Integer serverCnt) {
+	/**
+	 * 지정한 운영 수량으로 직전 30분 처리 여객 평균이 목표 미만이 되기까지의 시간.
+	 * @param fcstMin 예측 평균을 보고할 시각 (기준시각 + 분)
+	 */
+	public ClearanceResult clearOf(Integer serverCnt, int fcstMin) {
 		FacilityQueueInput input = inputOf(serverCnt);
-		Computed<Double> clearSec = calculator.estimateClearTimeSec(input, targetQueueCnt);
+		WaitAvgForecast.Projection projection = forecast.project(serverCnt, fcstMin, WaitAvgForecast.MAX_HORIZON_MIN);
+		Computed<Double> clearSec = projection.getClearSec();
 
 		return new ClearanceResult(
             serverCnt,
             clearSec,
-            clearSec.hasValue() ? toClearDt(source.getObsEndDt(), clearSec.getValue()) : null,
+            clearSec.hasValue() ? source.getObsEndDt().plusSeconds((long) Math.ceil(clearSec.getValue())) : null,
+            fcstMin,
+            projection.getFcstWtngSec(),
             calculator.estimateNextArrivalWaitSec(input),
             calculator.analyzeErlangC(input)
         );
 	}
 
-	/** 지정한 목표 시간으로 목표 대기인원까지 줄이는 데 필요한 운영 수량 */
+	/** 지정한 목표 시간 안에 평균 대기시간을 목표 미만으로 낮추고 처리능력이 유입보다 큰 총 운영 수량 */
 	public Recommend recommendOf(int targetMin) {
-		double targetSec = targetMin * SEC_PER_MIN;
-		Computed<Integer> flowBasedReqCnt = calculator.estimateRequiredServerCnt(inputOf(source.getOprCnt()), targetQueueCnt, targetSec);
-		Integer stableMinCnt = toStableMinCnt();
+		WaitAvgForecast.Search search = forecast.search(targetMin);
+		Computed<Integer> reqMetric = search.getReqCnt();
 
-		if (!flowBasedReqCnt.hasValue()) {
-			return new Recommend(targetMin, flowBasedReqCnt, stableMinCnt, null, null, null);
+		if (!reqMetric.hasValue()) {
+			return new Recommend(targetMin, reqMetric, search.getStableMinCnt(), search.getGoalOnlyMinCnt(), null, null, null);
 		}
 
-		// 기존 flowBasedReqCnt 추천의 의미는 바꾸지 않고, 양의 유입에서 rho < 1 이 되도록 이번 정책으로만 하한을 둔다
-		int reqCnt = stableMinCnt == null ? flowBasedReqCnt.getValue() : Math.max(flowBasedReqCnt.getValue(), stableMinCnt);
-		ClearanceResult reqClear = clearOf(reqCnt);
-		Boolean goalMet = reqClear.getClearSec().hasValue() ? reqClear.getClearSec().getValue() <= targetSec : null;
+		int reqCnt = reqMetric.getValue();
 
-		return new Recommend(targetMin, flowBasedReqCnt, stableMinCnt, reqCnt, reqClear, goalMet);
+		return new Recommend(
+            targetMin,
+            reqMetric,
+            search.getStableMinCnt(),
+            search.getGoalOnlyMinCnt(),
+            reqCnt,
+            clearOf(reqCnt, targetMin),
+            forecast.verify(reqCnt, targetMin)
+        );
 	}
 
 	private FacilityQueueInput inputOf(Integer serverCnt) {
 		return source.toScenarioInput(arrival, serverCnt);
-	}
-
-	private Integer toStableMinCnt() {
-		if (!arrival.hasValue()) {
-			return null;
-		}
-
-		if (arrival.getValue() == 0) {
-			return 0;
-		}
-
-		if (!service.hasValue()) {
-			return null;
-		}
-
-		double floor = Math.floor(arrival.getValue() / service.getValue());
-
-		return Double.isFinite(floor) && floor < Integer.MAX_VALUE ? (int) floor + 1 : null;
-	}
-
-	private static LocalDateTime toClearDt(LocalDateTime baseDt, double clearSec) {
-		return clearSec > MAX_CLEAR_SEC ? null : baseDt.plusSeconds((long) Math.ceil(clearSec));
 	}
 
 	private static FacilityQueueCalculator toCalculator(FcltQueueSource source) {
@@ -158,9 +153,13 @@ public final class FcltQueueClearance {
 	@Getter
 	public static final class ClearanceResult {
 		private final Integer serverCnt;
+		/** 평균 대기시간이 목표 미만이 되기까지의 초 (1분 해상도). 이미 미만이면 0 */
 		private final Computed<Double> clearSec;
-		/** 기준시각 + 해소 초(올림). 산정 불가 / 해소 불가 / 하루 초과면 null */
+		/** 기준시각 + 해소 초. 산정 불가 / 해소 불가 / 예측 범위(하루) 초과면 null */
 		private final LocalDateTime clearDt;
+		private final int fcstMin;
+		/** 기준시각 + fcstMin 의 직전 30분 처리 여객 예측 평균 대기시간 (초) */
+		private final Computed<Double> fcstWtngSec;
 		private final Computed<Double> nextWtngSec;
 		private final Computed<ErlangCResult> erlang;
 
@@ -168,12 +167,16 @@ public final class FcltQueueClearance {
 				Integer serverCnt,
 				Computed<Double> clearSec,
 				LocalDateTime clearDt,
+				int fcstMin,
+				Computed<Double> fcstWtngSec,
 				Computed<Double> nextWtngSec,
 				Computed<ErlangCResult> erlang
 		) {
 			this.serverCnt = serverCnt;
 			this.clearSec = clearSec;
 			this.clearDt = clearDt;
+			this.fcstMin = fcstMin;
+			this.fcstWtngSec = fcstWtngSec;
 			this.nextWtngSec = nextWtngSec;
 			this.erlang = erlang;
 		}
@@ -187,19 +190,30 @@ public final class FcltQueueClearance {
 	@Getter
 	public static final class Recommend {
 		private final int targetMin;
-		private final Computed<Integer> flowBasedReqCnt;
+		private final Computed<Integer> reqMetric;
 		private final Integer stableMinCnt;
+		/** 처리능력 > 유입 조건 없이 목표 시간만 만족하는 최소 수량. 없으면 null */
+		private final Integer goalOnlyMinCnt;
 		/** 최종 총 소요 수량 (현재 운영분 포함). 산정 불가면 null */
 		private final Integer reqCnt;
 		/** 추천 수량을 적용했을 때의 해소 결과. reqCnt 가 null 이면 null */
 		private final ClearanceResult reqClear;
-		/** 추천 수량의 해소시간이 목표 이내인지. 검증할 수 없으면 null */
+		/** 추천 수량을 다시 예측해 목표 시간 / 목표 시각 평균 / 안정 조건을 모두 만족하는지. 검증할 수 없으면 null */
 		private final Boolean goalMet;
 
-		private Recommend(int targetMin, Computed<Integer> flowBasedReqCnt, Integer stableMinCnt, Integer reqCnt, ClearanceResult reqClear, Boolean goalMet) {
+		private Recommend(
+				int targetMin,
+				Computed<Integer> reqMetric,
+				Integer stableMinCnt,
+				Integer goalOnlyMinCnt,
+				Integer reqCnt,
+				ClearanceResult reqClear,
+				Boolean goalMet
+		) {
 			this.targetMin = targetMin;
-			this.flowBasedReqCnt = flowBasedReqCnt;
+			this.reqMetric = reqMetric;
 			this.stableMinCnt = stableMinCnt;
+			this.goalOnlyMinCnt = goalOnlyMinCnt;
 			this.reqCnt = reqCnt;
 			this.reqClear = reqClear;
 			this.goalMet = goalMet;

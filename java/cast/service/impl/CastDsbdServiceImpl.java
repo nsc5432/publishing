@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.domains.CgnGradeScale;
+import aoms.pm.cast.domains.CgnOrder;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknQueueSlot;
 import aoms.pm.cast.domains.chkn.ChknSbdDay;
@@ -81,7 +82,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private static final int MIN_PER_HOUR = 60;
 	private static final int MIN_PER_DAY = 24 * MIN_PER_HOUR;
 	private static final int DEFAULT_INTRVL_MIN = 60;
-	private static final int CARD_SLOT_MIN = 30;
 	private static final String DEP_TARGET_NM = "보안검색대";
 	private static final List<String> DEP_CARD_FCLT_CD_LIST = List.of("LGT", "SC", "SR");
 	private static final Comparator<AssignmentSummary> MAIN_ALN_ORDER = Comparator.comparingInt(AssignmentSummary::getAssignedCount).reversed().thenComparing(AssignmentSummary::getAlnCd);
@@ -161,9 +161,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setYesterdayFltDiffCnt(baseFltSmry.getDepFltCnt() - yesterdayFltSmry.getDepFltCnt());
 		result.setYesterdayPsgDiffCnt(baseFltSmry.getDepPsgCnt() - yesterdayFltSmry.getDepPsgCnt());
 		result.setBrdgRate(getBrdgRate(baseFltSmry));
-		PeakDto peak = getPeak(searchDto.getSmltId(), tmnlId);
-		result.setCgnStatus(CongestionStatus.ofWtngPsgCnt(peak.getWtngPsgCnt()));
-		result.setPeak(peak);
+		result.setPeak(getPeak(searchDto.getSmltId(), tmnlId));
 
 		int intrvlMin = searchDto.getIntrvlMin() != null ? searchDto.getIntrvlMin() : DEFAULT_INTRVL_MIN;
 		String bgnHhmm = searchDto.getHhmm();
@@ -171,6 +169,9 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setIntrvlMin(intrvlMin);
 
 		if (bgnHhmm != null && bgnHhmm.length() == 4) {
+			// 대표 혼잡등급은 PRIME TIME(대기인원 피크)과 별개로 조회 시각의 시설별 평균 대기시간에서 정한다
+			result.setCgnStatus(getTmnlCgnStatus(smltStng, tmnlId, bgnHhmm));
+
 			String endHhmm = getEndHhmm(bgnHhmm, intrvlMin);
 			FltSmryRawDto baseIntrvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList, bgnHhmm, endHhmm);
 			FltSmryRawDto yesterdayIntrvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, bgnHhmm, endHhmm);
@@ -182,6 +183,27 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		}
 
 		return result;
+	}
+
+	private CongestionStatus getTmnlCgnStatus(SmltStngDto smltStng, TerminalKind tmnlId, String hhmm) {
+		String context = baseContext(smltStng.getSmltId(), tmnlId, hhmm);
+		int evalMinute = toMinutes(hhmm);
+		List<CongestionStatus> statusList = new ArrayList<>();
+
+		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltStng.getSmltId(), tmnlId, smltStng.getExcnYmd());
+
+		for (String island : queueDay.islandCdList()) {
+			statusList.add(queueDay.gradeOf(island, evalMinute).getValue());
+		}
+
+		DepQueueWindow window = castDepQueueService.retrieveDepQueueWindow(smltStng, tmnlId, hhmm);
+		CgnGradeScale depGradeScale = castCgnGradeService.retrieveGradeScale(FcltType.DEP, context);
+
+		for (String unitCd : window.unitCdList()) {
+			statusList.add(depGradeScale.gradeOf(window.avgWtngSecOf(unitCd)).getValue());
+		}
+
+		return CgnOrder.worstOf(statusList);
 	}
 
 	@Override
@@ -248,22 +270,26 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(smltId);
 		DepQueueWindow window = castDepQueueService.retrieveDepQueueWindow(smltStng, tmnlId, hhmm);
 		CgnGradeScale gradeScale = castCgnGradeService.retrieveGradeScale(fcltType, baseContext);
-		int targetQueueCnt = FcltQueueClearance.toTargetQueueCnt(gradeScale.getNormalMax());
+		int normalUpperExclusiveSec = gradeScale.getNormalUpperExclusiveSec();
 
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(tmnlId.getFcltTmnlId(), DEP_CARD_FCLT_CD_LIST)
 				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
 
-		List<FcltUnitDto> unitList = getDepUnitList(unitMap, window, gradeScale, baseContext);
+		List<FcltUnitDto> unitList = getDepUnitList(unitMap, window, gradeScale);
 		List<FcltQueueClearance> clearanceList = window.unitCdList().stream()
-				.map(unitCd -> new FcltQueueClearance(window.sourceOf(unitCd), targetQueueCnt))
-				.sorted(Comparator.comparingInt((FcltQueueClearance clearance) -> queueOf(clearance.getSource())).reversed())
+				.map(unitCd -> new FcltQueueClearance(window.sourceOf(unitCd), normalUpperExclusiveSec))
+				.sorted(CgnOrder.byWaitDesc(
+                    (FcltQueueClearance clearance) -> clearance.getObservedWait().getValue(),
+                    clearance -> queueOf(clearance.getSource()),
+                    clearance -> clearance.getSource().getUnitCd()
+                ))
 				.collect(toList());
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
 		for (FcltQueueClearance clearance : clearanceList) {
 			String unitCd = clearance.getSource().getUnitCd();
 
-			result.add(getDepFcltCard(clearance, unitMap.get(unitCd), unitList, gradeScale.statusOf(queueOf(clearance.getSource()), gradeContext(baseContext, unitCd))));
+			result.add(getDepFcltCard(clearance, unitMap.get(unitCd), unitList, gradeScale.gradeOf(clearance.getObservedWait()).getValue()));
 		}
 
 		return result;
@@ -275,44 +301,46 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		String hhmm = searchDto.getHhmm();
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 		String baseContext = baseContext(smltId, tmnlId, hhmm);
-		int bgnMinute = toMinutes(hhmm);
+		int evalMinute = toMinutes(hhmm);
 
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(smltId);
 		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltId, tmnlId, smltStng.getExcnYmd());
-		IslandMainAln islandMainAln = retrieveIslandMainAln(smltStng, fcltTmnlId, parseYmd(smltStng.getExcnYmd()).atStartOfDay().plusMinutes(bgnMinute));
+		IslandMainAln islandMainAln = retrieveIslandMainAln(smltStng, fcltTmnlId, parseYmd(smltStng.getExcnYmd()).atStartOfDay().plusMinutes(evalMinute));
 
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, List.of("CC"))
 				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
 
-		List<FcltUnitDto> unitList = getChknUnitList(unitMap, queueDay, bgnMinute, baseContext);
+		List<FcltUnitDto> unitList = getChknUnitList(unitMap, queueDay, evalMinute);
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
-		for (String unitCd : sortedByQueue(queueDay, bgnMinute)) {
-			result.add(getChknFcltCard(unitCd, queueDay, bgnMinute, unitMap.get(unitCd), unitList, islandMainAln, baseContext));
+		for (String unitCd : sortedByWait(queueDay, evalMinute)) {
+			result.add(getChknFcltCard(unitCd, queueDay, evalMinute, unitMap.get(unitCd), unitList, islandMainAln, baseContext));
 		}
 
 		return result;
 	}
 
-	private List<String> sortedByQueue(ChknQueueDay queueDay, int bgnMinute) {
-		List<String> result = new ArrayList<>();
+	// 카드는 평균 대기시간이 긴 아일랜드부터 — 첫 카드가 화면에 먼저 보인다
+	private List<String> sortedByWait(ChknQueueDay queueDay, int evalMinute) {
+		Map<String, Double> avgWtngSecMap = new LinkedHashMap<>();
+		Map<String, Integer> queueMap = new LinkedHashMap<>();
 
 		for (String unitCd : queueDay.islandCdList()) {
-			ChknQueueSlot slot = queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN);
+			ChknQueueSlot slot = queueDay.windowSlotOf(unitCd, evalMinute);
 
 			if (slot.getCurrentQueue() > 0 || slot.getPrcsPsgCnt() > 0 || slot.getOprBoothCnt() > 0) {
-				result.add(unitCd);
+				avgWtngSecMap.put(unitCd, queueDay.avgWtngSecOf(unitCd, evalMinute).getValue());
+				queueMap.put(unitCd, slot.getCurrentQueue());
 			}
 		}
 
-		result.sort(Comparator.comparingInt((String unitCd) -> queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN).getCurrentQueue()).reversed());
+		List<String> result = new ArrayList<>(queueMap.keySet());
+		result.sort(CgnOrder.byWaitDesc(avgWtngSecMap::get, queueMap::get, Function.identity()));
 
 		return result;
 	}
 
-	private List<FcltUnitDto> getChknUnitList(
-        Map<String, FcltUnitRawDto> unitMap, ChknQueueDay queueDay, int bgnMinute, String baseContext
-	) {
+	private List<FcltUnitDto> getChknUnitList(Map<String, FcltUnitRawDto> unitMap, ChknQueueDay queueDay, int evalMinute) {
 		List<FcltUnitDto> result = new ArrayList<>();
 
 		for (FcltUnitRawDto unit : unitMap.values()) {
@@ -322,15 +350,11 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				continue;
 			}
 
-			ChknQueueSlot slot = queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN);
-			int currentQueueCnt = slot.getCurrentQueue();
+			ChknQueueSlot slot = queueDay.windowSlotOf(unitCd, evalMinute);
 
 			result.add(new FcltUnitDto()
                 .withUnitCd(unitCd)
-                .withCgnStatus(queueDay.statusOf(
-                    currentQueueCnt,
-                    gradeContext(baseContext, unitCd)
-                ))
+                .withCgnStatus(queueDay.gradeOf(unitCd, evalMinute).getValue())
                 .withUseYn(slot.getOprBoothCnt() > 0 ? "Y" : "N")
             );
 		}
@@ -338,15 +362,15 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return result;
 	}
 
-	private DsbdFcltCardDto getChknFcltCard(String unitCd, ChknQueueDay queueDay, int bgnMinute, FcltUnitRawDto unit, List<FcltUnitDto> unitList, IslandMainAln islandMainAln, String baseContext) {
+	private DsbdFcltCardDto getChknFcltCard(String unitCd, ChknQueueDay queueDay, int evalMinute, FcltUnitRawDto unit, List<FcltUnitDto> unitList, IslandMainAln islandMainAln, String baseContext) {
 		String unitContext = unitContext(baseContext, FcltType.CHKN, unitCd);
-		FcltQueueClearance clearance = queueDay.clearanceOf(unitCd, bgnMinute, CARD_SLOT_MIN);
+		FcltQueueClearance clearance = queueDay.clearanceOf(unitCd, evalMinute);
 
 		if (clearance == null) {
 			throw new IllegalStateException("선택한 시설의 시뮬레이션 결과를 찾을 수 없습니다. " + unitContext);
 		}
 
-		ChknQueueSlot slot = queueDay.slotOf(unitCd, bgnMinute, CARD_SLOT_MIN);
+		ChknQueueSlot slot = queueDay.windowSlotOf(unitCd, evalMinute);
 		FcltQueueClearance.Recommend recommend = clearance.recommendOf(FcltQueueClearance.DFLT_TARGET_MIN);
 		Integer reqCnt = recommend.getReqCnt();
 		int queuePsgCnt = slot.getCurrentQueue();
@@ -363,19 +387,14 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setOprCnt(slot.getOprBoothCnt());
 		result.setWtngPsgCnt(queuePsgCnt);
 		applyClearance(result, clearance, recommend);
-		result.setCgnStatus(queueDay.statusOf(queuePsgCnt, gradeContext(baseContext, unitCd)));
+		result.setCgnStatus(queueDay.gradeOf(unitCd, evalMinute).getValue());
 		result.setRecommend(getRecommend(mainAlnNm, reqCnt, needAssign));
 		result.setUnitList(unitList);
 
 		return result;
 	}
 
-	private List<FcltUnitDto> getDepUnitList(
-        Map<String, FcltUnitRawDto> unitMap,
-        DepQueueWindow window,
-        CgnGradeScale gradeScale,
-        String baseContext
-	) {
+	private List<FcltUnitDto> getDepUnitList(Map<String, FcltUnitRawDto> unitMap, DepQueueWindow window, CgnGradeScale gradeScale) {
 		List<FcltUnitDto> result = new ArrayList<>();
 
 		for (FcltUnitRawDto unit : unitMap.values()) {
@@ -388,11 +407,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			result.add(
                 new FcltUnitDto()
                     .withUnitCd(unitCd)
-                    .withCgnStatus(
-                        gradeScale.statusOf(
-                            queueOf(window.sourceOf(unitCd)), gradeContext(baseContext, unitCd)
-                        )
-                    )
+                    .withCgnStatus(gradeScale.gradeOf(window.avgWtngSecOf(unitCd)).getValue())
                     .withUseYn(unit.getOprCnt() > 0 ? "Y" : "N")
             );
 		}
@@ -435,6 +450,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		FcltQueueClearance.ClearanceResult clear = recommend.getReqClear();
 		Integer clearMin = clear == null ? null : clear.getClearMin();
 
+		card.setCgnWtngSec(clearance.getObservedWait().getValue());
 		card.setHrlyPrcsPsgCnt(prcsPerHour.hasValue() ? toRoundedInt(prcsPerHour.getValue()) : 0);
 		card.setHrlyPrcsRate(loadRatio.hasValue() ? toRoundedInt(loadRatio.getValue() * 100) : 0);
 		card.setCgnClearTime(clearMin == null ? EMPTY : clear.getClearDt().format(DateTimeFormatter.ofPattern("HHmm")));
@@ -769,10 +785,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	private String baseContext(String smltId, TerminalKind tmnlId, String hhmm) {
 		return "smltId=" + smltId + ", tmnlId=" + (tmnlId != null ? tmnlId.getValue() : null) + ", hhmm=" + hhmm;
-	}
-
-	private String gradeContext(String baseContext, String unitCd) {
-		return baseContext + ", unitCd=" + unitCd;
 	}
 
 	private String unitContext(String baseContext, FcltType fcltType, String unitCd) {

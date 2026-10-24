@@ -1,7 +1,8 @@
 import { CounterConIcon, PlusIcon, SelfCheckinIcon } from '@/components/icons';
 import { useModalDismiss } from '../hooks/useModalDismiss';
 import {
-    CONGESTION_LABEL,
+    toLevelKey,
+    toLevelLabel,
     type FacilityKind,
     type IslandDetail,
     type IslandSales,
@@ -52,10 +53,10 @@ export function IslandModal({ detail, onClose, onDetailClick }: IslandModalProps
                         ))}
                     </ul>
 
-                    <div className={`sec-head sec-head--${detail.level}`}>
+                    <div className={`sec-head sec-head--${toLevelKey(detail.level)}`}>
                         <h3 className="sec-head__title">시설 혼잡 현황</h3>
-                        <span className={`state-badge state-badge--${detail.level}`}>
-                            {CONGESTION_LABEL[detail.level]}
+                        <span className={`state-badge state-badge--${toLevelKey(detail.level)}`}>
+                            {toLevelLabel(detail.level)}
                         </span>
                     </div>
 

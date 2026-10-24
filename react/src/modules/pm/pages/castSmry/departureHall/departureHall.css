@@ -509,6 +509,12 @@ html[data-page='departureHall'] .state-badge--crowded {
     background: var(--c-red);
 }
 
+/* 혼잡도 산정 불가 (직전 30분 미관측 / 처리 여객 0명) — 등급 색과 구분되는 중립색 */
+html[data-page='departureHall'] .state-badge--unknown,
+html[data-page='departureHall'] .marker--island.is-unknown {
+    background: #9aa3b2;
+}
+
 /* 지표 4종 (2 x 2) ------------------------------------------------------- */
 html[data-page='departureHall'] .dep-stat {
     display: grid;

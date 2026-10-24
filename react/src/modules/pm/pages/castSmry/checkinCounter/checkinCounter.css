@@ -586,6 +586,12 @@ html[data-page='checkinCounter'] .chkn-chip--crowded {
     background: var(--c-red);
 }
 
+/* 혼잡도 산정 불가 (직전 30분 미관측 / 처리 여객 0명) — 미운영(off)과 다른 중립색 */
+html[data-page='checkinCounter'] .chkn-chip--unknown,
+html[data-page='checkinCounter'] .state-badge--unknown {
+    background: #9aa3b2;
+}
+
 html[data-page='checkinCounter'] .chkn-chip--off {
     background: #e5e8ef;
     color: #8b93a3;

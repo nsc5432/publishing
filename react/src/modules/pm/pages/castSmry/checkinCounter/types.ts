@@ -8,7 +8,14 @@ export type {
     NoticeLevelPreset,
     TerminalKind,
 } from '@/modules/pm/types/map.types';
-export { CONGESTION_LABEL, TERMINAL_LABEL, TERMINALS } from '@/modules/pm/types/map.types';
+export {
+    CONGESTION_LABEL,
+    TERMINAL_LABEL,
+    TERMINALS,
+    UNKNOWN_NOTICE,
+    toLevelKey,
+    toLevelLabel,
+} from '@/modules/pm/types/map.types';
 
 /**
  * 체크인카운터 결과 조회 뷰 모델.
@@ -81,7 +88,8 @@ export interface ChknIslandView {
     island: string;
     /** 표시명 (예: 아일랜드 A) */
     title: string;
-    level: CongestionLevel;
+    /** 평가시각 직전 30분 처리 여객 평균 대기시간 기준. 산정 불가면 null */
+    level: CongestionLevel | null;
     /** 미운영 아일랜드 (그 시각 배정이 없다) */
     isClosed: boolean;
     /** 운영 부스 (개) */

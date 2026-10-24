@@ -3,7 +3,7 @@ package aoms.pm.cast.dto;
 import lombok.Getter;
 import lombok.Setter;
 
-/** 한 운영 수량 조건의 혼잡해소 예상(유입/처리 차이 계산)과 M/M/s 정상상태 참고지표 */
+/** 한 운영 수량 조건의 혼잡해소 예상(처리 여객 평균 대기시간 예측)과 M/M/s 정상상태 참고지표 */
 @Getter
 @Setter
 public class FcltQueueClearDto {
@@ -11,6 +11,9 @@ public class FcltQueueClearDto {
 	private Double cgnClearMin; // 혼잡해소 소요시간 (분, 반올림 전). 산정 불가 / 해소 불가면 null
 	private String cgnClearDt; // 해소 예상 일시 yyyyMMddHHmmss (기준시각 + 소요시간). 없으면 ''
 	private QueueMetricDto clearMetric;
+	private Double fcstWtngSec; // fcstDt 의 직전 30분 처리 여객 예측 평균 대기시간 (초). 산정 불가면 null
+	private String fcstDt; // 예측 평균을 본 시각 yyyyMMddHHmmss (기준시각 + 목표 해소시간)
+	private QueueMetricDto fcstWtngMetric;
 	private Double nextWtngSec; // 기준시각에 줄 선 여객의 예상 대기시간 (초) = (Q0+1)/(s×μ). 산정 불가 / 대기 끝나지 않음이면 null
 	private QueueMetricDto nextWtngMetric;
 	private Double wtngProb; // 대기 발생 확률 0~1

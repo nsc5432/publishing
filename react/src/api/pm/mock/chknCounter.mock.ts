@@ -3,12 +3,12 @@ import type {
     ChknCounterIslandDto,
     ChknCounterRsrcDto,
     ChknCounterSlotDto,
-    CongestionStatus,
     MapCgnStatDto,
     MapChknRsltDto,
     MapNoticeDto,
     TmnlId,
 } from '@/types/api.types';
+import { mockAvgWtngSec, mockByWaitDesc, mockChknRecommend, mockGradeOf, mockWorstOf } from './cgnGrade.mock';
 
 /**
  * 체크인카운터 목업 응답 (VITE_ENABLE_MOCK=true 일 때 사용).
@@ -237,14 +237,10 @@ function queueAt(seed: IslandSeed, step: number): number {
 
 /* ================= 공용 Queue 추천 ================= */
 
-/** NORMAL 등급 상한 (서버 혼잡등급 기준정보와 같은 값) */
-const NORMAL_MAX_QUEUE = 220;
 /** 부스 1대의 분당 처리량 */
 const BOOTH_PRCS_PER_MIN = 2;
-/** 추천 리드타임 (분) */
-const RECOMMEND_LEAD_MIN = 30;
-/** 추천 궤적 구간 (분) */
-const RECOMMEND_SPAN_MIN = 60;
+/** 대기인원 1명당 평균 대기 환산(초) — 맵형태보기 목업과 같은 값 */
+const WAIT_SEC_PER_PSG = 13;
 
 /** 그 시각 운영 부스 — 배정 대수를 Queue 흐름에 맞춰 오르내리게 한다 */
 function boothCntAt(seed: IslandSeed, step: number): number {
@@ -255,17 +251,11 @@ function boothCntAt(seed: IslandSeed, step: number): number {
     return Math.max(1, Math.round(seed.counterCnt * (0.5 + peakRatio / 2)));
 }
 
-function extraBoothCntAt(queuePsgCnt: number): number {
-    const excess = queuePsgCnt - NORMAL_MAX_QUEUE;
+/** 평가시각 직전 30분 처리 여객 평균 대기시간 — 직전 슬롯에 문을 닫았거나 하루 첫 슬롯이면 처리 여객이 없어 null */
+function avgWtngSecAt(seed: IslandSeed, step: number): number | null {
+    const prevOpen = step > 0 && boothCntAt(seed, step - 1) > 0;
 
-    return excess <= 0 ? 0 : Math.ceil(excess / (BOOTH_PRCS_PER_MIN * RECOMMEND_LEAD_MIN));
-}
-
-function toCgnClearMin(queuePsgCnt: number, oprBoothCnt: number, extraBoothCnt: number): number | null {
-    if (oprBoothCnt === 0) return null;
-    if (extraBoothCnt === 0) return 0;
-
-    return Math.min(RECOMMEND_SPAN_MIN, Math.ceil((queuePsgCnt - NORMAL_MAX_QUEUE) / (BOOTH_PRCS_PER_MIN * extraBoothCnt)));
+    return mockAvgWtngSec(prevOpen ? queueAt(seed, step - 1) : null, WAIT_SEC_PER_PSG);
 }
 
 /* ================= 슬롯 ================= */
@@ -288,23 +278,16 @@ function toStat(queuePsgCnt: number, oprBoothCnt: number): MapCgnStatDto {
     };
 }
 
-/** Queue 인원 → 혼잡도 (뱃지와 알림이 같은 근거를 쓴다) */
-function toStatus(queuePsgCnt: number): CongestionStatus {
-    if (queuePsgCnt >= 420) return 'VERY_BUSY';
-    if (queuePsgCnt > NORMAL_MAX_QUEUE) return 'BUSY';
-    if (queuePsgCnt >= 80) return 'NORMAL';
-
-    return 'FREE';
-}
-
 function toChknRslt(seed: IslandSeed, step: number): MapChknRsltDto {
     const oprBoothCnt = boothCntAt(seed, step);
+    const cgnWtngSec = avgWtngSecAt(seed, step);
 
     // 문을 닫은 시각은 결과 자체가 없다 — 처리인원까지 0 이어야 표가 운영 여부와 어긋나지 않는다
     if (oprBoothCnt === 0) {
         return {
             unitCd: seed.island,
-            cgnStatus: 'FREE',
+            cgnStatus: mockGradeOf(cgnWtngSec),
+            cgnWtngSec,
             stat: EMPTY_STAT,
             prcsRate: 0,
             avgQueuePsgCnt: 0,
@@ -318,34 +301,40 @@ function toChknRslt(seed: IslandSeed, step: number): MapChknRsltDto {
     const queuePsgCnt = queueAt(seed, step);
     const stat = toStat(queuePsgCnt, oprBoothCnt);
     const capacity = toCapacity(oprBoothCnt);
-    const extraBoothCnt = extraBoothCntAt(queuePsgCnt);
 
     return {
         unitCd: seed.island,
-        cgnStatus: toStatus(queuePsgCnt),
+        cgnStatus: mockGradeOf(cgnWtngSec),
+        cgnWtngSec,
         stat,
         prcsRate: capacity === 0 ? 0 : Math.min(100, Math.round((stat.prcsPsgCnt * 100) / capacity)),
         avgQueuePsgCnt: Math.round(queuePsgCnt * 0.92),
         maxQueuePsgCnt: Math.round(queuePsgCnt * 1.08),
         oprBoothCnt,
-        reqCnt: oprBoothCnt + extraBoothCnt,
-        cgnClearMin: toCgnClearMin(queuePsgCnt, oprBoothCnt, extraBoothCnt),
+        ...mockChknRecommend(cgnWtngSec, oprBoothCnt),
     };
 }
 
-/** 알림은 혼잡(BUSY) 이상인 아일랜드만 Queue 내림차순으로 모은다 (뱃지와 같은 근거) */
+/** 알림은 혼잡(BUSY) 이상인 아일랜드만 평균 대기시간 내림차순으로 모은다. 단계는 산정 가능한 아일랜드 중 최고 등급 */
 function toNotice(rsltList: MapChknRsltDto[]): MapNoticeDto {
-    const sorted = [...rsltList].sort((a, b) => b.stat.wtngPsgCnt - a.stat.wtngPsgCnt);
+    const sorted = [...rsltList].sort(
+        mockByWaitDesc(
+            (rslt) => rslt.cgnWtngSec,
+            (rslt) => rslt.stat.wtngPsgCnt,
+            (rslt) => rslt.unitCd,
+        ),
+    );
     const busy = sorted.filter((rslt) => rslt.cgnStatus === 'BUSY' || rslt.cgnStatus === 'VERY_BUSY');
 
     return {
-        cgnStatus: sorted[0]?.cgnStatus ?? 'FREE',
+        cgnStatus: mockWorstOf(rsltList.map((rslt) => rslt.cgnStatus)),
         itemList: busy.map((rslt) => ({
             fcltNm: `아일랜드 ${rslt.unitCd}`,
             fcltCd: rslt.unitCd,
             boothCnt: rslt.oprBoothCnt,
             reqCnt: rslt.reqCnt,
             cgnClearMin: rslt.cgnClearMin,
+            cgnWtngSec: rslt.cgnWtngSec,
         })),
     };
 }

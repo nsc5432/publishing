@@ -104,7 +104,8 @@ export interface TmnlSmryDto extends JsonResponse {
     psgDiffCnt: number;
     yesterdayPsgDiffCnt: number;
     brdgRate: number;
-    cgnStatus: CongestionStatus;
+    /** hhmm 의 체크인 / 출국장 시설 중 최고 등급. 전부 산정 불가면 null */
+    cgnStatus: CongestionStatus | null;
     intrvlMin: number;
     intrvlFltCnt: number;
     intrvlPsgCnt: number;
@@ -135,7 +136,7 @@ export interface FcltRecommendDto {
 
 export interface FcltUnitDto {
     unitCd: string;
-    cgnStatus: CongestionStatus;
+    cgnStatus: CongestionStatus | null;
     useYn: YnFlag;
 }
 
@@ -152,7 +153,9 @@ export interface DsbdFcltCardDto {
     hrlyPrcsRate: number;
     cgnClearTime: string;
     cgnClearRate: number;
-    cgnStatus: CongestionStatus;
+    /** 혼잡 판정값 — 직전 30분 처리 여객 평균 대기시간 (초, 소수 원값) */
+    cgnWtngSec: number | null;
+    cgnStatus: CongestionStatus | null;
     recommend: FcltRecommendDto;
     unitList: FcltUnitDto[];
 }
@@ -171,7 +174,10 @@ export type QueueCalcMethod =
     | 'OBSERVED_FLOW'
     | 'QUEUE_BALANCE'
     | 'ERLANG_C'
-    | 'NEXT_ARRIVAL_WAIT';
+    | 'NEXT_ARRIVAL_WAIT'
+    | 'PRCS_WAIT_AVG'
+    | 'WAIT_AVG_FORECAST'
+    | 'CGN_GRADE';
 
 export type QueueDataSrc = 'CAST' | 'XOVIS';
 
@@ -198,6 +204,11 @@ export interface FcltQueueClearDto {
     cgnClearMin: number | null;
     cgnClearDt: string;
     clearMetric: QueueMetricDto;
+    /** fcstDt 의 직전 30분 처리 여객 예측 평균 대기시간 (초) */
+    fcstWtngSec: number | null;
+    fcstDt: string;
+    fcstWtngMetric: QueueMetricDto;
+    /** 신규 여객 진단 — 혼잡 판정 / 해소 목표에 쓰지 않는다 */
     nextWtngSec: number | null;
     nextWtngMetric: QueueMetricDto;
     wtngProb: number | null;
@@ -231,7 +242,14 @@ export interface FcltQueueScenarioDto extends JsonResponse {
     obsEndDt: string;
     dataSrc: QueueDataSrc;
     wtngPsgCnt: number | null;
-    targetQueueCnt: number;
+    /** 명 단위 계약. 평균 대기시간 목표에는 환산 인원이 없어 null 이다 */
+    targetQueueCnt: number | null;
+    /** 해소 기준 — 처리 여객 평균 대기시간이 이 값(초) 미만 */
+    normalUpperExclusiveSec: number;
+    wtngAvgSec: number | null;
+    wtngAvgPrcsPsgCnt: number | null;
+    wtngAvgMetric: QueueMetricDto;
+    cgnStatus: CongestionStatus | null;
     oprFcltCnt: number | null;
     totCnt: number | null;
     totCntRsn: string;
@@ -262,10 +280,12 @@ export interface MapNoticeItemDto {
     boothCnt: number;
     reqCnt: number | null;
     cgnClearMin: number | null;
+    cgnWtngSec: number | null;
 }
 
 export interface MapNoticeDto {
-    cgnStatus: CongestionStatus;
+    /** 산정 가능한 시설 중 최고 등급. 전부 산정 불가면 null */
+    cgnStatus: CongestionStatus | null;
     itemList: MapNoticeItemDto[];
 }
 
@@ -294,7 +314,10 @@ export interface MapCgnStatDto {
 
 export interface MapUnitRsltDto {
     unitCd: string;
-    cgnStatus: CongestionStatus;
+    /** 평가시각(hhmm) 직전 30분 처리 여객 평균 대기시간 기준. 산정 불가면 null */
+    cgnStatus: CongestionStatus | null;
+    cgnWtngSec: number | null;
+    /** 지표 4종은 슬롯 [hhmm, hhmm+30) 값이다 */
     stat: MapCgnStatDto;
 }
 

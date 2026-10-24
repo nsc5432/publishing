@@ -1,7 +1,7 @@
 import type { ComponentType, SVGProps } from 'react';
 import { toStagePosition } from '@/lib/chart';
 import { DonePeopleIcon, DoneTimeIcon, WaitPeopleIcon, WaitTimeIcon } from '@/components/icons';
-import { CONGESTION_LABEL, type DepGateCard, type StatIcon } from '../types';
+import { toLevelKey, toLevelLabel, type DepGateCard, type StatIcon } from '../types';
 
 const STAT_ICON: Record<StatIcon, ComponentType<SVGProps<SVGSVGElement>>> = {
     'wait-people': WaitPeopleIcon,
@@ -34,8 +34,8 @@ export function DepGateCardBox({ card, floating = true, active = false }: DepGat
         >
             <div className="dep-card__head">
                 <h3 className="dep-card__title">{card.title}</h3>
-                <span className={`state-badge state-badge--${card.level}`}>
-                    {CONGESTION_LABEL[card.level]}
+                <span className={`state-badge state-badge--${toLevelKey(card.level)}`}>
+                    {toLevelLabel(card.level)}
                 </span>
             </div>
 

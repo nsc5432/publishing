@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { Terminal1SolidPlan, Terminal2SolidPlan } from '@/components/icons';
 import { toStagePosition } from '@/lib/chart';
-import type { DepGateMarker, IslandMarker, TerminalKind, TerminalMapData } from '../types';
+import { toLevelKey, type DepGateMarker, type IslandMarker, type TerminalKind, type TerminalMapData } from '../types';
 
 interface MapStageProps {
     terminal: TerminalKind;
@@ -37,7 +37,7 @@ export function MapStage({
                         className={`marker marker--dep-gate${
                             dptgtGate.id === activeMarkerId ? ' is-active' : ''
                         }`}
-                        data-congestion={dptgtGate.cgnStatus}
+                        data-congestion={dptgtGate.cgnStatus ?? undefined}
                         style={toStagePosition(dptgtGate.x, dptgtGate.y)}
                         aria-label={`출국장 ${dptgtGate.label}`}
                         onClick={() => onDepGateClick(dptgtGate)}
@@ -49,7 +49,7 @@ export function MapStage({
                     <button
                         type="button"
                         key={island.id}
-                        className={`marker marker--island is-${island.level}${
+                        className={`marker marker--island is-${toLevelKey(island.level)}${
                             island.id === activeMarkerId ? ' is-active' : ''
                         }`}
                         style={toStagePosition(island.x, island.y)}

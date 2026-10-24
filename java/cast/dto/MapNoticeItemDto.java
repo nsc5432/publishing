@@ -12,6 +12,7 @@ public class MapNoticeItemDto {
 	private int boothCnt; // 조치 부스 수
 	private Integer reqCnt; // 총 소요 부스 수 — 산정 불가면 null
 	private Integer cgnClearMin; // NORMAL 도달 예상 분 — 산정 불가면 null
+	private Double cgnWtngSec; // 직전 30분 처리 여객 평균 대기시간 (초) — 알림 정렬 기준
 
 	public MapNoticeItemDto withFcltNm(String fcltNm) {
 		this.fcltNm = fcltNm;
@@ -35,6 +36,11 @@ public class MapNoticeItemDto {
 
 	public MapNoticeItemDto withCgnClearMin(Integer cgnClearMin) {
 		this.cgnClearMin = cgnClearMin;
+		return this;
+	}
+
+	public MapNoticeItemDto withCgnWtngSec(Double cgnWtngSec) {
+		this.cgnWtngSec = cgnWtngSec;
 		return this;
 	}
 }

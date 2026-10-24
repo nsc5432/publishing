@@ -55,6 +55,11 @@ const CONGESTION_TO_NOTICE_LEVEL: Record<CongestionStatus, NoticeLevel> = {
 /** 출국장별 꺾은선 색 (내려온 순서대로 돌려 쓴다) */
 const TREND_COLORS = ['#4441cc', '#e12b2b', '#1f9d3a', '#e8a318', '#2f7ff0', '#8b5cf6'];
 
+/** 산정 불가(null)는 3색에 넣지 않는다 */
+function toLevel(cgnStatus: CongestionStatus | null): CongestionLevel | null {
+    return cgnStatus === null ? null : CONGESTION_TO_LEVEL[cgnStatus];
+}
+
 /** 혼잡 현황 지표 4종 — 카드 / 표 보기가 같은 순서로 읽는다 */
 function toDepStats(cgnStat: MapCgnStatDto): DepStat[] {
     return [
@@ -91,7 +96,7 @@ function toCard(gate: DepHallGateDto, rslt: MapUnitRsltDto | undefined): DepGate
         id: `dg${gate.dptgtNo}`,
         dptgtNo: gate.dptgtNo,
         title: gate.dptgtNm,
-        level: CONGESTION_TO_LEVEL[rslt?.cgnStatus ?? 'NORMAL'],
+        level: toLevel(rslt?.cgnStatus ?? null),
         stats: toDepStats(rslt?.stat ?? EMPTY_STAT),
         boothCnt: gate.boothCnt,
         operTime: `${formatHhmm(gate.oprBgnTime)}-${formatHhmm(gate.oprEndTime)}`,
@@ -103,7 +108,7 @@ function toCard(gate: DepHallGateDto, rslt: MapUnitRsltDto | undefined): DepGate
 
 /**
  * 혼잡도를 함께 그리는 마커 (아일랜드 / 출국장이 같은 모양이다).
- * 마커는 자리만 알고 색은 그 시각 결과에서 온다 — 결과가 없는 시각은 원활로 둔다.
+ * 마커는 자리만 알고 색은 그 시각 결과에서 온다 — 결과가 없거나 산정 불가인 시각은 중립색이다.
  */
 function toCongestionMarker(
     marker: MapMarkerDto,
@@ -112,7 +117,7 @@ function toCongestionMarker(
     return {
         id: marker.markerId,
         label: marker.label,
-        level: CONGESTION_TO_LEVEL[rslt?.cgnStatus ?? 'NORMAL'],
+        level: toLevel(rslt?.cgnStatus ?? null),
         x: marker.cdntX,
         y: marker.cdntY,
     };
@@ -124,7 +129,7 @@ function toGateMarker(marker: MapMarkerDto): GateMarker {
 
 function toNotice(notice: MapNoticeDto): NoticeData {
     return {
-        level: CONGESTION_TO_NOTICE_LEVEL[notice.cgnStatus],
+        level: notice.cgnStatus === null ? null : CONGESTION_TO_NOTICE_LEVEL[notice.cgnStatus],
         items: notice.itemList.map((item) => ({
             id: item.fcltCd,
             facility: item.fcltNm,
@@ -198,7 +203,7 @@ export const EMPTY_DEP_MAP: TerminalDepMap = {
     gates: [],
 };
 
-export const EMPTY_NOTICE: NoticeData = { level: 'normal', items: [] };
+export const EMPTY_NOTICE: NoticeData = { level: null, items: [] };
 
 export const EMPTY_TREND: DepTrend = { timeLabels: [], series: [] };
 

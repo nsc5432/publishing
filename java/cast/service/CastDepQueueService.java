@@ -1,5 +1,6 @@
 package aoms.pm.cast.service;
 
+import aoms.pm.cast.domains.dsbd.DepQueueDay;
 import aoms.pm.cast.domains.dsbd.DepQueueWindow;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.enums.TerminalKind;
@@ -20,5 +21,9 @@ import aoms.pm.cast.enums.TerminalKind;
  * </pre>
  */
 public interface CastDepQueueService {
+	/** 평가시각 hhmm 의 관측구간 [hhmm-30분, hhmm) */
 	DepQueueWindow retrieveDepQueueWindow(SmltStngDto smltStng, TerminalKind tmnlId, String hhmm);
+
+	/** 슬롯마다 평가시각을 바꿔 읽는 화면(맵형태보기 / 출국장)용 하루치 원천 */
+	DepQueueDay retrieveDepQueueDay(SmltStngDto smltStng, TerminalKind tmnlId);
 }

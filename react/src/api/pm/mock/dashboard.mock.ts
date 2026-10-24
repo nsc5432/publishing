@@ -15,6 +15,7 @@ import type {
     TmnlId,
     TmnlSmryDto,
 } from '@/types/api.types';
+import { MOCK_NORMAL_UPPER_EXCLUSIVE_SEC, mockByWaitDesc, mockGradeOf, mockWorstOf } from './cgnGrade.mock';
 
 /**
  * 대시보드 목업 응답 (VITE_ENABLE_MOCK=true 일 때 사용).
@@ -122,7 +123,7 @@ const HEADER: DsbdHeaderDto = {
 /* ================= 터미널 패널 요약 ================= */
 
 /** 조회 시각과 무관한 부분 — 구간 4필드는 buildTmnlSmry 가 얹는다 */
-type TmnlSmryBase = Omit<TmnlSmryDto, 'intrvlMin' | 'intrvlFltCnt' | 'intrvlPsgCnt' | 'intrvlYesterdayFltDiffCnt' | 'intrvlYesterdayPsgDiffCnt'>;
+type TmnlSmryBase = Omit<TmnlSmryDto, 'cgnStatus' | 'intrvlMin' | 'intrvlFltCnt' | 'intrvlPsgCnt' | 'intrvlYesterdayFltDiffCnt' | 'intrvlYesterdayPsgDiffCnt'>;
 
 const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
     T1: {
@@ -136,7 +137,6 @@ const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
         psgDiffCnt: 2688,
         yesterdayPsgDiffCnt: 1234,
         brdgRate: 79,
-        cgnStatus: 'FREE',
         peak: {
             ampm: 'AM',
             peakTime: '1000',
@@ -156,7 +156,6 @@ const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
         psgDiffCnt: 1942,
         yesterdayPsgDiffCnt: 842,
         brdgRate: 74,
-        cgnStatus: 'NORMAL',
         peak: {
             ampm: 'AM',
             peakTime: '0900',
@@ -201,8 +200,12 @@ function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmr
     const intrvlPsgCnt = sumByIntrvl(HOURLY_PSG[tmnlId], hhmm, intrvlMin);
     const ratio = YESTERDAY_RATIO[tmnlId];
 
+    // 대표 등급은 PRIME TIME(대기인원 피크)과 별개로 조회 시각 시설 카드 중 최고 등급이다 (서버와 같은 규칙)
+    const cardList = [...buildFcltCardList(tmnlId, hhmm, 'CHKN'), ...buildFcltCardList(tmnlId, hhmm, 'DEP')];
+
     return {
         ...TMNL_SMRY[tmnlId],
+        cgnStatus: mockWorstOf(cardList.map((card) => card.cgnStatus)),
         intrvlMin,
         intrvlFltCnt,
         intrvlPsgCnt,
@@ -250,10 +253,18 @@ function buildRsltList(tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] {
 
 /* ================= 게이트 카드 ================= */
 
-/** 칩 목록 — 혼잡도는 코드 순서대로 돌려 쓴다 (목업이라 규칙만 보이면 된다) */
-function buildUnits(labels: string[], busyLabels: string[], closedLabels: string[] = []) {
+/** 칩 목록 — 혼잡도는 코드 순서대로 돌려 쓴다 (목업이라 규칙만 보이면 된다). unknownLabels 는 산정 불가 칩 */
+function buildUnits(labels: string[], busyLabels: string[], closedLabels: string[] = [], unknownLabels: string[] = []) {
     return labels.map<FcltUnitDto>((unitCd, i) => {
-        const cgnStatus: CongestionStatus = busyLabels.includes(unitCd) ? (i % 2 === 0 ? 'VERY_BUSY' : 'BUSY') : i % 3 === 0 ? 'FREE' : 'NORMAL';
+        const cgnStatus: CongestionStatus | null = unknownLabels.includes(unitCd)
+            ? null
+            : busyLabels.includes(unitCd)
+              ? i % 2 === 0
+                  ? 'VERY_BUSY'
+                  : 'BUSY'
+              : i % 3 === 0
+                ? 'FREE'
+                : 'NORMAL';
 
         return {
             unitCd,
@@ -268,16 +279,19 @@ const CHKN_LABELS = ['N', 'M', 'L', 'K', 'J', 'H', 'G', 'F', 'E', 'D', 'C', 'B',
 
 /** 칩은 카드가 아니라 시설 전체 목록이다 — 서버도 같은 목록을 카드마다 실어 보낸다 */
 const CHKN_UNITS: Record<TmnlId, FcltUnitDto[]> = {
-    T1: buildUnits(CHKN_LABELS, ['N', 'H', 'C', 'B'], ['A']),
-    T2: buildUnits(CHKN_LABELS, ['M', 'C'], ['A']),
+    T1: buildUnits(CHKN_LABELS, ['N', 'H', 'C', 'B'], ['A'], ['G']),
+    T2: buildUnits(CHKN_LABELS, ['M', 'C'], ['A'], ['L']),
 };
 
 const DPTGT_UNITS: Record<TmnlId, FcltUnitDto[]> = {
-    T1: buildUnits(['6', '5', '4', '3', '2', '1'], ['4', '3'], ['6']),
+    T1: buildUnits(['6', '5', '4', '3', '2', '1'], ['4', '3'], ['6'], ['5']),
     T2: buildUnits(['2', '1'], ['1'], []),
 };
 
-const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
+/** 등급 / 평균 / 해소값은 buildFcltCard 가 프로필에서 채운다 */
+type FcltCardSeed = Omit<DsbdFcltCardDto, 'cgnWtngSec'>;
+
+const CHKN_CARDS: Record<TmnlId, FcltCardSeed[]> = {
     T1: [
         {
             cardId: 'T1-CHKN-B',
@@ -352,7 +366,7 @@ const CHKN_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
     ],
 };
 
-const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
+const DPTGT_CARDS: Record<TmnlId, FcltCardSeed[]> = {
     T1: [
         {
             cardId: 'T1-DEP-3',
@@ -427,62 +441,76 @@ const DPTGT_CARDS: Record<TmnlId, DsbdFcltCardDto[]> = {
     ],
 };
 
-const FCLT_GRADE_MAX: Record<'CHKN' | 'DEP', [number, number, number]> = {
-    CHKN: [180, 420, 650],
-    DEP: [140, 320, 520],
-};
-
 function toMinuteOfDay(hhmm: string): number {
     return Number(hhmm.slice(0, 2)) * MIN_PER_HOUR + Number(hhmm.slice(2, 4));
 }
 
-function toFcltStatus(fcltType: 'CHKN' | 'DEP', waitingCount: number): CongestionStatus {
-    const [freeMax, normalMax, busyMax] = FCLT_GRADE_MAX[fcltType];
-    if (waitingCount <= freeMax) return 'FREE';
-    if (waitingCount <= normalMax) return 'NORMAL';
-    return waitingCount <= busyMax ? 'BUSY' : 'VERY_BUSY';
-}
-
 // 서버처럼 카드도 혼잡해소 팝업 첫 화면(TIME / 목표 30분)과 같은 프로필 / 같은 식으로 만든다
-function buildFcltCard(card: DsbdFcltCardDto, hhmm: string, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto {
+function buildFcltCard(card: FcltCardSeed, hhmm: string, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto {
     const profile = QUEUE_SCENARIO_PROFILES[card.cardId] ?? QUEUE_SCENARIO_PROFILES['T1-CHKN-B'];
+    const unitCd = fcltType === 'CHKN' ? card.island : card.dptgtNo;
     const targetMin = QUEUE_TARGET_MIN.dflt;
-    const baseMinute = Math.min(toMinuteOfDay(hhmm) + QUEUE_OBS_MIN, MIN_PER_DAY);
+    // 평가시각은 조회 시각 그대로다 — 관측구간은 [hhmm-30, hhmm)
+    const baseMinute = toMinuteOfDay(hhmm);
     const capacity = profile.prcsSec === null ? 0 : (profile.oprCnt * 3600) / profile.prcsSec;
     const { reqCnt } = toQueueRecommend(profile, targetMin);
-    const clear = reqCnt === null ? null : toQueueClear(profile, reqCnt, BASE_INFO.ymd, baseMinute);
+    const clear = reqCnt === null ? null : toQueueClear(profile, reqCnt, BASE_INFO.ymd, baseMinute, targetMin);
     const clearMin = clear?.cgnClearMin == null ? null : Math.ceil(clear.cgnClearMin - 1e-9);
+    const cgnStatus = mockGradeOf(profile.obsWtngSec);
 
     return {
         ...card,
+        // 카드와 팝업이 같은 원천이어야 한다 — 운영 / 보유 수량도 프로필을 따른다
+        oprCnt: profile.oprCnt,
+        totCnt: profile.totCnt ?? card.totCnt,
         wtngPsgCnt: profile.wtngPsgCnt,
         hrlyPrcsRate: capacity === 0 ? 0 : Math.round((profile.arvlPerHour / capacity) * 100),
         cgnClearTime: clear === null || clearMin === null ? '' : clear.cgnClearDt.slice(8, 12),
         cgnClearRate: clearMin === null ? 0 : Math.round((Math.max(targetMin - clearMin, 0) / targetMin) * 100),
-        cgnStatus: toFcltStatus(fcltType, profile.wtngPsgCnt),
+        cgnWtngSec: profile.obsWtngSec,
+        cgnStatus,
         recommend: {
             targetNm: reqCnt === null ? '' : card.recommend.targetNm,
             reqCnt,
             needAssignYn: fcltType === 'CHKN' && reqCnt !== null && reqCnt > profile.oprCnt ? 'Y' : 'N',
         },
-        unitList: card.unitList.map((unit) => ({ ...unit })),
+        // 칩도 카드와 같은 판정이어야 한다 — 카드가 있는 시설의 칩은 카드 등급으로 맞춘다
+        unitList: card.unitList.map((unit) => (unit.unitCd === unitCd ? { ...unit, cgnStatus } : { ...unit })),
     };
 }
 
+// 서버처럼 평균 대기시간이 긴 시설부터 — 화면은 첫 카드를 먼저 보여준다
 function buildFcltCardList(tmnlId: TmnlId, hhmm: string, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto[] {
     const cards = fcltType === 'CHKN' ? CHKN_CARDS[tmnlId] : DPTGT_CARDS[tmnlId];
-    return cards.map((card) => buildFcltCard(card, hhmm, fcltType));
+
+    return cards
+        .map((card) => buildFcltCard(card, hhmm, fcltType))
+        .sort(
+            mockByWaitDesc(
+                (card) => card.cgnWtngSec,
+                (card) => card.wtngPsgCnt,
+                (card) => card.cardId,
+            ),
+        );
 }
 
 /* ================= 혼잡해소 시나리오 팝업 =================
  *
- * 목업 응답을 입력에 반응시키려고 서버(FacilityQueueCalculator)와 같은 식을 작게 흉내 낸다.
+ * 목업 응답을 입력에 반응시키려고 서버(WaitAvgForecast)와 같은 식을 작게 흉내 낸다.
  * 화면 검증용 fixture 생성기일 뿐 운영 계산은 Java queue 클래스가 맡는다.
+ *
+ * 해소 = 직전 30분 처리 여객 평균 대기시간이 NORMAL 상한 미만이 되는 시각.
+ * 창의 평가시각 이전은 관측 이력(평균 obsWtngSec 로 고르게 처리), 이후는 1분 단위 유체 FIFO 예측이다.
  */
 
 interface QueueScenarioProfile {
     wtngPsgCnt: number;
-    targetQueueCnt: number;
+    /** 직전 30분 처리 여객 평균 대기 (초). null 이면 처리 여객이 없어 산정 불가 */
+    obsWtngSec: number | null;
+    /** 직전 30분 처리인원 (명/시간) */
+    obsPrcsPerHour: number;
+    /** 남은 대기열이 기다린 시간 — 1분 ~ 이 값(분)에 고르게 퍼져 있다고 본다 */
+    queueAgeMaxMin: number;
     arvlPerHour: number;
     /** null 이면 처리율 미산출 경우 */
     prcsSec: number | null;
@@ -491,31 +519,43 @@ interface QueueScenarioProfile {
     totCnt: number | null;
 }
 
-/** 키는 `${tmnlId}-${fcltType}-${unitCd}` — T1-CHKN-B 가 계획서 §9.1 검증 벡터다 */
+/** 키는 `${tmnlId}-${fcltType}-${unitCd}` — 등급 / 해소 / 추천의 대표 경우를 하나씩 담았다 */
 const QUEUE_SCENARIO_PROFILES: Record<string, QueueScenarioProfile> = {
-    'T1-CHKN-B': { wtngPsgCnt: 40, targetQueueCnt: 10, arvlPerHour: 180, prcsSec: 120, oprCnt: 8, totCnt: 10 },
-    'T1-CHKN-D': { wtngPsgCnt: 640, targetQueueCnt: 420, arvlPerHour: 900, prcsSec: 60, oprCnt: 14, totCnt: 14 },
-    'T2-CHKN-C': { wtngPsgCnt: 520, targetQueueCnt: 420, arvlPerHour: 480, prcsSec: 72, oprCnt: 11, totCnt: 12 },
-    'T2-CHKN-E': { wtngPsgCnt: 300, targetQueueCnt: 420, arvlPerHour: 360, prcsSec: 60, oprCnt: 8, totCnt: 10 },
-    'T1-DEP-3': { wtngPsgCnt: 380, targetQueueCnt: 320, arvlPerHour: 600, prcsSec: 24, oprCnt: 5, totCnt: 6 },
-    'T1-DEP-1': { wtngPsgCnt: 360, targetQueueCnt: 320, arvlPerHour: 420, prcsSec: 24, oprCnt: 4, totCnt: null },
-    'T2-DEP-1': { wtngPsgCnt: 410, targetQueueCnt: 320, arvlPerHour: 540, prcsSec: null, oprCnt: 2, totCnt: 2 },
-    'T2-DEP-2': { wtngPsgCnt: 0, targetQueueCnt: 320, arvlPerHour: 0, prcsSec: 24, oprCnt: 1, totCnt: 2 },
+    // NORMAL, 이미 목표 미만 → 해소 0분
+    'T1-CHKN-B': { wtngPsgCnt: 40, obsWtngSec: 1500, obsPrcsPerHour: 200, queueAgeMaxMin: 20, arvlPerHour: 180, prcsSec: 120, oprCnt: 8, totCnt: 10 },
+    // VERY_BUSY, 안정 조건 수량이 보유 수량을 넘는다 → 보유 전량 배정 결과
+    'T1-CHKN-D': { wtngPsgCnt: 640, obsWtngSec: 3900, obsPrcsPerHour: 820, queueAgeMaxMin: 70, arvlPerHour: 900, prcsSec: 60, oprCnt: 14, totCnt: 14 },
+    // BUSY, 보유 수량 안에서 추천
+    'T2-CHKN-C': { wtngPsgCnt: 520, obsWtngSec: 2700, obsPrcsPerHour: 500, queueAgeMaxMin: 50, arvlPerHour: 480, prcsSec: 72, oprCnt: 11, totCnt: 12 },
+    'T2-CHKN-E': { wtngPsgCnt: 300, obsWtngSec: 1900, obsPrcsPerHour: 400, queueAgeMaxMin: 40, arvlPerHour: 360, prcsSec: 60, oprCnt: 8, totCnt: 10 },
+    'T1-DEP-3': { wtngPsgCnt: 380, obsWtngSec: 2500, obsPrcsPerHour: 650, queueAgeMaxMin: 40, arvlPerHour: 600, prcsSec: 24, oprCnt: 5, totCnt: 6 },
+    // 39분 59초 — 정확히 40분 미만이라 NORMAL (경계 확인용)
+    'T1-DEP-1': { wtngPsgCnt: 360, obsWtngSec: 2399.5, obsPrcsPerHour: 450, queueAgeMaxMin: 40, arvlPerHour: 420, prcsSec: 24, oprCnt: 4, totCnt: null },
+    // 처리율 미산출 → 추천 / 해소 산정 불가
+    'T2-DEP-1': { wtngPsgCnt: 410, obsWtngSec: 2600, obsPrcsPerHour: 500, queueAgeMaxMin: 45, arvlPerHour: 540, prcsSec: null, oprCnt: 2, totCnt: 2 },
+    // 직전 30분 처리 여객 0명 → 등급 산정 불가 (중립색)
+    'T2-DEP-2': { wtngPsgCnt: 0, obsWtngSec: null, obsPrcsPerHour: 0, queueAgeMaxMin: 0, arvlPerHour: 0, prcsSec: 24, oprCnt: 1, totCnt: 2 },
 };
 
 const QUEUE_OBS_MIN = 30;
 const QUEUE_TARGET_MIN = { dflt: 30, min: 1, max: 120 };
+const QUEUE_HORIZON_MIN = MIN_PER_DAY;
+const QUEUE_EPS = 1e-9;
+
+const QUEUE_ASMP_COMMON = [
+    '혼잡등급 / 해소 목표는 기준시각 직전 30분 [t-30분, t) 에 처리된 여객의 처리인원 가중평균 대기시간이다. 해소는 이 평균이 NORMAL 상한 미만이 되는 시각',
+    '미래 평균은 같은 정의의 이동평균이다. 창의 기준시각 이전은 실제 처리 이력, 이후는 1분 단위 유체 FIFO 예측이며 남은 대기자의 대기시간은 이어서 센다',
+    '추천 수량은 목표 시간 안에 목표 미만이 되고 처리능력(수량 × 처리율)이 유입률보다 큰 최소 총수다',
+    '예측 구간 동안 유입률 / 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다',
+    'M/M/s 적용 가정(정상상태 참고지표 전용): 포아송 도착 / 지수 처리시간 / 동일 처리율의 병렬 시설 / 공용 대기열 선착순 / 무한 대기공간 / 이탈 없음 (통계 검증 아님)',
+];
 
 const QUEUE_ASMP_LIST: Record<'CHKN' | 'DEP', string[]> = {
-    CHKN: [
-        'M/M/s 적용 가정: 포아송 도착 / 지수 처리시간 / 동일 처리율의 병렬 시설 / 공용 대기열 선착순 / 무한 대기공간 / 이탈 없음 (통계 검증 아님)',
-        '예측 구간 동안 유입률 / 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다',
-        '아일랜드 유인 카운터(CC) 공용 Queue — 부스별 결과를 재구성한 값',
-    ],
+    CHKN: [...QUEUE_ASMP_COMMON, '아일랜드 유인 카운터(CC) 공용 Queue — 부스별 결과를 재구성한 값'],
     DEP: [
-        'M/M/s 적용 가정: 포아송 도착 / 지수 처리시간 / 동일 처리율의 병렬 시설 / 공용 대기열 선착순 / 무한 대기공간 / 이탈 없음 (통계 검증 아님)',
-        '예측 구간 동안 유입률 / 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다',
+        ...QUEUE_ASMP_COMMON,
         'SC / SR 결과를 합산한 하나의 보안검색 Queue (직렬 / 병렬 관계 미검증)',
+        '잔여 대기열의 도착 시각은 10분 보존식 유입을 분 단위로 균등 분배해 FIFO 로 되짚은 근사다',
     ],
 };
 
@@ -547,25 +587,133 @@ function toQueueNextWtng(profile: QueueScenarioProfile, fcltCnt: number, capacit
     };
 }
 
-function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: string, baseMinute: number): FcltQueueClearDto {
+/** 예측 1회 — 창 끝 j분(t+j)의 평균은 관측 이력 [t-30+j, t) 와 예측 [max(0, j-30), j) 를 합친다 */
+interface QueueTrace {
+    avgAt: (endMin: number) => number | null;
+    remainAt: (endMin: number) => number;
+}
+
+/** 산정할 수 없으면 사유 문자열, 할 수 있으면 null */
+function forecastGap(profile: QueueScenarioProfile, fcltCnt: number): string | null {
+    if (profile.obsWtngSec === null) return '직전 30분에 처리된 여객이 없습니다.';
+    if (fcltCnt > 0 && profile.prcsSec === null) return '시설 처리율을 구할 수 없습니다. 양수인 단일 시설 평균 처리시간이 필요합니다.';
+
+    return null;
+}
+
+function simulateQueue(profile: QueueScenarioProfile, fcltCnt: number, minutes: number): QueueTrace {
+    const capPerMin = fcltCnt === 0 || profile.prcsSec === null ? 0 : (fcltCnt * 60) / profile.prcsSec;
+    const arrivalPerMin = profile.arvlPerHour / MIN_PER_HOUR;
+    const histPrcsPerMin = profile.obsPrcsPerHour / MIN_PER_HOUR;
+    const histWaitPerMin = histPrcsPerMin * (profile.obsWtngSec ?? 0);
+    // 원소는 [도착 분(t 기준, 0 이하), 인원]
+    const queue: [number, number][] = [];
+
+    for (let age = profile.queueAgeMaxMin; age >= 1; age--) {
+        queue.push([-age, profile.wtngPsgCnt / profile.queueAgeMaxMin]);
+    }
+
+    const prcs: number[] = [];
+    const wait: number[] = [];
+    const remain: number[] = [];
+    let queueCnt = profile.queueAgeMaxMin === 0 ? 0 : profile.wtngPsgCnt;
+
+    for (let minute = 0; minute < minutes; minute++) {
+        if (arrivalPerMin > 0) {
+            queue.push([minute, arrivalPerMin]);
+            queueCnt += arrivalPerMin;
+        }
+
+        let capacity = capPerMin;
+        let prcsSum = 0;
+        let waitSum = 0;
+
+        while (capacity > QUEUE_EPS && queue.length > 0) {
+            const head = queue[0];
+            const take = Math.min(capacity, head[1]);
+
+            prcsSum += take;
+            waitSum += take * (minute - head[0]) * 60;
+            head[1] -= take;
+            capacity -= take;
+            queueCnt -= take;
+
+            if (head[1] <= QUEUE_EPS) queue.shift();
+        }
+
+        prcs.push(prcsSum);
+        wait.push(waitSum);
+        remain.push(Math.max(queueCnt, 0));
+    }
+
+    return {
+        avgAt: (endMin) => {
+            const histMin = Math.max(QUEUE_OBS_MIN - endMin, 0);
+            let prcsSum = histPrcsPerMin * histMin;
+            let waitSum = histWaitPerMin * histMin;
+
+            for (let minute = Math.max(0, endMin - QUEUE_OBS_MIN); minute < endMin; minute++) {
+                prcsSum += prcs[minute];
+                waitSum += wait[minute];
+            }
+
+            return prcsSum <= QUEUE_EPS ? null : waitSum / prcsSum;
+        },
+        remainAt: (endMin) => (endMin === 0 ? profile.wtngPsgCnt : remain[endMin - 1]),
+    };
+}
+
+function reachMinOf(trace: QueueTrace, horizonMin: number): number {
+    for (let endMin = 0; endMin <= horizonMin; endMin++) {
+        const value = trace.avgAt(endMin);
+
+        if (value !== null && value < MOCK_NORMAL_UPPER_EXCLUSIVE_SEC) return endMin;
+    }
+
+    return -1;
+}
+
+function meetsTarget(trace: QueueTrace, targetMin: number): boolean {
+    if (reachMinOf(trace, targetMin) < 0) return false;
+
+    const atTarget = trace.avgAt(targetMin);
+
+    // 목표 시각 창에 처리 여객이 없으면 남은 대기자가 없을 때만 충족이다 (0초로 간주하지 않는다)
+    return atTarget === null ? trace.remainAt(targetMin) <= QUEUE_EPS : atTarget < MOCK_NORMAL_UPPER_EXCLUSIVE_SEC;
+}
+
+function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: string, baseMinute: number, fcstMin: number): FcltQueueClearDto {
     const lambda = profile.arvlPerHour;
     const mu = profile.prcsSec === null ? null : 3600 / profile.prcsSec;
-    const excess = Math.max(0, profile.wtngPsgCnt - profile.targetQueueCnt);
     const capacity = mu === null ? null : fcltCnt * mu;
+    const gap = forecastGap(profile, fcltCnt);
+    const trace = gap === null ? simulateQueue(profile, fcltCnt, Math.max(QUEUE_HORIZON_MIN, fcstMin)) : null;
+    const reachMin = trace === null ? -1 : reachMinOf(trace, QUEUE_HORIZON_MIN);
+    const fcstWtngSec = trace === null ? null : trace.avgAt(fcstMin);
 
     let clearSec: number | null = null;
     let clearMetric: QueueMetricDto;
 
-    if (excess === 0) {
+    if (gap !== null) {
+        clearMetric = queueMetric('UNAVAILABLE', 'WAIT_AVG_FORECAST', gap);
+    } else if (reachMin === 0) {
         clearSec = 0;
-        clearMetric = queueMetric('CALCULATED', 'DIRECT', '종료 시점 대기인원이 이미 목표 이하입니다.');
-    } else if (capacity === null) {
-        clearMetric = queueMetric('UNAVAILABLE', 'FLOW_BALANCE', '양수인 단일 시설 평균 처리시간이 필요합니다.');
-    } else if (capacity - lambda <= 0) {
-        clearMetric = queueMetric('UNREACHABLE', 'FLOW_BALANCE', '처리능력이 유입률 이하라 현재 조건으로 목표까지 감소하지 않습니다.');
+        clearMetric = queueMetric('CALCULATED', 'WAIT_AVG_FORECAST', `직전 30분 처리 여객 평균이 이미 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만입니다.`);
+    } else if (reachMin > 0) {
+        clearSec = reachMin * 60;
+        clearMetric = queueMetric(
+            'ESTIMATED',
+            'WAIT_AVG_FORECAST',
+            `${reachMin}분 후 직전 30분 처리 여객 예측 평균이 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만이 됩니다.`,
+        );
+    } else if ((capacity ?? 0) <= lambda) {
+        clearMetric = queueMetric(
+            'UNREACHABLE',
+            'WAIT_AVG_FORECAST',
+            '처리능력이 유입 이하라 예측 범위 안에서 평균 대기시간이 목표 미만으로 내려가지 않습니다.',
+        );
     } else {
-        clearSec = (excess / (capacity - lambda)) * 3600;
-        clearMetric = queueMetric('ESTIMATED', 'FLOW_BALANCE', '유입률/처리능력이 일정한 유입/처리 차이 계산');
+        clearMetric = queueMetric('UNAVAILABLE', 'WAIT_AVG_FORECAST', `${QUEUE_HORIZON_MIN}분 예측 범위 안에 목표 미만에 도달하지 않습니다.`);
     }
 
     const clear: FcltQueueClearDto = {
@@ -573,6 +721,14 @@ function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: strin
         cgnClearMin: clearSec === null ? null : clearSec / 60,
         cgnClearDt: clearSec === null ? '' : toDt(ymd, baseMinute, clearSec),
         clearMetric,
+        fcstWtngSec,
+        fcstDt: toDt(ymd, baseMinute + fcstMin),
+        fcstWtngMetric:
+            gap !== null
+                ? queueMetric('UNAVAILABLE', 'WAIT_AVG_FORECAST', gap)
+                : fcstWtngSec === null
+                  ? queueMetric('UNAVAILABLE', 'WAIT_AVG_FORECAST', `${fcstMin}분 후 직전 30분에 처리될 여객이 없습니다.`)
+                  : queueMetric('ESTIMATED', 'WAIT_AVG_FORECAST', `${fcstMin}분 후 시각의 직전 30분 처리 여객 예측 평균 대기시간`),
         ...toQueueNextWtng(profile, fcltCnt, capacity),
         wtngProb: null,
         loadRatio: null,
@@ -612,35 +768,55 @@ function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: strin
 function toQueueRecommend(profile: QueueScenarioProfile, targetMin: number): FcltQueueRecommendDto {
     const lambda = profile.arvlPerHour;
     const mu = profile.prcsSec === null ? null : 3600 / profile.prcsSec;
-    const excess = Math.max(0, profile.wtngPsgCnt - profile.targetQueueCnt);
-    const requiredRate = lambda + (excess * 3600) / (targetMin * 60);
+    const stableMinCnt = mu === null ? null : Math.floor(lambda / mu + 1e-9) + 1;
     const base: FcltQueueRecommendDto = {
         targetMin,
         reqCnt: null,
         extraCnt: null,
         reduceCnt: null,
         flowBasedReqCnt: null,
-        stableMinCnt: lambda === 0 ? 0 : mu === null ? null : Math.floor(lambda / mu + 1e-9) + 1,
+        stableMinCnt,
         stableAplyYn: null,
         capaAvlYn: null,
         goalMetYn: null,
-        reqMetric: queueMetric('UNAVAILABLE', 'FLOW_BALANCE', '양수인 단일 시설 평균 처리시간이 필요합니다.'),
+        reqMetric: queueMetric('UNAVAILABLE', 'WAIT_AVG_FORECAST', forecastGap(profile, 1) ?? ''),
     };
 
-    if (requiredRate > 0 && mu === null) return base;
+    if (mu === null || stableMinCnt === null || forecastGap(profile, 1) !== null) return base;
 
-    const flowBasedReqCnt = requiredRate === 0 ? 0 : Math.max(1, Math.ceil(requiredRate / (mu ?? 1)));
-    const reqCnt = Math.max(flowBasedReqCnt, base.stableMinCnt ?? 0);
+    // 이 수량부터는 대기열과 매분 유입이 모두 그 분에 처리돼 결과가 같다
+    const upperCnt = Math.max(stableMinCnt, Math.ceil(((profile.wtngPsgCnt + lambda / MIN_PER_HOUR) * MIN_PER_HOUR) / mu));
+    let goalOnlyMinCnt: number | null = null;
+
+    for (let fcltCnt = 0; fcltCnt <= upperCnt; fcltCnt++) {
+        if (!meetsTarget(simulateQueue(profile, fcltCnt, targetMin), targetMin)) continue;
+
+        if (goalOnlyMinCnt === null) goalOnlyMinCnt = fcltCnt;
+
+        if (fcltCnt < stableMinCnt) continue;
+
+        return {
+            ...base,
+            reqCnt: fcltCnt,
+            extraCnt: Math.max(fcltCnt - profile.oprCnt, 0),
+            reduceCnt: Math.max(profile.oprCnt - fcltCnt, 0),
+            stableAplyYn: fcltCnt > goalOnlyMinCnt ? 'Y' : 'N',
+            capaAvlYn: profile.totCnt === null ? null : fcltCnt <= profile.totCnt ? 'Y' : 'N',
+            reqMetric: queueMetric(
+                'ESTIMATED',
+                'WAIT_AVG_FORECAST',
+                `${targetMin}분 안에 직전 30분 처리 여객 평균이 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만이 되고 처리능력이 유입보다 큰 최소 총수`,
+            ),
+        };
+    }
 
     return {
         ...base,
-        reqCnt,
-        extraCnt: Math.max(reqCnt - profile.oprCnt, 0),
-        reduceCnt: Math.max(profile.oprCnt - reqCnt, 0),
-        flowBasedReqCnt,
-        stableAplyYn: reqCnt > flowBasedReqCnt ? 'Y' : 'N',
-        capaAvlYn: profile.totCnt === null ? null : reqCnt <= profile.totCnt ? 'Y' : 'N',
-        reqMetric: queueMetric('ESTIMATED', 'FLOW_BALANCE', '현재 운영분을 포함한 총 소요 수'),
+        reqMetric: queueMetric(
+            'UNREACHABLE',
+            'WAIT_AVG_FORECAST',
+            `${upperCnt}개 이상은 결과가 같습니다. 이미 처리된 여객과 오래 기다린 대기자의 대기시간이 창에 남아 ${targetMin}분 안에 목표 미만이 되지 않습니다.`,
+        ),
     };
 }
 
@@ -652,8 +828,10 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
     const key = `${req.tmnlId}-${req.fcltType}-${req.unitCd}`;
     const profile = QUEUE_SCENARIO_PROFILES[key] ?? QUEUE_SCENARIO_PROFILES['T1-CHKN-B'];
     const ymd = BASE_INFO.ymd;
-    const baseMinute = Math.min(toMinuteOfDay(req.hhmm) + QUEUE_OBS_MIN, MIN_PER_DAY);
+    // 평가시각 = 조회 시각. 관측구간은 그 직전 30분이다
+    const baseMinute = toMinuteOfDay(req.hhmm);
     const mu = profile.prcsSec === null ? null : 3600 / profile.prcsSec;
+    const targetMin = req.mode === 'TIME' ? (req.targetMinutes ?? QUEUE_TARGET_MIN.dflt) : QUEUE_TARGET_MIN.dflt;
 
     if (req.mode === 'COUNT' && req.oprFcltCnt !== undefined) {
         if (profile.totCnt === null && req.oprFcltCnt !== profile.oprCnt) {
@@ -677,7 +855,15 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
         obsEndDt: toDt(ymd, baseMinute),
         dataSrc: 'CAST',
         wtngPsgCnt: profile.wtngPsgCnt,
-        targetQueueCnt: profile.targetQueueCnt,
+        targetQueueCnt: null,
+        normalUpperExclusiveSec: MOCK_NORMAL_UPPER_EXCLUSIVE_SEC,
+        wtngAvgSec: profile.obsWtngSec,
+        wtngAvgPrcsPsgCnt: Math.round((profile.obsPrcsPerHour * QUEUE_OBS_MIN) / MIN_PER_HOUR),
+        wtngAvgMetric:
+            profile.obsWtngSec === null
+                ? queueMetric('UNAVAILABLE', 'PRCS_WAIT_AVG', '직전 30분에 처리된 여객이 없습니다.')
+                : queueMetric('CALCULATED', 'PRCS_WAIT_AVG', '[t-30분, t) 처리 여객의 처리인원 가중평균 대기시간'),
+        cgnStatus: mockGradeOf(profile.obsWtngSec),
         oprFcltCnt: profile.oprCnt,
         totCnt: profile.totCnt,
         totCntRsn: profile.totCnt === null ? '보안검색대(SC) 시설 마스터에서 배정 가능 수량을 찾지 못했습니다.' : '',
@@ -692,7 +878,7 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
         minTargetMin: QUEUE_TARGET_MIN.min,
         maxTargetMin: QUEUE_TARGET_MIN.max,
         asmpList: QUEUE_ASMP_LIST[req.fcltType],
-        current: toQueueClear(profile, profile.oprCnt, ymd, baseMinute),
+        current: toQueueClear(profile, profile.oprCnt, ymd, baseMinute, targetMin),
         scenario: null,
         totScenario: null,
         recommend: null,
@@ -701,25 +887,26 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
     if (req.mode === 'COUNT') {
         return {
             ...result,
-            scenario: toQueueClear(profile, req.oprFcltCnt ?? profile.oprCnt, ymd, baseMinute),
+            scenario: toQueueClear(profile, req.oprFcltCnt ?? profile.oprCnt, ymd, baseMinute, targetMin),
         };
     }
 
-    const recommend = toQueueRecommend(profile, req.targetMinutes ?? QUEUE_TARGET_MIN.dflt);
+    const recommend = toQueueRecommend(profile, targetMin);
 
     if (recommend.reqCnt === null) return { ...result, recommend };
 
     if (profile.totCnt !== null && recommend.reqCnt > profile.totCnt) {
-        return { ...result, recommend, totScenario: toQueueClear(profile, profile.totCnt, ymd, baseMinute) };
+        return { ...result, recommend, totScenario: toQueueClear(profile, profile.totCnt, ymd, baseMinute, targetMin) };
     }
 
-    const scenario = toQueueClear(profile, recommend.reqCnt, ymd, baseMinute);
-    const goalMet = scenario.cgnClearMin !== null && scenario.cgnClearMin <= recommend.targetMin + 1e-9;
+    const scenario = toQueueClear(profile, recommend.reqCnt, ymd, baseMinute, targetMin);
+    const stable = mu !== null && recommend.reqCnt * mu > profile.arvlPerHour;
+    const goalMet = stable && meetsTarget(simulateQueue(profile, recommend.reqCnt, targetMin), targetMin);
 
     return {
         ...result,
         scenario,
-        recommend: { ...recommend, goalMetYn: scenario.cgnClearMin === null ? null : goalMet ? 'Y' : 'N' },
+        recommend: { ...recommend, goalMetYn: goalMet ? 'Y' : 'N' },
     };
 }
 

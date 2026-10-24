@@ -1,5 +1,8 @@
 package aoms.pm.cast.service.impl;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -9,7 +12,13 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import aoms.pm.cast.domains.CgnGradeScale;
+import aoms.pm.cast.domains.CgnOrder;
 import aoms.pm.cast.domains.DepHallLayout;
+import aoms.pm.cast.domains.chkn.ChknQueueDay;
+import aoms.pm.cast.domains.dsbd.DepQueueDay;
+import aoms.pm.cast.domains.dsbd.DepQueueWindow;
+import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepHallDto;
 import aoms.pm.cast.dto.DepHallGateDto;
@@ -24,10 +33,14 @@ import aoms.pm.cast.dto.ScCntRawDto;
 import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.enums.CongestionStatus;
+import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDepMapper;
 import aoms.pm.cast.mapper.CastMapMapper;
+import aoms.pm.cast.service.CastCgnGradeService;
+import aoms.pm.cast.service.CastChknQueueService;
 import aoms.pm.cast.service.CastDepHallService;
+import aoms.pm.cast.service.CastDepQueueService;
 import aoms.pm.cast.service.CastOperHrService;
 import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.utils.SmltUtils;
@@ -61,6 +74,7 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 	private static final List<String> CHKN_FCLT_CD_LIST = List.of("CC", "CK", "SBD");
 
 	private static final String EMPTY = "";
+	private static final String YMD_FORMAT = "yyyyMMdd";
 	private static final String USE_YN_Y = "Y";
 	private static final String USE_YN_N = "N";
 	private static final String DEFAULT_HM = "0000";
@@ -71,11 +85,15 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 	private static final int SLOT_BGN_HOUR = 4;
 
 	private static final int NOTICE_ITEM_LIMIT = 6; // 알림 목록이 도면을 덮지 않는 상한
+	private static final int MINUTE_PER_HOUR = 60;
 
 	private final CastMapMapper castMapMapper;
 	private final CastDepMapper castDepMapper;
 	private final CastSmltService castSmltService;
 	private final CastOperHrService castOperHrService;
+	private final CastDepQueueService castDepQueueService;
+	private final CastChknQueueService castChknQueueService;
+	private final CastCgnGradeService castCgnGradeService;
 
 	@Override
 	public DepHallDto retrieveDepHall(DepHallSearchDto searchDto) {
@@ -90,13 +108,20 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 		Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap = retrieveUnitRsltDayMap(searchDto, DPTGT_FCLT_CD_LIST);
 		Map<String, Map<String, SmltRsltRawDto>> chknDayMap = retrieveUnitRsltDayMap(searchDto, CHKN_FCLT_CD_LIST);
 
+		// 혼잡등급은 지표 4종과 달리 요약보기 / 맵형태보기와 같은 처리 여객 평균 대기시간 원천에서 정한다
+		CgnSource cgnSource = new CgnSource(
+				castDepQueueService.retrieveDepQueueDay(smltStng, tmnlId),
+				castCgnGradeService.retrieveGradeScale(FcltType.DEP, "smltId=" + searchDto.getSmltId() + ", tmnlId=" + tmnlId.getValue()),
+				castChknQueueService.retrieveChknQueueDay(searchDto.getSmltId(), tmnlId, smltStng.getExcnYmd()),
+				LocalDate.parse(smltStng.getExcnYmd(), DateTimeFormatter.ofPattern(YMD_FORMAT)).atStartOfDay());
+
 		result.setSmltId(searchDto.getSmltId());
 		result.setTmnlId(tmnlId.getValue());
 		result.setGateList(gateList);
 		result.setDptgtMarkerList(getDptgtMarkerList(tmnlId));
 		result.setChknMarkerList(chknMarkerList);
 		result.setGateMarkerList(DepHallLayout.gateMarkerList(tmnlId));
-		result.setSlotList(getSlotList(gateList, chknMarkerList, dptgtDayMap, chknDayMap));
+		result.setSlotList(getSlotList(gateList, chknMarkerList, dptgtDayMap, chknDayMap, cgnSource));
 
 		return result;
 	}
@@ -182,18 +207,20 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 			List<DepHallGateDto> gateList,
 			List<MapMarkerDto> chknMarkerList,
 			Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap,
-			Map<String, Map<String, SmltRsltRawDto>> chknDayMap) {
+			Map<String, Map<String, SmltRsltRawDto>> chknDayMap,
+			CgnSource cgnSource) {
 		List<DepHallSlotDto> result = new ArrayList<>();
 
 		for (String hhmm : TimeBucketUtils.slotTimeList(SLOT_BGN_HOUR)) {
-			List<MapUnitRsltDto> dptgtRsltList =
-					getDptgtRsltList(gateList, dptgtDayMap.getOrDefault(hhmm, Map.of()));
+			int evalMinute = toMinute(hhmm);
+			List<MapUnitRsltDto> dptgtRsltList = getDptgtRsltList(
+					gateList, dptgtDayMap.getOrDefault(hhmm, Map.of()), cgnSource.depWindowAt(evalMinute), cgnSource.depGradeScale);
 
 			DepHallSlotDto slot = new DepHallSlotDto();
 			slot.setHhmm(hhmm);
 			slot.setNotice(getNotice(gateList, dptgtRsltList));
 			slot.setDptgtRsltList(dptgtRsltList);
-			slot.setChknRsltList(getChknRsltList(chknMarkerList, chknDayMap.getOrDefault(hhmm, Map.of())));
+			slot.setChknRsltList(getChknRsltList(chknMarkerList, chknDayMap.getOrDefault(hhmm, Map.of()), cgnSource.queueDay, evalMinute));
 
 			result.add(slot);
 		}
@@ -201,11 +228,14 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 		return result;
 	}
 
-	private List<MapUnitRsltDto> getDptgtRsltList(List<DepHallGateDto> gateList, Map<String, SmltRsltRawDto> dptgtMap) {
+	private List<MapUnitRsltDto> getDptgtRsltList(
+			List<DepHallGateDto> gateList, Map<String, SmltRsltRawDto> dptgtMap, DepQueueWindow depWindow, CgnGradeScale depGradeScale) {
 		List<MapUnitRsltDto> result = new ArrayList<>();
 
 		for (DepHallGateDto gate : gateList) {
-			result.add(toUnitRslt(gate.getDptgtNo(), dptgtMap.get(gate.getDptgtNo())));
+			Computed<Double> avgWtngSec = depWindow.avgWtngSecOf(gate.getDptgtNo());
+
+			result.add(toUnitRslt(gate.getDptgtNo(), dptgtMap.get(gate.getDptgtNo()), avgWtngSec, depGradeScale.gradeOf(avgWtngSec)));
 		}
 
 		return result;
@@ -216,61 +246,89 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 	 * 체크인 결과를 그대로 끌어온다.
 	 */
 	private List<MapUnitRsltDto> getChknRsltList(
-			List<MapMarkerDto> chknMarkerList, Map<String, SmltRsltRawDto> chknMap) {
+			List<MapMarkerDto> chknMarkerList, Map<String, SmltRsltRawDto> chknMap, ChknQueueDay queueDay, int evalMinute) {
 		List<MapUnitRsltDto> result = new ArrayList<>();
 
 		for (MapMarkerDto marker : chknMarkerList) {
-			result.add(toUnitRslt(marker.getLabel(), chknMap.get(marker.getLabel())));
+			String islandCd = marker.getLabel();
+
+			result.add(toUnitRslt(
+					islandCd,
+					chknMap.get(islandCd),
+					queueDay.avgWtngSecOf(islandCd, evalMinute),
+					queueDay.gradeOf(islandCd, evalMinute)));
 		}
 
 		return result;
 	}
 
-	private MapUnitRsltDto toUnitRslt(String unitCd, SmltRsltRawDto rslt) {
+	private MapUnitRsltDto toUnitRslt(String unitCd, SmltRsltRawDto rslt, Computed<Double> avgWtngSec, Computed<CongestionStatus> grade) {
 		MapUnitRsltDto result = new MapUnitRsltDto();
 
 		result.setUnitCd(unitCd);
-		result.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0));
+		result.setCgnWtngSec(avgWtngSec.getValue());
+		result.setCgnStatus(grade.getValue());
 		result.setStat(SmltUtils.toCgnStat(rslt));
 
 		return result;
 	}
 
+	private int toMinute(String hhmm) {
+		return Integer.parseInt(hhmm.substring(0, 2)) * MINUTE_PER_HOUR + Integer.parseInt(hhmm.substring(2, 4));
+	}
+
 	/* ================= 혼잡 알림 ================= */
 
-	// 알림은 혼잡(BUSY) 이상인 출국장만, 혼잡한 순으로 보여준다
+	// 알림은 혼잡(BUSY) 이상인 출국장만, 평균 대기시간이 긴 순으로 보여준다
 	private MapNoticeDto getNotice(List<DepHallGateDto> gateList, List<MapUnitRsltDto> dptgtRsltList) {
 		Map<String, Integer> boothCntMap = gateList.stream()
 				.collect(Collectors.toMap(DepHallGateDto::getDptgtNo, DepHallGateDto::getBoothCnt, (first, ignored) -> first));
 
 		List<MapNoticeItemDto> itemList = new ArrayList<>();
-		int maxWtngPsgCnt = 0;
 
 		for (MapUnitRsltDto rslt : dptgtRsltList.stream()
-				.sorted(Comparator.comparingInt((MapUnitRsltDto target) -> target.getStat().getWtngPsgCnt()).reversed())
+				.sorted(CgnOrder.byWaitDesc(MapUnitRsltDto::getCgnWtngSec, target -> target.getStat().getWtngPsgCnt(), MapUnitRsltDto::getUnitCd))
 				.collect(Collectors.toList())) {
 			CongestionStatus cgnStatus = rslt.getCgnStatus();
 
-			if (cgnStatus == CongestionStatus.FREE || cgnStatus == CongestionStatus.NORMAL) {
+			if (cgnStatus != CongestionStatus.BUSY && cgnStatus != CongestionStatus.VERY_BUSY) {
 				continue;
 			}
-
-			maxWtngPsgCnt = Math.max(maxWtngPsgCnt, rslt.getStat().getWtngPsgCnt());
 
 			if (itemList.size() < NOTICE_ITEM_LIMIT) {
 				itemList.add(new MapNoticeItemDto()
 						.withFcltNm(FCLT_NM)
 						.withFcltCd(rslt.getUnitCd())
-						.withBoothCnt(boothCntMap.getOrDefault(rslt.getUnitCd(), 0)));
+						.withBoothCnt(boothCntMap.getOrDefault(rslt.getUnitCd(), 0))
+						.withCgnWtngSec(rslt.getCgnWtngSec()));
 			}
 		}
 
 		MapNoticeDto result = new MapNoticeDto();
 		// 알림 단계는 가장 혼잡한 출국장을 따른다 (맵형태보기와 같은 기준)
-		result.setCgnStatus(CongestionStatus.ofWtngPsgCnt(maxWtngPsgCnt));
+		result.setCgnStatus(CgnOrder.worstOf(dptgtRsltList.stream().map(MapUnitRsltDto::getCgnStatus).collect(Collectors.toList())));
 		result.setItemList(itemList);
 
 		return result;
+	}
+
+	/** 혼잡등급 원천 — 출국장 SC / SR 하루치와 체크인 공용 Queue. 슬롯마다 평가시각만 바꿔 읽는다 */
+	private static final class CgnSource {
+		private final DepQueueDay depDay;
+		private final CgnGradeScale depGradeScale;
+		private final ChknQueueDay queueDay;
+		private final LocalDateTime dayStart;
+
+		private CgnSource(DepQueueDay depDay, CgnGradeScale depGradeScale, ChknQueueDay queueDay, LocalDateTime dayStart) {
+			this.depDay = depDay;
+			this.depGradeScale = depGradeScale;
+			this.queueDay = queueDay;
+			this.dayStart = dayStart;
+		}
+
+		private DepQueueWindow depWindowAt(int evalMinute) {
+			return depDay.windowAt(dayStart.plusMinutes(evalMinute));
+		}
 	}
 
 }

@@ -41,6 +41,7 @@ const CLEAR_EMPTY: QueueClearView = {
     clockText: '-',
     note: '',
     nextWtngText: '',
+    fcstWtngText: '',
 };
 
 function joinNotes(...notes: (string | undefined)[]): string {
@@ -110,7 +111,11 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                                 <span>개</span>
                             </div>
                             <span className="fqs-sub">
-                                {joinNotes(`대기인원 ${context?.queueText ?? '-'}명`, context?.current.nextWtngText)}
+                                {joinNotes(
+                                    `대기인원 ${context?.queueText ?? '-'}명`,
+                                    context?.wtngAvgShort,
+                                    context?.current.nextWtngText,
+                                )}
                             </span>
                         </div>
                         <div>
@@ -202,11 +207,12 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
 
                     <details className="fqs-basis">
                         <summary>
-                            계산 기준 <span>M/M/s 가정 / 혼잡해소 시간은 유입/처리 차이 계산</span>
+                            계산 기준 <span>혼잡해소 = 처리 여객 평균 대기 예측 / 정상상태는 M/M/s 참고값</span>
                         </summary>
                         <dl>
-                            <BasisItem term="해소 기준">{context?.targetQueueText ?? '-'}</BasisItem>
+                            <BasisItem term="해소 기준">{context?.targetText ?? '-'}</BasisItem>
                             <BasisItem term="관측구간">{context ? `${context.obsText} / ${context.dataSrcText}` : '-'}</BasisItem>
+                            <BasisItem term="현재 평균대기">{context?.wtngAvgText ?? '-'}</BasisItem>
                             <BasisItem term="유입률 λ">{context?.arvlText ?? '-'}</BasisItem>
                             <BasisItem term="처리율 μ">{context?.srvcText ?? '-'}</BasisItem>
                             <BasisItem term={`정상상태 / 현재 ${context?.currentCnt ?? '-'}개`}>
@@ -340,7 +346,7 @@ function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState
                         해소 예상 시각 <b>{scenario.clockText}</b>
                     </>
                 );
-                sub = joinNotes(scenario.note, scenario.nextWtngText);
+                sub = joinNotes(scenario.note, scenario.fcstWtngText, scenario.nextWtngText);
                 diff = diffNote;
             }
         } else if (recommend && recommend.reqCnt !== null) {
@@ -356,13 +362,16 @@ function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState
             subWarn = recommend.capaShort;
             if (recommend.clear) {
                 diff = joinNotes(
-                    `${recommend.clearLabel} 해소 ${
+                    `${recommend.clearLabel} ${
                         recommend.clear.kind === 'value'
-                            ? `${recommend.clear.mainText}${recommend.clear.unitText} (${recommend.clear.clockText})`
+                            ? `해소 ${recommend.clear.mainText}${recommend.clear.unitText} (${recommend.clear.clockText})`
                             : recommend.clear.kind === 'none'
-                              ? '- 이미 목표 이하'
-                              : recommend.clear.mainText
+                              ? '해소 - 이미 목표 미만'
+                              : recommend.clear.kind === 'unreachable'
+                                ? recommend.clear.mainText
+                                : `해소 ${recommend.clear.mainText}`
                     }`,
+                    recommend.clear.fcstWtngText,
                     recommend.clear.nextWtngText,
                 );
             }

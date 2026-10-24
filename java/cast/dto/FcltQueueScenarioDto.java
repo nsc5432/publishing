@@ -2,6 +2,7 @@ package aoms.pm.cast.dto;
 
 import java.util.List;
 
+import aoms.pm.cast.enums.CongestionStatus;
 import aoms.pm.cast.enums.FcltQueueScenarioMode;
 import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.TerminalKind;
@@ -25,7 +26,12 @@ public class FcltQueueScenarioDto extends JsonResponse {
 	private String obsEndDt; // 관측구간 종료 yyyyMMddHHmmss
 	private String dataSrc; // CAST / XOVIS
 	private Integer wtngPsgCnt; // 기준시각 대기인원 Q0 (명)
-	private Integer targetQueueCnt; // 해소 기준 대기인원 Q* (명, 이하)
+	private Integer targetQueueCnt; // 해소 기준 대기인원 Q* (명, 이하). 평균 대기시간 목표는 환산 인원이 없어 null
+	private Integer normalUpperExclusiveSec; // 해소 기준 — 처리 여객 평균 대기시간이 이 값(초) 미만 (혼잡등급 NORMAL 상한)
+	private Double wtngAvgSec; // 관측구간 처리 여객 가중평균 대기시간 (초, 소수 원값). 산정 불가면 null
+	private Integer wtngAvgPrcsPsgCnt; // 관측구간 처리인원 (명) — 평균의 분모
+	private QueueMetricDto wtngAvgMetric;
+	private CongestionStatus cgnStatus; // 기준시각 혼잡등급. 산정 불가면 null
 	private Integer oprFcltCnt; // 현재 운영 수량 (개)
 	private Integer totCnt; // 이 큐에 배정 가능한 최대 수량 (개). 모르면 null
 	private String totCntRsn; // totCnt 가 null 인 사유

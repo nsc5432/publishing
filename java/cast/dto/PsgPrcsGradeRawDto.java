@@ -1,7 +1,5 @@
 package aoms.pm.cast.dto;
 
-import java.math.BigDecimal;
-
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,6 +8,6 @@ import lombok.Setter;
 public class PsgPrcsGradeRawDto {
 	private String fcltGroupCd;
 	private String psgPrcsGrdCd;
-	private BigDecimal minVl;
-	private BigDecimal maxVl;
+	private int minVl; // 대기시간 하한 (분, 포함)
+	private int maxVl; // 대기시간 상한 (분). 그 분 59초까지 포함한다
 }

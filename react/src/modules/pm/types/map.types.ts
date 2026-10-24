@@ -29,6 +29,22 @@ export const CONGESTION_LABEL: Record<CongestionLevel, string> = {
     crowded: '혼잡',
 };
 
+/**
+ * 혼잡도를 산정할 수 없는 시설(직전 30분 미관측 / 처리 여객 0명)은 level 이 null 이다.
+ * 3색 척도에 끼워 넣지 않고 이 키의 중립 스타일로 그린다.
+ */
+export const UNKNOWN_LEVEL_KEY = 'unknown';
+
+export const UNKNOWN_LEVEL_LABEL = '산정 불가';
+
+export function toLevelKey(level: CongestionLevel | NoticeLevel | null): string {
+    return level ?? UNKNOWN_LEVEL_KEY;
+}
+
+export function toLevelLabel(level: CongestionLevel | null): string {
+    return level === null ? UNKNOWN_LEVEL_LABEL : CONGESTION_LABEL[level];
+}
+
 /** 도면 무대(viewBox) 기준 비율 좌표 (단위: %) */
 export interface MarkerPoint {
     /** 가로 비율 (0~100) */
@@ -41,14 +57,16 @@ export interface MarkerPoint {
 export interface DepGateMarker extends MarkerPoint {
     id: string;
     label: string;
-    level: CongestionLevel;
+    /** 산정 불가면 null */
+    level: CongestionLevel | null;
 }
 
 /** 아일랜드 마커 (A~N) */
 export interface IslandMarker extends MarkerPoint {
     id: string;
     label: string;
-    level: CongestionLevel;
+    /** 산정 불가면 null */
+    level: CongestionLevel | null;
 }
 
 /** 출입구 게이트 마커 */
@@ -84,6 +102,13 @@ export interface NoticeItem {
 
 /** 터미널별 혼잡 알림 (단계 + 조치 대상 시설) */
 export interface NoticeData {
-    level: NoticeLevel;
+    /** 전 시설이 산정 불가면 null */
+    level: NoticeLevel | null;
     items: NoticeItem[];
 }
+
+/** 알림 단계를 정할 수 없을 때의 표기 */
+export const UNKNOWN_NOTICE: NoticeLevelPreset = {
+    label: '산정 불가',
+    message: '직전 30분 처리 여객이 없거나 결과가 비어 있어 혼잡도를 산정할 수 없습니다.',
+};

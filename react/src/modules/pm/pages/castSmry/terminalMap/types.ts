@@ -20,10 +20,11 @@ export type {
     NoticeLevelPreset,
     TerminalKind,
 } from '@/modules/pm/types/map.types';
-export { CONGESTION_LABEL, TERMINAL_LABEL, TERMINALS } from '@/modules/pm/types/map.types';
+export { CONGESTION_LABEL, TERMINAL_LABEL, TERMINALS, UNKNOWN_NOTICE, toLevelKey, toLevelLabel } from '@/modules/pm/types/map.types';
 
 export interface DepGateMarker extends BaseDepGateMarker {
-    cgnStatus: CongestionStatus;
+    /** 산정 불가면 null — data-congestion 을 빼고 중립색으로 그린다 */
+    cgnStatus: CongestionStatus | null;
 }
 
 /** 터미널별 도면 + 마커 세트 */
@@ -105,7 +106,7 @@ export interface IslandDetail {
     title: string;
     /** 예: T1-3RD-M01-01 */
     code: string;
-    level: CongestionLevel;
+    level: CongestionLevel | null;
     facilities: FacilityItem[];
     stats: IslandStat[];
     /** 매출조회 권한이 없으면 서버가 내려주지 않는다 */
@@ -123,7 +124,7 @@ export interface FacilityDetail {
     id: string;
     /** 예: 출국장 3 */
     title: string;
-    level: CongestionLevel;
+    level: CongestionLevel | null;
     stats: IslandStat[];
 }
 

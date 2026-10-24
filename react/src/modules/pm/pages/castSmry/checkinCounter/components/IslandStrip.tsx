@@ -1,6 +1,6 @@
 import { formatCount } from '@/lib/format';
 import { toWaitMin } from '../view';
-import { CONGESTION_LABEL, type ChknIslandView } from '../types';
+import { toLevelKey, toLevelLabel, type ChknIslandView } from '../types';
 
 interface IslandStripProps {
     islands: ChknIslandView[];
@@ -25,9 +25,9 @@ export function IslandStrip({ islands, time }: IslandStripProps) {
                 {islands.map((island) => (
                     <li
                         key={island.id}
-                        className={`chkn-chip chkn-chip--${island.isClosed ? 'off' : island.level}`}
+                        className={`chkn-chip chkn-chip--${island.isClosed ? 'off' : toLevelKey(island.level)}`}
                         title={`${island.title} / ${
-                            island.isClosed ? '미운영' : CONGESTION_LABEL[island.level]
+                            island.isClosed ? '미운영' : toLevelLabel(island.level)
                         } / Queue ${island.queuePsgCnt}명`}
                     >
                         <b className="chkn-chip__label">{island.island}</b>

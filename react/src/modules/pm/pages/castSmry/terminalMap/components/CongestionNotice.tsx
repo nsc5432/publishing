@@ -1,19 +1,20 @@
-import { NOTICE_LEVEL, type NoticeItem, type NoticeLevel } from '../types';
+import { NOTICE_LEVEL, UNKNOWN_NOTICE, toLevelKey, type NoticeItem, type NoticeLevel } from '../types';
 
 interface CongestionNoticeProps {
-    level: NoticeLevel;
+    level: NoticeLevel | null;
     items?: NoticeItem[];
     message?: string;
 }
 
 /** 상단 혼잡 알림 바 */
 export function CongestionNotice({ level, items = [], message }: CongestionNoticeProps) {
-    const preset = NOTICE_LEVEL[level];
+    const preset = level === null ? UNKNOWN_NOTICE : NOTICE_LEVEL[level];
+    const levelKey = toLevelKey(level);
 
     return (
-        <section className={`notice notice--${level}`}>
+        <section className={`notice notice--${levelKey}`}>
             <h2 className="notice__badge">
-                <i className={`ico ico-notice-${level}`} aria-hidden="true" />
+                <i className={`ico ico-notice-${levelKey}`} aria-hidden="true" />
                 <span>{preset.label}</span>
             </h2>
 

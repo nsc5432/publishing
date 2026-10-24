@@ -5,7 +5,10 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+
+import aoms.pm.cast.domains.queue.QueueWaitWindow;
 
 /**
  * @Classname : ChknQueueSeries.java
@@ -25,9 +28,15 @@ import java.util.List;
 public final class ChknQueueSeries {
 	public static final int MINUTE_PER_DAY = 24 * 60;
 
+	private static final int SEC_PER_MIN = 60;
+	private static final int WINDOW_MIN = QueueWaitWindow.WINDOW_MIN;
+
 	private final String island;
+	/** 배열 0번 칸의 분 (당일 자정 기준, 0 이하) */
+	private final int originMinute;
 	private final int[] queue;
 	private final int[] processed;
+	private final int[] arrivals;
 	private final int[] boothCnt;
 	private final int[] capacity;
 	private final long[] waitMinSum;
@@ -37,8 +46,10 @@ public final class ChknQueueSeries {
 
 	ChknQueueSeries(
         String island,
+        int originMinute,
         int[] queue,
         int[] processed,
+        int[] arrivals,
         int[] boothCnt,
         int[] capacity,
         long[] waitMinSum,
@@ -47,8 +58,10 @@ public final class ChknQueueSeries {
         List<String> warningList
 	) {
 		this.island = island;
+		this.originMinute = originMinute;
 		this.queue = queue.clone();
 		this.processed = processed.clone();
+		this.arrivals = arrivals.clone();
 		this.boothCnt = boothCnt.clone();
 		this.capacity = capacity.clone();
 		this.waitMinSum = waitMinSum.clone();
@@ -57,24 +70,32 @@ public final class ChknQueueSeries {
 		this.warningList = warningList;
 	}
 
-	public static ChknQueueSeries merge(String island, List<ChknQueueSeries> seriesList) {
-		int[] queue = new int[MINUTE_PER_DAY];
-		int[] processed = new int[MINUTE_PER_DAY];
-		int[] boothCnt = new int[MINUTE_PER_DAY];
-		int[] capacity = new int[MINUTE_PER_DAY];
-		long[] waitMinSum = new long[MINUTE_PER_DAY];
-		long[] prcsSecSum = new long[MINUTE_PER_DAY];
+	public static ChknQueueSeries merge(String island, int originMinute, List<ChknQueueSeries> seriesList) {
+		int length = MINUTE_PER_DAY - originMinute;
+		int[] queue = new int[length];
+		int[] processed = new int[length];
+		int[] arrivals = new int[length];
+		int[] boothCnt = new int[length];
+		int[] capacity = new int[length];
+		long[] waitMinSum = new long[length];
+		long[] prcsSecSum = new long[length];
 		long[] waitDistribution = new long[MINUTE_PER_DAY];
 		List<String> warningList = new ArrayList<>();
 
 		for (ChknQueueSeries series : seriesList) {
-			for (int minute = 0; minute < MINUTE_PER_DAY; minute++) {
-				queue[minute] += series.queue[minute];
-				processed[minute] += series.processed[minute];
-				boothCnt[minute] += series.boothCnt[minute];
-				capacity[minute] += series.capacity[minute];
-				waitMinSum[minute] += series.waitMinSum[minute];
-				prcsSecSum[minute] += series.prcsSecSum[minute];
+			if (series.originMinute != originMinute) {
+				throw new IllegalArgumentException("시작 분이 다른 Queue 는 합칠 수 없습니다. island=" + series.island
+						+ ", originMinute=" + series.originMinute + ", expected=" + originMinute);
+			}
+
+			for (int at = 0; at < length; at++) {
+				queue[at] += series.queue[at];
+				processed[at] += series.processed[at];
+				arrivals[at] += series.arrivals[at];
+				boothCnt[at] += series.boothCnt[at];
+				capacity[at] += series.capacity[at];
+				waitMinSum[at] += series.waitMinSum[at];
+				prcsSecSum[at] += series.prcsSecSum[at];
 			}
 
 			for (int wait = 0; wait < MINUTE_PER_DAY; wait++) {
@@ -84,11 +105,15 @@ public final class ChknQueueSeries {
 			warningList.addAll(series.warningList);
 		}
 
-		return new ChknQueueSeries(island, queue, processed, boothCnt, capacity, waitMinSum, prcsSecSum, waitDistribution, warningList);
+		return new ChknQueueSeries(island, originMinute, queue, processed, arrivals, boothCnt, capacity, waitMinSum, prcsSecSum, waitDistribution, warningList);
 	}
 
 	public String getIsland() {
 		return island;
+	}
+
+	public int getOriginMinute() {
+		return originMinute;
 	}
 
 	public List<String> getWarningList() {
@@ -96,11 +121,11 @@ public final class ChknQueueSeries {
 	}
 
 	public int queueAt(int minute) {
-		return isInDay(minute) ? queue[minute] : 0;
+		return isInRange(minute) ? queue[minute - originMinute] : 0;
 	}
 
 	public ChknQueueSlot slotOf(int bgnMinute, int minutes) {
-		int bgn = Math.max(bgnMinute, 0);
+		int bgn = Math.max(bgnMinute, originMinute);
 		int end = Math.min(bgnMinute + minutes, MINUTE_PER_DAY);
 
 		if (bgn >= end) {
@@ -114,42 +139,45 @@ public final class ChknQueueSeries {
 		long prcsSum = 0;
 		long capacitySum = 0;
 
-		for (int minute = bgn; minute < end; minute++) {
-			queueSum += queue[minute];
-			maxQueue = Math.max(maxQueue, queue[minute]);
-			processedSum += processed[minute];
-			waitSum += waitMinSum[minute];
-			prcsSum += prcsSecSum[minute];
-			capacitySum += capacity[minute];
+		for (int at = bgn - originMinute; at < end - originMinute; at++) {
+			queueSum += queue[at];
+			maxQueue = Math.max(maxQueue, queue[at]);
+			processedSum += processed[at];
+			waitSum += waitMinSum[at];
+			prcsSum += prcsSecSum[at];
+			capacitySum += capacity[at];
 		}
 
 		int minutes0 = end - bgn;
+		int last = end - 1 - originMinute;
 
 		return new ChknQueueSlot(
-			queue[end - 1],
+			queue[last],
 			Math.toIntExact(Math.round((double) queueSum / minutes0)),
 			maxQueue,
 			processedSum == 0 ? 0 : Math.toIntExact(Math.round((double) waitSum * 60 / processedSum)),
 			Math.toIntExact(processedSum),
 			processedSum == 0 ? 0 : Math.toIntExact(Math.round((double) prcsSum / processedSum)),
 			toUtilRate(processedSum, capacitySum),
-			boothCnt[end - 1]
+			boothCnt[last]
 		);
 	}
 
 	public BigDecimal serviceRateOf(int bgnMinute, int spanMin) {
-		int bgn = Math.max(bgnMinute, 0);
+		int bgn = Math.max(bgnMinute, originMinute);
 		int end = Math.min(bgnMinute + spanMin, MINUTE_PER_DAY);
 		long capacitySum = 0;
 		long boothMinuteSum = 0;
 
 		for (int minute = bgn; minute < end; minute++) {
-			if (capacity[minute] <= 0) {
+			int at = minute - originMinute;
+
+			if (capacity[at] <= 0) {
 				continue;
 			}
 
-			capacitySum += capacity[minute];
-			boothMinuteSum += boothCnt[minute];
+			capacitySum += capacity[at];
+			boothMinuteSum += boothCnt[at];
 		}
 
 		if (capacitySum <= 0 || boothMinuteSum <= 0) {
@@ -157,6 +185,41 @@ public final class ChknQueueSeries {
 		}
 
 		return BigDecimal.valueOf(capacitySum).divide(BigDecimal.valueOf(boothMinuteSum), MathContext.DECIMAL128);
+	}
+
+	/**
+	 * 평가시각 evalMinute 의 혼잡 판정 원천.
+	 * @param historyGap [evalMinute-30, evalMinute) 를 결과로 채우지 못한 사유. 채웠으면 null
+	 */
+	public QueueWaitWindow waitWindowOf(int evalMinute, String historyGap) {
+		double[] prcs = new double[WINDOW_MIN];
+		double[] wtngSec = new double[WINDOW_MIN];
+
+		for (int index = 0; index < WINDOW_MIN; index++) {
+			int minute = evalMinute - WINDOW_MIN + index;
+
+			if (isInRange(minute)) {
+				prcs[index] = processed[minute - originMinute];
+				wtngSec[index] = (double) waitMinSum[minute - originMinute] * SEC_PER_MIN;
+			}
+		}
+
+		// FIFO 라 evalMinute 에 남은 대기자는 가장 최근에 도착한 여객이다
+		LinkedList<QueueWaitWindow.Cohort> cohortList = new LinkedList<>();
+		int remaining = queueAt(evalMinute - 1);
+
+		for (int minute = Math.min(evalMinute, MINUTE_PER_DAY) - 1; minute >= originMinute && remaining > 0; minute--) {
+			int take = Math.min(arrivals[minute - originMinute], remaining);
+
+			if (take > 0) {
+				cohortList.addFirst(new QueueWaitWindow.Cohort(evalMinute - minute, take));
+				remaining -= take;
+			}
+		}
+
+		String cohortGap = remaining > 0 ? "잔여 대기열 " + remaining + "명의 도착 시각을 재구성하지 못했습니다. island=" + island : null;
+
+		return new QueueWaitWindow(prcs, wtngSec, historyGap, cohortList, cohortGap);
 	}
 
 	public ChknQueueKpi kpi() {
@@ -167,12 +230,14 @@ public final class ChknQueueSeries {
 		int peakMinute = 0;
 
 		for (int minute = 0; minute < MINUTE_PER_DAY; minute++) {
-			processedSum += processed[minute];
-			waitSum += waitMinSum[minute];
-			capacitySum += capacity[minute];
+			int at = minute - originMinute;
 
-			if (queue[minute] > maxQueue) {
-				maxQueue = queue[minute];
+			processedSum += processed[at];
+			waitSum += waitMinSum[at];
+			capacitySum += capacity[at];
+
+			if (queue[at] > maxQueue) {
+				maxQueue = queue[at];
 				peakMinute = minute;
 			}
 		}
@@ -216,7 +281,7 @@ public final class ChknQueueSeries {
 		return (int) Math.min(100, processedSum * 100 / capacitySum);
 	}
 
-	private boolean isInDay(int minute) {
-		return minute >= 0 && minute < MINUTE_PER_DAY;
+	private boolean isInRange(int minute) {
+		return minute >= originMinute && minute < MINUTE_PER_DAY;
 	}
 }

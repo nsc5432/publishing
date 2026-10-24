@@ -57,6 +57,13 @@ const CONGESTION_CHIP_CLASS: Record<CongestionStatus, string> = {
 
 const BUSY_STATUS: CongestionStatus[] = ['BUSY', 'VERY_BUSY'];
 
+const CONGESTION_STATUS_LABEL: Record<CongestionStatus, string> = {
+    FREE: '여유',
+    NORMAL: '보통',
+    BUSY: '혼잡',
+    VERY_BUSY: '매우혼잡',
+};
+
 const FCLT_CARD_TITLE: Record<FcltCardType, string> = {
     CHKN: '체크인카운터',
     DEP: '출국장',
@@ -78,6 +85,9 @@ const QUEUE_METHOD_LABEL: Record<QueueCalcMethod, string> = {
     QUEUE_BALANCE: '인원 보존식 추정',
     ERLANG_C: 'Erlang C',
     NEXT_ARRIVAL_WAIT: '대기 순번 계산',
+    PRCS_WAIT_AVG: '직전 30분 처리 여객 평균',
+    WAIT_AVG_FORECAST: '처리 여객 평균 예측',
+    CGN_GRADE: '혼잡등급 기준표',
 };
 
 export function toSimulationType(smltType: SmltType): SimulationType {
@@ -126,20 +136,23 @@ function toFcltCardVariant(card: DsbdFcltCardDto): FcltCardVariant {
     };
 }
 
-// 미운영 칩은 혼잡도와 무관하게 회색으로 눕힌다.
+// 미운영 칩은 혼잡도와 무관하게 회색으로 눕힌다. 혼잡도를 산정할 수 없는 칩도 등급 색 대신 회색이다.
 function toFcltCardChip(unit: FcltUnitDto): FcltCardChip {
     return {
         label: unit.unitCd,
-        kind: unit.useYn === 'N' ? 'gray' : CONGESTION_CHIP_CLASS[unit.cgnStatus],
+        kind: unit.useYn === 'N' || unit.cgnStatus === null ? 'gray' : CONGESTION_CHIP_CLASS[unit.cgnStatus],
     };
 }
 
+// 카드 순서는 서버가 평균 대기시간이 긴 시설부터 정한다 — 첫 카드가 처음 보이는 시설이다
 function toFcltCardData(fcltType: FcltCardType, cards: DsbdFcltCardDto[], tmnlId: TmnlId): FcltCardData {
     const unitPattern = fcltType === 'CHKN' ? /^[A-N]$/ : tmnlId === 'T1' ? /^[1-6]$/ : /^[12]$/;
     const visibleCards = cards.filter((card) =>
         unitPattern.test(fcltType === 'CHKN' ? card.island : card.dptgtNo),
     );
-    const busyCount = visibleCards.filter((card) => BUSY_STATUS.includes(card.cgnStatus)).length;
+    const busyCount = visibleCards.filter(
+        (card) => card.cgnStatus !== null && BUSY_STATUS.includes(card.cgnStatus),
+    ).length;
 
     return {
         fcltType,
@@ -275,9 +288,22 @@ function toNextWtngText(clear: FcltQueueClearDto): string {
     return `새로 줄 서면 약 ${formatSeconds(clear.nextWtngSec)} 대기`;
 }
 
-export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string): QueueClearView {
+// 신규 여객 예상과 다른 지표다 — 그 시각 직전 30분에 처리될 여객의 평균
+function toFcstWtngText(clear: FcltQueueClearDto): string {
+    if (clear.fcstWtngSec === null) return '';
+
+    return `${formatDtClock(clear.fcstDt)} 처리 여객 평균대기 예측 ${formatSeconds(clear.fcstWtngSec)}`;
+}
+
+/** 해소 목표 문구 (예: 평균 대기 40분 미만) — 표시만 반올림하고 판정은 서버 원값으로 끝난다 */
+function toTargetShort(normalUpperExclusiveSec: number): string {
+    return `평균 대기 ${formatSeconds(normalUpperExclusiveSec)} 미만`;
+}
+
+export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string, targetShort: string): QueueClearView {
     const { status, reason } = clear.clearMetric;
     const nextWtngText = toNextWtngText(clear);
+    const fcstWtngText = toFcstWtngText(clear);
 
     if (status === 'UNREACHABLE') {
         return {
@@ -286,13 +312,23 @@ export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string): Queu
             mainText: '해소 불가',
             unitText: '',
             clockText: '—',
-            note: '처리능력이 유입 이하라 대기열이 줄지 않습니다',
+            note: reason,
             nextWtngText,
+            fcstWtngText,
         };
     }
 
     if (clear.cgnClearMin === null) {
-        return { kind: 'unavailable', minutes: null, mainText: '—', unitText: '', clockText: '—', note: reason, nextWtngText };
+        return {
+            kind: 'unavailable',
+            minutes: null,
+            mainText: '—',
+            unitText: '',
+            clockText: '—',
+            note: reason,
+            nextWtngText,
+            fcstWtngText,
+        };
     }
 
     if (clear.cgnClearMin === 0) {
@@ -302,8 +338,9 @@ export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string): Queu
             mainText: '0',
             unitText: '분',
             clockText: formatDtClock(baseDt),
-            note: '이미 목표 인원 이하',
+            note: `이미 ${targetShort}`,
             nextWtngText,
+            fcstWtngText,
         };
     }
 
@@ -315,8 +352,9 @@ export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string): Queu
         mainText: formatCount(minutes),
         unitText: '분 후',
         clockText: toClockText(clear.cgnClearDt, baseDt),
-        note: `계산 기준 대비 ${formatCount(minutes)}분 후`,
+        note: `계산 기준 대비 ${formatCount(minutes)}분 후 ${targetShort}`,
         nextWtngText,
+        fcstWtngText,
     };
 }
 
@@ -381,13 +419,22 @@ function toQueueRecommendView(dto: FcltQueueScenarioDto, recommend: FcltQueueRec
         countNote,
         capaNote,
         capaShort: recommend.capaAvlYn === 'N',
-        clear: clearSource ? toQueueClearView(clearSource, dto.baseDt) : null,
+        clear: clearSource ? toQueueClearView(clearSource, dto.baseDt, toTargetShort(dto.normalUpperExclusiveSec)) : null,
         clearLabel: dto.scenario ? '조정 후' : dto.totScenario ? `보유 ${formatCount(dto.totCnt ?? 0)}개 모두 배정 시` : '',
     };
 }
 
+function toWtngAvgText(dto: FcltQueueScenarioDto): string {
+    if (dto.wtngAvgSec === null) return `— (${dto.wtngAvgMetric.reason})`;
+
+    const grade = dto.cgnStatus === null ? '등급 산정 불가' : CONGESTION_STATUS_LABEL[dto.cgnStatus];
+
+    return `${formatSeconds(dto.wtngAvgSec)} / 처리 ${formatCount(dto.wtngAvgPrcsPsgCnt ?? 0)}명 가중평균 / ${grade}`;
+}
+
 export function toFcltQueueContextView(dto: FcltQueueScenarioDto): FcltQueueContextView {
     const label = FCLT_QUEUE_LABEL[dto.fcltType];
+    const targetShort = toTargetShort(dto.normalUpperExclusiveSec);
     const countLockReason =
         dto.oprFcltCnt === null
             ? '현재 운영 수량이 확인되지 않아 수량을 조정할 수 없습니다.'
@@ -403,7 +450,9 @@ export function toFcltQueueContextView(dto: FcltQueueScenarioDto): FcltQueueCont
         obsText: `${formatDtClock(dto.obsBgnDt)} ~ ${toClockText(dto.obsEndDt, dto.obsBgnDt)}`,
         dataSrcText: QUEUE_DATA_SRC_LABEL[dto.dataSrc],
         queueText: dto.wtngPsgCnt === null ? '—' : formatCount(dto.wtngPsgCnt),
-        targetQueueText: `대기인원 ${formatCount(dto.targetQueueCnt)}명 이하 기준 (혼잡등급 NORMAL 상한)`,
+        targetText: `직전 30분 처리 여객 ${targetShort} (혼잡등급 NORMAL 상한)`,
+        wtngAvgText: toWtngAvgText(dto),
+        wtngAvgShort: dto.wtngAvgSec === null ? '' : `평균대기 ${formatSeconds(dto.wtngAvgSec)}`,
         arvlText: dto.arvlRate === null ? `— (${dto.arvlMetric.reason})` : `${dto.arvlRate.toFixed(1)}명/분 / ${QUEUE_METHOD_LABEL[dto.arvlMetric.method]}`,
         srvcText: dto.srvcRate === null ? `— (${dto.srvcMetric.reason})` : `${label.resource} 1개당 ${dto.srvcRate.toFixed(2)}명/분`,
         asmpList: dto.asmpList,
@@ -411,14 +460,15 @@ export function toFcltQueueContextView(dto: FcltQueueScenarioDto): FcltQueueCont
         totCnt: dto.totCnt,
         countLockReason,
         targetMin: { dflt: dto.dfltTargetMin, min: dto.minTargetMin, max: dto.maxTargetMin },
-        current: toQueueClearView(dto.current, dto.baseDt),
+        current: toQueueClearView(dto.current, dto.baseDt, targetShort),
         currentErlang: toQueueErlangView(dto.current),
     };
 }
 
 export function toFcltQueueResultView(dto: FcltQueueScenarioDto): FcltQueueResultView {
-    const current = toQueueClearView(dto.current, dto.baseDt);
-    const scenario = dto.scenario ? toQueueClearView(dto.scenario, dto.baseDt) : null;
+    const targetShort = toTargetShort(dto.normalUpperExclusiveSec);
+    const current = toQueueClearView(dto.current, dto.baseDt, targetShort);
+    const scenario = dto.scenario ? toQueueClearView(dto.scenario, dto.baseDt, targetShort) : null;
 
     return {
         scenario,
@@ -430,7 +480,7 @@ export function toFcltQueueResultView(dto: FcltQueueScenarioDto): FcltQueueResul
 
 export const EMPTY_TERMINAL_VIEW: TerminalView = {
     barText: '-',
-    cgnStatus: 'FREE',
+    cgnStatus: null,
     stats: {
         flights: { delta: '-', value: '-' },
         pax: { delta: '-', value: '-' },

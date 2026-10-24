@@ -1,18 +1,18 @@
 import { NoticeWarnIcon } from '@/components/icons';
-import { NOTICE_LEVEL, type NoticeItem, type NoticeLevel } from '../types';
+import { NOTICE_LEVEL, UNKNOWN_NOTICE, toLevelKey, type NoticeItem, type NoticeLevel } from '../types';
 
 interface CongestionNoticeProps {
-    level: NoticeLevel;
+    level: NoticeLevel | null;
     items?: NoticeItem[];
     message?: string;
 }
 
 /** 상단 혼잡 알림 바 — 조치가 필요한 출국장만 모아 보여준다 */
 export function CongestionNotice({ level, items = [], message }: CongestionNoticeProps) {
-    const preset = NOTICE_LEVEL[level];
+    const preset = level === null ? UNKNOWN_NOTICE : NOTICE_LEVEL[level];
 
     return (
-        <section className={`notice notice--${level}`}>
+        <section className={`notice notice--${toLevelKey(level)}`}>
             <h2 className="notice__badge">
                 <NoticeWarnIcon className="notice__ico" aria-hidden="true" focusable="false" />
                 <span>{preset.label}</span>

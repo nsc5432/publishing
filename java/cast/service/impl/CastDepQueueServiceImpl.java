@@ -10,6 +10,7 @@ import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import aoms.pm.cast.domains.dsbd.DepQueueDay;
 import aoms.pm.cast.domains.dsbd.DepQueueWindow;
 import aoms.pm.cast.dto.FcltUnitRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
@@ -46,18 +47,32 @@ public class CastDepQueueServiceImpl implements CastDepQueueService {
 
 	@Override
 	public DepQueueWindow retrieveDepQueueWindow(SmltStngDto smltStng, TerminalKind tmnlId, String hhmm) {
-		String fcltTmnlId = tmnlId.getFcltTmnlId();
-		LocalDateTime dayStart = LocalDate.parse(smltStng.getExcnYmd(), DateTimeFormatter.ofPattern("yyyyMMdd")).atStartOfDay();
-		LocalDateTime bgnDt = dayStart.plusMinutes(toMinutes(hhmm));
-		LocalDateTime windowEnd = bgnDt.plusMinutes(OBS_MIN).isBefore(dayStart.plusDays(1)) ? bgnDt.plusMinutes(OBS_MIN) : dayStart.plusDays(1);
+		LocalDateTime evalDt = dayStartOf(smltStng).plusMinutes(toMinutes(hhmm));
+		// 잔여 대기열의 도착 시각을 되짚을 만큼 앞을 더 읽는다. 결과 시각이 구간 끝이라 evalDt 행까지 포함한다
+		LocalDateTime bgnDt = evalDt.minusMinutes(Math.max(OBS_MIN, DepQueueDay.LOOKBACK_MIN) + (long) DepQueueDay.CAST_SLOT_MIN);
 
-		return new DepQueueWindow(
+		return retrieveDepQueueDay(smltStng, tmnlId, bgnDt, evalDt.plusMinutes(DepQueueDay.CAST_SLOT_MIN)).windowAt(evalDt);
+	}
+
+	@Override
+	public DepQueueDay retrieveDepQueueDay(SmltStngDto smltStng, TerminalKind tmnlId) {
+		LocalDateTime dayStart = dayStartOf(smltStng);
+
+		// 자정 직후의 직전 30분은 전날 결과다
+		return retrieveDepQueueDay(smltStng, tmnlId, dayStart.minusDays(1), dayStart.plusDays(1).plusMinutes(DepQueueDay.CAST_SLOT_MIN));
+	}
+
+	private DepQueueDay retrieveDepQueueDay(SmltStngDto smltStng, TerminalKind tmnlId, LocalDateTime bgnDt, LocalDateTime endDt) {
+		String fcltTmnlId = tmnlId.getFcltTmnlId();
+
+		return new DepQueueDay(
 				tmnlId,
-				bgnDt,
-				windowEnd,
-				castDsbdMapper.retrieveRsltByUnitList(
-						smltStng.getSmltId(), fcltTmnlId, bgnDt.minusMinutes(DepQueueWindow.CAST_SLOT_MIN), windowEnd, null, DEP_QUEUE_FCLT_CD_LIST),
+				castDsbdMapper.retrieveRsltByUnitList(smltStng.getSmltId(), fcltTmnlId, bgnDt, endDt, null, DEP_QUEUE_FCLT_CD_LIST),
 				getScrtyOpenCntMap(smltStng, fcltTmnlId));
+	}
+
+	private LocalDateTime dayStartOf(SmltStngDto smltStng) {
+		return LocalDate.parse(smltStng.getExcnYmd(), DateTimeFormatter.ofPattern("yyyyMMdd")).atStartOfDay();
 	}
 
 	private Map<String, Integer> getScrtyOpenCntMap(SmltStngDto smltStng, String fcltTmnlId) {

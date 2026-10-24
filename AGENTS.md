@@ -84,6 +84,12 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
    - 2026-10-11 사용자 현재상태 요청은 `ymd + tmnlId`로 변경하고 편집용 `smltId`를 제거했다.
      실행 요청에 `fltPsgList`·`chknList`·`depList`를 추가하고 `smltFlfmtSn`은 제거했다.
      실행·공개 조건·결과의 `smltId`는 유지한다. 새 계약도 고정이며 상세는 §11과 API 문서를 따른다.
+   - 2026-10-24 혼잡등급 대기시간 전환(§13·§14)으로 `cgnStatus` 를 `CongestionStatus | null` 로 넓혔다
+     (`TmnlSmryDto` · `FcltUnitDto` · `DsbdFcltCardDto` · `MapUnitRsltDto` · `MapNoticeDto` · `FcltQueueScenarioDto`).
+     null 은 산정 불가다. 새 필드 `cgnWtngSec`(카드 · 맵 결과 · 알림 항목), `FcltQueueScenarioDto` 의
+     `normalUpperExclusiveSec` · `wtngAvgSec` · `wtngAvgPrcsPsgCnt` · `wtngAvgMetric`, `FcltQueueClearDto` 의
+     `fcstWtngSec` · `fcstDt` · `fcstWtngMetric` 을 더했다. `targetQueueCnt` 는 명 단위 계약 그대로 두고 `null` 로 내린다.
+     `PsgPrcsGradeRawDto.minVl` · `maxVl` 은 `BigDecimal` → `int`(분). **새 이름도 이제 고정이다.**
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).
@@ -571,7 +577,7 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 **부스별 결과는 계산 원천으로만 쓰고, 업무 API·화면에는 아일랜드 단위 공용 `Queue` 하나만 내보낸다**
 (2026-09-04, `docs/plans/2026-09-04-checkin-common-queue.md`). 대시보드 체크인 카드 · 터미널맵
 체크인 마커/팝업 · 체크인 상세가 **같은 계산 결과를 나눠 쓴다** — 같은 `smltId` · 터미널 · `hhmm`
-에서 세 화면의 Queue 와 혼잡등급이 어긋나면 그건 버그다.
+에서 세 화면의 혼잡등급 · 평균 대기시간(`cgnWtngSec`) · 추천이 어긋나면 그건 버그다.
 
 | 무엇 | 어디 |
 |---|---|
@@ -594,13 +600,13 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
   관측 처리량**이고, 모두 없으면 처리용량 0 + 로그다. 소수 처리용량은 버리지 않고 다음 분으로
   이월해 **반복 실행이 같은 결과**를 낸다.
 - **혼잡등급 220 명 같은 하드코딩 fallback 을 두지 않는다.** 기준정보(`TN_PM_PSG_PRCS_GRD`)가
-  없거나 겹치면 조회 실패로 떨어뜨린다.
+  없거나 겹치면 조회 실패로 떨어뜨린다. 인원 기준 판정(`CongestionStatus.ofWtngPsgCnt`)은 2026-10-24 에 없앴다.
 - 추천 `reqCnt` 는 추가 수량이 아니라 **현재 운영분을 포함한 총 소요 부스 수**다. 2026-10-17 부터
   `ChknQueueDay.recommendOf` 는 혼잡해소 팝업 기본값과 같은 공용 평가기 `domains/dsbd/FcltQueueClearance`
-  (목표 30분, §14)를 쓴다 ([계획](docs/plans/2026-10-17-fclt-card-domain-queue.md)). 30분 슬롯 `[hhmm, hhmm+30)`
-  에서 λ·μ·Q0·s 를 뽑아 **현재 슬롯이 그대로 이어진다고 가정**한다 — 예전의 CAST 앞 60분 궤적·리드타임 10분
-  피크 방식이 아니라서 곧 몰려올 피크를 미리 반영하지 못한다. `cgnClearMin` 은 추천 수량을 적용했을 때 슬롯
-  끝부터 NORMAL 이하가 되는 분(올림)이다.
+  (목표 30분, §14)를 쓴다 ([계획](docs/plans/2026-10-17-fclt-card-domain-queue.md)). 2026-10-24 부터 λ·μ·Q0·s 는
+  평가시각 직전 30분 `[hhmm−30, hhmm)` 에서 뽑고 **그 유입이 그대로 이어진다고 가정**한다 — 곧 몰려올 피크를
+  미리 반영하지 못한다. `cgnClearMin` 은 추천 수량을 적용했을 때 평가시각부터 처리 여객 평균 대기시간이
+  NORMAL 상한 미만이 되는 분(1분 해상도)이다.
 - **요약보기 카드 · 맵형태보기 · 체크인 상세의 `reqCnt` · `cgnClearMin` 도 같은 조건에서 같아야 한다.**
   카드는 `clearanceOf` 를, 맵 · 상세는 `recommendOf` 를 부르지만 내부 계산은 하나다.
 - 처리시간이 없어(`UNAVAILABLE`) 산정할 수 없으면 `reqCnt` · `cgnClearMin` 을 **`null` 로 내려** 화면이
@@ -609,6 +615,29 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 - 마지막 결과 시각 뒤에는 **유입 0 인 꼬리 구간**을 붙여 남은 Queue 를 배정 부스로 흘려보낸다.
   이 구간을 빼면 마지막 Queue 가 24:00 까지 그대로 남아 미운영 시각에 대기인원이 서 있게 된다.
 - 공용 `CastMapMapper#retrieveMapRsltDayList` 는 **고치지 않는다** — 출국장 등 다른 화면이 같이 쓴다.
+
+### 13.1 혼잡등급 = 직전 30분 처리 여객 평균 대기시간 (2026-10-24)
+
+[계획](docs/plans/2026-10-24-cgn-grade-wait-time-impact.md). 체크인(CC 공용 Queue)·출국장(SC+SR) 모두 같은 규칙이다.
+아래가 이 절의 옛 '대기인원 상한 · 다음 30분 슬롯' 설명을 대체한다.
+
+- **평가시각 t = 화면의 `hhmm`**, 판정값 W(t) = `[t−30분, t)` 처리 여객의 처리인원 가중평균 대기시간(초, 소수 원값).
+  10:10 이면 09:40~10:10 이다. 표시용으로 반올림한 값을 판정·정렬에 쓰지 않는다.
+- 기준표 `TN_PM_PSG_PRCS_GRD`(체크인 `02` · 출국장 `04`)는 **정수 분**이다. `CgnGradeScale` 이 한 곳에서
+  `[MIN×60, (MAX+1)×60)` 초 구간으로 바꾼다 — 19분 59.5초는 FREE, 20분은 NORMAL. 4등급 · 연속 · 0 시작을 검증하고
+  어긋나면 조회 실패다. 20/40/60 같은 경계를 코드에 다시 쓰지 않는다. 적용 SQL: `java/ddl/2026-10-24-psg-prcs-grd-wait-minute.sql`.
+- **산정 불가 = `cgnStatus: null`** (중립 회색). 처리 여객 0명, 30분 중 결과가 빈 분, 하루 첫 30분에 전날 결과가 없음,
+  출국장 원천 대기시간 NULL, 기준 범위(9999분) 초과. FREE/NORMAL 로 메우지 않고 enum 에 값을 더하지 않는다.
+  화면은 `toLevelKey`/`toLevelLabel`(`modules/pm/types/map.types.ts`)로 `*--unknown` 중립 클래스를 그린다.
+- 대표 등급(알림 단계 · 터미널 패널 색)은 산정 가능한 시설 중 최고 심각도, 전부 불가면 null 이다.
+  카드 · 알림 순서는 W 내림차순(불가는 뒤로, 같으면 대기인원 내림차순 → 코드). PRIME TIME 은 기존 대기인원 피크 그대로다.
+- **지표 4종(`stat`)과 차트는 여전히 슬롯 `[hhmm, hhmm+30)` 값이다.** 등급 · `cgnWtngSec` · 추천만 평가시각 기준이라
+  맵/상세 팝업의 대기인원(슬롯 끝)과 요약보기 카드의 대기열(평가시각 t)은 30분 차이가 난다.
+- 체크인 FIFO 는 전날 결과가 있으면 그 시각부터 계산한다(`ChknQueueSeries.originMinute` ≤ 0). 그래서 자정의 대기열을
+  이어 받는다. 관측 여부는 터미널 CC 결과 시각과 최소 결과 간격으로 정한다 — 마지막 결과 뒤 꼬리 구간은 미관측이다.
+- 출국장은 `DepQueueDay`(SC/SR 하루치)에서 평가시각마다 `DepQueueWindow` 를 만든다. 결과 시각은 구간 끝으로 보고
+  `t−30, t−20, t−10, t` 네 시각이 터미널에 모두 있어야 관측이다. 대기시간은 `SUM(AVG_WTNG_HR × TRNST_PSG_CNT)` 로 받는다
+  (`retrieveRsltByUnitList.WTNG_SEC_SUM`). 체크인(결과 시각 = 구간 시작)과 시각 규칙이 다른 것은 기존 그대로이며 CAST 확인 대상이다.
 
 ---
 
@@ -625,19 +654,30 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 | 팝업 · 요청 경쟁 처리 | `dashboard/components/FcltQueueScenarioModal.tsx` · `hooks/useFcltQueueScenario.ts` |
 | 일반 Dialog (포커스 트랩 · 복귀) | `components/ui/dialog.tsx` (`@radix-ui/react-dialog`) |
 
-- **혼잡해소 시간은 유입/처리 차이 계산, 대기확률·이론 대기시간은 M/M/s 정상상태값**이다. 둘을 같은 라벨로 보여주지 않는다.
+- **혼잡해소 시간은 처리 여객 평균 대기시간 예측(`WaitAvgForecast`), 대기확률·이론 대기시간은 M/M/s 정상상태값**이다.
+  둘을 같은 라벨로 보여주지 않는다. 2026-10-24 전의 '대기인원 Q* 까지 유입/처리 차이 계산'은 대체됐다.
+- 예측: 수량 s 를 평가시각 t 부터 적용하고 미래 시각 u 의 `[u−30, u)` 처리 여객 평균을 낸다. 창의 t 이전은 실제 처리 이력,
+  이후는 1분 유체 FIFO 예측이다. 남은 대기자의 대기시간은 t 에서 0 으로 되돌리지 않는다(체크인은 FIFO 재구성,
+  출국장은 10분 보존식 유입을 분 단위로 나눈 근사로 도착 시각을 얻는다). 해소 = W(u) < `normalUpperExclusiveSec` 인 첫 u.
+  관측 W(t) 가 이미 미만이면 0분, 24시간 안에 못 닿으면 처리능력 ≤ 유입은 `UNREACHABLE`, 아니면 `UNAVAILABLE` 이다.
 - '새로 줄 서면 대기'(`FcltQueueClearDto.nextWtngSec`, 2026-10-14)는 `(Q0+1)/(s·μ)` 다. Q0 를 반영하고 λ 와 무관해
   ρ ≥ 1 에서도 나온다. 정상상태 이론 대기와 다른 값이며, Q0 = 0 이면 0, 운영 0개면 `UNREACHABLE` 이다.
-- λ·μ·Q0·s 는 **카드와 같은 30분 슬롯 `[hhmm, hhmm+30)`** 에서 뽑고, 계산 기준시각은 슬롯 끝(Q0 스냅샷)이다.
-  화면은 기준시각에 30분을 더하지 않는다 — 서버가 `baseDt` 로 내려준다.
-- 해소 기준 `Q*` 는 혼잡등급 **NORMAL 상한(양끝 포함)** 이다. 기준정보가 없으면 실패로 내린다.
+- λ·μ·Q0·s 는 **카드와 같은 관측구간 `[hhmm−30, hhmm)`** 에서 뽑고, 계산 기준시각(`baseDt`)은 평가시각 `hhmm`(Q0 스냅샷)이다
+  (2026-10-24, 이전에는 `[hhmm, hhmm+30)` · 슬롯 끝). 화면은 기준시각에 30분을 더하지 않는다.
+- 해소 기준은 혼잡등급 **NORMAL 상한의 배타적 초**(`normalUpperExclusiveSec`, 현재 2400초 = 40분 미만)다. 명 단위
+  `targetQueueCnt` 는 환산 인원이 없어 `null` 이다. 기준정보가 없으면 실패로 내린다.
 - 출국장은 카드와 같이 **SC+SR 합산을 한 큐**로 본다 (LGT 제외). 직렬·병렬 관계는 미검증이라 응답의 적용 가정에 싣는다.
-- 추천 총수량은 `max(유입/처리 차이 계산 소요, floor(λ/μ)+1)` (정책 `STABLE_MMS_FLUID_TARGET`). 기존 fluid 메서드의 반환 의미는 바꾸지 않는다.
+- 추천 총수량은 목표 시간 H 안에 W < 목표가 되고(목표 시각 W 도 재확인) **s·μ > λ** 인 최소 s 다. 안정 하한은
+  `floor(λ/μ)+1` 이라 λ=0 이어도 1 이상이다. 후보마다 같은 시작 상태에서 따로 예측하고(단조성 가정 없음) 0 부터
+  포화 수량(대기열 + 분당 유입을 그 분에 다 처리하는 수량, 상한 100000)까지 훑는다. 포화 수량에서도 못 닿으면 `UNREACHABLE` 이다.
+  `flowBasedReqCnt` 는 목표 인원이 없어 `null`, `stableAplyYn` 은 안정 하한 때문에 목표 시간만 맞는 최소 수량보다 커졌을 때 Y 다.
+  기존 `FacilityQueueCalculator.estimateClearTimeSec` · `estimateRequiredServerCnt`(인원 목표)는 의미를 바꾸지 않고 남겨 두었다.
 - **카드는 팝업 첫 화면(TIME 모드 · 목표 30분)과 같은 계산이다** (2026-10-17,
   [계획](docs/plans/2026-10-17-fclt-card-domain-queue.md)). 같은 `smltId` · 터미널 · `hhmm` · 시설에서 카드의
   대기열/예상인원 = 팝업 `wtngPsgCnt`, 카드 `reqCnt` = 팝업 `recommend.reqCnt`, 카드 해소 시각 = 팝업
-  `scenario.cgnClearDt` 의 시각이어야 한다. 카드는 **현재 슬롯 기준**이며 CAST 의 앞으로 올 피크를 보지 않는다.
-  - 카드 처리율 중앙 숫자는 슬롯 처리인원의 시간당 환산, 링은 부하율 ρ = λ/(s·μ) 다. ρ ≥ 1 이면 링이 꽉 찬다
+  `scenario.cgnClearDt` 의 시각이어야 한다. 카드는 **평가시각 직전 30분 기준**이며 CAST 의 앞으로 올 피크를 보지 않는다.
+  카드 `cgnStatus` · `cgnWtngSec` 는 팝업 `cgnStatus` · `wtngAvgSec` 와 같다.
+  - 카드 처리율 중앙 숫자는 관측구간 처리인원의 시간당 환산, 링은 부하율 ρ = λ/(s·μ) 다. ρ ≥ 1 이면 링이 꽉 찬다
   - 추천이 보유 수량을 넘으면 카드는 자르지 않고 **추천 수량 가정** 해소값을 그린다. 최대수 전량 배정 결과(`totScenario`)는 팝업에만 있다
   - 혼잡해소 게이지는 `max(30 − 해소분, 0) / 30`. 산정 불가 값은 그 칸만 `-`
 - 원천 변경 감지용 버전(`contextVersion` · `ctxChgYn`)은 두지 않는다 (2026-10-17 제거). 매 요청이 원천을 다시 읽어 계산한다.

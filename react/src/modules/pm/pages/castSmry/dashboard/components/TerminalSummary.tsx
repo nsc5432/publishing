@@ -48,10 +48,13 @@ const CONGESTION_THEMES: Record<CongestionStatus, CongestionTheme> = {
     VERY_BUSY: { panelClass: 'panel-red', gauge: '#d92626' },
 };
 
+/** 조회 시각에 등급을 산정할 수 있는 시설이 없을 때 — 여유/보통 색으로 대신하지 않는다 */
+const UNKNOWN_THEME: CongestionTheme = { panelClass: 'panel-gray', gauge: '#8a93a3' };
+
 export function TerminalSummary({ terminal, data, titleCategory, onFcltDetail }: TerminalSummaryProps) {
     const view = data ?? EMPTY_TERMINAL_VIEW;
     const images = TERMINAL_IMAGES[terminal];
-    const theme = CONGESTION_THEMES[view.cgnStatus];
+    const theme = view.cgnStatus === null ? UNKNOWN_THEME : CONGESTION_THEMES[view.cgnStatus];
 
     const [viewKind, setViewKind] = useState<ViewKind>('summary');
     const [selectedRow, setSelectedRow] = useState(view.defaultSelectedRow);

@@ -1,14 +1,5 @@
-import type {
-    CongestionStatus,
-    DepHallDto,
-    DepHallGateDto,
-    DepHallSlotDto,
-    MapCgnStatDto,
-    MapMarkerDto,
-    MapNoticeDto,
-    MapUnitRsltDto,
-    TmnlId,
-} from '@/types/api.types';
+import type { DepHallDto, DepHallGateDto, DepHallSlotDto, MapCgnStatDto, MapMarkerDto, MapNoticeDto, MapUnitRsltDto, TmnlId } from '@/types/api.types';
+import { mockAvgWtngSec, mockByWaitDesc, mockGradeOf, mockWorstOf } from './cgnGrade.mock';
 
 /**
  * 출국장 목업 응답 (VITE_ENABLE_MOCK=true 일 때 사용).
@@ -95,14 +86,8 @@ function toStat(wtngPsgCnt: number): MapCgnStatDto {
     };
 }
 
-/** 대기인원 → 혼잡도 (마커 색과 카드 뱃지가 같은 근거를 쓴다) */
-function toStatus(wtngPsgCnt: number): CongestionStatus {
-    if (wtngPsgCnt >= 240) return 'VERY_BUSY';
-    if (wtngPsgCnt >= 140) return 'BUSY';
-    if (wtngPsgCnt >= 50) return 'NORMAL';
-
-    return 'FREE';
-}
+/** 대기인원 1명당 평균 대기 환산(초) — 맵형태보기 목업과 같은 값이라 두 화면의 등급이 맞는다 */
+const WAIT_SEC_PER_PSG = 13;
 
 /** 출국장 카드 — 자리/운영시간처럼 하루 내내 그대로인 부분만 담는다 */
 function toGate(seed: GateSeed): DepHallGateDto {
@@ -228,19 +213,33 @@ function toDptgtMarkers(seeds: GateSeed[]): MapMarkerDto[] {
 
 /* ================= 슬롯 ================= */
 
-function toUnitRslt(unitCd: string, wtngPsgCnt: number): MapUnitRsltDto {
-    return { unitCd, cgnStatus: toStatus(wtngPsgCnt), stat: toStat(wtngPsgCnt) };
-}
-
-/** 알림은 매우혼잡한 출국장만 모은다 (카드와 같은 근거) */
-function toNotice(dptgtRsltList: MapUnitRsltDto[], seeds: GateSeed[]): MapNoticeDto {
-    const boothCntMap = new Map(seeds.map((seed) => [seed.dptgtNo, seed.boothCnt]));
-    const busy = dptgtRsltList.filter((rslt) => rslt.cgnStatus === 'VERY_BUSY');
+/** 지표 4종은 슬롯 [hhmm, hhmm+30) 값, 혼잡등급은 평가시각 hhmm 직전 30분 처리 여객 평균 대기시간이다 */
+function toUnitRslt(unitCd: string, peakStep: number, peakWtng: number, step: number): MapUnitRsltDto {
+    const cgnWtngSec = mockAvgWtngSec(wtngAt(peakStep, peakWtng, step - 1), WAIT_SEC_PER_PSG);
 
     return {
-        cgnStatus: busy.length > 0 ? 'BUSY' : 'NORMAL',
+        unitCd,
+        cgnStatus: mockGradeOf(cgnWtngSec),
+        cgnWtngSec,
+        stat: toStat(wtngAt(peakStep, peakWtng, step)),
+    };
+}
+
+/** 알림은 혼잡(BUSY) 이상인 출국장만, 평균 대기시간이 긴 순으로 모은다. 단계는 산정 가능한 출국장 중 최고 등급 */
+function toNotice(dptgtRsltList: MapUnitRsltDto[], seeds: GateSeed[]): MapNoticeDto {
+    const boothCntMap = new Map(seeds.map((seed) => [seed.dptgtNo, seed.boothCnt]));
+    const busy = dptgtRsltList.filter((rslt) => rslt.cgnStatus === 'BUSY' || rslt.cgnStatus === 'VERY_BUSY');
+
+    return {
+        cgnStatus: mockWorstOf(dptgtRsltList.map((rslt) => rslt.cgnStatus)),
         itemList: [...busy]
-            .sort((a, b) => Number(a.unitCd) - Number(b.unitCd))
+            .sort(
+                mockByWaitDesc(
+                    (rslt) => rslt.cgnWtngSec,
+                    (rslt) => rslt.stat.wtngPsgCnt,
+                    (rslt) => rslt.unitCd,
+                ),
+            )
             .map((rslt) => ({
                 fcltNm: `출국장 ${rslt.unitCd}`,
                 fcltCd: `DG${rslt.unitCd.padStart(2, '0')}`,
@@ -248,19 +247,20 @@ function toNotice(dptgtRsltList: MapUnitRsltDto[], seeds: GateSeed[]): MapNotice
                 // 총 소요 부스 / 해소시간은 체크인 공용 Queue 만 산정한다
                 reqCnt: null,
                 cgnClearMin: null,
+                cgnWtngSec: rslt.cgnWtngSec,
             })),
     };
 }
 
 function toSlot(tmnlId: TmnlId, hhmm: string, step: number): DepHallSlotDto {
     const seeds = GATE_SEEDS[tmnlId];
-    const dptgtRsltList = seeds.map((seed) => toUnitRslt(seed.dptgtNo, wtngAt(seed.peakStep, seed.peakWtng, step)));
+    const dptgtRsltList = seeds.map((seed) => toUnitRslt(seed.dptgtNo, seed.peakStep, seed.peakWtng, step));
 
     return {
         hhmm,
         notice: toNotice(dptgtRsltList, seeds),
         dptgtRsltList,
-        chknRsltList: ISLAND_SEEDS[tmnlId].map(([label, , , peakStep, peakWtng]) => toUnitRslt(label, wtngAt(peakStep, peakWtng, step))),
+        chknRsltList: ISLAND_SEEDS[tmnlId].map(([label, , , peakStep, peakWtng]) => toUnitRslt(label, peakStep, peakWtng, step)),
     };
 }
 

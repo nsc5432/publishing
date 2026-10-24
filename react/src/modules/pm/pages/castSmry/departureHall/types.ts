@@ -21,7 +21,7 @@ export type {
     NoticeLevelPreset,
     TerminalKind,
 } from '@/modules/pm/types/map.types';
-export { CONGESTION_LABEL, TERMINAL_LABEL, TERMINALS } from '@/modules/pm/types/map.types';
+export { CONGESTION_LABEL, TERMINAL_LABEL, TERMINALS, UNKNOWN_NOTICE, toLevelKey, toLevelLabel } from '@/modules/pm/types/map.types';
 
 /**
  * 우상단 보기 전환.
@@ -53,7 +53,8 @@ export interface DepGateCard extends MarkerPoint {
     dptgtNo: string;
     /** 표시명 (예: 출국장 3) */
     title: string;
-    level: CongestionLevel;
+    /** 직전 30분 처리 여객 평균 대기시간 기준. 산정 불가면 null */
+    level: CongestionLevel | null;
     stats: DepStat[];
     /** 운영 중인 부스 수 */
     boothCnt: number;

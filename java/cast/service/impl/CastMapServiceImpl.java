@@ -1,5 +1,8 @@
 package aoms.pm.cast.service.impl;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -10,10 +13,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.framework.cmmn.service.SessionService;
+import aoms.pm.cast.domains.CgnGradeScale;
+import aoms.pm.cast.domains.CgnOrder;
 import aoms.pm.cast.domains.MapLayout;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknQueueRecommend;
 import aoms.pm.cast.domains.chkn.ChknQueueSlot;
+import aoms.pm.cast.domains.dsbd.DepQueueDay;
+import aoms.pm.cast.domains.dsbd.DepQueueWindow;
+import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
 import aoms.pm.cast.dto.FltSmryRawDto;
@@ -40,7 +48,9 @@ import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDepMapper;
 import aoms.pm.cast.mapper.CastDsbdMapper;
 import aoms.pm.cast.mapper.CastMapMapper;
+import aoms.pm.cast.service.CastCgnGradeService;
 import aoms.pm.cast.service.CastChknQueueService;
+import aoms.pm.cast.service.CastDepQueueService;
 import aoms.pm.cast.service.CastMapService;
 import aoms.pm.cast.service.CastOperHrService;
 import aoms.pm.cast.service.CastSmltService;
@@ -72,6 +82,7 @@ public class CastMapServiceImpl implements CastMapService {
 	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT", "SC", "SR");
 
 	private static final String EMPTY = "";
+	private static final String YMD_FORMAT = "yyyyMMdd";
 	private static final String YN_Y = "Y";
 	private static final String YN_N = "N";
 	private static final String DEFAULT_HM = "0000";
@@ -94,6 +105,8 @@ public class CastMapServiceImpl implements CastMapService {
 	private final CastDepMapper castDepMapper;
 	private final CastSmltService castSmltService;
 	private final CastChknQueueService castChknQueueService;
+	private final CastDepQueueService castDepQueueService;
+	private final CastCgnGradeService castCgnGradeService;
 	private final CastOperHrService castOperHrService;
 	private final UserService userService;
 	private final SessionService sessionService;
@@ -107,6 +120,11 @@ public class CastMapServiceImpl implements CastMapService {
 		// 체크인은 아일랜드 공용 Queue 를, 출국장은 시각 → (묶음 단위 → 결과) 를 읽는다
 		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(searchDto.getSmltId(), tmnlId, smltStng.getExcnYmd());
 		Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap = retrieveUnitRsltDayMap(searchDto, DPTGT_FCLT_CD_LIST);
+		// 출국장 혼잡등급은 지표 4종과 달리 요약보기 카드와 같은 SC / SR 처리 여객 평균에서 정한다
+		DepGrade depGrade = new DepGrade(
+				castDepQueueService.retrieveDepQueueDay(smltStng, tmnlId),
+				castCgnGradeService.retrieveGradeScale(FcltType.DEP, "smltId=" + searchDto.getSmltId() + ", tmnlId=" + tmnlId.getValue()),
+				LocalDate.parse(smltStng.getExcnYmd(), DateTimeFormatter.ofPattern(YMD_FORMAT)).atStartOfDay());
 
 		FltSmryRawDto fltSmry = castDsbdMapper.retrieveFltSmry(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList(), null, null);
 
@@ -118,7 +136,7 @@ public class CastMapServiceImpl implements CastMapService {
 		result.setChknMarkerList(getChknMarkerList(tmnlId));
 		result.setGateMarkerList(MapLayout.gateMarkerList());
 		result.setChknInfoList(getChknInfoList(tmnlId));
-		result.setSlotList(getSlotList(tmnlId, queueDay, dptgtDayMap));
+		result.setSlotList(getSlotList(tmnlId, queueDay, dptgtDayMap, depGrade));
 
 		return result;
 	}
@@ -268,18 +286,20 @@ public class CastMapServiceImpl implements CastMapService {
 	private List<SmltMapSlotDto> getSlotList(
 			TerminalKind tmnlId,
 			ChknQueueDay queueDay,
-			Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap) {
+			Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap,
+			DepGrade depGrade) {
 		List<SmltMapSlotDto> result = new ArrayList<>();
 
 		for (String hhmm : TimeBucketUtils.slotTimeList(SLOT_BGN_HOUR)) {
 			Map<String, SmltRsltRawDto> dptgtMap = dptgtDayMap.getOrDefault(hhmm, Map.of());
+			DepQueueWindow depWindow = depGrade.windowAt(toMinute(hhmm));
 			List<MapChknRsltDto> chknRsltList = getChknRsltList(tmnlId, queueDay, toMinute(hhmm));
 
 			SmltMapSlotDto slot = new SmltMapSlotDto();
 			slot.setHhmm(hhmm);
-			slot.setNotice(getNotice(chknRsltList, dptgtMap));
+			slot.setNotice(getNotice(chknRsltList, dptgtMap, depWindow, depGrade.gradeScale));
 			slot.setChknRsltList(chknRsltList);
-			slot.setDptgtRsltList(getDptgtRsltList(tmnlId, dptgtMap));
+			slot.setDptgtRsltList(getDptgtRsltList(tmnlId, dptgtMap, depWindow, depGrade.gradeScale));
 
 			result.add(slot);
 		}
@@ -290,13 +310,15 @@ public class CastMapServiceImpl implements CastMapService {
 	/*
 	 * 아일랜드 값은 체크인 상세 화면과 같은 공용 Queue 계산기에서 나온다.
 	 * 같은 smltId / 터미널 / 시각이면 두 화면의 대기인원과 혼잡등급이 반드시 같아야 한다.
+	 * 지표 4종은 슬롯 [hhmm, hhmm+30), 혼잡등급 / 추천은 평가시각 hhmm 의 직전 30분 [hhmm-30, hhmm) 이다.
 	 */
 	private List<MapChknRsltDto> getChknRsltList(TerminalKind tmnlId, ChknQueueDay queueDay, int bgnMinute) {
 		List<MapChknRsltDto> result = new ArrayList<>();
 
 		for (String islandCd : MapLayout.islandCdList(tmnlId)) {
 			ChknQueueSlot queueSlot = queueDay.slotOf(islandCd, bgnMinute, SLOT_MIN);
-			ChknQueueRecommend recommend = queueDay.recommendOf(islandCd, bgnMinute, SLOT_MIN);
+			ChknQueueRecommend recommend = queueDay.recommendOf(islandCd, bgnMinute);
+			Computed<Double> avgWtngSec = queueDay.avgWtngSecOf(islandCd, bgnMinute);
 
 			MapCgnStatDto stat = new MapCgnStatDto();
 			stat.setWtngPsgCnt(queueSlot.getCurrentQueue());
@@ -306,7 +328,8 @@ public class CastMapServiceImpl implements CastMapService {
 
 			MapChknRsltDto chknRslt = new MapChknRsltDto();
 			chknRslt.setUnitCd(islandCd);
-			chknRslt.setCgnStatus(queueDay.statusOf(queueSlot.getCurrentQueue(), "island=" + islandCd));
+			chknRslt.setCgnWtngSec(avgWtngSec.getValue());
+			chknRslt.setCgnStatus(queueDay.gradeOf(islandCd, bgnMinute).getValue());
 			chknRslt.setStat(stat);
 			chknRslt.setPrcsRate(queueSlot.getPrcsRate());
 			chknRslt.setAvgQueuePsgCnt(queueSlot.getAvgQueue());
@@ -326,16 +349,18 @@ public class CastMapServiceImpl implements CastMapService {
 				+ Integer.parseInt(hhmm.substring(2, HHMM_LENGTH));
 	}
 
-	private List<MapUnitRsltDto> getDptgtRsltList(TerminalKind tmnlId, Map<String, SmltRsltRawDto> dptgtMap) {
+	private List<MapUnitRsltDto> getDptgtRsltList(
+			TerminalKind tmnlId, Map<String, SmltRsltRawDto> dptgtMap, DepQueueWindow depWindow, CgnGradeScale depGradeScale) {
 		List<MapUnitRsltDto> result = new ArrayList<>();
 
 		for (String dptgtNo : MapLayout.dptgtNoList(tmnlId)) {
-			SmltRsltRawDto rslt = dptgtMap.get(dptgtNo);
+			Computed<Double> avgWtngSec = depWindow.avgWtngSecOf(dptgtNo);
 
 			MapUnitRsltDto dptgtRslt = new MapUnitRsltDto();
 			dptgtRslt.setUnitCd(dptgtNo);
-			dptgtRslt.setCgnStatus(CongestionStatus.ofWtngPsgCnt(rslt != null ? rslt.getWtngPsgCnt() : 0));
-			dptgtRslt.setStat(SmltUtils.toCgnStat(rslt));
+			dptgtRslt.setCgnWtngSec(avgWtngSec.getValue());
+			dptgtRslt.setCgnStatus(depGradeScale.gradeOf(avgWtngSec).getValue());
+			dptgtRslt.setStat(SmltUtils.toCgnStat(dptgtMap.get(dptgtNo)));
 
 			result.add(dptgtRslt);
 		}
@@ -345,46 +370,53 @@ public class CastMapServiceImpl implements CastMapService {
 
 	/* ================= 혼잡 알림 ================= */
 
-	// 알림은 혼잡(BUSY) 이상인 곳만, 혼잡한 순으로 보여준다
-	private MapNoticeDto getNotice(List<MapChknRsltDto> chknRsltList, Map<String, SmltRsltRawDto> dptgtMap) {
+	// 알림은 혼잡(BUSY) 이상인 곳만, 평균 대기시간이 긴 순으로 보여준다
+	private MapNoticeDto getNotice(
+			List<MapChknRsltDto> chknRsltList, Map<String, SmltRsltRawDto> dptgtMap, DepQueueWindow depWindow, CgnGradeScale depGradeScale) {
 		List<NoticeCandidate> candidateList = new ArrayList<>();
 
 		for (MapChknRsltDto rslt : chknRsltList) {
 			candidateList.add(new NoticeCandidate(
 					rslt.getCgnStatus(),
+					rslt.getCgnWtngSec(),
 					rslt.getStat().getWtngPsgCnt(),
+					CHKN_FCLT_NM + rslt.getUnitCd(),
 					new MapNoticeItemDto()
 							.withFcltNm(CHKN_FCLT_NM)
 							.withFcltCd(rslt.getUnitCd())
 							.withBoothCnt(rslt.getOprBoothCnt())
 							.withReqCnt(rslt.getReqCnt())
-							.withCgnClearMin(rslt.getCgnClearMin())));
+							.withCgnClearMin(rslt.getCgnClearMin())
+							.withCgnWtngSec(rslt.getCgnWtngSec())));
 		}
 
 		for (SmltRsltRawDto rslt : dptgtMap.values()) {
+			Computed<Double> avgWtngSec = depWindow.avgWtngSecOf(rslt.getUnitCd());
+
 			candidateList.add(new NoticeCandidate(
-					CongestionStatus.ofWtngPsgCnt(rslt.getWtngPsgCnt()),
+					depGradeScale.gradeOf(avgWtngSec).getValue(),
+					avgWtngSec.getValue(),
 					rslt.getWtngPsgCnt(),
+					DPTGT_FCLT_NM + rslt.getUnitCd(),
 					new MapNoticeItemDto()
 							.withFcltNm(DPTGT_FCLT_NM)
 							.withFcltCd(rslt.getUnitCd())
 							// 출국장 조치 부스 수는 대기인원 환산값이다 — 정식 산식은 현업 확인 대상
-							.withBoothCnt(Math.max(1, rslt.getWtngPsgCnt() / BOOTH_PER_STEP))));
+							.withBoothCnt(Math.max(1, rslt.getWtngPsgCnt() / BOOTH_PER_STEP))
+							.withCgnWtngSec(avgWtngSec.getValue())));
 		}
 
-		candidateList.sort(Comparator.comparingInt(NoticeCandidate::getWtngPsgCnt).reversed());
+		candidateList.sort(CgnOrder.byWaitDesc(NoticeCandidate::getCgnWtngSec, NoticeCandidate::getWtngPsgCnt, NoticeCandidate::getKey));
 
 		List<MapNoticeItemDto> itemList = candidateList.stream()
-				.filter(candidate -> candidate.getCgnStatus() != CongestionStatus.FREE
-						&& candidate.getCgnStatus() != CongestionStatus.NORMAL)
+				.filter(candidate -> candidate.getCgnStatus() == CongestionStatus.BUSY
+						|| candidate.getCgnStatus() == CongestionStatus.VERY_BUSY)
 				.limit(NOTICE_ITEM_LIMIT)
 				.map(NoticeCandidate::getItem)
 				.collect(Collectors.toList());
 
 		MapNoticeDto result = new MapNoticeDto();
-		result.setCgnStatus(candidateList.isEmpty()
-				? CongestionStatus.FREE
-				: candidateList.get(0).getCgnStatus());
+		result.setCgnStatus(CgnOrder.worstOf(candidateList.stream().map(NoticeCandidate::getCgnStatus).collect(Collectors.toList())));
 		result.setItemList(itemList);
 
 		return result;
@@ -392,12 +424,16 @@ public class CastMapServiceImpl implements CastMapService {
 
 	private static final class NoticeCandidate {
 		private final CongestionStatus cgnStatus;
+		private final Double cgnWtngSec;
 		private final int wtngPsgCnt;
+		private final String key;
 		private final MapNoticeItemDto item;
 
-		private NoticeCandidate(CongestionStatus cgnStatus, int wtngPsgCnt, MapNoticeItemDto item) {
+		private NoticeCandidate(CongestionStatus cgnStatus, Double cgnWtngSec, int wtngPsgCnt, String key, MapNoticeItemDto item) {
 			this.cgnStatus = cgnStatus;
+			this.cgnWtngSec = cgnWtngSec;
 			this.wtngPsgCnt = wtngPsgCnt;
+			this.key = key;
 			this.item = item;
 		}
 
@@ -405,12 +441,37 @@ public class CastMapServiceImpl implements CastMapService {
 			return cgnStatus;
 		}
 
+		private Double getCgnWtngSec() {
+			return cgnWtngSec;
+		}
+
 		private int getWtngPsgCnt() {
 			return wtngPsgCnt;
 		}
 
+		private String getKey() {
+			return key;
+		}
+
 		private MapNoticeItemDto getItem() {
 			return item;
+		}
+	}
+
+	/** 출국장 혼잡등급 원천 — 슬롯마다 평가시각을 바꿔 하루치 SC / SR 결과에서 읽는다 */
+	private static final class DepGrade {
+		private final DepQueueDay depDay;
+		private final CgnGradeScale gradeScale;
+		private final LocalDateTime dayStart;
+
+		private DepGrade(DepQueueDay depDay, CgnGradeScale gradeScale, LocalDateTime dayStart) {
+			this.depDay = depDay;
+			this.gradeScale = gradeScale;
+			this.dayStart = dayStart;
+		}
+
+		private DepQueueWindow windowAt(int evalMinute) {
+			return depDay.windowAt(dayStart.plusMinutes(evalMinute));
 		}
 	}
 

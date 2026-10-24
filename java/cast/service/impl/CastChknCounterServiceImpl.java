@@ -3,7 +3,6 @@ package aoms.pm.cast.service.impl;
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -12,10 +11,12 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import aoms.pm.cast.domains.CgnOrder;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknQueueKpi;
 import aoms.pm.cast.domains.chkn.ChknQueueRecommend;
 import aoms.pm.cast.domains.chkn.ChknQueueSlot;
+import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.dto.ChknCounterDto;
 import aoms.pm.cast.dto.ChknCounterIslandDto;
 import aoms.pm.cast.dto.ChknCounterRsrcDto;
@@ -274,9 +275,11 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		return result;
 	}
 
+	// 지표는 슬롯 [hhmm, hhmm+30), 혼잡등급 / 추천은 평가시각 hhmm 의 직전 30분 — 맵형태보기와 같은 규칙이다
 	private MapChknRsltDto toChknRslt(String islandCd, ChknQueueDay queueDay, int bgnMinute) {
 		ChknQueueSlot queueSlot = queueDay.slotOf(islandCd, bgnMinute, SLOT_MIN);
-		ChknQueueRecommend recommend = queueDay.recommendOf(islandCd, bgnMinute, SLOT_MIN);
+		ChknQueueRecommend recommend = queueDay.recommendOf(islandCd, bgnMinute);
+		Computed<Double> avgWtngSec = queueDay.avgWtngSecOf(islandCd, bgnMinute);
 
 		MapCgnStatDto stat = new MapCgnStatDto();
 		stat.setWtngPsgCnt(queueSlot.getCurrentQueue());
@@ -286,7 +289,8 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 
 		MapChknRsltDto result = new MapChknRsltDto();
 		result.setUnitCd(islandCd);
-		result.setCgnStatus(queueDay.statusOf(queueSlot.getCurrentQueue(), "island=" + islandCd));
+		result.setCgnWtngSec(avgWtngSec.getValue());
+		result.setCgnStatus(queueDay.gradeOf(islandCd, bgnMinute).getValue());
 		result.setStat(stat);
 		result.setPrcsRate(queueSlot.getPrcsRate());
 		result.setAvgQueuePsgCnt(queueSlot.getAvgQueue());
@@ -305,17 +309,17 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 
 	/* ================= 혼잡 알림 ================= */
 
-	// 알림은 혼잡(BUSY) 이상인 아일랜드만, Queue 가 긴 순으로 보여준다
+	// 알림은 혼잡(BUSY) 이상인 아일랜드만, 평균 대기시간이 긴 순으로 보여준다
 	private MapNoticeDto getNotice(List<MapChknRsltDto> chknRsltList) {
 		List<MapChknRsltDto> sortedList = chknRsltList.stream()
-				.sorted(Comparator.comparingInt((MapChknRsltDto target) -> target.getStat().getWtngPsgCnt()).reversed())
+				.sorted(CgnOrder.byWaitDesc(MapChknRsltDto::getCgnWtngSec, target -> target.getStat().getWtngPsgCnt(), MapChknRsltDto::getUnitCd))
 				.collect(toList());
 		List<MapNoticeItemDto> itemList = new ArrayList<>();
 
 		for (MapChknRsltDto rslt : sortedList) {
 			CongestionStatus cgnStatus = rslt.getCgnStatus();
 
-			if (cgnStatus == CongestionStatus.FREE || cgnStatus == CongestionStatus.NORMAL) {
+			if (cgnStatus != CongestionStatus.BUSY && cgnStatus != CongestionStatus.VERY_BUSY) {
 				continue;
 			}
 
@@ -328,12 +332,13 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 					.withFcltCd(rslt.getUnitCd())
 					.withBoothCnt(rslt.getOprBoothCnt())
 					.withReqCnt(rslt.getReqCnt())
-					.withCgnClearMin(rslt.getCgnClearMin()));
+					.withCgnClearMin(rslt.getCgnClearMin())
+					.withCgnWtngSec(rslt.getCgnWtngSec()));
 		}
 
 		MapNoticeDto result = new MapNoticeDto();
-		// 알림 단계는 Queue 가 가장 긴 아일랜드를 따른다 (맵형태보기 / 출국장과 같은 기준)
-		result.setCgnStatus(sortedList.isEmpty() ? CongestionStatus.FREE : sortedList.get(0).getCgnStatus());
+		// 알림 단계는 산정 가능한 아일랜드 중 가장 혼잡한 곳을 따른다 (맵형태보기 / 출국장과 같은 기준)
+		result.setCgnStatus(CgnOrder.worstOf(chknRsltList.stream().map(MapChknRsltDto::getCgnStatus).collect(toList())));
 		result.setItemList(itemList);
 
 		return result;

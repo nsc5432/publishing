@@ -6,6 +6,7 @@ import java.util.List;
 import aoms.pm.cast.domains.queue.FacilityQueueInput;
 import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.queue.QueueDataSource;
+import aoms.pm.cast.domains.queue.QueueWaitWindow;
 import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.TerminalKind;
 
@@ -50,6 +51,8 @@ public final class FcltQueueSource {
 	private final String totCntRsn;
 	private final boolean erlangCApplicable;
 	private final List<String> asmpList;
+	/** 혼잡등급 / 해소 / 추천이 함께 쓰는 직전 30분 처리 이력과 잔여 대기열 */
+	private final QueueWaitWindow waitWindow;
 
 	public FacilityQueueInput toArrivalInput() {
 		return FacilityQueueInput.builder()
