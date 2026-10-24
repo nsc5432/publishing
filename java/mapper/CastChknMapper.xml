@@ -34,7 +34,79 @@
         AND B.TMNL_ID = #{tmnlId}
         AND B.USE_YN = 'Y'
         AND B.UP_PSG_FCLT_CD = #{upPsgFcltCd}
+        <if test="smltMdlSn != null">
+        AND A.SMLT_MDL_SN = #{smltMdlSn}
+        </if>
         ORDER BY A.SMLT_ACTL_DT, B.PSG_FCLT_CD
+    </select>
+
+    <!-- 원천 분기·필터는 CastApiMapper.retrieveCounterAllocation(CA001 / 사용자 CA 발행)을 따른다. 기준일자는 STNG.EXCN_YMD -->
+    <select id="retrieveChknBoothOperList" resultType="aoms.pm.cast.dto.ChknBoothOperRawDto">
+        /* CastChknMapper.retrieveChknBoothOperList */
+        SELECT
+            SUBSTR(X.CKNCT_ID, 1, 1) AS ISLAND,
+            X.CKNCT_ID,
+            X.BGN_DT,
+            X.END_DT
+        FROM (
+        <choose>
+            <when test="cknctAlctnRsrcId == 'CA001'">
+            SELECT
+                Y.CKNCT_ID,
+                TO_DATE(Y.OPER_YMD || Y.STA_HM, 'YYYYMMDDHH24MI') AS BGN_DT,
+                TO_DATE(
+                    CASE
+                        WHEN TO_NUMBER(Y.STA_HM) &lt;= TO_NUMBER(Y.END_HM) THEN Y.OPER_YMD
+                        ELSE TO_CHAR(TO_DATE(Y.OPER_YMD, 'YYYYMMDD') + 1, 'YYYYMMDD')
+                    END || Y.END_HM,
+                    'YYYYMMDDHH24MI'
+                ) AS END_DT
+            FROM (
+                SELECT
+                    A.CKNCT_ID,
+                    A.OPER_YMD,
+                    NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM) AS STA_HM,
+                    NVL(A.EST_END_HM, A.LAST_END_HM) AS END_HM
+                FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
+                    INNER JOIN CAOWN.TN_CA_CKNCT CIC
+                    ON A.CKNCT_ID = CIC.CKNCT_ID
+                    AND A.TMNL_ID = CIC.TMNL_ID
+                WHERE A.USE_YN = 'Y'
+                AND CIC.USE_YN = 'Y'
+                AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
+                AND A.TMNL_ID = #{tmnlId}
+                AND A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{excnYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND #{excnYmd}
+                AND A.CKNCT_ID NOT LIKE 'X%'
+                AND A.CKNCT_ID NOT LIKE 'Y%'
+                AND A.CKNCT_ID NOT LIKE 'R%'
+                AND A.CKNCT_ID NOT LIKE 'S%'
+                AND EXISTS (
+                    SELECT 1
+                    FROM CAOWN.TN_CA_ALN_PGE B
+                    WHERE B.ALN_CD = A.ALN_CD
+                    AND B.PGE_NO = A.CHKN_PGE_NO
+                    AND B.TMNL_ID = A.TMNL_ID
+                    AND B.USE_YN = 'Y'
+                )
+            ) Y
+            WHERE Y.STA_HM IS NOT NULL
+            AND Y.END_HM IS NOT NULL
+            AND Y.STA_HM != Y.END_HM
+            </when>
+            <otherwise>
+            SELECT
+                A.CKNCT_ID,
+                TO_DATE(A.CHKN_OPEN_PRNMNT_DT, 'YYYYMMDDHH24MI') AS BGN_DT,
+                TO_DATE(A.CHKN_CLOSE_PRNMNT_DT, 'YYYYMMDDHH24MI') AS END_DT
+            FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
+            WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{cknctAlctnRsrcId}, 'CA', '')
+            AND A.TMNL_ID = #{tmnlId}
+            AND A.CHKN_OPEN_PRNMNT_DT IS NOT NULL
+            AND A.CHKN_CLOSE_PRNMNT_DT IS NOT NULL
+            </otherwise>
+        </choose>
+        ) X
+        ORDER BY ISLAND, X.CKNCT_ID, X.BGN_DT
     </select>
 
     <select id="retrieveChknList" resultType="aoms.pm.cast.dto.ChknRawDto">

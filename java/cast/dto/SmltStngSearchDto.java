@@ -7,6 +7,7 @@ import lombok.Setter;
 @Setter
 public class SmltStngSearchDto {
 	private String smltId;
+	private Integer smltMdlSn;
 	private String smltType;
 	private String excnYmd;
 }

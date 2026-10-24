@@ -124,6 +124,30 @@ public final class ChknQueueSeries {
 		return isInRange(minute) ? queue[minute - originMinute] : 0;
 	}
 
+	public int processedAt(int minute) {
+		return isInRange(minute) ? processed[minute - originMinute] : 0;
+	}
+
+	public int arrivalAt(int minute) {
+		return isInRange(minute) ? arrivals[minute - originMinute] : 0;
+	}
+
+	public int boothCntAt(int minute) {
+		return isInRange(minute) ? boothCnt[minute - originMinute] : 0;
+	}
+
+	public int capacityAt(int minute) {
+		return isInRange(minute) ? capacity[minute - originMinute] : 0;
+	}
+
+	public long waitMinSumAt(int minute) {
+		return isInRange(minute) ? waitMinSum[minute - originMinute] : 0;
+	}
+
+	public long prcsSecSumAt(int minute) {
+		return isInRange(minute) ? prcsSecSum[minute - originMinute] : 0;
+	}
+
 	public ChknQueueSlot slotOf(int bgnMinute, int minutes) {
 		int bgn = Math.max(bgnMinute, originMinute);
 		int end = Math.min(bgnMinute + minutes, MINUTE_PER_DAY);

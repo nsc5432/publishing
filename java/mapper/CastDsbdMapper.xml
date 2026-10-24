@@ -246,6 +246,9 @@
         AND B.TMNL_ID = #{tmnlId}
         AND B.USE_YN = 'Y'
         AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
+        <if test="smltMdlSn != null">
+        AND A.SMLT_MDL_SN = #{smltMdlSn}
+        </if>
         <choose>
             <when test="smltActlDt != null">
         AND A.SMLT_ACTL_DT = #{smltActlDt}

@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.domains.dsbd.DepQueueDay;
-import aoms.pm.cast.domains.dsbd.DepQueueWindow;
 import aoms.pm.cast.dto.FcltUnitRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.enums.TerminalKind;
@@ -31,6 +30,7 @@ import lombok.RequiredArgsConstructor;
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
  * 2026. 10. 17. / 노세찬 / 최초작성
+ * 2026. 10. 24. / 노세찬 / 실행 모델별 원천으로 하루치 조회
  * -----------------------------------------------------------------------------------
  *
  * </pre>
@@ -39,43 +39,25 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CastDepQueueServiceImpl implements CastDepQueueService {
-	private static final int OBS_MIN = 30; // 관측구간 길이(분)
-	private static final int MIN_PER_HOUR = 60;
 	private static final List<String> DEP_QUEUE_FCLT_CD_LIST = List.of("SC", "SR");
 
 	private final CastDsbdMapper castDsbdMapper;
 
 	@Override
-	public DepQueueWindow retrieveDepQueueWindow(SmltStngDto smltStng, TerminalKind tmnlId, String hhmm) {
-		LocalDateTime evalDt = dayStartOf(smltStng).plusMinutes(toMinutes(hhmm));
-		// 잔여 대기열의 도착 시각을 되짚을 만큼 앞을 더 읽는다. 결과 시각이 구간 끝이라 evalDt 행까지 포함한다
-		LocalDateTime bgnDt = evalDt.minusMinutes(Math.max(OBS_MIN, DepQueueDay.LOOKBACK_MIN) + (long) DepQueueDay.CAST_SLOT_MIN);
+	public DepQueueDay calculateDepQueueDay(SmltStngDto smltStng, TerminalKind tmnlId) {
+		LocalDateTime dayStart = LocalDate.parse(smltStng.getExcnYmd(), DateTimeFormatter.ofPattern("yyyyMMdd")).atStartOfDay();
 
-		return retrieveDepQueueDay(smltStng, tmnlId, bgnDt, evalDt.plusMinutes(DepQueueDay.CAST_SLOT_MIN)).windowAt(evalDt);
+		// 자정 직후의 직전 30분과 잔여 대기열 역추정은 전날 결과다. 결과 시각이 구간 끝이라 다음 날 00:00 행까지 읽는다
+		return new DepQueueDay(
+				tmnlId,
+				castDsbdMapper.retrieveRsltByUnitList(smltStng.getSmltId(), tmnlId.getFcltTmnlId(), dayStart.minusDays(1),
+						dayStart.plusDays(1).plusMinutes(DepQueueDay.CAST_SLOT_MIN), null, DEP_QUEUE_FCLT_CD_LIST, smltStng.getSmltMdlSn()),
+				retrieveScrtyOpenCntMap(smltStng, tmnlId));
 	}
 
 	@Override
-	public DepQueueDay retrieveDepQueueDay(SmltStngDto smltStng, TerminalKind tmnlId) {
-		LocalDateTime dayStart = dayStartOf(smltStng);
-
-		// 자정 직후의 직전 30분은 전날 결과다
-		return retrieveDepQueueDay(smltStng, tmnlId, dayStart.minusDays(1), dayStart.plusDays(1).plusMinutes(DepQueueDay.CAST_SLOT_MIN));
-	}
-
-	private DepQueueDay retrieveDepQueueDay(SmltStngDto smltStng, TerminalKind tmnlId, LocalDateTime bgnDt, LocalDateTime endDt) {
+	public Map<String, Integer> retrieveScrtyOpenCntMap(SmltStngDto smltStng, TerminalKind tmnlId) {
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
-
-		return new DepQueueDay(
-				tmnlId,
-				castDsbdMapper.retrieveRsltByUnitList(smltStng.getSmltId(), fcltTmnlId, bgnDt, endDt, null, DEP_QUEUE_FCLT_CD_LIST),
-				getScrtyOpenCntMap(smltStng, fcltTmnlId));
-	}
-
-	private LocalDateTime dayStartOf(SmltStngDto smltStng) {
-		return LocalDate.parse(smltStng.getExcnYmd(), DateTimeFormatter.ofPattern("yyyyMMdd")).atStartOfDay();
-	}
-
-	private Map<String, Integer> getScrtyOpenCntMap(SmltStngDto smltStng, String fcltTmnlId) {
 		String resourceId = smltStng.getFcltyOpngScrtyCntrlRsrcId();
 
 		if (resourceId == null || resourceId.isEmpty()) {
@@ -96,9 +78,5 @@ public class CastDepQueueServiceImpl implements CastDepQueueService {
 		}
 
 		return result;
-	}
-
-	private int toMinutes(String hhmm) {
-		return Integer.parseInt(hhmm.substring(0, 2)) * MIN_PER_HOUR + Integer.parseInt(hhmm.substring(2, 4));
 	}
 }

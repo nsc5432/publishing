@@ -20,7 +20,7 @@ import lombok.Getter;
  * </pre>
  */
 @Getter
-@AllArgsConstructor(access = AccessLevel.PACKAGE)
+@AllArgsConstructor(access = AccessLevel.PUBLIC)
 public final class ChknQueueSlot {
 	public static final ChknQueueSlot EMPTY = new ChknQueueSlot(0, 0, 0, 0, 0, 0, 0, 0);
 

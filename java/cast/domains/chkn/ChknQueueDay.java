@@ -42,32 +42,17 @@ public final class ChknQueueDay {
 	private final TerminalKind tmnlId;
 	private final LocalDate baseDate;
 	private final int originMinute;
-	private final boolean[] covered;
+	private final ChknQueueTrajectory trajectory;
 	private final Map<String, ChknQueueSeries> seriesMap;
 	private final ChknQueueSeries tmnlSeries;
 	private final CgnGradeScale gradeScale;
 
-	/**
-	 * @param originMinute 계산 시작 분 (0 이하)
-	 * @param covered      [originMinute, 1440) 분마다 터미널 CC 결과가 있는지 — 결과가 없는 분은 관측하지 않은 구간이다
-	 */
-	public ChknQueueDay(
-			TerminalKind tmnlId,
-			LocalDate baseDate,
-			int originMinute,
-			boolean[] covered,
-			Map<String, ChknQueueSeries> seriesMap,
-			CgnGradeScale gradeScale
-	) {
-		if (covered.length != ChknQueueSeries.MINUTE_PER_DAY - originMinute) {
-			throw new IllegalArgumentException("관측 구간 길이가 계산 구간과 다릅니다. originMinute=" + originMinute + ", length=" + covered.length);
-		}
-
-		this.tmnlId = tmnlId;
-		this.baseDate = baseDate;
-		this.originMinute = originMinute;
-		this.covered = covered.clone();
-		this.seriesMap = new LinkedHashMap<>(seriesMap);
+	public ChknQueueDay(ChknQueueTrajectory trajectory, CgnGradeScale gradeScale) {
+		this.tmnlId = trajectory.getTmnlId();
+		this.baseDate = trajectory.getBaseDate();
+		this.originMinute = trajectory.getOriginMinute();
+		this.trajectory = trajectory;
+		this.seriesMap = new LinkedHashMap<>(trajectory.getSeriesMap());
 		this.tmnlSeries = ChknQueueSeries.merge(TMNL_ISLAND, originMinute, new ArrayList<>(seriesMap.values()));
 		this.gradeScale = gradeScale;
 	}
@@ -192,7 +177,7 @@ public final class ChknQueueDay {
 		}
 
 		for (int minute = bgnMinute; minute < evalMinute; minute++) {
-			if (minute >= ChknQueueSeries.MINUTE_PER_DAY || !covered[minute - originMinute]) {
+			if (!trajectory.isCovered(minute)) {
 				return "직전 30분 중 시뮬레이션 결과가 없는 구간이 있습니다. minute=" + minute;
 			}
 		}

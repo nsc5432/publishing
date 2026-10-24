@@ -24,6 +24,11 @@ import aoms.pm.cast.dto.WaitPsgDto;
 public interface CastSmltService {
 	SmltStngDto retrieveSmltStngByKey(String smltId);
 
+	SmltStngDto retrieveSmltStngByModel(String smltId, int smltMdlSn);
+
+	/** 실행의 모델이 하나일 때만 그 설정을 돌려준다. 여럿이면 임의로 고르지 않고 실패한다 */
+	SmltStngDto retrieveUniqueSmltStng(String smltId);
+
 	List<WaitPsgDto> retrieveWaitPsgList(String smltId, String tmnlId, List<String> upPsgFcltCdList);
 
 	SmltKpiDto retrieveSmltKpi(String smltId, String tmnlId, List<String> upPsgFcltCdList);

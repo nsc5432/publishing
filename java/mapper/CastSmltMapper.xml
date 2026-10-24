@@ -16,6 +16,9 @@
         <if test="smltId != null and smltId != ''">
         AND SMLT_ID = #{smltId}
         </if>
+        <if test="smltMdlSn != null">
+        AND SMLT_MDL_SN = #{smltMdlSn}
+        </if>
         <if test="excnYmd != null and excnYmd != ''">
         AND EXCN_YMD = #{excnYmd}
         </if>

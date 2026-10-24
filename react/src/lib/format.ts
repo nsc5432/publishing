@@ -98,11 +98,20 @@ function nowHhmm(): string {
     return pad2(now.getHours()) + pad2(Math.floor(now.getMinutes() / MINUTE_STEP) * MINUTE_STEP);
 }
 
+/** HHmm 을 분 선택 간격 경계로 내린 값. 00~23시 HHmm 형식이 아니면 빈 값 */
+function floorHhmm(hhmm: string): string {
+    if (!/^\d{4}$/.test(hhmm) || Number(hhmm.slice(0, 2)) > 23 || Number(hhmm.slice(2, 4)) > 59) return '';
+
+    return hhmm.slice(0, 2) + pad2(Math.floor(Number(hhmm.slice(2, 4)) / MINUTE_STEP) * MINUTE_STEP);
+}
+
 export function defaultTime(avlTimes: string[]): string {
     const now = toMinuteOfDay(nowHhmm());
+    // 시설 카드 / 혼잡등급 API 는 10분 경계 시각만 받는다
+    const candidates = avlTimes.map(floorHhmm).filter((time) => time !== '');
 
-    if (avlTimes.length === 0) return nowHhmm();
+    if (candidates.length === 0) return nowHhmm();
 
     // 현재 시각에 가장 가까운 선택 가능 시각
-    return avlTimes.reduce((nearest, time) => (Math.abs(toMinuteOfDay(time) - now) < Math.abs(toMinuteOfDay(nearest) - now) ? time : nearest));
+    return candidates.reduce((nearest, time) => (Math.abs(toMinuteOfDay(time) - now) < Math.abs(toMinuteOfDay(nearest) - now) ? time : nearest));
 }

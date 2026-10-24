@@ -11,13 +11,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.domains.CgnGradeScale;
-import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.dsbd.DepQueueDay;
-import aoms.pm.cast.domains.dsbd.DepQueueWindow;
 import aoms.pm.cast.domains.dsbd.FcltQueueClearance;
 import aoms.pm.cast.domains.dsbd.FcltQueueSource;
 import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.queue.ErlangCResult;
+import aoms.pm.cast.domains.wtng.FcltWtngDay;
+import aoms.pm.cast.domains.wtng.FcltWtngSecs;
 import aoms.pm.cast.dto.FcltQueueClearDto;
 import aoms.pm.cast.dto.FcltQueueRecommendDto;
 import aoms.pm.cast.dto.FcltQueueScenarioDto;
@@ -29,10 +29,8 @@ import aoms.pm.cast.enums.FcltQueueScenarioMode;
 import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDsbdMapper;
-import aoms.pm.cast.service.CastCgnGradeService;
-import aoms.pm.cast.service.CastChknQueueService;
-import aoms.pm.cast.service.CastDepQueueService;
 import aoms.pm.cast.service.CastFcltQueueScenarioService;
+import aoms.pm.cast.service.CastFcltWtngService;
 import aoms.pm.cast.service.CastSmltService;
 
 import lombok.RequiredArgsConstructor;
@@ -76,7 +74,8 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 			"M/M/s 적용 가정(정상상태 참고지표 전용): 포아송 도착 / 지수 처리시간 / 동일 처리율의 병렬 시설 / 공용 대기열 선착순 / 무한 대기공간 / 이탈 없음 (통계 검증 아님)");
 
 	private static final List<String> CHKN_ASMP_LIST = List.of(
-			"아일랜드 유인 카운터(CC) 공용 Queue — 부스별 결과를 재구성한 값. 처리 이력과 잔여 대기열 도착 시각도 같은 재구성에서 나온다",
+			"아일랜드 유인 카운터(CC) 공용 Queue — 부스별 결과를 1분 단위로 재구성해 10분 통계로 묶은 값",
+			"처리 이력과 잔여 대기열 도착 시각은 10분 통계를 분 단위로 균등 분배한 근사다 (잔여 대기열은 계산 시작점까지 되짚는다). 1분 재구성 값과 다를 수 있다",
 			"운영 부스 수는 관측구간 마지막 분의 배정 부스, 처리율은 같은 구간의 부스/분당 처리용량 평균",
 			"배정 가능 최대 수량은 시설 마스터의 아일랜드 CC 수");
 
@@ -90,9 +89,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 	private final CastDsbdMapper castDsbdMapper;
 	private final CastSmltService castSmltService;
-	private final CastChknQueueService castChknQueueService;
-	private final CastDepQueueService castDepQueueService;
-	private final CastCgnGradeService castCgnGradeService;
+	private final CastFcltWtngService castFcltWtngService;
 
 	@Override
 	public FcltQueueScenarioDto retrieveFcltQueueScenario(FcltQueueScenarioSearchDto searchDto) {
@@ -102,25 +99,28 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 			return fail(invalid);
 		}
 
-		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(searchDto.getSmltId());
-
 		String unitCd = searchDto.getUnitCd();
 		String context = context(searchDto, unitCd);
+		FcltWtngDay wtngDay;
+
+		// 모델 선택 실패 / 혼잡등급 기준정보 오류 / 보완 불가는 팝업 오류로 알린다. DB 장애는 그대로 올린다
+		try {
+			SmltStngDto smltStng = castSmltService.retrieveUniqueSmltStng(searchDto.getSmltId());
+			wtngDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, searchDto.getTmnlId(), searchDto.getFcltType());
+		} catch (IllegalStateException exception) {
+			return fail(exception.getMessage());
+		}
+
+		LocalDateTime evalDt = wtngDay.dtOf(toMinutes(searchDto.getHhmm()));
 		FcltQueueSource source = searchDto.getFcltType() == FcltType.CHKN
-				? getChknSource(smltStng, searchDto.getTmnlId(), searchDto.getHhmm(), unitCd)
-				: getDepSource(smltStng, searchDto.getTmnlId(), searchDto.getHhmm(), unitCd);
+				? getChknSource(wtngDay, searchDto.getTmnlId(), evalDt, unitCd)
+				: getDepSource(wtngDay, searchDto.getTmnlId(), evalDt, unitCd);
 
 		if (source == null) {
 			return fail("선택한 시설의 시뮬레이션 결과를 찾을 수 없습니다. " + context);
 		}
 
-		CgnGradeScale gradeScale;
-
-		try {
-			gradeScale = castCgnGradeService.retrieveGradeScale(searchDto.getFcltType(), context);
-		} catch (IllegalStateException exception) {
-			return fail(exception.getMessage());
-		}
+		CgnGradeScale gradeScale = wtngDay.getGradeScale();
 
 		FcltQueueClearance clearance = new FcltQueueClearance(source, gradeScale.getNormalUpperExclusiveSec());
 		boolean isCount = searchDto.getMode() == FcltQueueScenarioMode.COUNT;
@@ -148,6 +148,14 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 	}
 
 	private String validate(FcltQueueScenarioSearchDto searchDto) {
+		if (searchDto.getFcltType() != FcltType.CHKN && searchDto.getFcltType() != FcltType.DEP) {
+			return "혼잡해소 시나리오는 체크인카운터 / 출국장만 조회할 수 있습니다.";
+		}
+
+		if (!FcltWtngSecs.isSecHhmm(searchDto.getHhmm())) {
+			return "조회 시각은 10분 단위 HHmm(00~23시)이어야 합니다. hhmm=" + searchDto.getHhmm();
+		}
+
 		BigDecimal count = searchDto.getOprFcltCnt();
 
 		if (searchDto.getMode() == FcltQueueScenarioMode.COUNT && count != null
@@ -179,9 +187,8 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return count > totCnt ? "배정 가능한 최대 수량(" + totCnt + "개)을 넘었습니다." : null;
 	}
 
-	private FcltQueueSource getChknSource(SmltStngDto smltStng, TerminalKind tmnlId, String hhmm, String unitCd) {
-		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltStng.getSmltId(), tmnlId, smltStng.getExcnYmd());
-		FcltQueueSource source = queueDay.sourceOf(unitCd, toMinutes(hhmm));
+	private FcltQueueSource getChknSource(FcltWtngDay wtngDay, TerminalKind tmnlId, LocalDateTime evalDt, String unitCd) {
+		FcltQueueSource source = wtngDay.sourceOf(unitCd, evalDt);
 
 		if (source == null) {
 			return null;
@@ -196,15 +203,14 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 				.build();
 	}
 
-	private FcltQueueSource getDepSource(SmltStngDto smltStng, TerminalKind tmnlId, String hhmm, String unitCd) {
-		DepQueueWindow window = castDepQueueService.retrieveDepQueueWindow(smltStng, tmnlId, hhmm);
+	private FcltQueueSource getDepSource(FcltWtngDay wtngDay, TerminalKind tmnlId, LocalDateTime evalDt, String unitCd) {
 		Integer masterCnt = getMasterCnt(tmnlId, unitCd, DEP_MAX_FCLT_CD_LIST);
 
-		if (!window.hasResult(unitCd) && masterCnt == null) {
+		if (!wtngDay.hasResult(unitCd, evalDt) && masterCnt == null) {
 			return null;
 		}
 
-		FcltQueueSource source = window.sourceOf(unitCd);
+		FcltQueueSource source = wtngDay.sourceOf(unitCd, evalDt);
 		MaxCount maxCount = toMaxCount(source.getOprCnt(), masterCnt, "보안검색대(SC)");
 
 		return source.toBuilder()

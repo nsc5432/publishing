@@ -1,6 +1,7 @@
 package aoms.pm.cast.domains.dsbd;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,25 @@ public final class DepQueueDay {
 
 	public DepQueueWindow windowAt(LocalDateTime evalDt) {
 		return new DepQueueWindow(this, evalDt);
+	}
+
+	/** 결과가 한 행이라도 있는 출국장 */
+	public List<String> unitCdList() {
+		return new ArrayList<>(slotMapByUnit.keySet());
+	}
+
+	/** 실행 리소스 운영표에 있는 출국장 */
+	public List<String> oprUnitCdList() {
+		return new ArrayList<>(oprCntMap.keySet());
+	}
+
+	/** 터미널 첫 결과 시각. 결과가 없으면 null */
+	public LocalDateTime firstResultDt() {
+		return resultDtSet.isEmpty() ? null : resultDtSet.first();
+	}
+
+	NavigableSet<LocalDateTime> getResultDtSet() {
+		return resultDtSet;
 	}
 
 	TerminalKind getTmnlId() {

@@ -74,7 +74,8 @@ public interface CastDsbdMapper {
 			@Param("bgnDt") LocalDateTime bgnDt,
 			@Param("endDt") LocalDateTime endDt,
 			@Param("smltActlDt") LocalDateTime smltActlDt,
-			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
+			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList,
+			@Param("smltMdlSn") Integer smltMdlSn
 	);
 
 	List<PsgPrcsGradeRawDto> retrievePsgPrcsGradeList(@Param("fcltGroupCd") String fcltGroupCd);

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -19,16 +20,16 @@ import aoms.pm.cast.domains.chkn.ChknQueueCalculator;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknQueueInterval;
 import aoms.pm.cast.domains.chkn.ChknQueueSeries;
+import aoms.pm.cast.domains.chkn.ChknQueueTrajectory;
 import aoms.pm.cast.domains.chkn.ChknSbdDay;
+import aoms.pm.cast.dto.ChknBoothOperRawDto;
 import aoms.pm.cast.dto.ChknQueueRawDto;
-import aoms.pm.cast.dto.TimeRange;
-import aoms.pm.cast.dto.UserConfigChknDto;
+import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastChknMapper;
 import aoms.pm.cast.service.CastCgnGradeService;
 import aoms.pm.cast.service.CastChknQueueService;
-import aoms.pm.cast.service.CastChknService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -55,44 +56,52 @@ import lombok.extern.slf4j.Slf4j;
 public class CastChknQueueServiceImpl implements CastChknQueueService {
 	private static final String YMD_FORMAT = "yyyyMMdd";
 	private static final int MINUTE_PER_DAY = ChknQueueSeries.MINUTE_PER_DAY;
-	private static final int MINUTE_PER_HOUR = 60;
 	private static final int DEFAULT_INTRVL_MIN = 10;
 
 	private final CastChknMapper castChknMapper;
-	private final CastChknService castChknService;
 	private final CastCgnGradeService castCgnGradeService;
 
 	@Override
-	public ChknQueueDay retrieveChknQueueDay(String smltId, TerminalKind tmnlId, String excnYmd) {
-		String fcltTmnlId = tmnlId.getFcltTmnlId();
-		String context = "smltId=" + smltId + ", tmnlId=" + tmnlId.getValue();
-        LocalDate baseDate = LocalDate.parse(excnYmd, DateTimeFormatter.ofPattern(YMD_FORMAT));
+	public ChknQueueDay retrieveChknQueueDay(SmltStngDto smltStng, TerminalKind tmnlId) {
+		String context = "smltId=" + smltStng.getSmltId() + ", tmnlId=" + tmnlId.getValue();
 
-		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(smltId, fcltTmnlId, "CC");
-		Map<String, List<UserConfigChknDto>> boothListByIsland = castChknService.retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
+		return new ChknQueueDay(calculate(smltStng, tmnlId, null), castCgnGradeService.retrieveGradeScale(FcltType.CHKN, context));
+	}
+
+	@Override
+	public ChknQueueTrajectory calculateChknQueue(SmltStngDto smltStng, TerminalKind tmnlId) {
+		return calculate(smltStng, tmnlId, smltStng.getSmltMdlSn());
+	}
+
+	private ChknQueueTrajectory calculate(SmltStngDto smltStng, TerminalKind tmnlId, Integer smltMdlSn) {
+		String fcltTmnlId = tmnlId.getFcltTmnlId();
+		String context = "smltId=" + smltStng.getSmltId() + ", smltMdlSn=" + smltMdlSn + ", tmnlId=" + tmnlId.getValue();
+		LocalDate baseDate = LocalDate.parse(smltStng.getExcnYmd(), DateTimeFormatter.ofPattern(YMD_FORMAT));
+
+		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(smltStng.getSmltId(), fcltTmnlId, "CC", smltMdlSn);
+		Map<String, int[]> assignedBoothCntByIsland = retrieveAssignedBoothCnt(smltStng, fcltTmnlId, baseDate);
 		Map<String, Map<Integer, List<ChknQueueRawDto>>> rawListByIslandAndMinute = groupByIslandAndMinute(rawList, baseDate);
 		BigDecimal tmnlAvgPrcsSec = weightedPrcsSec(rawList);
 		TreeSet<Integer> resultMinuteSet = toResultMinuteSet(rawListByIslandAndMinute);
 		int originMinute = resultMinuteSet.isEmpty() ? 0 : Math.max(Math.min(resultMinuteSet.first(), 0), -MINUTE_PER_DAY);
 		Map<String, ChknQueueSeries> seriesByIsland = new LinkedHashMap<>();
 
-		for (String island : boothListByIsland.keySet()) {
+		for (String island : CHKN_ISLAND_CD_LIST) {
 			seriesByIsland.put(island, ChknQueueCalculator.calculate(
                 island,
                 toIntervalList(rawListByIslandAndMinute.getOrDefault(island, Map.of())),
-                toAssignedBoothCnt(boothListByIsland.get(island)),
+                assignedBoothCntByIsland.get(island),
                 tmnlAvgPrcsSec,
                 originMinute
             ));
 		}
 
-		ChknQueueDay result = new ChknQueueDay(
+		ChknQueueTrajectory result = new ChknQueueTrajectory(
                 tmnlId,
                 baseDate,
                 originMinute,
                 toCovered(resultMinuteSet, originMinute),
-                seriesByIsland,
-                castCgnGradeService.retrieveGradeScale(FcltType.CHKN, context)
+                seriesByIsland
         );
 
 		for (String warning : result.warningList()) {
@@ -104,7 +113,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 
 	@Override
 	public ChknSbdDay retrieveChknSbdDay(String smltId, TerminalKind tmnlId, String excnYmd) {
-		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(smltId, tmnlId.getFcltTmnlId(), "SBD");
+		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(smltId, tmnlId.getFcltTmnlId(), "SBD", null);
 		LocalDate baseDate = LocalDate.parse(excnYmd, DateTimeFormatter.ofPattern(YMD_FORMAT));
 
 		Map<String, Map<Integer, List<ChknQueueRawDto>>> rawListByIslandAndMinute = groupByIslandAndMinute(rawList, baseDate);
@@ -310,24 +319,57 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		return null;
 	}
 
-	private int[] toAssignedBoothCnt(List<UserConfigChknDto> boothList) {
-		int[] result = new int[MINUTE_PER_DAY];
+	/*
+	 * 배정 부스 수는 실행 STNG 의 CA 리소스(CA001 운영자료 / 사용자 CA)에서 분 단위로 센다.
+	 * 같은 부스의 겹치는 운영 구간은 한 대로 센다.
+	 */
+	private Map<String, int[]> retrieveAssignedBoothCnt(SmltStngDto smltStng, String fcltTmnlId, LocalDate baseDate) {
+		String resourceId = smltStng.getCknctAlctnRsrcId();
 
-		if (boothList == null) {
-			return result;
+		if (resourceId == null || resourceId.isEmpty()) {
+			throw new IllegalStateException("실행 리소스 정보를 찾을 수 없습니다. smltId=" + smltStng.getSmltId() + ", column=CKNCT_ALCTN_RSRC_ID");
 		}
 
-		for (UserConfigChknDto booth : boothList) {
-			for (TimeRange range : booth.getTimeRanges()) {
-				int bgn = Math.max(range.getStart() * MINUTE_PER_HOUR, 0);
-				int end = Math.min(range.getEnd() * MINUTE_PER_HOUR, MINUTE_PER_DAY);
+		Map<String, Map<String, boolean[]>> boothMinuteByIsland = new LinkedHashMap<>();
 
-				for (int minute = bgn; minute < end; minute++) {
-					result[minute]++;
-				}
+		for (ChknBoothOperRawDto raw : castChknMapper.retrieveChknBoothOperList(smltStng.getExcnYmd(), fcltTmnlId, resourceId)) {
+			String island = raw.getIsland() != null ? raw.getIsland().trim() : "";
+
+			if (island.isEmpty() || raw.getCknctId() == null || raw.getBgnDt() == null || raw.getEndDt() == null) {
+				continue;
+			}
+
+			int bgn = Math.max(minuteOf(baseDate, raw.getBgnDt()), 0);
+			int end = Math.min(minuteOf(baseDate, raw.getEndDt()), MINUTE_PER_DAY);
+			boolean[] boothMinute = boothMinuteByIsland
+					.computeIfAbsent(island, ignored -> new LinkedHashMap<>())
+					.computeIfAbsent(raw.getCknctId(), ignored -> new boolean[MINUTE_PER_DAY]);
+
+			for (int minute = bgn; minute < end; minute++) {
+				boothMinute[minute] = true;
 			}
 		}
 
+		Map<String, int[]> result = new LinkedHashMap<>();
+
+		for (String island : CHKN_ISLAND_CD_LIST) {
+			int[] boothCnt = new int[MINUTE_PER_DAY];
+
+			for (boolean[] boothMinute : boothMinuteByIsland.getOrDefault(island, Map.of()).values()) {
+				for (int minute = 0; minute < MINUTE_PER_DAY; minute++) {
+					boothCnt[minute] += boothMinute[minute] ? 1 : 0;
+				}
+			}
+
+			result.put(island, boothCnt);
+		}
+
 		return result;
+	}
+
+	private int minuteOf(LocalDate baseDate, LocalDateTime dateTime) {
+		long minute = Duration.between(baseDate.atStartOfDay(), dateTime).toMinutes();
+
+		return (int) Math.max(Math.min(minute, MINUTE_PER_DAY), -MINUTE_PER_DAY);
 	}
 }

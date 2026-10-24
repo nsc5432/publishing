@@ -34,6 +34,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.w3c.dom.Document;
@@ -50,6 +52,7 @@ import aoms.framework.cmmn.util.FileUtil;
 import aoms.pm.cast.dto.UserSmltReqDto;
 import aoms.pm.cast.enums.UserSmltReqStatus;
 import aoms.pm.cast.mapper.CastExecutionMapper;
+import aoms.pm.cast.service.CastFcltWtngRsltCreateService;
 import aoms.pm.cast.service.impl.CastExecutionService;
 
 import aoms.pm.castapi.log.CastApiContext;
@@ -359,6 +362,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
     private final CastExecutionMapper executionMapper;
     private final CastExecutionService executionService;
     private final SessionService sessionService;
+    private final CastFcltWtngRsltCreateService castFcltWtngRsltCreateService;
 
     private static class FsFieldInfo {
         private final String pKind;
@@ -2538,6 +2542,8 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
                     context.addFailure("시뮬레이션 결과가 저장되지 않았습니다.");
                     return buildReturnXml(false);
                 }
+
+                registerFcltWtngCreation(simRslt.getSimId(), simRslt.getSmltMdlSn(), context);
             }
 
             return buildReturnXml(true);
@@ -2593,6 +2599,28 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         }
         return 1;
     }
+    /*
+     * 파생 시설 대기 결과는 원천이 커밋된 뒤 별도 bean 의 새 트랜잭션에서 만든다.
+     * 그 실패는 원천 저장 성공 응답을 뒤집지 않고 수신 로그(errorMsg)에만 남긴다.
+     */
+    private void registerFcltWtngCreation(String smltId, String smltMdlSn, CastApiContext context) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            context.addFailure("트랜잭션 동기화가 없어 시설 대기 결과 최초 저장을 연결하지 못했습니다. 조회는 Java 계산으로 보완합니다. smltId=" + smltId);
+            return;
+        }
+
+        int modelSn = Integer.parseInt(smltMdlSn);
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                for (String reason : castFcltWtngRsltCreateService.createInitialResult(smltId, modelSn)) {
+                    context.addFailure("시설 대기 결과 최초 저장 실패 (원천 저장은 성공): " + reason);
+                }
+            }
+        });
+    }
+
     private void validateUserResult(CastResReqDto dto, UserSmltReqDto request) {
         requireResource(request.getMdlRsrcId(), dto.getModelResourceID());
         requireResource(request.getFltSchdlRsrcId(), dto.getFlightScheduleResourceID());

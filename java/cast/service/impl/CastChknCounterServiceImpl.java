@@ -2,6 +2,7 @@ package aoms.pm.cast.service.impl;
 
 import static java.util.stream.Collectors.toList;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -17,6 +18,7 @@ import aoms.pm.cast.domains.chkn.ChknQueueKpi;
 import aoms.pm.cast.domains.chkn.ChknQueueRecommend;
 import aoms.pm.cast.domains.chkn.ChknQueueSlot;
 import aoms.pm.cast.domains.queue.Computed;
+import aoms.pm.cast.domains.wtng.FcltWtngDay;
 import aoms.pm.cast.dto.ChknCounterDto;
 import aoms.pm.cast.dto.ChknCounterIslandDto;
 import aoms.pm.cast.dto.ChknCounterRsrcDto;
@@ -34,12 +36,14 @@ import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.TimeRange;
 import aoms.pm.cast.dto.UserConfigChknDto;
 import aoms.pm.cast.enums.CongestionStatus;
+import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.SlfType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastChknMapper;
 import aoms.pm.cast.service.CastChknCounterService;
 import aoms.pm.cast.service.CastChknQueueService;
 import aoms.pm.cast.service.CastChknService;
+import aoms.pm.cast.service.CastFcltWtngService;
 import aoms.pm.cast.service.CastSlfchknService;
 import aoms.pm.cast.service.CastSmltService;
 import aoms.pm.utils.SmltUtils;
@@ -87,18 +91,20 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 	private final CastSmltService castSmltService;
 	private final CastSlfchknService castSlfchknService;
 	private final CastChknService castChknService;
+	private final CastFcltWtngService castFcltWtngService;
 
 	@Override
 	public ChknCounterDto retrieveChknCounter(ChknCounterSearchDto searchDto) {
 		ChknCounterDto result = new ChknCounterDto();
 		TerminalKind tmnlId = searchDto.getTmnlId();
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
-		SmltStngDto smltStng = castSmltService.retrieveSmltStngByKey(searchDto.getSmltId());
+		SmltStngDto smltStng = castSmltService.retrieveUniqueSmltStng(searchDto.getSmltId());
 
 		List<CknctCntRawDto> cknctCntList = castChknMapper.retrieveCknctCntList(fcltTmnlId, BOOTH_USE_CRG_TYPE_CD_LIST);
 		List<ChknCounterIslandDto> islandList = getIslandList(fcltTmnlId, smltStng, cknctCntList);
-		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(
-				searchDto.getSmltId(), tmnlId, smltStng.getExcnYmd());
+		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltStng, tmnlId);
+		// 혼잡등급 / 추천은 요약보기 카드 · 맵형태보기와 같은 10분 대기 결과로 평가한다
+		FcltWtngDay wtngDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.CHKN);
 
 		int totCnt = cknctCntList.stream().mapToInt(CknctCntRawDto::getCknctCnt).sum();
 		List<ChknCounterRsrcDto> rsrcList = getRsrcList(islandList, queueDay, totCnt);
@@ -116,7 +122,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		result.setWaitMaxCnt(queueKpi.getMaxQueuePsgCnt());
 		result.setIslandList(islandList);
 		result.setRsrcList(rsrcList);
-		result.setSlotList(getSlotList(islandList, queueDay));
+		result.setSlotList(getSlotList(islandList, queueDay, wtngDay));
 		result.setKpi(getKpi(queueKpi));
 
 		return result;
@@ -247,11 +253,11 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 
 	/* ================= 슬롯 ================= */
 
-	private List<ChknCounterSlotDto> getSlotList(List<ChknCounterIslandDto> islandList, ChknQueueDay queueDay) {
+	private List<ChknCounterSlotDto> getSlotList(List<ChknCounterIslandDto> islandList, ChknQueueDay queueDay, FcltWtngDay wtngDay) {
 		List<ChknCounterSlotDto> result = new ArrayList<>();
 
 		for (String hhmm : TimeBucketUtils.slotTimeList(SLOT_BGN_HOUR)) {
-			List<MapChknRsltDto> chknRsltList = getChknRsltList(islandList, queueDay, toMinute(hhmm));
+			List<MapChknRsltDto> chknRsltList = getChknRsltList(islandList, queueDay, wtngDay, toMinute(hhmm));
 
 			ChknCounterSlotDto slot = new ChknCounterSlotDto();
 			slot.setHhmm(hhmm);
@@ -265,21 +271,22 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 	}
 
 	private List<MapChknRsltDto> getChknRsltList(
-			List<ChknCounterIslandDto> islandList, ChknQueueDay queueDay, int bgnMinute) {
+			List<ChknCounterIslandDto> islandList, ChknQueueDay queueDay, FcltWtngDay wtngDay, int bgnMinute) {
 		List<MapChknRsltDto> result = new ArrayList<>();
 
 		for (ChknCounterIslandDto island : islandList) {
-			result.add(toChknRslt(island.getIsland(), queueDay, bgnMinute));
+			result.add(toChknRslt(island.getIsland(), queueDay, wtngDay, bgnMinute));
 		}
 
 		return result;
 	}
 
 	// 지표는 슬롯 [hhmm, hhmm+30), 혼잡등급 / 추천은 평가시각 hhmm 의 직전 30분 — 맵형태보기와 같은 규칙이다
-	private MapChknRsltDto toChknRslt(String islandCd, ChknQueueDay queueDay, int bgnMinute) {
+	private MapChknRsltDto toChknRslt(String islandCd, ChknQueueDay queueDay, FcltWtngDay wtngDay, int bgnMinute) {
 		ChknQueueSlot queueSlot = queueDay.slotOf(islandCd, bgnMinute, SLOT_MIN);
-		ChknQueueRecommend recommend = queueDay.recommendOf(islandCd, bgnMinute);
-		Computed<Double> avgWtngSec = queueDay.avgWtngSecOf(islandCd, bgnMinute);
+		LocalDateTime evalDt = wtngDay.dtOf(bgnMinute);
+		ChknQueueRecommend recommend = wtngDay.recommendOf(islandCd, evalDt);
+		Computed<Double> avgWtngSec = wtngDay.avgWtngSecOf(islandCd, evalDt);
 
 		MapCgnStatDto stat = new MapCgnStatDto();
 		stat.setWtngPsgCnt(queueSlot.getCurrentQueue());
@@ -290,7 +297,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		MapChknRsltDto result = new MapChknRsltDto();
 		result.setUnitCd(islandCd);
 		result.setCgnWtngSec(avgWtngSec.getValue());
-		result.setCgnStatus(queueDay.gradeOf(islandCd, bgnMinute).getValue());
+		result.setCgnStatus(wtngDay.gradeOf(islandCd, evalDt).getValue());
 		result.setStat(stat);
 		result.setPrcsRate(queueSlot.getPrcsRate());
 		result.setAvgQueuePsgCnt(queueSlot.getAvgQueue());

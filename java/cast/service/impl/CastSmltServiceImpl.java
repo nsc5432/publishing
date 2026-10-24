@@ -51,6 +51,35 @@ public class CastSmltServiceImpl implements CastSmltService {
 	}
 
 	@Override
+	public SmltStngDto retrieveSmltStngByModel(String smltId, int smltMdlSn) {
+		SmltStngSearchDto stngSearchDto = new SmltStngSearchDto();
+		stngSearchDto.setSmltId(smltId);
+		stngSearchDto.setSmltMdlSn(smltMdlSn);
+
+		return requireSingle(castSmltMapper.retrieveSmltStng(stngSearchDto), "smltId=" + smltId + ", smltMdlSn=" + smltMdlSn);
+	}
+
+	@Override
+	public SmltStngDto retrieveUniqueSmltStng(String smltId) {
+		SmltStngSearchDto stngSearchDto = new SmltStngSearchDto();
+		stngSearchDto.setSmltId(smltId);
+
+		return requireSingle(castSmltMapper.retrieveSmltStng(stngSearchDto), "smltId=" + smltId);
+	}
+
+	private SmltStngDto requireSingle(List<SmltStngDto> stngList, String context) {
+		if (stngList.isEmpty()) {
+			throw new IllegalStateException("시뮬레이션 설정을 찾을 수 없습니다. " + context);
+		}
+
+		if (stngList.size() > 1) {
+			throw new IllegalStateException("실행의 모델이 여럿이라 조회할 모델을 정할 수 없습니다. " + context + ", modelCount=" + stngList.size());
+		}
+
+		return stngList.get(0);
+	}
+
+	@Override
 	public List<WaitPsgDto> retrieveWaitPsgList(String smltId, String tmnlId, List<String> upPsgFcltCdList) {
 		Map<Integer, WaitPsgDto> waitPsgMap = castSmltMapper.retrieveWaitPsgList(smltId, tmnlId, upPsgFcltCdList)
 				.stream().collect(Collectors.toMap(WaitPsgDto::getHour, Function.identity(), (first, ignored) -> first));

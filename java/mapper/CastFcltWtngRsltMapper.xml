@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="aoms.pm.cast.mapper.CastFcltWtngRsltMapper">
+    <insert id="insertFcltWtngRsltList">
+        /* CastFcltWtngRsltMapper.insertFcltWtngRsltList */
+        INSERT ALL
+        <foreach collection="list" item="item">
+        INTO PMOWN.TN_PM_SMLT_FCLT_WTNG_RSLT (
+            SMLT_ID, SMLT_MDL_SN, TMNL_ID, FCLT_TYPE_CD, FCLT_UNIT_CD,
+            SEC_BGNG_DT, SEC_END_DT,
+            BGNG_WTNG_PSG_CNT, END_WTNG_PSG_CNT, ARR_PSG_CNT, PRCS_PSG_CNT,
+            WTNG_PSEC_SUM, WTNG_VLD_PSG_CNT, PRCS_PSEC_SUM, PRCS_VLD_PSG_CNT,
+            WTNG_PSG_CNT_SUM, WTNG_NOCS, MAX_WTNG_PSG_CNT,
+            BGNG_OPER_CNTOM, END_OPER_CNTOM, PRCS_CPCT, PRCS_VLD_OPER_CNTOM_SUM,
+            OBSRVN_MNT_CNT, OBSRVN_YN, OBSRVN_RSN,
+            FRST_REG_DT, LAST_MDFCN_DT
+        ) VALUES (
+            #{item.smltId}, #{item.smltMdlSn}, #{item.tmnlId}, #{item.fcltTypeCd}, #{item.fcltUnitCd},
+            #{item.secBgngDt, jdbcType=TIMESTAMP}, #{item.secEndDt, jdbcType=TIMESTAMP},
+            #{item.bgngWtngPsgCnt, jdbcType=NUMERIC}, #{item.endWtngPsgCnt, jdbcType=NUMERIC},
+            #{item.arrPsgCnt, jdbcType=NUMERIC}, #{item.prcsPsgCnt},
+            #{item.wtngPsecSum, jdbcType=NUMERIC}, #{item.wtngVldPsgCnt},
+            #{item.prcsPsecSum, jdbcType=NUMERIC}, #{item.prcsVldPsgCnt},
+            #{item.wtngPsgCntSum}, #{item.wtngNocs}, #{item.maxWtngPsgCnt, jdbcType=NUMERIC},
+            #{item.bgngOperCntom, jdbcType=NUMERIC}, #{item.endOperCntom, jdbcType=NUMERIC},
+            #{item.prcsCpct, jdbcType=NUMERIC}, #{item.prcsVldOperCntomSum, jdbcType=NUMERIC},
+            #{item.obsrvnMntCnt}, #{item.obsrvnYn}, #{item.obsrvnRsn, jdbcType=VARCHAR},
+            CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        )
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
+
+    <select id="retrieveFcltWtngRsltList" resultType="aoms.pm.cast.dto.FcltWtngRsltDto">
+        /* CastFcltWtngRsltMapper.retrieveFcltWtngRsltList */
+        SELECT
+            A.SMLT_ID, A.SMLT_MDL_SN, A.TMNL_ID, A.FCLT_TYPE_CD, A.FCLT_UNIT_CD,
+            A.SEC_BGNG_DT, A.SEC_END_DT,
+            A.BGNG_WTNG_PSG_CNT, A.END_WTNG_PSG_CNT, A.ARR_PSG_CNT, A.PRCS_PSG_CNT,
+            A.WTNG_PSEC_SUM, A.WTNG_VLD_PSG_CNT, A.PRCS_PSEC_SUM, A.PRCS_VLD_PSG_CNT,
+            A.WTNG_PSG_CNT_SUM, A.WTNG_NOCS, A.MAX_WTNG_PSG_CNT,
+            A.BGNG_OPER_CNTOM, A.END_OPER_CNTOM, A.PRCS_CPCT, A.PRCS_VLD_OPER_CNTOM_SUM,
+            A.OBSRVN_MNT_CNT, A.OBSRVN_YN, A.OBSRVN_RSN
+        FROM PMOWN.TN_PM_SMLT_FCLT_WTNG_RSLT A
+        WHERE A.SMLT_ID = #{smltId}
+        AND A.SMLT_MDL_SN = #{smltMdlSn}
+        AND A.TMNL_ID = #{tmnlId}
+        AND A.FCLT_TYPE_CD = #{fcltTypeCd}
+        ORDER BY A.FCLT_UNIT_CD, A.SEC_BGNG_DT
+    </select>
+
+    <!-- 완전성 검사용 경계 조회. 시설 단위 식은 CastChknMapper.retrieveChknQueueRawList / CastDsbdMapper.retrieveRsltByUnitList 와 같아야 한다 -->
+    <select id="retrieveFcltWtngSrcList" resultType="aoms.pm.cast.dto.FcltWtngSrcDto">
+        /* CastFcltWtngRsltMapper.retrieveFcltWtngSrcList */
+        SELECT
+            T.UNIT_CD,
+            MIN(T.SMLT_ACTL_DT) AS MIN_ACTL_DT
+        FROM (
+            SELECT
+                A.SMLT_ACTL_DT,
+                <choose>
+                    <when test="fcltTypeCd == 'CHKN'">
+                TRIM(SUBSTR(B.PSG_FCLT_CD, -3, 1)) AS UNIT_CD
+                    </when>
+                    <otherwise>
+                TRIM(SUBSTR(B.PSG_FCLT_CD, 5, 1)) AS UNIT_CD
+                    </otherwise>
+                </choose>
+            FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+                INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
+                ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
+            WHERE A.SMLT_ID = #{smltId}
+            AND A.SMLT_MDL_SN = #{smltMdlSn}
+            AND B.TMNL_ID = #{tmnlId}
+            AND B.USE_YN = 'Y'
+            AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
+            <if test="bgnDt != null">
+            AND A.SMLT_ACTL_DT &gt;= #{bgnDt}
+            AND A.SMLT_ACTL_DT &lt; #{endDt}
+            </if>
+        ) T
+        GROUP BY T.UNIT_CD
+        ORDER BY T.UNIT_CD
+    </select>
+
+    <select id="retrieveSrcExcnDtCnt" resultType="int">
+        /* CastFcltWtngRsltMapper.retrieveSrcExcnDtCnt */
+        SELECT COUNT(DISTINCT A.SMLT_EXCN_DT)
+        FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+        WHERE A.SMLT_ID = #{smltId}
+        AND A.SMLT_MDL_SN = #{smltMdlSn}
+    </select>
+</mapper>

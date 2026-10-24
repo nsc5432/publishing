@@ -21,7 +21,7 @@ public final class ChknQueueRecommend {
 	private final Integer reqCnt;
 	private final Integer cgnClearMin;
 
-	ChknQueueRecommend(Integer reqCnt, Integer cgnClearMin) {
+	public ChknQueueRecommend(Integer reqCnt, Integer cgnClearMin) {
 		this.reqCnt = reqCnt;
 		this.cgnClearMin = cgnClearMin;
 	}

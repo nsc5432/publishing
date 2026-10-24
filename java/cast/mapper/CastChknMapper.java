@@ -6,6 +6,7 @@ import aoms.pm.cast.dto.UserSmltCurrentDto;
 import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
+import aoms.pm.cast.dto.ChknBoothOperRawDto;
 import aoms.pm.cast.dto.ChknIslandDto;
 import aoms.pm.cast.dto.ChknQueueRawDto;
 import aoms.pm.cast.dto.ChknRawDto;
@@ -18,10 +19,18 @@ import aoms.pm.cast.dto.UserSmltChknSaveDto;
 public interface CastChknMapper {
     List<CknctCntRawDto> retrieveCknctCntList(@Param("tmnlId") String tmnlId, @Param("useCrgTypeCdList") List<String> useCrgTypeCdList);
 
+    /** @param smltMdlSn null 이면 모델을 거르지 않는다 (기존 차트 경로) */
     List<ChknQueueRawDto> retrieveChknQueueRawList(
             @Param("smltId") String smltId,
             @Param("tmnlId") String tmnlId,
-            @Param("upPsgFcltCd") String upPsgFcltCd
+            @Param("upPsgFcltCd") String upPsgFcltCd,
+            @Param("smltMdlSn") Integer smltMdlSn
+    );
+
+    List<ChknBoothOperRawDto> retrieveChknBoothOperList(
+            @Param("excnYmd") String excnYmd,
+            @Param("tmnlId") String tmnlId,
+            @Param("cknctAlctnRsrcId") String cknctAlctnRsrcId
     );
 
     List<ChknRawDto> retrieveChknList(@Param("ymd") String ymd, @Param("tmnlId") String tmnlId);
