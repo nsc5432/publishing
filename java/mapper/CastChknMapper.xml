@@ -56,7 +56,7 @@
                 TO_DATE(Y.OPER_YMD || Y.STA_HM, 'YYYYMMDDHH24MI') AS BGN_DT,
                 TO_DATE(
                     CASE
-                        WHEN TO_NUMBER(Y.STA_HM) &lt;= TO_NUMBER(Y.END_HM) THEN Y.OPER_YMD
+                        WHEN Y.RON_YN = 'N' THEN Y.OPER_YMD
                         ELSE TO_CHAR(TO_DATE(Y.OPER_YMD, 'YYYYMMDD') + 1, 'YYYYMMDD')
                     END || Y.END_HM,
                     'YYYYMMDDHH24MI'
@@ -66,7 +66,17 @@
                     A.CKNCT_ID,
                     A.OPER_YMD,
                     NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM) AS STA_HM,
-                    NVL(A.EST_END_HM, A.LAST_END_HM) AS END_HM
+                    NVL(A.EST_END_HM, A.LAST_END_HM) AS END_HM,
+                    CASE
+                        WHEN TO_NUMBER(NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM)) &gt; TO_NUMBER(NVL(A.EST_END_HM, A.LAST_END_HM))
+                        THEN 'Y'
+                        ELSE
+                            CASE
+                                WHEN NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM) IS NOT NULL AND NVL(A.EST_END_HM, A.LAST_END_HM) IS NOT NULL THEN
+                                    CASE WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_RON_YN ELSE A.EST_RON_YN END
+                                ELSE A.EST_RON_YN
+                            END
+                    END AS RON_YN
                 FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
                     INNER JOIN CAOWN.TN_CA_CKNCT CIC
                     ON A.CKNCT_ID = CIC.CKNCT_ID

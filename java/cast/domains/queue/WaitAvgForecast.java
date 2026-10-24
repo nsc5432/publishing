@@ -241,6 +241,9 @@ public final class WaitAvgForecast {
                 histWtngSuffix[index] = histWtngSuffix[index + 1] + window.wtngSecAt(index);
             }
 
+            histPrcsSuffix[0] = window.observedPrcsPsgCnt();
+            histWtngSuffix[0] = window.observedWtngSecSum();
+
             this.predPrcsPrefix = new double[prcs.length + 1];
             this.predWtngPrefix = new double[prcs.length + 1];
 

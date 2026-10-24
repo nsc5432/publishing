@@ -180,6 +180,8 @@ public final class FcltWtngDay {
 
 		double[] prcs = new double[WINDOW_MIN];
 		double[] wtngSec = new double[WINDOW_MIN];
+		long prcsTotal = 0;
+		double wtngSecTotal = 0;
 
 		for (int secIndex = 0; secIndex < SEC_PER_WINDOW; secIndex++) {
 			FcltWtngSec sec = window[secIndex];
@@ -187,6 +189,9 @@ public final class FcltWtngDay {
 			if (sec == null) {
 				continue;
 			}
+
+			prcsTotal += sec.getPrcsPsgCnt();
+			wtngSecTotal += sec.getWtngPsecSum();
 
 			for (int minute = 0; minute < SEC_MIN; minute++) {
 				prcs[secIndex * SEC_MIN + minute] = sec.getPrcsPsgCnt() / (double) SEC_MIN;
@@ -198,7 +203,7 @@ public final class FcltWtngDay {
 		LinkedList<QueueWaitWindow.Cohort> cohortList = new LinkedList<>();
 		String cohortGap = historyGap != null ? historyGap : rebuildQueue(unitCd, secMap, evalDt, cohortList);
 
-		return new QueueWaitWindow(prcs, wtngSec, historyGap, cohortList, cohortGap);
+		return new QueueWaitWindow(prcs, wtngSec, historyGap, cohortList, cohortGap, prcsTotal, wtngSecTotal);
 	}
 
 	/** 직전 30분 처리 여객 평균 대기시간 (초, 소수 원값). 저장한 원래 합계와 분모로 계산한다 */
@@ -387,7 +392,8 @@ public final class FcltWtngDay {
 		for (int back = 0; back < lookbackMin && remaining > EPS; back += SEC_MIN) {
 			FcltWtngSec sec = secMap.get(evalDt.minusMinutes((long) back + SEC_MIN));
 
-			if (sec == null || sec.getArrPsgCnt() == null) {
+			if (sec == null || !sec.isObsrvn() || sec.getArrPsgCnt() == null
+					|| sec.getBgngWtngPsgCnt() == null || sec.getEndWtngPsgCnt() == null) {
 				break;
 			}
 

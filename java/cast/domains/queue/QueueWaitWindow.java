@@ -15,6 +15,8 @@ public final class QueueWaitWindow {
 
     private final double[] prcsPsgCnt;
     private final double[] wtngSecSum;
+    private final double observedPrcsTotal;
+    private final double observedWtngSecTotal;
     private final String historyGap;
     private final List<Cohort> cohortList;
     private final String cohortGap;
@@ -27,12 +29,19 @@ public final class QueueWaitWindow {
      * @param cohortGap  남은 대기열의 도착 시각을 재구성하지 못한 사유. 재구성했으면 null
      */
     public QueueWaitWindow(double[] prcsPsgCnt, double[] wtngSecSum, String historyGap, List<Cohort> cohortList, String cohortGap) {
+        this(prcsPsgCnt, wtngSecSum, historyGap, cohortList, cohortGap, sum(prcsPsgCnt), sum(wtngSecSum));
+    }
+
+    public QueueWaitWindow(double[] prcsPsgCnt, double[] wtngSecSum, String historyGap, List<Cohort> cohortList, String cohortGap,
+            double observedPrcsTotal, double observedWtngSecTotal) {
         if (prcsPsgCnt.length != WINDOW_MIN || wtngSecSum.length != WINDOW_MIN) {
             throw new IllegalArgumentException("처리 이력은 " + WINDOW_MIN + "분 길이여야 합니다.");
         }
 
         this.prcsPsgCnt = prcsPsgCnt.clone();
         this.wtngSecSum = wtngSecSum.clone();
+        this.observedPrcsTotal = observedPrcsTotal;
+        this.observedWtngSecTotal = observedWtngSecTotal;
         this.historyGap = historyGap;
         this.cohortList = new ArrayList<>(cohortList);
         this.cohortGap = cohortGap;
@@ -48,18 +57,22 @@ public final class QueueWaitWindow {
             return Computed.unavailable(CalculationMethod.PRCS_WAIT_AVG, historyGap);
         }
 
-        double prcsSum = sum(prcsPsgCnt);
+        double prcsSum = observedPrcsTotal;
 
         if (prcsSum <= EPS) {
             return Computed.unavailable(CalculationMethod.PRCS_WAIT_AVG, "직전 30분에 처리된 여객이 없습니다.");
         }
 
-        return Computed.calculated(sum(wtngSecSum) / prcsSum, CalculationMethod.PRCS_WAIT_AVG,
+        return Computed.calculated(observedWtngSecTotal / prcsSum, CalculationMethod.PRCS_WAIT_AVG,
                 "[t-30분, t) 처리 여객 " + Math.round(prcsSum) + "명의 처리인원 가중평균 대기시간");
     }
 
     public double observedPrcsPsgCnt() {
-        return sum(prcsPsgCnt);
+        return observedPrcsTotal;
+    }
+
+    double observedWtngSecSum() {
+        return observedWtngSecTotal;
     }
 
     public double queuePsgCnt() {
