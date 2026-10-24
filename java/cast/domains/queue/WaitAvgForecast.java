@@ -16,7 +16,8 @@ public final class WaitAvgForecast {
     private static final int SEARCH_LIMIT = 100_000;
     private static final double SEC_PER_MIN = 60.0;
     private static final double MIN_PER_HOUR = 60.0;
-    private static final double EPS = QueueWaitWindow.EPS;
+    // 소수 처리용량을 분마다 빼며 남는 이보다 작은 잔량은 여객이 없는 것으로 본다
+    private static final double MIN_PSG_CNT = 1e-9;
 
     private final QueueWaitWindow window;
     private final Computed<Double> arrival;
@@ -124,8 +125,8 @@ public final class WaitAvgForecast {
             return window.getHistoryGap();
         }
 
-        if (window.getCohortGap() != null) {
-            return window.getCohortGap();
+        if (window.getPsgGroupGap() != null) {
+            return window.getPsgGroupGap();
         }
 
         if (serverCnt == null) {
@@ -160,7 +161,7 @@ public final class WaitAvgForecast {
 
             double capacity = capPerMin;
 
-            while (capacity > EPS && !queue.isEmpty()) {
+            while (capacity > MIN_PSG_CNT && !queue.isEmpty()) {
                 double[] head = queue.peekFirst();
                 double take = Math.min(capacity, head[1]);
 
@@ -170,12 +171,13 @@ public final class WaitAvgForecast {
                 capacity -= take;
                 queueCnt -= take;
 
-                if (head[1] <= EPS) {
+                if (head[1] <= MIN_PSG_CNT) {
                     queue.pollFirst();
                 }
             }
 
-            remain[minute] = Math.max(queueCnt, 0);
+            // queueCnt 는 가감을 누적한 값이라 대기열이 비어도 0 이 아닐 수 있다
+            remain[minute] = queue.isEmpty() ? 0 : Math.max(queueCnt, 0);
         }
 
         return new Trace(window, prcs, wtngSec, remain);
@@ -223,8 +225,7 @@ public final class WaitAvgForecast {
 
         Double atTarget = trace.avgAt(targetMin);
 
-        // 목표 시각 창에 처리 여객이 없으면 남은 대기자가 없을 때만 충족으로 본다 (0초로 간주하지 않는다)
-        return atTarget == null ? trace.remainAt(targetMin) <= EPS : atTarget < targetExclusiveSec;
+        return atTarget == null ? trace.remainAt(targetMin) == 0 : atTarget < targetExclusiveSec;
     }
 
     /** 예측 1회의 분별 결과. 창 끝 j 분(t+j)의 평균은 실제 이력 [t-30+j, t) 와 예측 [max(0, j-30), j) 를 합친다 */
@@ -261,7 +262,7 @@ public final class WaitAvgForecast {
             double prcsSum = histPrcsSuffix[histFrom] + predPrcsPrefix[endMin] - predPrcsPrefix[predFrom];
             double wtngSum = histWtngSuffix[histFrom] + predWtngPrefix[endMin] - predWtngPrefix[predFrom];
 
-            return prcsSum <= EPS ? null : wtngSum / prcsSum;
+            return prcsSum <= MIN_PSG_CNT ? null : wtngSum / prcsSum;
         }
 
         private int reachMin(int targetExclusiveSec, int horizonMin) {

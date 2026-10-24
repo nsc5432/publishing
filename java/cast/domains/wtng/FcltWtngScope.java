@@ -9,7 +9,7 @@ import java.util.Map;
 
 /**
  * @Classname : FcltWtngScope.java
- * @Description : 저장 단위 (실행 · 모델 · 터미널 · 시설유형) 의 기대 시설 · 범위와 10분 통계
+ * @Description : 저장 단위 (실행/모델/터미널/시설유형) 의 기대 시설/범위와 10분 통계
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>

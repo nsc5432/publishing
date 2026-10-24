@@ -24,7 +24,7 @@ import aoms.pm.cast.enums.TerminalKind;
 
 /**
  * @Classname : FcltWtngDay.java
- * @Description : 터미널 · 시설유형 하루치 10분 대기 통계와 공통 평가 — 카드 / 맵 / 체크인 상세 / 혼잡해소 팝업 공용
+ * @Description : 터미널/시설유형 하루치 10분 대기 통계와 공통 평가 — 카드 / 맵 / 체크인 상세 / 혼잡해소 팝업 공용
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
@@ -42,7 +42,6 @@ public final class FcltWtngDay {
 	private static final int WINDOW_MIN = QueueWaitWindow.WINDOW_MIN;
 	private static final int SEC_PER_WINDOW = WINDOW_MIN / SEC_MIN;
 	private static final double SEC_PER_MIN = 60.0;
-	private static final double EPS = 1e-9;
 
 	private final TerminalKind tmnlId;
 	private final FcltType fcltType;
@@ -200,10 +199,10 @@ public final class FcltWtngDay {
 		}
 
 		String historyGap = historyGapOf(unitCd, window, evalDt);
-		LinkedList<QueueWaitWindow.Cohort> cohortList = new LinkedList<>();
-		String cohortGap = historyGap != null ? historyGap : rebuildQueue(unitCd, secMap, evalDt, cohortList);
+		LinkedList<QueueWaitWindow.PsgGroup> psgGroupList = new LinkedList<>();
+		String psgGroupGap = historyGap != null ? historyGap : rebuildQueue(unitCd, secMap, evalDt, psgGroupList);
 
-		return new QueueWaitWindow(prcs, wtngSec, historyGap, cohortList, cohortGap, prcsTotal, wtngSecTotal);
+		return new QueueWaitWindow(prcs, wtngSec, historyGap, psgGroupList, psgGroupGap, prcsTotal, wtngSecTotal);
 	}
 
 	/** 직전 30분 처리 여객 평균 대기시간 (초, 소수 원값). 저장한 원래 합계와 분모로 계산한다 */
@@ -377,7 +376,7 @@ public final class FcltWtngDay {
 			String unitCd,
 			TreeMap<LocalDateTime, FcltWtngSec> secMap,
 			LocalDateTime evalDt,
-			LinkedList<QueueWaitWindow.Cohort> cohortList
+			LinkedList<QueueWaitWindow.PsgGroup> psgGroupList
 	) {
 		FcltWtngSec last = secMap.get(evalDt.minusMinutes(SEC_MIN));
 
@@ -387,9 +386,10 @@ public final class FcltWtngDay {
 
 		// 출국장은 기존 역추정 범위를 유지하고, 체크인은 저장된 계산 시작점까지 되짚는다
 		int lookbackMin = fcltType == FcltType.DEP ? DepQueueDay.LOOKBACK_MIN : Integer.MAX_VALUE;
-		double remaining = last.getEndWtngPsgCnt();
+		// 분당 도착(10분 도착 / 10)을 오차 없이 빼도록 1/SEC_MIN 명 단위 정수로 센다
+		long remaining = (long) last.getEndWtngPsgCnt() * SEC_MIN;
 
-		for (int back = 0; back < lookbackMin && remaining > EPS; back += SEC_MIN) {
+		for (int back = 0; back < lookbackMin && remaining > 0; back += SEC_MIN) {
 			FcltWtngSec sec = secMap.get(evalDt.minusMinutes((long) back + SEC_MIN));
 
 			if (sec == null || !sec.isObsrvn() || sec.getArrPsgCnt() == null
@@ -397,20 +397,20 @@ public final class FcltWtngDay {
 				break;
 			}
 
-			double arrivalPerMin = sec.getArrPsgCnt() / (double) SEC_MIN;
+			long arrivalPerMin = sec.getArrPsgCnt();
 
-			for (int minute = 1; minute <= SEC_MIN && remaining > EPS; minute++) {
-				double take = Math.min(arrivalPerMin, remaining);
+			for (int minute = 1; minute <= SEC_MIN && remaining > 0; minute++) {
+				long take = Math.min(arrivalPerMin, remaining);
 
-				if (take > EPS) {
-					cohortList.addFirst(new QueueWaitWindow.Cohort(back + minute, take));
+				if (take > 0) {
+					psgGroupList.addFirst(new QueueWaitWindow.PsgGroup(back + minute, take / (double) SEC_MIN));
 					remaining -= take;
 				}
 			}
 		}
 
-		return remaining > EPS
-				? "잔여 대기열 " + Math.round(remaining) + "명의 도착 시각을 10분 결과 안에서 재구성하지 못했습니다. unitCd=" + unitCd
+		return remaining > 0
+				? "잔여 대기열 " + Math.round(remaining / (double) SEC_MIN) + "명의 도착 시각을 10분 결과 안에서 재구성하지 못했습니다. unitCd=" + unitCd
 				: null;
 	}
 

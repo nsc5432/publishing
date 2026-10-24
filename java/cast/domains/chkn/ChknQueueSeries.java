@@ -229,21 +229,21 @@ public final class ChknQueueSeries {
 		}
 
 		// FIFO 라 evalMinute 에 남은 대기자는 가장 최근에 도착한 여객이다
-		LinkedList<QueueWaitWindow.Cohort> cohortList = new LinkedList<>();
+		LinkedList<QueueWaitWindow.PsgGroup> psgGroupList = new LinkedList<>();
 		int remaining = queueAt(evalMinute - 1);
 
 		for (int minute = Math.min(evalMinute, MINUTE_PER_DAY) - 1; minute >= originMinute && remaining > 0; minute--) {
 			int take = Math.min(arrivals[minute - originMinute], remaining);
 
 			if (take > 0) {
-				cohortList.addFirst(new QueueWaitWindow.Cohort(evalMinute - minute, take));
+				psgGroupList.addFirst(new QueueWaitWindow.PsgGroup(evalMinute - minute, take));
 				remaining -= take;
 			}
 		}
 
-		String cohortGap = remaining > 0 ? "잔여 대기열 " + remaining + "명의 도착 시각을 재구성하지 못했습니다. island=" + island : null;
+		String psgGroupGap = remaining > 0 ? "잔여 대기열 " + remaining + "명의 도착 시각을 재구성하지 못했습니다. island=" + island : null;
 
-		return new QueueWaitWindow(prcs, wtngSec, historyGap, cohortList, cohortGap);
+		return new QueueWaitWindow(prcs, wtngSec, historyGap, psgGroupList, psgGroupGap);
 	}
 
 	public ChknQueueKpi kpi() {

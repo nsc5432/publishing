@@ -29,7 +29,7 @@ public final class FcltWtngRegression {
         checkBoundary(3600, CongestionStatus.VERY_BUSY);
         checkBoundary(1199, CongestionStatus.FREE);
         checkBoundary(2401, CongestionStatus.BUSY);
-        checkCohortValidity();
+        checkPsgGroupValidity();
         checkLegacyWindow();
         System.out.println("PASS " + checks + " facility waiting regression checks");
     }
@@ -59,7 +59,7 @@ public final class FcltWtngRegression {
         }
     }
 
-    private static void checkCohortValidity() {
+    private static void checkPsgGroupValidity() {
         FcltWtngDay unobserved = day(FcltType.CHKN, queueRows(false, 0, 8, 10));
         equal(3600.0, unobserved.avgWtngSecOf("A", EVAL).getValue(), "older unobserved row does not invalidate observed average");
         unavailable(unobserved, "older unobserved arrivals");

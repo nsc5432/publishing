@@ -32,7 +32,6 @@ public final class DepQueueWindow {
 
 	private static final int WINDOW_MIN = QueueWaitWindow.WINDOW_MIN;
 	private static final int SLOT_PER_WINDOW = WINDOW_MIN / CAST_SLOT_MIN;
-	private static final double EPS = 1e-9;
 
 	private final DepQueueDay day;
 	private final LocalDateTime evalDt;
@@ -134,17 +133,18 @@ public final class DepQueueWindow {
 			}
 		}
 
-		LinkedList<QueueWaitWindow.Cohort> cohortList = new LinkedList<>();
-		String cohortGap = gap == null ? rebuildQueue(slotMap, cohortList, unitCd) : gap;
+		LinkedList<QueueWaitWindow.PsgGroup> psgGroupList = new LinkedList<>();
+		String psgGroupGap = gap == null ? rebuildQueue(slotMap, psgGroupList, unitCd) : gap;
 
-		return new QueueWaitWindow(prcs, wtngSec, gap, cohortList, cohortGap);
+		return new QueueWaitWindow(prcs, wtngSec, gap, psgGroupList, psgGroupGap);
 	}
 
 	// FIFO 라 evalDt 에 남은 대기자는 가장 최근에 도착한 여객이다
-	private String rebuildQueue(TreeMap<LocalDateTime, DepQueueDay.Slot> slotMap, LinkedList<QueueWaitWindow.Cohort> cohortList, String unitCd) {
-		double remaining = queueAt(slotMap, evalDt);
+	private String rebuildQueue(TreeMap<LocalDateTime, DepQueueDay.Slot> slotMap, LinkedList<QueueWaitWindow.PsgGroup> psgGroupList, String unitCd) {
+		// 분당 유입(10분 유입 / 10)을 오차 없이 빼도록 1/CAST_SLOT_MIN 명 단위 정수로 센다
+		long remaining = (long) queueAt(slotMap, evalDt) * CAST_SLOT_MIN;
 
-		for (int back = 0; back < DepQueueDay.LOOKBACK_MIN && remaining > EPS; back += CAST_SLOT_MIN) {
+		for (int back = 0; back < DepQueueDay.LOOKBACK_MIN && remaining > 0; back += CAST_SLOT_MIN) {
 			LocalDateTime endDt = evalDt.minusMinutes(back);
 			LocalDateTime startDt = endDt.minusMinutes(CAST_SLOT_MIN);
 
@@ -154,20 +154,20 @@ public final class DepQueueWindow {
 
 			DepQueueDay.Slot end = slotMap.get(endDt);
 			int trnst = end == null ? 0 : end.trnstPsgCnt;
-			double arrivalPerMin = Math.max(0, queueAt(slotMap, endDt) - queueAt(slotMap, startDt) + trnst) / (double) CAST_SLOT_MIN;
+			long arrivalPerMin = Math.max(0, queueAt(slotMap, endDt) - queueAt(slotMap, startDt) + trnst);
 
-			for (int minute = 1; minute <= CAST_SLOT_MIN && remaining > EPS; minute++) {
-				double take = Math.min(arrivalPerMin, remaining);
+			for (int minute = 1; minute <= CAST_SLOT_MIN && remaining > 0; minute++) {
+				long take = Math.min(arrivalPerMin, remaining);
 
-				if (take > EPS) {
-					cohortList.addFirst(new QueueWaitWindow.Cohort(back + minute, take));
+				if (take > 0) {
+					psgGroupList.addFirst(new QueueWaitWindow.PsgGroup(back + minute, take / (double) CAST_SLOT_MIN));
 					remaining -= take;
 				}
 			}
 		}
 
-		return remaining > EPS
-				? "잔여 대기열 " + Math.round(remaining) + "명의 도착 시각을 " + DepQueueDay.LOOKBACK_MIN + "분 결과 안에서 재구성하지 못했습니다. unitCd=" + unitCd
+		return remaining > 0
+				? "잔여 대기열 " + Math.round(remaining / (double) CAST_SLOT_MIN) + "명의 도착 시각을 " + DepQueueDay.LOOKBACK_MIN + "분 결과 안에서 재구성하지 못했습니다. unitCd=" + unitCd
 				: null;
 	}
 
