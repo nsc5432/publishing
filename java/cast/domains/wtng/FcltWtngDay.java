@@ -10,11 +10,6 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import aoms.pm.cast.domains.CgnGradeScale;
-import aoms.pm.cast.domains.chkn.ChknQueueRecommend;
-import aoms.pm.cast.domains.chkn.ChknQueueSlot;
-import aoms.pm.cast.domains.dsbd.DepQueueDay;
-import aoms.pm.cast.domains.dsbd.FcltQueueClearance;
-import aoms.pm.cast.domains.dsbd.FcltQueueSource;
 import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.queue.QueueDataSource;
 import aoms.pm.cast.domains.queue.QueueWaitWindow;
@@ -38,6 +33,8 @@ import aoms.pm.cast.enums.TerminalKind;
  * </pre>
  */
 public final class FcltWtngDay {
+	public static final int DEP_LOOKBACK_MIN = 180;
+
 	private static final int SEC_MIN = FcltWtngSecs.SEC_MIN;
 	private static final int WINDOW_MIN = QueueWaitWindow.WINDOW_MIN;
 	private static final int SEC_PER_WINDOW = WINDOW_MIN / SEC_MIN;
@@ -385,7 +382,7 @@ public final class FcltWtngDay {
 		}
 
 		// 출국장은 기존 역추정 범위를 유지하고, 체크인은 저장된 계산 시작점까지 되짚는다
-		int lookbackMin = fcltType == FcltType.DEP ? DepQueueDay.LOOKBACK_MIN : Integer.MAX_VALUE;
+		int lookbackMin = fcltType == FcltType.DEP ? DEP_LOOKBACK_MIN : Integer.MAX_VALUE;
 		// 분당 도착(10분 도착 / 10)을 오차 없이 빼도록 1/SEC_MIN 명 단위 정수로 센다
 		long remaining = (long) last.getEndWtngPsgCnt() * SEC_MIN;
 

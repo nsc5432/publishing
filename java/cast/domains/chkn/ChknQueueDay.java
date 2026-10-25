@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import aoms.pm.cast.domains.wtng.ChknQueueSlot;
+
 /**
  * @Classname : ChknQueueDay.java
  * @Description : 체크인 하루치 Queue

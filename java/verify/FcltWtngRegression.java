@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.Objects;
 
 import aoms.pm.cast.domains.CgnGradeScale;
-import aoms.pm.cast.domains.dsbd.FcltQueueClearance;
 import aoms.pm.cast.domains.queue.QueueWaitWindow;
+import aoms.pm.cast.domains.wtng.FcltQueueClearance;
 import aoms.pm.cast.domains.wtng.FcltWtngDay;
 import aoms.pm.cast.domains.wtng.FcltWtngSec;
 import aoms.pm.cast.dto.PsgPrcsGradeRawDto;

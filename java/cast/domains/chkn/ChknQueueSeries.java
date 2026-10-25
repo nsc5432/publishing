@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import aoms.pm.cast.domains.wtng.ChknQueueSlot;
+
 /**
  * @Classname : ChknQueueSeries.java
  * @Description : 아일랜드 1곳의 하루치 공용 Queue 분 단위

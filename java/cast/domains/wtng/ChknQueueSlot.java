@@ -1,4 +1,4 @@
-package aoms.pm.cast.domains.chkn;
+package aoms.pm.cast.domains.wtng;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;

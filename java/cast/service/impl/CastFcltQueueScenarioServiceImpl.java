@@ -12,10 +12,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.domains.CgnGradeScale;
 import aoms.pm.cast.domains.dsbd.DepQueueDay;
-import aoms.pm.cast.domains.dsbd.FcltQueueClearance;
-import aoms.pm.cast.domains.dsbd.FcltQueueSource;
 import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.queue.ErlangCResult;
+import aoms.pm.cast.domains.wtng.FcltQueueClearance;
+import aoms.pm.cast.domains.wtng.FcltQueueSource;
 import aoms.pm.cast.domains.wtng.FcltWtngDay;
 import aoms.pm.cast.domains.wtng.FcltWtngSecs;
 import aoms.pm.cast.dto.FcltQueueClearDto;

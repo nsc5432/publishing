@@ -1,4 +1,4 @@
-package aoms.pm.cast.domains.dsbd;
+package aoms.pm.cast.domains.wtng;
 
 import java.time.LocalDateTime;
 

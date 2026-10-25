@@ -9,6 +9,7 @@ import java.util.NavigableSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import aoms.pm.cast.domains.wtng.FcltWtngDay;
 import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.enums.TerminalKind;
 
@@ -29,7 +30,7 @@ import aoms.pm.cast.enums.TerminalKind;
  */
 public final class DepQueueDay {
 	public static final int CAST_SLOT_MIN = 10; // CAST 결과 구간(INTERVAL) 길이(분). 결과 시각은 구간 끝이다
-	public static final int LOOKBACK_MIN = 180; // 잔여 대기열 도착 시각을 되짚는 범위(분)
+	public static final int LOOKBACK_MIN = FcltWtngDay.DEP_LOOKBACK_MIN; // 잔여 대기열 도착 시각을 되짚는 범위(분)
 
 	private final TerminalKind tmnlId;
 	private final Map<String, TreeMap<LocalDateTime, Slot>> slotMapByUnit = new LinkedHashMap<>();
