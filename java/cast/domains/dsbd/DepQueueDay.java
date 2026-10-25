@@ -63,10 +63,6 @@ public final class DepQueueDay {
 		}
 	}
 
-	public DepQueueWindow windowAt(LocalDateTime evalDt) {
-		return new DepQueueWindow(this, evalDt);
-	}
-
 	/** 결과가 한 행이라도 있는 출국장 */
 	public List<String> unitCdList() {
 		return new ArrayList<>(slotMapByUnit.keySet());

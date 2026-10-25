@@ -5,10 +5,7 @@ import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedList;
 import java.util.List;
-
-import aoms.pm.cast.domains.queue.QueueWaitWindow;
 
 /**
  * @Classname : ChknQueueSeries.java
@@ -27,9 +24,6 @@ import aoms.pm.cast.domains.queue.QueueWaitWindow;
  */
 public final class ChknQueueSeries {
 	public static final int MINUTE_PER_DAY = 24 * 60;
-
-	private static final int SEC_PER_MIN = 60;
-	private static final int WINDOW_MIN = QueueWaitWindow.WINDOW_MIN;
 
 	private final String island;
 	/** 배열 0번 칸의 분 (당일 자정 기준, 0 이하) */
@@ -185,65 +179,6 @@ public final class ChknQueueSeries {
 			toUtilRate(processedSum, capacitySum),
 			boothCnt[last]
 		);
-	}
-
-	public BigDecimal serviceRateOf(int bgnMinute, int spanMin) {
-		int bgn = Math.max(bgnMinute, originMinute);
-		int end = Math.min(bgnMinute + spanMin, MINUTE_PER_DAY);
-		long capacitySum = 0;
-		long boothMinuteSum = 0;
-
-		for (int minute = bgn; minute < end; minute++) {
-			int at = minute - originMinute;
-
-			if (capacity[at] <= 0) {
-				continue;
-			}
-
-			capacitySum += capacity[at];
-			boothMinuteSum += boothCnt[at];
-		}
-
-		if (capacitySum <= 0 || boothMinuteSum <= 0) {
-			return null;
-		}
-
-		return BigDecimal.valueOf(capacitySum).divide(BigDecimal.valueOf(boothMinuteSum), MathContext.DECIMAL128);
-	}
-
-	/**
-	 * 평가시각 evalMinute 의 혼잡 판정 원천.
-	 * @param historyGap [evalMinute-30, evalMinute) 를 결과로 채우지 못한 사유. 채웠으면 null
-	 */
-	public QueueWaitWindow waitWindowOf(int evalMinute, String historyGap) {
-		double[] prcs = new double[WINDOW_MIN];
-		double[] wtngSec = new double[WINDOW_MIN];
-
-		for (int index = 0; index < WINDOW_MIN; index++) {
-			int minute = evalMinute - WINDOW_MIN + index;
-
-			if (isInRange(minute)) {
-				prcs[index] = processed[minute - originMinute];
-				wtngSec[index] = (double) waitMinSum[minute - originMinute] * SEC_PER_MIN;
-			}
-		}
-
-		// FIFO 라 evalMinute 에 남은 대기자는 가장 최근에 도착한 여객이다
-		LinkedList<QueueWaitWindow.PsgGroup> psgGroupList = new LinkedList<>();
-		int remaining = queueAt(evalMinute - 1);
-
-		for (int minute = Math.min(evalMinute, MINUTE_PER_DAY) - 1; minute >= originMinute && remaining > 0; minute--) {
-			int take = Math.min(arrivals[minute - originMinute], remaining);
-
-			if (take > 0) {
-				psgGroupList.addFirst(new QueueWaitWindow.PsgGroup(evalMinute - minute, take));
-				remaining -= take;
-			}
-		}
-
-		String psgGroupGap = remaining > 0 ? "잔여 대기열 " + remaining + "명의 도착 시각을 재구성하지 못했습니다. island=" + island : null;
-
-		return new QueueWaitWindow(prcs, wtngSec, historyGap, psgGroupList, psgGroupGap);
 	}
 
 	public ChknQueueKpi kpi() {

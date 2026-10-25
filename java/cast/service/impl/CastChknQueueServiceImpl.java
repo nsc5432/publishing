@@ -25,10 +25,8 @@ import aoms.pm.cast.domains.chkn.ChknSbdDay;
 import aoms.pm.cast.dto.ChknBoothOperRawDto;
 import aoms.pm.cast.dto.ChknQueueRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
-import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastChknMapper;
-import aoms.pm.cast.service.CastCgnGradeService;
 import aoms.pm.cast.service.CastChknQueueService;
 
 import lombok.RequiredArgsConstructor;
@@ -59,13 +57,10 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 	private static final int DEFAULT_INTRVL_MIN = 10;
 
 	private final CastChknMapper castChknMapper;
-	private final CastCgnGradeService castCgnGradeService;
 
 	@Override
 	public ChknQueueDay retrieveChknQueueDay(SmltStngDto smltStng, TerminalKind tmnlId) {
-		String context = "smltId=" + smltStng.getSmltId() + ", tmnlId=" + tmnlId.getValue();
-
-		return new ChknQueueDay(calculate(smltStng, tmnlId, null), castCgnGradeService.retrieveGradeScale(FcltType.CHKN, context));
+		return new ChknQueueDay(calculate(smltStng, tmnlId, null));
 	}
 
 	@Override
