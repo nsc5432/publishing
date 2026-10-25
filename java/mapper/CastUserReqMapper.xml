@@ -22,7 +22,6 @@
             CKNCT_SRVC_HR_RSRC_ID,
             CHKN_TYPE_RSRC_ID,
             RPT_STNG_ATRB_ID,
-            SMLT_RSLT_SFX,
             SMLT_STTS,
             QUEUE_DT,
             FRST_RGTR_ID,
@@ -45,7 +44,6 @@
             #{cknctSrvcHrRsrcId},
             #{chknTypeRsrcId},
             #{rptStngAtrbId},
-            #{smltRsltSfx},
             'New',
             CURRENT_TIMESTAMP,
             #{loginUserId},
@@ -60,7 +58,6 @@
             SMLT_REQ_ID,
             SMLT_ID,
             EXCN_YMD,
-            NVL(RSLT_SMLT_ID, '') AS RSLT_SMLT_ID,
             SMLT_STTS,
             NVL(ERR_MSG, '') AS ERR_MSG
         FROM PMOWN.TN_PM_SMLT_USER_MSTR

@@ -13,7 +13,6 @@ public class UserSmltReqDto extends AomsDefaultDto {
     private String smltReqId;
     private String smltId;
     private String excnYmd;
-    private String rsltSmltId;
 
     private String mdlRsrcId;
     private String fltSchdlRsrcId;
@@ -28,7 +27,6 @@ public class UserSmltReqDto extends AomsDefaultDto {
     private String cknctSrvcHrRsrcId;
     private String chknTypeRsrcId;
     private String rptStngAtrbId;
-    private String smltRsltSfx;
 
     private String smltStts;
     private String fromStts;

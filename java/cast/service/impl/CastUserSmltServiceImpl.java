@@ -167,7 +167,6 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         result.setCknctSrvcHrRsrcId(snapshot.getCknctSrvcHrRsrcId());
         result.setChknTypeRsrcId(snapshot.getChknTypeRsrcId());
         result.setRptStngAtrbId(snapshot.getRptStngAtrbId());
-        result.setSmltRsltSfx(smltReqId);
 
         return result;
     }

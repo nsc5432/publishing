@@ -446,7 +446,8 @@ docs/user-smlt-master-redesign.md를 따른다.
 TO_NUMBER로 비교한다. 결과 수신은 WI 뒤 8자리로 요청을 찾으므로 요청 ID만 8자리를 유지한다.
 이관된 기존 1~8자리 숫자 ID는 보존한다. 시퀀스는 NOCYCLE이며 USER_MSTR·STNG의 기존 최대 ID보다
 높게 맞춘다. 롤백에 따른 결번은 허용하며 회차는 사용하지 않는다. 별도 TN_PM_SMLT_MSTR는 사용하지 않는다.
-RSLT_SMLT_ID는 호환 컬럼으로 남지만 결과 연결 후 공통 SMLT_ID와 같다.
+USER_MSTR의 RSLT_SMLT_ID·SMLT_RSLT_SFX는 2026-10-26 제거했다. 결과는 같은 SMLT_ID로 STNG와 잇고,
+CAST의 simulationResultSuffix는 SMLT_REQ_ID를 그대로 내보낸다(`java/ddl/2026-10-26-user-mstr-drop-rslt-cols.sql`).
 구 회차·요청·결과 ID는 이관 대응표와 원본 LGC에서만 보존한다.
 
 ### 11.3 CAST 리소스 참조

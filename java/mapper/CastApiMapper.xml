@@ -2239,7 +2239,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
          , LISTAGG(NVL(CKNCT_SRVC_HR_RSRC_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS checkinCounterServiceTime
          , LISTAGG(NVL(CHKN_TYPE_RSRC_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS checkinType
          , LISTAGG(NVL(RPT_STNG_ATRB_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS rptStngId
-         , LISTAGG(NVL(SMLT_RSLT_SFX,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS simulationResultSuffix
+         , LISTAGG(NVL(SMLT_REQ_ID,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS simulationResultSuffix
          , LISTAGG(NVL(SMLT_STTS,' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS status
          , LISTAGG(NVL(TO_CHAR(NVL(LAST_MDFCN_DT,FRST_REG_DT),'YYYY-MM-DD"T"HH24:MI:SS'),' '),',')   WITHIN GROUP (ORDER BY SMLT_REQ_ID) AS lastChange
          , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
@@ -2294,13 +2294,12 @@ ORDER BY BlockID, DepArrTerminal, resourceID
         /* CastApiMapper.updateUserReqFinished(UserSmltReqDto dto) */
         UPDATE PMOWN.TN_PM_SMLT_USER_MSTR
         SET    SMLT_STTS = 'Finished'
-             , RSLT_SMLT_ID = #{rsltSmltId}
              , END_DT = CURRENT_TIMESTAMP
              , LAST_MDFR_ID = 'CAST'
              , LAST_MDFR_IP_ADDR = #{loginIpAddr}
              , LAST_MDFCN_DT = CURRENT_TIMESTAMP
         WHERE SMLT_REQ_ID = #{smltReqId}
-        AND SMLT_STTS IN ('New', 'Executing', 'Finished') AND RSLT_SMLT_ID IS NULL
+        AND SMLT_STTS IN ('New', 'Executing', 'Finished')
     </update>
 
     <select id="selectBaseYmdForCalibration" resultType="String">

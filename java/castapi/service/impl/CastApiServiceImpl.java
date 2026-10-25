@@ -2587,7 +2587,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
             executeBatchInsert(details);
 
         if (userReq != null) {
-            userReq.setRsltSmltId(simId); userReq.setLoginIpAddr(dto.getLoginIpAddr());
+            userReq.setLoginIpAddr(dto.getLoginIpAddr());
             castApiMapper.updateUserReqFinished(userReq);
         }
         return 1;
