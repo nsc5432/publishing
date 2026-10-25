@@ -16,7 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.domains.chkn.ChknQueueSeries;
-import aoms.pm.cast.domains.chkn.ChknQueueTrajectory;
+import aoms.pm.cast.domains.chkn.ChknQueueTmnlSeries;
 import aoms.pm.cast.domains.chkn.ChknWtngSecBuilder;
 import aoms.pm.cast.domains.dsbd.DepQueueDay;
 import aoms.pm.cast.domains.dsbd.DepWtngSecBuilder;
@@ -101,13 +101,13 @@ public class CastFcltWtngServiceImpl implements CastFcltWtngService {
 		LocalDate baseDate = baseDateOf(smltStng);
 
 		if (fcltType == FcltType.CHKN) {
-			ChknQueueTrajectory trajectory = castChknQueueService.calculateChknQueue(smltStng, tmnlId);
+			ChknQueueTmnlSeries tmnlSeries = castChknQueueService.calculateChknQueue(smltStng, tmnlId);
 
 			return new FcltWtngScope(
 					CastChknQueueService.CHKN_ISLAND_CD_LIST,
-					ChknWtngSecBuilder.rangeStartOf(baseDate, trajectory.getOriginMinute()),
+					ChknWtngSecBuilder.rangeStartOf(baseDate, tmnlSeries.getOriginMinute()),
 					ChknWtngSecBuilder.rangeEndOf(baseDate),
-					ChknWtngSecBuilder.build(trajectory));
+					ChknWtngSecBuilder.build(tmnlSeries));
 		}
 
 		requireDep(fcltType);

@@ -28,9 +28,9 @@ public final class ChknQueueDay {
 	private final Map<String, ChknQueueSeries> seriesMap;
 	private final ChknQueueSeries tmnlSeries;
 
-	public ChknQueueDay(ChknQueueTrajectory trajectory) {
-		this.seriesMap = new LinkedHashMap<>(trajectory.getSeriesMap());
-		this.tmnlSeries = ChknQueueSeries.merge(TMNL_ISLAND, trajectory.getOriginMinute(), new ArrayList<>(seriesMap.values()));
+	public ChknQueueDay(ChknQueueTmnlSeries source) {
+		this.seriesMap = new LinkedHashMap<>(source.getSeriesMap());
+		this.tmnlSeries = ChknQueueSeries.merge(TMNL_ISLAND, source.getOriginMinute(), new ArrayList<>(seriesMap.values()));
 	}
 
 	public List<String> islandCdList() {

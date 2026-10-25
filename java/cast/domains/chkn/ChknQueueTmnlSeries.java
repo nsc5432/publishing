@@ -10,7 +10,7 @@ import java.util.Map;
 import aoms.pm.cast.enums.TerminalKind;
 
 /**
- * @Classname : ChknQueueTrajectory.java
+ * @Classname : ChknQueueTmnlSeries.java
  * @Description : 터미널 아일랜드 공용 Queue 의 분 단위 계산 결과. 혼잡등급 기준표와 무관하다
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
@@ -24,7 +24,7 @@ import aoms.pm.cast.enums.TerminalKind;
  *
  * </pre>
  */
-public final class ChknQueueTrajectory {
+public final class ChknQueueTmnlSeries {
 	private final TerminalKind tmnlId;
 	private final LocalDate baseDate;
 	private final int originMinute;
@@ -35,7 +35,7 @@ public final class ChknQueueTrajectory {
 	 * @param originMinute 계산 시작 분 (0 이하)
 	 * @param covered      [originMinute, 1440) 분마다 터미널 CC 결과가 있는지 — 결과가 없는 분은 관측하지 않은 구간이다
 	 */
-	public ChknQueueTrajectory(
+	public ChknQueueTmnlSeries(
 			TerminalKind tmnlId,
 			LocalDate baseDate,
 			int originMinute,

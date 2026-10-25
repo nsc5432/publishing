@@ -536,7 +536,7 @@ AGENTS.md와 docs/plans/2026-10-24-fclt-wtng-rslt-db-design.md를 읽고 구현�
 |---|---|
 | 10분 통계 모델 · 경계 · 완전성 검사 | `cast/domains/wtng/FcltWtngSec`, `FcltWtngSecs`, `FcltWtngScope` |
 | 공통 평가 (슬롯 지표 · 등급 · §8 근사 · 추천 · 해소) | `cast/domains/wtng/FcltWtngDay` |
-| 1분 FIFO → 10분 집계 | `cast/domains/chkn/ChknWtngSecBuilder` (등급표와 무관한 `ChknQueueTrajectory` 입력) |
+| 1분 FIFO → 10분 집계 | `cast/domains/chkn/ChknWtngSecBuilder` (등급표와 무관한 `ChknQueueTmnlSeries` 입력) |
 | 출국장 원천 → 10분 구간 | `cast/domains/dsbd/DepWtngSecBuilder` |
 | 저장 / 조회 보완 / 계산 | `CastFcltWtngService(Impl)` — `retrieveFcltWtngDay` · `calculateScope` |
 | 최초 저장 (저장 단위 4개 순회) | `CastFcltWtngRsltCreateService(Impl)` — `NOT_SUPPORTED` |

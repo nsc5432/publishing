@@ -172,7 +172,7 @@ import 순서는 각 파일의 기존 정렬(알파벳순 그룹)을 따른다.
 
 | 지울 것 | 비고 |
 |---|---|
-| `windowSlotOf`, `waitWindowOf`, `avgWtngSecOf`, `gradeOf`, `warningList`, `sourceOf`, `clearanceOf`, `recommendOf` | 서비스 호출 없음. `warningList` 는 `ChknQueueTrajectory.warningList`(서비스가 씀)와 다른 메서드 |
+| `windowSlotOf`, `waitWindowOf`, `avgWtngSecOf`, `gradeOf`, `warningList`, `sourceOf`, `clearanceOf`, `recommendOf` | 서비스 호출 없음. `warningList` 는 `ChknQueueTmnlSeries.warningList`(서비스가 씀)와 다른 메서드 |
 | private `historyGapOf` | 위 메서드만 쓴다 |
 | 필드 `gradeScale`, 생성자 인자 `CgnGradeScale` | 위 메서드만 쓴다 |
 | 남는 참조가 없어진 필드 · 상수 (`trajectory`, `tmnlId`, `baseDate`, `WINDOW_MIN`, `SEC_PER_MIN` 등) | 하나씩 사용처를 확인하고 지운다. `seriesMap` · `tmnlSeries` · `originMinute` · `TMNL_ISLAND` 는 생성자 · 남는 메서드가 쓴다 |

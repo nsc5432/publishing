@@ -44,16 +44,16 @@ public final class ChknWtngSecBuilder {
 	}
 
 	/** 아일랜드마다 [계산 시작 경계, 대상일 24:00) 의 연속 10분 행 */
-	public static Map<String, List<FcltWtngSec>> build(ChknQueueTrajectory trajectory) {
-		LocalDateTime dayStart = trajectory.getBaseDate().atStartOfDay();
-		int firstBgn = FcltWtngSecs.floorSecMinute(trajectory.getOriginMinute());
+	public static Map<String, List<FcltWtngSec>> build(ChknQueueTmnlSeries tmnlSeries) {
+		LocalDateTime dayStart = tmnlSeries.getBaseDate().atStartOfDay();
+		int firstBgn = FcltWtngSecs.floorSecMinute(tmnlSeries.getOriginMinute());
 		Map<String, List<FcltWtngSec>> result = new LinkedHashMap<>();
 
-		trajectory.getSeriesMap().forEach((island, series) -> {
+		tmnlSeries.getSeriesMap().forEach((island, series) -> {
 			List<FcltWtngSec> secList = new ArrayList<>();
 
 			for (int bgn = firstBgn; bgn < MINUTE_PER_DAY; bgn += SEC_MIN) {
-				secList.add(toSec(island, series, trajectory, dayStart, bgn));
+				secList.add(toSec(island, series, tmnlSeries, dayStart, bgn));
 			}
 
 			result.put(island, secList);
@@ -63,8 +63,8 @@ public final class ChknWtngSecBuilder {
 	}
 
 	// queue[m] 은 m 분 처리 후 Queue 라 [b, e) 의 시작 Queue 는 queue[b-1], 종료 Queue 는 queue[e-1] 이다
-	private static FcltWtngSec toSec(String island, ChknQueueSeries series, ChknQueueTrajectory trajectory, LocalDateTime dayStart, int bgn) {
-		int origin = trajectory.getOriginMinute();
+	private static FcltWtngSec toSec(String island, ChknQueueSeries series, ChknQueueTmnlSeries tmnlSeries, LocalDateTime dayStart, int bgn) {
+		int origin = tmnlSeries.getOriginMinute();
 		int from = Math.max(bgn, origin);
 		int end = bgn + SEC_MIN;
 		long queueSum = 0;
@@ -93,7 +93,7 @@ public final class ChknWtngSecBuilder {
 				vldBoothMinuteSum += series.boothCntAt(minute);
 			}
 
-			if (trajectory.isCovered(minute)) {
+			if (tmnlSeries.isCovered(minute)) {
 				observedMinute++;
 			}
 		}

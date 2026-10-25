@@ -20,7 +20,7 @@ import aoms.pm.cast.domains.chkn.ChknQueueCalculator;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknQueueInterval;
 import aoms.pm.cast.domains.chkn.ChknQueueSeries;
-import aoms.pm.cast.domains.chkn.ChknQueueTrajectory;
+import aoms.pm.cast.domains.chkn.ChknQueueTmnlSeries;
 import aoms.pm.cast.domains.chkn.ChknSbdDay;
 import aoms.pm.cast.dto.ChknBoothOperRawDto;
 import aoms.pm.cast.dto.ChknQueueRawDto;
@@ -64,11 +64,11 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 	}
 
 	@Override
-	public ChknQueueTrajectory calculateChknQueue(SmltStngDto smltStng, TerminalKind tmnlId) {
+	public ChknQueueTmnlSeries calculateChknQueue(SmltStngDto smltStng, TerminalKind tmnlId) {
 		return calculate(smltStng, tmnlId, smltStng.getSmltMdlSn());
 	}
 
-	private ChknQueueTrajectory calculate(SmltStngDto smltStng, TerminalKind tmnlId, Integer smltMdlSn) {
+	private ChknQueueTmnlSeries calculate(SmltStngDto smltStng, TerminalKind tmnlId, Integer smltMdlSn) {
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 		String context = "smltId=" + smltStng.getSmltId() + ", smltMdlSn=" + smltMdlSn + ", tmnlId=" + tmnlId.getValue();
 		LocalDate baseDate = LocalDate.parse(smltStng.getExcnYmd(), DateTimeFormatter.ofPattern(YMD_FORMAT));
@@ -91,7 +91,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
             ));
 		}
 
-		ChknQueueTrajectory result = new ChknQueueTrajectory(
+		ChknQueueTmnlSeries result = new ChknQueueTmnlSeries(
                 tmnlId,
                 baseDate,
                 originMinute,
