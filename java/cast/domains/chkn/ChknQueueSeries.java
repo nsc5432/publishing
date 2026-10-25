@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import aoms.pm.cast.domains.wtng.ChknQueueSlot;
+import aoms.pm.cast.domains.wtng.FcltWtngSlot;
 
 /**
  * @Classname : ChknQueueSeries.java
@@ -144,12 +144,12 @@ public final class ChknQueueSeries {
 		return isInRange(minute) ? prcsSecSum[minute - originMinute] : 0;
 	}
 
-	public ChknQueueSlot slotOf(int bgnMinute, int minutes) {
+	public FcltWtngSlot slotOf(int bgnMinute, int minutes) {
 		int bgn = Math.max(bgnMinute, originMinute);
 		int end = Math.min(bgnMinute + minutes, MINUTE_PER_DAY);
 
 		if (bgn >= end) {
-			return ChknQueueSlot.EMPTY;
+			return FcltWtngSlot.EMPTY;
 		}
 
 		long queueSum = 0;
@@ -171,7 +171,7 @@ public final class ChknQueueSeries {
 		int minutes0 = end - bgn;
 		int last = end - 1 - originMinute;
 
-		return new ChknQueueSlot(
+		return new FcltWtngSlot(
 			queue[last],
 			Math.toIntExact(Math.round((double) queueSum / minutes0)),
 			maxQueue,

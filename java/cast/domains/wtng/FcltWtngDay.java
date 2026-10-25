@@ -101,7 +101,7 @@ public final class FcltWtngDay {
 	}
 
 	/** [bgnDt, bgnDt+minutes) 의 Queue 지표. 10분 행을 다시 합산한다 */
-	public ChknQueueSlot slotOf(String unitCd, LocalDateTime bgnDt, int minutes) {
+	public FcltWtngSlot slotOf(String unitCd, LocalDateTime bgnDt, int minutes) {
 		requireBoundary(bgnDt);
 
 		if (minutes <= 0 || minutes % SEC_MIN != 0) {
@@ -111,13 +111,13 @@ public final class FcltWtngDay {
 		TreeMap<LocalDateTime, FcltWtngSec> secMap = secMapByUnit.get(unitCd);
 
 		if (secMap == null) {
-			return ChknQueueSlot.EMPTY;
+			return FcltWtngSlot.EMPTY;
 		}
 
 		List<FcltWtngSec> secList = new ArrayList<>(secMap.subMap(bgnDt, true, bgnDt.plusMinutes(minutes), false).values());
 
 		if (secList.isEmpty()) {
-			return ChknQueueSlot.EMPTY;
+			return FcltWtngSlot.EMPTY;
 		}
 
 		long queueSum = 0;
@@ -142,7 +142,7 @@ public final class FcltWtngDay {
 
 		FcltWtngSec last = secList.get(secList.size() - 1);
 
-		return new ChknQueueSlot(
+		return new FcltWtngSlot(
 				valueOf(last.getEndWtngPsgCnt()),
 				nocs == 0 ? 0 : Math.toIntExact(Math.round((double) queueSum / nocs)),
 				maxQueue,
@@ -154,7 +154,7 @@ public final class FcltWtngDay {
 	}
 
 	/** 평가시각 직전 30분 [evalDt-30, evalDt) — 카드 / 혼잡해소 팝업이 읽는 구간 */
-	public ChknQueueSlot windowSlotOf(String unitCd, LocalDateTime evalDt) {
+	public FcltWtngSlot windowSlotOf(String unitCd, LocalDateTime evalDt) {
 		return slotOf(unitCd, evalDt.minusMinutes(WINDOW_MIN), WINDOW_MIN);
 	}
 
@@ -231,25 +231,25 @@ public final class FcltWtngDay {
 	}
 
 	// 요약보기 카드 / 혼잡해소 팝업 기본값(목표 30분)과 같은 추천
-	public ChknQueueRecommend recommendOf(String unitCd, LocalDateTime evalDt) {
+	public FcltWtngRecommend recommendOf(String unitCd, LocalDateTime evalDt) {
 		FcltQueueClearance clearance = clearanceOf(unitCd, evalDt);
 
 		if (clearance == null) {
-			return ChknQueueRecommend.NONE;
+			return FcltWtngRecommend.NONE;
 		}
 
 		FcltQueueClearance.Recommend recommend = clearance.recommendOf(FcltQueueClearance.DFLT_TARGET_MIN);
 
 		if (recommend.getReqCnt() == null) {
-			return ChknQueueRecommend.NONE;
+			return FcltWtngRecommend.NONE;
 		}
 
-		return new ChknQueueRecommend(recommend.getReqCnt(), recommend.getReqClear().getClearMin());
+		return new FcltWtngRecommend(recommend.getReqCnt(), recommend.getReqClear().getClearMin());
 	}
 
 	private FcltQueueSource chknSourceOf(String unitCd, LocalDateTime evalDt) {
 		FcltWtngSec[] window = windowOf(unitCd, evalDt);
-		ChknQueueSlot slot = windowSlotOf(unitCd, evalDt);
+		FcltWtngSlot slot = windowSlotOf(unitCd, evalDt);
 		QueueWaitWindow waitWindow = waitWindowOf(unitCd, evalDt);
 		Computed<Double> avgWtngSec = waitWindow.observedAvgWtngSec();
 		long capacitySum = 0;

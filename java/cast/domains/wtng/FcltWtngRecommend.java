@@ -1,7 +1,7 @@
 package aoms.pm.cast.domains.wtng;
 
 /**
- * @Classname : ChknQueueRecommend.java
+ * @Classname : FcltWtngRecommend.java
  * @Description : 공용 Queue 30분 슬롯으로 구한 부스 추천 — 산정할 수 없으면 값이 null 이다
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
@@ -15,13 +15,13 @@ package aoms.pm.cast.domains.wtng;
  *
  * </pre>
  */
-public final class ChknQueueRecommend {
-	public static final ChknQueueRecommend NONE = new ChknQueueRecommend(null, null);
+public final class FcltWtngRecommend {
+	public static final FcltWtngRecommend NONE = new FcltWtngRecommend(null, null);
 
 	private final Integer reqCnt;
 	private final Integer cgnClearMin;
 
-	public ChknQueueRecommend(Integer reqCnt, Integer cgnClearMin) {
+	public FcltWtngRecommend(Integer reqCnt, Integer cgnClearMin) {
 		this.reqCnt = reqCnt;
 		this.cgnClearMin = cgnClearMin;
 	}

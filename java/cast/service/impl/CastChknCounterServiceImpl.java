@@ -16,9 +16,9 @@ import aoms.pm.cast.domains.CgnOrder;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknQueueKpi;
 import aoms.pm.cast.domains.queue.Computed;
-import aoms.pm.cast.domains.wtng.ChknQueueRecommend;
-import aoms.pm.cast.domains.wtng.ChknQueueSlot;
 import aoms.pm.cast.domains.wtng.FcltWtngDay;
+import aoms.pm.cast.domains.wtng.FcltWtngRecommend;
+import aoms.pm.cast.domains.wtng.FcltWtngSlot;
 import aoms.pm.cast.dto.ChknCounterDto;
 import aoms.pm.cast.dto.ChknCounterIslandDto;
 import aoms.pm.cast.dto.ChknCounterRsrcDto;
@@ -213,7 +213,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 
 		for (String hour : TimeBucketUtils.hourList()) {
 			int hourValue = Integer.parseInt(hour);
-			ChknQueueSlot hourSlot = queueDay.tmnlSeries().slotOf(hourValue * MINUTE_PER_HOUR, MINUTE_PER_HOUR);
+			FcltWtngSlot hourSlot = queueDay.tmnlSeries().slotOf(hourValue * MINUTE_PER_HOUR, MINUTE_PER_HOUR);
 			List<ChknCounterIslandDto> oprIslandList = islandList.stream()
 					.filter(island -> isOpr(island.getOprTimeList(), hourValue))
 					.collect(toList());
@@ -283,9 +283,9 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 
 	// 지표는 슬롯 [hhmm, hhmm+30), 혼잡등급 / 추천은 평가시각 hhmm 의 직전 30분 — 맵형태보기와 같은 규칙이다
 	private MapChknRsltDto toChknRslt(String islandCd, ChknQueueDay queueDay, FcltWtngDay wtngDay, int bgnMinute) {
-		ChknQueueSlot queueSlot = queueDay.slotOf(islandCd, bgnMinute, SLOT_MIN);
+		FcltWtngSlot queueSlot = queueDay.slotOf(islandCd, bgnMinute, SLOT_MIN);
 		LocalDateTime evalDt = wtngDay.dtOf(bgnMinute);
-		ChknQueueRecommend recommend = wtngDay.recommendOf(islandCd, evalDt);
+		FcltWtngRecommend recommend = wtngDay.recommendOf(islandCd, evalDt);
 		Computed<Double> avgWtngSec = wtngDay.avgWtngSecOf(islandCd, evalDt);
 
 		MapCgnStatDto stat = new MapCgnStatDto();

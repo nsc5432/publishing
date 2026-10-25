@@ -28,11 +28,11 @@ import aoms.pm.cast.domains.chkn.ChknSbdDay;
 import aoms.pm.cast.domains.dsbd.AssignmentSummary;
 import aoms.pm.cast.domains.dsbd.IslandMainAln;
 import aoms.pm.cast.domains.queue.Computed;
-import aoms.pm.cast.domains.wtng.ChknQueueSlot;
 import aoms.pm.cast.domains.wtng.FcltQueueClearance;
 import aoms.pm.cast.domains.wtng.FcltQueueSource;
 import aoms.pm.cast.domains.wtng.FcltWtngDay;
 import aoms.pm.cast.domains.wtng.FcltWtngSecs;
+import aoms.pm.cast.domains.wtng.FcltWtngSlot;
 import aoms.pm.cast.dto.BdpsgAnceRawDto;
 import aoms.pm.cast.dto.ChknAlnAssignmentRawDto;
 import aoms.pm.cast.dto.DowAttrDto;
@@ -347,7 +347,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		Map<String, Integer> queueMap = new LinkedHashMap<>();
 
 		for (String unitCd : wtngDay.unitCdList()) {
-			ChknQueueSlot slot = wtngDay.windowSlotOf(unitCd, evalDt);
+			FcltWtngSlot slot = wtngDay.windowSlotOf(unitCd, evalDt);
 
 			if (slot.getCurrentQueue() > 0 || slot.getPrcsPsgCnt() > 0 || slot.getOprBoothCnt() > 0) {
 				avgWtngSecMap.put(unitCd, wtngDay.avgWtngSecOf(unitCd, evalDt).getValue());
@@ -371,7 +371,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				continue;
 			}
 
-			ChknQueueSlot slot = wtngDay.windowSlotOf(unitCd, evalDt);
+			FcltWtngSlot slot = wtngDay.windowSlotOf(unitCd, evalDt);
 
 			result.add(new FcltUnitDto()
                 .withUnitCd(unitCd)
@@ -391,7 +391,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			throw new IllegalStateException("선택한 시설의 시뮬레이션 결과를 찾을 수 없습니다. " + unitContext);
 		}
 
-		ChknQueueSlot slot = wtngDay.windowSlotOf(unitCd, evalDt);
+		FcltWtngSlot slot = wtngDay.windowSlotOf(unitCd, evalDt);
 		FcltQueueClearance.Recommend recommend = clearance.recommendOf(FcltQueueClearance.DFLT_TARGET_MIN);
 		Integer reqCnt = recommend.getReqCnt();
 		int queuePsgCnt = slot.getCurrentQueue();
@@ -642,7 +642,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	) {
 		int bgnMinute = Integer.parseInt(hour) * MIN_PER_HOUR;
 		int endMinute = bgnMinute + MIN_PER_HOUR;
-		ChknQueueSlot cc = queueDay.tmnlSeries().slotOf(bgnMinute, MIN_PER_HOUR);
+		FcltWtngSlot cc = queueDay.tmnlSeries().slotOf(bgnMinute, MIN_PER_HOUR);
 		int maxIslandQueue = 0;
 		int endQueue = cc.getCurrentQueue();
 

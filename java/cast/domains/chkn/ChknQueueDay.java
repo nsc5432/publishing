@@ -5,7 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import aoms.pm.cast.domains.wtng.ChknQueueSlot;
+import aoms.pm.cast.domains.wtng.FcltWtngSlot;
 
 /**
  * @Classname : ChknQueueDay.java
@@ -41,10 +41,10 @@ public final class ChknQueueDay {
 		return tmnlSeries;
 	}
 
-	public ChknQueueSlot slotOf(String island, int bgnMinute, int minutes) {
+	public FcltWtngSlot slotOf(String island, int bgnMinute, int minutes) {
 		ChknQueueSeries series = seriesMap.get(island);
 
-		return series == null ? ChknQueueSlot.EMPTY : series.slotOf(bgnMinute, minutes);
+		return series == null ? FcltWtngSlot.EMPTY : series.slotOf(bgnMinute, minutes);
 	}
 
 	public int queueAt(String island, int minute) {

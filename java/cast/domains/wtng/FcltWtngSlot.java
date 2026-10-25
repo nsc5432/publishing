@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * @Classname : ChknQueueSlot.java
+ * @Classname : FcltWtngSlot.java
  * @Description : 공용 Queue 를 화면 구간(30분 / 1시간)으로 접은 값
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
@@ -21,8 +21,8 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor(access = AccessLevel.PUBLIC)
-public final class ChknQueueSlot {
-	public static final ChknQueueSlot EMPTY = new ChknQueueSlot(0, 0, 0, 0, 0, 0, 0, 0);
+public final class FcltWtngSlot {
+	public static final FcltWtngSlot EMPTY = new FcltWtngSlot(0, 0, 0, 0, 0, 0, 0, 0);
 
 	/** 구간 마지막 분의 Queue */
 	private final int currentQueue;

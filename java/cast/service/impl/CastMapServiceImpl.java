@@ -14,9 +14,9 @@ import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.domains.CgnOrder;
 import aoms.pm.cast.domains.MapLayout;
 import aoms.pm.cast.domains.queue.Computed;
-import aoms.pm.cast.domains.wtng.ChknQueueRecommend;
-import aoms.pm.cast.domains.wtng.ChknQueueSlot;
 import aoms.pm.cast.domains.wtng.FcltWtngDay;
+import aoms.pm.cast.domains.wtng.FcltWtngRecommend;
+import aoms.pm.cast.domains.wtng.FcltWtngSlot;
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
 import aoms.pm.cast.dto.FltSmryRawDto;
@@ -303,8 +303,8 @@ public class CastMapServiceImpl implements CastMapService {
 		List<MapChknRsltDto> result = new ArrayList<>();
 
 		for (String islandCd : MapLayout.islandCdList(tmnlId)) {
-			ChknQueueSlot queueSlot = chknDay.slotOf(islandCd, evalDt, SLOT_MIN);
-			ChknQueueRecommend recommend = chknDay.recommendOf(islandCd, evalDt);
+			FcltWtngSlot queueSlot = chknDay.slotOf(islandCd, evalDt, SLOT_MIN);
+			FcltWtngRecommend recommend = chknDay.recommendOf(islandCd, evalDt);
 			Computed<Double> avgWtngSec = chknDay.avgWtngSecOf(islandCd, evalDt);
 
 			MapCgnStatDto stat = new MapCgnStatDto();
