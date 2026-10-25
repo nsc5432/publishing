@@ -1,0 +1,56 @@
+SET SERVEROUTPUT ON
+WHENEVER SQLERROR EXIT SQL.SQLCODE ROLLBACK
+
+-- Oracle은 값이 있는 NUMBER 컬럼의 precision 또는 scale 축소를 허용하지 않는다.
+DECLARE
+    column_count NUMBER;
+    target_count NUMBER;
+    row_count NUMBER;
+BEGIN
+    IF SYS_CONTEXT('USERENV', 'SESSION_USER') != 'PMOWN'
+        OR SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') != 'PMOWN' THEN
+        RAISE_APPLICATION_ERROR(-20001, 'PMOWN 계정과 스키마에서 실행해주세요.');
+    END IF;
+
+    SELECT COUNT(*), NVL(SUM(CASE
+        WHEN DATA_SCALE = 0
+            AND DATA_PRECISION = CASE WHEN COLUMN_NAME = 'WTNG_NOCS' THEN 2 ELSE 12 END
+        THEN 1 ELSE 0 END), 0)
+    INTO column_count, target_count
+    FROM ALL_TAB_COLUMNS
+    WHERE OWNER = 'PMOWN'
+        AND TABLE_NAME = 'TN_PM_SMLT_FCLT_WTNG_RSLT'
+        AND COLUMN_NAME IN (
+            'END_WTNG_PSG_CNT', 'PRCS_PSG_CNT', 'WTNG_PSEC_SUM', 'WTNG_VLD_PSG_CNT',
+            'PRCS_PSEC_SUM', 'PRCS_VLD_PSG_CNT', 'WTNG_PSG_CNT_SUM', 'WTNG_NOCS',
+            'MAX_WTNG_PSG_CNT', 'END_OPER_CNTOM', 'PRCS_CPCT', 'PRCS_VLD_OPER_CNTOM_SUM'
+        )
+        AND DATA_TYPE = 'NUMBER'
+        AND DATA_PRECISION IN (2, 12, 18, 28)
+        AND DATA_SCALE IN (0, 6);
+
+    IF column_count != 12 THEN
+        RAISE_APPLICATION_ERROR(-20002, '시설 수치 12개 컬럼의 기존 자료형을 확인해주세요.');
+    END IF;
+
+    IF target_count = 12 THEN
+        DBMS_OUTPUT.PUT_LINE('WTNG_NOCS는 NUMBER(2,0), 나머지 수치 컬럼은 NUMBER(12,0)입니다.');
+        RETURN;
+    END IF;
+
+    SELECT COUNT(*) INTO row_count FROM PMOWN.TN_PM_SMLT_FCLT_WTNG_RSLT;
+
+    IF row_count != 0 THEN
+        RAISE_APPLICATION_ERROR(-20003, '기존 결과가 있어 중단합니다. 데이터 보존 이관 절차를 먼저 마련해주세요.');
+    END IF;
+
+    EXECUTE IMMEDIATE 'ALTER TABLE PMOWN.TN_PM_SMLT_FCLT_WTNG_RSLT MODIFY ('
+        || 'END_WTNG_PSG_CNT NUMBER(12,0), PRCS_PSG_CNT NUMBER(12,0), '
+        || 'WTNG_PSEC_SUM NUMBER(12,0), WTNG_VLD_PSG_CNT NUMBER(12,0), '
+        || 'PRCS_PSEC_SUM NUMBER(12,0), PRCS_VLD_PSG_CNT NUMBER(12,0), '
+        || 'WTNG_PSG_CNT_SUM NUMBER(12,0), WTNG_NOCS NUMBER(2,0), '
+        || 'MAX_WTNG_PSG_CNT NUMBER(12,0), END_OPER_CNTOM NUMBER(12,0), '
+        || 'PRCS_CPCT NUMBER(12,0), PRCS_VLD_OPER_CNTOM_SUM NUMBER(12,0))';
+    DBMS_OUTPUT.PUT_LINE('WTNG_NOCS는 NUMBER(2,0), 나머지 수치 컬럼은 NUMBER(12,0)으로 변경했습니다.');
+END;
+/

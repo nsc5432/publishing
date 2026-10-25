@@ -1,6 +1,9 @@
 # `TN_PM_SMLT_FCLT_WTNG_RSLT` 컬럼 축소 · 감사 컬럼 표준화 계획
 
 작성일: 2026-10-26 · 기준 커밋: `811572a`
+
+후속 변경: 시간 합계를 정수 초로 정리하고, 표본 수 `WTNG_NOCS` 는 `NUMBER(2,0)`, 나머지 데이터 수치 11개 컬럼은 `NUMBER(12,0)` 으로 정했다. 아래 자료형은 컬럼 축소 당시 기록이며, 현재 정의는 [DDL](../../java/ddl/cast-ddl.sql)을 따른다.
+
 대상: `TN_PM_SMLT_FCLT_WTNG_RSLT` DDL, 이 테이블을 쓰고 읽는 Java 참조 소스(`java/cast` · `java/castapi` · `java/mapper`), 회귀 하네스(`java/verify`)
 
 이 문서만 읽고 새 세션에서 작업을 시작할 수 있게 썼다. 이전 대화 내용은 필요 없다.

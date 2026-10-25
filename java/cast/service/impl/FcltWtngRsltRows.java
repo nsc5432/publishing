@@ -28,7 +28,9 @@ import aoms.pm.cast.enums.TerminalKind;
  * </pre>
  */
 final class FcltWtngRsltRows {
-	private static final int PSEC_SCALE = 6;
+	private static final int PSEC_SCALE = 0;
+	private static final long MAX_METRIC_VALUE = 999_999_999_999L;
+	private static final BigDecimal MAX_METRIC_DECIMAL = BigDecimal.valueOf(MAX_METRIC_VALUE);
 	private static final String YN_Y = "Y";
 	private static final String YN_N = "N";
 
@@ -61,6 +63,11 @@ final class FcltWtngRsltRows {
 				row.setPrcsCpct(sec.getPrcsCpct());
 				row.setPrcsVldOperCntomSum(sec.getPrcsVldOperCntomSum());
 				row.setObsrvnYn(sec.isObsrvn() ? YN_Y : YN_N);
+
+				if (hasOutOfRangeMetric(row)) {
+					throw new IllegalStateException("시설 수치가 NUMBER(12,0) 범위를 넘습니다. unitCd=" + unitCd + ", secBgngDt=" + sec.getSecBgngDt());
+				}
+
 				result.add(row);
 			}
 		});
@@ -81,6 +88,15 @@ final class FcltWtngRsltRows {
 
 			if (row.getWtngPsecSum() == null || row.getPrcsPsecSum() == null) {
 				return "시간 합계가 비어 있는 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secBgngDt=" + row.getSecBgngDt();
+			}
+
+			if (row.getWtngPsecSum().stripTrailingZeros().scale() > PSEC_SCALE
+					|| row.getPrcsPsecSum().stripTrailingZeros().scale() > PSEC_SCALE) {
+				return "초단위 합계가 정수가 아닌 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secBgngDt=" + row.getSecBgngDt();
+			}
+
+			if (hasOutOfRangeMetric(row)) {
+				return "시설 수치가 NUMBER(12,0) 범위를 넘는 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secBgngDt=" + row.getSecBgngDt();
 			}
 		}
 
@@ -114,13 +130,25 @@ final class FcltWtngRsltRows {
 		return result;
 	}
 
-	// NUMBER(28,6) 의 묵시적 반올림에 기대지 않는다
+	private static boolean hasOutOfRangeMetric(FcltWtngRsltDto row) {
+		return row.getWtngPsecSum().abs().compareTo(MAX_METRIC_DECIMAL) > 0
+				|| row.getPrcsPsecSum().abs().compareTo(MAX_METRIC_DECIMAL) > 0
+				|| isOutOfMetricRange(row.getWtngPsgCntSum())
+				|| isOutOfMetricRange(row.getPrcsCpct())
+				|| isOutOfMetricRange(row.getPrcsVldOperCntomSum());
+	}
+
+	private static boolean isOutOfMetricRange(Long value) {
+		return value != null && (value < -MAX_METRIC_VALUE || value > MAX_METRIC_VALUE);
+	}
+
+	// NUMBER(12,0) 의 묵시적 반올림에 기대지 않는다
 	private static BigDecimal toPsec(double value, String unitCd, FcltWtngSec sec) {
 		if (!Double.isFinite(value) || BigDecimal.valueOf(value).stripTrailingZeros().scale() > PSEC_SCALE) {
-			throw new IllegalStateException("초단위 합계가 유한하지 않거나 소수 자릿수가 " + PSEC_SCALE + "자리를 넘습니다. unitCd=" + unitCd
+			throw new IllegalStateException("초단위 합계는 유한한 정수여야 합니다. unitCd=" + unitCd
 					+ ", secBgngDt=" + sec.getSecBgngDt() + ", value=" + value);
 		}
 
-		return BigDecimal.valueOf(value);
+		return BigDecimal.valueOf(value).setScale(PSEC_SCALE);
 	}
 }
