@@ -108,7 +108,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 
 		int totCnt = cknctCntList.stream().mapToInt(CknctCntRawDto::getCknctCnt).sum();
 		List<ChknCounterRsrcDto> rsrcList = getRsrcList(islandList, queueDay, totCnt);
-		ChknQueueKpi queueKpi = queueDay.tmnlSeries().kpi();
+		ChknQueueKpi queueKpi = queueDay.mergedSeries().kpi();
 
 		result.setSmltId(searchDto.getSmltId());
 		result.setTmnlId(tmnlId.getValue());
@@ -213,7 +213,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 
 		for (String hour : TimeBucketUtils.hourList()) {
 			int hourValue = Integer.parseInt(hour);
-			FcltWtngSlot hourSlot = queueDay.tmnlSeries().slotOf(hourValue * MINUTE_PER_HOUR, MINUTE_PER_HOUR);
+			FcltWtngSlot hourSlot = queueDay.mergedSeries().slotOf(hourValue * MINUTE_PER_HOUR, MINUTE_PER_HOUR);
 			List<ChknCounterIslandDto> oprIslandList = islandList.stream()
 					.filter(island -> isOpr(island.getOprTimeList(), hourValue))
 					.collect(toList());

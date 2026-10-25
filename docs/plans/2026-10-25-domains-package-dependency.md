@@ -57,7 +57,7 @@ AGENTS.md §15 의 "등급 · 추천 · 해소는 저장된 10분 통계를 읽�
 # (a) FcltWtngDay 의 chkn · dsbd import — 기대: ChknQueueSlot, DepQueueDay, FcltQueueClearance, ChknQueueRecommend, FcltQueueSource 5줄
 grep -n 'import aoms.pm.cast.domains.\(chkn\|dsbd\)' java/cast/domains/wtng/FcltWtngDay.java
 
-# (b) ChknQueueDay 의 domains 밖 호출 — 기대: islandCdList · queueAt · slotOf · tmnlSeries 만 나온다
+# (b) ChknQueueDay 의 domains 밖 호출 — 기대: islandCdList · queueAt · slotOf · mergedSeries 만 나온다
 grep -rn 'queueDay\.[a-zA-Z]*(' --include=*.java java/cast/service | sed 's/.*queueDay\./queueDay./' | cut -c1-30 | sort -u
 
 # (c) DepQueueWindow · windowAt 의 domains 밖 사용 — 기대: 0줄
@@ -168,14 +168,14 @@ import 순서는 각 파일의 기존 정렬(알파벳순 그룹)을 따른다.
 
 ### 6.1 `ChknQueueDay` 평가 메서드
 
-서비스가 쓰는 것은 `islandCdList` · `tmnlSeries` · `slotOf` · `queueAt` 뿐이다 (요약보기 차트 · PRIME TIME · 체크인 상세 KPI).
+서비스가 쓰는 것은 `islandCdList` · `mergedSeries` · `slotOf` · `queueAt` 뿐이다 (요약보기 차트 · PRIME TIME · 체크인 상세 KPI).
 
 | 지울 것 | 비고 |
 |---|---|
 | `windowSlotOf`, `waitWindowOf`, `avgWtngSecOf`, `gradeOf`, `warningList`, `sourceOf`, `clearanceOf`, `recommendOf` | 서비스 호출 없음. `warningList` 는 `ChknQueueTmnlSeries.warningList`(서비스가 씀)와 다른 메서드 |
 | private `historyGapOf` | 위 메서드만 쓴다 |
 | 필드 `gradeScale`, 생성자 인자 `CgnGradeScale` | 위 메서드만 쓴다 |
-| 남는 참조가 없어진 필드 · 상수 (`trajectory`, `tmnlId`, `baseDate`, `WINDOW_MIN`, `SEC_PER_MIN` 등) | 하나씩 사용처를 확인하고 지운다. `seriesMap` · `tmnlSeries` · `originMinute` · `TMNL_ISLAND` 는 생성자 · 남는 메서드가 쓴다 |
+| 남는 참조가 없어진 필드 · 상수 (`trajectory`, `tmnlId`, `baseDate`, `WINDOW_MIN`, `SEC_PER_MIN` 등) | 하나씩 사용처를 확인하고 지운다. `seriesMap` · `mergedSeries` · `originMinute` · `TMNL_ISLAND` 는 생성자 · 남는 메서드가 쓴다 |
 | `ChknQueueSeries.waitWindowOf`, `ChknQueueSeries.serviceRateOf` | `ChknQueueDay` 만 부른다. `ChknWtngSecBuilder` 는 쓰지 않는다 |
 | 쓰이지 않게 된 import | `Computed`, `QueueDataSource`, `QueueWaitWindow`, `CgnGradeScale`, `CongestionStatus`, `BigDecimal` 등 |
 

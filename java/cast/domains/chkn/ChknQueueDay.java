@@ -26,19 +26,19 @@ public final class ChknQueueDay {
 	private static final String TMNL_ISLAND = "*";
 
 	private final Map<String, ChknQueueSeries> seriesMap;
-	private final ChknQueueSeries tmnlSeries;
+	private final ChknQueueSeries mergedSeries;
 
-	public ChknQueueDay(ChknQueueTmnlSeries source) {
-		this.seriesMap = new LinkedHashMap<>(source.getSeriesMap());
-		this.tmnlSeries = ChknQueueSeries.merge(TMNL_ISLAND, source.getOriginMinute(), new ArrayList<>(seriesMap.values()));
+	public ChknQueueDay(ChknQueueTmnlSeries tmnlSeries) {
+		this.seriesMap = new LinkedHashMap<>(tmnlSeries.getSeriesMap());
+		this.mergedSeries = ChknQueueSeries.merge(TMNL_ISLAND, tmnlSeries.getOriginMinute(), new ArrayList<>(seriesMap.values()));
 	}
 
 	public List<String> islandCdList() {
 		return new ArrayList<>(seriesMap.keySet());
 	}
 
-	public ChknQueueSeries tmnlSeries() {
-		return tmnlSeries;
+	public ChknQueueSeries mergedSeries() {
+		return mergedSeries;
 	}
 
 	public FcltWtngSlot slotOf(String island, int bgnMinute, int minutes) {

@@ -642,7 +642,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	) {
 		int bgnMinute = Integer.parseInt(hour) * MIN_PER_HOUR;
 		int endMinute = bgnMinute + MIN_PER_HOUR;
-		FcltWtngSlot cc = queueDay.tmnlSeries().slotOf(bgnMinute, MIN_PER_HOUR);
+		FcltWtngSlot cc = queueDay.mergedSeries().slotOf(bgnMinute, MIN_PER_HOUR);
 		int maxIslandQueue = 0;
 		int endQueue = cc.getCurrentQueue();
 
