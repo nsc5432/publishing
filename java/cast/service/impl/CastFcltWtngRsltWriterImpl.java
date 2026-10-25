@@ -29,7 +29,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class CastFcltWtngRsltWriterImpl implements CastFcltWtngRsltWriter {
-	// 행당 바인드 25개 — Oracle 바인드 상한(65535) 아래로 나눈다
+	// 행당 바인드 20개 — Oracle 바인드 상한(65535) 아래로 나눈다
 	private static final int INSERT_CHUNK_SIZE = 500;
 
 	private final CastFcltWtngRsltMapper castFcltWtngRsltMapper;
@@ -37,9 +37,9 @@ public class CastFcltWtngRsltWriterImpl implements CastFcltWtngRsltWriter {
 	// 원천 수신 트랜잭션에 참여한다. 중복 키면 PK 위반으로 원천 저장까지 전체가 롤백된다
 	@Override
 	@Transactional(rollbackFor = Exception.class)
-	public void insertScope(List<FcltWtngRsltDto> rowList) {
+	public void insertScope(List<FcltWtngRsltDto> rowList, String loginIpAddr) {
 		for (int fromIndex = 0; fromIndex < rowList.size(); fromIndex += INSERT_CHUNK_SIZE) {
-			castFcltWtngRsltMapper.insertFcltWtngRsltList(rowList.subList(fromIndex, Math.min(fromIndex + INSERT_CHUNK_SIZE, rowList.size())));
+			castFcltWtngRsltMapper.insertFcltWtngRsltList(rowList.subList(fromIndex, Math.min(fromIndex + INSERT_CHUNK_SIZE, rowList.size())), loginIpAddr);
 		}
 	}
 }

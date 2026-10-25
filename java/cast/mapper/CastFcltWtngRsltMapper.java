@@ -11,7 +11,7 @@ import aoms.pm.cast.dto.FcltWtngSrcDto;
 
 @Mapper
 public interface CastFcltWtngRsltMapper {
-	int insertFcltWtngRsltList(@Param("list") List<FcltWtngRsltDto> list);
+	int insertFcltWtngRsltList(@Param("list") List<FcltWtngRsltDto> list, @Param("loginIpAddr") String loginIpAddr);
 
 	List<FcltWtngRsltDto> retrieveFcltWtngRsltList(
 			@Param("smltId") String smltId,

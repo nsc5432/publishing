@@ -37,9 +37,10 @@ public final class FcltWtngRegression {
     private static void checkBoundary(int waitSec, CongestionStatus expectedGrade) {
         for (FcltType type : List.of(FcltType.CHKN, FcltType.DEP)) {
             List<FcltWtngSec> rows = new ArrayList<>();
+            rows.add(row(EVAL.minusMinutes(40), 0, 0, 0, true, type));
 
             for (int index = 0; index < 3; index++) {
-                rows.add(row(EVAL.minusMinutes(30 - index * 10L), 0, 0, 1, 1, waitSec, true, type));
+                rows.add(row(EVAL.minusMinutes(30 - index * 10L), 0, 1, waitSec, true, type));
             }
 
             FcltWtngDay day = day(type, rows);
@@ -60,23 +61,22 @@ public final class FcltWtngRegression {
     }
 
     private static void checkPsgGroupValidity() {
-        FcltWtngDay unobserved = day(FcltType.CHKN, queueRows(false, 0, 8, 10));
+        FcltWtngDay unobserved = day(FcltType.CHKN, queueRows(false, 0, 8));
         equal(3600.0, unobserved.avgWtngSecOf("A", EVAL).getValue(), "older unobserved row does not invalidate observed average");
         unavailable(unobserved, "older unobserved arrivals");
-        unavailable(day(FcltType.CHKN, queueRows(true, null, 8, 10)), "unknown beginning queue");
-        unavailable(day(FcltType.CHKN, queueRows(true, 0, null, 10)), "unknown ending queue");
-        unavailable(day(FcltType.CHKN, queueRows(true, 0, 8, null)), "unknown arrivals");
+        unavailable(day(FcltType.CHKN, queueRows(true, null, 8)), "unknown beginning queue");
+        unavailable(day(FcltType.CHKN, queueRows(true, 0, null)), "unknown ending queue");
 
-        FcltWtngDay observed = day(FcltType.CHKN, queueRows(true, 0, 8, 10));
+        FcltWtngDay observed = day(FcltType.CHKN, queueRows(true, 0, 8));
         equal(5.0, observed.waitWindowOf("A", EVAL).queuePsgCnt(), "observed older row restores five passengers");
         equal(true, observed.recommendOf("A", EVAL).getReqCnt() != null, "observed older row supports recommendation");
         equal(true, observed.clearanceOf("A", EVAL).clearOf(1, 30).getClearSec().hasValue(), "observed older row supports clearance");
 
         List<FcltWtngSec> emptyQueue = new ArrayList<>();
-        emptyQueue.add(row(EVAL.minusMinutes(40), 0, 3, 5, 2, 7200, false));
+        emptyQueue.add(row(EVAL.minusMinutes(40), 3, 2, 7200, false));
 
         for (int index = 0; index < 3; index++) {
-            emptyQueue.add(row(EVAL.minusMinutes(30 - index * 10L), 3 - index, 2 - index, 0, 1, 1200, true));
+            emptyQueue.add(row(EVAL.minusMinutes(30 - index * 10L), 2 - index, 1, 1200, true));
         }
 
         FcltWtngDay empty = day(FcltType.CHKN, emptyQueue);
@@ -99,32 +99,35 @@ public final class FcltWtngRegression {
         equal(60.0, window.observedAvgWtngSec().getValue(), "legacy constructor average");
     }
 
-    private static List<FcltWtngSec> queueRows(boolean observed, Integer beginning, Integer ending, Integer arrivals) {
+    private static List<FcltWtngSec> queueRows(boolean observed, Integer beginning, Integer ending) {
         List<FcltWtngSec> rows = new ArrayList<>();
-        rows.add(row(EVAL.minusMinutes(40), beginning, ending, arrivals, 2, 7200, observed));
+
+        if (beginning != null) {
+            rows.add(row(EVAL.minusMinutes(50), beginning, 0, 0, observed));
+        }
+
+        rows.add(row(EVAL.minusMinutes(40), ending, 2, 7200, observed));
 
         for (int index = 0; index < 3; index++) {
-            rows.add(row(EVAL.minusMinutes(30 - index * 10L), 8 - index, 7 - index, 0, 1, 3600, true));
+            rows.add(row(EVAL.minusMinutes(30 - index * 10L), 7 - index, 1, 3600, true));
         }
 
         return rows;
     }
 
-    private static FcltWtngSec row(LocalDateTime start, Integer beginning, Integer ending, Integer arrivals,
+    private static FcltWtngSec row(LocalDateTime start, Integer ending,
             int processed, double waitSecSum, boolean observed) {
-        return row(start, beginning, ending, arrivals, processed, waitSecSum, observed, FcltType.CHKN);
+        return row(start, ending, processed, waitSecSum, observed, FcltType.CHKN);
     }
 
-    private static FcltWtngSec row(LocalDateTime start, Integer beginning, Integer ending, Integer arrivals,
+    private static FcltWtngSec row(LocalDateTime start, Integer ending,
             int processed, double waitSecSum, boolean observed, FcltType type) {
         int samples = type == FcltType.CHKN ? 10 : 1;
 
         return FcltWtngSec.builder()
                 .unitCd("A")
                 .secBgngDt(start)
-                .bgngWtngPsgCnt(beginning)
                 .endWtngPsgCnt(ending)
-                .arrPsgCnt(arrivals)
                 .prcsPsgCnt(processed)
                 .wtngPsecSum(waitSecSum)
                 .wtngVldPsgCnt(processed)
@@ -133,12 +136,10 @@ public final class FcltWtngRegression {
                 .wtngPsgCntSum(ending == null ? 0 : (long) ending * samples)
                 .wtngNocs(samples)
                 .maxWtngPsgCnt(ending == null ? 0 : ending)
-                .bgngOperCntom(1)
                 .endOperCntom(1)
                 .prcsCpct(type == FcltType.CHKN ? 10L : null)
                 .prcsVldOperCntomSum(type == FcltType.CHKN ? 10L : null)
                 .obsrvn(observed)
-                .obsrvnMntCnt(observed ? 10 : 0)
                 .build();
     }
 

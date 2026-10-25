@@ -46,14 +46,14 @@ public class CastFcltWtngRsltCreateServiceImpl implements CastFcltWtngRsltCreate
 	// 원천 수신 트랜잭션에 참여해 모든 저장 단위를 함께 롤백한다
 	@Override
 	@Transactional(rollbackFor = Exception.class)
-	public void createInitialResult(String smltId, int smltMdlSn) {
+	public void createInitialResult(String smltId, int smltMdlSn, String loginIpAddr) {
 		SmltStngDto smltStng = castSmltService.retrieveSmltStngByModel(smltId, smltMdlSn);
 
 		for (TerminalKind tmnlId : TerminalKind.getList()) {
 			for (FcltType fcltType : FCLT_TYPE_LIST) {
 				String context = "smltId=" + smltId + ", smltMdlSn=" + smltMdlSn + ", tmnlId=" + tmnlId.getValue() + ", fcltType=" + fcltType.getValue();
 
-				int rowCnt = createScope(smltStng, tmnlId, fcltType, context);
+				int rowCnt = createScope(smltStng, tmnlId, fcltType, context, loginIpAddr);
 
 				log.info("시설 대기 결과 최초 저장: {}, rowCount={}", context, rowCnt);
 			}
@@ -61,7 +61,7 @@ public class CastFcltWtngRsltCreateServiceImpl implements CastFcltWtngRsltCreate
 	}
 
 	// 저장 전에 저장 단위 전체를 메모리에서 대조하고, 일부 시설 / 시간대만 커밋하지 않는다
-	private int createScope(SmltStngDto smltStng, TerminalKind tmnlId, FcltType fcltType, String context) {
+	private int createScope(SmltStngDto smltStng, TerminalKind tmnlId, FcltType fcltType, String context, String loginIpAddr) {
 		FcltWtngScope scope = castFcltWtngService.calculateScope(smltStng, tmnlId, fcltType);
 		String gap = scope.findGapOf(scope.getSecMap());
 
@@ -71,7 +71,7 @@ public class CastFcltWtngRsltCreateServiceImpl implements CastFcltWtngRsltCreate
 
 		List<FcltWtngRsltDto> rowList = FcltWtngRsltRows.toRowList(smltStng.getSmltId(), smltStng.getSmltMdlSn(), tmnlId, fcltType, scope.getSecMap());
 
-		castFcltWtngRsltWriter.insertScope(rowList);
+		castFcltWtngRsltWriter.insertScope(rowList, loginIpAddr);
 
 		return rowList.size();
 	}

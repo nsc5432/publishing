@@ -8,25 +8,21 @@
         <foreach collection="list" item="item">
         INTO PMOWN.TN_PM_SMLT_FCLT_WTNG_RSLT (
             SMLT_ID, SMLT_MDL_SN, TMNL_ID, FCLT_TYPE_CD, FCLT_UNIT_CD,
-            SEC_BGNG_DT, SEC_END_DT,
-            BGNG_WTNG_PSG_CNT, END_WTNG_PSG_CNT, ARR_PSG_CNT, PRCS_PSG_CNT,
+            SEC_BGNG_DT, END_WTNG_PSG_CNT, PRCS_PSG_CNT,
             WTNG_PSEC_SUM, WTNG_VLD_PSG_CNT, PRCS_PSEC_SUM, PRCS_VLD_PSG_CNT,
             WTNG_PSG_CNT_SUM, WTNG_NOCS, MAX_WTNG_PSG_CNT,
-            BGNG_OPER_CNTOM, END_OPER_CNTOM, PRCS_CPCT, PRCS_VLD_OPER_CNTOM_SUM,
-            OBSRVN_MNT_CNT, OBSRVN_YN, OBSRVN_RSN,
-            FRST_REG_DT, LAST_MDFCN_DT
+            END_OPER_CNTOM, PRCS_CPCT, PRCS_VLD_OPER_CNTOM_SUM, OBSRVN_YN,
+            FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         ) VALUES (
             #{item.smltId}, #{item.smltMdlSn}, #{item.tmnlId}, #{item.fcltTypeCd}, #{item.fcltUnitCd},
-            #{item.secBgngDt, jdbcType=TIMESTAMP}, #{item.secEndDt, jdbcType=TIMESTAMP},
-            #{item.bgngWtngPsgCnt, jdbcType=NUMERIC}, #{item.endWtngPsgCnt, jdbcType=NUMERIC},
-            #{item.arrPsgCnt, jdbcType=NUMERIC}, #{item.prcsPsgCnt},
+            #{item.secBgngDt, jdbcType=TIMESTAMP},
+            #{item.endWtngPsgCnt, jdbcType=NUMERIC}, #{item.prcsPsgCnt},
             #{item.wtngPsecSum, jdbcType=NUMERIC}, #{item.wtngVldPsgCnt},
             #{item.prcsPsecSum, jdbcType=NUMERIC}, #{item.prcsVldPsgCnt},
             #{item.wtngPsgCntSum}, #{item.wtngNocs}, #{item.maxWtngPsgCnt, jdbcType=NUMERIC},
-            #{item.bgngOperCntom, jdbcType=NUMERIC}, #{item.endOperCntom, jdbcType=NUMERIC},
+            #{item.endOperCntom, jdbcType=NUMERIC},
             #{item.prcsCpct, jdbcType=NUMERIC}, #{item.prcsVldOperCntomSum, jdbcType=NUMERIC},
-            #{item.obsrvnMntCnt}, #{item.obsrvnYn}, #{item.obsrvnRsn, jdbcType=VARCHAR},
-            CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            #{item.obsrvnYn}, 'CAST', #{loginIpAddr}, CURRENT_TIMESTAMP
         )
         </foreach>
         SELECT 1 FROM DUAL
@@ -36,12 +32,10 @@
         /* CastFcltWtngRsltMapper.retrieveFcltWtngRsltList */
         SELECT
             A.SMLT_ID, A.SMLT_MDL_SN, A.TMNL_ID, A.FCLT_TYPE_CD, A.FCLT_UNIT_CD,
-            A.SEC_BGNG_DT, A.SEC_END_DT,
-            A.BGNG_WTNG_PSG_CNT, A.END_WTNG_PSG_CNT, A.ARR_PSG_CNT, A.PRCS_PSG_CNT,
+            A.SEC_BGNG_DT, A.END_WTNG_PSG_CNT, A.PRCS_PSG_CNT,
             A.WTNG_PSEC_SUM, A.WTNG_VLD_PSG_CNT, A.PRCS_PSEC_SUM, A.PRCS_VLD_PSG_CNT,
             A.WTNG_PSG_CNT_SUM, A.WTNG_NOCS, A.MAX_WTNG_PSG_CNT,
-            A.BGNG_OPER_CNTOM, A.END_OPER_CNTOM, A.PRCS_CPCT, A.PRCS_VLD_OPER_CNTOM_SUM,
-            A.OBSRVN_MNT_CNT, A.OBSRVN_YN, A.OBSRVN_RSN
+            A.END_OPER_CNTOM, A.PRCS_CPCT, A.PRCS_VLD_OPER_CNTOM_SUM, A.OBSRVN_YN
         FROM PMOWN.TN_PM_SMLT_FCLT_WTNG_RSLT A
         WHERE A.SMLT_ID = #{smltId}
         AND A.SMLT_MDL_SN = #{smltMdlSn}

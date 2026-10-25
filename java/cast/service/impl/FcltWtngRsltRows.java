@@ -48,10 +48,7 @@ final class FcltWtngRsltRows {
 				row.setFcltTypeCd(fcltType.getValue());
 				row.setFcltUnitCd(unitCd);
 				row.setSecBgngDt(sec.getSecBgngDt());
-				row.setSecEndDt(sec.getSecEndDt());
-				row.setBgngWtngPsgCnt(sec.getBgngWtngPsgCnt());
 				row.setEndWtngPsgCnt(sec.getEndWtngPsgCnt());
-				row.setArrPsgCnt(sec.getArrPsgCnt());
 				row.setPrcsPsgCnt(sec.getPrcsPsgCnt());
 				row.setWtngPsecSum(toPsec(sec.getWtngPsecSum(), unitCd, sec));
 				row.setWtngVldPsgCnt(sec.getWtngVldPsgCnt());
@@ -60,13 +57,10 @@ final class FcltWtngRsltRows {
 				row.setWtngPsgCntSum(sec.getWtngPsgCntSum());
 				row.setWtngNocs(sec.getWtngNocs());
 				row.setMaxWtngPsgCnt(sec.getMaxWtngPsgCnt());
-				row.setBgngOperCntom(sec.getBgngOperCntom());
 				row.setEndOperCntom(sec.getEndOperCntom());
 				row.setPrcsCpct(sec.getPrcsCpct());
 				row.setPrcsVldOperCntomSum(sec.getPrcsVldOperCntomSum());
-				row.setObsrvnMntCnt(sec.getObsrvnMntCnt());
 				row.setObsrvnYn(sec.isObsrvn() ? YN_Y : YN_N);
-				row.setObsrvnRsn(sec.getObsrvnRsn());
 				result.add(row);
 			}
 		});
@@ -77,10 +71,8 @@ final class FcltWtngRsltRows {
 	/** 행 자체가 잘못됐으면 사유. 정상이면 null */
 	static String findInvalidRow(List<FcltWtngRsltDto> rowList) {
 		for (FcltWtngRsltDto row : rowList) {
-			if (row.getSecBgngDt() == null || row.getSecEndDt() == null
-					|| !FcltWtngSecs.isSecBoundary(row.getSecBgngDt())
-					|| !row.getSecEndDt().equals(row.getSecBgngDt().plusMinutes(FcltWtngSecs.SEC_MIN))) {
-				return "10분 경계가 아닌 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secBgngDt=" + row.getSecBgngDt() + ", secEndDt=" + row.getSecEndDt();
+			if (row.getSecBgngDt() == null || !FcltWtngSecs.isSecBoundary(row.getSecBgngDt())) {
+				return "10분 경계가 아닌 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secBgngDt=" + row.getSecBgngDt();
 			}
 
 			if (!YN_Y.equals(row.getObsrvnYn()) && !YN_N.equals(row.getObsrvnYn())) {
@@ -103,9 +95,7 @@ final class FcltWtngRsltRows {
 			result.computeIfAbsent(row.getFcltUnitCd(), ignored -> new ArrayList<>()).add(FcltWtngSec.builder()
 					.unitCd(row.getFcltUnitCd())
 					.secBgngDt(row.getSecBgngDt())
-					.bgngWtngPsgCnt(row.getBgngWtngPsgCnt())
 					.endWtngPsgCnt(row.getEndWtngPsgCnt())
-					.arrPsgCnt(row.getArrPsgCnt())
 					.prcsPsgCnt(row.getPrcsPsgCnt())
 					.wtngPsecSum(row.getWtngPsecSum().doubleValue())
 					.wtngVldPsgCnt(row.getWtngVldPsgCnt())
@@ -114,13 +104,10 @@ final class FcltWtngRsltRows {
 					.wtngPsgCntSum(row.getWtngPsgCntSum())
 					.wtngNocs(row.getWtngNocs())
 					.maxWtngPsgCnt(row.getMaxWtngPsgCnt())
-					.bgngOperCntom(row.getBgngOperCntom())
 					.endOperCntom(row.getEndOperCntom())
 					.prcsCpct(row.getPrcsCpct())
 					.prcsVldOperCntomSum(row.getPrcsVldOperCntomSum())
-					.obsrvnMntCnt(row.getObsrvnMntCnt())
 					.obsrvn(YN_Y.equals(row.getObsrvnYn()))
-					.obsrvnRsn(row.getObsrvnRsn())
 					.build());
 		}
 

@@ -30,10 +30,7 @@ public class FcltWtngRsltDto {
 	private String fcltTypeCd;
 	private String fcltUnitCd;
 	private LocalDateTime secBgngDt;
-	private LocalDateTime secEndDt;
-	private Integer bgngWtngPsgCnt;
 	private Integer endWtngPsgCnt;
-	private Integer arrPsgCnt;
 	private int prcsPsgCnt;
 	private BigDecimal wtngPsecSum;
 	private int wtngVldPsgCnt;
@@ -42,11 +39,8 @@ public class FcltWtngRsltDto {
 	private long wtngPsgCntSum;
 	private int wtngNocs;
 	private Integer maxWtngPsgCnt;
-	private Integer bgngOperCntom;
 	private Integer endOperCntom;
 	private Long prcsCpct;
 	private Long prcsVldOperCntomSum;
-	private int obsrvnMntCnt;
 	private String obsrvnYn;
-	private String obsrvnRsn;
 }

@@ -248,6 +248,7 @@ public final class FcltWtngDay {
 	}
 
 	private FcltQueueSource chknSourceOf(String unitCd, LocalDateTime evalDt) {
+		TreeMap<LocalDateTime, FcltWtngSec> secMap = secMapByUnit.getOrDefault(unitCd, new TreeMap<>());
 		FcltWtngSec[] window = windowOf(unitCd, evalDt);
 		FcltWtngSlot slot = windowSlotOf(unitCd, evalDt);
 		QueueWaitWindow waitWindow = waitWindowOf(unitCd, evalDt);
@@ -273,7 +274,7 @@ public final class FcltWtngDay {
 				.dataSrc(QueueDataSource.CAST)
 				.obsBgnDt(evalDt.minusMinutes(WINDOW_MIN))
 				.obsEndDt(evalDt)
-				.queueAtStart(window[0] == null ? null : window[0].getBgngWtngPsgCnt())
+				.queueAtStart(window[0] == null ? null : bgngQueueOf(secMap, window[0]))
 				.queueAtEnd(slot.getCurrentQueue())
 				.wtngEndPsgCnt(slot.getPrcsPsgCnt())
 				.prcsPsgCnt(slot.getPrcsPsgCnt())
@@ -287,6 +288,7 @@ public final class FcltWtngDay {
 	}
 
 	private FcltQueueSource depSourceOf(String unitCd, LocalDateTime evalDt) {
+		TreeMap<LocalDateTime, FcltWtngSec> secMap = secMapByUnit.getOrDefault(unitCd, new TreeMap<>());
 		FcltWtngSec[] window = windowOf(unitCd, evalDt);
 		boolean present = isPresent(window);
 		boolean covered = present && isObserved(window);
@@ -319,7 +321,7 @@ public final class FcltWtngDay {
 				.dataSrc(QueueDataSource.CAST)
 				.obsBgnDt(evalDt.minusMinutes(WINDOW_MIN))
 				.obsEndDt(evalDt)
-				.queueAtStart(covered ? first.getBgngWtngPsgCnt() : null)
+				.queueAtStart(covered ? bgngQueueOf(secMap, first) : null)
 				.queueAtEnd(present && last != null ? last.getEndWtngPsgCnt() : null)
 				.wtngEndPsgCnt(covered ? prcsSum : null)
 				.prcsPsgCnt(present ? prcsSum : null)
@@ -352,8 +354,7 @@ public final class FcltWtngDay {
 			}
 
 			if (!sec.isObsrvn()) {
-				return "직전 30분 중 시뮬레이션 결과가 없는 구간이 있습니다. unitCd=" + unitCd + ", secBgngDt=" + secDt
-						+ (sec.getObsrvnRsn() == null ? "" : ", " + sec.getObsrvnRsn());
+				return "직전 30분 중 시뮬레이션 결과가 없는 구간이 있습니다. unitCd=" + unitCd + ", secBgngDt=" + secDt;
 			}
 		}
 
@@ -388,13 +389,13 @@ public final class FcltWtngDay {
 
 		for (int back = 0; back < lookbackMin && remaining > 0; back += SEC_MIN) {
 			FcltWtngSec sec = secMap.get(evalDt.minusMinutes((long) back + SEC_MIN));
+			Integer arrival = sec == null ? null : arrivalOf(secMap, sec);
 
-			if (sec == null || !sec.isObsrvn() || sec.getArrPsgCnt() == null
-					|| sec.getBgngWtngPsgCnt() == null || sec.getEndWtngPsgCnt() == null) {
+			if (sec == null || !sec.isObsrvn() || arrival == null) {
 				break;
 			}
 
-			long arrivalPerMin = sec.getArrPsgCnt();
+			long arrivalPerMin = arrival;
 
 			for (int minute = 1; minute <= SEC_MIN && remaining > 0; minute++) {
 				long take = Math.min(arrivalPerMin, remaining);
@@ -409,6 +410,17 @@ public final class FcltWtngDay {
 		return remaining > 0
 				? "잔여 대기열 " + Math.round(remaining / (double) SEC_MIN) + "명의 도착 시각을 10분 결과 안에서 재구성하지 못했습니다. unitCd=" + unitCd
 				: null;
+	}
+
+	private static Integer bgngQueueOf(TreeMap<LocalDateTime, FcltWtngSec> secMap, FcltWtngSec sec) {
+		FcltWtngSec prev = secMap.get(sec.getSecBgngDt().minusMinutes(SEC_MIN));
+		return prev == null ? null : prev.getEndWtngPsgCnt();
+	}
+
+	private static Integer arrivalOf(TreeMap<LocalDateTime, FcltWtngSec> secMap, FcltWtngSec sec) {
+		Integer bgng = bgngQueueOf(secMap, sec);
+		Integer end = sec.getEndWtngPsgCnt();
+		return bgng == null || end == null ? null : Math.max(0, end - bgng + sec.getPrcsPsgCnt());
 	}
 
 	private FcltWtngSec[] windowOf(String unitCd, LocalDateTime evalDt) {

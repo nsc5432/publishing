@@ -26,9 +26,7 @@ public final class FcltWtngSec {
 	private final String unitCd;
 	private final LocalDateTime secBgngDt;
 	/** null 은 미확인, 0 은 확인된 빈 대기열 */
-	private final Integer bgngWtngPsgCnt;
 	private final Integer endWtngPsgCnt;
-	private final Integer arrPsgCnt;
 	private final int prcsPsgCnt;
 	private final double wtngPsecSum;
 	private final int wtngVldPsgCnt;
@@ -37,15 +35,8 @@ public final class FcltWtngSec {
 	private final long wtngPsgCntSum;
 	private final int wtngNocs;
 	private final Integer maxWtngPsgCnt;
-	private final Integer bgngOperCntom;
 	private final Integer endOperCntom;
 	private final Long prcsCpct;
 	private final Long prcsVldOperCntomSum;
-	private final int obsrvnMntCnt;
 	private final boolean obsrvn;
-	private final String obsrvnRsn;
-
-	public LocalDateTime getSecEndDt() {
-		return secBgngDt.plusMinutes(FcltWtngSecs.SEC_MIN);
-	}
 }

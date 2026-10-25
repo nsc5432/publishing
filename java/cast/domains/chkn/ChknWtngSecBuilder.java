@@ -69,7 +69,6 @@ public final class ChknWtngSecBuilder {
 		int end = bgn + SEC_MIN;
 		long queueSum = 0;
 		int maxQueue = 0;
-		int arrivals = 0;
 		int processed = 0;
 		long waitMinSum = 0;
 		long prcsSecSum = 0;
@@ -83,7 +82,6 @@ public final class ChknWtngSecBuilder {
 
 			queueSum += queue;
 			maxQueue = Math.max(maxQueue, queue);
-			arrivals += series.arrivalAt(minute);
 			processed += series.processedAt(minute);
 			waitMinSum += series.waitMinSumAt(minute);
 			prcsSecSum += series.prcsSecSumAt(minute);
@@ -101,9 +99,7 @@ public final class ChknWtngSecBuilder {
 		return FcltWtngSec.builder()
 				.unitCd(island)
 				.secBgngDt(dayStart.plusMinutes(bgn))
-				.bgngWtngPsgCnt(bgn > origin ? series.queueAt(bgn - 1) : null)
 				.endWtngPsgCnt(series.queueAt(end - 1))
-				.arrPsgCnt(bgn >= origin ? arrivals : null)
 				.prcsPsgCnt(processed)
 				.wtngPsecSum((double) waitMinSum * SEC_PER_MIN)
 				.wtngVldPsgCnt(processed)
@@ -112,21 +108,10 @@ public final class ChknWtngSecBuilder {
 				.wtngPsgCntSum(queueSum)
 				.wtngNocs(end - from)
 				.maxWtngPsgCnt(maxQueue)
-				.bgngOperCntom(bgn >= origin ? series.boothCntAt(bgn) : null)
 				.endOperCntom(series.boothCntAt(end - 1))
 				.prcsCpct(capacitySum)
 				.prcsVldOperCntomSum(vldBoothMinuteSum)
-				.obsrvnMntCnt(observedMinute)
 				.obsrvn(observedMinute == SEC_MIN)
-				.obsrvnRsn(observedMinute == SEC_MIN ? null : reasonOf(origin, bgn, observedMinute))
 				.build();
-	}
-
-	private static String reasonOf(int origin, int bgn, int observedMinute) {
-		if (bgn < origin) {
-			return "계산 시작(" + origin + "분) 이전 " + (origin - bgn) + "분이 포함된 구간입니다. 관측 " + observedMinute + "분";
-		}
-
-		return "터미널 CC 결과가 없는 분(결과 간격 또는 마지막 결과 뒤 꼬리 구간)이 " + (SEC_MIN - observedMinute) + "분 있습니다.";
 	}
 }

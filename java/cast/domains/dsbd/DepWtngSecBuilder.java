@@ -29,7 +29,6 @@ import aoms.pm.cast.domains.wtng.FcltWtngSecs;
  */
 public final class DepWtngSecBuilder {
 	private static final int SEC_MIN = FcltWtngSecs.SEC_MIN;
-	private static final String UNOBSERVED_RSN = "구간 시작 또는 끝 시각에 터미널 출국장 결과가 없습니다.";
 
 	private DepWtngSecBuilder() {
 		throw new UnsupportedOperationException("DepWtngSecBuilder Class is Utility class.");
@@ -87,9 +86,7 @@ public final class DepWtngSecBuilder {
 		LocalDateTime endDt = bgnDt.plusMinutes(SEC_MIN);
 		boolean startObserved = day.hasResultAt(bgnDt);
 		boolean endObserved = day.hasResultAt(endDt);
-		DepQueueDay.Slot start = slotMap.get(bgnDt);
 		DepQueueDay.Slot end = slotMap.get(endDt);
-		Integer bgngQueue = startObserved ? queueOf(start) : null;
 		Integer endQueue = endObserved ? queueOf(end) : null;
 		int prcs = end == null ? 0 : end.trnstPsgCnt;
 		boolean observed = startObserved && endObserved;
@@ -97,9 +94,7 @@ public final class DepWtngSecBuilder {
 		return FcltWtngSec.builder()
 				.unitCd(unitCd)
 				.secBgngDt(bgnDt)
-				.bgngWtngPsgCnt(bgngQueue)
 				.endWtngPsgCnt(endQueue)
-				.arrPsgCnt(bgngQueue != null && endQueue != null ? Math.max(0, endQueue - bgngQueue + prcs) : null)
 				.prcsPsgCnt(prcs)
 				.wtngPsecSum(end == null ? 0 : end.wtngSecSum)
 				.wtngVldPsgCnt(end == null ? 0 : prcs - end.wtngNullPsgCnt)
@@ -108,13 +103,10 @@ public final class DepWtngSecBuilder {
 				.wtngPsgCntSum(end == null ? 0 : end.wtngPsgCnt)
 				.wtngNocs(end == null ? 0 : 1)
 				.maxWtngPsgCnt(end == null ? null : end.wtngPsgCnt)
-				.bgngOperCntom(oprCnt)
 				.endOperCntom(oprCnt)
 				.prcsCpct(null)
 				.prcsVldOperCntomSum(null)
-				.obsrvnMntCnt(observed ? SEC_MIN : 0)
 				.obsrvn(observed)
-				.obsrvnRsn(observed ? null : UNOBSERVED_RSN)
 				.build();
 	}
 

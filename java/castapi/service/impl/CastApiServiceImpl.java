@@ -2535,7 +2535,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
                     return buildReturnXml(false);
                 }
 
-                castFcltWtngRsltCreateService.createInitialResult(simRslt.getSimId(), Integer.parseInt(simRslt.getSmltMdlSn()));
+                castFcltWtngRsltCreateService.createInitialResult(simRslt.getSimId(), Integer.parseInt(simRslt.getSmltMdlSn()), simRslt.getLoginIpAddr());
             }
 
             return buildReturnXml(true);
