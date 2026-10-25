@@ -585,7 +585,7 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 | 구간 조립 · 배정 부스 · 로그 | `CastChknQueueServiceImpl` |
 | 상태 없는 계산기 (FIFO 코호트) | `domains/chkn/ChknQueueCalculator` |
 | 분 단위 궤적 · 30분/1시간 롤업 | `domains/chkn/ChknQueueSeries` |
-| 슬롯 조회 · 혼잡등급 · 부스 추천 | `domains/chkn/ChknQueueDay` |
+| 슬롯 조회 · 1분 경로 지표(차트 · KPI) | `domains/chkn/ChknQueueDay` |
 | 혼잡등급 기준정보 (대시보드 공용) | `domains/CgnGradeScale` + `CastCgnGradeService` |
 
 - **Queue 대상은 유인 카운터 `CC` 뿐이다.** `CK`(셀프체크인) · `SBD`(셀프백드롭)는 자원 정보로만
@@ -602,7 +602,7 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 - **혼잡등급 220 명 같은 하드코딩 fallback 을 두지 않는다.** 기준정보(`TN_PM_PSG_PRCS_GRD`)가
   없거나 겹치면 조회 실패로 떨어뜨린다. 인원 기준 판정(`CongestionStatus.ofWtngPsgCnt`)은 2026-10-24 에 없앴다.
 - 추천 `reqCnt` 는 추가 수량이 아니라 **현재 운영분을 포함한 총 소요 부스 수**다. 2026-10-17 부터
-  `ChknQueueDay.recommendOf` 는 혼잡해소 팝업 기본값과 같은 공용 평가기 `domains/dsbd/FcltQueueClearance`
+  `FcltWtngDay.recommendOf` 는 혼잡해소 팝업 기본값과 같은 공용 평가기 `domains/wtng/FcltQueueClearance`
   (목표 30분, §14)를 쓴다 ([계획](docs/plans/2026-10-17-fclt-card-domain-queue.md)). 2026-10-24 부터 λ·μ·Q0·s 는
   평가시각 직전 30분 `[hhmm−30, hhmm)` 에서 뽑고 **그 유입이 그대로 이어진다고 가정**한다 — 곧 몰려올 피크를
   미리 반영하지 못한다. `cgnClearMin` 은 추천 수량을 적용했을 때 평가시각부터 처리 여객 평균 대기시간이
@@ -635,8 +635,8 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
   맵/상세 팝업의 대기인원(슬롯 끝)과 요약보기 카드의 대기열(평가시각 t)은 30분 차이가 난다.
 - 체크인 FIFO 는 전날 결과가 있으면 그 시각부터 계산한다(`ChknQueueSeries.originMinute` ≤ 0). 그래서 자정의 대기열을
   이어 받는다. 관측 여부는 터미널 CC 결과 시각과 최소 결과 간격으로 정한다 — 마지막 결과 뒤 꼬리 구간은 미관측이다.
-- 출국장은 `DepQueueDay`(SC/SR 하루치)에서 평가시각마다 `DepQueueWindow` 를 만든다. 결과 시각은 구간 끝으로 보고
-  `t−30, t−20, t−10, t` 네 시각이 터미널에 모두 있어야 관측이다. 대기시간은 `SUM(AVG_WTNG_HR × TRNST_PSG_CNT)` 로 받는다
+- 출국장은 `DepQueueDay`(SC/SR 하루치)를 `DepWtngSecBuilder` 가 10분 통계로 바꾸고 `FcltWtngDay` 가 평가한다. 결과 시각은
+  구간 끝으로 보고 10분 구간 양 끝 시각이 터미널에 있어야 관측이라 `t−30, t−20, t−10, t` 네 시각이 모두 있어야 한다. 대기시간은 `SUM(AVG_WTNG_HR × TRNST_PSG_CNT)` 로 받는다
   (`retrieveRsltByUnitList.WTNG_SEC_SUM`). 체크인(결과 시각 = 구간 시작)과 시각 규칙이 다른 것은 기존 그대로이며 CAST 확인 대상이다.
 
 ---
@@ -649,8 +649,8 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 | 무엇 | 어디 |
 |---|---|
 | 정책 · 응답 조립 | `CastFcltQueueScenarioServiceImpl` |
-| 공용 평가기 (카드 · 팝업 · 체크인 추천) | `domains/dsbd/FcltQueueClearance` (계산은 `domains/queue` 클래스만 호출) |
-| 원천 어댑터 | 체크인 `ChknQueueDay.sourceOf` · 출국장 `DepQueueWindow` (`CastDepQueueService`, 터미널 단위 1회 조회) |
+| 공용 평가기 (카드 · 팝업 · 체크인 추천) | `domains/wtng/FcltQueueClearance` (계산은 `domains/queue` 클래스만 호출) |
+| 원천 어댑터 | `FcltWtngDay.sourceOf` (체크인 · 출국장 공통, 10분 통계 기준) |
 | 팝업 · 요청 경쟁 처리 | `dashboard/components/FcltQueueScenarioModal.tsx` · `hooks/useFcltQueueScenario.ts` |
 | 일반 Dialog (포커스 트랩 · 복귀) | `components/ui/dialog.tsx` (`@radix-ui/react-dialog`) |
 
@@ -696,3 +696,5 @@ CAST 결과 수신 커밋 후 실행 · 모델마다 `TN_PM_SMLT_FCLT_WTNG_RSLT`
 - 체크인 배정 부스는 운영표 직접 조회가 아니라 STNG CA 리소스(`retrieveChknBoothOperList`)를 분 단위로 읽는다.
 - 요약보기 시간대별 차트 · PRIME TIME과 체크인 상세의 일일 KPI · 슬롯 지표는 기존 1분 경로를 유지한다.
 - 공통 평가는 10분 경계 시각만 받는다. 조회 API는 경계가 아닌 `hhmm`을 조건 오류로 거절한다.
+- 패키지 방향: `chkn` · `dsbd` → `wtng` → (루트) → `queue`. `wtng` 는 원천 계산 패키지를 참조하지 않는다
+  ([계획](docs/plans/2026-10-25-domains-package-dependency.md)).
