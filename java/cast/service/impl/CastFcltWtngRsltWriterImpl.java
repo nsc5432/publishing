@@ -3,7 +3,6 @@ package aoms.pm.cast.service.impl;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.dto.FcltWtngRsltDto;
@@ -35,9 +34,9 @@ public class CastFcltWtngRsltWriterImpl implements CastFcltWtngRsltWriter {
 
 	private final CastFcltWtngRsltMapper castFcltWtngRsltMapper;
 
-	// 원천 수신 커밋 뒤에 불리므로 원천 트랜잭션에 참여하지 않고 새로 연다. 중복 키면 PK 위반으로 전체가 롤백된다
+	// 원천 수신 트랜잭션에 참여한다. 중복 키면 PK 위반으로 원천 저장까지 전체가 롤백된다
 	@Override
-	@Transactional(propagation = Propagation.REQUIRES_NEW, rollbackFor = Exception.class)
+	@Transactional(rollbackFor = Exception.class)
 	public void insertScope(List<FcltWtngRsltDto> rowList) {
 		for (int fromIndex = 0; fromIndex < rowList.size(); fromIndex += INSERT_CHUNK_SIZE) {
 			castFcltWtngRsltMapper.insertFcltWtngRsltList(rowList.subList(fromIndex, Math.min(fromIndex + INSERT_CHUNK_SIZE, rowList.size())));

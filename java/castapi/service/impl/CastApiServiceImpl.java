@@ -7,8 +7,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -34,8 +32,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.interceptor.TransactionAspectSupport;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.w3c.dom.Document;
@@ -97,8 +93,6 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
     private interface ResourceRequestParser<T> {
         T parse() throws ParserConfigurationException, SAXException, IOException;
     }
-
-    private static final String FIXED_BASE_YMD = "20260212";
 
     private static final String CAST_MODEL = "CASTModel";
     private static final String CAST_EXPRESS_MODEL = "CASTExpressModel";
@@ -723,9 +717,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
     private final ThreadLocal<String> colTable = ThreadLocal.withInitial(() -> "");
 
     private String resolveBaseYmd() {
-        return FIXED_BASE_YMD.isEmpty()
-                ? LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE)
-                : castApiMapper.selectBaseYmdForCalibration();
+        return castApiMapper.selectBaseYmdForCalibration();
     }
 
     @Override
@@ -2543,7 +2535,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
                     return buildReturnXml(false);
                 }
 
-                registerFcltWtngCreation(simRslt.getSimId(), simRslt.getSmltMdlSn(), context);
+                castFcltWtngRsltCreateService.createInitialResult(simRslt.getSimId(), Integer.parseInt(simRslt.getSmltMdlSn()));
             }
 
             return buildReturnXml(true);
@@ -2573,6 +2565,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
                 dto.setCheckInAllocationResourceID(userReq.getCknctAlctnRsrcId());
         } else {
             simId = executionService.nextId();
+            dto.setExcnYmd(resolveBaseYmd());
         }
 
         dto.setSimId(simId);
@@ -2599,28 +2592,6 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         }
         return 1;
     }
-    /*
-     * 파생 시설 대기 결과는 원천이 커밋된 뒤 별도 bean 의 새 트랜잭션에서 만든다.
-     * 그 실패는 원천 저장 성공 응답을 뒤집지 않고 수신 로그(errorMsg)에만 남긴다.
-     */
-    private void registerFcltWtngCreation(String smltId, String smltMdlSn, CastApiContext context) {
-        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-            context.addFailure("트랜잭션 동기화가 없어 시설 대기 결과 최초 저장을 연결하지 못했습니다. 조회는 Java 계산으로 보완합니다. smltId=" + smltId);
-            return;
-        }
-
-        int modelSn = Integer.parseInt(smltMdlSn);
-
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                for (String reason : castFcltWtngRsltCreateService.createInitialResult(smltId, modelSn)) {
-                    context.addFailure("시설 대기 결과 최초 저장 실패 (원천 저장은 성공): " + reason);
-                }
-            }
-        });
-    }
-
     private void validateUserResult(CastResReqDto dto, UserSmltReqDto request) {
         requireResource(request.getMdlRsrcId(), dto.getModelResourceID());
         requireResource(request.getFltSchdlRsrcId(), dto.getFlightScheduleResourceID());

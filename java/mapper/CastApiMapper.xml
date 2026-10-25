@@ -1616,7 +1616,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
               , #{resourceID}
               , #{smltType}
               , CURRENT_TIMESTAMP
-              -- 사용자 실행은 요청의 대상일. 일일은 예전대로 실행 시각의 일자
+              -- 사용자 실행은 요청의 대상일. 일일은 resolveBaseYmd() 의 기준일자
               , NVL(#{excnYmd}, substr(replace(replace(#{startTime},'T',' '),'-',''),1,8))
               -- 사용자 실행이면 요청의 터미널을 따른다. 일일은 예전대로 P01
               , NVL(#{tmnlId}, 'P01')
@@ -2305,7 +2305,9 @@ ORDER BY BlockID, DepArrTerminal, resourceID
 
     <select id="selectBaseYmdForCalibration" resultType="String">
         /* CastApiMapper.selectBaseYmdForCalibration() */
-        SELECT NVL(TO_CHAR(MAX(BASE_DT), 'YYYYMMDD'), TO_CHAR(SYSDATE, 'YYYYMMDD')) AS V_BASE_DT FROM PMOWN.DROP_TMP
+        SELECT NVL(MAX(CRTR_YMD), TO_CHAR(SYSDATE, 'YYYYMMDD')) AS CRTR_YMD
+        FROM PMOWN.TN_PM_SMLT_DALY_CRTR_YMD
+        WHERE USE_YN = 'Y'
     </select>
 
 </mapper>

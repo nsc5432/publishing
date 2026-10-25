@@ -325,8 +325,11 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
 CAST 는 `REQ_GetResource` 요청에 날짜를 싣지 않는다 — 본문이 `@RequestBody String` 으로 들어와
 `resourceType` · `resourceID` 두 개만 파싱되므로 서버가 채우는 수밖에 없다. 결정 지점은
 `CastApiServiceImpl.resolveBaseYmd()` 하나뿐이고, **mapper 에 `SYSDATE` 를 기준일자로 다시 쓰지
-않는다** (`LastModified` 표기·ID 채번용은 예외). 테스트 중에는 `FIXED_BASE_YMD` 상수로 고정하고,
-비우면 당일로 떨어진다. 사용자 자료(`002~999`)는 발행 시점에 `#{excnYmd}` 로 행에 굳으므로
+않는다** (`LastModified` 표기·ID 채번용은 예외). `TN_PM_SMLT_DALY_CRTR_YMD`(2026-10-26 `DROP_TMP`
+대체) 의 사용(`USE_YN='Y'`) 행 중 최대 `CRTR_YMD` 를 쓰고, 행이 없으면 당일로 떨어진다.
+고정을 풀려면 행을 `USE_YN='N'` 으로 바꾼다 (`FIXED_BASE_YMD` 상수는 2026-10-26 제거).
+일일 결과의 `STNG.EXCN_YMD` 도 결과 수신 시 같은 함수로 정한다 — CAST 실행 중에 기준일자를 바꾸면
+결과가 바뀐 일자로 저장된다. 사용자 자료(`002~999`)는 발행 시점에 `#{excnYmd}` 로 행에 굳으므로
 이 값과 무관하다 (§11.2).
 
 시설 운영시간 3종(`retrieveFcltyOpngTblDptg` · `..Immig` · `..TrnstScrtyCntrl`)은 날짜를

@@ -1,12 +1,8 @@
 package aoms.pm.cast.service.impl;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.TransactionException;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.domains.wtng.FcltWtngScope;
@@ -47,39 +43,21 @@ public class CastFcltWtngRsltCreateServiceImpl implements CastFcltWtngRsltCreate
 	private final CastFcltWtngService castFcltWtngService;
 	private final CastFcltWtngRsltWriter castFcltWtngRsltWriter;
 
-	// 원천 트랜잭션의 커밋 후 콜백에서 불린다. 원천 트랜잭션에 참여하지 않도록 끊고, 저장 단위마다 writer 가 새 트랜잭션을 연다
+	// 원천 수신 트랜잭션에 참여해 모든 저장 단위를 함께 롤백한다
 	@Override
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
-	public List<String> createInitialResult(String smltId, int smltMdlSn) {
-		List<String> result = new ArrayList<>();
-		SmltStngDto smltStng;
-
-		try {
-			smltStng = castSmltService.retrieveSmltStngByModel(smltId, smltMdlSn);
-		} catch (IllegalStateException | DataAccessException | TransactionException exception) {
-			String reason = "smltId=" + smltId + ", smltMdlSn=" + smltMdlSn + ", " + exception.getMessage();
-
-			log.error("시설 대기 결과 최초 저장 실패 (원천 저장은 유지, 조회는 Java 계산으로 보완). {}", reason, exception);
-			result.add(reason);
-			return result;
-		}
+	@Transactional(rollbackFor = Exception.class)
+	public void createInitialResult(String smltId, int smltMdlSn) {
+		SmltStngDto smltStng = castSmltService.retrieveSmltStngByModel(smltId, smltMdlSn);
 
 		for (TerminalKind tmnlId : TerminalKind.getList()) {
 			for (FcltType fcltType : FCLT_TYPE_LIST) {
 				String context = "smltId=" + smltId + ", smltMdlSn=" + smltMdlSn + ", tmnlId=" + tmnlId.getValue() + ", fcltType=" + fcltType.getValue();
 
-				try {
-					int rowCnt = createScope(smltStng, tmnlId, fcltType, context);
+				int rowCnt = createScope(smltStng, tmnlId, fcltType, context);
 
-					log.info("시설 대기 결과 최초 저장: {}, rowCount={}", context, rowCnt);
-				} catch (IllegalStateException | DataAccessException | TransactionException exception) {
-					log.error("시설 대기 결과 최초 저장 실패 (원천 저장은 유지, 조회는 Java 계산으로 보완). {}", context, exception);
-					result.add(context + ", " + exception.getMessage());
-				}
+				log.info("시설 대기 결과 최초 저장: {}, rowCount={}", context, rowCnt);
 			}
 		}
-
-		return result;
 	}
 
 	// 저장 전에 저장 단위 전체를 메모리에서 대조하고, 일부 시설 / 시간대만 커밋하지 않는다
