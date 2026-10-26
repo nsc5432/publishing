@@ -184,27 +184,13 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
     }
 
     private enum RsrcTable {
-        FLT_SCHDL(
-                "TN_PM_SMLT_SCHDL_MSTR", "SCHDL_ATRB_ID", "SCHDL_ATRB_NM",
-                "TN_PM_SMLT_SCHDL_ATRB", "SCHDL_ATRB_GROUP_ID"),
-        CKNCT(
-                "TN_PM_SMLT_CKNCT_MSTR", "CKNCT_ATRB_ID", "CKNCT_ATRB_NM",
-                "TN_PM_SMLT_CKNCT_ATRB", "SCHDL_ATRB_GROUP_ID"),
-        SBD(
-                "TN_PM_SMLT_SBD_MSTR", "SBD_ATRB_ID", "SBD_ATRB_NM",
-                "TN_PM_SMLT_SBD_ATRB", "SCHDL_ATRB_GROUP_ID"),
-        DPTGT(
-                "TN_PM_SMLT_FCLTY_OPNG_DPTGT_MSTR", "DPTGT_ATRB_ID", "DPTGT_ATRB_NM",
-                "TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB", "DPTGT_ATRB_ID"),
-        SCRTY_CNTRL(
-                "TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_MSTR", "SCRTY_CNTRL_ATRB_ID", "SCRTY_CNTRL_ATRB_NM",
-                "TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB", "SCRTY_CNTRL_ATRB_ID"),
-        ENTCNY(
-                "TN_PM_SMLT_FCLTY_OPNG_ENTCNY_MSTR", "ENTCNY_ATRB_ID", "ENTCNY_ATRB_NM",
-                "TN_PM_SMLT_FCLTY_OPNG_ENTCNY_ATRB", "ENTCNY_ATRB_ID"),
-        TRNST_SCRTY_CNTRL(
-                "TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_MSTR", "TRNST_SCRTY_CNTRL_ATRB_ID", "TRNST_SCRTY_CNTRL_ATRB_NM",
-                "TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_ATRB", "TRNST_SCRTY_CNTRL_ATRB_ID");
+        FLT_SCHDL( "TN_PM_SMLT_SCHDL_MSTR", "SCHDL_ATRB_ID", "SCHDL_ATRB_NM"),
+        CKNCT("TN_PM_SMLT_CKNCT_MSTR", "CKNCT_ATRB_ID", "CKNCT_ATRB_NM"),
+        SBD("TN_PM_SMLT_SBD_MSTR", "SBD_ATRB_ID", "SBD_ATRB_NM"),
+        DPTGT("TN_PM_SMLT_FCLTY_OPNG_DPTGT_MSTR", "DPTGT_ATRB_ID", "DPTGT_ATRB_NM"),
+        SCRTY_CNTRL("TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_MSTR", "SCRTY_CNTRL_ATRB_ID", "SCRTY_CNTRL_ATRB_NM"),
+        ENTCNY("TN_PM_SMLT_FCLTY_OPNG_ENTCNY_MSTR", "ENTCNY_ATRB_ID", "ENTCNY_ATRB_NM"),
+        TRNST_SCRTY_CNTRL("TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_MSTR", "TRNST_SCRTY_CNTRL_ATRB_ID", "TRNST_SCRTY_CNTRL_ATRB_NM");
 
         private final String mstrTableNm;
         private final String mstrIdColumnNm;
@@ -213,9 +199,7 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         RsrcTable(
                 String mstrTableNm,
                 String mstrIdColumnNm,
-                String mstrNmColumnNm,
-                String atrbTableNm,
-                String atrbIdColumnNm
+                String mstrNmColumnNm
         ) {
             this.mstrTableNm = mstrTableNm;
             this.mstrIdColumnNm = mstrIdColumnNm;
