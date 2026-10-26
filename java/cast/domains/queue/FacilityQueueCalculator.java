@@ -118,7 +118,7 @@ public final class FacilityQueueCalculator {
     // 종료 시점 대기인원 Q가 목표 인원까지 줄어드는 시간(초) = (Q-target)/(C-lambda)*3600.
     public Computed<Double> estimateClearTimeSec(FacilityQueueInput input, int targetQueueCnt) {
         Objects.requireNonNull(input, "input");
-        QueueInputValidation.nonNegative(Integer.valueOf(targetQueueCnt), "targetQueueCnt");
+        QueueInputValidation.nonNegative(targetQueueCnt, "targetQueueCnt");
         if (queuePsgCntAtEnd == null) {
             return Computed.unavailable(CalculationMethod.FLOW_BALANCE, "종료 시점 대기인원이 없습니다.");
         }
@@ -156,7 +156,7 @@ public final class FacilityQueueCalculator {
     public Computed<Integer> estimateRequiredServerCnt(
             FacilityQueueInput input, int targetQueueCnt, double targetTimeSec) {
         Objects.requireNonNull(input, "input");
-        QueueInputValidation.nonNegative(Integer.valueOf(targetQueueCnt), "targetQueueCnt");
+        QueueInputValidation.nonNegative(targetQueueCnt, "targetQueueCnt");
         QueueInputValidation.positive(targetTimeSec, "targetTimeSec");
         if (queuePsgCntAtEnd == null) {
             return Computed.unavailable(CalculationMethod.FLOW_BALANCE, "종료 시점 대기인원이 없습니다.");

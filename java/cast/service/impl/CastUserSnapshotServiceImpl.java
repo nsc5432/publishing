@@ -209,8 +209,6 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         private final String mstrTableNm;
         private final String mstrIdColumnNm;
         private final String mstrNmColumnNm;
-        private final String atrbTableNm;
-        private final String atrbIdColumnNm;
 
         RsrcTable(
                 String mstrTableNm,
@@ -222,8 +220,6 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
             this.mstrTableNm = mstrTableNm;
             this.mstrIdColumnNm = mstrIdColumnNm;
             this.mstrNmColumnNm = mstrNmColumnNm;
-            this.atrbTableNm = atrbTableNm;
-            this.atrbIdColumnNm = atrbIdColumnNm;
         }
     }
 
