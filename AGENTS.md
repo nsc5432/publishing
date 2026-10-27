@@ -269,6 +269,7 @@ npm run build:prd  # 운영 빌드
 | 〃 | `CAST_CONFIG_CATEGORY_LIST` | `/cast-config/retrieveCategoryList` |
 | 〃 | `CAST_CONFIG_CATEGORY_SAVE` | `/cast-config/saveCategory` |
 | 〃 | `CAST_CONFIG_OPER_APPLY` | `/cast-config/applyOperation` |
+| 〃 | `CAST_CONFIG_SET_APPLY` | `/cast-config/applyCategorySet` |
 | 〃 | `CAST_CONFIG_PRE_PRCS_HSTRY` | `/cast-config/retrievePreProcessHistory` |
 | 〃 | `CAST_CONFIG_PRE_PRCS_REVERT` | `/cast-config/revertPreProcess` |
 
@@ -294,6 +295,8 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
   파이프라인에 태스크를 더하면 `java/ddl/2026-09-02-atrb-pre-process.sql` (2) 의 코드 목록도 함께 늘린다.
 - 반영은 `TH_PM_SMLT_ATRB_APLY_HSTRY(_DTL)` 에 **적용 직전 값을 먼저 스냅샷**한 뒤 복사한다.
   되돌리기는 그 스냅샷을 `updateAtrbValue` 로 되쓴다. 스냅샷을 복사 뒤에 찍으면 되돌릴 값이 이미 덮인다.
+  이력 일련번호(`APLY_SN` · `APLY_SET_SN`)는 시퀀스 없이 `MAX + 1` 이다 (2026-10-28). 채번 전에 `001` 그룹 행을
+  `retrieveCategoryForUpdate` 로 잠가야 동시 반영이 같은 번호를 받지 않는다.
 - **운영 반영(카테고리→001)이 001 을 갱신하는 유일한 화면 경로다.** 카테고리 바 오른쪽 버튼 하나가
   그룹의 **전 시트를 한 번에** 밀고, 시트마다 이력 1건을 남긴다. `999` 를 고르면 구 '전처리 반영'과
   같은 동작이라 그 버튼은 없애고 이쪽으로 흡수했다 (2026-09-04 결정).

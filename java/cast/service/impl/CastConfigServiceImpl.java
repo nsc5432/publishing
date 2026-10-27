@@ -246,6 +246,11 @@ public class CastConfigServiceImpl implements CastConfigService {
 			return new JsonResponse().error("기준정보는 운영 반영 대상이 아닙니다.");
 		}
 
+		// 이력 일련번호를 MAX + 1 로 채번하므로 001 잠금으로 동시 반영을 직렬화한다.
+		if (castConfigMapper.retrieveCategoryForUpdate(BASE_FIX_ATRB_GROUP_ID) == null) {
+			return new JsonResponse().error("기준정보를 찾지 못했습니다.");
+		}
+
 		boolean fromPreProcess = PRE_PRCS_FIX_ATRB_GROUP_ID.equals(srcFixAtrbGroupId);
 
 		if (fromPreProcess && lockPreProcessCategory().isBusy()) {

@@ -295,12 +295,15 @@
 
     <select id="retrieveAplyHstrySn" resultType="long">
         /* CastConfigMapper.retrieveAplyHstrySn */
-        SELECT PMOWN.SQ1_TN_PM_SMLT_ATRB_APLY.NEXTVAL FROM DUAL
+        <!-- 001 FOR UPDATE 잠금 안에서만 호출한다. 잠금 없이 부르면 동시 반영이 같은 번호를 받는다 -->
+        SELECT NVL(MAX(A.APLY_SN), 0) + 1
+        FROM PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY A
     </select>
 
     <select id="retrieveAplySetSn" resultType="long">
         /* CastConfigMapper.retrieveAplySetSn */
-        SELECT PMOWN.SQ1_TN_PM_SMLT_ATRB_APLY_SET.NEXTVAL FROM DUAL
+        SELECT NVL(MAX(A.APLY_SET_SN), 0) + 1
+        FROM PMOWN.TH_PM_SMLT_ATRB_APLY_SET_HSTRY A
     </select>
 
     <insert id="insertAplySetHstry" parameterType="aoms.pm.cast.dto.CastConfigAplySetHstryDto">
