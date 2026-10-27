@@ -1,0 +1,911 @@
+{
+  "scope": "Supplied historical log responses; PS001 is daily, PS512 is user WI00008489; successful user PS response is not supplied.",
+  "summary": {
+    "propertyCount": 142,
+    "changedValues": 5,
+    "sameValues": 137,
+    "absoluteDatesInPS512": []
+  },
+  "differences": [
+    {
+      "name": "SBDCounterAllocationResourceID",
+      "PS001": "SBD001",
+      "PS512": "SBD024"
+    },
+    {
+      "name": "FacilityOpeningTable_SecurityControlResourceID",
+      "PS001": "FacilityOpeningTable_SecurityControl001",
+      "PS512": "FacilityOpeningTable_SecurityControl024"
+    },
+    {
+      "name": "FacilityOpeningTable_ImmigrationResourceID",
+      "PS001": "FacilityOpeningTable_Immigration001",
+      "PS512": "FacilityOpeningTable_Immigration024"
+    },
+    {
+      "name": "FacilityOpeningTable_DepartureGateResourceID",
+      "PS001": "FacilityOpeningTable_DepartureGate001",
+      "PS512": "FacilityOpeningTable_DepartureGate024"
+    },
+    {
+      "name": "FacilityOpeningTable_TransferSecurityControlResourceID",
+      "PS001": "FacilityOpeningTable_TransferSecurityControl001",
+      "PS512": "FacilityOpeningTable_TransferSecurityControl024"
+    }
+  ],
+  "PS512": {
+    "source": "cast분석\\사용자시뮬레이션_계산전후.txt",
+    "metadata": {
+      "Author": "TEST",
+      "Created": "2016-04-04T20:31:00",
+      "Description": "PropertySet",
+      "LastModified": "2026-05-28T14:19:00",
+      "LastSavedBy": "PM006",
+      "LastSavedUsingVersion": "192.168.236.187",
+      "ResourceID": "PS512",
+      "ResourceType": "PropertySet"
+    },
+    "columnLengths": {
+      "PName": 142,
+      "PFriendlyName": 142,
+      "PEnumType": 142,
+      "PKind": 142,
+      "UnitName": 142,
+      "values": 142
+    },
+    "properties": [
+      {
+        "name": "RunID",
+        "friendlyName": "Run ID",
+        "kind": "String",
+        "value": ""
+      },
+      {
+        "name": "ServiceTime_SelfCheck_inKiosk",
+        "friendlyName": "Service Time - Self Check-in Kiosk",
+        "kind": "String",
+        "value": "<TIDRandomized role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Unassigned] \" Expanded=\"[Boolean] True\" Max=\"[Float] 100\" Min=\"[Float] 90\" UseRestr=\"[Boolean] False\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_BagDrop",
+        "friendlyName": "Service Time - BagDrop",
+        "kind": "String",
+        "value": "<TIDRandomized role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" Max=\"[Float] 65\" Min=\"[Float] 55\" UseRestr=\"[Boolean] False\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_Check_inCounter_Dom_",
+        "friendlyName": "Service Time - Check-in Counter (Dom)",
+        "kind": "String",
+        "value": "<TIDRandomized role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" Max=\"[Float] 170\" Min=\"[Float] 46\" UseRestr=\"[Boolean] False\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_BoardingPassControl_Int_FacialRecognition",
+        "friendlyName": "Service Time - Boarding Pass Control - Int - Facial Recognition",
+        "kind": "String",
+        "value": "<TIDRandomized role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" Max=\"[Float] 60\" Min=\"[Float] 10\" UseRestr=\"[Boolean] False\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_BoardingPassControl_Int_Normal",
+        "friendlyName": "Service Time - Boarding Pass Control - Int - Normal",
+        "kind": "String",
+        "value": "<TIDRandomized role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" Max=\"[Float] 60\" Min=\"[Float] 10\" UseRestr=\"[Boolean] False\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_BoardingPassControl_Domestic",
+        "friendlyName": "Service Time - Boarding Pass Control - Dom",
+        "kind": "String",
+        "value": "<TIDRandomized role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" Max=\"[Float] 60\" Min=\"[Float] 10\" UseRestr=\"[Boolean] False\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_SecurityControl_P01_DG1",
+        "friendlyName": "Service Time - Security Control - P01 - DG1",
+        "kind": "String",
+        "value": "<TIDConstant role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" Value=\"[Float] 14\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_SecurityControl_P01_DG2",
+        "friendlyName": "Service Time - Security Control - P01 - DG2",
+        "kind": "String",
+        "value": "<TIDConstant role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" Value=\"[Float] 14\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_SecurityControl_P01_DG3",
+        "friendlyName": "Service Time - Security Control - P01 - DG3",
+        "kind": "String",
+        "value": "<TIDConstant role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" Value=\"[Float] 14\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_SecurityControl_P01_DG4",
+        "friendlyName": "Service Time - Security Control - P01 - DG4",
+        "kind": "String",
+        "value": "<TIDConstant role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" Value=\"[Float] 14\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_SecurityControl_P01_DG5",
+        "friendlyName": "Service Time - Security Control - P01 - DG5",
+        "kind": "String",
+        "value": "<TIDConstant role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" Value=\"[Float] 14\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_SecurityControl_P01_DG6",
+        "friendlyName": "Service Time - Security Control - P01 - DG6",
+        "kind": "String",
+        "value": "<TIDConstant role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" Value=\"[Float] 14\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_SecurityControl_Domestic",
+        "friendlyName": "Service Time - Security Control - Domestic",
+        "kind": "String",
+        "value": "<TIDRandomized role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" Max=\"[Float] 25\" Min=\"[Float] 15\" UseRestr=\"[Boolean] False\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_SecurityControl_P03_DG1",
+        "friendlyName": "Service Time - Security Control - P03 - DG1",
+        "kind": "String",
+        "value": "<TIDConstant role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" Value=\"[Float] 14\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_SecurityControl_P03_DG2",
+        "friendlyName": "Service Time - Security Control - P03 - DG2",
+        "kind": "String",
+        "value": "<TIDConstant role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" Value=\"[Float] 14\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_PassportControl_Normal_Korean",
+        "friendlyName": "Service Time - Passport Control - Normal - Korean",
+        "kind": "String",
+        "value": "<TIDTriangle role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Unassigned] \" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" a=\"[Float] 8\" b=\"[Float] 36\" c=\"[Float] 22\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_PassportControl_Normal_Foreigner",
+        "friendlyName": "Service Time - Passport Control - Normal - Foreigner",
+        "kind": "String",
+        "value": "<TIDTriangle role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Unassigned] \" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" a=\"[Float] 28\" b=\"[Float] 80\" c=\"[Float] 53\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_PassportControl_Automatic_Korean",
+        "friendlyName": "Service Time - Passport Control - Automatic - Korean",
+        "kind": "String",
+        "value": "<TIDTriangle role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Unassigned] \" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" a=\"[Float] 13\" b=\"[Float] 46\" c=\"[Float] 22\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_PassportControl_Automatic_Foreigner",
+        "friendlyName": "Service Time - Passport Control - Automatic - Foreigner",
+        "kind": "String",
+        "value": "<TIDTriangle role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Unassigned] \" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" a=\"[Float] 28\" b=\"[Float] 80\" c=\"[Float] 53\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_Quarantine",
+        "friendlyName": "Service Time - Quarantine",
+        "kind": "String",
+        "value": "<TIDRandomized role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Unassigned] \" Expanded=\"[Boolean] True\" Max=\"[Float] 5\" Min=\"[Float] 2\" UseRestr=\"[Boolean] False\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_TransferSecurity",
+        "friendlyName": "Service Time - Transfer Security",
+        "kind": "String",
+        "value": "<TIDRandomized role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" Max=\"[Float] 50\" Min=\"[Float] 15\" UseRestr=\"[Boolean] False\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_ImmigrationControl_Normal_Korean",
+        "friendlyName": "Service Time - Immigration Control - Normal - Korean",
+        "kind": "String",
+        "value": "<TIDTriangle role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" a=\"[Float] 13\" b=\"[Float] 46\" c=\"[Float] 22\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_ImmigrationControl_Normal_Foreigner",
+        "friendlyName": "Service Time - Immigration Control - Normal - Foreigner",
+        "kind": "String",
+        "value": "<TIDTriangle role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" a=\"[Float] 28\" b=\"[Float] 80\" c=\"[Float] 53\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_ImmigrationControl_Automatic_Korean",
+        "friendlyName": "Service Time - Immigration Control - Automatic - Korean",
+        "kind": "String",
+        "value": "<TIDTriangle role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" a=\"[Float] 13\" b=\"[Float] 46\" c=\"[Float] 22\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_ImmigrationControl_Automatic_Foreigner",
+        "friendlyName": "Service Time - Immigration Control - Automatic - Foreigner",
+        "kind": "String",
+        "value": "<TIDTriangle role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" a=\"[Float] 28\" b=\"[Float] 80\" c=\"[Float] 53\"/>\r\n"
+      },
+      {
+        "name": "ServiceTime_HandBagRed",
+        "friendlyName": "Service Time - HandBagRed",
+        "kind": "String",
+        "value": "<TIDTriangle role=\"Self\" Annotation=\"[String] \" Category=\"[String] Transaction Time[s]\" Description=\"[String] \" DistributionUnit=\"[String] s\" DynamicParams=\"[Boolean] False\" ErrorHandlingMode=\"[Enumeration:TErrorHandlingMode] 1\" ErrorReturnValue=\"[Float] 0\" Expanded=\"[Boolean] True\" UseRestr=\"[Boolean] False\" a=\"[Float] 28\" b=\"[Float] 80\" c=\"[Float] 53\"/>\r\n"
+      },
+      {
+        "name": "P01Passport_International",
+        "friendlyName": "P01_Passport - International",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 58\" Value=\"[String] Korean\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 42\" Value=\"[String] Foreigner\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_Passport_Domestic",
+        "friendlyName": "P01_Passport - Domestic",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 90\" Value=\"[String] Korean\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 10\" Value=\"[String] Foreigner\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03Passport_International",
+        "friendlyName": "P03_Passport - International",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 58\" Value=\"[String] Korean\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 42\" Value=\"[String] Foreigner\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_Passport_Domestic",
+        "friendlyName": "P03_Passport - Domestic",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 90\" Value=\"[String] Korean\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 10\" Value=\"[String] Foreigner\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01CATLocation_International",
+        "friendlyName": "P01_CATLocation - International",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 93\" Value=\"[String] NoCAT\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 7\" Value=\"[String] CAT\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_CATLocation_Domestic",
+        "friendlyName": "P01_CATLocation - Domestic",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 100\" Value=\"[String] NoCAT\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 0\" Value=\"[String] CAT\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03CATLocation_International",
+        "friendlyName": "P03_CATLocation - International",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 93\" Value=\"[String] NoCAT\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 7\" Value=\"[String] CAT\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_CATLocation_Domestic",
+        "friendlyName": "P03_CATLocation - Domestic",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 100\" Value=\"[String] NoCAT\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 0\" Value=\"[String] CAT\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_TravelClass_FSC",
+        "friendlyName": "P01_Travel Class - FSC",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 1\" Value=\"[String] First\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 5\" Value=\"[String] Business\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 10\" Value=\"[String] EconomyFrequentFlyer\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 84\" Value=\"[String] EconomyNonFrequentFlyer\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_TravelClass_LCC",
+        "friendlyName": "P01_Travel Class - LCC",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 10\" Value=\"[String] EconomyPremium\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 90\" Value=\"[String] Economy\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_TravelClass_FSC",
+        "friendlyName": "P03_Travel Class - FSC",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 1\" Value=\"[String] First\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 5\" Value=\"[String] Business\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 10\" Value=\"[String] EconomyFrequentFlyer\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 84\" Value=\"[String] EconomyNonFrequentFlyer\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_TravelClass_LCC",
+        "friendlyName": "P03_Travel Class - LCC",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 10\" Value=\"[String] EconomyPremium\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 90\" Value=\"[String] Economy\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_Bags_InternationalDepartures",
+        "friendlyName": "P01_Bags - International Departures",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 22\" Value=\"[Integer] 0\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 61\" Value=\"[Integer] 1\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 14\" Value=\"[Integer] 2\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 3\" Value=\"[Integer] 3\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_Bags_DomesticDepartures",
+        "friendlyName": "P01_Bags - Domestic Departures",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 50\" Value=\"[Integer] 0\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 50\" Value=\"[Integer] 1\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_Bags_CAT",
+        "friendlyName": "P01_Bags - CAT",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 100\" Value=\"[Integer] 0\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_Bags_Arrivals",
+        "friendlyName": "P01_Bags - Arrivals",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 25\" Value=\"[Integer] 0\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 25\" Value=\"[Integer] 1\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 25\" Value=\"[Integer] 2\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 25\" Value=\"[Integer] 3\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_Bags_InternationalDepartures",
+        "friendlyName": "P03_Bags - International Departures",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 22\" Value=\"[Integer] 0\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 61\" Value=\"[Integer] 1\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 14\" Value=\"[Integer] 2\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 3\" Value=\"[Integer] 3\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_Bags_DomesticDepartures",
+        "friendlyName": "P03_Bags - Domestic Departures",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 50\" Value=\"[Integer] 0\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 50\" Value=\"[Integer] 1\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_Bags_CAT",
+        "friendlyName": "P03_Bags - CAT",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 100\" Value=\"[Integer] 0\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_Bags_Arrivals",
+        "friendlyName": "P03_Bags - Arrivals",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 25\" Value=\"[Integer] 0\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 25\" Value=\"[Integer] 1\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 25\" Value=\"[Integer] 2\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 25\" Value=\"[Integer] 3\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_EntryTime_International_Group1",
+        "friendlyName": "P01_EntryTime - International_Group1",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.01\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.02\" StartTime=\"[Duration] 1899-12-30T-01:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.33\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.56\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.6\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.7\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.82\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.95\" StartTime=\"[Duration] 1899-12-30T-00:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child9)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:10:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_EntryTime_International_Group2",
+        "friendlyName": "P01_EntryTime - International_Group2",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.02\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.22\" StartTime=\"[Duration] 1899-12-30T-01:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.35\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.56\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.6\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.76\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.89\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.95\" StartTime=\"[Duration] 1899-12-30T-00:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child9)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:10:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_EntryTime_International_Group3",
+        "friendlyName": "P01_EntryTime - International_Group3",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.05\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.13\" StartTime=\"[Duration] 1899-12-30T-01:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.49\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.56\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.6\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.7\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.8\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.98\" StartTime=\"[Duration] 1899-12-30T-00:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child9)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:10:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_EntryTime_International_Group4",
+        "friendlyName": "P01_EntryTime - International_Group4",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.06\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.2\" StartTime=\"[Duration] 1899-12-30T-01:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.54\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.63\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.77\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.85\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.91\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.94\" StartTime=\"[Duration] 1899-12-30T-00:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child9)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:10:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_EntryTime_International_Group5",
+        "friendlyName": "P01_EntryTime - International_Group5",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.06\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.25\" StartTime=\"[Duration] 1899-12-30T-01:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.42\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.55\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.69\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.81\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.89\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.93\" StartTime=\"[Duration] 1899-12-30T-00:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child9)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:10:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_EntryTime_International_Group1",
+        "friendlyName": "P03_EntryTime - International_Group1",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.01\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.03\" StartTime=\"[Duration] 1899-12-30T-01:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.5\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.6\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.7\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.8\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.9\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.97\" StartTime=\"[Duration] 1899-12-30T-00:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child9)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:10:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_EntryTime_International_Group2",
+        "friendlyName": "P03_EntryTime - International_Group2",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.03\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.22\" StartTime=\"[Duration] 1899-12-30T-01:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.34\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.58\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.6\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.7\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.9\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.97\" StartTime=\"[Duration] 1899-12-30T-00:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child9)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:10:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_EntryTime_International_Group3",
+        "friendlyName": "P03_EntryTime - International_Group3",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.06\" StartTime=\"[Duration] 1899-12-30T-01:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.12\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.35\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.57\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.7\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.8\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.98\" StartTime=\"[Duration] 1899-12-30T-00:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child9)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:10:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_EntryTime_International_Group4",
+        "friendlyName": "P03_EntryTime - International_Group4",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.05\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.27\" StartTime=\"[Duration] 1899-12-30T-01:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.34\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.54\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.76\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.82\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.9\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.94\" StartTime=\"[Duration] 1899-12-30T-00:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child9)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:10:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_EntryTime_International_Group5",
+        "friendlyName": "P03_EntryTime - International_Group5",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.06\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.12\" StartTime=\"[Duration] 1899-12-30T-01:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.32\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.54\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.71\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.85\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.9\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.97\" StartTime=\"[Duration] 1899-12-30T-00:20:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child9)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:10:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_SecurityType",
+        "friendlyName": "P01_Security Type",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 20\" Value=\"[String] Alarm\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 80\" Value=\"[String] Clear\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_SecurityType",
+        "friendlyName": "P03_Security Type",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 20\" Value=\"[String] Alarm\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 80\" Value=\"[String] Clear\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_ImmigrationType_Korean",
+        "friendlyName": "P01_Immigration Type - Korean",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 43\" Value=\"[String] Normal\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 57\" Value=\"[String] Automatic\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_ImmigrationType_Foreigner",
+        "friendlyName": "P01_Immigration Type - Foreigner",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 73\" Value=\"[String] Normal\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 27\" Value=\"[String] Automatic\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_ImmigrationType_Korean",
+        "friendlyName": "P03_Immigration Type - Korean",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 43\" Value=\"[String] Normal\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 57\" Value=\"[String] Automatic\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_ImmigrationType_Foreigner",
+        "friendlyName": "P03_Immigration Type - Foreigner",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 73\" Value=\"[String] Normal\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 27\" Value=\"[String] Automatic\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_CustomsType",
+        "friendlyName": "P01_CustomsType",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 95\" Value=\"[String] Green\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 5\" Value=\"[String] Red\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_CustomsType",
+        "friendlyName": "P03_CustomsType",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 95\" Value=\"[String] Green\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 5\" Value=\"[String] Red\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_TransferDeskAvailability",
+        "friendlyName": "P01_TransferDeskAvailability",
+        "kind": "String",
+        "value": "<TIMultiCaseOfValues role=\"Self\">\r\n<TIMultiCaseOfValue role=\"(Child00)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] AE\"/>\r\n<TIMultiCaseOfValue role=\"(Child01)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] AF\"/>\r\n<TIMultiCaseOfValue role=\"(Child02)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] CA\"/>\r\n<TIMultiCaseOfValue role=\"(Child03)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] CI\"/>\r\n<TIMultiCaseOfValue role=\"(Child04)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] CZ\"/>\r\n<TIMultiCaseOfValue role=\"(Child05)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] GA\"/>\r\n<TIMultiCaseOfValue role=\"(Child06)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] HY\"/>\r\n<TIMultiCaseOfValue role=\"(Child07)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] KL\"/>\r\n<TIMultiCaseOfValue role=\"(Child08)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] MF\"/>\r\n<TIMultiCaseOfValue role=\"(Child09)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] MH\"/>\r\n<TIMultiCaseOfValue role=\"(Child10)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] OM\"/>\r\n<TIMultiCaseOfValue role=\"(Child11)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] PR\"/>\r\n<TIMultiCaseOfValue role=\"(Child12)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] EY\"/>\r\n<TIMultiCaseOfValue role=\"(Child13)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] SU\"/>\r\n<TIMultiCaseOfValue role=\"(Child14)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] VN\"/>\r\n</TIMultiCaseOfValues>\r\n"
+      },
+      {
+        "name": "P03_TransferDeskAvailability",
+        "friendlyName": "P03_TransferDeskAvailability",
+        "kind": "String",
+        "value": "<TIMultiCaseOfValues role=\"Self\">\r\n<TIMultiCaseOfValue role=\"(Child00)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] AE\"/>\r\n<TIMultiCaseOfValue role=\"(Child01)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] AF\"/>\r\n<TIMultiCaseOfValue role=\"(Child02)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] CA\"/>\r\n<TIMultiCaseOfValue role=\"(Child03)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] CI\"/>\r\n<TIMultiCaseOfValue role=\"(Child04)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] CZ\"/>\r\n<TIMultiCaseOfValue role=\"(Child05)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] GA\"/>\r\n<TIMultiCaseOfValue role=\"(Child06)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] HY\"/>\r\n<TIMultiCaseOfValue role=\"(Child07)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] KL\"/>\r\n<TIMultiCaseOfValue role=\"(Child08)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] MF\"/>\r\n<TIMultiCaseOfValue role=\"(Child09)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] MH\"/>\r\n<TIMultiCaseOfValue role=\"(Child10)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] OM\"/>\r\n<TIMultiCaseOfValue role=\"(Child11)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] PR\"/>\r\n<TIMultiCaseOfValue role=\"(Child12)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] EY\"/>\r\n<TIMultiCaseOfValue role=\"(Child13)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] SU\"/>\r\n<TIMultiCaseOfValue role=\"(Child14)\" OperatorEnum=\"[Enumeration:TBoolOperator] 0\" Value=\"[String] VN\"/>\r\n</TIMultiCaseOfValues>\r\n"
+      },
+      {
+        "name": "P01_TransferChkIn",
+        "friendlyName": "P01_TransferChkIn",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 10\" Value=\"[String] 1\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_TransferChkIn",
+        "friendlyName": "P03_TransferChkIn",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 10\" Value=\"[String] 1\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "ConnectionLoc_T1Arrivals",
+        "friendlyName": "Connecting flight/location - P01 Arrivals",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 33\" Value=\"[String] P01\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 33\" Value=\"[String] P02\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 34\" Value=\"[String] P03\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "ConnectionLoc_ConcourseArrivals",
+        "friendlyName": "Connecting flight/location - P02 Arrivals",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 33\" Value=\"[String] P01\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 33\" Value=\"[String] P02\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 34\" Value=\"[String] P03\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "ConnectionLoc_T2Arrivals",
+        "friendlyName": "Connecting flight/location - P03 Arrivals",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 33\" Value=\"[String] P01\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 33\" Value=\"[String] P02\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 34\" Value=\"[String] P03\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_CheckInReportingTime_STDbefore10am",
+        "friendlyName": "P01_CheckInReportingTime - STD before 10am",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.46\" StartTime=\"[Duration] 1899-12-30T-01:15:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.73\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.88\" StartTime=\"[Duration] 1899-12-30T-00:45:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.7\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.8\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_CheckInReportingTime_STDafter10am",
+        "friendlyName": "P01_CheckInReportingTime - STD after 10am",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.16\" StartTime=\"[Duration] 1899-12-30T-01:15:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.36\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.88\" StartTime=\"[Duration] 1899-12-30T-00:45:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.75\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.85\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_CheckInReportingTime_STDbefore10am",
+        "friendlyName": "P03_CheckInReportingTime - STD before 10am",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.46\" StartTime=\"[Duration] 1899-12-30T-01:15:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.76\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.88\" StartTime=\"[Duration] 1899-12-30T-00:45:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.7\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.8\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_CheckInReportingTime_STDafter10am",
+        "friendlyName": "P03_CheckInReportingTime - STD after 10am",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.04\" StartTime=\"[Duration] 1899-12-30T-01:15:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.38\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.88\" StartTime=\"[Duration] 1899-12-30T-00:45:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.73\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.83\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_GateReportingTime_International",
+        "friendlyName": "P01_GateReportingTime - International",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.45\" StartTime=\"[Duration] 1899-12-30T-01:15:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.74\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.95\" StartTime=\"[Duration] 1899-12-30T-00:45:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_GateReportingTime_Domestic",
+        "friendlyName": "P01_GateReportingTime - Domestic",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.77\" StartTime=\"[Duration] 1899-12-30T-01:15:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_GateReportingTime_International",
+        "friendlyName": "P03_GateReportingTime - International",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.46\" StartTime=\"[Duration] 1899-12-30T-01:15:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.75\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.95\" StartTime=\"[Duration] 1899-12-30T-00:45:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_GateReportingTime_Domestic",
+        "friendlyName": "P03_GateReportingTime - Domestic",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.8\" StartTime=\"[Duration] 1899-12-30T-01:15:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_SecurityReportingTime_International_Group1",
+        "friendlyName": "P01_Security Reporting Time - International_Group1",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-02:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.05\" StartTime=\"[Duration] 1899-12-30T-01:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.45\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.85\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.9\" StartTime=\"[Duration] 1899-12-30T-02:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.98\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.99\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_SecurityReportingTime_International_Group2",
+        "friendlyName": "P01_Security Reporting Time - International_Group2",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-02:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.05\" StartTime=\"[Duration] 1899-12-30T-01:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.45\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.84\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.68\" StartTime=\"[Duration] 1899-12-30T-02:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.92\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.99\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_SecurityReportingTime_International_Group3",
+        "friendlyName": "P01_Security Reporting Time - International_Group3",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-02:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.05\" StartTime=\"[Duration] 1899-12-30T-01:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.45\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.85\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.89\" StartTime=\"[Duration] 1899-12-30T-02:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.98\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_SecurityReportingTime_International_Group4",
+        "friendlyName": "P01_Security Reporting Time - International_Group4",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-02:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.03\" StartTime=\"[Duration] 1899-12-30T-01:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.46\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.86\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.54\" StartTime=\"[Duration] 1899-12-30T-02:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.68\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.83\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_SecurityReportingTime_International_Group5",
+        "friendlyName": "P01_Security Reporting Time - International_Group5",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-02:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.05\" StartTime=\"[Duration] 1899-12-30T-01:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.54\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.87\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.84\" StartTime=\"[Duration] 1899-12-30T-02:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.97\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_SecurityReportingTime_Domestic",
+        "friendlyName": "P01_Security Reporting Time - Domestic",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_SecurityReportingTime_International_Group1",
+        "friendlyName": "P03_Security Reporting Time - International_Group1",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-02:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.05\" StartTime=\"[Duration] 1899-12-30T-01:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.45\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.86\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.48\" StartTime=\"[Duration] 1899-12-30T-02:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.78\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.95\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.99\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_SecurityReportingTime_International_Group2",
+        "friendlyName": "P03_Security Reporting Time - International_Group2",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-02:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.05\" StartTime=\"[Duration] 1899-12-30T-01:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.45\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.86\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.78\" StartTime=\"[Duration] 1899-12-30T-02:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.95\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.99\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_SecurityReportingTime_International_Group3",
+        "friendlyName": "P03_Security Reporting Time - International_Group3",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-02:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.05\" StartTime=\"[Duration] 1899-12-30T-01:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.46\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.85\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.7\" StartTime=\"[Duration] 1899-12-30T-02:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.89\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.98\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_SecurityReportingTime_International_Group4",
+        "friendlyName": "P03_Security Reporting Time - International_Group4",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-02:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.04\" StartTime=\"[Duration] 1899-12-30T-01:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.47\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.85\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.51\" StartTime=\"[Duration] 1899-12-30T-02:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.83\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.96\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.98\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_SecurityReportingTime_International_Group5",
+        "friendlyName": "P03_Security Reporting Time - International_Group5",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-02:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.04\" StartTime=\"[Duration] 1899-12-30T-01:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child2)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.47\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child3)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.85\" StartTime=\"[Duration] 1899-12-30T-01:10:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child4)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:50:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child5)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.64\" StartTime=\"[Duration] 1899-12-30T-02:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child6)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.89\" StartTime=\"[Duration] 1899-12-30T-01:30:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child7)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0.98\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child8)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:40:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P03_SecurityReportingTime_Domestic",
+        "friendlyName": "P03_Security Reporting Time - Domestic",
+        "kind": "String",
+        "value": "<TReportingProfile role=\"Self\" Mode=\"[Enumeration:TReportingProfileMode] 0\" Name=\"[String] \" SourceDataCount=\"[Integer] -1\">\r\n<TReportingProfileEntry role=\"(Child0)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 0\" StartTime=\"[Duration] 1899-12-30T-01:00:00.000\"/>\r\n<TReportingProfileEntry role=\"(Child1)\" ChosenTime=\"[Duration] 0100-01-01T00:00:00.000\" Percentage=\"[Float] 1\" StartTime=\"[Duration] 1899-12-30T-00:30:00.000\"/>\r\n</TReportingProfile>\r\n"
+      },
+      {
+        "name": "P01_HandBagRed",
+        "friendlyName": "P01_HandBagRed",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 85\" Value=\"[String] Green\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 15\" Value=\"[String] Red\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_HandBagRed",
+        "friendlyName": "P03_HandBagRed",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 85\" Value=\"[String] Green\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 15\" Value=\"[String] Red\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_A",
+        "friendlyName": "Distribution from CKIN to DG - T1_A",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 2\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 73\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 19\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 4\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 2\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_B",
+        "friendlyName": "Distribution from CKIN to DG - T1_B",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 2\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 68\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 24\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 5\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 1\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_C",
+        "friendlyName": "Distribution from CKIN to DG - T1_C",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 1\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 64\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 28\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 5\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 2\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_D",
+        "friendlyName": "Distribution from CKIN to DG - T1_D",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 0\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 44\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 48\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 5\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 3\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_E",
+        "friendlyName": "Distribution from CKIN to DG - T1_E",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 0\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 10\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 83\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 5\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 2\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_F",
+        "friendlyName": "Distribution from CKIN to DG - T1_F",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 0\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 6\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 80\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 10\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 4\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_G",
+        "friendlyName": "Distribution from CKIN to DG - T1_G",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 0\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 12\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 58\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 23\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 7\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_H",
+        "friendlyName": "Distribution from CKIN to DG - T1_H",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 0\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 2\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 23\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 55\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 20\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_J",
+        "friendlyName": "Distribution from CKIN to DG - T1_J",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 0\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 2\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 17\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 58\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 23\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_K",
+        "friendlyName": "Distribution from CKIN to DG - T1_K",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 0\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 1\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 18\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 17\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 64\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_L",
+        "friendlyName": "Distribution from CKIN to DG - T1_L",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 0\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 1\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 9\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 16\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 74\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_M",
+        "friendlyName": "Distribution from CKIN to DG - T1_M",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 0\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 0\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 9\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 12\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 79\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_N",
+        "friendlyName": "Distribution from CKIN to DG - T1_N",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 0\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 0\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 6\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 9\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 85\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_CAT",
+        "friendlyName": "Distribution from CKIN to DG - T1_CAT",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 0\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 16\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 42\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 34\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 8\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T1_ONLINE",
+        "friendlyName": "Distribution from CKIN to DG - T1_ONLINE",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 1\" Value=\"[String] DG1\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 23\" Value=\"[String] DG2\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 32\" Value=\"[String] DG3\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 19\" Value=\"[String] DG4\"/>\r\n<TConstantShareRow role=\"(Child4)\" Shares=\"[Float] 25\" Value=\"[String] DG5\"/>\r\n<TConstantShareRow role=\"(Child5)\" Shares=\"[Float] 0\" Value=\"[String] DG6\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_A",
+        "friendlyName": "Distribution from CKIN to DG - T2_A",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 75\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 18\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 6\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 1\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_B",
+        "friendlyName": "Distribution from CKIN to DG - T2_B",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 59\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 28\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 12\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 1\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_C",
+        "friendlyName": "Distribution from CKIN to DG - T2_C",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 58\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 31\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 10\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 1\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_D",
+        "friendlyName": "Distribution from CKIN to DG - T2_D",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 43\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 47\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 7\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 3\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_E",
+        "friendlyName": "Distribution from CKIN to DG - T2_E",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 16\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 62\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 18\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 4\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_F",
+        "friendlyName": "Distribution from CKIN to DG - T2_F",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 22\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 47\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 29\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 2\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_G",
+        "friendlyName": "Distribution from CKIN to DG - T2_G",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 4\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 38\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 56\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 2\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_H",
+        "friendlyName": "Distribution from CKIN to DG - T2_H",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 6\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 26\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 67\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 1\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_J",
+        "friendlyName": "Distribution from CKIN to DG - T2_J",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 1\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 10\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 82\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 7\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_K",
+        "friendlyName": "Distribution from CKIN to DG - T2_K",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 3\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 29\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 65\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 3\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_L",
+        "friendlyName": "Distribution from CKIN to DG - T2_L",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 2\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 35\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 60\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 3\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_M",
+        "friendlyName": "Distribution from CKIN to DG - T2_M",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 14\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 36\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 47\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 3\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_N",
+        "friendlyName": "Distribution from CKIN to DG - T2_N",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 45\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 18\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 34\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 3\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_CAT",
+        "friendlyName": "Distribution from CKIN to DG - T2_CAT",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 38\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 36\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 20\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 6\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "DistributionfromCKINtoDG_T2_ONLINE",
+        "friendlyName": "Distribution from CKIN to DG - T2_ONLINE",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 25\" Value=\"[String] DG1-East\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 25\" Value=\"[String] DG1-West\"/>\r\n<TConstantShareRow role=\"(Child2)\" Shares=\"[Float] 25\" Value=\"[String] DG2-East\"/>\r\n<TConstantShareRow role=\"(Child3)\" Shares=\"[Float] 25\" Value=\"[String] DG2-West\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_EmigrationType_Korean",
+        "friendlyName": "P01_EmigrationType - Korean",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 43\" Value=\"[String] Normal\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 57\" Value=\"[String] Automatic\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_EmigrationType_Foreigner",
+        "friendlyName": "P01_EmigrationType - Foreigner",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 73\" Value=\"[String] Normal\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 27\" Value=\"[String] Automatic\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_EmigrationType_Korean",
+        "friendlyName": "P03_EmigrationType - Korean",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 43\" Value=\"[String] Normal\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 57\" Value=\"[String] Automatic\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_EmigrationType_Foreigner",
+        "friendlyName": "P03_EmigrationType - Foreigner",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 73\" Value=\"[String] Normal\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 27\" Value=\"[String] Automatic\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_SideDoor_CAT",
+        "friendlyName": "P01_SideDoor - CAT",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 100\" Value=\"[String] Y\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 0\" Value=\"[String] N\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_SideDoor_NoCAT",
+        "friendlyName": "P01_SideDoor - NoCAT",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 1\" Value=\"[String] Y\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 99\" Value=\"[String] N\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_SideDoor_CAT",
+        "friendlyName": "P03_SideDoor - CAT",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 100\" Value=\"[String] Y\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 0\" Value=\"[String] N\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_SideDoor_NoCAT",
+        "friendlyName": "P03_SideDoor - NoCAT",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 1\" Value=\"[String] Y\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 99\" Value=\"[String] N\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P01_FacialRecognition",
+        "friendlyName": "P01_FacialRecognition",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 50\" Value=\"[String] Y\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 50\" Value=\"[String] N\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "P03_FacialRecognition",
+        "friendlyName": "P03_FacialRecognition",
+        "kind": "String",
+        "value": "<TConstantShareRows role=\"Self\">\r\n<TConstantShareRow role=\"(Child0)\" Shares=\"[Float] 50\" Value=\"[String] Y\"/>\r\n<TConstantShareRow role=\"(Child1)\" Shares=\"[Float] 50\" Value=\"[String] N\"/>\r\n</TConstantShareRows>\r\n"
+      },
+      {
+        "name": "SBDCounterAllocationResourceID",
+        "friendlyName": "SBDCounterAllocation Resource ID",
+        "kind": "String",
+        "value": "SBD024"
+      },
+      {
+        "name": "FacilityOpeningTable_SecurityControlResourceID",
+        "friendlyName": "FacilityOpeningTable_SecurityControl Resource ID",
+        "kind": "String",
+        "value": "FacilityOpeningTable_SecurityControl024"
+      },
+      {
+        "name": "FacilityOpeningTable_ImmigrationResourceID",
+        "friendlyName": "FacilityOpeningTable_Immigration Resource ID",
+        "kind": "String",
+        "value": "FacilityOpeningTable_Immigration024"
+      },
+      {
+        "name": "FacilityOpeningTable_EmigrationResourceID",
+        "friendlyName": "FacilityOpeningTable_Emigration Resource ID",
+        "kind": "String",
+        "value": "FacilityOpeningTable_Emigration001"
+      },
+      {
+        "name": "FacilityOpeningTable_DepartureGateResourceID",
+        "friendlyName": "FacilityOpeningTable_DepartureGate Resource ID",
+        "kind": "String",
+        "value": "FacilityOpeningTable_DepartureGate024"
+      },
+      {
+        "name": "FacilityOpeningTable_TransferSecurityControlResourceID",
+        "friendlyName": "FacilityOpeningTable_TransferSecurityControl Resource ID",
+        "kind": "String",
+        "value": "FacilityOpeningTable_TransferSecurityControl024"
+      },
+      {
+        "name": "CheckinTypeResourceID",
+        "friendlyName": "CheckinType Resource ID",
+        "kind": "String",
+        "value": "CheckinType001"
+      },
+      {
+        "name": "CheckInCounterServiceTimeResourceID",
+        "friendlyName": "CheckInCounterServiceTime Resource ID",
+        "kind": "String",
+        "value": "CheckInCounterServiceTime001"
+      }
+    ]
+  }
+}
