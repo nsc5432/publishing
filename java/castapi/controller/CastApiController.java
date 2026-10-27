@@ -31,7 +31,7 @@ import lombok.RequiredArgsConstructor;
  *
  * </pre>
  */
-// @RestController
+@RestController
 @RequestMapping("/castrest/rest/json")
 @RequiredArgsConstructor
 public class CastApiController extends BaseAomsRestController {

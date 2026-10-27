@@ -138,14 +138,14 @@ export function CheckinCounterTab({
     };
 
     const patchDraft = (patch: Partial<CheckinIsland>) => {
-        if (busy) return;
+        if (busy || readOnly) return;
         dirty.current[dock.terminal] = true;
         setDock((previousDock) => (previousDock.draft ? { ...previousDock, changed: true, draft: { ...previousDock.draft, ...patch } } : previousDock));
     };
 
     const handleConfirm = () => {
         const { terminal, draft: edited, target } = dock;
-        if (busy || !edited) return;
+        if (busy || readOnly || !edited) return;
         dirty.current[terminal] = true;
 
         setIslandsByTerminal((previousIslands) => ({
@@ -172,7 +172,7 @@ export function CheckinCounterTab({
     });
 
     const handleSave = async (terminal: TerminalKind) => {
-        if (busy) return;
+        if (busy || readOnly) return;
         const ymd = query.ymd;
         if (!ymd || !terminalData[terminal]) return;
 
@@ -219,7 +219,7 @@ export function CheckinCounterTab({
                             </>
                         }
                         footer={
-                            <button type="button" className="btn btn--save" disabled={busy || !terminalData[terminal]} onClick={() => handleSave(terminal)}>
+                            <button type="button" className="btn btn--save" disabled={busy || readOnly || !terminalData[terminal]} onClick={() => handleSave(terminal)}>
                                 현재상태 저장
                             </button>
                         }
@@ -247,34 +247,32 @@ export function CheckinCounterTab({
 
                                 return `아일랜드 ${item.label} / ${detail} / ${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
                             }}
-                            disabled={!terminalEnabled || readOnly}
+                            disabled={!terminalEnabled}
                         />
                     </TerminalPanel>
                 );
             })}
 
-            {!readOnly && (
-                <EditDock
-                    terminal={focusTerminal}
-                    disabled={busy}
-                    codes={focusData.islandCodes}
-                    islands={focusIslands}
-                    selected={draft ? [draft.label] : []}
-                    onSelect={(label) => openIsland(focusTerminal, label)}
-                    draft={draft}
-                    onPatch={patchDraft}
-                    airlines={focusData.airlines}
-                    selectedBooths={draft ? dock.selectedBooths : []}
-                    onSelectBooths={(boothNos) =>
-                        setDock((previousDock) => ({
-                            ...previousDock,
-                            selectedBooths: boothNos,
-                        }))
-                    }
-                    onConfirm={handleConfirm}
-                    onCancel={() => setDock({ ...EMPTY_DOCK, terminal: focusTerminal })}
-                />
-            )}
+            <EditDock
+                terminal={focusTerminal}
+                disabled={busy || !!readOnly}
+                codes={focusData.islandCodes}
+                islands={focusIslands}
+                selected={draft ? [draft.label] : []}
+                onSelect={(label) => openIsland(focusTerminal, label)}
+                draft={draft}
+                onPatch={patchDraft}
+                airlines={focusData.airlines}
+                selectedBooths={draft ? dock.selectedBooths : []}
+                onSelectBooths={(boothNos) =>
+                    setDock((previousDock) => ({
+                        ...previousDock,
+                        selectedBooths: boothNos,
+                    }))
+                }
+                onConfirm={handleConfirm}
+                onCancel={() => setDock({ ...EMPTY_DOCK, terminal: focusTerminal })}
+            />
         </>
     );
 }

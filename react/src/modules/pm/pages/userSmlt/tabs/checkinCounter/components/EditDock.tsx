@@ -87,7 +87,7 @@ export function EditDock({
     }, [selectedBooths, onSelectBooths]);
 
     const assignAirline = (airline: string) => {
-        if (!draft || selectedBooths.length === 0) return;
+        if (disabled || !draft || selectedBooths.length === 0) return;
 
         const selectedBoothNos = new Set(selectedBooths);
         onPatch({
@@ -133,17 +133,17 @@ export function EditDock({
                             <div className="booths" ref={boothsRef}>
                                 <div className="booths__row">
                                     <span className="booths__side">L</span>
-                                    <BoothGrid booths={draft.booths} side="L" selected={selectedBooths} onSelect={onSelectBooths} />
+                                    <BoothGrid booths={draft.booths} side="L" selected={selectedBooths} onSelect={onSelectBooths} disabled={disabled} />
                                 </div>
 
                                 <span className="booths__spine" aria-hidden="true" />
 
                                 <div className="booths__row">
                                     <span className="booths__side">R</span>
-                                    <BoothGrid booths={draft.booths} side="R" selected={selectedBooths} onSelect={onSelectBooths} />
+                                    <BoothGrid booths={draft.booths} side="R" selected={selectedBooths} onSelect={onSelectBooths} disabled={disabled} />
                                 </div>
 
-                                {popover && <AirlinePopover airlines={airlines} count={selectedBooths.length} pos={popover} onPick={assignAirline} />}
+                                {!disabled && popover && <AirlinePopover airlines={airlines} count={selectedBooths.length} pos={popover} onPick={assignAirline} />}
                             </div>
                         </section>
 
@@ -158,8 +158,8 @@ export function EditDock({
                             <p className="dsec__title">
                                 셀프 서비스<span className="dsec__hint">아일랜드별</span>
                             </p>
-                            <CountStepper label="셀프체크인 키오스크" value={draft.kiosk} onChange={(kiosk) => onPatch({ kiosk })} />
-                            <CountStepper label="셀프백드롭" value={draft.bagdrop} onChange={(bagdrop) => onPatch({ bagdrop })} />
+                            <CountStepper label="셀프체크인 키오스크" value={draft.kiosk} onChange={(kiosk) => onPatch({ kiosk })} disabled={disabled} />
+                            <CountStepper label="셀프백드롭" value={draft.bagdrop} onChange={(bagdrop) => onPatch({ bagdrop })} disabled={disabled} />
                         </section>
                     </div>
 
@@ -167,7 +167,7 @@ export function EditDock({
                         <button type="button" className="btn btn--ghost" onClick={onCancel}>
                             취소
                         </button>
-                        <button type="button" className="btn btn--primary" onClick={onConfirm}>
+                        <button type="button" className="btn btn--primary" onClick={onConfirm} disabled={disabled}>
                             변경
                         </button>
                     </div>

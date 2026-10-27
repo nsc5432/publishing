@@ -84,28 +84,25 @@ export function TerminalPanel({
             {children}
 
             <div className="panel__foot">
+                {enabled ? footer : null}
                 {!readOnly && (
-                    <>
-                        {enabled ? footer : null}
-
-                        <button
-                            type="button"
-                            className={`tswitch${enabled ? ' is-on' : ''}`}
-                            role="switch"
-                            aria-checked={enabled}
-                            aria-label={`${terminal} 편집 선택`}
-                            disabled={locked}
-                            title={locked ? LOCKED_HINT : undefined}
-                            onClick={handleToggle}
-                        >
-                            <span className="tswitch__track" aria-hidden="true">
-                                <i className="tswitch__knob" />
-                            </span>
-                            <span className="tswitch__text">
-                                {terminal} {enabled ? '편집' : '선택 안 함'}
-                            </span>
-                        </button>
-                    </>
+                    <button
+                        type="button"
+                        className={`tswitch${enabled ? ' is-on' : ''}`}
+                        role="switch"
+                        aria-checked={enabled}
+                        aria-label={`${terminal} 편집 선택`}
+                        disabled={locked}
+                        title={locked ? LOCKED_HINT : undefined}
+                        onClick={handleToggle}
+                    >
+                        <span className="tswitch__track" aria-hidden="true">
+                            <i className="tswitch__knob" />
+                        </span>
+                        <span className="tswitch__text">
+                            {terminal} {enabled ? '편집' : '선택 안 함'}
+                        </span>
+                    </button>
                 )}
             </div>
         </section>

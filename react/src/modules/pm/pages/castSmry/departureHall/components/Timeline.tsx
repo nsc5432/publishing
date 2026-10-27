@@ -12,7 +12,7 @@ interface TimelineProps {
     timeline: ReturnType<typeof useTimeline>;
 }
 
-/** 하단 타임라인 — 30분 단위 이동 / 재생 (04:00 ~ 24:00) */
+/** 하단 타임라인 — 30분 단위 이동 / 재생 (00:00 ~ 24:00) */
 export function Timeline({ timeline }: TimelineProps) {
     const { step, setStep, playing, toggle, prev, next, label, progress, max } = timeline;
 

@@ -16,11 +16,11 @@ const SMLT_ID = 'SMLT-20260710-0001';
 
 /* ================= 타임라인 눈금 ================= */
 
-/** 출국장 화면은 04:00 부터 그린다 (그 앞은 출국장이 열리지 않는다) */
-const BGN_MIN = 4 * 60;
+/** 출국장 화면은 00:00 부터 그린다 (출국장 운영 전 시간도 포함한다) */
+const BGN_MIN = 0;
 const STEP_MIN = 30;
-/** 04:00 ~ 24:00 (20시간 / 30분) */
-const MAX_STEP = 40;
+/** 00:00 ~ 24:00 (24시간 / 30분) */
+const MAX_STEP = 48;
 
 function toHhmm(minutes: number): string {
     const hh = String(Math.floor(minutes / 60)).padStart(2, '0');
@@ -71,7 +71,8 @@ const GATE_SEEDS: Record<TmnlId, GateSeed[]> = { T1: T1_GATES, T2: T2_GATES };
  * 04:00 부터 완만하게 오르다 피크를 찍고 내려가는 곡선을 만든다.
  */
 function wtngAt(peakStep: number, peakWtng: number, step: number): number {
-    const gap = Math.abs(step - peakStep);
+    // 피크 위치는 04:00 기준 시드의 시각을 유지한다.
+    const gap = Math.abs(step - (peakStep + 8));
 
     return Math.max(0, Math.round(peakWtng * Math.exp(-((gap / 9) ** 2)) - gap * 0.4));
 }

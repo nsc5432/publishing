@@ -287,12 +287,13 @@ function levelAxis(levels: number): YAXisComponentOption {
 
 function waitAxis(axisMax: number, show: boolean): YAXisComponentOption {
     const max = axisMax || WAIT_TICKS;
+    const interval = max / WAIT_TICKS;
 
     return {
         type: 'value',
         min: 0,
-        max,
-        interval: max / WAIT_TICKS,
+        max: max + interval,
+        interval,
         show,
         axisLine: { show: false },
         axisTick: { show: false },
@@ -355,7 +356,7 @@ function waitLineSeries(line: WaitLineData, wait: WaitLine): LineSeriesOption {
             animation: false,
             symbol: 'roundRect',
             symbolSize: [PEAK_TIP.width, PEAK_TIP.height],
-            symbolOffset: [0, PEAK_TIP.gap + PEAK_TIP.height / 2],
+            symbolOffset: [PEAK_TIP.gap + PEAK_TIP.width / 2, 0],
             itemStyle: {
                 color: WAIT_COLOR,
                 shadowBlur: 8,

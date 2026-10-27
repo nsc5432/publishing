@@ -59,7 +59,7 @@ export function FlightPaxTab({
     };
 
     const handleSave = async (terminal: TerminalKind) => {
-        if (busy) return;
+        if (busy || readOnly) return;
         const dto = dtoByTerminal[terminal];
         const ymd = query.ymd;
         if (!dto || !ymd) return;
@@ -113,7 +113,7 @@ export function FlightPaxTab({
                             </>
                         }
                         footer={
-                            <button type="button" className="btn btn--save" disabled={busy || !dtoByTerminal[terminal]} onClick={() => handleSave(terminal)}>
+                            <button type="button" className="btn btn--save" disabled={busy || readOnly || !dtoByTerminal[terminal]} onClick={() => handleSave(terminal)}>
                                 현재상태 저장
                             </button>
                         }

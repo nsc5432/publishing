@@ -19,5 +19,5 @@ public class DepHallDto extends JsonResponse {
 	private List<MapMarkerDto> dptgtMarkerList; // 출국장 마커
 	private List<MapMarkerDto> chknMarkerList; // 아일랜드 마커 A~N
 	private List<MapMarkerDto> gateMarkerList; // 출입구 게이트 마커
-	private List<DepHallSlotDto> slotList; // 04:00~24:00 (30분, 41칸)
+	private List<DepHallSlotDto> slotList; // 00:00~24:00 (30분, 49칸)
 }

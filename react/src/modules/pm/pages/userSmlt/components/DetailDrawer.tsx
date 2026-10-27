@@ -8,6 +8,7 @@ interface DetailDrawerProps {
     subtitle: string;
     onClose: () => void;
     onConfirm: () => void;
+    disabled?: boolean;
     children: ReactNode;
 }
 
@@ -21,6 +22,7 @@ export function DetailDrawer({
     subtitle,
     onClose,
     onConfirm,
+    disabled = false,
     children,
 }: DetailDrawerProps) {
     return (
@@ -47,7 +49,7 @@ export function DetailDrawer({
                 <button type="button" className="btn btn--ghost" onClick={onClose}>
                     취소
                 </button>
-                <button type="button" className="btn btn--primary" onClick={onConfirm}>
+                <button type="button" className="btn btn--primary" onClick={onConfirm} disabled={disabled}>
                     변경
                 </button>
             </div>

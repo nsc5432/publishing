@@ -245,7 +245,7 @@ html[data-page='userSmlt'] .btn--save {
     box-shadow: 0 6px 16px rgba(68, 65, 204, 0.25);
 }
 
-html[data-page='userSmlt'] .btn--save:hover {
+html[data-page='userSmlt'] .btn--save:not(:disabled):hover {
     background: var(--pm-primary-dark);
 }
 
@@ -1466,8 +1466,14 @@ html[data-page='userSmlt'] .btn--primary {
     box-shadow: 0 6px 16px rgba(68, 65, 204, 0.25);
 }
 
-html[data-page='userSmlt'] .btn--primary:hover {
+html[data-page='userSmlt'] .btn--primary:not(:disabled):hover {
     background: var(--pm-primary-dark);
+}
+
+html[data-page='userSmlt'] .btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
 }
 
 html[data-page='userSmlt'] .dsec {

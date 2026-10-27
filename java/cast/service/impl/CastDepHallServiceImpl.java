@@ -73,8 +73,8 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 	private static final String DPTGT_NM_PREFIX = "출국장 ";
 	private static final String FCLT_NM = "출국장";
 
-	/** 타임라인 시작 시각 — 출국장은 04시 전에 열지 않는다 */
-	private static final int SLOT_BGN_HOUR = 4;
+	/** 타임라인 시작 시각 — 출국장 운영 전 시간도 포함한다 */
+	private static final int SLOT_BGN_HOUR = 0;
 
 	private static final int NOTICE_ITEM_LIMIT = 6; // 알림 목록이 도면을 덮지 않는 상한
 	private static final int MINUTE_PER_HOUR = 60;
