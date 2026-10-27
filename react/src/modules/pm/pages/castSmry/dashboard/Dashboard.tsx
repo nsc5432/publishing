@@ -78,11 +78,11 @@ function Dashboard() {
             !primeRequest ||
             !baseInfo ||
             !isBaseInfoCurrent ||
-            baseInfo.ymd !== primeRequest.ymd
+            (isUserSmlt ? baseInfo.ymd : ymd) !== primeRequest.ymd
         ) return null;
 
-        return { ...primeRequest, smltId: baseInfo.smltId };
-    }, [primeRequest, baseInfo, isBaseInfoCurrent]);
+        return { ...primeRequest, smltId: baseInfo.smltId, ymd: baseInfo.ymd };
+    }, [primeRequest, baseInfo, isBaseInfoCurrent, isUserSmlt, ymd]);
     const {
         data: primeTime,
         error: primeError,

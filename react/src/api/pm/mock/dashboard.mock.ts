@@ -29,10 +29,10 @@ import { MOCK_NORMAL_UPPER_EXCLUSIVE_SEC, mockByWaitDesc, mockGradeOf, mockWorst
 
 /* ================= 기준 정보 ================= */
 
-/** 선택 가능 시각 — 08:00 ~ 10:00, 10분 단위 (계산이 끝난 시각까지만 내려온다는 전제) */
+/** 선택 가능 시각 — 08:00 ~ 11:00, 10분 단위 (계산이 끝난 시각까지만 내려온다는 전제) */
 const AVL_TIMES = (() => {
     const times: string[] = [];
-    for (let minutes = 8 * 60; minutes <= 10 * 60; minutes += 10) {
+    for (let minutes = 8 * 60; minutes <= 11 * 60; minutes += 10) {
         const hh = String(Math.floor(minutes / 60)).padStart(2, '0');
         const mm = String(minutes % 60).padStart(2, '0');
         times.push(hh + mm);
@@ -46,8 +46,8 @@ const BASE_INFO: DsbdBaseInfoDto = {
     smltId: 'SMLT-20260710-0001',
     ymd: '20260710',
     smltType: 'USER',
-    lastCalcDt: '20260710104700',
-    nextCalcDt: '20260710110000',
+    lastCalcDt: '20260710114700',
+    nextCalcDt: '20260710120000',
     avlTimes: AVL_TIMES,
 };
 
@@ -218,7 +218,7 @@ function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmr
 
 /**
  * 퀵 타일(조회 대상)에 따라 값의 규모가 달라진다.
- * 실제로는 서버가 지표별로 다른 값을 내려주지만, 목업은 출발여객 곡선에 배율만 준다.
+ * 실제로는 서버가 지표별로 다른 값을 내려주지만, 목업은 출발여객 곡선의 배율과 피크 시각을 바꾼다.
  */
 const CATEGORY_SCALE: Record<DsbdCategory, number> = {
     PSG: 1,
@@ -227,13 +227,22 @@ const CATEGORY_SCALE: Record<DsbdCategory, number> = {
     DEP: 0.32,
 };
 
+const CATEGORY_PEAK_HOUR: Record<DsbdCategory, number> = {
+    PSG: 8,
+    FLT: 9,
+    CHKN: 10,
+    DEP: 11,
+};
+
 /** 실측(Xovis)은 흘러간 시간까지만 있다 — 이 시각 뒤로는 실적선이 끊긴다 */
 const MEASURED_UNTIL_HOUR = 14;
 
 function buildRsltList(tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] {
     const scale = CATEGORY_SCALE[category];
 
-    return HOURLY_PSG[tmnlId].map((base, hour) => {
+    return HOURLY_PSG[tmnlId].map((_, hour) => {
+        const sourceHour = (hour - CATEGORY_PEAK_HOUR[category] + CATEGORY_PEAK_HOUR.PSG + 24) % 24;
+        const base = HOURLY_PSG[tmnlId][sourceHour];
         const psgCnt = Math.round(base * scale);
         const fcstWtngPsgCnt = Math.round(psgCnt * 0.12);
 
