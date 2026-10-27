@@ -52,6 +52,7 @@ import aoms.pm.cast.dto.HourlyPsgItemDto;
 import aoms.pm.cast.dto.PeakDto;
 import aoms.pm.cast.dto.PsgDptcnyTrnsPrfmncRawDto;
 import aoms.pm.cast.dto.PsgWtngRawDto;
+import aoms.pm.cast.dto.SmltExcnDto;
 import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.dto.TmnlSmryDto;
@@ -63,6 +64,7 @@ import aoms.pm.cast.enums.SmltType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDsbdMapper;
 import aoms.pm.cast.mapper.CastFltPsgMapper;
+import aoms.pm.cast.mapper.CastSmltMapper;
 import aoms.pm.cast.service.CastChknQueueService;
 import aoms.pm.cast.service.CastDsbdService;
 import aoms.pm.cast.service.CastFcltWtngService;
@@ -89,6 +91,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	private final CastDsbdMapper castDsbdMapper;
 	private final CastFltPsgMapper castFltPsgMapper;
+	private final CastSmltMapper castSmltMapper;
 	private final CastSmltService castSmltService;
 	private final CastChknQueueService castChknQueueService;
 	private final CastFcltWtngService castFcltWtngService;
@@ -115,6 +118,41 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setLastCalcDt(lastCalcDt);
 		result.setNextCalcDt(getNextCalcDt(lastCalcDt));
 		result.setAvlTimes(toSecHhmmList(castDsbdMapper.retrieveAvlTimeList(smltId)));
+
+		return result;
+	}
+
+	@Override
+	public DsbdBaseInfoDto retrieveUserSmltBaseInfo(DsbdSearchDto searchDto) {
+		DsbdBaseInfoDto result = new DsbdBaseInfoDto();
+		String smltId = searchDto.getSmltId();
+
+		result.setSmltType(SmltType.USER);
+		result.setAvlTimes(new ArrayList<>());
+		result.setLastCalcDt(EMPTY);
+		result.setNextCalcDt(EMPTY);
+
+		if (smltId == null || smltId.isEmpty()) {
+			result.error("사용자 시뮬레이션 실행 ID가 필요합니다.");
+			return result;
+		}
+
+		SmltExcnDto execution = castSmltMapper.retrieveSmltFlfmt(smltId);
+		if (execution == null || !SmltType.USER.getDbCode().equals(execution.getSmltType())) {
+			result.error("사용자 시뮬레이션 수행 이력을 찾을 수 없습니다.");
+			return result;
+		}
+
+		List<String> avlTimes = toSecHhmmList(castDsbdMapper.retrieveAvlTimeList(smltId));
+		if (avlTimes.isEmpty()) {
+			result.error("해당 사용자 시뮬레이션 결과가 없습니다.");
+			return result;
+		}
+
+		result.setSmltId(smltId);
+		result.setYmd(execution.getExcnYmd());
+		result.setLastCalcDt(castDsbdMapper.retrieveLastCalcDt(smltId));
+		result.setAvlTimes(avlTimes);
 
 		return result;
 	}

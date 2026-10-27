@@ -921,6 +921,16 @@ export const dashboardMock = {
     getBaseInfo: (smltId?: string): DsbdBaseInfoDto =>
         smltId ? { ...BASE_INFO, smltId, smltType: smltId.startsWith('USR') ? 'USER' : 'DAILY' } : { ...BASE_INFO, smltType: 'DAILY' },
 
+    getUserBaseInfo: (smltId: string, ymd: string): DsbdBaseInfoDto => ({
+        ...BASE_INFO,
+        smltId,
+        ymd,
+        smltType: 'USER',
+        nextCalcDt: '',
+        error: !smltId,
+        errorMessage: smltId ? '' : '사용자 시뮬레이션 실행 ID가 필요합니다.',
+    }),
+
     getHeader: (): DsbdHeaderDto => HEADER,
 
     getTmnlSmry: (tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmryDto => buildTmnlSmry(tmnlId, hhmm, intrvlMin),

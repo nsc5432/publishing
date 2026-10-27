@@ -1,6 +1,6 @@
 import './dashboard.css';
 import { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useMatch, useNavigate, useSearchParams } from 'react-router-dom';
 import { Lnb } from '@/components/lnb';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
@@ -26,13 +26,19 @@ function Dashboard() {
 
     const [searchParams, setSearchParams] = useSearchParams();
     const targetSmltId = searchParams.get('smltId') ?? '';
-    const targetSmltType = (searchParams.get('smltType') as SmltType | null) ?? null;
+    const userSmltRoute = useMatch('/rui/pm/user-smlt/dashboard');
+    const targetSmltType: SmltType =
+        userSmltRoute || searchParams.get('smltType') === 'USER' ? 'USER' : 'DAILY';
 
     const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
     const [draftYmd, setDraftYmd] = useState(ymd);
-    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd, targetSmltId);
+    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(
+        ymd,
+        targetSmltId,
+        targetSmltType,
+    );
 
-    const simulationType = toSimulationType(targetSmltType ?? baseInfo?.smltType ?? 'DAILY');
+    const simulationType = toSimulationType(targetSmltType);
     const isUserSmlt = simulationType === 'user';
 
     const { data: execDetail } = useExecDetail(isUserSmlt ? targetSmltId : '');
@@ -113,7 +119,7 @@ function Dashboard() {
         <>
             <Topbar
                 simulationType={simulationType}
-                baseYmd={draftYmd}
+                baseYmd={isUserSmlt ? (baseInfo?.ymd ?? draftYmd) : draftYmd}
                 hour={hour}
                 minute={minute}
                 lastCalc={toCalcDateTime(baseInfo?.lastCalcDt)}

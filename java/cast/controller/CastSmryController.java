@@ -37,6 +37,11 @@ public class CastSmryController {
 		return ResponseUtils.res(castDsbdService.retrieveDailySmltBaseInfo(searchDto));
 	}
 
+	@PostMapping(value = "/retrieveUserSmltBaseInfo")
+	public ResponseEntity<DsbdBaseInfoDto> retrieveUserSmltBaseInfo(@RequestBody DsbdSearchDto searchDto) {
+		return ResponseUtils.res(castDsbdService.retrieveUserSmltBaseInfo(searchDto));
+	}
+
 	@PostMapping(value = "/retrieveDailySmltHeader")
 	public ResponseEntity<DsbdHeaderDto> retrieveDailySmltHeader(@RequestBody DsbdSearchDto searchDto) {
 		return ResponseUtils.res(castDsbdService.retrieveDailySmltHeader(searchDto));

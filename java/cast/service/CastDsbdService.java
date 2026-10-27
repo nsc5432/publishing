@@ -27,6 +27,8 @@ import aoms.pm.cast.dto.TmnlSmryDto;
 public interface CastDsbdService {
 	DsbdBaseInfoDto retrieveDailySmltBaseInfo(DsbdSearchDto searchDto);
 
+	DsbdBaseInfoDto retrieveUserSmltBaseInfo(DsbdSearchDto searchDto);
+
 	DsbdHeaderDto retrieveDailySmltHeader(DsbdSearchDto searchDto);
 
 	TmnlSmryDto retrieveDailySmltTmnlSmry(DsbdSearchDto searchDto);

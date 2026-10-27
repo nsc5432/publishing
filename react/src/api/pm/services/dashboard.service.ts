@@ -10,12 +10,28 @@ import type {
     DsbdRsltDto,
     FcltQueueScenarioDto,
     FcltQueueScenarioReq,
+    SmltType,
     TmnlId,
     TmnlSmryDto,
 } from '@/types/api.types';
 
 export const dashboardService = {
-    getBaseInfo: async (ymd: string, smltId?: string): Promise<DsbdBaseInfoDto> => {
+    getBaseInfo: async (
+        ymd: string,
+        smltId = '',
+        smltType: SmltType = 'DAILY',
+    ): Promise<DsbdBaseInfoDto> => {
+        if (smltType === 'USER') {
+            if (USE_MOCK) return mockResponse(dashboardMock.getUserBaseInfo(smltId, ymd));
+
+            const response = await apiClient.post<DsbdBaseInfoDto>(
+                API_ENDPOINTS.DSBD_USER_BASE_INFO,
+                { smltId },
+            );
+
+            return response.data;
+        }
+
         if (USE_MOCK) return mockResponse(dashboardMock.getBaseInfo(smltId));
 
         const response = await apiClient.post<DsbdBaseInfoDto>(API_ENDPOINTS.DSBD_BASE_INFO, {

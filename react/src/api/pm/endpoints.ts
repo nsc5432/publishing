@@ -6,6 +6,7 @@ export const API_ENDPOINTS = {
 
     // 일일 시뮬레이션 결과 조회 - 요약보기(대시보드)
     DSBD_BASE_INFO: prefix + '/smry/retrieveDailySmltBaseInfo',
+    DSBD_USER_BASE_INFO: prefix + '/smry/retrieveUserSmltBaseInfo',
     DSBD_HEADER: prefix + '/smry/retrieveDailySmltHeader',
     DSBD_TMNL_SMRY: prefix + '/smry/retrieveDailySmltTmnlSmry',
     DSBD_TMNL_RSLT: prefix + '/smry/retrieveDailySmltTmnlRsltByTime',
