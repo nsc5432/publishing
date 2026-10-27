@@ -485,6 +485,9 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   (2026-10-19). 게이트·주기장 3자리 패딩·fallback, OperatorCat·ContactRemote·CheckinRange·SBDAvailable 등을
   따로 만들지 않는다 — GO 원값을 그대로 쓰면 출발편이 게이트에 배정되지 않고 CAST가 계산 없이 끝난다.
   PK 때문에 같은 편 중복은 ROW_NUMBER로 1행만 남긴다.
+  좌석수(`ARCFT_STGCP`) 0·NULL 편은 이 조각에서 제외한다(2026-10-27). 섞이면 CAST가 결과 없이 Finished로 끝난다.
+  여객수는 실탑승 입력(`INPT_YN='Y'`, 1~1000명) → 예약승객수 순이며, 둘 다 없는 편은 제외한다.
+  과거 3개월 평균·좌석×0.75 추정은 쓰지 않는다(castrest 원본 fallback 제거).
 - 운항 조정은 국제선 출발 GREATEST(예약-환승,0) 몫만 늘린다. 조회와 발행의 필터·ROW_NUMBER를 맞춘다.
   기준 여객수는 FS001 값이고, 늘리는 몫만 조회 화면과 같은 예약 기준이다.
 - 사용자 DepartureGate는 운영 Y 출국장 × 운영구간 × `001` 조합(East/West·SD·FR)마다 1행이다 (2026-10-20,
