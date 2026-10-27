@@ -4,12 +4,18 @@ import { unwrap } from '@/api/pm/result';
 import { useFetched, type Fetched } from '@/hooks/useFetched';
 import type { DsbdCategory, DsbdFcltCardDto, DsbdHeaderDto, TmnlSmryDto } from '@/types/api.types';
 import { SMRY_INTRVL_MIN, type TerminalKind, type TerminalView } from '../types';
-import { toTerminalView } from '../view';
+import { toPrimeTime, toTerminalView } from '../view';
 
 export interface DashboardQuery {
     smltId: string;
     ymd: string;
     hhmm: string;
+}
+
+export interface PrimeTimeQuery {
+    smltId: string;
+    ymd: string;
+    category: DsbdCategory;
 }
 
 interface PanelBase {
@@ -31,6 +37,25 @@ interface RsltQuery extends PanelQuery {
 const DAY_OVERVIEW_FAIL = '상단 요약 정보를 불러오지 못했습니다.';
 const PANEL_FAIL = '터미널 요약 정보를 불러오지 못했습니다.';
 const RSLT_FAIL = '시간대별 결과를 불러오지 못했습니다.';
+const PRIME_TIME_FAIL = '최대 시간대를 계산할 수 있는 결과가 없습니다.';
+
+export function usePrimeTime(query: PrimeTimeQuery | null) {
+    return useFetched(
+        query,
+        async (request) => {
+            const results = await Promise.all([
+                dashboardService.getTmnlRsltByTime(request.smltId, 'T1', request.category),
+                dashboardService.getTmnlRsltByTime(request.smltId, 'T2', request.category),
+            ]);
+            const hhmm = toPrimeTime(results, request.category);
+
+            if (!hhmm) throw new Error(PRIME_TIME_FAIL);
+
+            return { query: request, hhmm };
+        },
+        RSLT_FAIL,
+    );
+}
 
 export function useDayOverview(query: DashboardQuery | null): Fetched<DsbdHeaderDto> {
     return useFetched(

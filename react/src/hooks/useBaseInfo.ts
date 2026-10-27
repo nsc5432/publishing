@@ -10,15 +10,25 @@ export function useBaseInfo(
     ymd: string,
     smltId = '',
     smltType: SmltType = 'DAILY',
-): Fetched<DsbdBaseInfoDto> {
+): Fetched<DsbdBaseInfoDto> & { isCurrent: boolean } {
     const query = useMemo(() => (ymd ? { ymd, smltId, smltType } : null), [ymd, smltId, smltType]);
 
-    return useFetched(
+    const result = useFetched(
         query,
-        ({ ymd: baseYmd, smltId: targetId, smltType: targetType }) =>
-            dashboardService
-                .getBaseInfo(baseYmd, targetId, targetType)
-                .then((dto) => unwrap(dto, FAIL_MESSAGE)),
+        async (request) => ({
+            query: request,
+            dto: unwrap(
+                await dashboardService.getBaseInfo(request.ymd, request.smltId, request.smltType),
+                FAIL_MESSAGE,
+            ),
+        }),
         FAIL_MESSAGE,
     );
+
+    return {
+        data: result.data?.dto ?? null,
+        error: result.error,
+        responseSeq: result.responseSeq,
+        isCurrent: result.data?.query === query,
+    };
 }

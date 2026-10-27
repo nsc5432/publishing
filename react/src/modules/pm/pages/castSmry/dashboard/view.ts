@@ -1,5 +1,6 @@
 import type {
     CongestionStatus,
+    DsbdCategory,
     DsbdFcltCardDto,
     DsbdRsltDto,
     FcltQueueClearDto,
@@ -173,6 +174,33 @@ function toTableRow(rslt: DsbdRsltDto): TableRow {
         process: formatMinutes(rslt.prcsHr),
         ratio: String(rslt.prcsRate),
     };
+}
+
+export function toPrimeTime(rsltLists: DsbdRsltDto[][], category: DsbdCategory): string {
+    const totals = new Map<string, number>();
+
+    for (const rsltList of rsltLists) {
+        for (const rslt of rsltList) {
+            const count =
+                category === 'PSG' || category === 'FLT' ? rslt.psgCnt : rslt.fcstWtngPsgCnt;
+
+            if (!/^([01]\d|2[0-3])[0-5]\d$/.test(rslt.time) || !Number.isFinite(count)) continue;
+
+            totals.set(rslt.time, (totals.get(rslt.time) ?? 0) + count);
+        }
+    }
+
+    let peakTime = '';
+    let peakCount = -Infinity;
+
+    for (const [time, count] of totals) {
+        if (count > peakCount || (count === peakCount && time < peakTime)) {
+            peakTime = time;
+            peakCount = count;
+        }
+    }
+
+    return peakTime;
 }
 
 export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCards }: TerminalViewInput): TerminalView {
