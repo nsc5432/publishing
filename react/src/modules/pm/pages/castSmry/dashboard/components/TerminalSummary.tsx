@@ -15,6 +15,7 @@ type ViewKind = 'summary' | 'table';
 interface TerminalSummaryProps {
     terminal: TerminalKind;
     data: TerminalView | null;
+    category: DsbdCategory;
     titleCategory: DsbdCategory | null;
     onFcltDetail: (fcltType: FcltCardType, unitCd: string) => void;
 }
@@ -51,7 +52,7 @@ const CONGESTION_THEMES: Record<CongestionStatus, CongestionTheme> = {
 /** 조회 시각에 등급을 산정할 수 있는 시설이 없을 때 — 여유/보통 색으로 대신하지 않는다 */
 const UNKNOWN_THEME: CongestionTheme = { panelClass: 'panel-gray', gauge: '#8a93a3' };
 
-export function TerminalSummary({ terminal, data, titleCategory, onFcltDetail }: TerminalSummaryProps) {
+export function TerminalSummary({ terminal, data, category, titleCategory, onFcltDetail }: TerminalSummaryProps) {
     const view = data ?? EMPTY_TERMINAL_VIEW;
     const images = TERMINAL_IMAGES[terminal];
     const theme = view.cgnStatus === null ? UNKNOWN_THEME : CONGESTION_THEMES[view.cgnStatus];
@@ -231,10 +232,14 @@ export function TerminalSummary({ terminal, data, titleCategory, onFcltDetail }:
                 <div className="table scroll-area">
                     <div className="thead">
                         <div>시간대</div>
-                        <div>승객수</div>
+                        <div>{category === 'FLT' ? '운항편수' : '예약승객수'}</div>
                         <div>대기시간</div>
                         <div>처리시간</div>
-                        <div>비율(%)</div>
+                        <div
+                            title={category === 'FLT' ? '해당 터미널의 하루 전체 운항편수 대비 비중' : '예측 대기인원(명)'}
+                        >
+                            {category === 'FLT' ? '시간대 비중(%)' : '대기인원'}
+                        </div>
                     </div>
                     {view.tableRows.map((row, rowIndex) => (
                         <div
@@ -247,7 +252,7 @@ export function TerminalSummary({ terminal, data, titleCategory, onFcltDetail }:
                             <div>{row.pax}</div>
                             <div className="w">{row.wait}</div>
                             <div className="w">{row.process}</div>
-                            <div>{row.ratio}</div>
+                            <div>{category === 'FLT' ? row.timeShare : row.waitingPax}</div>
                         </div>
                     ))}
                 </div>

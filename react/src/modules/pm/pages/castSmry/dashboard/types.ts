@@ -95,7 +95,8 @@ export interface TableRow {
     pax: string;
     wait: string;
     process: string;
-    ratio: string;
+    timeShare: string;
+    waitingPax: string;
 }
 
 /* ================= 혼잡해소 시나리오 팝업 뷰 모델 ================= */

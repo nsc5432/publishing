@@ -167,13 +167,14 @@ function toFcltCardData(fcltType: FcltCardType, cards: DsbdFcltCardDto[], tmnlId
     };
 }
 
-function toTableRow(rslt: DsbdRsltDto): TableRow {
+function toTableRow(rslt: DsbdRsltDto, totalCount: number): TableRow {
     return {
         time: formatHhmm(rslt.time),
         pax: formatCount(rslt.psgCnt),
         wait: formatMinutes(rslt.wtngHr),
         process: formatMinutes(rslt.prcsHr),
-        ratio: String(rslt.prcsRate),
+        timeShare: (totalCount > 0 ? (rslt.psgCnt / totalCount) * 100 : 0).toFixed(1),
+        waitingPax: formatCount(rslt.fcstWtngPsgCnt),
     };
 }
 
@@ -207,6 +208,7 @@ export function toPrimeTime(rsltLists: DsbdRsltDto[][], category: DsbdCategory):
 export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCards }: TerminalViewInput): TerminalView {
     // 시간대별 결과는 정시(HH00) 단위라 조회 시각과 같은 '시'를 찾는다.
     const currentIndex = rsltList.findIndex((rslt) => rslt.time.slice(0, 2) === hhmm.slice(0, 2));
+    const totalCount = rsltList.reduce((total, rslt) => total + rslt.psgCnt, 0);
 
     return {
         barText: `${formatYmd(ymd, '-')} ${dowLabel(ymd)} ${formatHhmm(hhmm)} ${smry.peak.ampm}`,
@@ -251,7 +253,7 @@ export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCard
             toFcltCardData('DEP', dptgtCards, smry.tmnlId),
         ],
         chart: { rsltList },
-        tableRows: rsltList.map(toTableRow),
+        tableRows: rsltList.map((rslt) => toTableRow(rslt, totalCount)),
         defaultSelectedRow: Math.max(0, currentIndex),
     };
 }

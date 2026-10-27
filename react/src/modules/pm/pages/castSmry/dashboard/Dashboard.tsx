@@ -208,8 +208,8 @@ function Dashboard() {
                     onCategoryChange={handleCategoryChange}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary terminal="T1" data={terminal1View} titleCategory={activePrimeCategory} onFcltDetail={handleFcltDetail('T1')} />
-                        <TerminalSummary terminal="T2" data={terminal2View} titleCategory={activePrimeCategory} onFcltDetail={handleFcltDetail('T2')} />
+                        <TerminalSummary terminal="T1" data={terminal1View} category={category} titleCategory={activePrimeCategory} onFcltDetail={handleFcltDetail('T1')} />
+                        <TerminalSummary terminal="T2" data={terminal2View} category={category} titleCategory={activePrimeCategory} onFcltDetail={handleFcltDetail('T2')} />
                     </section>
                 </HeaderSummary>
             </div>
