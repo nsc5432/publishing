@@ -4,7 +4,8 @@ import { Lnb } from '@/components/lnb';
 import { useBaseInfo } from '@/hooks/useBaseInfo';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
-import { formatYmd, todayYmd } from '@/lib/format';
+import { dialog } from '@/lib/dialog';
+import { todayYmd } from '@/lib/format';
 import { useTimeline } from '@/modules/pm/hooks/useTimeline';
 import { CongestionNotice } from './components/CongestionNotice';
 import { FacilityMiniModal } from './components/FacilityMiniModal';
@@ -21,7 +22,8 @@ import type { DepGateMarker, IslandMarker, TerminalKind } from './types';
 function TerminalMap() {
     usePageScope('terminalMap');
 
-    const [ymd] = useState(todayYmd);
+    const [ymd, setYmd] = useState(todayYmd);
+    const [draftYmd, setDraftYmd] = useState(ymd);
     const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd);
 
     const [terminal, setTerminal] = useState<TerminalKind>('T1');
@@ -32,9 +34,7 @@ function TerminalMap() {
     const [query, setQuery] = useState<MapQuery | null>(null);
 
     useEffect(() => {
-        if (!baseInfo) return;
-
-        setQuery({ smltId: baseInfo.smltId, tmnlId: terminal });
+        setQuery(baseInfo ? { smltId: baseInfo.smltId, tmnlId: terminal } : null);
     }, [baseInfo, terminal]);
 
     const { data: mapDay, error: mapError, responseSeq: mapResponseSeq } = useSmltMap(query);
@@ -64,6 +64,18 @@ function TerminalMap() {
     };
 
     const handleSearch = () => {
+        if (draftYmd.length !== 8) {
+            dialog.alert({ title: '조회 조건 확인', description: '기준일자를 선택하세요.' }).catch(() => {});
+            return;
+        }
+
+        if (draftYmd !== ymd) {
+            setYmd(draftYmd);
+            setSelectedIsland(null);
+            setSelectedDepGate(null);
+            return;
+        }
+
         if (!baseInfo) return;
 
         setQuery({ smltId: baseInfo.smltId, tmnlId: terminal });
@@ -72,8 +84,9 @@ function TerminalMap() {
     return (
         <div className="wrap">
             <Header
-                baseDate={formatYmd(baseInfo?.ymd ?? '')}
+                baseYmd={draftYmd}
                 terminal={terminal}
+                onDateChange={setDraftYmd}
                 onTerminalChange={handleTerminalChange}
                 summary={mapDay?.summary ?? EMPTY_SUMMARY}
                 onSearch={handleSearch}

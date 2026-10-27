@@ -1,16 +1,23 @@
+import type { MouseEvent } from 'react';
 import { SearchIcon } from '@/components/icons';
+import { toDateInputValue, toYmd } from '@/lib/format';
 import { TERMINAL_LABEL, TERMINALS, type HeaderSummary, type TerminalKind } from '../types';
 
 interface HeaderProps {
-    baseDate: string;
+    baseYmd: string;
     terminal: TerminalKind;
+    onDateChange: (ymd: string) => void;
     onTerminalChange: (terminal: TerminalKind) => void;
     summary: HeaderSummary;
     onSearch: () => void;
 }
 
 /** 상단 헤더 — 타이틀 / 조회 조건(기준일자/터미널) / 운항/여객 요약 */
-export function Header({ baseDate, terminal, onTerminalChange, summary, onSearch }: HeaderProps) {
+export function Header({ baseYmd, terminal, onDateChange, onTerminalChange, summary, onSearch }: HeaderProps) {
+    const handleOpenCalendar = (event: MouseEvent<HTMLInputElement>) => {
+        if (typeof event.currentTarget.showPicker === 'function') event.currentTarget.showPicker();
+    };
+
     return (
         <header className="header">
             <h1 className="header__title">
@@ -25,11 +32,12 @@ export function Header({ baseDate, terminal, onTerminalChange, summary, onSearch
                     <span className="input-date">
                         <i className="ico ico-calendar" aria-hidden="true" />
                         <input
-                            type="text"
+                            type="date"
                             id="baseDate"
                             className="input-date__input"
-                            value={baseDate}
-                            readOnly
+                            value={toDateInputValue(baseYmd)}
+                            onChange={(event) => onDateChange(toYmd(event.target.value))}
+                            onClick={handleOpenCalendar}
                         />
                     </span>
                 </div>

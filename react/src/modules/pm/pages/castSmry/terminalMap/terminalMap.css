@@ -149,11 +149,15 @@ html[data-page='terminalMap'] .input-date {
 }
 
 html[data-page='terminalMap'] .input-date__input {
-    width: 86px;
+    width: 104px;
     font-size: 13px;
     font-weight: 600;
     color: var(--c-text);
     cursor: pointer;
+}
+
+html[data-page='terminalMap'] .input-date__input::-webkit-calendar-picker-indicator {
+    display: none;
 }
 
 html[data-page='terminalMap'] .radio-group {
