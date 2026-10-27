@@ -2131,6 +2131,19 @@ html[data-page='dashboard'] .trow.sel {
     font-size: 20px;
 }
 
+.fqs-v.over strong {
+    color: var(--fqs-warn);
+}
+
+.fqs-bullets {
+    margin: 4px 0 0;
+    padding-left: 16px;
+    list-style: disc;
+    color: var(--fqs-muted);
+    font-size: 12px;
+    line-height: 18px;
+}
+
 .fqs-clock-at {
     margin-left: 7px;
     color: var(--fqs-muted);
@@ -2322,6 +2335,10 @@ html[data-page='dashboard'] .trow.sel {
 .fqs-result-main.warn .fqs-result-value {
     color: var(--fqs-warn);
     font-size: 30px;
+}
+
+.fqs-result-main.over .fqs-result-value {
+    color: var(--fqs-warn);
 }
 
 .fqs-result-unit {

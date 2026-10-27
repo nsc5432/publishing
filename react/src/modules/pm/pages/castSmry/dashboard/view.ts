@@ -33,6 +33,7 @@ import {
     type FcltQueueResultView,
     type QueueClearView,
     type QueueErlangView,
+    type QueueFcstView,
     type QueueRecommendView,
     type SimulationType,
     type TableRow,
@@ -320,7 +321,7 @@ function toNextWtngText(clear: FcltQueueClearDto): string {
 function toFcstWtngText(clear: FcltQueueClearDto): string {
     if (clear.fcstWtngSec === null) return '';
 
-    return `${formatDtClock(clear.fcstDt)} 처리 여객 평균대기 예측 ${formatSeconds(clear.fcstWtngSec)}`;
+    return `${formatDtClock(clear.fcstDt)} 예상 평균대기 ${formatSeconds(clear.fcstWtngSec)}`;
 }
 
 /** 해소 목표 문구 (예: 평균 대기 40분 미만) — 표시만 반올림하고 판정은 서버 원값으로 끝난다 */
@@ -328,10 +329,23 @@ function toTargetShort(normalUpperExclusiveSec: number): string {
     return `평균 대기 ${formatSeconds(normalUpperExclusiveSec)} 미만`;
 }
 
-export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string, targetShort: string): QueueClearView {
+function toQueueFcstView(clear: FcltQueueClearDto, normalUpperExclusiveSec: number): QueueFcstView {
+    const sec = clear.fcstWtngSec;
+
+    return {
+        sec,
+        over: sec === null ? null : sec >= normalUpperExclusiveSec,
+        clockText: clear.fcstDt.length === 14 ? formatDtClock(clear.fcstDt) : '—',
+        valueText: sec === null ? '—' : formatSeconds(sec),
+    };
+}
+
+export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string, normalUpperExclusiveSec: number): QueueClearView {
     const { status, reason } = clear.clearMetric;
+    const targetShort = toTargetShort(normalUpperExclusiveSec);
     const nextWtngText = toNextWtngText(clear);
     const fcstWtngText = toFcstWtngText(clear);
+    const fcst = toQueueFcstView(clear, normalUpperExclusiveSec);
 
     if (status === 'UNREACHABLE') {
         return {
@@ -343,6 +357,7 @@ export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string, targe
             note: reason,
             nextWtngText,
             fcstWtngText,
+            fcst,
         };
     }
 
@@ -356,6 +371,7 @@ export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string, targe
             note: reason,
             nextWtngText,
             fcstWtngText,
+            fcst,
         };
     }
 
@@ -363,12 +379,13 @@ export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string, targe
         return {
             kind: 'none',
             minutes: 0,
-            mainText: '0',
-            unitText: '분',
+            mainText: fcst.valueText,
+            unitText: '',
             clockText: formatDtClock(baseDt),
-            note: `이미 ${targetShort}`,
+            note: '',
             nextWtngText,
             fcstWtngText,
+            fcst,
         };
     }
 
@@ -383,6 +400,7 @@ export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string, targe
         note: `계산 기준 대비 ${formatCount(minutes)}분 후 ${targetShort}`,
         nextWtngText,
         fcstWtngText,
+        fcst,
     };
 }
 
@@ -399,7 +417,18 @@ function toQueueErlangView(clear: FcltQueueClearDto): QueueErlangView {
     };
 }
 
+function toFcstDiffNote(current: QueueFcstView, scenario: QueueFcstView): string {
+    if (current.sec === null || scenario.sec === null) return '';
+
+    const diff = Math.round(scenario.sec - current.sec);
+
+    if (diff === 0) return '예상 평균대기 현재 조건과 같음';
+
+    return `예상 평균대기 현재 조건보다 ${formatSeconds(Math.abs(diff))} ${diff < 0 ? '짧음' : '김'}`;
+}
+
 function toDiffNote(current: QueueClearView, scenario: QueueClearView): string {
+    if (current.kind === 'none' && scenario.kind === 'none') return toFcstDiffNote(current.fcst, scenario.fcst);
     if (scenario.kind === 'unreachable') return '조정 후에도 해소 불가';
     if (current.minutes === null || scenario.minutes === null) {
         return current.kind === 'unreachable' && scenario.minutes !== null ? '현재 조건에서는 해소 불가 → 조정 시 해소' : '';
@@ -447,7 +476,7 @@ function toQueueRecommendView(dto: FcltQueueScenarioDto, recommend: FcltQueueRec
         countNote,
         capaNote,
         capaShort: recommend.capaAvlYn === 'N',
-        clear: clearSource ? toQueueClearView(clearSource, dto.baseDt, toTargetShort(dto.normalUpperExclusiveSec)) : null,
+        clear: clearSource ? toQueueClearView(clearSource, dto.baseDt, dto.normalUpperExclusiveSec) : null,
         clearLabel: dto.scenario ? '조정 후' : dto.totScenario ? `보유 ${formatCount(dto.totCnt ?? 0)}개 모두 배정 시` : '',
     };
 }
@@ -488,15 +517,14 @@ export function toFcltQueueContextView(dto: FcltQueueScenarioDto): FcltQueueCont
         totCnt: dto.totCnt,
         countLockReason,
         targetMin: { dflt: dto.dfltTargetMin, min: dto.minTargetMin, max: dto.maxTargetMin },
-        current: toQueueClearView(dto.current, dto.baseDt, targetShort),
+        current: toQueueClearView(dto.current, dto.baseDt, dto.normalUpperExclusiveSec),
         currentErlang: toQueueErlangView(dto.current),
     };
 }
 
 export function toFcltQueueResultView(dto: FcltQueueScenarioDto): FcltQueueResultView {
-    const targetShort = toTargetShort(dto.normalUpperExclusiveSec);
-    const current = toQueueClearView(dto.current, dto.baseDt, targetShort);
-    const scenario = dto.scenario ? toQueueClearView(dto.scenario, dto.baseDt, targetShort) : null;
+    const current = toQueueClearView(dto.current, dto.baseDt, dto.normalUpperExclusiveSec);
+    const scenario = dto.scenario ? toQueueClearView(dto.scenario, dto.baseDt, dto.normalUpperExclusiveSec) : null;
 
     return {
         scenario,

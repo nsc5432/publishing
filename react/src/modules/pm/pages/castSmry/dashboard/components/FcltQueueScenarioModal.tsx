@@ -42,6 +42,7 @@ const CLEAR_EMPTY: QueueClearView = {
     note: '',
     nextWtngText: '',
     fcstWtngText: '',
+    fcst: { sec: null, over: null, clockText: '—', valueText: '—' },
 };
 
 function joinNotes(...notes: (string | undefined)[]): string {
@@ -110,16 +111,18 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                                 <strong>{context?.currentCnt ?? '-'}</strong>
                                 <span>개</span>
                             </div>
-                            <span className="fqs-sub">
-                                {joinNotes(
-                                    `대기인원 ${context?.queueText ?? '-'}명`,
+                            <BulletList
+                                items={[
+                                    context?.queueText === '—' ? '대기인원 —' : `대기인원 ${context?.queueText ?? '-'}명`,
                                     context?.wtngAvgShort,
                                     context?.current.nextWtngText,
-                                )}
-                            </span>
+                                ]}
+                            />
                         </div>
                         <div>
-                            <span className="fqs-k">현재 조건의 혼잡해소 예상</span>
+                            <span className="fqs-k">
+                                {context?.current.kind === 'none' ? `${context.current.fcst.clockText} 예상 평균대기` : '현재 조건의 혼잡해소 예상'}
+                            </span>
                             <ClearInline clear={context?.current ?? CLEAR_EMPTY} />
                             <span className="fqs-sub">{context?.current.note}</span>
                         </div>
@@ -207,7 +210,7 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
 
                     <details className="fqs-basis">
                         <summary>
-                            계산 기준 <span>혼잡해소 = 처리 여객 평균 대기 예측 / 정상상태는 M/M/s 참고값</span>
+                            계산 기준
                         </summary>
                         <dl>
                             <BasisItem term="해소 기준">{context?.targetText ?? '-'}</BasisItem>
@@ -234,11 +237,13 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
 }
 
 function ClearInline({ clear }: { clear: QueueClearView }) {
+    const tone = clear.kind === 'unreachable' ? ' warn' : clear.kind === 'none' && clear.fcst.over ? ' over' : '';
+
     return (
-        <div className={`fqs-v${clear.kind === 'unreachable' ? ' warn' : ''}`}>
+        <div className={`fqs-v${tone}`}>
             <strong>{clear.mainText}</strong>
             {clear.unitText && <span>{clear.unitText}</span>}
-            {clear.kind !== 'unreachable' && clear.kind !== 'unavailable' && <span className="fqs-clock-at">{clear.clockText}</span>}
+            {clear.kind === 'value' && <span className="fqs-clock-at">{clear.clockText}</span>}
         </div>
     );
 }
@@ -314,10 +319,11 @@ function Stepper({ label, unit, text, value, min, max, step, disabled, error, no
 
 function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState; isCount: boolean; onRetry: () => void }) {
     let main: ReactNode = null;
-    let mainWarn = false;
+    let mainTone = '';
     let detail: ReactNode = null;
     let sub: ReactNode = null;
     let subWarn = false;
+    let bullets: (string | undefined)[] = [];
     let diff: ReactNode = null;
 
     if (result.status === 'loading') detail = '계산 중…';
@@ -333,8 +339,14 @@ function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState
         const { scenario, diffNote, recommend } = result.view;
 
         if (isCount) {
-            if (scenario) {
-                mainWarn = scenario.kind === 'unreachable';
+            if (scenario?.kind === 'none') {
+                mainTone = scenario.fcst.over ? ' over' : '';
+                main = <strong className="fqs-result-value">{scenario.mainText}</strong>;
+                detail = `${scenario.fcst.clockText} 예상 평균대기`;
+                bullets = [scenario.nextWtngText];
+                diff = diffNote;
+            } else if (scenario) {
+                mainTone = scenario.kind === 'unreachable' ? ' warn' : '';
                 main = (
                     <>
                         <strong className="fqs-result-value">{scenario.mainText}</strong>
@@ -346,7 +358,8 @@ function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState
                         해소 예상 시각 <b>{scenario.clockText}</b>
                     </>
                 );
-                sub = joinNotes(scenario.note, scenario.fcstWtngText, scenario.nextWtngText);
+                sub = scenario.note;
+                bullets = [scenario.fcstWtngText, scenario.nextWtngText];
                 diff = diffNote;
             }
         } else if (recommend && recommend.reqCnt !== null) {
@@ -382,9 +395,10 @@ function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState
 
     return (
         <>
-            <div className={`fqs-result-main${mainWarn ? ' warn' : ''}`}>{main}</div>
+            <div className={`fqs-result-main${mainTone}`}>{main}</div>
             <p className="fqs-result-detail">{detail}</p>
-            <p className={`fqs-result-sub${subWarn ? ' warn' : ''}`}>{sub}</p>
+            {sub && <p className={`fqs-result-sub${subWarn ? ' warn' : ''}`}>{sub}</p>}
+            <BulletList items={bullets} />
             <div className="fqs-result-diff">{diff}</div>
         </>
     );
@@ -392,6 +406,8 @@ function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState
 
 function Comparison({ rows }: { rows: CompareRow[] }) {
     if (rows.length === 0) return null;
+
+    if (rows.every((row) => row.clear?.kind === 'none')) return <FcstComparison rows={rows} />;
 
     const maxMinutes = Math.max(1, ...rows.map((row) => row.clear?.minutes ?? 0));
 
@@ -417,6 +433,50 @@ function Comparison({ rows }: { rows: CompareRow[] }) {
                 );
             })}
         </div>
+    );
+}
+
+function FcstComparison({ rows }: { rows: CompareRow[] }) {
+    const fcstList = rows.map((row) => (row.clear ?? CLEAR_EMPTY).fcst);
+    const maxSec = Math.max(1, ...fcstList.map((fcst) => fcst.sec ?? 0));
+
+    return (
+        <div className="fqs-compare">
+            <div className="fqs-compare-head">
+                <span>예상 평균대기</span>
+                <span>{fcstList[0].clockText} 기준</span>
+            </div>
+            {rows.map((row, index) => {
+                const fcst = fcstList[index];
+
+                return (
+                    <div className="fqs-bar-row" key={row.label}>
+                        <span>{row.label}</span>
+                        <div className="fqs-track">
+                            <div
+                                className={`fqs-bar${row.accent ? ' accent' : ''}${fcst.over ? ' over' : ''}`}
+                                style={{ width: `${((fcst.sec ?? 0) / maxSec) * 100}%` }}
+                            />
+                        </div>
+                        <b>{fcst.valueText}</b>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
+
+function BulletList({ items }: { items: (string | undefined)[] }) {
+    const list = items.filter((item): item is string => Boolean(item));
+
+    if (list.length === 0) return null;
+
+    return (
+        <ul className="fqs-bullets">
+            {list.map((item) => (
+                <li key={item}>{item}</li>
+            ))}
+        </ul>
     );
 }
 
