@@ -1232,7 +1232,7 @@ ORDER BY BlockID, DepArrTerminal, resourceID
                  , TO_CHAR(TO_DATE(
                      CASE WHEN Y.RON_YN = 'N' THEN Y.OPR_DT
                          ELSE TO_CHAR(TO_DATE(Y.OPR_DT, 'YYYYMMDD') + 1, 'YYYYMMDD')
-                     END || SUBSTR(Y.END_DT,9,2), 'YYYYMMDDHH24MI'
+                     END || SUBSTR(Y.END_DT,9,4), 'YYYYMMDDHH24MI'
                  ), 'YYYY-MM-DD"T"HH24:MI":00"') AS t2
                  , Y.TRVL_CLSS AS TravelClass
                  , Y.GRP_STAT AS GroupStatus
