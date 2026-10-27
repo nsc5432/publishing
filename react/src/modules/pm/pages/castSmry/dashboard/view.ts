@@ -209,9 +209,10 @@ export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCard
     // 시간대별 결과는 정시(HH00) 단위라 조회 시각과 같은 '시'를 찾는다.
     const currentIndex = rsltList.findIndex((rslt) => rslt.time.slice(0, 2) === hhmm.slice(0, 2));
     const totalCount = rsltList.reduce((total, rslt) => total + rslt.psgCnt, 0);
+    const ampm = Number(hhmm.slice(0, 2)) < 12 ? 'AM' : 'PM';
 
     return {
-        barText: `${formatYmd(ymd, '-')} ${dowLabel(ymd)} ${formatHhmm(hhmm)} ${smry.peak.ampm}`,
+        barText: `${formatYmd(ymd, '-')} ${dowLabel(ymd)} ${formatHhmm(hhmm)} ${ampm}`,
         cgnStatus: smry.cgnStatus,
         stats: {
             flights: { delta: formatDiff(smry.fltDiffCnt), value: formatCount(smry.fltCnt) },
@@ -244,9 +245,21 @@ export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCard
             },
         ],
         summaryInfo: [
-            { label: '대기\n인원수', value: formatCount(smry.peak.wtngPsgCnt), unit: '명' },
-            { label: '최대\n대기시간', value: String(smry.peak.maxWtngHr), unit: '분' },
-            { label: '시간당\n처리인원', value: formatCount(smry.peak.hrlyPrcsPsgCnt), unit: '명' },
+            {
+                label: '최대\n대기인원',
+                value: smry.intrvlMaxWtngPsgCnt == null ? '-' : formatCount(smry.intrvlMaxWtngPsgCnt),
+                unit: '명',
+            },
+            {
+                label: '평균\n대기시간',
+                value: smry.intrvlAvgWtngSec == null ? '-' : String(Math.round(smry.intrvlAvgWtngSec / 60)),
+                unit: '분',
+            },
+            {
+                label: '시간당\n처리인원',
+                value: smry.intrvlPrcsPsgCnt == null ? '-' : formatCount(smry.intrvlPrcsPsgCnt),
+                unit: '명',
+            },
         ],
         fcltCards: [
             toFcltCardData('CHKN', chknCards, smry.tmnlId),

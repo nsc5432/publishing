@@ -128,6 +128,47 @@
         ORDER BY TIME
     </select>
 
+    <select id="retrieveRsltByIntrvl" resultType="aoms.pm.cast.dto.DsbdIntrvlRawDto">
+        WITH RSLT AS (
+            SELECT A.SMLT_EXCN_DT, A.SMLT_ACTL_DT, B.UP_PSG_FCLT_CD,
+                A.WTNG_PSG_CNT, A.TRNST_PSG_CNT, A.AVG_WTNG_HR
+            FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+                INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
+            WHERE A.SMLT_ID = #{smltId}
+            AND A.SMLT_MDL_SN = #{smltMdlSn}
+            AND B.TMNL_ID = #{tmnlId}
+            AND B.USE_YN = 'Y'
+            AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
+            AND A.SMLT_ACTL_DT &gt;= #{bgnDt}
+            AND A.SMLT_ACTL_DT &lt;= #{endDt}
+        ), QUEUE_BY_TIME AS (
+            SELECT SMLT_ACTL_DT, SUM(WTNG_PSG_CNT) AS WTNG_PSG_CNT
+            FROM RSLT
+            WHERE SMLT_ACTL_DT &lt; #{endDt}
+            GROUP BY SMLT_ACTL_DT
+        ), PRCS_BY_FCLT AS (
+            SELECT UP_PSG_FCLT_CD, SUM(TRNST_PSG_CNT) AS PRCS_PSG_CNT
+            FROM RSLT
+            -- CAST 처리 결과시각은 직전 구간의 끝이므로 시작을 제외하고 종료를 포함한다.
+            WHERE SMLT_ACTL_DT &gt; #{bgnDt}
+            GROUP BY UP_PSG_FCLT_CD
+        ), WTNG AS (
+            SELECT CASE
+                WHEN SUM(CASE WHEN TRNST_PSG_CNT &gt; 0 AND AVG_WTNG_HR IS NULL THEN TRNST_PSG_CNT ELSE 0 END) &gt; 0 THEN NULL
+                ELSE SUM(CASE WHEN TRNST_PSG_CNT &gt; 0 THEN AVG_WTNG_HR * TRNST_PSG_CNT END)
+                    / NULLIF(SUM(CASE WHEN TRNST_PSG_CNT &gt; 0 THEN TRNST_PSG_CNT END), 0)
+                END AS AVG_WTNG_SEC
+            FROM RSLT
+            WHERE SMLT_ACTL_DT &gt; #{bgnDt}
+        )
+        SELECT (SELECT MAX(WTNG_PSG_CNT) FROM QUEUE_BY_TIME) AS MAX_WTNG_PSG_CNT,
+            AVG_WTNG_SEC,
+            -- 같은 여객이 여러 공정을 통과하므로 기존 터미널 처리량의 공정별 최댓값을 유지한다.
+            (SELECT MAX(PRCS_PSG_CNT) FROM PRCS_BY_FCLT) AS PRCS_PSG_CNT,
+            (SELECT COUNT(DISTINCT SMLT_EXCN_DT) FROM RSLT) AS SRC_EXCN_DT_CNT
+        FROM WTNG
+    </select>
+
     <select id="retrievePsgWtngIslSumByHourList" resultType="aoms.pm.cast.dto.PsgWtngRawDto">
         /* CastDsbdMapper.retrievePsgWtngIslSumByHourList */
         SELECT

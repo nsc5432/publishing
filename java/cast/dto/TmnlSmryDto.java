@@ -27,5 +27,8 @@ public class TmnlSmryDto extends JsonResponse {
 	private int intrvlPsgCnt; // 구간 출발 여객
 	private int intrvlYesterdayFltDiffCnt; // 전일 같은 구간 대비 운항편 증감
 	private int intrvlYesterdayPsgDiffCnt; // 전일 같은 구간 대비 여객 증감
+	private Integer intrvlMaxWtngPsgCnt;
+	private Double intrvlAvgWtngSec;
+	private Integer intrvlPrcsPsgCnt;
 	private PeakDto peak; // 피크시간 지표
 }

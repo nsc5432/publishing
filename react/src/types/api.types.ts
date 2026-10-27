@@ -111,6 +111,9 @@ export interface TmnlSmryDto extends JsonResponse {
     intrvlPsgCnt: number;
     intrvlYesterdayFltDiffCnt: number;
     intrvlYesterdayPsgDiffCnt: number;
+    intrvlMaxWtngPsgCnt: number | null;
+    intrvlAvgWtngSec: number | null;
+    intrvlPrcsPsgCnt: number | null;
     peak: PeakDto;
 }
 

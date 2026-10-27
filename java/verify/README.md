@@ -34,3 +34,8 @@ python java/verify/verify_chkn_booth_overnight.py
   Python 표준 라이브러리 SQLite와 날짜 함수 대역을 사용하며 Oracle SQL 전체 실행 검증은 아니다.
 
 Oracle DDL · 삽입, 실제 Spring 트랜잭션 연결, CAST 연계는 실제 환경에서 별도로 확인해야 한다.
+
+대시보드 조회 구간 요약은 `python java/verify/verify_dsbd_interval.py`로 검사한다.
+실제 Mapper SQL을 SQLite에서 실행해 동시 대기인원 최대, 처리 가중평균, 공정별 처리합,
+조회 구간 경계, 모델·터미널 필터, 미관측·0명·대기시간 누락, 자정 종료를 확인한다.
+Oracle 연결과 Java DTO 매핑은 실제 백엔드에서 추가 검증해야 한다.

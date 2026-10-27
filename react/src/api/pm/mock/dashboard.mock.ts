@@ -123,7 +123,8 @@ const HEADER: DsbdHeaderDto = {
 /* ================= 터미널 패널 요약 ================= */
 
 /** 조회 시각과 무관한 부분 — 구간 4필드는 buildTmnlSmry 가 얹는다 */
-type TmnlSmryBase = Omit<TmnlSmryDto, 'cgnStatus' | 'intrvlMin' | 'intrvlFltCnt' | 'intrvlPsgCnt' | 'intrvlYesterdayFltDiffCnt' | 'intrvlYesterdayPsgDiffCnt'>;
+type TmnlIntrvlMetrics = Pick<TmnlSmryDto, 'intrvlMaxWtngPsgCnt' | 'intrvlAvgWtngSec' | 'intrvlPrcsPsgCnt'>;
+type TmnlSmryBase = Omit<TmnlSmryDto, 'cgnStatus' | 'intrvlMin' | 'intrvlFltCnt' | 'intrvlPsgCnt' | 'intrvlYesterdayFltDiffCnt' | 'intrvlYesterdayPsgDiffCnt' | keyof TmnlIntrvlMetrics>;
 
 const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
     T1: {
@@ -195,6 +196,31 @@ function sumByIntrvl(hourly: number[], bgnHhmm: string, intrvlMin: number): numb
     return Math.round(total);
 }
 
+function buildIntrvlMetrics(tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlIntrvlMetrics {
+    const bgnMin = Number(hhmm.slice(0, 2)) * MIN_PER_HOUR + Number(hhmm.slice(2, 4));
+    const endMin = Math.min(bgnMin + intrvlMin, MIN_PER_DAY);
+    let maxQueue: number | null = null;
+    let prcsPsgCnt = 0;
+    let wtngSecSum = 0;
+
+    for (const rslt of buildRsltList(tmnlId, 'PSG')) {
+        const hourBgn = Number(rslt.time.slice(0, 2)) * MIN_PER_HOUR;
+        const overlap = Math.min(endMin, hourBgn + MIN_PER_HOUR) - Math.max(bgnMin, hourBgn);
+        if (overlap <= 0) continue;
+
+        const prcs = (rslt.prcsPsgCnt * overlap) / MIN_PER_HOUR;
+        maxQueue = Math.max(maxQueue ?? 0, rslt.fcstWtngPsgCnt);
+        prcsPsgCnt += prcs;
+        wtngSecSum += rslt.wtngHr * MIN_PER_HOUR * prcs;
+    }
+
+    return {
+        intrvlMaxWtngPsgCnt: maxQueue,
+        intrvlAvgWtngSec: prcsPsgCnt > 0 ? wtngSecSum / prcsPsgCnt : null,
+        intrvlPrcsPsgCnt: maxQueue === null ? null : Math.round(prcsPsgCnt),
+    };
+}
+
 function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmryDto {
     const intrvlFltCnt = sumByIntrvl(toHourlyFlt(tmnlId), hhmm, intrvlMin);
     const intrvlPsgCnt = sumByIntrvl(HOURLY_PSG[tmnlId], hhmm, intrvlMin);
@@ -205,6 +231,7 @@ function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmr
 
     return {
         ...TMNL_SMRY[tmnlId],
+        ...buildIntrvlMetrics(tmnlId, hhmm, intrvlMin),
         cgnStatus: mockWorstOf(cardList.map((card) => card.cgnStatus)),
         intrvlMin,
         intrvlFltCnt,

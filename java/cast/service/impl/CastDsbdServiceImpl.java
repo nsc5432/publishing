@@ -39,6 +39,7 @@ import aoms.pm.cast.dto.DowAttrDto;
 import aoms.pm.cast.dto.DsbdBaseInfoDto;
 import aoms.pm.cast.dto.DsbdFcltCardDto;
 import aoms.pm.cast.dto.DsbdHeaderDto;
+import aoms.pm.cast.dto.DsbdIntrvlRawDto;
 import aoms.pm.cast.dto.DsbdRsltDto;
 import aoms.pm.cast.dto.DsbdSearchDto;
 import aoms.pm.cast.dto.FcltRecommendDto;
@@ -221,6 +222,11 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		result.setIntrvlMin(intrvlMin);
 
+		if (intrvlMin <= 0 || intrvlMin > MIN_PER_DAY) {
+			result.error("구간 집계 길이는 1~1440분이어야 합니다.");
+			return result;
+		}
+
 		if (bgnHhmm != null && !bgnHhmm.isEmpty() && !FcltWtngSecs.isSecHhmm(bgnHhmm)) {
 			result.error("조회 시각은 10분 단위 HHmm(00~23시)이어야 합니다. hhmm=" + bgnHhmm);
 			return result;
@@ -238,6 +244,23 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			result.setIntrvlPsgCnt(baseIntrvl.getDepPsgCnt());
 			result.setIntrvlYesterdayFltDiffCnt(baseIntrvl.getDepFltCnt() - yesterdayIntrvl.getDepFltCnt());
 			result.setIntrvlYesterdayPsgDiffCnt(baseIntrvl.getDepPsgCnt() - yesterdayIntrvl.getDepPsgCnt());
+
+			LocalDateTime bgnDt = baseDate.atStartOfDay().plusMinutes(toMinutes(bgnHhmm));
+			LocalDateTime endDt = baseDate.atStartOfDay().plusMinutes(Math.min(toMinutes(bgnHhmm) + intrvlMin, MIN_PER_DAY));
+			DsbdIntrvlRawDto intrvl = castDsbdMapper.retrieveRsltByIntrvl(
+					searchDto.getSmltId(), smltStng.getSmltMdlSn(), tmnlId.getFcltTmnlId(),
+					bgnDt, endDt, DsbdCategory.PSG.getUpPsgFcltCdList());
+
+			if (intrvl != null) {
+				if (intrvl.getSrcExcnDtCnt() > 1) {
+					result.error("조회 구간에 실행일시가 다른 원천 결과가 있어 요약정보를 산정할 수 없습니다.");
+					return result;
+				}
+
+				result.setIntrvlMaxWtngPsgCnt(intrvl.getMaxWtngPsgCnt());
+				result.setIntrvlAvgWtngSec(intrvl.getAvgWtngSec());
+				result.setIntrvlPrcsPsgCnt(intrvl.getPrcsPsgCnt());
+			}
 		}
 
 		return result;
