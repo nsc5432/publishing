@@ -21,7 +21,7 @@ apiClient.interceptors.request.use(
         return config;
     },
     (error: AxiosError) => {
-        loadingBar.done();
+        if (error.config?.params?.loading) loadingBar.done();
 
         console.error('[API Request Error]', error);
         return Promise.reject(error);
@@ -30,11 +30,11 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
     (response: AxiosResponse<ApiResponse<unknown>>) => {
-        loadingBar.done();
+        if (response.config.params?.loading) loadingBar.done();
         return response;
     },
     (error: AxiosError<ApiError>) => {
-        loadingBar.done();
+        if (error.config?.params?.loading) loadingBar.done();
 
         const apiError: ApiError = {
             status: error.response?.status || 500,
