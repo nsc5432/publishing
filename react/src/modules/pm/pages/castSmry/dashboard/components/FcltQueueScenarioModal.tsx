@@ -42,7 +42,7 @@ const CLEAR_EMPTY: QueueClearView = {
     note: '',
     nextWtngText: '',
     fcstWtngText: '',
-    fcst: { sec: null, over: null, clockText: '—', valueText: '—' },
+    fcst: { sec: null, over: null, rangeText: '—', valueText: '—' },
 };
 
 function joinNotes(...notes: (string | undefined)[]): string {
@@ -71,10 +71,7 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
     const { result } = scenario;
     const readyView = result.status === 'ready' ? result.view : null;
     const scenarioErlang = readyView?.scenarioErlang ?? null;
-    const availableCnt =
-        context?.totCnt != null && context.currentCnt != null
-            ? Math.max(0, context.totCnt - context.currentCnt)
-            : null;
+    const availableCnt = context?.totCnt != null && context.currentCnt != null ? Math.max(0, context.totCnt - context.currentCnt) : null;
 
     return (
         <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -94,9 +91,7 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
 
                 <div className="fqs-body">
                     <div className="fqs-context">
-                        <p className="fqs-guide">
-                            {label.resource} 수를 조정해 혼잡 해소시간의 변화를 확인하세요.
-                        </p>
+                        <p className="fqs-guide">{label.resource} 수를 조정해 혼잡 해소시간의 변화를 확인하세요.</p>
                         <div className="fqs-clock">
                             <span>
                                 계산 기준 <b>{context?.baseText ?? '-'}</b>
@@ -121,7 +116,7 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                         </div>
                         <div>
                             <span className="fqs-k">
-                                {context?.current.kind === 'none' ? `${context.current.fcst.clockText} 예상 평균대기` : '현재 조건의 혼잡해소 예상'}
+                                {context?.current.kind === 'none' ? `${context.current.fcst.rangeText} 예상 평균대기` : '현재 조건의 혼잡해소 예상'}
                             </span>
                             <ClearInline clear={context?.current ?? CLEAR_EMPTY} />
                             <span className="fqs-sub">{context?.current.note}</span>
@@ -189,7 +184,9 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                         <section className="fqs-result" aria-live="polite" aria-busy={result.status === 'loading'}>
                             <div className="fqs-section-label">
                                 <span className="fqs-step">2</span>
-                                <span>{isCount ? '조정 후 혼잡해소 예상' : label.recommend}</span>
+                                <span>
+                                    {!isCount ? label.recommend : readyView?.scenario?.kind === 'none' ? '조정 후 예상 평균대기시간' : '조정 후 혼잡해소 예상'}
+                                </span>
                             </div>
                             <ResultBody result={result} isCount={isCount} onRetry={scenario.retry} />
                         </section>
@@ -209,9 +206,7 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                     />
 
                     <details className="fqs-basis">
-                        <summary>
-                            계산 기준
-                        </summary>
+                        <summary>계산 기준</summary>
                         <dl>
                             <BasisItem term="해소 기준">{context?.targetText ?? '-'}</BasisItem>
                             <BasisItem term="관측구간">{context ? `${context.obsText} / ${context.dataSrcText}` : '-'}</BasisItem>
@@ -342,7 +337,7 @@ function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState
             if (scenario?.kind === 'none') {
                 mainTone = scenario.fcst.over ? ' over' : '';
                 main = <strong className="fqs-result-value">{scenario.mainText}</strong>;
-                detail = `${scenario.fcst.clockText} 예상 평균대기`;
+                detail = `${scenario.fcst.rangeText} 예상 평균대기`;
                 bullets = [scenario.nextWtngText];
                 diff = diffNote;
             } else if (scenario) {
@@ -444,7 +439,7 @@ function FcstComparison({ rows }: { rows: CompareRow[] }) {
         <div className="fqs-compare">
             <div className="fqs-compare-head">
                 <span>예상 평균대기</span>
-                <span>{fcstList[0].clockText} 기준</span>
+                <span>{fcstList[0].rangeText} 기준</span>
             </div>
             {rows.map((row, index) => {
                 const fcst = fcstList[index];

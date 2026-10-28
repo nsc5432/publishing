@@ -162,7 +162,8 @@ export interface QueueFcstView {
     sec: number | null;
     /** 예측 평균이 해소 목표 이상. 예측할 수 없으면 null */
     over: boolean | null;
-    clockText: string;
+    /** 예측 평균의 집계 구간 (예: 08:20~08:50) */
+    rangeText: string;
     valueText: string;
 }
 

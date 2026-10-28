@@ -71,6 +71,9 @@ const FCLT_CARD_TITLE: Record<FcltCardType, string> = {
     DEP: '출국장',
 };
 
+const WTNG_WINDOW_MIN = 30;
+const MIN_PER_DAY = 24 * 60;
+
 const QUEUE_DATA_SRC_LABEL: Record<QueueDataSrc, string> = {
     CAST: 'CAST 예측',
     XOVIS: 'Xovis 실적',
@@ -277,6 +280,14 @@ function formatDtClock(dt: string): string {
     return formatHhmm(dt.slice(8, 12));
 }
 
+/** 예측 평균의 집계 구간 [dt−30분, dt) 표기 (예: 08:20~08:50) */
+function formatWtngWindow(dt: string): string {
+    const endMin = Number(dt.slice(8, 10)) * 60 + Number(dt.slice(10, 12));
+    const bgnMin = (endMin - WTNG_WINDOW_MIN + MIN_PER_DAY) % MIN_PER_DAY;
+
+    return `${pad2(Math.floor(bgnMin / 60))}:${pad2(bgnMin % 60)}~${formatDtClock(dt)}`;
+}
+
 function formatDtFull(dt: string): string {
     return dt.length === 14 ? `${formatYmd(dt.slice(0, 8), '-')} ${formatDtClock(dt)}` : '-';
 }
@@ -336,7 +347,7 @@ function toNextWtngText(clear: FcltQueueClearDto): string {
 function toFcstWtngText(clear: FcltQueueClearDto): string {
     if (clear.fcstWtngSec === null) return '';
 
-    return `${formatDtClock(clear.fcstDt)} 예상 평균대기 ${formatSeconds(clear.fcstWtngSec)}`;
+    return `${formatWtngWindow(clear.fcstDt)} 예상 평균대기 ${formatSeconds(clear.fcstWtngSec)}`;
 }
 
 /** 해소 목표 문구 (예: 평균 대기 40분 미만) — 표시만 반올림하고 판정은 서버 원값으로 끝난다 */
@@ -350,7 +361,7 @@ function toQueueFcstView(clear: FcltQueueClearDto, normalUpperExclusiveSec: numb
     return {
         sec,
         over: sec === null ? null : sec >= normalUpperExclusiveSec,
-        clockText: clear.fcstDt.length === 14 ? formatDtClock(clear.fcstDt) : '—',
+        rangeText: clear.fcstDt.length === 14 ? formatWtngWindow(clear.fcstDt) : '—',
         valueText: sec === null ? '—' : formatSeconds(sec),
     };
 }
