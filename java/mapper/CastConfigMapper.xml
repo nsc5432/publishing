@@ -359,7 +359,8 @@
         /* CastConfigMapper.insertAplyHstryDtl */
         <!-- 값 컬럼이 시트마다 달라 컬럼명을 행으로 눕힌다. 되돌릴 때 그대로 ${columnNm} 이 된다 -->
         INSERT INTO PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY_DTL (
-            APLY_SN, ATRB_CD, DTL_SE_CD, COLUMN_NM, BEF_VL, AFT_VL
+            APLY_SN, ATRB_CD, DTL_SE_CD, COLUMN_NM, BEF_VL, AFT_VL,
+            FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         <foreach collection="valueColumnList" item="columnNm" separator=" UNION ALL ">
             SELECT
@@ -368,7 +369,10 @@
                 #{dtlSeCd},
                 #{columnNm},
                 TO_CHAR(T.${columnNm}),
-                TO_CHAR(S.${columnNm})
+                TO_CHAR(S.${columnNm}),
+                #{loginUserId},
+                #{loginIpAddr},
+                CURRENT_TIMESTAMP
             FROM PMOWN.${tableNm} T, PMOWN.${tableNm} S
             WHERE T.${groupColumnNm} = #{tgtFixAtrbGroupId}
             AND T.${keyColumnNm} = #{keyCd}

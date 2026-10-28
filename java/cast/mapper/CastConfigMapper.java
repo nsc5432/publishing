@@ -120,7 +120,9 @@ public interface CastConfigMapper {
 			@Param("keyCd") String keyCd,
 			@Param("dtlSeCd") String dtlSeCd,
 			@Param("keyColumnNm") String keyColumnNm,
-			@Param("dtlColumnNm") String dtlColumnNm
+			@Param("dtlColumnNm") String dtlColumnNm,
+			@Param("loginUserId") String loginUserId,
+			@Param("loginIpAddr") String loginIpAddr
 	);
 
 	List<CastConfigAplyHstryDto> retrieveAplyHstryList(

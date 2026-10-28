@@ -316,7 +316,9 @@ public class CastConfigServiceImpl implements CastConfigService {
 						row.getAtrbCd(),
 						row.getDtlSeCd(),
 						sheet.getKeyColumnNm(),
-						sheet.getDtlColumnNm()
+						sheet.getDtlColumnNm(),
+						applyDto.getLoginUserId(),
+						applyDto.getLoginIpAddr()
 				);
 			}
 
@@ -778,7 +780,9 @@ public class CastConfigServiceImpl implements CastConfigService {
 						row.getAtrbCd(),
 						row.getDtlSeCd(),
 						sheet.getKeyColumnNm(),
-						sheet.getDtlColumnNm()
+						sheet.getDtlColumnNm(),
+						searchDto.getLoginUserId(),
+						searchDto.getLoginIpAddr()
 				);
 
 				int updated = castConfigMapper.copyFromGroup(
