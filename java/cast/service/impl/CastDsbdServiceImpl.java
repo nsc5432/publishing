@@ -234,7 +234,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		if (bgnHhmm != null && bgnHhmm.length() == 4) {
 			// 대표 혼잡등급은 PRIME TIME(대기인원 피크)과 별개로 조회 시각의 시설별 평균 대기시간에서 정한다
-			result.setCgnStatus(getTmnlCgnStatus(smltStng.getSmltId(), tmnlId, bgnHhmm));
+			applyTmnlCgn(result, smltStng.getSmltId(), tmnlId, bgnHhmm);
 
 			String endHhmm = getEndHhmm(bgnHhmm, intrvlMin);
 			FltSmryRawDto baseIntrvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList, bgnHhmm, endHhmm);
@@ -266,24 +266,39 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return result;
 	}
 
-	private CongestionStatus getTmnlCgnStatus(String smltId, TerminalKind tmnlId, String hhmm) {
+	private void applyTmnlCgn(TmnlSmryDto result, String smltId, TerminalKind tmnlId, String hhmm) {
 		SmltStngDto smltStng = castSmltService.retrieveUniqueSmltStng(smltId);
-		List<CongestionStatus> statusList = new ArrayList<>();
 
 		FcltWtngDay chknDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.CHKN);
 		LocalDateTime evalDt = chknDay.dtOf(toMinutes(hhmm));
 
 		for (String island : chknDay.unitCdList()) {
-			statusList.add(chknDay.gradeOf(island, evalDt).getValue());
+			applyWorseCgn(result, chknDay, island, evalDt);
 		}
 
 		FcltWtngDay depDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.DEP);
 
 		for (String unitCd : depDay.presentUnitCdList(evalDt)) {
-			statusList.add(depDay.gradeOf(unitCd, evalDt).getValue());
+			applyWorseCgn(result, depDay, unitCd, evalDt);
+		}
+	}
+
+	// 체크인 / 출국장 기준표가 달라 대기시간만으로 비교하지 않는다 — 등급이 같을 때만 대기시간이 긴 시설을 남긴다
+	private void applyWorseCgn(TmnlSmryDto result, FcltWtngDay wtngDay, String unitCd, LocalDateTime evalDt) {
+		Computed<Double> wtngSec = wtngDay.avgWtngSecOf(unitCd, evalDt);
+		CongestionStatus status = wtngDay.getGradeScale().gradeOf(wtngSec).getValue();
+
+		if (status == null) {
+			return;
 		}
 
-		return CgnOrder.worstOf(statusList);
+		CongestionStatus worstStatus = result.getCgnStatus();
+
+		if (worstStatus == null || status.compareTo(worstStatus) > 0
+				|| status == worstStatus && wtngSec.getValue() > result.getCgnWtngSec()) {
+			result.setCgnStatus(status);
+			result.setCgnWtngSec(wtngSec.getValue());
+		}
 	}
 
 	@Override

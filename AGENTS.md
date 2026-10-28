@@ -90,6 +90,8 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
      `normalUpperExclusiveSec` · `wtngAvgSec` · `wtngAvgPrcsPsgCnt` · `wtngAvgMetric`, `FcltQueueClearDto` 의
      `fcstWtngSec` · `fcstDt` · `fcstWtngMetric` 을 더했다. `targetQueueCnt` 는 명 단위 계약 그대로 두고 `null` 로 내린다.
      `PsgPrcsGradeRawDto.minVl` · `maxVl` 은 `BigDecimal` → `int`(분). **새 이름도 이제 고정이다.**
+   - 2026-10-28 `TmnlSmryDto.cgnWtngSec` 를 더했다. 대표 등급을 정한 시설(같은 등급이면 대기시간이 긴 시설)의
+     판정값이며 요약정보 '평균 대기시간'이 이 값을 읽는다. `intrvlAvgWtngSec` 는 남아 있지만 화면이 읽지 않는다.
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).

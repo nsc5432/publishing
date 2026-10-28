@@ -51,7 +51,7 @@ interface TerminalViewInput {
 
 // 칩 팔레트가 3색이라 여유/보통은 같은 초록을 쓴다
 const CONGESTION_CHIP_CLASS: Record<CongestionStatus, string> = {
-    FREE: 'g',
+    FREE: 'b',
     NORMAL: 'g',
     BUSY: 'o',
     VERY_BUSY: 'r',
@@ -255,7 +255,7 @@ export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCard
             },
             {
                 label: '평균\n대기시간',
-                value: smry.intrvlAvgWtngSec == null ? '-' : String(Math.round(smry.intrvlAvgWtngSec / 60)),
+                value: smry.cgnWtngSec == null ? '-' : String(Math.round(smry.cgnWtngSec / 60)),
                 unit: '분',
             },
             {

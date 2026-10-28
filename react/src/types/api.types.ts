@@ -106,6 +106,8 @@ export interface TmnlSmryDto extends JsonResponse {
     brdgRate: number;
     /** hhmm 의 체크인 / 출국장 시설 중 최고 등급. 전부 산정 불가면 null */
     cgnStatus: CongestionStatus | null;
+    /** cgnStatus 를 정한 시설의 직전 30분 처리 여객 평균 대기시간 (초). 산정 불가면 null */
+    cgnWtngSec: number | null;
     intrvlMin: number;
     intrvlFltCnt: number;
     intrvlPsgCnt: number;

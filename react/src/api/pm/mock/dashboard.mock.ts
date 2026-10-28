@@ -124,7 +124,7 @@ const HEADER: DsbdHeaderDto = {
 
 /** 조회 시각과 무관한 부분 — 구간 4필드는 buildTmnlSmry 가 얹는다 */
 type TmnlIntrvlMetrics = Pick<TmnlSmryDto, 'intrvlMaxWtngPsgCnt' | 'intrvlAvgWtngSec' | 'intrvlPrcsPsgCnt'>;
-type TmnlSmryBase = Omit<TmnlSmryDto, 'cgnStatus' | 'intrvlMin' | 'intrvlFltCnt' | 'intrvlPsgCnt' | 'intrvlYesterdayFltDiffCnt' | 'intrvlYesterdayPsgDiffCnt' | keyof TmnlIntrvlMetrics>;
+type TmnlSmryBase = Omit<TmnlSmryDto, 'cgnStatus' | 'cgnWtngSec' | 'intrvlMin' | 'intrvlFltCnt' | 'intrvlPsgCnt' | 'intrvlYesterdayFltDiffCnt' | 'intrvlYesterdayPsgDiffCnt' | keyof TmnlIntrvlMetrics>;
 
 const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
     T1: {
@@ -228,11 +228,19 @@ function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmr
 
     // 대표 등급은 PRIME TIME(대기인원 피크)과 별개로 조회 시각 시설 카드 중 최고 등급이다 (서버와 같은 규칙)
     const cardList = [...buildFcltCardList(tmnlId, hhmm, 'CHKN'), ...buildFcltCardList(tmnlId, hhmm, 'DEP')];
+    const cgnStatus = mockWorstOf(cardList.map((card) => card.cgnStatus));
+    const cgnCard = cardList
+        .filter((card) => cgnStatus !== null && card.cgnStatus === cgnStatus)
+        .reduce<DsbdFcltCardDto | null>(
+            (top, card) => (top === null || (card.cgnWtngSec ?? 0) > (top.cgnWtngSec ?? 0) ? card : top),
+            null,
+        );
 
     return {
         ...TMNL_SMRY[tmnlId],
         ...buildIntrvlMetrics(tmnlId, hhmm, intrvlMin),
-        cgnStatus: mockWorstOf(cardList.map((card) => card.cgnStatus)),
+        cgnStatus,
+        cgnWtngSec: cgnCard?.cgnWtngSec ?? null,
         intrvlMin,
         intrvlFltCnt,
         intrvlPsgCnt,

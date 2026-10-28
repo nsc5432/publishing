@@ -1517,6 +1517,10 @@ html[data-page='dashboard'] .chip.r {
     background: #dd0000;
 }
 
+html[data-page='dashboard'] .chip.b {
+    background: #2f7ff0;
+}
+
 html[data-page='dashboard'] .chip.g {
     background: #0f7d00;
 }
