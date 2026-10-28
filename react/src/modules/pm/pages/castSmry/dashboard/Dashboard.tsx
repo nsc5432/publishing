@@ -11,6 +11,7 @@ import { TerminalSummary } from './components/TerminalSummary';
 import { Topbar } from './components/Topbar';
 import { defaultTime, todayYmd } from '@/lib/format';
 import { useBaseInfo } from '@/hooks/useBaseInfo';
+import { loadingBar } from '@/lib/loading-bar';
 import { toCalcDateTime, toPlanDate, toSimulationType } from './view';
 import {
     useDayOverview,
@@ -57,6 +58,7 @@ function Dashboard() {
     const [category, setCategory] = useState<DsbdCategory>(DEFAULT_CATEGORY);
     const [activePrimeCategory, setActivePrimeCategory] = useState<DsbdCategory | null>(null);
     const [primeRequest, setPrimeRequest] = useState<PrimeTimeRequest | null>(null);
+    const [primeStartSeq, setPrimeStartSeq] = useState(0);
     const [fcltQueueTarget, setFcltQueueTarget] = useState<FcltQueueTarget | null>(null);
     const timeOverrideRef = useRef<string | null>(null);
 
@@ -88,6 +90,19 @@ function Dashboard() {
         error: primeError,
         responseSeq: primeResponseSeq,
     } = usePrimeTime(primeQuery);
+    // useFetched 는 새 조회 중에도 이전 실패를 들고 있어 응답 순번으로 이번 요청의 실패만 가린다
+    const isPrimeFailed = !!primeError && primeResponseSeq !== primeStartSeq;
+    const isPrimeLoading = primeRequest !== null && !isPrimeFailed;
+
+    useEffect(() => {
+        if (!isPrimeLoading) return;
+
+        loadingBar.start();
+        // 바로 이어지는 재조회가 로딩바를 이어받은 뒤에 끈다. 먼저 끄면 로딩바가 처음부터 다시 찬다
+        return () => {
+            setTimeout(() => loadingBar.done());
+        };
+    }, [isPrimeLoading]);
 
     useEffect(() => {
         if (!primeTime || primeTime.query !== primeQuery) return;
@@ -146,6 +161,7 @@ function Dashboard() {
 
         timeOverrideRef.current = null;
         setPrimeRequest({ ymd: primeYmd, category: nextCategory });
+        setPrimeStartSeq(primeResponseSeq);
         setActivePrimeCategory(null);
 
         if (!isUserSmlt && primeYmd !== ymd) {

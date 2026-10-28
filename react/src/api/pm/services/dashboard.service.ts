@@ -80,17 +80,14 @@ export const dashboardService = {
         smltId: string,
         tmnlId: TmnlId,
         category: DsbdCategory,
-        loading = false,
     ): Promise<DsbdRsltDto[]> => {
-        if (USE_MOCK) {
-            return mockResponse(dashboardMock.getTmnlRsltByTime(tmnlId, category), { loading });
-        }
+        if (USE_MOCK) return mockResponse(dashboardMock.getTmnlRsltByTime(tmnlId, category));
 
-        const response = await apiClient.post<DsbdRsltDto[]>(
-            API_ENDPOINTS.DSBD_TMNL_RSLT,
-            { smltId, tmnlId, category },
-            loading ? { params: { loading: true } } : undefined,
-        );
+        const response = await apiClient.post<DsbdRsltDto[]>(API_ENDPOINTS.DSBD_TMNL_RSLT, {
+            smltId,
+            tmnlId,
+            category,
+        });
 
         return response.data;
     },

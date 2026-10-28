@@ -44,8 +44,8 @@ export function usePrimeTime(query: PrimeTimeQuery | null) {
         query,
         async (request) => {
             const results = await Promise.all([
-                dashboardService.getTmnlRsltByTime(request.smltId, 'T1', request.category, true),
-                dashboardService.getTmnlRsltByTime(request.smltId, 'T2', request.category, true),
+                dashboardService.getTmnlRsltByTime(request.smltId, 'T1', request.category),
+                dashboardService.getTmnlRsltByTime(request.smltId, 'T2', request.category),
             ]);
             const hhmm = toPrimeTime(results, request.category);
 
