@@ -657,18 +657,26 @@ html[data-page='dashboard'] .p-mid {
 }
 
 html[data-page='dashboard'] .p-stats {
+    position: relative;
     flex: 98 0 0;
     background: #f7f5fa;
+    border: 1px solid #e4dfec;
     border-radius: 14px;
-    padding: 7px 0 8px 12px;
+    padding: 14px 0 8px 12px;
     display: flex;
     flex-direction: column;
     gap: 6px;
 }
 
 html[data-page='dashboard'] .p-note {
+    position: absolute;
+    top: 2px;
+    left: 16px;
+    transform: translateY(-50%);
+    background: #f7f5fa;
+    white-space: nowrap;
     text-align: right;
-    font-size: 13px;
+    font-size: 12px;
     line-height: 16px;
     color: #7a8496;
 }
@@ -690,7 +698,6 @@ html[data-page='dashboard'] .p-stat-icons {
 
 html[data-page='dashboard'] .p-stat-icons > i {
     height: 30px;
-    color: #625e73;
 }
 
 html[data-page='dashboard'] .p-stat-lines {
@@ -1074,14 +1081,15 @@ html[data-page='dashboard'] .view[hidden] {
 /* --- summary view --- */
 html[data-page='dashboard'] .sum-top {
     display: flex;
-    gap: 16px;
+    gap: 20px;
     height: var(--sum-top-h);
     flex-shrink: 0;
 }
 
 html[data-page='dashboard'] .sum-two {
-    flex: 0 0 300px;
-    background: var(--box-blue);
+    flex: 0 0 397px;
+    background: #f7f5fa;
+    border: 1px solid #d8d4e0;
     border-radius: 14px;
     display: flex;
     flex-direction: column;
