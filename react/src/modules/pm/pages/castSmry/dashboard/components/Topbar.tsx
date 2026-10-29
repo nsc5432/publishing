@@ -26,9 +26,6 @@ interface TopbarProps {
 
 /**
  * 대시보드 상단 바 — 화면 제목 / 조회 조건 / 계산 시각.
- *
- * 조회 조건은 화면(Dashboard)이 들고 있다. 기준 정보를 받아온 뒤 값이 바뀌므로
- * 여기서 상태로 복사해 두면 서버 응답보다 앞서 그린 초기값에 그대로 묶인다.
  */
 export function Topbar({
     simulationType,
@@ -48,8 +45,6 @@ export function Topbar({
 
     const isUserSmlt = simulationType === 'user';
 
-    // 날짜 입력은 디자인대로 보이도록 투명하게 겹쳐 두고, 달력은 여기서 직접 연다.
-    // (showPicker 가 없는 브라우저는 입력에 포커스만 주고 브라우저 기본 동작에 맡긴다)
     const handleOpenCalendar = () => {
         if (isUserSmlt) return;
 
@@ -69,16 +64,8 @@ export function Topbar({
 
             <div className="datebox">
                 <span className="lbl">기준일자</span>
-
-                {/* 사용자 시뮬레이션은 실행할 때 정한 일자의 결과라 기준일자를 바꿀 수 없다
-                    (시/분은 그 결과 안에서 고르는 값이라 그대로 열어 둔다) */}
                 <div className="datepick">
-                    <button
-                        type="button"
-                        className="datepick__btn"
-                        disabled={isUserSmlt}
-                        onClick={handleOpenCalendar}
-                    >
+                    <button type="button" className="datepick__btn" disabled={isUserSmlt} onClick={handleOpenCalendar}>
                         <Icon name="calendar" className="cal" />
                         <span className="val">{formatYmd(baseYmd)}</span>
                     </button>
@@ -95,12 +82,7 @@ export function Topbar({
                 </div>
 
                 <PillSelect value={hour} options={HOUR_OPTIONS} unit="시" onChange={onHourChange} />
-                <PillSelect
-                    value={minute}
-                    options={MINUTE_OPTIONS}
-                    unit="분"
-                    onChange={onMinuteChange}
-                />
+                <PillSelect value={minute} options={MINUTE_OPTIONS} unit="분" onChange={onMinuteChange} />
                 <button type="button" className="search-btn" onClick={onSearch}>
                     <Icon name="search" />
                     <span className="blind">조회</span>
@@ -137,8 +119,6 @@ export function Topbar({
                     </button>
                 )}
 
-                {/* 계산 시각은 일일 시뮬레이션에만 있다 — 사용자 시뮬레이션은 한 번 실행하고
-                    끝이라 재계산 예정이 없고, 대신 그 자리에 실행자를 세운다 */}
                 {!isUserSmlt && (
                     <div className="calc">
                         <Icon name="clock" className="clk" />

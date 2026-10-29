@@ -545,18 +545,6 @@ html[data-page='dashboard'] .panel-gray .wm {
     opacity: 0.12;
 }
 
-html[data-page='dashboard'] .panel-gray .p-iconbox {
-    background: linear-gradient(180deg, #a4acb9 0%, #8a93a3 50%, #6b7484 100%);
-}
-
-html[data-page='dashboard'] .panel-gray .p-peak {
-    border-color: #d3d7de;
-}
-
-html[data-page='dashboard'] .panel-gray .peak-badge {
-    background: #eceef2;
-}
-
 html[data-page='dashboard'] .panel-gray .p-bar {
     background: linear-gradient(90deg, #6b7484 0%, #8a93a3 60%, #a4acb9 100%);
 }
@@ -583,6 +571,7 @@ html[data-page='dashboard'] .p-top {
 }
 
 html[data-page='dashboard'] .p-iconbox {
+    background: linear-gradient(180deg, #a6a1b6 0%, #858094 100%);
     width: 79px;
     border-radius: 24px;
     display: flex;
@@ -593,8 +582,8 @@ html[data-page='dashboard'] .p-iconbox {
     overflow: hidden;
     box-shadow:
         inset 0 1px 1px rgba(255, 255, 255, 0.5),
-        inset 0 -10px 22px rgba(0, 0, 0, 0.14),
-        0 8px 18px rgba(46, 50, 94, 0.16);
+        inset 0 -10px 22px rgba(0, 0, 0, 0.07),
+        0 6px 16px rgba(46, 50, 94, 0.1);
 }
 
 html[data-page='dashboard'] .p-iconbox::before {
@@ -605,20 +594,50 @@ html[data-page='dashboard'] .p-iconbox::before {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 42%);
 }
 
-html[data-page='dashboard'] .panel-blue .p-iconbox {
-    background: linear-gradient(180deg, #0106ff 0%, #0043e2 36%, #0083c6 72%, #00a8b8 100%);
+html[data-page='dashboard'] .p-iconbox::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0) 30%,
+        rgba(255, 255, 255, 0.06) 42%,
+        rgba(255, 255, 255, 0.15) 50%,
+        rgba(255, 255, 255, 0.06) 58%,
+        rgba(255, 255, 255, 0) 70%
+    );
+    opacity: 0;
+    transform: translate(-100%, -100%);
+    animation: pm-iconbox-shimmer 10s ease-in-out infinite;
 }
 
-html[data-page='dashboard'] .panel-green .p-iconbox {
-    background: linear-gradient(180deg, #ffff00 0%, #ffff00 22%, #c9e829 46%, #60bb78 72%, #0c98b7 100%);
+@keyframes pm-iconbox-shimmer {
+    0%,
+    85% {
+        opacity: 0;
+        transform: translate(-100%, -100%);
+    }
+
+    88% {
+        opacity: 1;
+    }
+
+    94% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translate(100%, 100%);
+    }
 }
 
-html[data-page='dashboard'] .panel-orange .p-iconbox {
-    background: linear-gradient(180deg, #ffb300 0%, #ff8a00 30%, #f2591c 65%, #e2401c 100%);
-}
-
-html[data-page='dashboard'] .panel-red .p-iconbox {
-    background: linear-gradient(180deg, #ff5252 0%, #f2311c 30%, #d81f1f 65%, #b21212 100%);
+@media (prefers-reduced-motion: reduce) {
+    html[data-page='dashboard'] .p-iconbox::after {
+        animation: none;
+    }
 }
 
 html[data-page='dashboard'] .p-iconbox .tbig {
@@ -639,24 +658,26 @@ html[data-page='dashboard'] .p-mid {
 
 html[data-page='dashboard'] .p-stats {
     flex: 98 0 0;
-    background: var(--box-blue);
+    background: #f7f5fa;
     border-radius: 14px;
-    padding: 7px 12px 8px;
+    padding: 7px 0 8px 12px;
     display: flex;
     flex-direction: column;
+    gap: 6px;
 }
 
 html[data-page='dashboard'] .p-note {
     text-align: right;
     font-size: 13px;
-    color: #7c8698;
+    line-height: 16px;
+    color: #7a8496;
 }
 
 html[data-page='dashboard'] .p-stat-main {
     flex: 1;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
 }
 
 html[data-page='dashboard'] .p-stat-icons {
@@ -669,6 +690,7 @@ html[data-page='dashboard'] .p-stat-icons {
 
 html[data-page='dashboard'] .p-stat-icons > i {
     height: 30px;
+    color: #625e73;
 }
 
 html[data-page='dashboard'] .p-stat-lines {
@@ -690,12 +712,13 @@ html[data-page='dashboard'] .p-delta {
     color: var(--red);
     font-size: 14px;
     font-weight: 600;
-    width: 56px;
+    width: 48px;
     text-align: right;
     flex-shrink: 0;
 }
 
 html[data-page='dashboard'] .p-big {
+    color: #3f3b50;
     flex: 1;
     text-align: right;
     font-size: 25px;
@@ -706,8 +729,8 @@ html[data-page='dashboard'] .p-big {
 html[data-page='dashboard'] .p-u {
     font-size: 15px;
     color: #3c4350;
-    margin-left: 6px;
-    width: 20px;
+    margin-left: 4px;
+    width: 16px;
     flex-shrink: 0;
 }
 
@@ -719,6 +742,7 @@ html[data-page='dashboard'] .board {
     border-radius: 10px;
     padding: 6px 0 7px;
     text-align: center;
+    line-height: 1.2;
     box-shadow: 0 1px 4px rgba(46, 50, 94, 0.08);
     display: flex;
     flex-direction: column;
@@ -737,7 +761,7 @@ html[data-page='dashboard'] .board .k {
 html[data-page='dashboard'] .board .v {
     font-size: 26px;
     font-weight: 700;
-    color: var(--acc);
+    color: #3f3b50;
     letter-spacing: -1.2px;
 }
 
@@ -749,28 +773,17 @@ html[data-page='dashboard'] .board .u {
 
 html[data-page='dashboard'] .p-peak {
     flex: 92 0 0;
-    background: var(--box-mint);
-    border: 1px solid #9fdcd8;
+    background: #f7f5fa;
+    border: 1px solid #e4dfec;
     border-radius: 14px;
     padding: 5px 5px 6px;
     display: flex;
     flex-direction: column;
 }
 
-html[data-page='dashboard'] .panel-green .p-peak {
-    border-color: #a8dfb4;
-}
-
-html[data-page='dashboard'] .panel-orange .p-peak {
-    border-color: #f0cf9e;
-}
-
-html[data-page='dashboard'] .panel-red .p-peak {
-    border-color: #f0b8b8;
-}
-
 html[data-page='dashboard'] .peak-title {
     font-size: 15px;
+    line-height: 18px;
     font-weight: 700;
     letter-spacing: -0.5px;
     padding-left: 0.5rem;
@@ -783,20 +796,8 @@ html[data-page='dashboard'] .peak-body {
 }
 
 html[data-page='dashboard'] .peak-badge {
-    background: #d7f0ee;
+    background: #eeebf4;
     border-radius: 10px;
-}
-
-html[data-page='dashboard'] .panel-green .peak-badge {
-    background: #dcf0dd;
-}
-
-html[data-page='dashboard'] .panel-orange .peak-badge {
-    background: #fbe3c8;
-}
-
-html[data-page='dashboard'] .panel-red .peak-badge {
-    background: #fadcdc;
 }
 
 html[data-page='dashboard'] .peak-cells {
@@ -810,13 +811,13 @@ html[data-page='dashboard'] .peak-cells {
 html[data-page='dashboard'] .peak-cells .peak-badge,
 html[data-page='dashboard'] .peak-cells .cell {
     min-width: 0;
-    padding: 8px 0 10px;
+    padding: 6px 0;
     text-align: center;
 }
 
 html[data-page='dashboard'] .peak-cells .k {
     font-size: 12.5px;
-    color: #7c8698;
+    color: #7a8496;
     line-height: 18px;
     white-space: nowrap;
 }
@@ -834,7 +835,7 @@ html[data-page='dashboard'] .peak-cells .v,
 html[data-page='dashboard'] .peak-cells b {
     font-size: 20px;
     font-weight: 700;
-    color: var(--acc-soft);
+    color: #3f3b50;
     letter-spacing: -1px;
 }
 
@@ -1000,7 +1001,7 @@ html[data-page='dashboard'] .p-switch {
     border-radius: 12px;
     /* 요약/상세 어느 쪽도 비활성으로 보이면 안 되므로 두 상태의 겉모습을 같게 둔다 */
     background: #fff;
-    color: #3b39c9;
+    color: var(--acc);
     font-family: inherit;
     font-size: 13px;
     font-weight: 700;
@@ -1015,7 +1016,7 @@ html[data-page='dashboard'] .p-switch > i {
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #4441cc;
+    background: var(--acc);
     transition: left 0.22s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1600,11 +1601,17 @@ html[data-page='dashboard'] .trow.sel {
 
 @media (min-width: 1350px) {
     html[data-page='dashboard'] .row--top {
+        --header-left-content-w: calc((100% - var(--main-gap)) / 2 - var(--main-gap));
+        --header-right-content-w: calc((100% - var(--main-gap)) / 2 - var(--main-gap) * 2);
+        --header-plan-w: max(320px, calc(var(--header-left-content-w) * 410 / 910));
         display: grid;
         grid-template-columns:
-            minmax(320px, 410fr) minmax(220px, 500fr)
-            minmax(230px, 374fr) minmax(200px, 244fr) minmax(160px, 237fr);
-        gap: clamp(10px, calc(3vw - 30px), 28px);
+            var(--header-plan-w)
+            minmax(0, calc(var(--header-left-content-w) - var(--header-plan-w)))
+            minmax(0, calc(var(--header-right-content-w) * 374 / 855))
+            minmax(0, calc(var(--header-right-content-w) * 244 / 855))
+            minmax(0, calc(var(--header-right-content-w) * 237 / 855));
+        gap: var(--main-gap);
     }
 
     html[data-page='dashboard'] .header-info-cards {

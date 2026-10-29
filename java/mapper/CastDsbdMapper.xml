@@ -34,26 +34,28 @@
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN 1 ELSE 0 END), 0) AS DEP_FLT_CNT,
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN 1 ELSE 0 END), 0) AS ARR_FLT_CNT,
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN
-                NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0)
-                - NVL(TO_NUMBER(TRIM(A.RSVT_TRNS_BDPSG_CNT)), 0) ELSE 0 END), 0) AS DEP_PSG_CNT,
+                NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0) - NVL(TO_NUMBER(TRIM(A.RSVT_TRNS_BDPSG_CNT)), 0) ELSE 0 END), 0) AS DEP_PSG_CNT,
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN
-                NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0)
-                - NVL(TO_NUMBER(TRIM(A.RSVT_TRNS_BDPSG_CNT)), 0) ELSE 0 END), 0) AS ARR_PSG_CNT,
+                NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0) - NVL(TO_NUMBER(TRIM(A.RSVT_TRNS_BDPSG_CNT)), 0) ELSE 0 END), 0) AS ARR_PSG_CNT,
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN
-                NVL(TO_NUMBER(TRIM(A.PFR_BRDG_TNOPE)), 0)
-                + NVL(TO_NUMBER(TRIM(A.FREE_BRDG_TNOPE)), 0)
-                + NVL(TO_NUMBER(TRIM(A.TRNS_BRDG_TNOPE)), 0) ELSE 0 END), 0) AS ACTL_BRDG_PSG_CNT,
-            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN
-                NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0) ELSE 0 END), 0) AS RSVT_BRDG_PSG_CNT
+                CASE WHEN NVL(TO_NUMBER(TRIM(A.PFR_BRDG_TNOPE)), 0)
+                    + NVL(TO_NUMBER(TRIM(A.FREE_BRDG_TNOPE)), 0)
+                    + NVL(TO_NUMBER(TRIM(A.TRNS_BRDG_TNOPE)), 0) = 0
+                    THEN NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0)
+                    ELSE NVL(TO_NUMBER(TRIM(A.PFR_BRDG_TNOPE)), 0)
+                        + NVL(TO_NUMBER(TRIM(A.FREE_BRDG_TNOPE)), 0)
+                        + NVL(TO_NUMBER(TRIM(A.TRNS_BRDG_TNOPE)), 0)
+                END ELSE 0 END), 0) AS BRDG_PSG_CNT,
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D'
+                THEN TO_NUMBER(TRIM(A.ARCFT_STGCP)) ELSE 0 END), 0) AS SEAT_CNT
         FROM GOOWN.TN_GO_GD_DATA A
         WHERE 1 = 1
+        AND NVL(TO_NUMBER(TRIM(A.ARCFT_STGCP)), 0) &gt; 0
         AND A.GD_SE_YMD = #{ymd}
         <if test="tmnlIdList != null and tmnlIdList.size() > 0">
         AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
         </if>
         <if test="bgnHhmm != null and endHhmm != null">
-        <!-- 예측시분은 날짜 없는 HHmm 문자열이라 사전순 비교로 구간을 자른다.
-             자정을 넘는 구간은 호출하는 쪽이 끝을 '2400' 으로 잘라 넘긴다 -->
         AND A.PREDC_HM &gt;= #{bgnHhmm}
         AND A.PREDC_HM &lt; #{endHhmm}
         </if>

@@ -815,11 +815,11 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	}
 
 	private int getBrdgRate(FltSmryRawDto fltSmry) {
-		if (fltSmry.getRsvtBrdgPsgCnt() == 0) {
+		if (fltSmry.getSeatCnt() == 0) {
 			return 0;
 		}
 
-		return Math.toIntExact(fltSmry.getActlBrdgPsgCnt() * 100L / fltSmry.getRsvtBrdgPsgCnt());
+		return Math.toIntExact(fltSmry.getBrdgPsgCnt() * 100L / fltSmry.getSeatCnt());
 	}
 
 	private IslandMainAln retrieveIslandMainAln(SmltStngDto smltStng, String fcltTmnlId, LocalDateTime bgnDt) {

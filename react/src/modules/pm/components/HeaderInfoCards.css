@@ -167,7 +167,7 @@
 
 .header-info-cards .plan-total .v {
     font-size: 31px;
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: -1.2px;
     line-height: 1.1;
 }
@@ -175,16 +175,6 @@
 .header-info-cards .plan-total .v.teal {
     font-size: 27px;
     letter-spacing: -1px;
-}
-
-.header-info-cards .plan-total .v.blue {
-    color: #1c6ff0;
-    font-weight: 600;
-}
-
-.header-info-cards .plan-total .v.teal {
-    color: #00b3ab;
-    font-weight: 600;
 }
 
 .header-info-cards .stat-cells .u,

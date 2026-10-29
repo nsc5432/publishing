@@ -68,7 +68,7 @@ export function FcltCard({ data, gauge, onDetail }: FcltCardProps) {
             </div>
             <div className="gauge-row">
                 <div className="gauge">
-                    <div className="k">시간당 처리율</div>
+                    <div className="k">시간당 처리인원</div>
                     <GaugeDonut
                         value={variant.processRate.value}
                         centerText={variant.processRate.centerText}
@@ -83,9 +83,7 @@ export function FcltCard({ data, gauge, onDetail }: FcltCardProps) {
                         {variant.recommend.count}
                         <small>개</small>
                     </div>
-                    <div className={`cap${variant.recommend.countNoteAccent ? ' u' : ''}`}>
-                        {variant.recommend.countNote}
-                    </div>
+                    <div className={`cap${variant.recommend.countNoteAccent ? ' u' : ''}`}>{variant.recommend.countNote}</div>
                 </div>
                 <div className="gauge">
                     <div className="k">혼잡해소 예상</div>

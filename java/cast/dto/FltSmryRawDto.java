@@ -10,6 +10,6 @@ public class FltSmryRawDto {
 	private int arrFltCnt;
 	private int depPsgCnt;
 	private int arrPsgCnt;
-	private int actlBrdgPsgCnt;
-	private int rsvtBrdgPsgCnt;
+	private int brdgPsgCnt;
+	private int seatCnt;
 }

@@ -11,20 +11,15 @@ interface HeaderInfoCardsProps {
     header: DsbdHeaderDto | null;
 }
 
-/** 값을 아직 못 받았을 때 표기 */
 const EMPTY = '-';
-
-/** 요일 속성 — 주중 → 주말 전일 → 주말 순으로 두고 현재 값만 강조한다 */
 const DOW_STEPS: { type: DowAttrDto['dowType']; label: string }[] = [
     { type: 'WEEKDAY', label: '주중' },
     { type: 'PRE_WEEKEND', label: '주말 전일' },
     { type: 'WEEKEND', label: '주말' },
 ];
 
-/** 특이점 — 서버가 내려준 문구와 같은 것만 강조한다 */
 const SPECIAL_NOTES = ['하계 전일', '하계', '추석 전일', '추석', '공휴'];
 
-/** 날씨내용 문구로 아이콘을 고른다 — 눈 > 비 > 강풍 > 흐림 순으로 우선 매칭 */
 const weatherIconName = (wthrCn: string | undefined): IconName => {
     if (!wthrCn) return 'wxClear';
     if (wthrCn.includes('눈')) return 'wxSnow';
@@ -35,23 +30,19 @@ const weatherIconName = (wthrCn: string | undefined): IconName => {
 };
 
 /**
- * 조회 일자 요약 카드 4개 — 일일 운항계획 / 승객예고/실적 비교 / 요일 속성 / 기상정보.
- * 대시보드/사용자 시뮬레이션 두 화면이 함께 쓴다.
+ * 대시보드/사용자 시뮬레이션 두 화면이 같이 사용
  */
 export function HeaderInfoCards({ planDate, header }: HeaderInfoCardsProps) {
     const plan = header?.fltPlan;
     const weather = header?.weather;
     const dowAttr = header?.dowAttr;
 
-    const findHourlyByTerminal = (tmnlId: TmnlId) =>
-        header?.hourlyPsgList.find((item) => item.tmnlId === tmnlId) ?? null;
+    const findHourlyByTerminal = (tmnlId: TmnlId) => header?.hourlyPsgList.find((item) => item.tmnlId === tmnlId) ?? null;
     const t1Hourly = findHourlyByTerminal('T1');
     const t2Hourly = findHourlyByTerminal('T2');
 
-    // 도착 여객은 따로 내려오지 않는다. 총계에서 출발분을 뺀 값으로 본다.
     const arrPsgCnt = plan ? Math.max(0, plan.totPsgCnt - plan.depPsgCnt) : 0;
-    const countText = (value: number | undefined) =>
-        value === undefined ? EMPTY : formatCount(value);
+    const countText = (value: number | undefined) => (value === undefined ? EMPTY : formatCount(value));
 
     return (
         <div className="header-info-cards">
@@ -75,14 +66,14 @@ export function HeaderInfoCards({ planDate, header }: HeaderInfoCardsProps) {
                         <div className="cell">
                             <div className="k">운항편</div>
                             <div>
-                                <span className="v blue">{countText(plan?.totFltCnt)}</span>
+                                <span className="v">{countText(plan?.totFltCnt)}</span>
                                 <span className="u">편</span>
                             </div>
                         </div>
                         <div className="cell">
                             <div className="k">총 여객</div>
                             <div>
-                                <span className="v teal">{countText(plan?.totPsgCnt)}</span>
+                                <span className="v">{countText(plan?.totPsgCnt)}</span>
                                 <span className="u">명</span>
                             </div>
                         </div>

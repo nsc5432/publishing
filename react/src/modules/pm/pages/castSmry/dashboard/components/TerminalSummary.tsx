@@ -83,13 +83,6 @@ export function TerminalSummary({ terminal, data, category, titleCategory, onFcl
                                 <Icon name="plane" className="i-blue i-26" />
                                 <Icon name="people" className="i-teal i-26" />
                             </div>
-                            <div className="board">
-                                <div className="k">탑승률</div>
-                                <div>
-                                    <span className="v">{view.stats.boardingRate}</span>
-                                    <span className="u">%</span>
-                                </div>
-                            </div>
                             <div className="p-stat-lines">
                                 <div className="p-line">
                                     <span className="p-big">{view.stats.flights.value}</span>
@@ -100,6 +93,13 @@ export function TerminalSummary({ terminal, data, category, titleCategory, onFcl
                                     <span className="p-big">{view.stats.pax.value}</span>
                                     <span className="p-u">명</span>
                                     <span className="p-delta">{view.stats.pax.delta}</span>
+                                </div>
+                            </div>
+                            <div className="board">
+                                <div className="k">탑승률</div>
+                                <div>
+                                    <span className="v">{view.stats.boardingRate}</span>
+                                    <span className="u">%</span>
                                 </div>
                             </div>
                         </div>
@@ -154,15 +154,15 @@ export function TerminalSummary({ terminal, data, category, titleCategory, onFcl
             </div>
 
             <div className="p-title-row">
-                {titleCategory && (
-                    <div className="p-title">
-                        <span className="p-title-in">
-                            <span className="p-title-txt">{TITLE_LEAD[titleCategory]} 가장 많을 때</span>
-                        </span>
-                    </div>
-                )}
+                <div className="p-title">
+                    <span className="p-title-in">
+                        <span className="p-title-txt">{view.barText}</span>
+                    </span>
+                </div>
                 <div className="p-bar">
-                    <span className="p-bar-txt">{view.barText}</span>
+                    {titleCategory && (
+                        <span className="p-bar-txt">{TITLE_LEAD[titleCategory]} 가장 많을 때</span>
+                    )}
                     <button
                         type="button"
                         className={`p-switch${viewKind === 'summary' ? ' on' : ''}`}
@@ -218,12 +218,7 @@ export function TerminalSummary({ terminal, data, category, titleCategory, onFcl
 
                 <div className="fclt-cards">
                     {view.fcltCards.map((fcltCard) => (
-                        <FcltCard
-                            key={fcltCard.fcltType}
-                            data={fcltCard}
-                            gauge={theme.gauge}
-                            onDetail={(unitCd) => onFcltDetail(fcltCard.fcltType, unitCd)}
-                        />
+                        <FcltCard key={fcltCard.fcltType} data={fcltCard} gauge={theme.gauge} onDetail={(unitCd) => onFcltDetail(fcltCard.fcltType, unitCd)} />
                     ))}
                 </div>
             </div>
@@ -235,9 +230,7 @@ export function TerminalSummary({ terminal, data, category, titleCategory, onFcl
                         <div>{category === 'FLT' ? '운항편수' : '예약승객수'}</div>
                         <div>대기시간</div>
                         <div>처리시간</div>
-                        <div
-                            title={category === 'FLT' ? '해당 터미널의 하루 전체 운항편수 대비 비중' : '예측 대기인원(명)'}
-                        >
+                        <div title={category === 'FLT' ? '해당 터미널의 하루 전체 운항편수 대비 비중' : '예측 대기인원(명)'}>
                             {category === 'FLT' ? '시간대 비중(%)' : '대기인원'}
                         </div>
                     </div>
