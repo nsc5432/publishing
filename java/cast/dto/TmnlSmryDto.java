@@ -1,5 +1,8 @@
 package aoms.pm.cast.dto;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import aoms.pm.cast.enums.CongestionStatus;
 
 import lombok.Getter;
@@ -28,6 +31,7 @@ public class TmnlSmryDto extends JsonResponse {
 	private int intrvlPsgCnt; // 구간 출발 여객
 	private int intrvlYesterdayFltDiffCnt; // 전일 같은 구간 대비 운항편 증감
 	private int intrvlYesterdayPsgDiffCnt; // 전일 같은 구간 대비 여객 증감
+	private List<DsbdFltIntrvlDto> intrvlList = new ArrayList<>();
 	private Integer intrvlMaxWtngPsgCnt;
 	private Double intrvlAvgWtngSec;
 	private Integer intrvlPrcsPsgCnt;

@@ -27,6 +27,11 @@ type PrimeTimeRequest = Pick<PrimeTimeQuery, 'ymd' | 'category'>;
 
 const USER_SMLT_CONFIG_PATH = '/rui/pm/user-smlt/config';
 
+const FCLT_DETAIL_PATH: Record<FcltCardType, string> = {
+    CHKN: '/rui/pm/daily-smlt/checkinCounter',
+    DEP: '/rui/pm/daily-smlt/departureHall',
+};
+
 const DEFAULT_CATEGORY: DsbdCategory = 'PSG';
 
 function Dashboard() {
@@ -186,6 +191,17 @@ function Dashboard() {
         setFcltQueueTarget({ ...query, tmnlId, fcltType, unitCd });
     };
 
+    const handleFcltMove = (tmnlId: TerminalKind) => (fcltType: FcltCardType) => {
+        const detailParams = new URLSearchParams({ tmnlId });
+
+        if (query) {
+            detailParams.set('ymd', query.ymd);
+            detailParams.set('hhmm', query.hhmm);
+        }
+
+        navigate(`${FCLT_DETAIL_PATH[fcltType]}?${detailParams.toString()}`);
+    };
+
     const executor = execDetail ? { dept: execDetail.deptNm, name: execDetail.userNm } : undefined;
 
     return (
@@ -224,8 +240,8 @@ function Dashboard() {
                     onCategoryChange={handleCategoryChange}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary terminal="T1" data={terminal1View} category={category} titleCategory={activePrimeCategory} onFcltDetail={handleFcltDetail('T1')} />
-                        <TerminalSummary terminal="T2" data={terminal2View} category={category} titleCategory={activePrimeCategory} onFcltDetail={handleFcltDetail('T2')} />
+                        <TerminalSummary terminal="T1" data={terminal1View} category={category} titleCategory={activePrimeCategory} onFcltDetail={handleFcltDetail('T1')} onFcltMove={handleFcltMove('T1')} />
+                        <TerminalSummary terminal="T2" data={terminal2View} category={category} titleCategory={activePrimeCategory} onFcltDetail={handleFcltDetail('T2')} onFcltMove={handleFcltMove('T2')} />
                     </section>
                 </HeaderSummary>
             </div>

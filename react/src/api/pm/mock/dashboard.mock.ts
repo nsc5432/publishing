@@ -1,3 +1,4 @@
+import { pad2 } from '@/lib/format';
 import type {
     CongestionStatus,
     DsbdBaseInfoDto,
@@ -124,7 +125,7 @@ const HEADER: DsbdHeaderDto = {
 
 /** 조회 시각과 무관한 부분 — 구간 4필드는 buildTmnlSmry 가 얹는다 */
 type TmnlIntrvlMetrics = Pick<TmnlSmryDto, 'intrvlMaxWtngPsgCnt' | 'intrvlAvgWtngSec' | 'intrvlPrcsPsgCnt'>;
-type TmnlSmryBase = Omit<TmnlSmryDto, 'cgnStatus' | 'cgnWtngSec' | 'intrvlMin' | 'intrvlFltCnt' | 'intrvlPsgCnt' | 'intrvlYesterdayFltDiffCnt' | 'intrvlYesterdayPsgDiffCnt' | keyof TmnlIntrvlMetrics>;
+type TmnlSmryBase = Omit<TmnlSmryDto, 'cgnStatus' | 'cgnWtngSec' | 'intrvlMin' | 'intrvlFltCnt' | 'intrvlPsgCnt' | 'intrvlYesterdayFltDiffCnt' | 'intrvlYesterdayPsgDiffCnt' | 'intrvlList' | keyof TmnlIntrvlMetrics>;
 
 const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
     T1: {
@@ -225,6 +226,25 @@ function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmr
     const intrvlFltCnt = sumByIntrvl(toHourlyFlt(tmnlId), hhmm, intrvlMin);
     const intrvlPsgCnt = sumByIntrvl(HOURLY_PSG[tmnlId], hhmm, intrvlMin);
     const ratio = YESTERDAY_RATIO[tmnlId];
+    const bgnMin = Number(hhmm.slice(0, 2)) * MIN_PER_HOUR + Number(hhmm.slice(2, 4));
+    const intrvlList = [0, 1, 2]
+        .map((offset) => bgnMin + offset * MIN_PER_HOUR)
+        .filter((start) => start < MIN_PER_DAY)
+        .map((start) => {
+            const end = Math.min(start + intrvlMin, MIN_PER_DAY);
+            const bgnHhmm = `${pad2(Math.floor(start / MIN_PER_HOUR))}${pad2(start % MIN_PER_HOUR)}`;
+            const fltCnt = sumByIntrvl(toHourlyFlt(tmnlId), bgnHhmm, intrvlMin);
+            const psgCnt = sumByIntrvl(HOURLY_PSG[tmnlId], bgnHhmm, intrvlMin);
+
+            return {
+                bgnHhmm,
+                endHhmm: `${pad2(Math.floor(end / MIN_PER_HOUR))}${pad2(end % MIN_PER_HOUR)}`,
+                fltCnt,
+                psgCnt,
+                yesterdayFltDiffCnt: fltCnt - Math.round(fltCnt * ratio),
+                yesterdayPsgDiffCnt: psgCnt - Math.round(psgCnt * ratio),
+            };
+        });
 
     // 대표 등급은 PRIME TIME(대기인원 피크)과 별개로 조회 시각 시설 카드 중 최고 등급이다 (서버와 같은 규칙)
     const cardList = [...buildFcltCardList(tmnlId, hhmm, 'CHKN'), ...buildFcltCardList(tmnlId, hhmm, 'DEP')];
@@ -246,6 +266,7 @@ function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmr
         intrvlPsgCnt,
         intrvlYesterdayFltDiffCnt: intrvlFltCnt - Math.round(intrvlFltCnt * ratio),
         intrvlYesterdayPsgDiffCnt: intrvlPsgCnt - Math.round(intrvlPsgCnt * ratio),
+        intrvlList,
     };
 }
 

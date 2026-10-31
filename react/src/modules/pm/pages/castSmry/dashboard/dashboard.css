@@ -1087,20 +1087,66 @@ html[data-page='dashboard'] .sum-top {
 }
 
 html[data-page='dashboard'] .sum-two {
+    position: relative;
     flex: 0 0 397px;
     background: #f7f5fa;
     border: 1px solid #d8d4e0;
     border-radius: 14px;
     display: flex;
     flex-direction: column;
-    padding: 0 16px;
+    padding: 8px 10px 4px;
 }
 
 html[data-page='dashboard'] .sum-cell {
     flex: 1;
+    display: grid;
+    grid-template-columns: 96px minmax(0, 1fr) minmax(0, 1.3fr);
+    align-items: center;
+    gap: 8px;
+    min-height: 22px;
+}
+
+html[data-page='dashboard'] .sum-time {
     display: flex;
     align-items: center;
-    gap: 12px;
+    justify-content: space-between;
+    gap: 4px;
+    font-size: 11px;
+    color: #7c8698;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .sum-time time {
+    font-size: 12px;
+    font-weight: 600;
+    color: #3f3b50;
+    white-space: normal;
+    text-align: right;
+    line-height: 1.1;
+}
+
+html[data-page='dashboard'] .sum-metric {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    min-width: 0;
+}
+
+html[data-page='dashboard'] .sum-metric > i {
+    width: 15px;
+    height: 15px;
+    flex-shrink: 0;
+}
+
+html[data-page='dashboard'] .sum-metric > i > svg {
+    width: 15px;
+    height: 15px;
+}
+
+html[data-page='dashboard'] .sum-two .p-note {
+    left: 12px;
+    padding: 0 4px;
+    font-size: 11px;
 }
 
 html[data-page='dashboard'] .sum-cell .val {
@@ -1108,26 +1154,26 @@ html[data-page='dashboard'] .sum-cell .val {
 }
 
 html[data-page='dashboard'] .sum-cell .big {
-    font-size: 27px;
+    font-size: 18px;
     font-weight: 700;
-    letter-spacing: -1.4px;
+    letter-spacing: -0.6px;
 }
 
 html[data-page='dashboard'] .sum-cell .u {
-    font-size: 16px;
+    font-size: 11px;
     color: #3c4350;
-    margin-left: 6px;
+    margin-left: 2px;
 }
 
 html[data-page='dashboard'] .sum-cell .sub {
     margin-left: auto;
-    font-size: 13px;
+    font-size: 10px;
     color: #7c8698;
     white-space: nowrap;
 }
 
 html[data-page='dashboard'] .sum-cell .sub .danger {
-    margin-left: 12px;
+    margin-left: 0;
     font-weight: 600;
 }
 
@@ -1416,6 +1462,31 @@ html[data-page='dashboard'] .rec {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    border: 0;
+    padding: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        filter 0.15s ease;
+}
+
+html[data-page='dashboard'] .rec:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 6px 14px rgba(35, 39, 47, 0.18);
+    filter: brightness(0.96) saturate(1.15);
+}
+
+html[data-page='dashboard'] .rec:focus-visible {
+    outline: 2px solid #4a56d8;
+    outline-offset: 2px;
+}
+
+html[data-page='dashboard'] .rec:active {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 2px 6px rgba(35, 39, 47, 0.14);
 }
 
 html[data-page='dashboard'] .panel-green .rec {
@@ -1466,10 +1537,6 @@ html[data-page='dashboard'] .rec .cap {
     color: #23272f;
 }
 
-html[data-page='dashboard'] .rec .cap.u {
-    text-decoration: underline;
-    text-underline-offset: 2px;
-}
 
 html[data-page='dashboard'] .chips {
     display: flex;
@@ -1951,8 +2018,18 @@ html[data-page='dashboard'] .trow.sel {
         height: 190px;
     }
 
+    html[data-page='dashboard'] .sum-top {
+        flex-direction: column;
+        height: auto;
+        gap: 12px;
+    }
+
     html[data-page='dashboard'] .sum-two {
-        flex: 0 1 300px;
+        flex: 0 0 96px;
+    }
+
+    html[data-page='dashboard'] .sum-info {
+        flex: 0 0 70px;
     }
 
     html[data-page='dashboard'] .fclt-cards {

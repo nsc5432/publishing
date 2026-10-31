@@ -59,7 +59,7 @@ export interface FcltCardVariant {
     num: string;
     meta: FcltCardMeta[];
     processRate: GaugeData;
-    clearTime: GaugeData;
+    clearTime: GaugeData & { label: string };
     recommend: FcltCardRecommend;
 }
 
@@ -81,6 +81,13 @@ export interface SummaryStat {
     unit: string;
     deltaLabel: string;
     delta: string;
+}
+
+export interface SummarySlot {
+    label: string;
+    time: string;
+    range: string;
+    stats: SummaryStat[];
 }
 
 export interface SummaryInfoCell {
@@ -230,8 +237,8 @@ export interface TerminalView {
         boardingRate: string;
     };
     peak: { ampm: string; time: string; totalWait: string; maxWait: string; hourlyProcess: string };
-    /** 요약 뷰 상단 2셀 */
-    summaryStats: SummaryStat[];
+    /** 요약 뷰 상단 2셀 × 3개 시간대 */
+    summaryStats: SummarySlot[];
     summaryInfo: SummaryInfoCell[];
     fcltCards: FcltCardData[];
     /** 큰 차트 — 좌표 계산은 그리는 쪽(TerminalChart)이 한다 */

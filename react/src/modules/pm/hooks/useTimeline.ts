@@ -15,6 +15,15 @@ export function formatStep(range: TimelineRange, step: number): string {
     return `${pad2(Math.floor(minutes / 60))}:${pad2(minutes % 60)}`;
 }
 
+export function hhmmToStep(range: TimelineRange, hhmm: string | null): number {
+    if (!/^\d{4}$/.test(hhmm ?? '')) return 0;
+
+    const minutes = Number(hhmm!.slice(0, 2)) * 60 + Number(hhmm!.slice(2));
+    const step = Math.floor((minutes - range.startMin) / TIMELINE_STEP_MIN);
+
+    return Math.min(Math.max(step, 0), range.maxStep);
+}
+
 export function useTimeline(range: TimelineRange, initialStep = 0) {
     const { maxStep } = range;
 

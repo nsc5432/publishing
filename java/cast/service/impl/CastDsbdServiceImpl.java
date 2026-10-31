@@ -38,6 +38,7 @@ import aoms.pm.cast.dto.ChknAlnAssignmentRawDto;
 import aoms.pm.cast.dto.DowAttrDto;
 import aoms.pm.cast.dto.DsbdBaseInfoDto;
 import aoms.pm.cast.dto.DsbdFcltCardDto;
+import aoms.pm.cast.dto.DsbdFltIntrvlDto;
 import aoms.pm.cast.dto.DsbdHeaderDto;
 import aoms.pm.cast.dto.DsbdIntrvlRawDto;
 import aoms.pm.cast.dto.DsbdRsltDto;
@@ -236,14 +237,14 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			// 대표 혼잡등급은 PRIME TIME(대기인원 피크)과 별개로 조회 시각의 시설별 평균 대기시간에서 정한다
 			applyTmnlCgn(result, smltStng.getSmltId(), tmnlId, bgnHhmm);
 
-			String endHhmm = getEndHhmm(bgnHhmm, intrvlMin);
-			FltSmryRawDto baseIntrvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList, bgnHhmm, endHhmm);
-			FltSmryRawDto yesterdayIntrvl = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, bgnHhmm, endHhmm);
+			List<DsbdFltIntrvlDto> intrvlList = retrieveFltIntrvlList(baseDate, fltTmnlIdList, bgnHhmm, intrvlMin);
+			DsbdFltIntrvlDto currentIntrvl = intrvlList.get(0);
 
-			result.setIntrvlFltCnt(baseIntrvl.getDepFltCnt());
-			result.setIntrvlPsgCnt(baseIntrvl.getDepPsgCnt());
-			result.setIntrvlYesterdayFltDiffCnt(baseIntrvl.getDepFltCnt() - yesterdayIntrvl.getDepFltCnt());
-			result.setIntrvlYesterdayPsgDiffCnt(baseIntrvl.getDepPsgCnt() - yesterdayIntrvl.getDepPsgCnt());
+			result.setIntrvlList(intrvlList);
+			result.setIntrvlFltCnt(currentIntrvl.getFltCnt());
+			result.setIntrvlPsgCnt(currentIntrvl.getPsgCnt());
+			result.setIntrvlYesterdayFltDiffCnt(currentIntrvl.getYesterdayFltDiffCnt());
+			result.setIntrvlYesterdayPsgDiffCnt(currentIntrvl.getYesterdayPsgDiffCnt());
 
 			LocalDateTime bgnDt = baseDate.atStartOfDay().plusMinutes(toMinutes(bgnHhmm));
 			LocalDateTime endDt = baseDate.atStartOfDay().plusMinutes(Math.min(toMinutes(bgnHhmm) + intrvlMin, MIN_PER_DAY));
@@ -261,6 +262,34 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				result.setIntrvlAvgWtngSec(intrvl.getAvgWtngSec());
 				result.setIntrvlPrcsPsgCnt(intrvl.getPrcsPsgCnt());
 			}
+		}
+
+		return result;
+	}
+
+	private List<DsbdFltIntrvlDto> retrieveFltIntrvlList(LocalDate baseDate, List<String> fltTmnlIdList,
+			String hhmm, int intrvlMin) {
+		List<DsbdFltIntrvlDto> result = new ArrayList<>();
+		int baseMin = toMinutes(hhmm);
+
+		for (int offset = 0; offset < 3; offset++) {
+			int bgnMin = baseMin + offset * MIN_PER_HOUR;
+			if (bgnMin >= MIN_PER_DAY) {
+				break;
+			}
+
+			String bgnHhmm = toHhmm(bgnMin);
+			String endHhmm = getEndHhmm(bgnHhmm, intrvlMin);
+			FltSmryRawDto base = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate), fltTmnlIdList, bgnHhmm, endHhmm);
+			FltSmryRawDto yesterday = castDsbdMapper.retrieveFltSmry(formatYmd(baseDate.minusDays(1)), fltTmnlIdList, bgnHhmm, endHhmm);
+			DsbdFltIntrvlDto item = new DsbdFltIntrvlDto();
+			item.setBgnHhmm(bgnHhmm);
+			item.setEndHhmm(endHhmm);
+			item.setFltCnt(base.getDepFltCnt());
+			item.setPsgCnt(base.getDepPsgCnt());
+			item.setYesterdayFltDiffCnt(base.getDepFltCnt() - yesterday.getDepFltCnt());
+			item.setYesterdayPsgDiffCnt(base.getDepPsgCnt() - yesterday.getDepPsgCnt());
+			result.add(item);
 		}
 
 		return result;

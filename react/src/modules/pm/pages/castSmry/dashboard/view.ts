@@ -36,6 +36,7 @@ import {
     type QueueFcstView,
     type QueueRecommendView,
     type SimulationType,
+    type SummarySlot,
     type TableRow,
     type TerminalView,
 } from './types';
@@ -108,6 +109,7 @@ export function toCalcDateTime(calcDt?: string): string {
 }
 
 function toFcltCardVariant(card: DsbdFcltCardDto): FcltCardVariant {
+    const noCongestion = card.cgnClearRate === 100;
     const isCheckin = card.fcltType === 'CHKN';
 
     return {
@@ -127,8 +129,9 @@ function toFcltCardVariant(card: DsbdFcltCardDto): FcltCardVariant {
             captionText: 'Pax/Hour',
         },
         clearTime: {
-            value: card.cgnClearRate / 100,
-            centerText: formatHhmm(card.cgnClearTime) || '-',
+            label: noCongestion ? '혼잡요소 없음' : '혼잡해소 예상',
+            value: noCongestion ? 0 : card.cgnClearRate / 100,
+            centerText: noCongestion ? '-' : formatHhmm(card.cgnClearTime) || '-',
             captionText: '이후',
         },
         recommend: {
@@ -208,6 +211,55 @@ export function toPrimeTime(rsltLists: DsbdRsltDto[][], category: DsbdCategory):
     return peakTime;
 }
 
+function toSummarySlots(hhmm: string, smry: TmnlSmryDto): SummarySlot[] {
+    const baseMin = Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(2, 4));
+
+    return [0, 1, 2].map((offset) => {
+        const bgnMin = baseMin + offset * 60;
+        const bgnHhmm = `${pad2(Math.floor(bgnMin / 60))}${pad2(bgnMin % 60)}`;
+        const endMin = Math.min(bgnMin + smry.intrvlMin, MIN_PER_DAY);
+        const slot =
+            smry.intrvlList?.find((item) => item.bgnHhmm === bgnHhmm) ??
+            (offset === 0
+                ? {
+                      bgnHhmm,
+                      endHhmm: `${pad2(Math.floor(endMin / 60))}${pad2(endMin % 60)}`,
+                      fltCnt: smry.intrvlFltCnt,
+                      psgCnt: smry.intrvlPsgCnt,
+                      yesterdayFltDiffCnt: smry.intrvlYesterdayFltDiffCnt,
+                      yesterdayPsgDiffCnt: smry.intrvlYesterdayPsgDiffCnt,
+                  }
+                : undefined);
+        const clock = `${pad2(Math.floor(bgnMin / 60) % 24)}:${pad2(bgnMin % 60)}`;
+
+        return {
+            label: offset === 0 ? '현재' : `+${offset}시간`,
+            time: bgnMin >= MIN_PER_DAY ? `다음 날 ${clock}` : clock,
+            range: slot
+                ? `${formatHhmm(slot.bgnHhmm)}~${formatHhmm(slot.endHhmm)}`
+                : '조회일 범위 밖',
+            stats: [
+                {
+                    icon: 'plane',
+                    iconClass: 'i-blue i-32',
+                    value: slot ? formatCount(slot.fltCnt) : '-',
+                    unit: '편',
+                    deltaLabel: '전일 대비',
+                    delta: slot ? formatDiff(slot.yesterdayFltDiffCnt) : '-',
+                },
+                {
+                    icon: 'people',
+                    iconClass: 'i-teal i-32',
+                    value: slot ? formatCount(slot.psgCnt) : '-',
+                    unit: '명',
+                    deltaLabel: '전일 대비',
+                    delta: slot ? formatDiff(slot.yesterdayPsgDiffCnt) : '-',
+                },
+            ],
+        };
+    });
+}
+
 export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCards }: TerminalViewInput): TerminalView {
     // 시간대별 결과는 정시(HH00) 단위라 조회 시각과 같은 '시'를 찾는다.
     const currentIndex = rsltList.findIndex((rslt) => rslt.time.slice(0, 2) === hhmm.slice(0, 2));
@@ -229,24 +281,7 @@ export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCard
             maxWait: String(smry.peak.maxWtngHr),
             hourlyProcess: formatCount(smry.peak.hrlyPrcsPsgCnt),
         },
-        summaryStats: [
-            {
-                icon: 'plane',
-                iconClass: 'i-blue i-32',
-                value: formatCount(smry.intrvlFltCnt),
-                unit: '편',
-                deltaLabel: '전일 대비',
-                delta: formatDiff(smry.intrvlYesterdayFltDiffCnt),
-            },
-            {
-                icon: 'people',
-                iconClass: 'i-teal i-32',
-                value: formatCount(smry.intrvlPsgCnt),
-                unit: '명',
-                deltaLabel: '전일 대비',
-                delta: formatDiff(smry.intrvlYesterdayPsgDiffCnt),
-            },
-        ],
+        summaryStats: toSummarySlots(hhmm, smry),
         summaryInfo: [
             {
                 label: '최대\n대기인원',

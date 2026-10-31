@@ -1,5 +1,6 @@
 import './departureHall.css';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Terminal1Icon, Terminal2Plan } from '@/components/icons';
 import { Lnb } from '@/components/lnb';
 import { useBaseInfo } from '@/hooks/useBaseInfo';
@@ -7,7 +8,7 @@ import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
 import { dialog } from '@/lib/dialog';
 import { todayYmd } from '@/lib/format';
-import { useTimeline } from '@/modules/pm/hooks/useTimeline';
+import { hhmmToStep, useTimeline } from '@/modules/pm/hooks/useTimeline';
 import { CongestionNotice } from './components/CongestionNotice';
 import { DepChartView } from './components/DepChartView';
 import { DepMapView } from './components/DepMapView';
@@ -23,14 +24,17 @@ import type { DepGateMarker, TerminalKind, ViewMode } from './types';
 function DepartureHall() {
     usePageScope('departureHall');
 
-    const [ymd, setYmd] = useState(todayYmd);
+    const [searchParams] = useSearchParams();
+    const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
     const [draftYmd, setDraftYmd] = useState(ymd);
     const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd);
 
-    const [terminal, setTerminal] = useState<TerminalKind>('T1');
+    const [terminal, setTerminal] = useState<TerminalKind>(() =>
+        searchParams.get('tmnlId') === 'T2' ? 'T2' : 'T1',
+    );
     const [view, setView] = useState<ViewMode>('map');
     const [activeDepGate, setActiveDepGate] = useState<DepGateMarker | null>(null);
-    const timeline = useTimeline(TIMELINE_RANGE);
+    const timeline = useTimeline(TIMELINE_RANGE, hhmmToStep(TIMELINE_RANGE, searchParams.get('hhmm')));
 
     const [query, setQuery] = useState<DepHallQuery | null>(null);
 

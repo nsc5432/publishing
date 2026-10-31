@@ -18,6 +18,7 @@ interface TerminalSummaryProps {
     category: DsbdCategory;
     titleCategory: DsbdCategory | null;
     onFcltDetail: (fcltType: FcltCardType, unitCd: string) => void;
+    onFcltMove: (fcltType: FcltCardType) => void;
 }
 
 interface TerminalImages {
@@ -52,7 +53,7 @@ const CONGESTION_THEMES: Record<CongestionStatus, CongestionTheme> = {
 /** 조회 시각에 등급을 산정할 수 있는 시설이 없을 때 — 여유/보통 색으로 대신하지 않는다 */
 const UNKNOWN_THEME: CongestionTheme = { panelClass: 'panel-gray', gauge: '#8a93a3' };
 
-export function TerminalSummary({ terminal, data, category, titleCategory, onFcltDetail }: TerminalSummaryProps) {
+export function TerminalSummary({ terminal, data, category, titleCategory, onFcltDetail, onFcltMove }: TerminalSummaryProps) {
     const view = data ?? EMPTY_TERMINAL_VIEW;
     const images = TERMINAL_IMAGES[terminal];
     const theme = view.cgnStatus === null ? UNKNOWN_THEME : CONGESTION_THEMES[view.cgnStatus];
@@ -178,16 +179,25 @@ export function TerminalSummary({ terminal, data, category, titleCategory, onFcl
             <div className="view" hidden={viewKind !== 'summary'}>
                 <div className="sum-top">
                     <div className="sum-two">
-                        {view.summaryStats.map((stat) => (
-                            <div className="sum-cell" key={stat.unit}>
-                                <Icon name={stat.icon} className={stat.iconClass} />
-                                <div className="val">
-                                    <span className="big">{stat.value}</span>
-                                    <span className="u">{stat.unit}</span>
+                        <div className="p-note">* 전일 대비</div>
+                        {view.summaryStats.map((slot) => (
+                            <div className="sum-cell" key={slot.label} title={slot.range}>
+                                <div className="sum-time">
+                                    <span>{slot.label}</span>
+                                    <time>{slot.time}</time>
                                 </div>
-                                <div className="sub">
-                                    {stat.deltaLabel} <span className="danger">{stat.delta}</span>
-                                </div>
+                                {slot.stats.map((stat) => (
+                                    <div className="sum-metric" key={stat.unit}>
+                                        <Icon name={stat.icon} className={stat.iconClass} />
+                                        <div className="val">
+                                            <span className="big">{stat.value}</span>
+                                            <span className="u">{stat.unit}</span>
+                                        </div>
+                                        <span className="sub" aria-label={`${stat.deltaLabel} ${stat.delta}`}>
+                                            <span className="danger">({stat.delta})</span>
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
                         ))}
                     </div>
@@ -218,7 +228,7 @@ export function TerminalSummary({ terminal, data, category, titleCategory, onFcl
 
                 <div className="fclt-cards">
                     {view.fcltCards.map((fcltCard) => (
-                        <FcltCard key={fcltCard.fcltType} data={fcltCard} gauge={theme.gauge} onDetail={(unitCd) => onFcltDetail(fcltCard.fcltType, unitCd)} />
+                        <FcltCard key={fcltCard.fcltType} data={fcltCard} gauge={theme.gauge} onDetail={(unitCd) => onFcltDetail(fcltCard.fcltType, unitCd)} onMove={() => onFcltMove(fcltCard.fcltType)} />
                     ))}
                 </div>
             </div>

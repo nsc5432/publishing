@@ -95,6 +95,15 @@ export interface PeakDto {
     hrlyPrcsPsgCnt: number;
 }
 
+export interface DsbdFltIntrvlDto {
+    bgnHhmm: string;
+    endHhmm: string;
+    fltCnt: number;
+    psgCnt: number;
+    yesterdayFltDiffCnt: number;
+    yesterdayPsgDiffCnt: number;
+}
+
 export interface TmnlSmryDto extends JsonResponse {
     tmnlId: TmnlId;
     fltCnt: number;
@@ -113,6 +122,7 @@ export interface TmnlSmryDto extends JsonResponse {
     intrvlPsgCnt: number;
     intrvlYesterdayFltDiffCnt: number;
     intrvlYesterdayPsgDiffCnt: number;
+    intrvlList: DsbdFltIntrvlDto[];
     intrvlMaxWtngPsgCnt: number | null;
     intrvlAvgWtngSec: number | null;
     intrvlPrcsPsgCnt: number | null;
