@@ -301,36 +301,19 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 	// 랜드사이드는 여객 한 명이 체크인과 출국장을 모두 지나므로 유입은 진입(아일랜드), 처리는 진출(출국장)로 센다
 	private void applySmryInfo(TmnlSmryDto result, DsbdCategory category, FcltWtngIntrvl chkn, FcltWtngIntrvl dep) {
-		if (category == DsbdCategory.CHKN || category == DsbdCategory.DEP) {
-			FcltWtngIntrvl intrvl = category == DsbdCategory.CHKN ? chkn : dep;
-
-			result.setSmryWtngPsgCnt(intrvl.getWtngPsgCnt());
-			result.setSmryAvgWtngSec(intrvl.getAvgWtngSec());
-			result.setSmryArvlPsgCnt(intrvl.getArvlPsgCnt());
-			result.setSmryPrcsPsgCnt(intrvl.getPrcsPsgCnt());
-			return;
+		FcltWtngIntrvl intrvl;
+		if (category == DsbdCategory.CHKN) {
+			intrvl = chkn;
+		} else if (category == DsbdCategory.DEP) {
+			intrvl = dep;
+		} else {
+			intrvl = FcltWtngIntrvl.landsideOf(chkn, dep);
 		}
 
-		result.setSmryWtngPsgCnt(sumOrNull(chkn.getWtngPsgCnt(), dep.getWtngPsgCnt()));
-		result.setSmryAvgWtngSec(sumOrNull(chkn.getAvgWtngSec(), dep.getAvgWtngSec()));
-		result.setSmryArvlPsgCnt(chkn.getArvlPsgCnt());
-		result.setSmryPrcsPsgCnt(dep.getPrcsPsgCnt());
-	}
-
-	private static Integer sumOrNull(Integer first, Integer second) {
-		if (first == null || second == null) {
-			return first == null ? second : first;
-		}
-
-		return first + second;
-	}
-
-	private static Double sumOrNull(Double first, Double second) {
-		if (first == null || second == null) {
-			return first == null ? second : first;
-		}
-
-		return first + second;
+		result.setSmryWtngPsgCnt(intrvl.getWtngPsgCnt());
+		result.setSmryAvgWtngSec(intrvl.getAvgWtngSec());
+		result.setSmryArvlPsgCnt(intrvl.getArvlPsgCnt());
+		result.setSmryPrcsPsgCnt(intrvl.getPrcsPsgCnt());
 	}
 
 	// 체크인 / 출국장 기준표가 달라 대기시간이 아니라 등급으로 비교한다

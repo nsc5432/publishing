@@ -17,10 +17,9 @@ interface SmltGnbProps {
     onRun?: () => void;
     busy?: boolean;
     saveDt?: string;
-    onHistory?: () => void;
 }
 
-export function SmltGnb({ title, ymd, steps, onBack, onDateChange, onSearch, onRun, busy, saveDt, onHistory }: SmltGnbProps) {
+export function SmltGnb({ title, ymd, steps, onBack, onDateChange, onSearch, onRun, busy, saveDt }: SmltGnbProps) {
     const dateRef = useRef<HTMLInputElement>(null);
 
     const handleOpenCalendar = () => {
@@ -82,15 +81,10 @@ export function SmltGnb({ title, ymd, steps, onBack, onDateChange, onSearch, onR
                 </div>
 
                 {onRun && (
-                    <>
-                        <button type="button" className="btn btn--run" onClick={onRun} disabled={busy}>
-                            <PlayIcon aria-hidden="true" />
-                            <span>시뮬레이션 실행</span>
-                        </button>
-                        <button type="button" className="gnb__link" onClick={onHistory}>
-                            시뮬레이션 이력
-                        </button>
-                    </>
+                    <button type="button" className="btn btn--run" onClick={onRun} disabled={busy}>
+                        <PlayIcon aria-hidden="true" />
+                        <span>시뮬레이션 실행</span>
+                    </button>
                 )}
             </div>
         </header>

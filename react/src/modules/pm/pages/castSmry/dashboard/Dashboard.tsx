@@ -34,6 +34,8 @@ interface ActivePrime {
 
 const USER_SMLT_CONFIG_PATH = '/rui/pm/user-smlt/config';
 
+const TERMINAL_MAP_PATH = '/rui/pm/daily-smlt/terminalMap';
+
 const FCLT_DETAIL_PATH: Record<FcltCardType, string> = {
     CHKN: '/rui/pm/daily-smlt/checkinCounter',
     DEP: '/rui/pm/daily-smlt/departureHall',
@@ -220,6 +222,8 @@ function Dashboard() {
         navigate(`${FCLT_DETAIL_PATH[fcltType]}?${detailParams.toString()}`);
     };
 
+    const handleMapMove = () => navigate(TERMINAL_MAP_PATH);
+
     const executor = execDetail ? { dept: execDetail.deptNm, name: execDetail.userNm } : undefined;
 
     return (
@@ -244,8 +248,8 @@ function Dashboard() {
                     onCategoryChange={handleCategoryChange}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary terminal="T1" data={terminal1View} hhmm={terminalQueries?.T1.hhmm ?? ''} category={category} titleCategory={primeCategoryOf('T1')} onTimeChange={handleTerminalTimeChange('T1')} onFcltDetail={handleFcltDetail('T1')} onFcltMove={handleFcltMove('T1')} />
-                        <TerminalSummary terminal="T2" data={terminal2View} hhmm={terminalQueries?.T2.hhmm ?? ''} category={category} titleCategory={primeCategoryOf('T2')} onTimeChange={handleTerminalTimeChange('T2')} onFcltDetail={handleFcltDetail('T2')} onFcltMove={handleFcltMove('T2')} />
+                        <TerminalSummary terminal="T1" data={terminal1View} hhmm={terminalQueries?.T1.hhmm ?? ''} category={category} titleCategory={primeCategoryOf('T1')} onTimeChange={handleTerminalTimeChange('T1')} onFcltDetail={handleFcltDetail('T1')} onFcltMove={handleFcltMove('T1')} onMapMove={handleMapMove} />
+                        <TerminalSummary terminal="T2" data={terminal2View} hhmm={terminalQueries?.T2.hhmm ?? ''} category={category} titleCategory={primeCategoryOf('T2')} onTimeChange={handleTerminalTimeChange('T2')} onFcltDetail={handleFcltDetail('T2')} onFcltMove={handleFcltMove('T2')} onMapMove={handleMapMove} />
                     </section>
                 </HeaderSummary>
             </div>

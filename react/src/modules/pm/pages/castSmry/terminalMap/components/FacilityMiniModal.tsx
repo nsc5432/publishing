@@ -52,6 +52,16 @@ export function FacilityMiniModal({ detail, onClose, onDetailClick }: FacilityMi
                                     {stat.value}
                                     <em>{stat.unit}</em>
                                 </strong>
+                                <p className="stat__cmpr">
+                                    <span className="stat__cmpr-base">
+                                        {stat.cmpr.label} <b>{stat.cmpr.value}</b>
+                                    </span>
+                                    {stat.cmpr.diff && (
+                                        <span className={`stat__cmpr-diff${stat.cmpr.trend ? ` stat__cmpr-diff--${stat.cmpr.trend}` : ''}`}>
+                                            {stat.cmpr.diff}
+                                        </span>
+                                    )}
+                                </p>
                             </li>
                         ))}
                     </ul>

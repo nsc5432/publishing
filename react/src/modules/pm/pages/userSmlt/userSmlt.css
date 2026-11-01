@@ -117,16 +117,6 @@ html[data-page='userSmlt'] .gnb__right {
     }
 }
 
-html[data-page='userSmlt'] .gnb__link {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--pm-primary);
-}
-
-html[data-page='userSmlt'] .gnb__link:hover {
-    text-decoration: underline;
-}
-
 html[data-page='userSmlt'] .date-picker {
     display: flex;
     align-items: center;

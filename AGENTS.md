@@ -98,6 +98,11 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
      이전 요약정보 필드 `TmnlSmryDto.cgnWtngSec` · `intrvlMaxWtngPsgCnt` · `intrvlAvgWtngSec` · `intrvlPrcsPsgCnt` 와
      그 원천 `CastDsbdMapper.retrieveRsltByIntrvl` · `DsbdIntrvlRawDto` 는 같은 날 삭제했다 (`docs/dashboard-summary.md`).
      카드 · 맵 · 알림의 `cgnWtngSec` 는 그대로다. **새 이름도 이제 고정이다.**
+   - 2026-11-01 맵형태보기 팝업 비교 기준으로 `SmltMapSlotDto.chknCmpr` · `dptgtCmpr`(`MapCgnCmprDto`: `unitCnt` ·
+     `totWtngPsgCnt` · `avgPrcsPsgCnt` · `avgWtngHr` · `avgPrcsHr`)를 더했다. `FcltWtngDay.cmprOf` 가 슬롯 `[hhmm, hhmm+30)` 에서
+     대기인원은 전 시설 합, 나머지는 운영 부스 0 이고 처리 0 인 시설을 뺀 평균(시간은 처리인원 가중)으로 낸다.
+     같은 날 출국장 팝업 지표 4종의 원천을 `retrieveMapRsltDayList`(30분 MAX · 단순 AVG)에서 `FcltWtngDay`(DEP = LGT) `slotOf` 로
+     바꿨다 — 아일랜드와 같은 정의다. 맵 혼잡 알림의 출국장 대기인원은 여전히 `retrieveMapRsltDayList` 를 읽는다. **새 이름도 이제 고정이다.**
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).

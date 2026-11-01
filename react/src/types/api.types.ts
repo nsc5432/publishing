@@ -330,6 +330,15 @@ export interface MapCgnStatDto {
     prcsHr: number;
 }
 
+/** 지표 4종의 터미널 비교 기준. 평균은 운영 부스 0 이고 처리 0 인 시설을 빼고, 넣을 시설이 없으면 null */
+export interface MapCgnCmprDto {
+    unitCnt: number;
+    totWtngPsgCnt: number;
+    avgPrcsPsgCnt: number | null;
+    avgWtngHr: number | null;
+    avgPrcsHr: number | null;
+}
+
 export interface MapUnitRsltDto {
     unitCd: string;
     /** 평가시각(hhmm) 직전 30분 처리 여객 평균 대기시간 기준. 산정 불가면 null */
@@ -348,11 +357,19 @@ export interface MapChknRsltDto extends MapUnitRsltDto {
     cgnClearMin: number | null;
 }
 
+export type MapLandsideSmryDto = Pick<
+    TmnlSmryDto,
+    'smryWtngPsgCnt' | 'smryAvgWtngSec' | 'smryArvlPsgCnt' | 'smryPrcsPsgCnt'
+>;
+
 export interface SmltMapSlotDto {
     hhmm: string;
     notice: MapNoticeDto;
+    landsideSmry: MapLandsideSmryDto;
     chknRsltList: MapChknRsltDto[];
     dptgtRsltList: MapUnitRsltDto[];
+    chknCmpr: MapCgnCmprDto;
+    dptgtCmpr: MapCgnCmprDto;
 }
 
 export interface MapSalesDto {

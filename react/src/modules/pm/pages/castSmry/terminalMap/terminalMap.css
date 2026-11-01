@@ -252,7 +252,7 @@ html[data-page='terminalMap'] .notice {
     display: flex;
     align-items: center;
     flex: none;
-    gap: 46px;
+    gap: 24px;
     min-height: 84px;
     padding: 12px 34px;
     border: 1px solid rgba(255, 255, 255, 0.8);
@@ -313,6 +313,55 @@ html[data-page='terminalMap'] .notice__list em {
 /* 조치 대상 시설이 없는 단계(주로 여유/보통)에서 목록 대신 노출되는 안내 문구 */
 html[data-page='terminalMap'] .notice__message {
     font-size: 14px;
+    color: #4a515e;
+}
+
+html[data-page='terminalMap'] .notice__summary {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 24px;
+    padding-right: 24px;
+    border-right: 1px solid #d7dce4;
+}
+
+html[data-page='terminalMap'] .notice__summary-title {
+    flex: none;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+html[data-page='terminalMap'] .notice__metrics {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(100px, 1fr));
+    gap: 24px;
+    margin: 0;
+}
+
+html[data-page='terminalMap'] .notice__metric dt {
+    font-size: 13px;
+    color: #4a515e;
+    white-space: nowrap;
+}
+
+html[data-page='terminalMap'] .notice__metric dd {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin: 4px 0 0;
+    white-space: nowrap;
+}
+
+html[data-page='terminalMap'] .notice__metric b {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+}
+
+html[data-page='terminalMap'] .notice__metric dd span {
+    font-size: 13px;
     color: #4a515e;
 }
 
@@ -971,6 +1020,41 @@ html[data-page='terminalMap'] .stat__value em {
     color: var(--c-text-sub);
 }
 
+/* 터미널 비교 기준 (전체 합 / 평균 대비) */
+html[data-page='terminalMap'] .stat__cmpr {
+    display: flex;
+    grid-column: 1 / -1;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin: 8px 0 0;
+    padding-top: 8px;
+    border-top: 1px dashed #d8dce5;
+    font-size: 11px;
+    line-height: 1.3;
+    text-align: center;
+    color: var(--c-text-sub);
+}
+
+html[data-page='terminalMap'] .stat__cmpr-base b {
+    font-weight: 700;
+    color: var(--c-text);
+    white-space: nowrap;
+}
+
+html[data-page='terminalMap'] .stat__cmpr-diff {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+html[data-page='terminalMap'] .stat__cmpr-diff--up {
+    color: var(--c-red);
+}
+
+html[data-page='terminalMap'] .stat__cmpr-diff--down {
+    color: #2f6ff0;
+}
+
 /* 매출 테이블 ----------------------------------------------------------- */
 html[data-page='terminalMap'] .tbl-sales {
     margin-top: 12px;
@@ -1217,6 +1301,28 @@ html[data-page='terminalMap'] .ico-done-time {
 /* ==========================================================================
    8. 해상도 대응
    ========================================================================== */
+@media screen and (max-width: 1500px) {
+    html[data-page='terminalMap'] .notice {
+        flex-wrap: wrap;
+        gap: 12px 24px;
+    }
+
+    html[data-page='terminalMap'] .notice__summary {
+        flex: 1;
+        padding-right: 0;
+        border-right: 0;
+    }
+
+    html[data-page='terminalMap'] .notice__metrics {
+        flex: 1;
+    }
+
+    html[data-page='terminalMap'] .notice__list,
+    html[data-page='terminalMap'] .notice__message {
+        flex-basis: 100%;
+    }
+}
+
 @media screen and (max-height: 900px) {
     /* 헤더 높이는 공용 토큰(--pm-header-h)이 함께 줄어든다. common.css 참고 */
     html[data-page='terminalMap'] .notice {

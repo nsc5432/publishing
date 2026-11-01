@@ -108,13 +108,7 @@ public final class FcltWtngDay {
 			throw new IllegalArgumentException("구간 길이는 " + SEC_MIN + "분 배수여야 합니다: " + minutes);
 		}
 
-		TreeMap<LocalDateTime, FcltWtngSec> secMap = secMapByUnit.get(unitCd);
-
-		if (secMap == null) {
-			return FcltWtngSlot.EMPTY;
-		}
-
-		List<FcltWtngSec> secList = new ArrayList<>(secMap.subMap(bgnDt, true, bgnDt.plusMinutes(minutes), false).values());
+		List<FcltWtngSec> secList = secListOf(unitCd, bgnDt, minutes);
 
 		if (secList.isEmpty()) {
 			return FcltWtngSlot.EMPTY;
@@ -151,6 +145,41 @@ public final class FcltWtngDay {
 				prcsVldSum == 0 ? 0 : Math.toIntExact(Math.round(prcsSecSum / prcsVldSum)),
 				capacitySum <= 0 ? 0 : (int) Math.min(100, prcsSum * 100 / capacitySum),
 				valueOf(last.getEndOperCntom()));
+	}
+
+	/** [bgnDt, bgnDt+minutes) 의 시설 비교 기준. 평균은 slotOf 와 같은 가중 방식으로 10분 행에서 다시 합산한다 */
+	public FcltWtngCmpr cmprOf(List<String> unitCdList, LocalDateTime bgnDt, int minutes) {
+		int unitCnt = 0;
+		long totWtngPsgCnt = 0;
+		long prcsSum = 0;
+		double wtngSecSum = 0;
+		double prcsSecSum = 0;
+		long prcsVldSum = 0;
+
+		for (String unitCd : unitCdList) {
+			FcltWtngSlot slot = slotOf(unitCd, bgnDt, minutes);
+			totWtngPsgCnt += slot.getCurrentQueue();
+
+			if (slot.getOprBoothCnt() == 0 && slot.getPrcsPsgCnt() == 0) {
+				continue;
+			}
+
+			unitCnt++;
+
+			for (FcltWtngSec sec : secListOf(unitCd, bgnDt, minutes)) {
+				prcsSum += sec.getPrcsPsgCnt();
+				wtngSecSum += sec.getWtngPsecSum();
+				prcsSecSum += sec.getPrcsPsecSum();
+				prcsVldSum += sec.getPrcsVldPsgCnt();
+			}
+		}
+
+		return new FcltWtngCmpr(
+				unitCnt,
+				Math.toIntExact(totWtngPsgCnt),
+				unitCnt == 0 ? null : (double) prcsSum / unitCnt,
+				prcsSum == 0 ? null : wtngSecSum / prcsSum,
+				prcsVldSum == 0 ? null : prcsSecSum / prcsVldSum);
 	}
 
 	/** 전 시설의 [bgnDt, endDt) 집계. 대기인원은 bgnDt 시점 값, 유입 · 처리 · 대기시간은 구간 10분 행의 합이다 */
@@ -460,6 +489,16 @@ public final class FcltWtngDay {
 		Integer bgng = bgngQueueOf(secMap, sec);
 		Integer end = sec.getEndWtngPsgCnt();
 		return bgng == null || end == null ? null : Math.max(0, end - bgng + sec.getPrcsPsgCnt());
+	}
+
+	private List<FcltWtngSec> secListOf(String unitCd, LocalDateTime bgnDt, int minutes) {
+		TreeMap<LocalDateTime, FcltWtngSec> secMap = secMapByUnit.get(unitCd);
+
+		if (secMap == null) {
+			return List.of();
+		}
+
+		return new ArrayList<>(secMap.subMap(bgnDt, true, bgnDt.plusMinutes(minutes), false).values());
 	}
 
 	private FcltWtngSec[] windowOf(String unitCd, LocalDateTime evalDt) {

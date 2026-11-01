@@ -27,4 +27,28 @@ public final class FcltWtngIntrvl {
 	private final Integer prcsPsgCnt;
 	/** 구간 처리 여객의 처리인원 가중평균 대기시간 (초) */
 	private final Double avgWtngSec;
+
+	public static FcltWtngIntrvl landsideOf(FcltWtngIntrvl chkn, FcltWtngIntrvl dep) {
+		return new FcltWtngIntrvl(
+				sumOrNull(chkn.getWtngPsgCnt(), dep.getWtngPsgCnt()),
+				chkn.getArvlPsgCnt(),
+				dep.getPrcsPsgCnt(),
+				sumOrNull(chkn.getAvgWtngSec(), dep.getAvgWtngSec()));
+	}
+
+	private static Integer sumOrNull(Integer first, Integer second) {
+		if (first == null || second == null) {
+			return first == null ? second : first;
+		}
+
+		return first + second;
+	}
+
+	private static Double sumOrNull(Double first, Double second) {
+		if (first == null || second == null) {
+			return first == null ? second : first;
+		}
+
+		return first + second;
+	}
 }

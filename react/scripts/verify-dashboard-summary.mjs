@@ -20,6 +20,8 @@ function check(actual, expected, message) {
 try {
     const { dashboardMock: api } = await server.ssrLoadModule('/src/api/pm/mock/dashboard.mock.ts');
     const { toTerminalView, toPrimeTime } = await server.ssrLoadModule('/src/modules/pm/pages/castSmry/dashboard/view.ts');
+    const { mapMock } = await server.ssrLoadModule('/src/api/pm/mock/map.mock.ts');
+    const { toMapDay, EMPTY_MAP_SLOT } = await server.ssrLoadModule('/src/modules/pm/pages/castSmry/terminalMap/view.ts');
     const smryAt = (time, terminal = 'T1', category = 'PSG') => api.getTmnlSmry(terminal, time, 60, category);
     const viewAt = (time, smry = smryAt(time), category = 'PSG') => toTerminalView({
         ymd: '20260710', hhmm: time, category, smry,
@@ -34,6 +36,33 @@ try {
         smry.smryArvlPsgCnt === null ? '-' : smry.smryArvlPsgCnt.toLocaleString(),
         smry.smryPrcsPsgCnt === null ? '-' : smry.smryPrcsPsgCnt.toLocaleString(),
     ];
+
+    for (const terminal of ['T1', 'T2']) {
+        const dto = mapMock.getSmltMap(terminal);
+        const day = toMapDay(dto);
+        for (const slot of dto.slotList) {
+            const smry = smryAt(slot.hhmm, terminal);
+            check(smryInfo(slot.landsideSmry), smryInfo(smry),
+                `${terminal} ${slot.hhmm} map summary agrees with the dashboard's 60-minute landside result`);
+            check(day.slots[slot.hhmm].summaryInfo, viewAt(slot.hhmm, smry).summaryInfo,
+                `${terminal} ${slot.hhmm} map and dashboard format the same summary`);
+        }
+        const last = dto.slotList.find((slot) => slot.hhmm === '2400').landsideSmry;
+        check([last.smryAvgWtngSec, last.smryArvlPsgCnt, last.smryPrcsPsgCnt], [null, null, null],
+            `${terminal} 24:00 has no forward interval`);
+        const unknown = toMapDay({ ...dto, slotList: [{ ...dto.slotList[0], landsideSmry: {
+            smryWtngPsgCnt: null, smryAvgWtngSec: null, smryArvlPsgCnt: null, smryPrcsPsgCnt: null,
+        } }] });
+        check(unknown.slots['0000'].summaryInfo.map((cell) => cell.value), ['-', '-', '-', '-'],
+            `${terminal} unknown map metrics stay unknown`);
+        const zero = toMapDay({ ...dto, slotList: [{ ...dto.slotList[0], landsideSmry: {
+            smryWtngPsgCnt: 0, smryAvgWtngSec: 0, smryArvlPsgCnt: 0, smryPrcsPsgCnt: 0,
+        } }] });
+        check(zero.slots['0000'].summaryInfo.map((cell) => cell.value), ['0', '0', '0', '0'],
+            `${terminal} observed zero map metrics stay zero`);
+    }
+    check(EMPTY_MAP_SLOT.summaryInfo.map((cell) => cell.value), ['-', '-', '-', '-'],
+        'map loading state has four unknown metrics');
 
     check(JSON.stringify(smryInfo(smryAt('0800'))) !== JSON.stringify(smryInfo(smryAt('0900'))), true,
         '09:00 updates the summary from 08:00');

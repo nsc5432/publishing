@@ -1,5 +1,6 @@
 import './terminalMap.css';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Lnb } from '@/components/lnb';
 import { useBaseInfo } from '@/hooks/useBaseInfo';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
@@ -19,8 +20,13 @@ import { EMPTY_MAP_SLOT, EMPTY_SUMMARY } from './view';
 import { TIMELINE_RANGE } from './timeline';
 import type { DepGateMarker, IslandMarker, TerminalKind } from './types';
 
+const CHKN_DETAIL_PATH = '/rui/pm/daily-smlt/checkinCounter';
+
+const DEP_DETAIL_PATH = '/rui/pm/daily-smlt/departureHall';
+
 function TerminalMap() {
     usePageScope('terminalMap');
+    const navigate = useNavigate();
 
     const [ymd, setYmd] = useState(todayYmd);
     const [draftYmd, setDraftYmd] = useState(ymd);
@@ -63,6 +69,11 @@ function TerminalMap() {
         setSelectedDepGate(null);
     };
 
+    const handleDetailMove = (path: string) => () => {
+        const detailParams = new URLSearchParams({ ymd, tmnlId: terminal, hhmm: timeline.hhmm });
+        navigate(`${path}?${detailParams.toString()}`);
+    };
+
     const handleSearch = () => {
         if (draftYmd.length !== 8) {
             dialog.alert({ title: '조회 조건 확인', description: '기준일자를 선택하세요.' }).catch(() => {});
@@ -96,7 +107,11 @@ function TerminalMap() {
                 <Lnb />
 
                 <main className="container">
-                    <CongestionNotice level={slot.notice.level} items={slot.notice.items} />
+                    <CongestionNotice
+                        level={slot.notice.level}
+                        items={slot.notice.items}
+                        summaryInfo={slot.summaryInfo}
+                    />
 
                     <section className="map-area">
                         <p className="map-area__guide">해당구역을 클릭하세요</p>
@@ -116,9 +131,21 @@ function TerminalMap() {
                 </main>
             </div>
 
-            {islandDetail && <IslandModal detail={islandDetail} onClose={() => setSelectedIsland(null)} />}
+            {islandDetail && (
+                <IslandModal
+                    detail={islandDetail}
+                    onClose={() => setSelectedIsland(null)}
+                    onDetailClick={handleDetailMove(CHKN_DETAIL_PATH)}
+                />
+            )}
 
-            {dptgtGateDetail && <FacilityMiniModal detail={dptgtGateDetail} onClose={() => setSelectedDepGate(null)} />}
+            {dptgtGateDetail && (
+                <FacilityMiniModal
+                    detail={dptgtGateDetail}
+                    onClose={() => setSelectedDepGate(null)}
+                    onDetailClick={handleDetailMove(DEP_DETAIL_PATH)}
+                />
+            )}
         </div>
     );
 }

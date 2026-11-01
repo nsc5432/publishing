@@ -3,6 +3,8 @@ import t1White from '@/assets/svg/t1-white.svg';
 import t2White from '@/assets/svg/t2-white.svg';
 import t1Blue from '@/assets/svg/t1-blue.svg';
 import t2Teal from '@/assets/svg/t2-teal-full.svg';
+import mapIcon from '@/assets/svg/map-icon.svg';
+import mapWhiteIcon from '@/assets/svg/map-white-icon.svg';
 import { Icon } from '@/components/icons/InlineIcon';
 import { stepHhmm } from '@/lib/format';
 import { FcltCard } from './FcltCard';
@@ -22,6 +24,7 @@ interface TerminalSummaryProps {
     onTimeChange: (hhmm: string) => void;
     onFcltDetail: (fcltType: FcltCardType, unitCd: string) => void;
     onFcltMove: (fcltType: FcltCardType) => void;
+    onMapMove: () => void;
 }
 
 interface TerminalImages {
@@ -70,7 +73,7 @@ const CONGESTION_THEMES: Record<CongestionStatus, CongestionTheme> = {
 /** 조회 시각에 등급을 산정할 수 있는 시설이 없을 때 — 여유/보통 색으로 대신하지 않는다 */
 const UNKNOWN_THEME: CongestionTheme = { panelClass: 'panel-gray', gauge: '#8a93a3' };
 
-export function TerminalSummary({ terminal, data, hhmm, category, titleCategory, onTimeChange, onFcltDetail, onFcltMove }: TerminalSummaryProps) {
+export function TerminalSummary({ terminal, data, hhmm, category, titleCategory, onTimeChange, onFcltDetail, onFcltMove, onMapMove }: TerminalSummaryProps) {
     const view = data ?? EMPTY_TERMINAL_VIEW;
     const images = TERMINAL_IMAGES[terminal];
     const theme = view.cgnStatus === null ? UNKNOWN_THEME : CONGESTION_THEMES[view.cgnStatus];
@@ -93,9 +96,13 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
     return (
         <section className={`panel ${theme.panelClass}`}>
             <div className="p-top">
-                <div className="p-iconbox">
+                <button type="button" className="p-iconbox" aria-label={`${terminal} 맵형태보기로 이동`} onClick={onMapMove}>
                     <img className="tbig" alt="terminal" src={images.big} />
-                </div>
+                    <span className="p-map" aria-hidden="true">
+                        <img className="p-map-ic" alt="" src={mapWhiteIcon} />
+                        <img className="p-map-ic p-map-ic--on" alt="" src={mapIcon} />
+                    </span>
+                </button>
                 <div className="p-mid">
                     <div className="p-stats">
                         <div className="p-note">* 지난주 同요일 대비</div>

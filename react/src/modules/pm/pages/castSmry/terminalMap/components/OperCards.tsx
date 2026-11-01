@@ -13,7 +13,7 @@ const RING_W = 7;
 const RADIUS = `${((RING_R / (VIEWBOX / 2)) * 100).toFixed(1)}%`;
 const TOP_ANGLE = -270;
 const TRACK_COLOR = '#e5e9f0';
-const VALUE_COLOR = '#2f7ff0';
+const VALUE_COLOR = '#38845b';
 
 export function OperCards({ cards }: OperCardsProps) {
     const gridStyle = { '--oper-cols': cards.length } as CSSProperties;

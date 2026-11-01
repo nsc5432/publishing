@@ -697,6 +697,59 @@ html[data-page='dashboard'] .p-iconbox .tbig {
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.18));
 }
 
+html[data-page='dashboard'] button.p-iconbox {
+    border: 0;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+html[data-page='dashboard'] button.p-iconbox:focus-visible {
+    outline: 2px solid var(--title);
+    outline-offset: 2px;
+}
+
+html[data-page='dashboard'] .p-iconbox .p-map {
+    position: absolute;
+    left: 50%;
+    bottom: 14px;
+    z-index: 1;
+    width: 30px;
+    height: 30px;
+    margin-left: -15px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s ease;
+}
+
+html[data-page='dashboard'] .p-iconbox .p-map-ic {
+    width: 18px;
+    height: 18px;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18));
+}
+
+html[data-page='dashboard'] .p-iconbox .p-map-ic--on {
+    display: none;
+    filter: none;
+}
+
+html[data-page='dashboard'] .p-iconbox:hover .p-map,
+html[data-page='dashboard'] .p-iconbox:focus-visible .p-map {
+    background: #fff;
+}
+
+html[data-page='dashboard'] .p-iconbox:hover .p-map-ic,
+html[data-page='dashboard'] .p-iconbox:focus-visible .p-map-ic {
+    display: none;
+}
+
+html[data-page='dashboard'] .p-iconbox:hover .p-map-ic--on,
+html[data-page='dashboard'] .p-iconbox:focus-visible .p-map-ic--on {
+    display: block;
+}
+
 html[data-page='dashboard'] .p-mid {
     width: 298px;
     flex-shrink: 0;

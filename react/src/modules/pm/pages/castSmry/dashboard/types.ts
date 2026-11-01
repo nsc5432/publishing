@@ -1,5 +1,8 @@
 import type { CongestionStatus, DsbdCategory, DsbdRsltDto, FcltType } from '@/types/api.types';
 import type { IconName } from '@/components/icons/InlineIcon';
+import type { SummaryInfoCell } from '@/modules/pm/summary';
+
+export type { SummaryInfoCell } from '@/modules/pm/summary';
 
 export type SimulationType = 'daily' | 'user';
 
@@ -96,13 +99,6 @@ export interface SummarySlot {
     time: string;
     range: string;
     stats: SummaryStat[];
-}
-
-export interface SummaryInfoCell {
-    /** '\n' 이 들어갈 수 있다 (Multiline 이 <br/> 로 편다) */
-    label: string;
-    value: string;
-    unit: string;
 }
 
 export interface TableRow {

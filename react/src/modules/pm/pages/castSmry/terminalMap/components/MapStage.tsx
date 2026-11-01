@@ -11,32 +11,19 @@ interface MapStageProps {
     onDepGateClick: (dptgtGate: DepGateMarker) => void;
 }
 
-export function MapStage({
-    terminal,
-    data,
-    activeMarkerId,
-    onIslandClick,
-    onDepGateClick,
-}: MapStageProps) {
+export function MapStage({ terminal, data, activeMarkerId, onIslandClick, onDepGateClick }: MapStageProps) {
     const Plan = terminal === 'T1' ? Terminal1SolidPlan : Terminal2SolidPlan;
     const stageStyle = { '--stage-ar': data.stageAspect } as CSSProperties;
 
     return (
         <div className="map" style={stageStyle}>
-            <Plan
-                className="map__bg"
-                preserveAspectRatio="none"
-                aria-hidden="true"
-                focusable="false"
-            />
+            <Plan className="map__bg" preserveAspectRatio="none" aria-hidden="true" focusable="false" />
             <div className="markers">
                 {data.dptgtGates.map((dptgtGate) => (
                     <button
                         type="button"
                         key={dptgtGate.id}
-                        className={`marker marker--dep-gate${
-                            dptgtGate.id === activeMarkerId ? ' is-active' : ''
-                        }`}
+                        className={`marker marker--dep-gate${dptgtGate.id === activeMarkerId ? ' is-active' : ''}`}
                         data-congestion={dptgtGate.cgnStatus ?? undefined}
                         style={toStagePosition(dptgtGate.x, dptgtGate.y)}
                         aria-label={`출국장 ${dptgtGate.label}`}
@@ -49,9 +36,7 @@ export function MapStage({
                     <button
                         type="button"
                         key={island.id}
-                        className={`marker marker--island is-${toLevelKey(island.level)}${
-                            island.id === activeMarkerId ? ' is-active' : ''
-                        }`}
+                        className={`marker marker--island is-${toLevelKey(island.level)}${island.id === activeMarkerId ? ' is-active' : ''}`}
                         style={toStagePosition(island.x, island.y)}
                         onClick={() => onIslandClick(island)}
                     >

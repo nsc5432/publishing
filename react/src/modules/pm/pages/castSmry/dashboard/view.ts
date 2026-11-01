@@ -13,6 +13,7 @@ import type {
     TmnlId,
     TmnlSmryDto,
 } from '@/types/api.types';
+import { toSummaryInfo } from '@/modules/pm/summary';
 import {
     dowLabel,
     formatCount,
@@ -293,28 +294,7 @@ export function toTerminalView({ ymd, hhmm, category, smry, rsltList, chknCards,
         },
         summaryStats: toSummarySlots(hhmm, smry),
         summaryTarget: SUMMARY_TARGET_LABEL[category],
-        summaryInfo: [
-            {
-                label: '전체\n대기인원',
-                value: smry.smryWtngPsgCnt == null ? '-' : formatCount(smry.smryWtngPsgCnt),
-                unit: '명',
-            },
-            {
-                label: '평균\n대기시간',
-                value: smry.smryAvgWtngSec == null ? '-' : String(Math.round(smry.smryAvgWtngSec / 60)),
-                unit: '분',
-            },
-            {
-                label: '시간당\n유입인원',
-                value: smry.smryArvlPsgCnt == null ? '-' : formatCount(smry.smryArvlPsgCnt),
-                unit: '명',
-            },
-            {
-                label: '시간당\n처리인원',
-                value: smry.smryPrcsPsgCnt == null ? '-' : formatCount(smry.smryPrcsPsgCnt),
-                unit: '명',
-            },
-        ],
+        summaryInfo: toSummaryInfo(smry),
         fcltCards: [
             toFcltCardData('CHKN', chknCards, smry.tmnlId),
             toFcltCardData('DEP', dptgtCards, smry.tmnlId),

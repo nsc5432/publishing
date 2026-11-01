@@ -127,7 +127,6 @@ function UserSmltConfig() {
                 onRun={picked && !readOnly ? handleRun : undefined}
                 busy={busy}
                 saveDt={saveDt}
-                onHistory={picked && !readOnly ? () => navigate(MONITORING_PATH) : undefined}
             />
 
             <div className="body">

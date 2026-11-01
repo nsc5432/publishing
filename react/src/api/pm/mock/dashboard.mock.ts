@@ -222,8 +222,10 @@ function buildFcltIntrvl(tmnlId: TmnlId, fcltCategory: 'CHKN' | 'DEP', hhmm: str
         smryWtngPsgCnt: wtngPsgCnt,
         smryAvgWtngSec: prcsPsgCnt > 0 ? wtngSecSum / prcsPsgCnt : null,
         // 서버의 10분 행 유입과 같은 보존식 — 끝 대기 − 시작 대기 + 처리
-        smryArvlPsgCnt: Math.max(0, Math.round(queueAt(endMin) - wtngPsgCnt + prcsPsgCnt)),
-        smryPrcsPsgCnt: Math.round(prcsPsgCnt),
+        smryArvlPsgCnt: endMin > bgnMin
+            ? Math.max(0, Math.round(queueAt(endMin) - wtngPsgCnt + prcsPsgCnt))
+            : null,
+        smryPrcsPsgCnt: endMin > bgnMin ? Math.round(prcsPsgCnt) : null,
     };
 }
 
@@ -232,7 +234,7 @@ function sumOrNull(first: number | null, second: number | null): number | null {
 }
 
 /** 랜드사이드는 유입을 진입(아일랜드), 처리를 진출(출국장)로 센다 (서버와 같은 규칙) */
-function buildSmryInfo(tmnlId: TmnlId, hhmm: string, intrvlMin: number, category: DsbdCategory): TmnlSmryInfo {
+export function buildSmryInfo(tmnlId: TmnlId, hhmm: string, intrvlMin: number, category: DsbdCategory): TmnlSmryInfo {
     const chkn = buildFcltIntrvl(tmnlId, 'CHKN', hhmm, intrvlMin);
     const dep = buildFcltIntrvl(tmnlId, 'DEP', hhmm, intrvlMin);
 
