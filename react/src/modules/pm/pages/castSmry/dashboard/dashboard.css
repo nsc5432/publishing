@@ -54,15 +54,25 @@ html[data-page='dashboard'] {
     --panel-bg: linear-gradient(158deg, #efeef6 0%, #f8f8fc 32%, #fdfdfe 66%, #f3f7fa 100%);
     --box-blue: #eaf3ff;
     --box-mint: #f0fffc;
+    --pm-header-h: 58px;
+    --pm-shell-top: 10px;
     --lost: clamp(0px, 1080px - 100vh, 120px);
-    --main-gap: calc(28px - var(--lost) * 0.09);
-    --top-row-h: calc(197px - var(--lost) * 0.21);
+    --main-gap: calc(22px - var(--lost) * 0.06);
+    --top-row-h: calc(176px - var(--lost) * 0.17);
     --title-gap: calc(24px - var(--lost) * 0.11);
     --view-gap: calc(26px - var(--lost) * 0.12);
     --sum-top-h: calc(100px - var(--lost) * 0.13);
     --p-top-h: 199px;
     --donut-size: 72px;
     --panel-min-h: 660px;
+}
+
+/* :root 보다 우선하므로 common.css 의 세로 축소 단계를 여기서도 다시 정한다. */
+@media screen and (max-height: 900px) {
+    html[data-page='dashboard'] {
+        --pm-header-h: 52px;
+        --pm-shell-top: 8px;
+    }
 }
 
 html[data-page='dashboard'] .i-26 > svg {
@@ -117,6 +127,26 @@ html[data-page='dashboard'] .row--top {
     min-height: var(--top-row-h);
     gap: 16px;
     flex-shrink: 0;
+}
+
+html[data-page='dashboard'] .row--top .card {
+    padding: 10px 16px;
+}
+
+html[data-page='dashboard'] .row--top .plan-body {
+    padding: 4px 0;
+}
+
+html[data-page='dashboard'] .row--top .dow-val {
+    padding-bottom: 4px;
+}
+
+html[data-page='dashboard'] .row--top .wx-sub {
+    padding-bottom: 5px;
+}
+
+html[data-page='dashboard'] .row--top .card-foot {
+    padding-top: 7px;
 }
 
 html[data-page='dashboard'] .row--panels {
@@ -401,7 +431,7 @@ html[data-page='dashboard'] .quick {
     display: flex;
     flex-direction: column;
     gap: 7px;
-    padding: 9px 9px 9px;
+    padding: 7px;
     box-shadow: var(--sh);
 }
 
@@ -924,6 +954,7 @@ html[data-page='dashboard'] .chartbox > .chartbox__chart {
     display: block;
     position: relative;
     z-index: 1;
+    cursor: pointer;
 }
 
 /* --- panel title row --- */
@@ -972,6 +1003,43 @@ html[data-page='dashboard'] .p-title-txt {
     overflow: hidden;
     text-overflow: ellipsis;
     transform: skewX(10deg);
+}
+
+html[data-page='dashboard'] .p-time-step {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-left: 10px;
+    transform: skewX(10deg);
+}
+
+html[data-page='dashboard'] .p-time-step > button {
+    width: 26px;
+    height: 13px;
+    padding: 0;
+    border: none;
+    border-radius: 3px;
+    background: #eef0f6;
+    color: #14161c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+html[data-page='dashboard'] .p-time-step > button:hover:not(:disabled) {
+    background: #dde1ec;
+}
+
+html[data-page='dashboard'] .p-time-step > button:disabled {
+    color: #b8bdc9;
+    cursor: default;
+}
+
+html[data-page='dashboard'] .p-time-step svg {
+    width: 13px;
+    height: 13px;
 }
 
 html[data-page='dashboard'] .p-bar {
@@ -1618,6 +1686,14 @@ html[data-page='dashboard'] .chip.k {
 }
 
 /* --- table view --- */
+html[data-page='dashboard'] .table-title {
+    flex-shrink: 0;
+    margin: 0 0 4px;
+    font-size: 14px;
+    line-height: 20px;
+    font-weight: 700;
+}
+
 html[data-page='dashboard'] .table {
     flex: 1;
     display: flex;
@@ -1637,10 +1713,10 @@ html[data-page='dashboard'] .thead {
     z-index: 1;
     background: #e0e4f7;
     border-radius: 8px;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
     color: #3c4350;
-    height: 44px;
+    height: 28px;
     align-items: center;
     flex-shrink: 0;
 }
@@ -1650,11 +1726,14 @@ html[data-page='dashboard'] .thead div {
 }
 
 html[data-page='dashboard'] .trow {
-    flex: 1 0 44px;
-    min-height: 44px;
+    flex: 0 0 24px;
+    min-height: 24px;
+    margin: 0;
+    padding: 0;
     align-items: center;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 13px;
+    line-height: 18px;
     border-radius: 8px;
 }
 

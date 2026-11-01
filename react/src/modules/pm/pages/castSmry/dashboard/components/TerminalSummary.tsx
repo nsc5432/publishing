@@ -4,6 +4,7 @@ import t2White from '@/assets/svg/t2-white.svg';
 import t1Blue from '@/assets/svg/t1-blue.svg';
 import t2Teal from '@/assets/svg/t2-teal-full.svg';
 import { Icon } from '@/components/icons/InlineIcon';
+import { stepHhmm } from '@/lib/format';
 import { FcltCard } from './FcltCard';
 import { TerminalChart } from './TerminalChart';
 import { EMPTY_TERMINAL_VIEW } from '../view';
@@ -15,8 +16,10 @@ type ViewKind = 'summary' | 'table';
 interface TerminalSummaryProps {
     terminal: TerminalKind;
     data: TerminalView | null;
+    hhmm: string;
     category: DsbdCategory;
     titleCategory: DsbdCategory | null;
+    onTimeChange: (hhmm: string) => void;
     onFcltDetail: (fcltType: FcltCardType, unitCd: string) => void;
     onFcltMove: (fcltType: FcltCardType) => void;
 }
@@ -38,6 +41,20 @@ const TITLE_LEAD: Record<DsbdCategory, string> = {
     DEP: '출국장에 대기인원이',
 };
 
+const LEGEND_SUBJECT: Record<DsbdCategory, string> = {
+    PSG: '터미널',
+    FLT: '터미널',
+    CHKN: '체크인카운터',
+    DEP: '출국장',
+};
+
+const DETAIL_TITLE: Record<DsbdCategory, string> = {
+    PSG: '터미널 예측 상세',
+    FLT: '운항편 예측 상세',
+    CHKN: '체크인카운터 예측 상세',
+    DEP: '출국장 예측 상세',
+};
+
 const TERMINAL_IMAGES: Record<TerminalKind, TerminalImages> = {
     T1: { big: t1White, watermark: t1Blue },
     T2: { big: t2White, watermark: t2Teal },
@@ -53,10 +70,13 @@ const CONGESTION_THEMES: Record<CongestionStatus, CongestionTheme> = {
 /** 조회 시각에 등급을 산정할 수 있는 시설이 없을 때 — 여유/보통 색으로 대신하지 않는다 */
 const UNKNOWN_THEME: CongestionTheme = { panelClass: 'panel-gray', gauge: '#8a93a3' };
 
-export function TerminalSummary({ terminal, data, category, titleCategory, onFcltDetail, onFcltMove }: TerminalSummaryProps) {
+export function TerminalSummary({ terminal, data, hhmm, category, titleCategory, onTimeChange, onFcltDetail, onFcltMove }: TerminalSummaryProps) {
     const view = data ?? EMPTY_TERMINAL_VIEW;
     const images = TERMINAL_IMAGES[terminal];
     const theme = view.cgnStatus === null ? UNKNOWN_THEME : CONGESTION_THEMES[view.cgnStatus];
+    const legendSubject = LEGEND_SUBJECT[category];
+    const laterHhmm = stepHhmm(hhmm, 1);
+    const earlierHhmm = stepHhmm(hhmm, -1);
 
     const [viewKind, setViewKind] = useState<ViewKind>('summary');
     const [selectedRow, setSelectedRow] = useState(view.defaultSelectedRow);
@@ -143,14 +163,14 @@ export function TerminalSummary({ terminal, data, category, titleCategory, onFcl
                     <div className="legend">
                         <span>
                             <i style={{ background: '#f43f3f' }} />
-                            Cast 대기인원(예측)
+                            {legendSubject} Cast 대기인원
                         </span>
                         <span>
                             <i style={{ background: '#3b82f6' }} />
-                            Xovis 대기인원(실적)
+                            {legendSubject} Xovis 대기인원
                         </span>
                     </div>
-                    <TerminalChart rsltList={view.chart.rsltList} />
+                    <TerminalChart rsltList={view.chart.rsltList} selectedHhmm={hhmm} onHourSelect={onTimeChange} />
                 </div>
             </div>
 
@@ -158,6 +178,14 @@ export function TerminalSummary({ terminal, data, category, titleCategory, onFcl
                 <div className="p-title">
                     <span className="p-title-in">
                         <span className="p-title-txt">{view.barText}</span>
+                        <span className="p-time-step">
+                            <button type="button" aria-label="10분 뒤" disabled={!laterHhmm} onClick={() => onTimeChange(laterHhmm)}>
+                                <Icon name="chevU" />
+                            </button>
+                            <button type="button" aria-label="10분 전" disabled={!earlierHhmm} onClick={() => onTimeChange(earlierHhmm)}>
+                                <Icon name="chevD" />
+                            </button>
+                        </span>
                     </span>
                 </div>
                 <div className="p-bar">
@@ -234,6 +262,7 @@ export function TerminalSummary({ terminal, data, category, titleCategory, onFcl
             </div>
 
             <div className="view" hidden={viewKind !== 'table'}>
+                <h3 className="table-title">{DETAIL_TITLE[category]}</h3>
                 <div className="table scroll-area">
                     <div className="thead">
                         <div>시간대</div>

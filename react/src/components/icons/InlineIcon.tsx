@@ -23,6 +23,8 @@ export type IconName =
     | 'plus'
     | 'chevL'
     | 'chevR'
+    | 'chevU'
+    | 'chevD'
     | 'weather'
     | 'wxClear'
     | 'wxCloudy'
@@ -220,6 +222,16 @@ const ICONS: Record<IconName, ReactNode> = {
     chevR: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
             <path d="m9 5 7 7-7 7" />
+        </svg>
+    ),
+    chevU: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="m5 15 7-7 7 7" />
+        </svg>
+    ),
+    chevD: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="m5 9 7 7 7-7" />
         </svg>
     ),
     weather: (

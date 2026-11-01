@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { EChartsType } from 'echarts/core';
 import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import type { DsbdRsltDto } from '@/types/api.types';
@@ -27,6 +28,8 @@ function toAreaGradient(rgb: string) {
 
 interface TerminalChartProps {
     rsltList: DsbdRsltDto[];
+    selectedHhmm: string;
+    onHourSelect: (hhmm: string) => void;
 }
 
 function roundUpAxisMax(value: number): number {
@@ -39,8 +42,27 @@ function roundUpAxisMax(value: number): number {
     return niceStep * magnitude * Y_TICK_COUNT;
 }
 
-export function TerminalChart({ rsltList }: TerminalChartProps) {
+export function TerminalChart({ rsltList, selectedHhmm, onHourSelect }: TerminalChartProps) {
     const [replayTick, setReplayTick] = useState(0);
+    const rsltListRef = useRef(rsltList);
+    const hourSelectRef = useRef(onHourSelect);
+
+    const handleChartReady = useCallback((chart: EChartsType) => {
+        // 점(5px)만 눌리는 series click 대신 그리드 아무 곳이나 가장 가까운 시로 받는다
+        chart.getZr().on('click', (event) => {
+            const point = [event.offsetX, event.offsetY];
+            if (!chart.containPixel({ gridIndex: 0 }, point)) return;
+
+            const [index] = chart.convertFromPixel({ gridIndex: 0 }, point) as number[];
+            const rslt = rsltListRef.current[Math.round(index)];
+            if (rslt) hourSelectRef.current(`${rslt.time.slice(0, 2)}00`);
+        });
+    }, []);
+
+    useEffect(() => {
+        rsltListRef.current = rsltList;
+        hourSelectRef.current = onHourSelect;
+    }, [rsltList, onHourSelect]);
 
     useEffect(() => {
         const timer = window.setInterval(() => setReplayTick((tick) => tick + 1), REPLAY_INTERVAL_MS);
@@ -49,6 +71,7 @@ export function TerminalChart({ rsltList }: TerminalChartProps) {
 
     const option = useMemo<EChartsOption>(() => {
         const axisMax = roundUpAxisMax(Math.max(1, ...rsltList.map((rslt) => Math.max(rslt.fcstWtngPsgCnt, rslt.wtngPsgCnt ?? 0))));
+        const selectedIndex = rsltList.findIndex((rslt) => rslt.time.slice(0, 2) === selectedHhmm.slice(0, 2));
 
         return {
             animation: true,
@@ -135,6 +158,17 @@ export function TerminalChart({ rsltList }: TerminalChartProps) {
                         scale: 1.9,
                         itemStyle: { shadowColor: 'rgba(244, 63, 63, 0.6)', shadowBlur: 10 },
                     },
+                    markLine:
+                        selectedIndex < 0
+                            ? undefined
+                            : {
+                                  silent: true,
+                                  symbol: 'none',
+                                  animation: false,
+                                  label: { show: false },
+                                  lineStyle: { color: '#5b6170', width: 1.4, type: 'dashed' },
+                                  data: [{ xAxis: selectedIndex }],
+                              },
                     data: rsltList.map((rslt) => rslt.fcstWtngPsgCnt),
                 },
                 {
@@ -163,7 +197,7 @@ export function TerminalChart({ rsltList }: TerminalChartProps) {
                 },
             ],
         };
-    }, [rsltList]);
+    }, [rsltList, selectedHhmm]);
 
-    return <EChart key={replayTick} className="chartbox__chart" option={option} />;
+    return <EChart key={replayTick} className="chartbox__chart" option={option} onChartReady={handleChartReady} />;
 }

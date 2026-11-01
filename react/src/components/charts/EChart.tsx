@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, type CSSProperties } from 'react';
-import type { ECElementEvent } from 'echarts/core';
+import type { ECElementEvent, EChartsType } from 'echarts/core';
 import { echarts, ReactEChartsCore, type EChartsOption } from '@/lib/echarts';
 
 export interface EChartProps {
@@ -7,11 +7,12 @@ export interface EChartProps {
     className?: string;
     style?: CSSProperties;
     onClick?: (params: ECElementEvent) => void;
+    onChartReady?: (chart: EChartsType) => void;
 }
 
 const FILL: CSSProperties = { width: '100%', height: '100%' };
 
-export function EChart({ option, className, style, onClick }: EChartProps) {
+export function EChart({ option, className, style, onClick, onChartReady }: EChartProps) {
     const clickRef = useRef(onClick);
 
     useEffect(() => {
@@ -29,6 +30,7 @@ export function EChart({ option, className, style, onClick }: EChartProps) {
             className={className}
             style={style ? { ...FILL, ...style } : FILL}
             onEvents={events}
+            onChartReady={onChartReady}
         />
     );
 }

@@ -1,7 +1,6 @@
 import { useRef } from 'react';
-import { PillSelect } from '@/components/ui/pill-select';
 import { Icon } from '@/components/icons/InlineIcon';
-import { HOUR_OPTIONS, MINUTE_OPTIONS, formatYmd, toDateInputValue, toYmd } from '@/lib/format';
+import { formatYmd, toDateInputValue, toYmd } from '@/lib/format';
 import { SIMULATION_LABEL, SIMULATION_TITLE, type SimulationType } from '../types';
 
 export interface Executor {
@@ -12,15 +11,11 @@ export interface Executor {
 interface TopbarProps {
     simulationType: SimulationType;
     baseYmd: string;
-    hour: string;
-    minute: string;
     lastCalc: string;
     nextCalc: string;
     executor?: Executor; // 사용자 시뮬레이션 일때만
     onViewConfig?: () => void; // 사용자 시뮬레이션 일때만
     onDateChange: (ymd: string) => void;
-    onHourChange: (hour: string) => void;
-    onMinuteChange: (minute: string) => void;
     onSearch: () => void;
 }
 
@@ -30,15 +25,11 @@ interface TopbarProps {
 export function Topbar({
     simulationType,
     baseYmd,
-    hour,
-    minute,
     lastCalc,
     nextCalc,
     executor,
     onViewConfig,
     onDateChange,
-    onHourChange,
-    onMinuteChange,
     onSearch,
 }: TopbarProps) {
     const dateRef = useRef<HTMLInputElement>(null);
@@ -81,8 +72,6 @@ export function Topbar({
                     />
                 </div>
 
-                <PillSelect value={hour} options={HOUR_OPTIONS} unit="시" onChange={onHourChange} />
-                <PillSelect value={minute} options={MINUTE_OPTIONS} unit="분" onChange={onMinuteChange} />
                 <button type="button" className="search-btn" onClick={onSearch}>
                     <Icon name="search" />
                     <span className="blind">조회</span>

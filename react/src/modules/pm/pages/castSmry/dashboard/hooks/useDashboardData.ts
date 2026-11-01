@@ -43,15 +43,18 @@ export function usePrimeTime(query: PrimeTimeQuery | null) {
     return useFetched(
         query,
         async (request) => {
-            const results = await Promise.all([
+            const [t1Results, t2Results] = await Promise.all([
                 dashboardService.getTmnlRsltByTime(request.smltId, 'T1', request.category),
                 dashboardService.getTmnlRsltByTime(request.smltId, 'T2', request.category),
             ]);
-            const hhmm = toPrimeTime(results, request.category);
+            const times: Record<TerminalKind, string> = {
+                T1: toPrimeTime([t1Results], request.category),
+                T2: toPrimeTime([t2Results], request.category),
+            };
 
-            if (!hhmm) throw new Error(PRIME_TIME_FAIL);
+            if (!times.T1 && !times.T2) throw new Error(PRIME_TIME_FAIL);
 
-            return { query: request, hhmm };
+            return { query: request, times };
         },
         RSLT_FAIL,
     );

@@ -105,6 +105,14 @@ function floorHhmm(hhmm: string): string {
     return hhmm.slice(0, 2) + pad2(Math.floor(Number(hhmm.slice(2, 4)) / MINUTE_STEP) * MINUTE_STEP);
 }
 
+/** HHmm 을 분 선택 간격 steps 칸만큼 옮긴 값. 00:00~23:50 을 벗어나면 빈 값 */
+export function stepHhmm(hhmm: string, steps: number): string {
+    const minute = toMinuteOfDay(hhmm) + steps * MINUTE_STEP;
+    if (!(minute >= 0 && minute < 24 * 60)) return '';
+
+    return pad2(Math.floor(minute / 60)) + pad2(minute % 60);
+}
+
 export function defaultTime(avlTimes: string[]): string {
     const now = toMinuteOfDay(nowHhmm());
     // 시설 카드 / 혼잡등급 API 는 10분 경계 시각만 받는다

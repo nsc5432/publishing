@@ -1,5 +1,5 @@
 import './dashboard.css';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMatch, useNavigate, useSearchParams } from 'react-router-dom';
 import { Lnb } from '@/components/lnb';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
@@ -24,6 +24,13 @@ import { useExecDetail } from './hooks/useExecDetail';
 import type { FcltCardType, FcltQueueTarget, TerminalKind } from './types';
 
 type PrimeTimeRequest = Pick<PrimeTimeQuery, 'ymd' | 'category'>;
+
+type TerminalQueries = Record<TerminalKind, DashboardQuery>;
+
+interface ActivePrime {
+    category: DsbdCategory;
+    times: Record<TerminalKind, string>;
+}
 
 const USER_SMLT_CONFIG_PATH = '/rui/pm/user-smlt/config';
 
@@ -58,26 +65,24 @@ function Dashboard() {
 
     const { data: execDetail } = useExecDetail(isUserSmlt ? targetSmltId : '');
 
-    const [draftTime, setDraftTime] = useState('');
     const [query, setQuery] = useState<DashboardQuery | null>(null);
+    const [terminalQueries, setTerminalQueries] = useState<TerminalQueries | null>(null);
     const [category, setCategory] = useState<DsbdCategory>(DEFAULT_CATEGORY);
-    const [activePrimeCategory, setActivePrimeCategory] = useState<DsbdCategory | null>(null);
+    const [activePrime, setActivePrime] = useState<ActivePrime | null>(null);
     const [primeRequest, setPrimeRequest] = useState<PrimeTimeRequest | null>(null);
     const [primeStartSeq, setPrimeStartSeq] = useState(0);
     const [fcltQueueTarget, setFcltQueueTarget] = useState<FcltQueueTarget | null>(null);
-    const timeOverrideRef = useRef<string | null>(null);
 
     useEffect(() => {
         setFcltQueueTarget(null);
-    }, [query]);
+    }, [query, terminalQueries]);
 
     useEffect(() => {
         if (!baseInfo || !isBaseInfoCurrent) return;
 
-        const hhmm = timeOverrideRef.current ?? defaultTime(baseInfo.avlTimes);
-        timeOverrideRef.current = null;
-        setDraftTime(hhmm);
-        setQuery({ smltId: baseInfo.smltId, ymd: baseInfo.ymd, hhmm });
+        const baseQuery = { smltId: baseInfo.smltId, ymd: baseInfo.ymd, hhmm: defaultTime(baseInfo.avlTimes) };
+        setQuery(baseQuery);
+        setTerminalQueries({ T1: baseQuery, T2: baseQuery });
     }, [baseInfo, isBaseInfoCurrent]);
 
     const primeQuery = useMemo<PrimeTimeQuery | null>(() => {
@@ -113,16 +118,20 @@ function Dashboard() {
         if (!primeTime || primeTime.query !== primeQuery) return;
 
         const { smltId, ymd, category: primeCategory } = primeTime.query;
-        setDraftTime(primeTime.hhmm);
-        setQuery({ smltId, ymd, hhmm: primeTime.hhmm });
+        const { times } = primeTime;
+        // 피크를 못 구한 터미널은 보던 시각을 유지한다
+        setTerminalQueries((prev) => ({
+            T1: { smltId, ymd, hhmm: times.T1 || prev?.T1.hhmm || times.T2 },
+            T2: { smltId, ymd, hhmm: times.T2 || prev?.T2.hhmm || times.T1 },
+        }));
         setCategory(primeCategory);
-        setActivePrimeCategory(primeCategory);
+        setActivePrime({ category: primeCategory, times });
         setPrimeRequest(null);
     }, [primeTime, primeQuery]);
 
     const { data: dayOverview, error: dayOverviewError, responseSeq: dayOverviewResponseSeq } = useDayOverview(query);
-    const { data: terminal1View, error: t1Error, responseSeq: t1ResponseSeq } = useTerminalPanel(query, 'T1', category);
-    const { data: terminal2View, error: t2Error, responseSeq: t2ResponseSeq } = useTerminalPanel(query, 'T2', category);
+    const { data: terminal1View, error: t1Error, responseSeq: t1ResponseSeq } = useTerminalPanel(terminalQueries?.T1 ?? null, 'T1', category);
+    const { data: terminal2View, error: t2Error, responseSeq: t2ResponseSeq } = useTerminalPanel(terminalQueries?.T2 ?? null, 'T2', category);
 
     const error = baseError || primeError || dayOverviewError || t1Error || t2Error;
 
@@ -131,8 +140,8 @@ function Dashboard() {
         baseResponseSeq + primeResponseSeq + dayOverviewResponseSeq + t1ResponseSeq + t2ResponseSeq,
     );
 
-    const hour = draftTime.slice(0, 2);
-    const minute = draftTime.slice(2, 4);
+    const primeCategoryOf = (tmnlId: TerminalKind) =>
+        activePrime && terminalQueries?.[tmnlId].hhmm === activePrime.times[tmnlId] ? activePrime.category : null;
 
     const handleDateChange = (nextYmd: string) => {
         if (nextYmd.length !== 8) return;
@@ -145,17 +154,18 @@ function Dashboard() {
         setPrimeRequest(null);
 
         if (draftYmd !== ymd) {
-            timeOverrideRef.current = null;
             setYmd(draftYmd);
             setSearchParams({}, { replace: true });
-            setActivePrimeCategory(null);
+            setActivePrime(null);
             return;
         }
 
-        if (!baseInfo || !isBaseInfoCurrent || !draftTime) return;
+        if (!baseInfo || !isBaseInfoCurrent || !query || !terminalQueries) return;
 
-        setQuery({ smltId: baseInfo.smltId, ymd: baseInfo.ymd, hhmm: draftTime });
-        setActivePrimeCategory(null);
+        // 터미널별 시각은 그대로 두고 새 객체로 바꿔 다시 조회한다
+        setQuery({ ...query });
+        setTerminalQueries({ T1: { ...terminalQueries.T1 }, T2: { ...terminalQueries.T2 } });
+        setActivePrime(null);
     };
 
     const handleCategoryChange = (nextCategory: DsbdCategory) => {
@@ -164,10 +174,9 @@ function Dashboard() {
         const primeYmd = isUserSmlt ? baseInfo?.ymd : draftYmd;
         if (!primeYmd) return;
 
-        timeOverrideRef.current = null;
         setPrimeRequest({ ymd: primeYmd, category: nextCategory });
         setPrimeStartSeq(primeResponseSeq);
-        setActivePrimeCategory(null);
+        setActivePrime(null);
 
         if (!isUserSmlt && primeYmd !== ymd) {
             setYmd(primeYmd);
@@ -185,18 +194,27 @@ function Dashboard() {
         navigate(`${USER_SMLT_CONFIG_PATH}?${configParams.toString()}`);
     };
 
-    const handleFcltDetail = (tmnlId: TerminalKind) => (fcltType: FcltCardType, unitCd: string) => {
-        if (!query) return;
+    const handleTerminalTimeChange = (tmnlId: TerminalKind) => (hhmm: string) => {
+        setPrimeRequest(null);
+        setTerminalQueries((prev) =>
+            !prev || prev[tmnlId].hhmm === hhmm ? prev : { ...prev, [tmnlId]: { ...prev[tmnlId], hhmm } },
+        );
+    };
 
-        setFcltQueueTarget({ ...query, tmnlId, fcltType, unitCd });
+    const handleFcltDetail = (tmnlId: TerminalKind) => (fcltType: FcltCardType, unitCd: string) => {
+        const terminalQuery = terminalQueries?.[tmnlId];
+        if (!terminalQuery) return;
+
+        setFcltQueueTarget({ ...terminalQuery, tmnlId, fcltType, unitCd });
     };
 
     const handleFcltMove = (tmnlId: TerminalKind) => (fcltType: FcltCardType) => {
         const detailParams = new URLSearchParams({ tmnlId });
+        const terminalQuery = terminalQueries?.[tmnlId];
 
-        if (query) {
-            detailParams.set('ymd', query.ymd);
-            detailParams.set('hhmm', query.hhmm);
+        if (terminalQuery) {
+            detailParams.set('ymd', terminalQuery.ymd);
+            detailParams.set('hhmm', terminalQuery.hhmm);
         }
 
         navigate(`${FCLT_DETAIL_PATH[fcltType]}?${detailParams.toString()}`);
@@ -209,25 +227,11 @@ function Dashboard() {
             <Topbar
                 simulationType={simulationType}
                 baseYmd={isUserSmlt ? (baseInfo?.ymd ?? draftYmd) : draftYmd}
-                hour={hour}
-                minute={minute}
                 lastCalc={toCalcDateTime(baseInfo?.lastCalcDt)}
                 nextCalc={toCalcDateTime(baseInfo?.nextCalcDt)}
                 executor={executor}
                 onViewConfig={handleViewConfig}
                 onDateChange={handleDateChange}
-                onHourChange={(nextHour) => {
-                    setPrimeRequest(null);
-                    const hhmm = nextHour + (minute || '00');
-                    timeOverrideRef.current = hhmm;
-                    setDraftTime(hhmm);
-                }}
-                onMinuteChange={(nextMinute) => {
-                    setPrimeRequest(null);
-                    const hhmm = (hour || '00') + nextMinute;
-                    timeOverrideRef.current = hhmm;
-                    setDraftTime(hhmm);
-                }}
                 onSearch={handleSearch}
             />
             <Lnb />
@@ -236,12 +240,12 @@ function Dashboard() {
                 <HeaderSummary
                     planDate={toPlanDate(query?.ymd)}
                     dayOverview={dayOverview}
-                    activePrimeCategory={activePrimeCategory}
+                    activePrimeCategory={primeCategoryOf('T1') ?? primeCategoryOf('T2')}
                     onCategoryChange={handleCategoryChange}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary terminal="T1" data={terminal1View} category={category} titleCategory={activePrimeCategory} onFcltDetail={handleFcltDetail('T1')} onFcltMove={handleFcltMove('T1')} />
-                        <TerminalSummary terminal="T2" data={terminal2View} category={category} titleCategory={activePrimeCategory} onFcltDetail={handleFcltDetail('T2')} onFcltMove={handleFcltMove('T2')} />
+                        <TerminalSummary terminal="T1" data={terminal1View} hhmm={terminalQueries?.T1.hhmm ?? ''} category={category} titleCategory={primeCategoryOf('T1')} onTimeChange={handleTerminalTimeChange('T1')} onFcltDetail={handleFcltDetail('T1')} onFcltMove={handleFcltMove('T1')} />
+                        <TerminalSummary terminal="T2" data={terminal2View} hhmm={terminalQueries?.T2.hhmm ?? ''} category={category} titleCategory={primeCategoryOf('T2')} onTimeChange={handleTerminalTimeChange('T2')} onFcltDetail={handleFcltDetail('T2')} onFcltMove={handleFcltMove('T2')} />
                     </section>
                 </HeaderSummary>
             </div>
