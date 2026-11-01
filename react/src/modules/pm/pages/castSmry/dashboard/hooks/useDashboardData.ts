@@ -20,6 +20,7 @@ export interface PrimeTimeQuery {
 
 interface PanelBase {
     query: DashboardQuery;
+    category: DsbdCategory;
     smry: TmnlSmryDto;
     chknCards: DsbdFcltCardDto[];
     dptgtCards: DsbdFcltCardDto[];
@@ -28,9 +29,6 @@ interface PanelBase {
 interface PanelQuery {
     query: DashboardQuery;
     tmnlId: TerminalKind;
-}
-
-interface RsltQuery extends PanelQuery {
     category: DsbdCategory;
 }
 
@@ -69,20 +67,20 @@ export function useDayOverview(query: DashboardQuery | null): Fetched<DsbdHeader
 }
 
 export function useTerminalPanel(query: DashboardQuery | null, tmnlId: TerminalKind, category: DsbdCategory): Fetched<TerminalView> {
-    const panelQuery = useMemo<PanelQuery | null>(() => (query ? { query, tmnlId } : null), [query, tmnlId]);
-    const rsltQuery = useMemo<RsltQuery | null>(() => (query ? { query, tmnlId, category } : null), [query, tmnlId, category]);
+    const panelQuery = useMemo<PanelQuery | null>(() => (query ? { query, tmnlId, category } : null), [query, tmnlId, category]);
 
     const panelBase = useFetched(
         panelQuery,
-        ({ query: dashboardQuery, tmnlId: terminal }) => {
+        ({ query: dashboardQuery, tmnlId: terminal, category: smryCategory }) => {
             const { smltId, hhmm } = dashboardQuery;
 
             return Promise.all([
-                dashboardService.getTmnlSmry(smltId, terminal, hhmm, SMRY_INTRVL_MIN).then((dto) => unwrap(dto, PANEL_FAIL)),
+                dashboardService.getTmnlSmry(smltId, terminal, hhmm, SMRY_INTRVL_MIN, smryCategory).then((dto) => unwrap(dto, PANEL_FAIL)),
                 dashboardService.getFcltCardList(smltId, terminal, hhmm, 'CHKN'),
                 dashboardService.getFcltCardList(smltId, terminal, hhmm, 'DEP'),
             ]).then(([smry, chknCards, dptgtCards]): PanelBase => ({
                 query: dashboardQuery,
+                category: smryCategory,
                 smry,
                 chknCards,
                 dptgtCards,
@@ -92,7 +90,7 @@ export function useTerminalPanel(query: DashboardQuery | null, tmnlId: TerminalK
     );
 
     const hourlyResults = useFetched(
-        rsltQuery,
+        panelQuery,
         ({ query: dashboardQuery, tmnlId: terminal, category: quickTile }) => dashboardService.getTmnlRsltByTime(dashboardQuery.smltId, terminal, quickTile),
         RSLT_FAIL,
     );
@@ -106,6 +104,7 @@ export function useTerminalPanel(query: DashboardQuery | null, tmnlId: TerminalK
             data: toTerminalView({
                 ymd: panelBase.data.query.ymd,
                 hhmm: panelBase.data.query.hhmm,
+                category: panelBase.data.category,
                 smry: panelBase.data.smry,
                 rsltList: hourlyResults.data,
                 chknCards: panelBase.data.chknCards,

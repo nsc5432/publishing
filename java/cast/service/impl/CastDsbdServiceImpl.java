@@ -31,6 +31,7 @@ import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.wtng.FcltQueueClearance;
 import aoms.pm.cast.domains.wtng.FcltQueueSource;
 import aoms.pm.cast.domains.wtng.FcltWtngDay;
+import aoms.pm.cast.domains.wtng.FcltWtngIntrvl;
 import aoms.pm.cast.domains.wtng.FcltWtngSecs;
 import aoms.pm.cast.domains.wtng.FcltWtngSlot;
 import aoms.pm.cast.dto.BdpsgAnceRawDto;
@@ -40,7 +41,6 @@ import aoms.pm.cast.dto.DsbdBaseInfoDto;
 import aoms.pm.cast.dto.DsbdFcltCardDto;
 import aoms.pm.cast.dto.DsbdFltIntrvlDto;
 import aoms.pm.cast.dto.DsbdHeaderDto;
-import aoms.pm.cast.dto.DsbdIntrvlRawDto;
 import aoms.pm.cast.dto.DsbdRsltDto;
 import aoms.pm.cast.dto.DsbdSearchDto;
 import aoms.pm.cast.dto.FcltRecommendDto;
@@ -234,8 +234,20 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		}
 
 		if (bgnHhmm != null && bgnHhmm.length() == 4) {
+			if (intrvlMin % FcltWtngSecs.SEC_MIN != 0) {
+				result.error("구간 집계 길이는 " + FcltWtngSecs.SEC_MIN + "분 단위여야 합니다. intrvlMin=" + intrvlMin);
+				return result;
+			}
+
+			SmltStngDto wtngStng = castSmltService.retrieveUniqueSmltStng(smltStng.getSmltId());
+			FcltWtngDay chknDay = castFcltWtngService.retrieveFcltWtngDay(wtngStng, tmnlId, FcltType.CHKN);
+			FcltWtngDay depDay = castFcltWtngService.retrieveFcltWtngDay(wtngStng, tmnlId, FcltType.DEP);
+			LocalDateTime evalDt = chknDay.dtOf(toMinutes(bgnHhmm));
+			LocalDateTime smryEndDt = chknDay.dtOf(Math.min(toMinutes(bgnHhmm) + intrvlMin, MIN_PER_DAY));
+
 			// 대표 혼잡등급은 PRIME TIME(대기인원 피크)과 별개로 조회 시각의 시설별 평균 대기시간에서 정한다
-			applyTmnlCgn(result, smltStng.getSmltId(), tmnlId, bgnHhmm);
+			applyTmnlCgn(result, chknDay, depDay, evalDt);
+			applySmryInfo(result, searchDto.getCategory(), chknDay.intrvlOf(evalDt, smryEndDt), depDay.intrvlOf(evalDt, smryEndDt));
 
 			List<DsbdFltIntrvlDto> intrvlList = retrieveFltIntrvlList(baseDate, fltTmnlIdList, bgnHhmm, intrvlMin);
 			DsbdFltIntrvlDto currentIntrvl = intrvlList.get(0);
@@ -245,23 +257,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			result.setIntrvlPsgCnt(currentIntrvl.getPsgCnt());
 			result.setIntrvlYesterdayFltDiffCnt(currentIntrvl.getYesterdayFltDiffCnt());
 			result.setIntrvlYesterdayPsgDiffCnt(currentIntrvl.getYesterdayPsgDiffCnt());
-
-			LocalDateTime bgnDt = baseDate.atStartOfDay().plusMinutes(toMinutes(bgnHhmm));
-			LocalDateTime endDt = baseDate.atStartOfDay().plusMinutes(Math.min(toMinutes(bgnHhmm) + intrvlMin, MIN_PER_DAY));
-			DsbdIntrvlRawDto intrvl = castDsbdMapper.retrieveRsltByIntrvl(
-					searchDto.getSmltId(), smltStng.getSmltMdlSn(), tmnlId.getFcltTmnlId(),
-					bgnDt, endDt, DsbdCategory.PSG.getUpPsgFcltCdList());
-
-			if (intrvl != null) {
-				if (intrvl.getSrcExcnDtCnt() > 1) {
-					result.error("조회 구간에 실행일시가 다른 원천 결과가 있어 요약정보를 산정할 수 없습니다.");
-					return result;
-				}
-
-				result.setIntrvlMaxWtngPsgCnt(intrvl.getMaxWtngPsgCnt());
-				result.setIntrvlAvgWtngSec(intrvl.getAvgWtngSec());
-				result.setIntrvlPrcsPsgCnt(intrvl.getPrcsPsgCnt());
-			}
 		}
 
 		return result;
@@ -295,27 +290,53 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return result;
 	}
 
-	private void applyTmnlCgn(TmnlSmryDto result, String smltId, TerminalKind tmnlId, String hhmm) {
-		SmltStngDto smltStng = castSmltService.retrieveUniqueSmltStng(smltId);
-
-		FcltWtngDay chknDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.CHKN);
-		LocalDateTime evalDt = chknDay.dtOf(toMinutes(hhmm));
-
+	private void applyTmnlCgn(TmnlSmryDto result, FcltWtngDay chknDay, FcltWtngDay depDay, LocalDateTime evalDt) {
 		for (String island : chknDay.unitCdList()) {
 			applyWorseCgn(result, chknDay, island, evalDt);
 		}
-
-		FcltWtngDay depDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.DEP);
 
 		for (String unitCd : depDay.presentUnitCdList(evalDt)) {
 			applyWorseCgn(result, depDay, unitCd, evalDt);
 		}
 	}
 
-	// 체크인 / 출국장 기준표가 달라 대기시간만으로 비교하지 않는다 — 등급이 같을 때만 대기시간이 긴 시설을 남긴다
+	// 랜드사이드는 여객 한 명이 체크인과 출국장을 모두 지나므로 유입은 진입(아일랜드), 처리는 진출(출국장)로 센다
+	private void applySmryInfo(TmnlSmryDto result, DsbdCategory category, FcltWtngIntrvl chkn, FcltWtngIntrvl dep) {
+		if (category == DsbdCategory.CHKN || category == DsbdCategory.DEP) {
+			FcltWtngIntrvl intrvl = category == DsbdCategory.CHKN ? chkn : dep;
+
+			result.setSmryWtngPsgCnt(intrvl.getWtngPsgCnt());
+			result.setSmryAvgWtngSec(intrvl.getAvgWtngSec());
+			result.setSmryArvlPsgCnt(intrvl.getArvlPsgCnt());
+			result.setSmryPrcsPsgCnt(intrvl.getPrcsPsgCnt());
+			return;
+		}
+
+		result.setSmryWtngPsgCnt(sumOrNull(chkn.getWtngPsgCnt(), dep.getWtngPsgCnt()));
+		result.setSmryAvgWtngSec(sumOrNull(chkn.getAvgWtngSec(), dep.getAvgWtngSec()));
+		result.setSmryArvlPsgCnt(chkn.getArvlPsgCnt());
+		result.setSmryPrcsPsgCnt(dep.getPrcsPsgCnt());
+	}
+
+	private static Integer sumOrNull(Integer first, Integer second) {
+		if (first == null || second == null) {
+			return first == null ? second : first;
+		}
+
+		return first + second;
+	}
+
+	private static Double sumOrNull(Double first, Double second) {
+		if (first == null || second == null) {
+			return first == null ? second : first;
+		}
+
+		return first + second;
+	}
+
+	// 체크인 / 출국장 기준표가 달라 대기시간이 아니라 등급으로 비교한다
 	private void applyWorseCgn(TmnlSmryDto result, FcltWtngDay wtngDay, String unitCd, LocalDateTime evalDt) {
-		Computed<Double> wtngSec = wtngDay.avgWtngSecOf(unitCd, evalDt);
-		CongestionStatus status = wtngDay.getGradeScale().gradeOf(wtngSec).getValue();
+		CongestionStatus status = wtngDay.gradeOf(unitCd, evalDt).getValue();
 
 		if (status == null) {
 			return;
@@ -323,10 +344,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		CongestionStatus worstStatus = result.getCgnStatus();
 
-		if (worstStatus == null || status.compareTo(worstStatus) > 0
-				|| status == worstStatus && wtngSec.getValue() > result.getCgnWtngSec()) {
+		if (worstStatus == null || status.compareTo(worstStatus) > 0) {
 			result.setCgnStatus(status);
-			result.setCgnWtngSec(wtngSec.getValue());
 		}
 	}
 

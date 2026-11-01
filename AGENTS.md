@@ -55,6 +55,7 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
 | `smry` | 요약 | `adj` | 조정 |
 | `rslt` | 결과 | `cmpr` | 비교 |
 | `stng` | 설정 | `excn` | 실행 |
+| `arvl` | 유입(도착) | | |
 | `Yn` | Y/N 플래그 | `Sn` | 일련번호 |
 | `Cd` | 코드 | `Nm` | 명칭 |
 | `Dt` | 일시 | `Ymd` | 일자(yyyyMMdd) |
@@ -92,6 +93,11 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
      `PsgPrcsGradeRawDto.minVl` · `maxVl` 은 `BigDecimal` → `int`(분). **새 이름도 이제 고정이다.**
    - 2026-10-28 `TmnlSmryDto.cgnWtngSec` 를 더했다. 대표 등급을 정한 시설(같은 등급이면 대기시간이 긴 시설)의
      판정값이며 요약정보 '평균 대기시간'이 이 값을 읽는다. `intrvlAvgWtngSec` 는 남아 있지만 화면이 읽지 않는다.
+   - 2026-11-01 요약정보를 Prime Time 대상(랜드사이드 / 아일랜드 / 출국장)으로 바꿨다. 요청에 `category` 를,
+     `TmnlSmryDto` 에 `smryWtngPsgCnt` · `smryAvgWtngSec` · `smryArvlPsgCnt` · `smryPrcsPsgCnt` 를 더했다.
+     이전 요약정보 필드 `TmnlSmryDto.cgnWtngSec` · `intrvlMaxWtngPsgCnt` · `intrvlAvgWtngSec` · `intrvlPrcsPsgCnt` 와
+     그 원천 `CastDsbdMapper.retrieveRsltByIntrvl` · `DsbdIntrvlRawDto` 는 같은 날 삭제했다 (`docs/dashboard-summary.md`).
+     카드 · 맵 · 알림의 `cgnWtngSec` 는 그대로다. **새 이름도 이제 고정이다.**
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).

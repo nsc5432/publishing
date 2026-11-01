@@ -8,7 +8,6 @@ import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
 import aoms.pm.cast.dto.BdpsgAnceRawDto;
 import aoms.pm.cast.dto.ChknAlnAssignmentRawDto;
-import aoms.pm.cast.dto.DsbdIntrvlRawDto;
 import aoms.pm.cast.dto.FcltUnitRawDto;
 import aoms.pm.cast.dto.FltSmryRawDto;
 import aoms.pm.cast.dto.PsgDptcnyTrnsPrfmncRawDto;
@@ -45,15 +44,6 @@ public interface CastDsbdMapper {
 	List<SmltRsltRawDto> retrieveRsltByHourList(
 			@Param("smltId") String smltId,
 			@Param("tmnlId") String tmnlId,
-			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
-	);
-
-	DsbdIntrvlRawDto retrieveRsltByIntrvl(
-			@Param("smltId") String smltId,
-			@Param("smltMdlSn") int smltMdlSn,
-			@Param("tmnlId") String tmnlId,
-			@Param("bgnDt") LocalDateTime bgnDt,
-			@Param("endDt") LocalDateTime endDt,
 			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
 	);
 

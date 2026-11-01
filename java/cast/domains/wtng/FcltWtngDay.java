@@ -153,6 +153,45 @@ public final class FcltWtngDay {
 				valueOf(last.getEndOperCntom()));
 	}
 
+	/** 전 시설의 [bgnDt, endDt) 집계. 대기인원은 bgnDt 시점 값, 유입 · 처리 · 대기시간은 구간 10분 행의 합이다 */
+	public FcltWtngIntrvl intrvlOf(LocalDateTime bgnDt, LocalDateTime endDt) {
+		requireBoundary(bgnDt);
+		requireBoundary(endDt);
+
+		Integer wtngPsgCnt = null;
+		Integer arvlPsgCnt = null;
+		boolean hasSec = false;
+		long prcsSum = 0;
+		long wtngVldSum = 0;
+		double wtngSecSum = 0;
+
+		for (TreeMap<LocalDateTime, FcltWtngSec> secMap : secMapByUnit.values()) {
+			FcltWtngSec prev = secMap.get(bgnDt.minusMinutes(SEC_MIN));
+
+			if (prev != null && prev.getEndWtngPsgCnt() != null) {
+				wtngPsgCnt = valueOf(wtngPsgCnt) + prev.getEndWtngPsgCnt();
+			}
+
+			for (FcltWtngSec sec : secMap.subMap(bgnDt, true, endDt, false).values()) {
+				Integer arrival = arrivalOf(secMap, sec);
+
+				if (arrival != null) {
+					arvlPsgCnt = valueOf(arvlPsgCnt) + arrival;
+				}
+
+				hasSec = true;
+				prcsSum += sec.getPrcsPsgCnt();
+				wtngVldSum += sec.getWtngVldPsgCnt();
+				wtngSecSum += sec.getWtngPsecSum();
+			}
+		}
+
+		// 대기시간이 빠진 처리 여객이 있으면 평균이 짧은 쪽으로 치우쳐 산정하지 않는다
+		Double avgWtngSec = prcsSum == 0 || wtngVldSum < prcsSum ? null : wtngSecSum / prcsSum;
+
+		return new FcltWtngIntrvl(wtngPsgCnt, arvlPsgCnt, hasSec ? Math.toIntExact(prcsSum) : null, avgWtngSec);
+	}
+
 	/** 평가시각 직전 30분 [evalDt-30, evalDt) — 카드 / 혼잡해소 팝업이 읽는 구간 */
 	public FcltWtngSlot windowSlotOf(String unitCd, LocalDateTime evalDt) {
 		return slotOf(unitCd, evalDt.minusMinutes(WINDOW_MIN), WINDOW_MIN);

@@ -26,28 +26,39 @@
 자정 이후를 같은 날 00시 데이터로 순환 집계하지 않는다.
 운항 원천 조회는 기존 `retrieveFltSmry` SQL을 각 구간과 전일 같은 구간에 재사용한다.
 
-`retrieveDailySmltTmnlSmry`의 `TmnlSmryDto`에 다음 필드를 추가했다.
-기존 `peak` 및 DTO 필드명은 유지한다.
+## 요약정보 (2026-11-01)
 
-| 필드 | 단위 | 계산 |
+`.sum-info`는 아래 `smry*` 필드를 읽는다. 요청에 `category`를 더했고, 대상은 Prime Time 선택(`category`)을 따른다.
+이전 요약정보 필드 `intrvlMaxWtngPsgCnt` · `intrvlAvgWtngSec` · `intrvlPrcsPsgCnt` · `cgnWtngSec`와
+그 원천 SQL `CastDsbdMapper.retrieveRsltByIntrvl`(`DsbdIntrvlRawDto`)은 같은 날 삭제했다.
+
+| category | 대상(왼쪽 라벨) | 시설 |
 |---|---|---|
-| `intrvlMaxWtngPsgCnt` | 명 | 구간 내 같은 시각의 시설별 대기인원을 합한 뒤 최댓값 |
-| `intrvlAvgWtngSec` | 초 | 구간 처리기록의 `SUM(AVG_WTNG_HR × TRNST_PSG_CNT) / SUM(TRNST_PSG_CNT)` |
-| `intrvlPrcsPsgCnt` | 명 | 상위시설코드별 구간 통과여객 합계 중 최댓값 |
+| `PSG` · `FLT` | 랜드사이드 | 아일랜드 + 출국장 |
+| `CHKN` | 아일랜드 | 체크인 아일랜드 전체 (유인 카운터 `CC` 공용 Queue) |
+| `DEP` | 출국장 | 출국장 전체 (`SC`+`SR`) |
 
-대상은 해당 실행·모델·터미널의 사용 시설 중 `LS/CC/CK/SBD/LGT/LC/SC/SR`이다.
-구간 원천에 실행일시(`SMLT_EXCN_DT`)가 여러 개 섞이면 중복 합산하지 않고 조회 오류로 응답한다.
-대기인원은 시점 스냅샷이므로 `[시작, 종료)`를 읽고 시간축으로 합산하지 않는다.
-CAST의 통과여객·평균 대기시간은 결과시각에 끝난 직전 구간의 값이므로
-원천 결과시각 `(시작, 종료]`를 읽는다.
+원천은 시설 카드와 같은 10분 대기 결과(`FcltWtngDay`, `TN_PM_SMLT_FCLT_WTNG_RSLT`)다.
+구간은 `[hhmm, hhmm+intrvlMin)`이고 24시에서 자른다. `intrvlMin`은 10분 단위여야 한다.
 
-여러 공정의 통과여객을 더하면 같은 여객이 반복 집계된다.
-처리인원은 기존 터미널 지표와 같은 공정별 합계 중 최댓값을 유지하며 고유 여객 수를 보장하지 않는다.
-평균 대기시간은 전체 시설 처리기록의 처리인원 가중평균이므로 처리인원 지표와 분모가 다르다.
+| 필드 | 화면 라벨 | 계산 |
+|---|---|---|
+| `smryWtngPsgCnt` | 전체 대기인원 | 조회 시각 `hhmm`의 대기인원 합 (`[hhmm−10, hhmm)` 행의 종료 대기) |
+| `smryAvgWtngSec` | 평균 대기시간 | 구간 처리 여객의 처리인원 가중평균 (초) |
+| `smryArvlPsgCnt` | 시간당 유입인원 | 구간 10분 행 유입 합. 유입 = 종료 대기 − 시작 대기 + 처리 (음수는 0) |
+| `smryPrcsPsgCnt` | 시간당 처리인원 | 구간 처리인원 합 |
+
+랜드사이드는 여객 한 명이 체크인과 출국장을 모두 지나므로 **진입·진출 기준**으로 합친다.
+
+- 대기인원 = 아일랜드 + 출국장
+- 평균 대기시간 = 아일랜드 평균 + 출국장 평균 (여객 1인이 겪는 총 대기). 한쪽만 산정되면 그 값을 쓴다
+- 유입 = 아일랜드 유입 (랜드사이드 진입)
+- 처리 = 출국장 처리 (랜드사이드 진출)
+
+처리 여객이 0명이거나 대기시간이 빠진 처리 여객이 있으면 평균 대기시간은 `null`이다.
 
 조회 결과가 없으면 각 지표는 `null`이고 화면은 `-`를 표시한다.
 관측된 대기·처리인원 0명은 0으로 표시한다.
-처리인원이 0이거나 양수 처리기록에 평균 대기시간이 누락되면 평균 대기시간은 `null`이다.
 화면은 초 단위 원값을 분 단위 정수로 반올림한다.
 
 프런트 목업도 조회 구간으로 요약정보를 계산한다. 목업의 시간별 곡선은 겹치는 분만큼 비례 배분한다.
@@ -55,5 +66,4 @@ Java는 참조 사본이므로 실제 백엔드에 DTO·서비스·Mapper 변경
 
 검증 명령:
 
-- `cd react` 후 `npm run verify:dsbd`: 목업·화면 변환, 시간 변경, Prime Time, 미관측·0명, 자정 종료.
-- 루트에서 `python java/verify/verify_dsbd_interval.py`: 실제 Mapper SQL의 구간 집계를 SQLite로 검증.
+- `cd react` 후 `npm run verify:dsbd`: 목업·화면 변환, 시간 변경, Prime Time 대상, 랜드사이드 합산, 미관측·0명, 자정 종료.

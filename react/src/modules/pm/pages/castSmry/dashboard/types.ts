@@ -1,4 +1,4 @@
-import type { CongestionStatus, DsbdRsltDto, FcltType } from '@/types/api.types';
+import type { CongestionStatus, DsbdCategory, DsbdRsltDto, FcltType } from '@/types/api.types';
 import type { IconName } from '@/components/icons/InlineIcon';
 
 export type SimulationType = 'daily' | 'user';
@@ -19,6 +19,14 @@ export type TerminalKind = 'T1' | 'T2';
 
 /** 요약 블록이 세는 구간 길이(분) — 조회 시각부터 이만큼 안에 출발하는 편만 센다 */
 export const SMRY_INTRVL_MIN = 60;
+
+/** 요약정보 대상 — 랜드사이드는 아일랜드 + 출국장 */
+export const SUMMARY_TARGET_LABEL: Record<DsbdCategory, string> = {
+    PSG: '랜드\n사이드',
+    FLT: '랜드\n사이드',
+    CHKN: '아일랜드',
+    DEP: '출국장',
+};
 
 /* ================= 터미널 패널 뷰 모델 ================= */
 
@@ -239,6 +247,8 @@ export interface TerminalView {
     peak: { ampm: string; time: string; totalWait: string; maxWait: string; hourlyProcess: string };
     /** 요약 뷰 상단 2셀 × 3개 시간대 */
     summaryStats: SummarySlot[];
+    /** 요약정보 대상 — '\n' 이 들어갈 수 있다 */
+    summaryTarget: string;
     summaryInfo: SummaryInfoCell[];
     fcltCards: FcltCardData[];
     /** 큰 차트 — 좌표 계산은 그리는 쪽(TerminalChart)이 한다 */

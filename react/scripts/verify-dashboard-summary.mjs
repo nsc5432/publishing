@@ -20,42 +20,71 @@ function check(actual, expected, message) {
 try {
     const { dashboardMock: api } = await server.ssrLoadModule('/src/api/pm/mock/dashboard.mock.ts');
     const { toTerminalView, toPrimeTime } = await server.ssrLoadModule('/src/modules/pm/pages/castSmry/dashboard/view.ts');
-    const smryAt = (time, terminal = 'T1') => api.getTmnlSmry(terminal, time, 60);
+    const smryAt = (time, terminal = 'T1', category = 'PSG') => api.getTmnlSmry(terminal, time, 60, category);
     const viewAt = (time, smry = smryAt(time), category = 'PSG') => toTerminalView({
-        ymd: '20260710', hhmm: time, smry,
+        ymd: '20260710', hhmm: time, category, smry,
         rsltList: api.getTmnlRsltByTime(smry.tmnlId, category),
         chknCards: [], dptgtCards: [],
     });
-    const metrics = (smry) => [smry.intrvlMaxWtngPsgCnt, smry.intrvlAvgWtngSec, smry.intrvlPrcsPsgCnt];
+    const smryInfo = (smry) => [smry.smryWtngPsgCnt, smry.smryAvgWtngSec, smry.smryArvlPsgCnt, smry.smryPrcsPsgCnt];
     const values = (view) => view.summaryInfo.map((cell) => cell.value);
+    const expectedValues = (smry) => [
+        smry.smryWtngPsgCnt === null ? '-' : smry.smryWtngPsgCnt.toLocaleString(),
+        smry.smryAvgWtngSec === null ? '-' : String(Math.round(smry.smryAvgWtngSec / 60)),
+        smry.smryArvlPsgCnt === null ? '-' : smry.smryArvlPsgCnt.toLocaleString(),
+        smry.smryPrcsPsgCnt === null ? '-' : smry.smryPrcsPsgCnt.toLocaleString(),
+    ];
 
-    check(metrics(smryAt('0800')), [322, 2400, 2412], '08:00 uses its own one-hour results');
-    check(metrics(smryAt('0900')), [301, 2280, 2259], '09:00 updates all three interval metrics');
+    check(JSON.stringify(smryInfo(smryAt('0800'))) !== JSON.stringify(smryInfo(smryAt('0900'))), true,
+        '09:00 updates the summary from 08:00');
     check(smryAt('0800').peak, smryAt('0900').peak, 'daily peak remains independent of search time');
-    check(values(viewAt('0900')), ['301', '65', '2,259'], 'summary uses interval counts and representative facility wait');
+    check(values(viewAt('0900')), expectedValues(smryAt('0900')), 'summary reads the category summary fields');
     check(viewAt('0900').summaryInfo.map((cell) => cell.label),
-        ['최대\n대기인원', '평균\n대기시간', '시간당\n처리인원'], 'summary labels describe the metrics');
+        ['전체\n대기인원', '평균\n대기시간', '시간당\n유입인원', '시간당\n처리인원'], 'summary labels describe the metrics');
 
-    const shifted = smryAt('0910');
-    check(shifted.intrvlMaxWtngPsgCnt, 301, 'maximum queue is not accumulated across time');
-    check(shifted.intrvlPrcsPsgCnt, 2195, '09:10 to 10:10 includes overlapping parts of both hours');
-    check(shifted.intrvlAvgWtngSec, (2280 * 2259 * 5 + 1860 * 1872) / (2259 * 5 + 1872),
+    for (const [category, target] of [['PSG', '랜드\n사이드'], ['FLT', '랜드\n사이드'], ['CHKN', '아일랜드'], ['DEP', '출국장']]) {
+        check(viewAt('0900', smryAt('0900', 'T1', category), category).summaryTarget, target,
+            `${category} summary names its target`);
+    }
+
+    for (const time of ['0300', '0900', '0910', '2350']) {
+        const [chkn, dep, land] = ['CHKN', 'DEP', 'PSG'].map((category) => smryAt(time, 'T1', category));
+        check(smryInfo(smryAt(time, 'T1', 'FLT')), smryInfo(land), `${time} flights use the landside summary`);
+        check(land.smryWtngPsgCnt, chkn.smryWtngPsgCnt + dep.smryWtngPsgCnt, `${time} landside queue adds both areas`);
+        check(land.smryArvlPsgCnt, chkn.smryArvlPsgCnt, `${time} landside inflow is the island inflow`);
+        check(land.smryPrcsPsgCnt, dep.smryPrcsPsgCnt, `${time} landside processing is the departure processing`);
+        check(land.smryAvgWtngSec,
+            chkn.smryAvgWtngSec === null || dep.smryAvgWtngSec === null
+                ? chkn.smryAvgWtngSec ?? dep.smryAvgWtngSec
+                : chkn.smryAvgWtngSec + dep.smryAvgWtngSec,
+            `${time} landside wait adds both areas and keeps a single known side`);
+    }
+
+    const depHours = api.getTmnlRsltByTime('T1', 'DEP');
+    const shifted = smryAt('0910', 'T1', 'DEP');
+    const [prcs9, prcs10] = [(depHours[9].prcsPsgCnt * 50) / 60, (depHours[10].prcsPsgCnt * 10) / 60];
+    check(shifted.smryWtngPsgCnt, depHours[9].fcstWtngPsgCnt, 'queue is the snapshot at the search time');
+    check(shifted.smryPrcsPsgCnt, Math.round(prcs9 + prcs10), '09:10 to 10:10 includes overlapping parts of both hours');
+    check(shifted.smryAvgWtngSec,
+        (depHours[9].wtngHr * 60 * prcs9 + depHours[10].wtngHr * 60 * prcs10) / (prcs9 + prcs10),
         'average wait is weighted by processed passengers');
-    check(metrics(smryAt('2350')), [22, 180, 27], 'late-night range stops at midnight');
+    check(smryAt('2350', 'T1', 'DEP').smryPrcsPsgCnt, Math.round((depHours[23].prcsPsgCnt * 10) / 60),
+        'late-night range stops at midnight');
     check(viewAt('2350').barText.endsWith('PM'), true, 'search-time marker uses its own AM/PM');
-    check(values(viewAt('0300')), ['0', '65', '0'], 'zero interval counts preserve representative facility wait');
+    check(values(viewAt('0300')), expectedValues(smryAt('0300')), 'observed zero counts stay zero');
     check(values(viewAt('0900', { ...smryAt('0900'),
-        intrvlMaxWtngPsgCnt: null, intrvlAvgWtngSec: null, intrvlPrcsPsgCnt: null, cgnWtngSec: null,
-    })), ['-', '-', '-'], 'unknown interval results never fall back to daily peak');
+        smryWtngPsgCnt: null, smryAvgWtngSec: null, smryArvlPsgCnt: null, smryPrcsPsgCnt: null,
+    })), ['-', '-', '-', '-'], 'unknown summary results never fall back to daily peak');
 
     for (const [category, expectedTime] of [['PSG', '0800'], ['FLT', '0900'], ['CHKN', '1000'], ['DEP', '1100']]) {
         const time = toPrimeTime(['T1', 'T2'].map((terminal) => api.getTmnlRsltByTime(terminal, category)), category);
         check(time, expectedTime, `${category} Prime Time selects its peak hour`);
-        check(values(viewAt(time, smryAt(time), category)), values(viewAt(time)),
-            `${category} Prime Time summary uses the newly selected search time`);
+        check(values(viewAt(time, smryAt(time, 'T1', category), category)), expectedValues(smryAt(time, 'T1', category)),
+            `${category} Prime Time summary uses its own target at the selected search time`);
         check(smryAt(time).peak, smryAt('0900').peak, `${category} Prime Time preserves daily peak information`);
     }
-    check(metrics(smryAt('0900', 'T2')), [262, 1980, 1962], 'second terminal has independent interval results');
+    check(JSON.stringify(smryInfo(smryAt('0900', 'T2'))) !== JSON.stringify(smryInfo(smryAt('0900'))), true,
+        'second terminal has independent summary results');
 
     for (const terminal of ['T1', 'T2']) {
         const smry = smryAt('0910', terminal);

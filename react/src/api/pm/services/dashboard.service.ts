@@ -60,16 +60,17 @@ export const dashboardService = {
         tmnlId: TmnlId,
         hhmm: string,
         intrvlMin: number,
+        category: DsbdCategory,
     ): Promise<TmnlSmryDto> => {
         if (USE_MOCK) {
-            return mockResponse(dashboardMock.getTmnlSmry(tmnlId, hhmm, intrvlMin), {
+            return mockResponse(dashboardMock.getTmnlSmry(tmnlId, hhmm, intrvlMin, category), {
                 loading: true,
             });
         }
 
         const response = await apiClient.post<TmnlSmryDto>(
             API_ENDPOINTS.DSBD_TMNL_SMRY,
-            { smltId, tmnlId, hhmm, intrvlMin },
+            { smltId, tmnlId, hhmm, intrvlMin, category },
             { params: { loading: true } },
         );
 

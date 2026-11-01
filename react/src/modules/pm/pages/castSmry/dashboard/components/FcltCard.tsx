@@ -31,6 +31,7 @@ export function FcltCard({ data, gauge, onDetail, onMove }: FcltCardProps) {
         data.variants.findIndex((item) => item.unitCd === selectedUnit),
     );
     const variant = data.variants[variantIndex];
+    const selectedChip = data.chips.find((chip) => chip.label === variant?.unitCd);
 
     const cycleVariant = (direction: number) => {
         const nextIndex = (variantIndex + direction + data.variants.length) % data.variants.length;
@@ -57,7 +58,9 @@ export function FcltCard({ data, gauge, onDetail, onMove }: FcltCardProps) {
             </div>
             <div className="fclt-card-mid">
                 <div className="isl">{variant.island ?? ' '}</div>
-                <div className="num">{variant.num}</div>
+                <div className="num" data-congestion={selectedChip?.kind}>
+                    {variant.num}
+                </div>
                 <div className="meta">
                     {variant.meta.map((metaCell) => (
                         <span key={metaCell.label}>

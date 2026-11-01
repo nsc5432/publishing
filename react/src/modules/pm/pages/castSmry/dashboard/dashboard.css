@@ -409,6 +409,25 @@ html[data-page='dashboard'] .calc .danger {
     font-weight: 600;
 }
 
+@media (min-width: 1350px) {
+    html[data-page='dashboard'] .topbar {
+        display: grid;
+        grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
+    }
+
+    html[data-page='dashboard'] .topbar .spacer {
+        display: none;
+    }
+
+    html[data-page='dashboard'] .datebox {
+        margin-left: calc(var(--pm-lnb-w) + var(--pm-shell-gap));
+    }
+
+    html[data-page='dashboard'] .top-right {
+        justify-self: end;
+    }
+}
+
 /* ============ sidebar ============ */
 html[data-page='dashboard'] .sidebar {
     position: fixed;
@@ -1009,37 +1028,60 @@ html[data-page='dashboard'] .p-time-step {
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0;
     margin-left: 10px;
+    padding: 1px;
+    border: 1px solid #c7d9f5;
+    border-radius: 7px;
+    background: #edf4ff;
     transform: skewX(10deg);
 }
 
 html[data-page='dashboard'] .p-time-step > button {
     width: 26px;
-    height: 13px;
+    height: 12px;
     padding: 0;
     border: none;
-    border-radius: 3px;
-    background: #eef0f6;
-    color: #14161c;
+    border-radius: 4px 4px 0 0;
+    background: transparent;
+    color: #3776d4;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    transition: background-color 150ms ease, color 150ms ease;
+}
+
+html[data-page='dashboard'] .p-time-step > button + button {
+    border-radius: 0 0 4px 4px;
+    box-shadow: 0 -1px 0 #d4e2f7;
 }
 
 html[data-page='dashboard'] .p-time-step > button:hover:not(:disabled) {
-    background: #dde1ec;
+    background: #3573ce;
+    color: #fff;
+}
+
+html[data-page='dashboard'] .p-time-step > button:active:not(:disabled) {
+    background: #245cad;
+}
+
+html[data-page='dashboard'] .p-time-step > button:focus-visible {
+    outline: 2px solid #2f7ff0;
+    outline-offset: 1px;
+    position: relative;
+    z-index: 1;
 }
 
 html[data-page='dashboard'] .p-time-step > button:disabled {
+    background: #f3f5f8;
     color: #b8bdc9;
     cursor: default;
 }
 
 html[data-page='dashboard'] .p-time-step svg {
-    width: 13px;
-    height: 13px;
+    width: 14px;
+    height: 12px;
 }
 
 html[data-page='dashboard'] .p-bar {
@@ -1162,7 +1204,7 @@ html[data-page='dashboard'] .sum-two {
     border-radius: 14px;
     display: flex;
     flex-direction: column;
-    padding: 8px 10px 4px;
+    padding: 8px 16px 4px;
 }
 
 html[data-page='dashboard'] .sum-cell {
@@ -1170,7 +1212,7 @@ html[data-page='dashboard'] .sum-cell {
     display: grid;
     grid-template-columns: 96px minmax(0, 1fr) minmax(0, 1.3fr);
     align-items: center;
-    gap: 8px;
+    gap: 24px;
     min-height: 22px;
 }
 
@@ -1198,6 +1240,10 @@ html[data-page='dashboard'] .sum-metric {
     align-items: center;
     gap: 3px;
     min-width: 0;
+}
+
+html[data-page='dashboard'] .sum-metric:last-child {
+    justify-content: flex-end;
 }
 
 html[data-page='dashboard'] .sum-metric > i {
@@ -1234,7 +1280,7 @@ html[data-page='dashboard'] .sum-cell .u {
 }
 
 html[data-page='dashboard'] .sum-cell .sub {
-    margin-left: auto;
+    margin-left: 4px;
     font-size: 10px;
     color: #7c8698;
     white-space: nowrap;
@@ -1249,9 +1295,10 @@ html[data-page='dashboard'] .sum-info {
     flex: 1;
     border-radius: 14px;
     display: flex;
+    min-width: 0;
     align-items: center;
-    padding: 0 16px;
-    gap: 8px;
+    padding: 0 14px;
+    gap: 10px;
     background: linear-gradient(102deg, #e7fcf9 0%, #d3f4f3 20%, #eefefb 70%, #f5fffd 100%);
     border: 1px solid #bbe8e3;
 }
@@ -1281,22 +1328,25 @@ html[data-page='dashboard'] .sum-info .lbl {
 
 html[data-page='dashboard'] .sum-info .cells {
     flex: 1;
+    min-width: 0;
     display: flex;
     align-items: center;
     justify-content: space-around;
 }
 
+/* 지표가 4칸이라 라벨을 값 위에 쌓아 칸 폭을 줄인다 */
 html[data-page='dashboard'] .sum-info .cell {
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 2px;
 }
 
 html[data-page='dashboard'] .sum-info .k {
-    font-size: 13.5px;
+    font-size: 12.5px;
     color: #7c8698;
-    line-height: 1.35;
+    line-height: 1.25;
     text-align: center;
     white-space: nowrap;
 }
@@ -1306,20 +1356,20 @@ html[data-page='dashboard'] .sum-info .val {
 }
 
 html[data-page='dashboard'] .sum-info b {
-    font-size: 27px;
+    font-size: 23px;
     font-weight: 700;
     color: var(--acc-soft);
-    letter-spacing: -1.2px;
+    letter-spacing: -1px;
 }
 
 html[data-page='dashboard'] .sum-info .u {
-    font-size: 14px;
+    font-size: 13px;
     color: #3c4350;
-    margin-left: 4px;
+    margin-left: 2px;
 }
 
 html[data-page='dashboard'] .sum-info .sep {
-    margin: 0 4px;
+    margin: 0 2px;
 }
 
 /* --- fclt cards --- */
@@ -1431,7 +1481,7 @@ html[data-page='dashboard'] .fclt-card-mid .isl {
 html[data-page='dashboard'] .fclt-card-mid .num {
     font-size: 30px;
     font-weight: 700;
-    color: #ee1111;
+    color: var(--fclt-congestion-color, #979797);
     letter-spacing: -1.2px;
     line-height: 1.3;
 }
@@ -1605,7 +1655,6 @@ html[data-page='dashboard'] .rec .cap {
     color: #23272f;
 }
 
-
 html[data-page='dashboard'] .chips {
     display: flex;
     gap: 6px;
@@ -1622,6 +1671,7 @@ html[data-page='dashboard'] .chip {
     font-size: 12px;
     font-weight: 700;
     color: #fff;
+    background: var(--fclt-congestion-color);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1657,32 +1707,39 @@ html[data-page='dashboard'] .chip.sel {
     transform: translateY(-2px);
 }
 
-html[data-page='dashboard'] .chip.r {
-    background: #dd0000;
+html[data-page='dashboard'] .chip.r,
+html[data-page='dashboard'] .fclt-card-mid .num[data-congestion='r'] {
+    --fclt-congestion-color: #dd0000;
 }
 
-html[data-page='dashboard'] .chip.b {
-    background: #2f7ff0;
+html[data-page='dashboard'] .chip.b,
+html[data-page='dashboard'] .fclt-card-mid .num[data-congestion='b'] {
+    --fclt-congestion-color: #2f7ff0;
 }
 
-html[data-page='dashboard'] .chip.g {
-    background: #0f7d00;
+html[data-page='dashboard'] .chip.g,
+html[data-page='dashboard'] .fclt-card-mid .num[data-congestion='g'] {
+    --fclt-congestion-color: #0f7d00;
 }
 
-html[data-page='dashboard'] .chip.o {
-    background: #e59500;
+html[data-page='dashboard'] .chip.o,
+html[data-page='dashboard'] .fclt-card-mid .num[data-congestion='o'] {
+    --fclt-congestion-color: #e59500;
 }
 
-html[data-page='dashboard'] .chip.gray {
-    background: #979797;
+html[data-page='dashboard'] .chip.gray,
+html[data-page='dashboard'] .fclt-card-mid .num[data-congestion='gray'] {
+    --fclt-congestion-color: #979797;
 }
 
-html[data-page='dashboard'] .chip.gray2 {
-    background: #c9c9c9;
+html[data-page='dashboard'] .chip.gray2,
+html[data-page='dashboard'] .fclt-card-mid .num[data-congestion='gray2'] {
+    --fclt-congestion-color: #c9c9c9;
 }
 
-html[data-page='dashboard'] .chip.k {
-    background: #4b4b4b;
+html[data-page='dashboard'] .chip.k,
+html[data-page='dashboard'] .fclt-card-mid .num[data-congestion='k'] {
+    --fclt-congestion-color: #4b4b4b;
 }
 
 /* --- table view --- */

@@ -124,8 +124,8 @@ const HEADER: DsbdHeaderDto = {
 /* ================= 터미널 패널 요약 ================= */
 
 /** 조회 시각과 무관한 부분 — 구간 4필드는 buildTmnlSmry 가 얹는다 */
-type TmnlIntrvlMetrics = Pick<TmnlSmryDto, 'intrvlMaxWtngPsgCnt' | 'intrvlAvgWtngSec' | 'intrvlPrcsPsgCnt'>;
-type TmnlSmryBase = Omit<TmnlSmryDto, 'cgnStatus' | 'cgnWtngSec' | 'intrvlMin' | 'intrvlFltCnt' | 'intrvlPsgCnt' | 'intrvlYesterdayFltDiffCnt' | 'intrvlYesterdayPsgDiffCnt' | 'intrvlList' | keyof TmnlIntrvlMetrics>;
+type TmnlSmryInfo = Pick<TmnlSmryDto, 'smryWtngPsgCnt' | 'smryAvgWtngSec' | 'smryArvlPsgCnt' | 'smryPrcsPsgCnt'>;
+type TmnlSmryBase = Omit<TmnlSmryDto, 'cgnStatus' | 'intrvlMin' | 'intrvlFltCnt' | 'intrvlPsgCnt' | 'intrvlYesterdayFltDiffCnt' | 'intrvlYesterdayPsgDiffCnt' | 'intrvlList' | keyof TmnlSmryInfo>;
 
 const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
     T1: {
@@ -197,32 +197,57 @@ function sumByIntrvl(hourly: number[], bgnHhmm: string, intrvlMin: number): numb
     return Math.round(total);
 }
 
-function buildIntrvlMetrics(tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlIntrvlMetrics {
+/** 체크인(아일랜드 전체) / 출국장(전체) 하나의 구간 집계. 대기인원은 조회 시각이 속한 시의 값이다 */
+function buildFcltIntrvl(tmnlId: TmnlId, fcltCategory: 'CHKN' | 'DEP', hhmm: string, intrvlMin: number): TmnlSmryInfo {
     const bgnMin = Number(hhmm.slice(0, 2)) * MIN_PER_HOUR + Number(hhmm.slice(2, 4));
     const endMin = Math.min(bgnMin + intrvlMin, MIN_PER_DAY);
-    let maxQueue: number | null = null;
+    const rsltList = buildRsltList(tmnlId, fcltCategory);
+    const queueAt = (minute: number) => rsltList[Math.min(Math.floor(minute / MIN_PER_HOUR), 23)].fcstWtngPsgCnt;
     let prcsPsgCnt = 0;
     let wtngSecSum = 0;
 
-    for (const rslt of buildRsltList(tmnlId, 'PSG')) {
+    for (const rslt of rsltList) {
         const hourBgn = Number(rslt.time.slice(0, 2)) * MIN_PER_HOUR;
         const overlap = Math.min(endMin, hourBgn + MIN_PER_HOUR) - Math.max(bgnMin, hourBgn);
         if (overlap <= 0) continue;
 
         const prcs = (rslt.prcsPsgCnt * overlap) / MIN_PER_HOUR;
-        maxQueue = Math.max(maxQueue ?? 0, rslt.fcstWtngPsgCnt);
         prcsPsgCnt += prcs;
         wtngSecSum += rslt.wtngHr * MIN_PER_HOUR * prcs;
     }
 
+    const wtngPsgCnt = queueAt(bgnMin);
+
     return {
-        intrvlMaxWtngPsgCnt: maxQueue,
-        intrvlAvgWtngSec: prcsPsgCnt > 0 ? wtngSecSum / prcsPsgCnt : null,
-        intrvlPrcsPsgCnt: maxQueue === null ? null : Math.round(prcsPsgCnt),
+        smryWtngPsgCnt: wtngPsgCnt,
+        smryAvgWtngSec: prcsPsgCnt > 0 ? wtngSecSum / prcsPsgCnt : null,
+        // 서버의 10분 행 유입과 같은 보존식 — 끝 대기 − 시작 대기 + 처리
+        smryArvlPsgCnt: Math.max(0, Math.round(queueAt(endMin) - wtngPsgCnt + prcsPsgCnt)),
+        smryPrcsPsgCnt: Math.round(prcsPsgCnt),
     };
 }
 
-function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmryDto {
+function sumOrNull(first: number | null, second: number | null): number | null {
+    return first === null || second === null ? (first ?? second) : first + second;
+}
+
+/** 랜드사이드는 유입을 진입(아일랜드), 처리를 진출(출국장)로 센다 (서버와 같은 규칙) */
+function buildSmryInfo(tmnlId: TmnlId, hhmm: string, intrvlMin: number, category: DsbdCategory): TmnlSmryInfo {
+    const chkn = buildFcltIntrvl(tmnlId, 'CHKN', hhmm, intrvlMin);
+    const dep = buildFcltIntrvl(tmnlId, 'DEP', hhmm, intrvlMin);
+
+    if (category === 'CHKN') return chkn;
+    if (category === 'DEP') return dep;
+
+    return {
+        smryWtngPsgCnt: sumOrNull(chkn.smryWtngPsgCnt, dep.smryWtngPsgCnt),
+        smryAvgWtngSec: sumOrNull(chkn.smryAvgWtngSec, dep.smryAvgWtngSec),
+        smryArvlPsgCnt: chkn.smryArvlPsgCnt,
+        smryPrcsPsgCnt: dep.smryPrcsPsgCnt,
+    };
+}
+
+function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number, category: DsbdCategory): TmnlSmryDto {
     const intrvlFltCnt = sumByIntrvl(toHourlyFlt(tmnlId), hhmm, intrvlMin);
     const intrvlPsgCnt = sumByIntrvl(HOURLY_PSG[tmnlId], hhmm, intrvlMin);
     const ratio = YESTERDAY_RATIO[tmnlId];
@@ -249,18 +274,11 @@ function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmr
     // 대표 등급은 PRIME TIME(대기인원 피크)과 별개로 조회 시각 시설 카드 중 최고 등급이다 (서버와 같은 규칙)
     const cardList = [...buildFcltCardList(tmnlId, hhmm, 'CHKN'), ...buildFcltCardList(tmnlId, hhmm, 'DEP')];
     const cgnStatus = mockWorstOf(cardList.map((card) => card.cgnStatus));
-    const cgnCard = cardList
-        .filter((card) => cgnStatus !== null && card.cgnStatus === cgnStatus)
-        .reduce<DsbdFcltCardDto | null>(
-            (top, card) => (top === null || (card.cgnWtngSec ?? 0) > (top.cgnWtngSec ?? 0) ? card : top),
-            null,
-        );
 
     return {
         ...TMNL_SMRY[tmnlId],
-        ...buildIntrvlMetrics(tmnlId, hhmm, intrvlMin),
+        ...buildSmryInfo(tmnlId, hhmm, intrvlMin, category),
         cgnStatus,
-        cgnWtngSec: cgnCard?.cgnWtngSec ?? null,
         intrvlMin,
         intrvlFltCnt,
         intrvlPsgCnt,
@@ -998,7 +1016,8 @@ export const dashboardMock = {
 
     getHeader: (): DsbdHeaderDto => HEADER,
 
-    getTmnlSmry: (tmnlId: TmnlId, hhmm: string, intrvlMin: number): TmnlSmryDto => buildTmnlSmry(tmnlId, hhmm, intrvlMin),
+    getTmnlSmry: (tmnlId: TmnlId, hhmm: string, intrvlMin: number, category: DsbdCategory): TmnlSmryDto =>
+        buildTmnlSmry(tmnlId, hhmm, intrvlMin, category),
 
     getTmnlRsltByTime: (tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] => buildRsltList(tmnlId, category),
 

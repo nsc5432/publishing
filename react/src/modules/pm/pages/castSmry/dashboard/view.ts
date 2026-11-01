@@ -25,6 +25,7 @@ import {
 } from '@/lib/format';
 import {
     FCLT_QUEUE_LABEL,
+    SUMMARY_TARGET_LABEL,
     type FcltCardChip,
     type FcltCardData,
     type FcltCardType,
@@ -44,6 +45,7 @@ import {
 interface TerminalViewInput {
     ymd: string;
     hhmm: string;
+    category: DsbdCategory;
     smry: TmnlSmryDto;
     rsltList: DsbdRsltDto[];
     chknCards: DsbdFcltCardDto[];
@@ -260,7 +262,7 @@ function toSummarySlots(hhmm: string, smry: TmnlSmryDto): SummarySlot[] {
     });
 }
 
-export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCards }: TerminalViewInput): TerminalView {
+export function toTerminalView({ ymd, hhmm, category, smry, rsltList, chknCards, dptgtCards }: TerminalViewInput): TerminalView {
     // 시간대별 결과는 정시(HH00) 단위라 조회 시각과 같은 '시'를 찾는다.
     const currentIndex = rsltList.findIndex((rslt) => rslt.time.slice(0, 2) === hhmm.slice(0, 2));
     const totalCount = rsltList.reduce((total, rslt) => total + rslt.psgCnt, 0);
@@ -282,20 +284,26 @@ export function toTerminalView({ ymd, hhmm, smry, rsltList, chknCards, dptgtCard
             hourlyProcess: formatCount(smry.peak.hrlyPrcsPsgCnt),
         },
         summaryStats: toSummarySlots(hhmm, smry),
+        summaryTarget: SUMMARY_TARGET_LABEL[category],
         summaryInfo: [
             {
-                label: '최대\n대기인원',
-                value: smry.intrvlMaxWtngPsgCnt == null ? '-' : formatCount(smry.intrvlMaxWtngPsgCnt),
+                label: '전체\n대기인원',
+                value: smry.smryWtngPsgCnt == null ? '-' : formatCount(smry.smryWtngPsgCnt),
                 unit: '명',
             },
             {
                 label: '평균\n대기시간',
-                value: smry.cgnWtngSec == null ? '-' : String(Math.round(smry.cgnWtngSec / 60)),
+                value: smry.smryAvgWtngSec == null ? '-' : String(Math.round(smry.smryAvgWtngSec / 60)),
                 unit: '분',
             },
             {
+                label: '시간당\n유입인원',
+                value: smry.smryArvlPsgCnt == null ? '-' : formatCount(smry.smryArvlPsgCnt),
+                unit: '명',
+            },
+            {
                 label: '시간당\n처리인원',
-                value: smry.intrvlPrcsPsgCnt == null ? '-' : formatCount(smry.intrvlPrcsPsgCnt),
+                value: smry.smryPrcsPsgCnt == null ? '-' : formatCount(smry.smryPrcsPsgCnt),
                 unit: '명',
             },
         ],
@@ -605,6 +613,7 @@ export const EMPTY_TERMINAL_VIEW: TerminalView = {
     },
     peak: { ampm: '', time: '-', totalWait: '-', maxWait: '-', hourlyProcess: '-' },
     summaryStats: [],
+    summaryTarget: '',
     summaryInfo: [],
     fcltCards: [],
     chart: { rsltList: [] },

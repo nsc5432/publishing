@@ -115,17 +115,20 @@ export interface TmnlSmryDto extends JsonResponse {
     brdgRate: number;
     /** hhmm 의 체크인 / 출국장 시설 중 최고 등급. 전부 산정 불가면 null */
     cgnStatus: CongestionStatus | null;
-    /** cgnStatus 를 정한 시설의 직전 30분 처리 여객 평균 대기시간 (초). 산정 불가면 null */
-    cgnWtngSec: number | null;
     intrvlMin: number;
     intrvlFltCnt: number;
     intrvlPsgCnt: number;
     intrvlYesterdayFltDiffCnt: number;
     intrvlYesterdayPsgDiffCnt: number;
     intrvlList: DsbdFltIntrvlDto[];
-    intrvlMaxWtngPsgCnt: number | null;
-    intrvlAvgWtngSec: number | null;
-    intrvlPrcsPsgCnt: number | null;
+    /** 요약정보 — 대상은 요청 category 를 따른다 (PSG/FLT 랜드사이드 = 아일랜드 + 출국장, CHKN 아일랜드 전체, DEP 출국장 전체) */
+    smryWtngPsgCnt: number | null;
+    /** [hhmm, hhmm+intrvlMin) 처리 여객 평균 대기시간 (초). 랜드사이드는 아일랜드 + 출국장, 한쪽만 산정되면 그 값 */
+    smryAvgWtngSec: number | null;
+    /** 랜드사이드는 아일랜드 유입 (진입) */
+    smryArvlPsgCnt: number | null;
+    /** 랜드사이드는 출국장 처리 (진출) */
+    smryPrcsPsgCnt: number | null;
     peak: PeakDto;
 }
 

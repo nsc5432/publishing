@@ -180,10 +180,10 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                         <span className="p-title-txt">{view.barText}</span>
                         <span className="p-time-step">
                             <button type="button" aria-label="10분 뒤" disabled={!laterHhmm} onClick={() => onTimeChange(laterHhmm)}>
-                                <Icon name="chevU" />
+                                <Icon name="caretU" />
                             </button>
                             <button type="button" aria-label="10분 전" disabled={!earlierHhmm} onClick={() => onTimeChange(earlierHhmm)}>
-                                <Icon name="chevD" />
+                                <Icon name="caretD" />
                             </button>
                         </span>
                     </span>
@@ -231,9 +231,7 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                     </div>
                     <div className="sum-info">
                         <div className="lbl">
-                            요약
-                            <br />
-                            정보
+                            <Multiline text={view.summaryTarget} />
                         </div>
                         <div className="cells">
                             {view.summaryInfo.map((cell, cellIndex) => (
