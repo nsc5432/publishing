@@ -103,6 +103,9 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
      대기인원은 전 시설 합, 나머지는 운영 부스 0 이고 처리 0 인 시설을 뺀 평균(시간은 처리인원 가중)으로 낸다.
      같은 날 출국장 팝업 지표 4종의 원천을 `retrieveMapRsltDayList`(30분 MAX · 단순 AVG)에서 `FcltWtngDay`(DEP = LGT) `slotOf` 로
      바꿨다 — 아일랜드와 같은 정의다. 맵 혼잡 알림의 출국장 대기인원은 여전히 `retrieveMapRsltDayList` 를 읽는다. **새 이름도 이제 고정이다.**
+   - 2026-11-01 체크인카운터 결과 지표에 `ChknCounterDto.maxWaitMin`(당일 처리 여객 최대 대기, 분)을 더했다. 원천은 터미널 공용 Queue
+     `ChknQueueSeries.waitDistribution` 의 최대 칸이다. 같은 날 화면 지표에서 처리용량 사용률을 빼고, 최대 Queue 는 `kpi.maxQueuePsgCnt`(터미널 합)
+     대신 슬롯 `MapChknRsltDto.maxQueuePsgCnt` 의 아일랜드 단위 최댓값과 그 아일랜드 · 슬롯 시각을 그린다. **새 이름도 이제 고정이다.**
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).

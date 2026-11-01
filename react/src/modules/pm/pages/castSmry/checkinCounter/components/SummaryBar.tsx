@@ -1,12 +1,5 @@
 import { NoticeWarnIcon } from '@/components/icons';
-import {
-    NOTICE_LEVEL,
-    UNKNOWN_NOTICE,
-    toLevelKey,
-    type ChknKpi,
-    type ChknSummaryItem,
-    type NoticeData,
-} from '../types';
+import { NOTICE_LEVEL, UNKNOWN_NOTICE, toLevelKey, type ChknKpi, type ChknSummaryItem, type NoticeData } from '../types';
 
 interface SummaryBarProps {
     summary: ChknSummaryItem[];
@@ -15,10 +8,7 @@ interface SummaryBarProps {
 }
 
 /**
- * 요약 바 — 배치한 자원(왼쪽) / 공용 Queue 결과(오른쪽) / 그 시각 혼잡 알림(아래).
- *
- * 자원과 결과를 한 줄에 붙여 둔 이유는 화면이 답하려는 질문이 둘의 관계이기 때문이다
- * ("이만큼 열어서 이만큼 기다린다"). 알림만 타임라인을 따라 바뀐다.
+ * 체크인카운터 요약 바
  */
 export function SummaryBar({ summary, kpis, notice }: SummaryBarProps) {
     const preset = notice.level === null ? UNKNOWN_NOTICE : NOTICE_LEVEL[notice.level];
@@ -30,9 +20,7 @@ export function SummaryBar({ summary, kpis, notice }: SummaryBarProps) {
                     {summary.map((item) => (
                         <li key={item.id} className="chkn-summary__item">
                             <span className="chkn-summary__label">{item.label}</span>
-                            <strong
-                                className={`chkn-summary__value${item.isAccent ? ' is-accent' : ''}`}
-                            >
+                            <strong className={`chkn-summary__value${item.isAccent ? ' is-accent' : ''}`}>
                                 {item.value}
                                 <em>{item.unit}</em>
                             </strong>
@@ -56,11 +44,7 @@ export function SummaryBar({ summary, kpis, notice }: SummaryBarProps) {
 
             <div className={`chkn-notice chkn-notice--${toLevelKey(notice.level)}`}>
                 <h2 className="chkn-notice__badge">
-                    <NoticeWarnIcon
-                        className="chkn-notice__ico"
-                        aria-hidden="true"
-                        focusable="false"
-                    />
+                    <NoticeWarnIcon className="chkn-notice__ico" aria-hidden="true" focusable="false" />
                     <span>{preset.label}</span>
                 </h2>
 

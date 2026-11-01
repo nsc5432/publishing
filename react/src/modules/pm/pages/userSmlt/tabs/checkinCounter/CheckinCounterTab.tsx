@@ -9,7 +9,7 @@ import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
 import { BLOCK_COLORS, TERMINALS, enabledTerminals, type BlockItem, type SmltTabProps, type TerminalKind } from '../../types';
-import { EditDock } from './components/EditDock';
+import { CheckinCounterEditDock } from './components/CheckinCounterEditDock';
 import { ISLAND_BOOTHS, SIDE_BOOTHS } from './constants';
 import type { CheckinIsland, TerminalCheckinCounter } from './types';
 import {
@@ -253,7 +253,7 @@ export function CheckinCounterTab({
                 );
             })}
 
-            <EditDock
+            <CheckinCounterEditDock
                 terminal={focusTerminal}
                 disabled={busy || !!readOnly}
                 codes={focusData.islandCodes}

@@ -120,6 +120,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		result.setTotKioskCnt(islandList.stream().mapToInt(ChknCounterIslandDto::getKioskCnt).sum());
 		result.setTotBagDropCnt(islandList.stream().mapToInt(ChknCounterIslandDto::getBagDropCnt).sum());
 		result.setWaitMaxCnt(queueKpi.getMaxQueuePsgCnt());
+		result.setMaxWaitMin(queueKpi.getMaxWaitMin());
 		result.setIslandList(islandList);
 		result.setRsrcList(rsrcList);
 		result.setSlotList(getSlotList(islandList, queueDay, wtngDay));

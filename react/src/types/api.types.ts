@@ -475,6 +475,7 @@ export interface ChknCounterDto extends JsonResponse {
     totKioskCnt: number;
     totBagDropCnt: number;
     waitMaxCnt: number;
+    maxWaitMin: number;
     islandList: ChknCounterIslandDto[];
     rsrcList: ChknCounterRsrcDto[];
     slotList: ChknCounterSlotDto[];

@@ -36,6 +36,7 @@ echarts.use([
 
 export { echarts, ReactEChartsCore };
 export type {
+    BarSeriesOption,
     CustomSeriesOption,
     CustomSeriesRenderItemReturn,
     EChartsOption,

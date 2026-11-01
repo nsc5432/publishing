@@ -1847,6 +1847,24 @@ html[data-page='userSmlt'] .dock__cols {
     gap: 18px;
 }
 
+@media (min-width: 901px) {
+    html[data-page='userSmlt'] .dock[data-editor='departure'] .dock__cols {
+        grid-template-columns: 1fr 2fr 1fr;
+    }
+}
+
+html[data-page='userSmlt'] .dock[data-editor='departure'] .dock__head {
+    flex-wrap: wrap;
+}
+
+html[data-page='userSmlt'] .dock[data-editor='departure'] .dock__hint {
+    white-space: normal;
+}
+
+html[data-page='userSmlt'] .dock[data-editor='departure'] .dock__col:first-child .drow {
+    flex-wrap: wrap;
+}
+
 html[data-page='userSmlt'] .dock__col {
     display: flex;
     flex-direction: column;

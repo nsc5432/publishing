@@ -18,6 +18,7 @@ package aoms.pm.cast.domains.chkn;
 public final class ChknQueueKpi {
 	private final int avgWaitMin;
 	private final int p95WaitMin;
+	private final int maxWaitMin;
 	private final int maxQueuePsgCnt;
 	private final int peakMinute;
 	private final int prcsPsgCnt;
@@ -26,6 +27,7 @@ public final class ChknQueueKpi {
 	ChknQueueKpi(
 			int avgWaitMin,
 			int p95WaitMin,
+			int maxWaitMin,
 			int maxQueuePsgCnt,
 			int peakMinute,
 			int prcsPsgCnt,
@@ -33,6 +35,7 @@ public final class ChknQueueKpi {
 	) {
 		this.avgWaitMin = avgWaitMin;
 		this.p95WaitMin = p95WaitMin;
+		this.maxWaitMin = maxWaitMin;
 		this.maxQueuePsgCnt = maxQueuePsgCnt;
 		this.peakMinute = peakMinute;
 		this.prcsPsgCnt = prcsPsgCnt;
@@ -45,6 +48,10 @@ public final class ChknQueueKpi {
 
 	public int getP95WaitMin() {
 		return p95WaitMin;
+	}
+
+	public int getMaxWaitMin() {
+		return maxWaitMin;
 	}
 
 	public int getMaxQueuePsgCnt() {

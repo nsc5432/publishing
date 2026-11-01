@@ -46,7 +46,7 @@ export interface ChknSummaryItem {
     isAccent?: boolean;
 }
 
-/** 공용 Queue 결과 지표 1개 (평균대기 / 최대 Queue / 총 처리인원 / 처리용량 사용률) */
+/** 공용 Queue 결과 지표 1개 (평균 대기 / 최대 대기 / 최대 Queue / 총 처리인원) */
 export interface ChknKpi {
     id: string;
     label: string;
@@ -58,8 +58,15 @@ export interface ChknKpi {
 
 /* ================= Queue 차트 ================= */
 
+export interface ChknIslandBooth {
+    island: string;
+    title: string;
+    /** 슬롯별 운영 부스 (개) — 미운영은 0 */
+    booth: number[];
+}
+
 /**
- * 30분 단위 하루 흐름 — 막대(운영 부스)와 꺾은선(Queue 인원)이 한 벌의 값이다.
+ * 30분 단위 하루 흐름 — 블럭(아일랜드별 운영 부스)과 꺾은선(Queue 인원)이 한 벌의 값이다.
  * 배열은 모두 슬롯 수만큼 길이가 같아야 축이 맞는다.
  */
 export interface ChknQueueSeries {
@@ -67,6 +74,8 @@ export interface ChknQueueSeries {
     timeLabels: string[];
     /** 운영 부스 (개) */
     booth: number[];
+    /** 아일랜드별 운영 부스 — 아일랜드 목록 순서로 아래부터 쌓고, 색도 이 순서로 정한다 */
+    islands: ChknIslandBooth[];
     /** 공용 Queue 인원 (명) — 오른쪽 축 */
     queue: number[];
     /** 오른쪽 축 최댓값 */
@@ -75,8 +84,6 @@ export interface ChknQueueSeries {
     waitSec: number[];
     /** 처리인원 (명) — 툴팁에서 읽는다 */
     prcsPsgCnt: number[];
-    /** 처리용량 사용률 (%) — 툴팁에서 읽는다 */
-    prcsRate: number[];
 }
 
 /* ================= 아일랜드 ================= */

@@ -410,6 +410,7 @@ export const chknCounterMock = {
             totKioskCnt: oprSeeds.reduce((sum, seed) => sum + seed.kioskCnt, 0),
             totBagDropCnt: oprSeeds.reduce((sum, seed) => sum + seed.bagDropCnt, 0),
             waitMaxCnt: Math.max(...queueList),
+            maxWaitMin: 38,
             islandList: seeds.map(toIsland),
             rsrcList,
             slotList,

@@ -206,6 +206,7 @@ public final class ChknQueueSeries {
 		return new ChknQueueKpi(
 				processedSum == 0 ? 0 : Math.toIntExact(Math.round((double) waitSum / processedSum)),
 				percentileWaitMin(processedSum),
+				maxWaitMin(),
 				maxQueue,
 				peakMinute,
 				Math.toIntExact(processedSum),
@@ -232,6 +233,16 @@ public final class ChknQueueSeries {
 		}
 
 		return waitDistribution.length - 1;
+	}
+
+	private int maxWaitMin() {
+		for (int wait = waitDistribution.length - 1; wait > 0; wait--) {
+			if (waitDistribution[wait] > 0) {
+				return wait;
+			}
+		}
+
+		return 0;
 	}
 
 	private int toUtilRate(long processedSum, long capacitySum) {

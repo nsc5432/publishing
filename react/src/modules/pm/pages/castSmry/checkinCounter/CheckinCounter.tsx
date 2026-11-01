@@ -9,7 +9,7 @@ import { dialog } from '@/lib/dialog';
 import { todayYmd } from '@/lib/format';
 import { hhmmToStep, useTimeline } from '@/modules/pm/hooks/useTimeline';
 import { Header } from './components/Header';
-import { IslandStrip } from './components/IslandStrip';
+import { IslandStatusList } from './components/IslandStatusList';
 import { IslandTable } from './components/IslandTable';
 import { QueueChart } from './components/QueueChart';
 import { SummaryBar } from './components/SummaryBar';
@@ -79,7 +79,7 @@ function CheckinCounter() {
                             {view === 'chart' ? (
                                 <>
                                     <QueueChart queue={chknDay?.queue ?? EMPTY_QUEUE} step={timeline.step} time={timeline.label} />
-                                    <IslandStrip islands={slot.islands} time={timeline.label} />
+                                    <IslandStatusList islands={slot.islands} />
                                 </>
                             ) : (
                                 <IslandTable islands={slot.islands} time={timeline.label} />

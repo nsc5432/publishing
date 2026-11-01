@@ -7,7 +7,7 @@ import { assignedBoothCount } from '../view';
 import { AirlinePopover } from './AirlinePopover';
 import { BoothGrid } from './BoothGrid';
 
-interface EditDockProps {
+interface CheckinCounterEditDockProps {
     disabled: boolean;
     terminal: TerminalKind;
     codes: string[];
@@ -31,7 +31,7 @@ interface PopoverPos {
     y: number;
 }
 
-export function EditDock({
+export function CheckinCounterEditDock({
     terminal,
     disabled,
     codes,
@@ -45,7 +45,7 @@ export function EditDock({
     onSelectBooths,
     onConfirm,
     onCancel,
-}: EditDockProps) {
+}: CheckinCounterEditDockProps) {
     const boothsRef = useRef<HTMLDivElement>(null);
     const [popover, setPopover] = useState<PopoverPos | null>(null);
 

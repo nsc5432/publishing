@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import type { EChartsOption } from '@/lib/echarts';
+import type { BarSeriesOption, EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import { AXIS_LABEL as SHARED_AXIS_LABEL, CHART_FONT_FAMILY, TOOLTIP_TEXT_STYLE } from '@/lib/chart';
 import { toWaitMin } from '../view';
-import type { ChknQueueSeries } from '../types';
+import type { ChknIslandBooth, ChknQueueSeries } from '../types';
 
 interface QueueChartProps {
     queue: ChknQueueSeries;
@@ -11,8 +11,24 @@ interface QueueChartProps {
     time: string;
 }
 
-const BOOTH_COLOR = '#4441cc';
 const BOOTH_SERIES = '운영 부스';
+const BOOTH_STACK = 'booth';
+/** 아일랜드 목록 순서(A~N)대로 무지개 순 — 13곳을 넘으면 처음부터 다시 쓴다 */
+const ISLAND_COLORS = [
+    '#e5484d',
+    '#f76b15',
+    '#f5b800',
+    '#a3c428',
+    '#30a46c',
+    '#12a594',
+    '#05a2c2',
+    '#0090ff',
+    '#3e63dd',
+    '#6e56cf',
+    '#8e4ec6',
+    '#d6409f',
+    '#ad7f58',
+];
 const QUEUE_COLOR = '#f2762e';
 const QUEUE_SERIES = 'Queue 인원';
 const Y_TICKS = 5;
@@ -20,6 +36,7 @@ const GRID = { left: 38, right: 44, top: 16, bottom: 24 };
 const NOW_LINE_COLOR = 'rgba(68, 65, 204, 0.45)';
 /** x 축 눈금은 30분마다지만 라벨은 정시만 남긴다 (49칸이 다 붙으면 읽히지 않는다) */
 const LABEL_STEP = 2;
+const TIP_ISLANDS_PER_ROW = 4;
 
 const AXIS_LABEL = { ...SHARED_AXIS_LABEL, color: '#8b93a3', fontSize: 12 };
 
@@ -29,6 +46,43 @@ function toAxisMax(rawMax: number): number {
     const magnitude = 10 ** Math.floor(Math.log10(rawMax));
 
     return Math.ceil(rawMax / magnitude) * magnitude;
+}
+
+function islandColor(index: number): string {
+    return ISLAND_COLORS[index % ISLAND_COLORS.length];
+}
+
+function islandSeries(islands: ChknIslandBooth[]): BarSeriesOption[] {
+    return islands.map((island, index) => ({
+        name: island.island,
+        type: 'bar',
+        stack: BOOTH_STACK,
+        barWidth: '62%',
+        barMaxWidth: 24,
+        itemStyle: { color: islandColor(index) },
+        emphasis: { focus: 'series' },
+        blur: { itemStyle: { opacity: 0.25 } },
+        data: island.booth,
+    }));
+}
+
+function toIslandTipRows(islands: ChknIslandBooth[], index: number): string[] {
+    const cells = islands.flatMap((island, islandIndex) => {
+        const boothCnt = island.booth[index] ?? 0;
+
+        return boothCnt > 0
+            ? [
+                  `<span style="display:inline-block;width:8px;height:8px;margin-right:4px;border-radius:2px;background:${islandColor(islandIndex)}"></span>${island.island} ${boothCnt}개`,
+              ]
+            : [];
+    });
+    const rows: string[] = [];
+
+    for (let start = 0; start < cells.length; start += TIP_ISLANDS_PER_ROW) {
+        rows.push(cells.slice(start, start + TIP_ISLANDS_PER_ROW).join('&nbsp;&nbsp;'));
+    }
+
+    return rows;
 }
 
 export function QueueChart({ queue, step, time }: QueueChartProps) {
@@ -55,10 +109,10 @@ export function QueueChart({ queue, step, time }: QueueChartProps) {
 
                     const rows = [
                         `${BOOTH_SERIES} ${queue.booth[index] ?? 0}개`,
+                        ...toIslandTipRows(queue.islands, index),
                         `${QUEUE_SERIES} ${queue.queue[index] ?? 0}명`,
                         `평균대기 ${toWaitMin(queue.waitSec[index] ?? 0)}분`,
                         `처리인원 ${queue.prcsPsgCnt[index] ?? 0}명`,
-                        `처리용량 사용률 ${queue.prcsRate[index] ?? 0}%`,
                     ];
 
                     return [queue.timeLabels[index], ...rows].join('<br/>');
@@ -99,17 +153,7 @@ export function QueueChart({ queue, step, time }: QueueChartProps) {
                 },
             ],
             series: [
-                {
-                    name: BOOTH_SERIES,
-                    type: 'bar' as const,
-                    barMaxWidth: 12,
-                    itemStyle: {
-                        color: BOOTH_COLOR,
-                        borderRadius: [4, 4, 0, 0] as [number, number, number, number],
-                    },
-                    emphasis: { disabled: true },
-                    data: queue.booth,
-                },
+                ...islandSeries(queue.islands),
                 {
                     name: QUEUE_SERIES,
                     type: 'line' as const,
@@ -118,7 +162,15 @@ export function QueueChart({ queue, step, time }: QueueChartProps) {
                     symbol: 'circle',
                     symbolSize: (_: unknown, params: { dataIndex: number }) => (params.dataIndex === nowStep ? 9 : 0),
                     itemStyle: { color: '#fff', borderColor: QUEUE_COLOR, borderWidth: 2 },
-                    lineStyle: { color: QUEUE_COLOR, width: 2, cap: 'round', join: 'round' },
+                    // 주황 계열 아일랜드 막대 위에서도 선이 묻히지 않게 흰 테를 두른다
+                    lineStyle: {
+                        color: QUEUE_COLOR,
+                        width: 2,
+                        cap: 'round',
+                        join: 'round',
+                        shadowColor: 'rgba(255, 255, 255, 0.95)',
+                        shadowBlur: 4,
+                    },
                     emphasis: { disabled: true },
                     data: queue.queue,
                     markLine: {
@@ -154,13 +206,15 @@ export function QueueChart({ queue, step, time }: QueueChartProps) {
         <div className="chkn-chart">
             <div className="chkn-chart__head">
                 <p className="chkn-chart__title">
-                    30분 단위 운영 부스와 공용 Queue 인원 <em>(단위: 개 / 명)</em>
+                    30분 단위 아일랜드별 운영 부스와 공용 Queue 인원 <em>(단위: 개 / 명)</em>
                 </p>
                 <ul className="chkn-chart__legend">
-                    <li>
-                        <i style={{ background: BOOTH_COLOR }} aria-hidden="true" />
-                        {BOOTH_SERIES}
-                    </li>
+                    {queue.islands.map((island, index) => (
+                        <li key={island.island} title={island.title}>
+                            <i style={{ background: islandColor(index) }} aria-hidden="true" />
+                            {island.island}
+                        </li>
+                    ))}
                     <li>
                         <i className="is-line" aria-hidden="true" />
                         {QUEUE_SERIES}

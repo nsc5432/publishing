@@ -260,8 +260,9 @@ html[data-page='checkinCounter'] .chkn-summary__list {
 
 html[data-page='checkinCounter'] .chkn-summary__item {
     display: flex;
-    align-items: baseline;
-    gap: 10px;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
     white-space: nowrap;
 }
 
@@ -571,6 +572,9 @@ html[data-page='checkinCounter'] .chkn-chip__value {
 
 /* 보조 값 — 운영 부스 수 / 평균대기 */
 html[data-page='checkinCounter'] .chkn-chip__sub {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     padding-left: 6px;
     border-left: 1px solid rgba(255, 255, 255, 0.35);
     font-size: 11px;
