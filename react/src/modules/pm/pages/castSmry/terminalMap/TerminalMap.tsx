@@ -14,7 +14,7 @@ import { Header } from './components/Header';
 import { IslandModal } from './components/IslandModal';
 import { MapStage } from './components/MapStage';
 import { OperCards } from './components/OperCards';
-import { Timeline } from './components/Timeline';
+import { Timeline } from '@/modules/pm/components/Timeline';
 import { useSmltMap, type MapQuery } from './hooks/useTerminalMapData';
 import { EMPTY_MAP_SLOT, EMPTY_SUMMARY } from './view';
 import { TIMELINE_RANGE } from './timeline';

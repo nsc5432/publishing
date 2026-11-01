@@ -14,7 +14,7 @@ import { DepChartView } from './components/DepChartView';
 import { DepMapView } from './components/DepMapView';
 import { DepTableView } from './components/DepTableView';
 import { Header } from './components/Header';
-import { Timeline } from './components/Timeline';
+import { Timeline } from '@/modules/pm/components/Timeline';
 import { ViewSwitch } from './components/ViewSwitch';
 import { useDepHall, type DepHallQuery } from './hooks/useDepHallData';
 import { EMPTY_DEP_SLOT, EMPTY_TREND } from './view';

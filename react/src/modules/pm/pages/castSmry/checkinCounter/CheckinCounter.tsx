@@ -13,7 +13,7 @@ import { IslandStrip } from './components/IslandStrip';
 import { IslandTable } from './components/IslandTable';
 import { QueueChart } from './components/QueueChart';
 import { SummaryBar } from './components/SummaryBar';
-import { Timeline } from './components/Timeline';
+import { Timeline } from '@/modules/pm/components/Timeline';
 import { ViewSwitch } from './components/ViewSwitch';
 import { useChknCounter, type ChknCounterQuery } from './hooks/useChknCounterData';
 import { TIMELINE_RANGE } from './timeline';

@@ -3,7 +3,7 @@ import type { IconName } from '@/components/icons/InlineIcon';
 export type HistoryKind = 'standard' | 'user';
 
 export const HISTORY_LABEL: Record<HistoryKind, string> = {
-    standard: '표준',
+    standard: '일일',
     user: '사용자',
 };
 
@@ -32,6 +32,13 @@ export interface HistoryRow {
     endAt: string;
     duration: number;
     status: RunStatus;
+    progressPercent: number | null;
+}
+
+export interface UserExecAverage {
+    seconds: number | null;
+    sampleCount: number;
+    label: string;
 }
 
 /** 상단 KPI 카드 */

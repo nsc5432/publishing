@@ -15,6 +15,7 @@
         "lint": "eslint .",
         "preview": "vite preview",
         "verify:user-smlt": "node scripts/verify-user-smlt.mjs",
+        "verify:monitoring": "node scripts/verify-monitoring.mjs",
         "verify:dsbd": "node scripts/verify-dashboard-summary.mjs"
     },
     "dependencies": {

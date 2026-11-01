@@ -45,9 +45,11 @@ function Monitoring() {
     const [query, setQuery] = useState<MonitoringQuery>(() => toQuery(defaultRange()));
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [cancelPending, setCancelPending] = useState(false);
+    const [standardCollapsed, setStandardCollapsed] = useState(true);
+    const [refreshSeconds, setRefreshSeconds] = useState(30);
     const cancelInFlight = useRef(false);
 
-    const { data, error, responseSeq } = useMonitoring(query);
+    const { data, error, responseSeq } = useMonitoring(query, refreshSeconds);
 
     useErrorAlert(error, responseSeq);
 
@@ -60,12 +62,7 @@ function Monitoring() {
     const userRows = useMemo(() => filterByStatus(data?.history.user ?? [], statusFilter), [data, statusFilter]);
 
     const handleCancel = async (row: HistoryRow) => {
-        if (
-            cancelInFlight.current ||
-            row.status !== 'waiting' ||
-            !userInfo?.userId ||
-            row.rgtrId !== userInfo.userId
-        ) return;
+        if (cancelInFlight.current || row.status !== 'waiting' || !userInfo?.userId || row.rgtrId !== userInfo.userId) return;
 
         cancelInFlight.current = true;
         setCancelPending(true);
@@ -130,7 +127,14 @@ function Monitoring() {
 
     return (
         <>
-            <MonitoringGnb title={TITLE} range={range} onChange={setRange} onSearch={handleSearch} />
+            <MonitoringGnb
+                title={TITLE}
+                range={range}
+                onChange={setRange}
+                onSearch={handleSearch}
+                refreshSeconds={refreshSeconds}
+                onRefreshChange={setRefreshSeconds}
+            />
 
             <div className="body">
                 <Lnb />
@@ -138,8 +142,14 @@ function Monitoring() {
                 <main className="content">
                     <StatCards cards={data?.stats ?? []} activeFilter={statusFilter} onFilterChange={setStatusFilter} />
 
-                    <div className="history">
-                        <HistoryTable kind="standard" rows={standardRows} onView={handleView} />
+                    <div className="history" data-standard-collapsed={standardCollapsed}>
+                        <HistoryTable
+                            kind="standard"
+                            rows={standardRows}
+                            onView={handleView}
+                            collapsed={standardCollapsed}
+                            onToggle={() => setStandardCollapsed((current) => !current)}
+                        />
                         <HistoryTable
                             kind="user"
                             rows={userRows}
@@ -148,6 +158,7 @@ function Monitoring() {
                             userId={userInfo?.userId}
                             cancelPending={cancelPending}
                             onCancel={handleCancel}
+                            userAverage={data?.userAverage}
                         />
                     </div>
                 </main>

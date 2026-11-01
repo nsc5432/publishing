@@ -151,6 +151,25 @@ html[data-page='monitoring'] .search-btn {
     cursor: pointer;
 }
 
+html[data-page='monitoring'] .monitoring-refresh {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    color: #5a6478;
+    white-space: nowrap;
+}
+
+html[data-page='monitoring'] .monitoring-refresh select {
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #fff;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+}
+
 /* =====================================================================
    2. 본문
    ===================================================================== */
@@ -281,15 +300,21 @@ html[data-page='monitoring'] .kpi__value--teal strong {
 html[data-page='monitoring'] .history {
     flex: 1 1 auto;
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(460px, 0.8fr) minmax(0, 1.6fr);
     gap: clamp(12px, 1vw, 18px);
     min-height: 0;
+}
+
+html[data-page='monitoring'] .history[data-standard-collapsed='true'] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
 }
 
 html[data-page='monitoring'] .hist {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    min-width: 0;
     padding: clamp(14px, 1.8vh, 22px) clamp(14px, 1.2vw, 22px);
     border-radius: var(--card-radius);
     background: linear-gradient(160deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.42));
@@ -301,7 +326,51 @@ html[data-page='monitoring'] .hist__head {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-bottom: clamp(10px, 1.4vh, 16px);
+}
+
+html[data-page='monitoring'] .hist[data-collapsed='true'] {
+    padding-top: 12px;
+    padding-bottom: 12px;
+}
+
+html[data-page='monitoring'] .hist[data-collapsed='true'] .hist__head {
+    display: grid;
+    grid-template-columns: max-content max-content minmax(0, 1fr);
+    align-items: center;
+    margin-bottom: 0;
+}
+
+html[data-page='monitoring'] .hist[data-collapsed='true'] .hist__title {
+    white-space: nowrap;
+}
+
+html[data-page='monitoring'] .hist[data-collapsed='true'] .hist__toggle {
+    justify-self: end;
+}
+
+html[data-page='monitoring'] .hist__toggle {
+    padding: 7px 8px;
+    border: 1px solid #c9c5eb;
+    border-radius: 8px;
+    background: #fff;
+    color: var(--purple);
+    font: inherit;
+    font-size: 12px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+html[data-page='monitoring'] .hist__average {
+    margin-left: auto;
+    color: var(--text-sub);
+    font-size: 13px;
+}
+
+html[data-page='monitoring'] .hist__average strong {
+    color: var(--purple);
 }
 
 html[data-page='monitoring'] .hist__title {
@@ -334,6 +403,16 @@ html[data-page='monitoring'] .tbl {
     display: flex;
     flex-direction: column;
     min-height: 0;
+    overflow-x: auto;
+}
+
+html[data-page='monitoring'] .tbl[hidden] {
+    display: none;
+}
+
+html[data-page='monitoring'] .hist[data-kind='user'] .tbl__head,
+html[data-page='monitoring'] .hist[data-kind='user'] .tbl__body {
+    min-width: 920px;
 }
 
 html[data-page='monitoring'] .tbl__head,
@@ -343,8 +422,8 @@ html[data-page='monitoring'] .tbl__row {
     align-items: center;
 }
 
-html[data-page='monitoring'] .tbl__head>div,
-html[data-page='monitoring'] .tbl__row>div {
+html[data-page='monitoring'] .tbl__head > div,
+html[data-page='monitoring'] .tbl__row > div {
     padding: 0 6px;
     text-align: center;
     white-space: nowrap;
@@ -383,6 +462,29 @@ html[data-page='monitoring'] .tbl__state.is-done {
 
 html[data-page='monitoring'] .tbl__state.is-running {
     color: var(--text-sub);
+}
+
+html[data-page='monitoring'] .tbl__progress {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 68px;
+    color: var(--purple);
+    font-size: 11px;
+    vertical-align: middle;
+}
+
+html[data-page='monitoring'] .hist[data-kind='user'] .tbl__state.is-running {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+}
+
+html[data-page='monitoring'] .tbl__progress progress {
+    width: 100%;
+    height: 5px;
+    accent-color: var(--purple);
 }
 
 html[data-page='monitoring'] .tbl__state.is-waiting {
@@ -430,8 +532,53 @@ html[data-page='monitoring'] .btn-view:disabled {
 /* =====================================================================
    5. 반응형 — 폭이 좁으면 이력 표를 위아래로 쌓는다
    ===================================================================== */
+@media screen and (max-width: 1799px) {
+    html[data-page='monitoring'] .gnb {
+        flex-wrap: wrap;
+        justify-content: space-between;
+        height: auto;
+        min-height: var(--pm-header-h);
+        padding-top: 10px;
+        padding-bottom: 10px;
+        gap: 10px;
+    }
+
+    html[data-page='monitoring'] .gnb__center {
+        order: 1;
+        flex-basis: 100%;
+    }
+}
+
 @media screen and (max-width: 1439px) {
     html[data-page='monitoring'] .kpi {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    html[data-page='monitoring'] .history[data-standard-collapsed='false'] {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(180px, 1fr) minmax(220px, 1.4fr);
+    }
+
+    html[data-page='monitoring'] .datebox {
+        flex-wrap: wrap;
+        justify-content: center;
+        height: auto;
+        min-height: 42px;
+        padding: 4px;
+    }
+}
+
+@media screen and (max-width: 1099px) {
+    html[data-page='monitoring'] .datebox .lbl {
+        padding-left: 4px;
+        font-size: 13px;
+    }
+
+    html[data-page='monitoring'] .datebox .val {
+        font-size: 15px;
+    }
+
+    html[data-page='monitoring'] .datebox__tilde {
+        padding: 0 2px;
     }
 }

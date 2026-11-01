@@ -1,40 +1,47 @@
 import type { CSSProperties } from 'react';
+import {
+    PlayerNextIcon,
+    PlayerPauseIcon,
+    PlayerPlayIcon,
+    PlayerPrevIcon,
+} from '@/components/icons';
 import type { useTimeline } from '@/modules/pm/hooks/useTimeline';
 
 interface TimelineProps {
     timeline: ReturnType<typeof useTimeline>;
 }
 
-/** 하단 타임라인 — 30분 단위 이동 / 재생 컨트롤 */
+/** 하단 타임라인 — 30분 단위 이동 / 재생 */
 export function Timeline({ timeline }: TimelineProps) {
-    const { step, setStep, playing, toggle, prev, next, label, progress, max } = timeline;
+    const { step, setStep, playing, toggle, prev, next, label, progress, max, startLabel, endLabel } =
+        timeline;
 
     return (
         <div className="timeline">
             <div className="timeline__ctrl">
-                <button type="button" className="btn-play btn-play--prev" onClick={prev}>
-                    <i className="ico ico-prev" aria-hidden="true" />
+                <button type="button" className="btn-play" onClick={prev}>
+                    <PlayerPrevIcon aria-hidden="true" focusable="false" />
                     <span className="blind">이전</span>
                 </button>
-                <button
-                    type="button"
-                    className="btn-play btn-play--play"
-                    aria-pressed={playing}
-                    onClick={toggle}
-                >
-                    <i className={`ico ${playing ? 'ico-pause' : 'ico-play'}`} aria-hidden="true" />
+                <button type="button" className="btn-play" aria-pressed={playing} onClick={toggle}>
+                    {playing ? (
+                        <PlayerPauseIcon aria-hidden="true" focusable="false" />
+                    ) : (
+                        <PlayerPlayIcon aria-hidden="true" focusable="false" />
+                    )}
                     <span className="blind">{playing ? '일시정지' : '재생'}</span>
                 </button>
-                <button type="button" className="btn-play btn-play--next" onClick={next}>
-                    <i className="ico ico-next" aria-hidden="true" />
+                <button type="button" className="btn-play" onClick={next}>
+                    <PlayerNextIcon aria-hidden="true" focusable="false" />
                     <span className="blind">다음</span>
                 </button>
             </div>
 
             <div className="timeline__slider">
-                <span className="timeline__now">{label}</span>
-                <div className="range">
-                    {/* 00:00 ~ 24:00 을 30분(48스텝) 단위로 분할 */}
+                <div className="range" style={{ '--pos': step / max } as CSSProperties}>
+                    <span className="timeline__now" aria-hidden="true">
+                        {label}
+                    </span>
                     <input
                         type="range"
                         id="timeRange"
@@ -46,13 +53,14 @@ export function Timeline({ timeline }: TimelineProps) {
                         style={{ '--val': progress } as CSSProperties}
                         onChange={(event) => setStep(Number(event.target.value))}
                         aria-label="시간 선택"
+                        aria-valuetext={label}
                     />
                 </div>
             </div>
 
             <div className="timeline__scale">
-                <span>00:00</span>
-                <span>24:00</span>
+                <span>{startLabel}</span>
+                <span>{endLabel}</span>
             </div>
         </div>
     );

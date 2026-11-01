@@ -90,5 +90,7 @@ export function useTimeline(range: TimelineRange, initialStep = 0) {
         hhmm: label.replace(':', ''),
         progress: `${(step / maxStep) * 100}%`,
         max: maxStep,
+        startLabel: formatStep(range, 0),
+        endLabel: formatStep(range, maxStep),
     };
 }

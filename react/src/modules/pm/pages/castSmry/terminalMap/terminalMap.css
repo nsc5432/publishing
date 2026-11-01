@@ -294,6 +294,11 @@ html[data-page='terminalMap'] .notice__badge {
     white-space: nowrap;
 }
 
+html[data-page='terminalMap'] .notice__content {
+    flex: 1;
+    min-width: 0;
+}
+
 html[data-page='terminalMap'] .notice__list {
     display: flex;
     flex-wrap: wrap;
@@ -321,8 +326,8 @@ html[data-page='terminalMap'] .notice__summary {
     flex: none;
     align-items: center;
     gap: 24px;
-    padding-right: 24px;
-    border-right: 1px solid #d7dce4;
+    padding-left: 24px;
+    border-left: 1px solid #d7dce4;
 }
 
 html[data-page='terminalMap'] .notice__summary-title {
@@ -687,6 +692,11 @@ html[data-page='terminalMap'] .btn-play {
     transition: background 0.15s;
 }
 
+html[data-page='terminalMap'] .btn-play svg {
+    width: 20px;
+    height: 20px;
+}
+
 html[data-page='terminalMap'] .btn-play:hover {
     background: rgba(74, 68, 201, 0.1);
 }
@@ -694,11 +704,14 @@ html[data-page='terminalMap'] .btn-play:hover {
 html[data-page='terminalMap'] .timeline__slider {
     display: flex;
     align-items: center;
-    gap: 20px;
+    padding-top: 30px;
 }
 
+/* 14px 은 thumb 지름 — 트랙 양 끝에서 thumb 중심이 반지름만큼 안쪽에 선다 */
 html[data-page='terminalMap'] .timeline__now {
-    flex: none;
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: calc(var(--pos, 0) * (100% - 14px) + 7px);
     width: 58px;
     padding: 4px 0;
     border-radius: 6px;
@@ -707,9 +720,22 @@ html[data-page='terminalMap'] .timeline__now {
     font-size: 13px;
     font-weight: 600;
     text-align: center;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+html[data-page='terminalMap'] .timeline__now::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    border: 5px solid transparent;
+    border-top-color: var(--c-primary);
+    transform: translateX(-50%);
 }
 
 html[data-page='terminalMap'] .range {
+    position: relative;
     flex: 1;
 }
 
@@ -764,7 +790,6 @@ html[data-page='terminalMap'] .timeline__scale {
     display: flex;
     justify-content: space-between;
     margin-top: 6px;
-    padding-left: 78px;
     font-size: 12px;
     color: #8b93a3;
 }
@@ -1230,35 +1255,6 @@ html[data-page='terminalMap'] .ico-close {
     mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M5.5 5.5l13 13M18.5 5.5l-13 13'/%3E%3C/svg%3E");
 }
 
-html[data-page='terminalMap'] .ico-prev,
-html[data-page='terminalMap'] .ico-play,
-html[data-page='terminalMap'] .ico-pause,
-html[data-page='terminalMap'] .ico-next {
-    width: 20px;
-    height: 20px;
-    color: #2c313b;
-}
-
-html[data-page='terminalMap'] .ico-prev {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 4h2.2v16H6zM20 4.6v14.8L9.4 12z' fill='%23000'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6 4h2.2v16H6zM20 4.6v14.8L9.4 12z' fill='%23000'/%3E%3C/svg%3E");
-}
-
-html[data-page='terminalMap'] .ico-play {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 4.4v15.2L19.5 12z' fill='%23000'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 4.4v15.2L19.5 12z' fill='%23000'/%3E%3C/svg%3E");
-}
-
-html[data-page='terminalMap'] .ico-pause {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 4h4v16h-4zM13.5 4h4v16h-4z' fill='%23000'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6.5 4h4v16h-4zM13.5 4h4v16h-4z' fill='%23000'/%3E%3C/svg%3E");
-}
-
-html[data-page='terminalMap'] .ico-next {
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15.8 4H18v16h-2.2zM4 4.6v14.8L14.6 12z' fill='%23000'/%3E%3C/svg%3E");
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M15.8 4H18v16h-2.2zM4 4.6v14.8L14.6 12z' fill='%23000'/%3E%3C/svg%3E");
-}
-
 /* 팝업 시설 아이콘 — 상업시설은 assets/svg 에 대응 아이콘이 없어 마스크 유지 */
 html[data-page='terminalMap'] .ico-store {
     width: 40px;
@@ -1308,18 +1304,13 @@ html[data-page='terminalMap'] .ico-done-time {
     }
 
     html[data-page='terminalMap'] .notice__summary {
-        flex: 1;
-        padding-right: 0;
-        border-right: 0;
+        flex: 1 1 100%;
+        padding-left: 0;
+        border-left: 0;
     }
 
     html[data-page='terminalMap'] .notice__metrics {
         flex: 1;
-    }
-
-    html[data-page='terminalMap'] .notice__list,
-    html[data-page='terminalMap'] .notice__message {
-        flex-basis: 100%;
     }
 }
 

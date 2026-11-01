@@ -3,12 +3,15 @@ import { PillSelect } from '@/components/ui/pill-select';
 import { Icon } from '@/components/icons/InlineIcon';
 import { HOUR_OPTIONS, MINUTE_OPTIONS, formatYmd, toDateInputValue, toYmd } from '@/lib/format';
 import type { RangeCondition } from '../types';
+import { REFRESH_SECONDS } from '../options';
 
 interface MonitoringGnbProps {
     title: string;
     range: RangeCondition;
     onChange: (range: RangeCondition) => void;
     onSearch: () => void;
+    refreshSeconds: number;
+    onRefreshChange: (seconds: number) => void;
 }
 
 interface DateTimeFieldProps {
@@ -22,15 +25,7 @@ interface DateTimeFieldProps {
 }
 
 /** 시작일시 / 종료일시 한 벌 (날짜 + 시 + 분) */
-function DateTimeField({
-    label,
-    date,
-    hour,
-    minute,
-    onDateChange,
-    onHourChange,
-    onMinuteChange,
-}: DateTimeFieldProps) {
+function DateTimeField({ label, date, hour, minute, onDateChange, onHourChange, onMinuteChange }: DateTimeFieldProps) {
     const dateRef = useRef<HTMLInputElement>(null);
 
     // 날짜 입력은 디자인대로 보이도록 투명하게 겹쳐 두고, 달력은 여기서 직접 연다.
@@ -62,17 +57,12 @@ function DateTimeField({
                 />
             </div>
             <PillSelect value={hour} options={HOUR_OPTIONS} unit="시" onChange={onHourChange} />
-            <PillSelect
-                value={minute}
-                options={MINUTE_OPTIONS}
-                unit="분"
-                onChange={onMinuteChange}
-            />
+            <PillSelect value={minute} options={MINUTE_OPTIONS} unit="분" onChange={onMinuteChange} />
         </>
     );
 }
 
-export function MonitoringGnb({ title, range, onChange, onSearch }: MonitoringGnbProps) {
+export function MonitoringGnb({ title, range, onChange, onSearch, refreshSeconds, onRefreshChange }: MonitoringGnbProps) {
     const patchRange = (patch: Partial<RangeCondition>) => onChange({ ...range, ...patch });
 
     return (
@@ -111,6 +101,16 @@ export function MonitoringGnb({ title, range, onChange, onSearch }: MonitoringGn
                     </button>
                 </div>
             </div>
+            <label className="monitoring-refresh">
+                자동 조회
+                <select value={refreshSeconds} onChange={(event) => onRefreshChange(Number(event.target.value))}>
+                    {REFRESH_SECONDS.map((seconds) => (
+                        <option key={seconds} value={seconds}>
+                            {seconds}초
+                        </option>
+                    ))}
+                </select>
+            </label>
         </header>
     );
 }

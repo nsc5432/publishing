@@ -20,6 +20,20 @@ export function CongestionNotice({ level, items = [], message, summaryInfo }: Co
                 <span>{preset.label}</span>
             </h2>
 
+            <div className="notice__content">
+                {items.length > 0 ? (
+                    <ul className="notice__list">
+                        {items.map((item) => (
+                            <li key={item.id}>
+                                {item.facility} {item.code} <em>({item.desc})</em>
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p className="notice__message">{message ?? preset.message}</p>
+                )}
+            </div>
+
             <div className="notice__summary" aria-label="랜드사이드 요약정보">
                 <h3 className="notice__summary-title">
                     랜드사이드<br />요약정보
@@ -36,18 +50,6 @@ export function CongestionNotice({ level, items = [], message, summaryInfo }: Co
                     ))}
                 </dl>
             </div>
-
-            {items.length > 0 ? (
-                <ul className="notice__list">
-                    {items.map((item) => (
-                        <li key={item.id}>
-                            {item.facility} {item.code} <em>({item.desc})</em>
-                        </li>
-                    ))}
-                </ul>
-            ) : (
-                <p className="notice__message">{message ?? preset.message}</p>
-            )}
         </section>
     );
 }

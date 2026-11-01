@@ -4,6 +4,8 @@ import type { RangeCondition } from './types';
 /** 화면 타이틀 (GNB) */
 export const TITLE = 'PM 예측관리 / 시뮬레이션 모니터링';
 
+export const REFRESH_SECONDS = [10, 30, 60, 90, 120, 180, 300];
+
 /** 최초 조회 조건 — 오늘 하루 전체 */
 export function defaultRange(): RangeCondition {
     const today = formatYmd(todayYmd());
