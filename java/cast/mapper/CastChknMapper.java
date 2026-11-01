@@ -11,6 +11,7 @@ import aoms.pm.cast.dto.ChknIslandDto;
 import aoms.pm.cast.dto.ChknQueueRawDto;
 import aoms.pm.cast.dto.ChknRawDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
+import aoms.pm.cast.dto.PsgWtngRawDto;
 import aoms.pm.cast.dto.UserChknBoothRawDto;
 import aoms.pm.cast.dto.UserChknOperHrRawDto;
 import aoms.pm.cast.dto.UserSmltChknSaveDto;
@@ -26,6 +27,8 @@ public interface CastChknMapper {
             @Param("upPsgFcltCd") String upPsgFcltCd,
             @Param("smltMdlSn") Integer smltMdlSn
     );
+
+    List<PsgWtngRawDto> retrievePsgWtngSumBySlotList(@Param("ymd") String ymd, @Param("tmnlId") String tmnlId);
 
     List<ChknBoothOperRawDto> retrieveChknBoothOperList(
             @Param("excnYmd") String excnYmd,

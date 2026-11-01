@@ -9,6 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class DepHallSlotDto {
+	private MapCgnCmprDto dptgtCmpr;
 	private String hhmm; // 슬롯 시각 HHmm (30분 단위)
 	private MapNoticeDto notice; // 상단 혼잡 알림 (출국장만 담는다)
 	private List<MapUnitRsltDto> dptgtRsltList; // 출국장 카드 / 마커

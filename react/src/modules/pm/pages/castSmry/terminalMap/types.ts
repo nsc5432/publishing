@@ -1,3 +1,4 @@
+import type { CongestionStat as IslandStat } from '@/modules/pm/congestion/types';
 import type {
     CongestionLevel,
     DepGateMarker as BaseDepGateMarker,
@@ -10,6 +11,7 @@ import type {
 import type { CongestionStatus } from '@/types/api.types';
 import type { SummaryInfoCell } from '@/modules/pm/summary';
 
+export type { CongestionStat as IslandStat } from '@/modules/pm/congestion/types';
 export type {
     CongestionLevel,
     GateMarker,
@@ -79,30 +81,6 @@ export interface FacilityItem {
     name: string;
     /** 처리율 (예: 처리율 90%) — 상업시설처럼 없을 수 있다 */
     rate?: string;
-}
-
-/** 터미널 비교 기준 대비 방향 — terminalMap.css 의 .stat__cmpr-diff--up 등 */
-export type StatTrend = 'up' | 'down' | 'same';
-
-export interface IslandStatCmpr {
-    /** 예: 전체 / 평균 */
-    label: string;
-    /** 예: 8,000명 */
-    value: string;
-    /** 예: 비중 2.5% · ▲ 30초 (+25%) */
-    diff: string;
-    trend: StatTrend | null;
-}
-
-export interface IslandStat {
-    /** terminalMap.css 의 .ico-wait-people 등 */
-    ico: 'wait-people' | 'wait-time' | 'done-people' | 'done-time';
-    label: string;
-    value: string;
-    unit: string;
-    /** 강조(빨강) 표기 */
-    point?: boolean;
-    cmpr: IslandStatCmpr;
 }
 
 export interface IslandSales {

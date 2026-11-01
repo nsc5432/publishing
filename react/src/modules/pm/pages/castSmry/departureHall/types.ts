@@ -1,3 +1,4 @@
+import type { CongestionStatCmpr } from '@/modules/pm/congestion/types';
 import type {
     CongestionLevel,
     DepGateMarker,
@@ -41,6 +42,7 @@ export interface DepStat {
     unit: string;
     /** 강조(빨강) 표기 — 대기 지표 */
     isHighlighted?: boolean;
+    cmpr: CongestionStatCmpr;
 }
 
 /**
@@ -94,6 +96,10 @@ export interface DepTrendSeries {
     color: string;
     /** timeLabels 와 같은 길이의 대기인원 배열 */
     values: number[];
+    /** 평균 대기시간(초) — 툴팁 */
+    wtngSecs: number[];
+    /** 처리인원 — 툴팁 */
+    prcsPsgCnts: number[];
 }
 
 export interface DepTrend {

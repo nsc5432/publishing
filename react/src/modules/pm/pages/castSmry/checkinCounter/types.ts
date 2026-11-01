@@ -78,6 +78,8 @@ export interface ChknQueueSeries {
     islands: ChknIslandBooth[];
     /** 공용 Queue 인원 (명) — 오른쪽 축 */
     queue: number[];
+    /** Xovis Queue 대기인원 (명) — 오른쪽 축. 스냅샷이 없는 슬롯은 null 이라 선이 끊긴다 */
+    xovisQueue: (number | null)[];
     /** 오른쪽 축 최댓값 */
     queueMax: number;
     /** 평균대기 (초) — 툴팁에서 읽는다 */

@@ -7,7 +7,7 @@ import { useTerminalData } from '../../hooks/useTerminalData';
 import { runSave } from '../../save';
 import { TerminalPanel } from '../../components/TerminalPanel';
 import { TERMINALS, enabledTerminals, type SmltTabProps, type TerminalKind } from '../../types';
-import { BarChart } from './components/BarChart';
+import { FlightPaxChart } from './components/FlightPaxChart';
 import { FlightEditor } from './components/FlightEditor';
 import { EMPTY_FLIGHT_PAX, toFlightPax, toSaveReq } from './view';
 
@@ -107,7 +107,7 @@ export function FlightPaxTab({
                                     <strong className="summary__value">{panelData.pax}</strong>
                                 </div>
                                 <div className="summary__group">
-                                    <span className="summary__label">피크</span>
+                                    <span className="summary__label">최다 운항 시간대</span>
                                     <strong className="summary__value summary__value--accent">{panelData.peak}</strong>
                                 </div>
                             </>
@@ -118,8 +118,7 @@ export function FlightPaxTab({
                             </button>
                         }
                     >
-                        <BarChart data={panelData.flightChart} />
-                        <BarChart data={panelData.paxChart} />
+                        <FlightPaxChart data={panelData.chart} />
 
                         <FlightEditor
                             readOnly={readOnly}

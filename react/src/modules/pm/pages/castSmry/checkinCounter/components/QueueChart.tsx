@@ -30,7 +30,10 @@ const ISLAND_COLORS = [
     '#ad7f58',
 ];
 const QUEUE_COLOR = '#f2762e';
-const QUEUE_SERIES = 'Queue 인원';
+const QUEUE_SERIES = 'Cast Queue 대기인원';
+/** 무지개색 아일랜드 막대와 겹치지 않게 무채색 계열 점선으로 그린다 */
+const XOVIS_COLOR = '#26314d';
+const XOVIS_SERIES = 'Xovis Queue 대기인원';
 const Y_TICKS = 5;
 const GRID = { left: 38, right: 44, top: 16, bottom: 24 };
 const NOW_LINE_COLOR = 'rgba(68, 65, 204, 0.45)';
@@ -66,6 +69,10 @@ function islandSeries(islands: ChknIslandBooth[]): BarSeriesOption[] {
     }));
 }
 
+function formatPsgCnt(value: number | null | undefined): string {
+    return value == null ? '-' : `${value}명`;
+}
+
 function toIslandTipRows(islands: ChknIslandBooth[], index: number): string[] {
     const cells = islands.flatMap((island, islandIndex) => {
         const boothCnt = island.booth[index] ?? 0;
@@ -88,7 +95,8 @@ function toIslandTipRows(islands: ChknIslandBooth[], index: number): string[] {
 export function QueueChart({ queue, step, time }: QueueChartProps) {
     const option = useMemo<EChartsOption>(() => {
         const boothMax = toAxisMax(Math.max(...queue.booth, 0));
-        const queueMax = toAxisMax(Math.max(queue.queueMax, ...queue.queue, 0));
+        const xovisValues = queue.xovisQueue.filter((value): value is number => value !== null);
+        const queueMax = toAxisMax(Math.max(queue.queueMax, ...queue.queue, ...xovisValues, 0));
         const nowStep = Math.min(Math.max(queue.timeLabels.length - 1, 0), step);
 
         return {
@@ -111,6 +119,7 @@ export function QueueChart({ queue, step, time }: QueueChartProps) {
                         `${BOOTH_SERIES} ${queue.booth[index] ?? 0}개`,
                         ...toIslandTipRows(queue.islands, index),
                         `${QUEUE_SERIES} ${queue.queue[index] ?? 0}명`,
+                        `${XOVIS_SERIES} ${formatPsgCnt(queue.xovisQueue[index])}`,
                         `평균대기 ${toWaitMin(queue.waitSec[index] ?? 0)}분`,
                         `처리인원 ${queue.prcsPsgCnt[index] ?? 0}명`,
                     ];
@@ -198,6 +207,27 @@ export function QueueChart({ queue, step, time }: QueueChartProps) {
                         data: queue.queue.length === 0 ? [] : [{ name: 'now', coord: [nowStep, queue.queue[nowStep] ?? 0] }],
                     },
                 },
+                {
+                    name: XOVIS_SERIES,
+                    type: 'line' as const,
+                    yAxisIndex: 1,
+                    z: 4,
+                    connectNulls: false,
+                    symbol: 'circle',
+                    symbolSize: (_: unknown, params: { dataIndex: number }) => (params.dataIndex === nowStep ? 7 : 0),
+                    itemStyle: { color: '#fff', borderColor: XOVIS_COLOR, borderWidth: 2 },
+                    lineStyle: {
+                        color: XOVIS_COLOR,
+                        width: 2,
+                        type: [4, 3],
+                        cap: 'round',
+                        join: 'round',
+                        shadowColor: 'rgba(255, 255, 255, 0.95)',
+                        shadowBlur: 4,
+                    },
+                    emphasis: { disabled: true },
+                    data: queue.xovisQueue,
+                },
             ],
         };
     }, [queue, step, time]);
@@ -206,7 +236,7 @@ export function QueueChart({ queue, step, time }: QueueChartProps) {
         <div className="chkn-chart">
             <div className="chkn-chart__head">
                 <p className="chkn-chart__title">
-                    30분 단위 아일랜드별 운영 부스와 공용 Queue 인원 <em>(단위: 개 / 명)</em>
+                    30분 단위 아일랜드별 운영 부스와 Cast · Xovis Queue 대기인원 <em>(단위: 개 / 명)</em>
                 </p>
                 <ul className="chkn-chart__legend">
                     {queue.islands.map((island, index) => (
@@ -218,6 +248,10 @@ export function QueueChart({ queue, step, time }: QueueChartProps) {
                     <li>
                         <i className="is-line" aria-hidden="true" />
                         {QUEUE_SERIES}
+                    </li>
+                    <li>
+                        <i className="is-line is-xovis" aria-hidden="true" />
+                        {XOVIS_SERIES}
                     </li>
                 </ul>
             </div>

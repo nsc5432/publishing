@@ -3,12 +3,14 @@ import type {
     DepHallDto,
     DepHallGateDto,
     DepHallSlotDto,
+    MapCgnCmprDto,
     MapCgnStatDto,
     MapMarkerDto,
     MapNoticeDto,
     MapUnitRsltDto,
 } from '@/types/api.types';
 import { formatHhmm } from '@/lib/format';
+import { toCongestionStats } from '@/modules/pm/congestion/view';
 import type {
     CongestionLevel,
     DepDay,
@@ -61,25 +63,15 @@ function toLevel(cgnStatus: CongestionStatus | null): CongestionLevel | null {
 }
 
 /** 혼잡 현황 지표 4종 — 카드 / 표 보기가 같은 순서로 읽는다 */
-function toDepStats(cgnStat: MapCgnStatDto): DepStat[] {
-    return [
-        {
-            icon: 'wait-people',
-            label: '대기인원',
-            value: String(cgnStat.wtngPsgCnt),
-            unit: '명',
-            isHighlighted: true,
-        },
-        {
-            icon: 'wait-time',
-            label: '대기시간',
-            value: String(cgnStat.wtngHr),
-            unit: '초',
-            isHighlighted: true,
-        },
-        { icon: 'done-people', label: '처리인원', value: String(cgnStat.prcsPsgCnt), unit: '명' },
-        { icon: 'done-time', label: '처리시간', value: String(cgnStat.prcsHr), unit: '초' },
-    ];
+function toDepStats(cgnStat: MapCgnStatDto, cmpr: MapCgnCmprDto): DepStat[] {
+    return toCongestionStats('출국장', cgnStat, cmpr).map((stat) => ({
+        icon: stat.ico,
+        label: stat.label,
+        value: stat.value,
+        unit: stat.unit,
+        isHighlighted: stat.point,
+        cmpr: stat.cmpr,
+    }));
 }
 
 /** 묶음 단위 코드(출국장 번호 / 아일랜드 문자) → 그 시각 상태 */
@@ -91,13 +83,17 @@ function toRsltMap(rsltList: MapUnitRsltDto[]): Map<string, MapUnitRsltDto> {
  * 도면 위 출국장 카드 — 마커와 같은 무대 기준 비율 좌표를 갖는다.
  * 자리/운영시간은 하루 내내 같고 혼잡도/지표만 그 시각 결과에서 온다.
  */
-function toCard(gate: DepHallGateDto, rslt: MapUnitRsltDto | undefined): DepGateCard {
+function toCard(
+    gate: DepHallGateDto,
+    rslt: MapUnitRsltDto | undefined,
+    cmpr: MapCgnCmprDto,
+): DepGateCard {
     return {
         id: `dg${gate.dptgtNo}`,
         dptgtNo: gate.dptgtNo,
         title: gate.dptgtNm,
         level: toLevel(rslt?.cgnStatus ?? null),
-        stats: toDepStats(rslt?.stat ?? EMPTY_STAT),
+        stats: toDepStats(rslt?.stat ?? EMPTY_STAT, cmpr),
         boothCnt: gate.boothCnt,
         operTime: `${formatHhmm(gate.oprBgnTime)}-${formatHhmm(gate.oprEndTime)}`,
         x: gate.cdntX,
@@ -146,7 +142,7 @@ function toDepSlot(dto: DepHallDto, slot: DepHallSlotDto, gates: GateMarker[]): 
     const chknMap = toRsltMap(slot.chknRsltList);
 
     const map: TerminalDepMap = {
-        cards: dto.gateList.map((gate) => toCard(gate, dptgtMap.get(gate.dptgtNo))),
+        cards: dto.gateList.map((gate) => toCard(gate, dptgtMap.get(gate.dptgtNo), slot.dptgtCmpr)),
         dptgtGates: dto.dptgtMarkerList.map((marker) =>
             toCongestionMarker(marker, dptgtMap.get(marker.label)),
         ),
@@ -166,16 +162,22 @@ function toDepSlot(dto: DepHallDto, slot: DepHallSlotDto, gates: GateMarker[]): 
 function toTrend(dto: DepHallDto): DepTrend {
     return {
         timeLabels: dto.slotList.map((slot) => formatHhmm(slot.hhmm)),
-        series: dto.gateList.map((gate, gateIndex): DepTrendSeries => ({
-            dptgtNo: gate.dptgtNo,
-            title: gate.dptgtNm,
-            color: TREND_COLORS[gateIndex % TREND_COLORS.length],
-            values: dto.slotList.map(
+        series: dto.gateList.map((gate, gateIndex): DepTrendSeries => {
+            const stats = dto.slotList.map(
                 (slot) =>
-                    slot.dptgtRsltList.find((rslt) => rslt.unitCd === gate.dptgtNo)?.stat.wtngPsgCnt ??
-                    0,
-            ),
-        })),
+                    slot.dptgtRsltList.find((rslt) => rslt.unitCd === gate.dptgtNo)?.stat ??
+                    EMPTY_STAT,
+            );
+
+            return {
+                dptgtNo: gate.dptgtNo,
+                title: gate.dptgtNm,
+                color: TREND_COLORS[gateIndex % TREND_COLORS.length],
+                values: stats.map((stat) => stat.wtngPsgCnt),
+                wtngSecs: stats.map((stat) => stat.wtngHr),
+                prcsPsgCnts: stats.map((stat) => stat.prcsPsgCnt),
+            };
+        }),
     };
 }
 

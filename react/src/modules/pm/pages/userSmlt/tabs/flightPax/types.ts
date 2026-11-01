@@ -21,6 +21,20 @@ export interface ChartData {
     bars: ChartBar[];
 }
 
+export interface FlightPaxChartItem {
+    label: string;
+    flights: number | null;
+    pax: number | null;
+    flightText: string;
+    paxText: string;
+}
+
+export interface FlightPaxChartData {
+    flights: ChartData;
+    pax: ChartData;
+    items: FlightPaxChartItem[];
+}
+
 /** 시간대별 표 1행 — 전체 비율이 걸린 뒤의 값 */
 export interface HourRow {
     start: string;
@@ -39,7 +53,6 @@ export interface TerminalFlightPax {
     pax: string;
     /** 요약: 피크 시간 */
     peak: string;
-    flightChart: ChartData;
-    paxChart: ChartData;
+    chart: FlightPaxChartData;
     rows: HourRow[];
 }

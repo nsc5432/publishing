@@ -260,6 +260,8 @@ function avgWtngSecAt(seed: IslandSeed, step: number): number | null {
 
 /* ================= 슬롯 ================= */
 
+const XOVIS_UNMEASURED_ISLANDS = ['A', 'G', 'I'];
+
 /** 문을 닫은 시각 */
 const EMPTY_STAT: MapCgnStatDto = { wtngPsgCnt: 0, wtngHr: 0, prcsPsgCnt: 0, prcsHr: 0 };
 
@@ -339,10 +341,30 @@ function toNotice(rsltList: MapChknRsltDto[]): MapNoticeDto {
     };
 }
 
+/** Xovis 는 T1 의 일부 아일랜드만 잰다 — 운영 중인 측정 아일랜드가 없으면 스냅샷도 없다 */
+function xovisWtngAt(tmnlId: TmnlId, step: number): number | null {
+    if (tmnlId !== 'T1') return null;
+
+    const measured = ISLAND_SEEDS.T1.filter(
+        (seed) => !XOVIS_UNMEASURED_ISLANDS.includes(seed.island) && isOpen(seed, hourOf(step)),
+    );
+
+    if (measured.length === 0) return null;
+
+    const castSum = measured.reduce((sum, seed) => sum + queueAt(seed, step), 0);
+
+    return Math.max(0, Math.round(castSum * (1 + 0.18 * Math.sin(step * 0.9))));
+}
+
 function toSlot(tmnlId: TmnlId, hhmm: string, step: number): ChknCounterSlotDto {
     const chknRsltList = ISLAND_SEEDS[tmnlId].map((seed) => toChknRslt(seed, step));
 
-    return { hhmm, notice: toNotice(chknRsltList), chknRsltList };
+    return {
+        hhmm,
+        notice: toNotice(chknRsltList),
+        chknRsltList,
+        xovisWtngPsgCnt: xovisWtngAt(tmnlId, step),
+    };
 }
 
 /* ================= 아일랜드 / 시간대별 자원 ================= */

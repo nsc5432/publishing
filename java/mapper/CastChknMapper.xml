@@ -40,6 +40,35 @@
         ORDER BY A.SMLT_ACTL_DT, B.PSG_FCLT_CD
     </select>
 
+    <!-- Cast 슬롯 값(구간 마지막 분 Queue)과 맞추려고 슬롯 [hhmm, hhmm+30) 안 마지막 스냅샷의 터미널 합을 쓴다 -->
+    <select id="retrievePsgWtngSumBySlotList" resultType="aoms.pm.cast.dto.PsgWtngRawDto">
+        /* CastChknMapper.retrievePsgWtngSumBySlotList */
+        SELECT
+            T.SLOT_HHMM AS TIME,
+            T.WTNG_PSG_CNT
+        FROM (
+            SELECT
+                S.SLOT_HHMM,
+                S.WTNG_PSG_CNT,
+                ROW_NUMBER() OVER (PARTITION BY S.SLOT_HHMM ORDER BY S.PSG_FLOW_DATA_CRT_DT DESC) AS RN
+            FROM (
+                SELECT
+                    A.PSG_FLOW_DATA_CRT_DT,
+                    SUBSTR(A.PSG_FLOW_DATA_CRT_DT, 9, 2)
+                        || CASE WHEN SUBSTR(A.PSG_FLOW_DATA_CRT_DT, 11, 2) &lt; '30' THEN '00' ELSE '30' END AS SLOT_HHMM,
+                    NVL(SUM(A.WTNG_LINE_LEN), 0) AS WTNG_PSG_CNT
+                FROM PMOWN.TN_PM_PSG_WTNG_INFO A
+                WHERE 1 = 1
+                AND A.PSG_FLOW_DATA_CRT_DT BETWEEN #{ymd} || '0000' AND #{ymd} || '2359'
+                AND A.TMNL_ID = #{tmnlId}
+                AND A.FCLT_TYPE_CD = 'Queue'
+                GROUP BY A.PSG_FLOW_DATA_CRT_DT
+            ) S
+        ) T
+        WHERE T.RN = 1
+        ORDER BY TIME
+    </select>
+
     <!-- 원천 분기·필터는 CastApiMapper.retrieveCounterAllocation(CA001 / 사용자 CA 발행)을 따른다. 기준일자는 STNG.EXCN_YMD -->
     <select id="retrieveChknBoothOperList" resultType="aoms.pm.cast.dto.ChknBoothOperRawDto">
         /* CastChknMapper.retrieveChknBoothOperList */

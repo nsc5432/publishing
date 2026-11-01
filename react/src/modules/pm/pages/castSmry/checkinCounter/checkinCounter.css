@@ -512,6 +512,11 @@ html[data-page='checkinCounter'] .chkn-chart__legend i.is-line {
     background: var(--line-wait);
 }
 
+/* 차트의 Xovis 점선과 같은 색 · 같은 간격 */
+html[data-page='checkinCounter'] .chkn-chart__legend i.is-line.is-xovis {
+    background: repeating-linear-gradient(90deg, #26314d 0 4px, transparent 4px 7px);
+}
+
 html[data-page='checkinCounter'] .chkn-chart__plot {
     flex: 1;
     min-height: 0;

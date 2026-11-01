@@ -14,7 +14,6 @@ import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.domains.CgnOrder;
 import aoms.pm.cast.domains.MapLayout;
 import aoms.pm.cast.domains.queue.Computed;
-import aoms.pm.cast.domains.wtng.FcltWtngCmpr;
 import aoms.pm.cast.domains.wtng.FcltWtngDay;
 import aoms.pm.cast.domains.wtng.FcltWtngIntrvl;
 import aoms.pm.cast.domains.wtng.FcltWtngRecommend;
@@ -22,8 +21,6 @@ import aoms.pm.cast.domains.wtng.FcltWtngSlot;
 import aoms.pm.cast.dto.DepFcltRawDto;
 import aoms.pm.cast.dto.DepOperHrRawDto;
 import aoms.pm.cast.dto.FltSmryRawDto;
-import aoms.pm.cast.dto.MapCgnCmprDto;
-import aoms.pm.cast.dto.MapCgnStatDto;
 import aoms.pm.cast.dto.MapChknInfoDto;
 import aoms.pm.cast.dto.MapChknRsltDto;
 import aoms.pm.cast.dto.MapFcltItemDto;
@@ -294,8 +291,8 @@ public class CastMapServiceImpl implements CastMapService {
 			slot.setLandsideSmry(getLandsideSmry(chknDay, depDay, evalDt));
 			slot.setChknRsltList(chknRsltList);
 			slot.setDptgtRsltList(getDptgtRsltList(tmnlId, depDay, evalDt));
-			slot.setChknCmpr(toCmpr(chknDay.cmprOf(MapLayout.islandCdList(tmnlId), evalDt, SLOT_MIN)));
-			slot.setDptgtCmpr(toCmpr(depDay.cmprOf(MapLayout.dptgtNoList(tmnlId), evalDt, SLOT_MIN)));
+			slot.setChknCmpr(SmltUtils.toCgnCmpr(chknDay.cmprOf(MapLayout.islandCdList(tmnlId), evalDt, SLOT_MIN)));
+			slot.setDptgtCmpr(SmltUtils.toCgnCmpr(depDay.cmprOf(MapLayout.dptgtNoList(tmnlId), evalDt, SLOT_MIN)));
 
 			result.add(slot);
 		}
@@ -337,7 +334,7 @@ public class CastMapServiceImpl implements CastMapService {
 			chknRslt.setUnitCd(islandCd);
 			chknRslt.setCgnWtngSec(avgWtngSec.getValue());
 			chknRslt.setCgnStatus(chknDay.gradeOf(islandCd, evalDt).getValue());
-			chknRslt.setStat(toCgnStat(queueSlot));
+			chknRslt.setStat(SmltUtils.toCgnStat(queueSlot));
 			chknRslt.setPrcsRate(queueSlot.getPrcsRate());
 			chknRslt.setAvgQueuePsgCnt(queueSlot.getAvgQueue());
 			chknRslt.setMaxQueuePsgCnt(queueSlot.getMaxQueue());
@@ -367,33 +364,10 @@ public class CastMapServiceImpl implements CastMapService {
 			dptgtRslt.setUnitCd(dptgtNo);
 			dptgtRslt.setCgnWtngSec(avgWtngSec.getValue());
 			dptgtRslt.setCgnStatus(depDay.getGradeScale().gradeOf(avgWtngSec).getValue());
-			dptgtRslt.setStat(toCgnStat(depDay.slotOf(dptgtNo, evalDt, SLOT_MIN)));
+			dptgtRslt.setStat(SmltUtils.toCgnStat(depDay.slotOf(dptgtNo, evalDt, SLOT_MIN)));
 
 			result.add(dptgtRslt);
 		}
-
-		return result;
-	}
-
-	private MapCgnStatDto toCgnStat(FcltWtngSlot slot) {
-		MapCgnStatDto result = new MapCgnStatDto();
-
-		result.setWtngPsgCnt(slot.getCurrentQueue());
-		result.setWtngHr(slot.getAvgWaitSec());
-		result.setPrcsPsgCnt(slot.getPrcsPsgCnt());
-		result.setPrcsHr(slot.getAvgPrcsSec());
-
-		return result;
-	}
-
-	private MapCgnCmprDto toCmpr(FcltWtngCmpr cmpr) {
-		MapCgnCmprDto result = new MapCgnCmprDto();
-
-		result.setUnitCnt(cmpr.getUnitCnt());
-		result.setTotWtngPsgCnt(cmpr.getTotWtngPsgCnt());
-		result.setAvgPrcsPsgCnt(cmpr.getAvgPrcsPsgCnt());
-		result.setAvgWtngHr(cmpr.getAvgWtngSec());
-		result.setAvgPrcsHr(cmpr.getAvgPrcsSec());
 
 		return result;
 	}

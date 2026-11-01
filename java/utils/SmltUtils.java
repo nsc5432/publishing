@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import aoms.pm.cast.domains.wtng.FcltWtngCmpr;
+import aoms.pm.cast.domains.wtng.FcltWtngSlot;
+import aoms.pm.cast.dto.MapCgnCmprDto;
 import aoms.pm.cast.dto.MapCgnStatDto;
 import aoms.pm.cast.dto.PsgPrcsGrd;
 import aoms.pm.cast.dto.SmltRsltRawDto;
@@ -94,6 +97,29 @@ public class SmltUtils {
 		result.setWtngHr(rslt.getWtngHr());
 		result.setPrcsPsgCnt(rslt.getTrnstPsgCnt());
 		result.setPrcsHr(rslt.getPrcsHr());
+
+		return result;
+	}
+
+	public static MapCgnStatDto toCgnStat(FcltWtngSlot slot) {
+		MapCgnStatDto result = new MapCgnStatDto();
+
+		result.setWtngPsgCnt(slot.getCurrentQueue());
+		result.setWtngHr(slot.getAvgWaitSec());
+		result.setPrcsPsgCnt(slot.getPrcsPsgCnt());
+		result.setPrcsHr(slot.getAvgPrcsSec());
+
+		return result;
+	}
+
+	public static MapCgnCmprDto toCgnCmpr(FcltWtngCmpr cmpr) {
+		MapCgnCmprDto result = new MapCgnCmprDto();
+
+		result.setUnitCnt(cmpr.getUnitCnt());
+		result.setTotWtngPsgCnt(cmpr.getTotWtngPsgCnt());
+		result.setAvgPrcsPsgCnt(cmpr.getAvgPrcsPsgCnt());
+		result.setAvgWtngHr(cmpr.getAvgWtngSec());
+		result.setAvgPrcsHr(cmpr.getAvgPrcsSec());
 
 		return result;
 	}

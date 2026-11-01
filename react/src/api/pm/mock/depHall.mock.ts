@@ -1,3 +1,4 @@
+import { mockCgnCmpr } from './cgnCmpr.mock';
 import type { DepHallDto, DepHallGateDto, DepHallSlotDto, MapCgnStatDto, MapMarkerDto, MapNoticeDto, MapUnitRsltDto, TmnlId } from '@/types/api.types';
 import { mockAvgWtngSec, mockByWaitDesc, mockGradeOf, mockWorstOf } from './cgnGrade.mock';
 
@@ -261,6 +262,7 @@ function toSlot(tmnlId: TmnlId, hhmm: string, step: number): DepHallSlotDto {
         hhmm,
         notice: toNotice(dptgtRsltList, seeds),
         dptgtRsltList,
+        dptgtCmpr: mockCgnCmpr(dptgtRsltList),
         chknRsltList: ISLAND_SEEDS[tmnlId].map(([label, , , peakStep, peakWtng]) => toUnitRslt(label, peakStep, peakWtng, step)),
     };
 }

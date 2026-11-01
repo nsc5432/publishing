@@ -54,7 +54,7 @@ const FLT_PSG: Record<TmnlId, UserSmltFltPsgDto> = {
         tmnlId: 'T1',
         fltCnt: 15,
         psgCnt: 1234567,
-        peakTime: '1400',
+        peakTime: '1600',
         ajmtRt: 10,
         fltChart: toChart(1234, 300, [16, 6, 5, 8, 6, 33, 40, 67, 68, 67, 33, 33]),
         psgChart: toChart(1234567, 90000, [15, 6, 6, 10, 7, 34, 39, 68, 68, 67, 34, 33]),
@@ -378,8 +378,6 @@ function publishResources(id: string, values: Record<TmnlId, Conditions>): Recor
             });
             resource.flt.psgChart.totCnt = resource.flt.psgCnt;
             resource.flt.psgChart.maxCnt = Math.max(0, ...resource.flt.psgChart.itemList.map((item) => item.cnt));
-            resource.flt.peakTime =
-                resource.flt.hourList.reduce((peak, hour) => (hour.psgCnt > peak.psgCnt ? hour : peak), resource.flt.hourList[0])?.bgnTime ?? '0000';
             resource.flt.ajmtRt = 0;
             resource.chkn.islandList = resource.chkn.islandList
                 .filter((island) => island.oprTimeList.length > 0)

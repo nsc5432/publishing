@@ -1,7 +1,6 @@
 package aoms.pm.cast.service.impl;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -40,7 +39,7 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
     private static final int CHART_HOUR_STEP = 2;
     private static final String ZERO_MIN = "00";
     private static final String END_OF_DAY = "2400";
-    private static final String DEFAULT_PEAK_TIME = "0000";
+    private static final String NO_PEAK_TIME = "";
     private static final int AJMT_RT_MIN = -100;
     private static final int AJMT_RT_MAX = 100;
 
@@ -70,7 +69,7 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
         result.setTmnlId(tmnlId.getValue());
         result.setFltCnt(rawList.stream().mapToInt(FltPsgRawDto::getFltCnt).sum());
         result.setPsgCnt(rawList.stream().mapToInt(FltPsgRawDto::getPsgCnt).sum());
-        result.setPeakTime(getPeakTime(hourList));
+        result.setPeakTime(getPeakTime(rawMap));
         result.setAjmtRt(saved != null ? saved.getAjmtRt() : 0);
         result.setFltChart(getChart(rawMap, FltPsgRawDto::getFltCnt));
         result.setPsgChart(getChart(rawMap, FltPsgRawDto::getPsgCnt));
@@ -142,11 +141,20 @@ public class CastFltPsgServiceImpl implements CastFltPsgService {
         return result;
     }
 
-    private String getPeakTime(List<FltPsgHourDto> hourList) {
-        return hourList.stream()
-                .max(Comparator.comparingInt(FltPsgHourDto::getPsgCnt))
-                .map(FltPsgHourDto::getBgnTime)
-                .orElse(DEFAULT_PEAK_TIME);
+    private String getPeakTime(Map<String, FltPsgRawDto> rawMap) {
+        String peakHour = null;
+        int peakFltCnt = 0;
+
+        for (String hour : TimeBucketUtils.hourList()) {
+            int fltCnt = getCnt(rawMap, hour, FltPsgRawDto::getFltCnt);
+
+            if (fltCnt > peakFltCnt) {
+                peakHour = hour;
+                peakFltCnt = fltCnt;
+            }
+        }
+
+        return peakHour != null ? peakHour + ZERO_MIN : NO_PEAK_TIME;
     }
 
     private int getCnt(Map<String, FltPsgRawDto> rawMap, String hour, ToIntFunction<FltPsgRawDto> valueGetter) {

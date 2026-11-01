@@ -424,6 +424,7 @@ export interface DepHallSlotDto {
     notice: MapNoticeDto;
     dptgtRsltList: MapUnitRsltDto[];
     chknRsltList: MapUnitRsltDto[];
+    dptgtCmpr: MapCgnCmprDto;
 }
 
 export interface DepHallDto extends JsonResponse {
@@ -464,6 +465,8 @@ export interface ChknCounterSlotDto {
     hhmm: string;
     notice: MapNoticeDto;
     chknRsltList: MapChknRsltDto[];
+    /** Xovis Queue 대기인원 터미널 합. 슬롯 안 마지막 스냅샷이며 없으면 null (T2 는 항상 null) */
+    xovisWtngPsgCnt: number | null;
 }
 
 export interface ChknCounterDto extends JsonResponse {

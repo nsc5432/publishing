@@ -1,3 +1,4 @@
+import { StatComparison } from '@/modules/pm/congestion/StatComparison';
 import { PlusIcon } from '@/components/icons';
 import { useModalDismiss } from '../hooks/useModalDismiss';
 import { toLevelKey, toLevelLabel, type FacilityDetail } from '../types';
@@ -52,16 +53,7 @@ export function FacilityMiniModal({ detail, onClose, onDetailClick }: FacilityMi
                                     {stat.value}
                                     <em>{stat.unit}</em>
                                 </strong>
-                                <p className="stat__cmpr">
-                                    <span className="stat__cmpr-base">
-                                        {stat.cmpr.label} <b>{stat.cmpr.value}</b>
-                                    </span>
-                                    {stat.cmpr.diff && (
-                                        <span className={`stat__cmpr-diff${stat.cmpr.trend ? ` stat__cmpr-diff--${stat.cmpr.trend}` : ''}`}>
-                                            {stat.cmpr.diff}
-                                        </span>
-                                    )}
-                                </p>
+                                <StatComparison comparison={stat.cmpr} />
                             </li>
                         ))}
                     </ul>

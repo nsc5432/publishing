@@ -1,3 +1,4 @@
+import { toCongestionStats } from '@/modules/pm/congestion/view';
 import type {
     CongestionStatus,
     FcltType,
@@ -26,14 +27,11 @@ import type {
     IslandDetail,
     IslandMarker,
     IslandSales,
-    IslandStat,
-    IslandStatCmpr,
     MapDay,
     MapSlot,
     NoticeData,
     NoticeLevel,
     OperCard,
-    StatTrend,
     TerminalKind,
     TerminalMapData,
 } from './types';
@@ -61,8 +59,6 @@ const DPTGT_TITLE_PREFIX = '출국장 ';
 /** 팝업 지표 비교 문구의 시설 이름 (예: 전체 아일랜드 · 출국장 평균) */
 const ISLAND_UNIT_NM = '아일랜드';
 const DPTGT_UNIT_NM = '출국장';
-
-const TREND_MARK: Record<Exclude<StatTrend, 'same'>, string> = { up: '▲', down: '▼' };
 
 /** 혼잡도 4단계 → 마커/뱃지 3단계 (여유와 보통은 같은 색을 쓴다) */
 const CONGESTION_TO_LEVEL: Record<CongestionStatus, CongestionLevel> = {
@@ -178,75 +174,6 @@ function toGateMarker(terminal: TerminalKind, marker: MapMarkerDto): GateMarker 
 
 /* ================= 상세 팝업 ================= */
 
-function formatPercent(value: number): string {
-    return (Math.round(value * 10) / 10).toLocaleString();
-}
-
-/** 대기인원은 평균이 아니라 전 시설 합 대비 비중으로 본다 */
-function toShareCmpr(unitNm: string, value: number, total: number): IslandStatCmpr {
-    return {
-        label: `전체 ${unitNm}`,
-        value: `${formatCount(total)}명`,
-        diff: total > 0 ? `비중 ${formatPercent((value / total) * 100)}%` : '비중 -',
-        trend: null,
-    };
-}
-
-/** 평균을 화면 표기와 같은 정수로 반올림한 뒤 비교해 표기끼리 어긋나지 않게 한다 */
-function toAvgCmpr(unitNm: string, value: number, avg: number | null, unit: string): IslandStatCmpr {
-    const label = `${unitNm} 평균`;
-
-    if (avg === null) return { label, value: '-', diff: '', trend: null };
-
-    const avgValue = Math.round(avg);
-    const diff = value - avgValue;
-    const trend: StatTrend = diff > 0 ? 'up' : diff < 0 ? 'down' : 'same';
-    const rate = avgValue === 0 ? '' : ` (${diff >= 0 ? '+' : '-'}${formatPercent((Math.abs(diff) / avgValue) * 100)}%)`;
-
-    return {
-        label,
-        value: `${formatCount(avgValue)}${unit}`,
-        diff: trend === 'same' ? '평균과 같음' : `${TREND_MARK[trend]} ${formatCount(Math.abs(diff))}${unit}${rate}`,
-        trend,
-    };
-}
-
-/** 혼잡 현황 지표 4종 — 아일랜드 상세 / 출국장 미니 팝업이 함께 쓴다 */
-function toStats(unitNm: string, stat: MapCgnStatDto, cmpr: MapCgnCmprDto): IslandStat[] {
-    return [
-        {
-            ico: 'wait-people',
-            label: '대기인원',
-            value: String(stat.wtngPsgCnt),
-            unit: '명',
-            point: true,
-            cmpr: toShareCmpr(unitNm, stat.wtngPsgCnt, cmpr.totWtngPsgCnt),
-        },
-        {
-            ico: 'wait-time',
-            label: '대기시간',
-            value: String(stat.wtngHr),
-            unit: '초',
-            point: true,
-            cmpr: toAvgCmpr(unitNm, stat.wtngHr, cmpr.avgWtngHr, '초'),
-        },
-        {
-            ico: 'done-people',
-            label: '처리인원',
-            value: String(stat.prcsPsgCnt),
-            unit: '명',
-            cmpr: toAvgCmpr(unitNm, stat.prcsPsgCnt, cmpr.avgPrcsPsgCnt, '명'),
-        },
-        {
-            ico: 'done-time',
-            label: '처리시간',
-            value: String(stat.prcsHr),
-            unit: '초',
-            cmpr: toAvgCmpr(unitNm, stat.prcsHr, cmpr.avgPrcsHr, '초'),
-        },
-    ];
-}
-
 /** 시설 구성/매출은 하루 내내 같고, 혼잡도/처리율만 그 시각 결과에서 온다 */
 function toIslandDetail(info: MapChknInfoDto, rslt: MapChknRsltDto | undefined, cmpr: MapCgnCmprDto): IslandDetail {
     return {
@@ -260,7 +187,7 @@ function toIslandDetail(info: MapChknInfoDto, rslt: MapChknRsltDto | undefined, 
             // 상업시설은 처리율이 없다
             rate: fclt.prcsRateYn === 'N' ? undefined : `처리율 ${rslt?.prcsRate ?? 0}%`,
         })),
-        stats: toStats(ISLAND_UNIT_NM, rslt?.stat ?? EMPTY_STAT, cmpr),
+        stats: toCongestionStats(ISLAND_UNIT_NM, rslt?.stat ?? EMPTY_STAT, cmpr),
         sales: info.sales ? toIslandSales(info.sales) : undefined,
     };
 }
@@ -282,7 +209,7 @@ function toFacilityDetail(rslt: MapUnitRsltDto, cmpr: MapCgnCmprDto): FacilityDe
         id: `dg${rslt.unitCd}`,
         title: DPTGT_TITLE_PREFIX + rslt.unitCd,
         level: toLevel(rslt.cgnStatus),
-        stats: toStats(DPTGT_UNIT_NM, rslt.stat, cmpr),
+        stats: toCongestionStats(DPTGT_UNIT_NM, rslt.stat, cmpr),
     };
 }
 

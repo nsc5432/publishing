@@ -30,6 +30,7 @@ import aoms.pm.cast.dto.MapChknRsltDto;
 import aoms.pm.cast.dto.MapNoticeDto;
 import aoms.pm.cast.dto.MapNoticeItemDto;
 import aoms.pm.cast.dto.OprTimeDto;
+import aoms.pm.cast.dto.PsgWtngRawDto;
 import aoms.pm.cast.dto.SlfDeviceCntRawDto;
 import aoms.pm.cast.dto.SmltKpiDto;
 import aoms.pm.cast.dto.SmltStngDto;
@@ -123,7 +124,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		result.setMaxWaitMin(queueKpi.getMaxWaitMin());
 		result.setIslandList(islandList);
 		result.setRsrcList(rsrcList);
-		result.setSlotList(getSlotList(islandList, queueDay, wtngDay));
+		result.setSlotList(getSlotList(islandList, queueDay, wtngDay, getXovisWtngMap(smltStng.getExcnYmd(), fcltTmnlId)));
 		result.setKpi(getKpi(queueKpi));
 
 		return result;
@@ -254,7 +255,13 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 
 	/* ================= 슬롯 ================= */
 
-	private List<ChknCounterSlotDto> getSlotList(List<ChknCounterIslandDto> islandList, ChknQueueDay queueDay, FcltWtngDay wtngDay) {
+	private Map<String, Integer> getXovisWtngMap(String excnYmd, String fcltTmnlId) {
+		return castChknMapper.retrievePsgWtngSumBySlotList(excnYmd, fcltTmnlId).stream()
+				.collect(Collectors.toMap(PsgWtngRawDto::getTime, PsgWtngRawDto::getWtngPsgCnt));
+	}
+
+	private List<ChknCounterSlotDto> getSlotList(
+			List<ChknCounterIslandDto> islandList, ChknQueueDay queueDay, FcltWtngDay wtngDay, Map<String, Integer> xovisWtngMap) {
 		List<ChknCounterSlotDto> result = new ArrayList<>();
 
 		for (String hhmm : TimeBucketUtils.slotTimeList(SLOT_BGN_HOUR)) {
@@ -264,6 +271,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 			slot.setHhmm(hhmm);
 			slot.setNotice(getNotice(chknRsltList));
 			slot.setChknRsltList(chknRsltList);
+			slot.setXovisWtngPsgCnt(xovisWtngMap.get(hhmm));
 
 			result.add(slot);
 		}

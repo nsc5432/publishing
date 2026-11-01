@@ -16,7 +16,8 @@
         "preview": "vite preview",
         "verify:user-smlt": "node scripts/verify-user-smlt.mjs",
         "verify:monitoring": "node scripts/verify-monitoring.mjs",
-        "verify:dsbd": "node scripts/verify-dashboard-summary.mjs"
+        "verify:dsbd": "node scripts/verify-dashboard-summary.mjs",
+        "verify:cgn": "node scripts/verify-congestion-comparison.mjs"
     },
     "dependencies": {
         "@radix-ui/react-alert-dialog": "1.1.4",

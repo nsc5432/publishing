@@ -106,6 +106,9 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
    - 2026-11-01 체크인카운터 결과 지표에 `ChknCounterDto.maxWaitMin`(당일 처리 여객 최대 대기, 분)을 더했다. 원천은 터미널 공용 Queue
      `ChknQueueSeries.waitDistribution` 의 최대 칸이다. 같은 날 화면 지표에서 처리용량 사용률을 빼고, 최대 Queue 는 `kpi.maxQueuePsgCnt`(터미널 합)
      대신 슬롯 `MapChknRsltDto.maxQueuePsgCnt` 의 아일랜드 단위 최댓값과 그 아일랜드 · 슬롯 시각을 그린다. **새 이름도 이제 고정이다.**
+   - 2026-11-01 체크인카운터 Queue 차트 비교선으로 `ChknCounterSlotDto.xovisWtngPsgCnt`(`Integer`, 없으면 null)를 더했다. 원천은
+     `CastChknMapper.retrievePsgWtngSumBySlotList` — `TN_PM_PSG_WTNG_INFO` `Queue` 행의 슬롯 `[hhmm, hhmm+30)` 안 마지막 스냅샷 터미널 합이다.
+     Xovis 는 A · G · I 를 재지 않고 `-SBD` 줄을 포함하므로 Cast(CC 전 아일랜드) 선과 범위가 다르다. **새 이름도 이제 고정이다.**
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).

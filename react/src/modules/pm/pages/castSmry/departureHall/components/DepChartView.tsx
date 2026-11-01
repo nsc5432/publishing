@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import { AXIS_LABEL as SHARED_AXIS_LABEL, TOOLTIP_TEXT_STYLE } from '@/lib/chart';
+import { formatCount } from '@/lib/format';
 import type { DepTrend } from '../types';
 
 interface DepChartViewProps {
@@ -37,6 +38,31 @@ export function DepChartView({ trend, step, time }: DepChartViewProps) {
                 trigger: 'axis',
                 confine: true,
                 textStyle: TOOLTIP_TEXT_STYLE,
+                formatter: (params) => {
+                    const items = (Array.isArray(params) ? params : [params]) as Array<{
+                        seriesIndex?: number;
+                        dataIndex?: number;
+                        marker?: string;
+                    }>;
+                    const index = items[0]?.dataIndex;
+
+                    if (typeof index !== 'number') return '';
+
+                    const rows = items.flatMap(({ seriesIndex, marker }) => {
+                        const series = typeof seriesIndex === 'number' ? trend.series[seriesIndex] : undefined;
+
+                        if (!series) return [];
+
+                        return [
+                            `${marker ?? ''}${series.title}`,
+                            `대기인원 ${formatCount(series.values[index] ?? 0)}명 / ` +
+                                `평균 대기시간 ${formatCount(series.wtngSecs[index] ?? 0)}초 / ` +
+                                `처리인원 ${formatCount(series.prcsPsgCnts[index] ?? 0)}명`,
+                        ];
+                    });
+
+                    return [trend.timeLabels[index], ...rows].join('<br/>');
+                },
             },
             xAxis: {
                 type: 'category',

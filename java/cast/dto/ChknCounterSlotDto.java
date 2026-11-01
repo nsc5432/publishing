@@ -12,4 +12,5 @@ public class ChknCounterSlotDto {
 	private String hhmm; // 슬롯 시각 HHmm
 	private MapNoticeDto notice; // 상단 혼잡 알림 (아일랜드만)
 	private List<MapChknRsltDto> chknRsltList; // 아일랜드별 상태
+	private Integer xovisWtngPsgCnt; // Xovis Queue 대기인원 터미널 합 (명). 스냅샷이 없으면 null
 }

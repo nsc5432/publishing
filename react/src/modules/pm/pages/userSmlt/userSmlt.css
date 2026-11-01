@@ -909,10 +909,10 @@ html[data-page='userSmlt'] .stepper__value {
 }
 
 html[data-page='userSmlt'] .chart {
-    flex: 1 1 0;
+    flex: 0 0 clamp(170px, 22vh, 240px);
     display: flex;
     flex-direction: column;
-    min-height: clamp(112px, 15vh, 190px);
+    min-height: 0;
     padding: clamp(8px, 1.3vh, 14px) 16px clamp(6px, 1vh, 10px);
     margin-bottom: clamp(8px, 1.4vh, 16px);
     border-radius: 12px;
@@ -928,9 +928,10 @@ html[data-page='userSmlt'] .panel--disabled .chart {
 html[data-page='userSmlt'] .chart__head {
     flex: 0 0 auto;
     display: flex;
+    flex-wrap: wrap;
     align-items: baseline;
     justify-content: space-between;
-    gap: 12px;
+    gap: 4px 12px;
     margin-bottom: clamp(6px, 1vh, 12px);
 }
 

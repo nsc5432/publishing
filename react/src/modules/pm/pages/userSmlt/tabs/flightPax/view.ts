@@ -1,6 +1,6 @@
 import type { FltPsgChartDto, TmnlId, UserSmltFltPsgDto, UserSmltFltPsgSaveReq } from '@/types/api.types';
-import { formatCount, formatHhmm } from '@/lib/format';
-import type { ChartData, HourRow, TerminalFlightPax } from './types';
+import { formatCount, formatHhmm, pad2 } from '@/lib/format';
+import type { ChartData, FlightPaxChartData, HourRow, TerminalFlightPax } from './types';
 
 const toFactor = (ajmtRt: number) => 1 + ajmtRt / 100;
 
@@ -28,6 +28,36 @@ function toChart(chartDto: FltPsgChartDto, title: string, unit: string, factor: 
     };
 }
 
+function toCombinedChart(dto: UserSmltFltPsgDto, factor: number): FlightPaxChartData {
+    const flights = toChart(dto.fltChart, '운항편 수', '편', factor);
+    const pax = toChart(dto.psgChart, '승객 수', '명', factor);
+    const flightsByTime = new Map(flights.bars.map((item) => [item.label, item]));
+    const paxByTime = new Map(pax.bars.map((item) => [item.label, item]));
+    const labels = [...new Set([...flightsByTime.keys(), ...paxByTime.keys()])].sort();
+
+    return {
+        flights,
+        pax,
+        items: labels.map((label) => {
+            const flight = flightsByTime.get(label);
+            const passenger = paxByTime.get(label);
+            return {
+                label,
+                flights: flight?.value ?? null,
+                pax: passenger?.value ?? null,
+                flightText: flight ? `${formatCount(flight.actual)}편` : '-',
+                paxText: passenger ? `${formatCount(passenger.actual)}명` : '-',
+            };
+        }),
+    };
+}
+
+function toPeakHour(peakTime: string): string {
+    if (peakTime.length !== 4) return '-';
+    const hour = Number(peakTime.slice(0, 2));
+    return `${pad2(hour)}~${pad2(hour + 1)}시`;
+}
+
 function toRows(dto: UserSmltFltPsgDto, ajmtRt: number, factor: number): HourRow[] {
     return dto.hourList.map((hourRow) => ({
         start: formatHhmm(hourRow.bgnTime),
@@ -43,9 +73,8 @@ export function toFlightPax(dto: UserSmltFltPsgDto, ajmtRt: number): TerminalFli
     return {
         flights: formatCount(dto.fltCnt),
         pax: formatCount(dto.psgCnt),
-        peak: formatHhmm(dto.peakTime),
-        flightChart: toChart(dto.fltChart, '운항편 수', '편', factor),
-        paxChart: toChart(dto.psgChart, '여객 수', '명', factor),
+        peak: toPeakHour(dto.peakTime),
+        chart: toCombinedChart(dto, factor),
         rows: toRows(dto, ajmtRt, factor),
     };
 }
@@ -62,7 +91,10 @@ export const EMPTY_FLIGHT_PAX: TerminalFlightPax = {
     flights: '-',
     pax: '-',
     peak: '-',
-    flightChart: { title: '운항편 수', total: '-', unit: '편', max: 0, bars: [] },
-    paxChart: { title: '여객 수', total: '-', unit: '명', max: 0, bars: [] },
+    chart: {
+        flights: { title: '운항편 수', total: '-', unit: '편', max: 0, bars: [] },
+        pax: { title: '승객 수', total: '-', unit: '명', max: 0, bars: [] },
+        items: [],
+    },
     rows: [],
 };

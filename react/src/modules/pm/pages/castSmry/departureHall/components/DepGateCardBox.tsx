@@ -1,6 +1,7 @@
 import type { ComponentType, SVGProps } from 'react';
 import { toStagePosition } from '@/lib/chart';
 import { DonePeopleIcon, DoneTimeIcon, WaitPeopleIcon, WaitTimeIcon } from '@/components/icons';
+import { StatComparison } from '@/modules/pm/congestion/StatComparison';
 import { toLevelKey, toLevelLabel, type DepGateCard, type StatIcon } from '../types';
 
 const STAT_ICON: Record<StatIcon, ComponentType<SVGProps<SVGSVGElement>>> = {
@@ -57,6 +58,7 @@ export function DepGateCardBox({ card, floating = true, active = false }: DepGat
                                 {stat.value}
                                 <em>{stat.unit}</em>
                             </strong>
+                            <StatComparison comparison={stat.cmpr} />
                         </li>
                     );
                 })}
