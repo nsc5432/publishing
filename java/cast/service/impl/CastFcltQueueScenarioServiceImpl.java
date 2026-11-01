@@ -81,6 +81,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 	private static final List<String> DEP_ASMP_LIST = List.of(
 			"SC / SR 결과를 합산한 하나의 보안검색 Queue (요약보기 카드 추천과 같은 구성, 직렬 / 병렬 관계 미검증)",
+			"혼잡등급 / 평균 대기시간 / 대기인원은 보안검색대 Queue 값이다. 요약보기 카드의 출국장 혼잡등급은 출국장(LGT) 대기로 정하므로 다를 수 있다",
 			"통과여객수를 서비스 시작인원으로 근사한다 (처리 중 인원 변화 무시)",
 			"CAST 10분 결과의 대기여객수를 결과 시각(구간 끝)의 스냅샷으로 본다",
 			"10분 결과의 처리인원 / 대기시간 합은 그 10분에 균등하게 나뉜다고 본다 (분 단위 이동평균 계산용 근사)",
@@ -106,7 +107,9 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		// 모델 선택 실패 / 혼잡등급 기준정보 오류 / 보완 불가는 팝업 오류로 알린다. DB 장애는 그대로 올린다
 		try {
 			SmltStngDto smltStng = castSmltService.retrieveUniqueSmltStng(searchDto.getSmltId());
-			wtngDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, searchDto.getTmnlId(), searchDto.getFcltType());
+			// 출국장 카드의 등급은 LGT 지만 추천 / 해소는 보안검색대 큐다
+			FcltType wtngType = searchDto.getFcltType() == FcltType.DEP ? FcltType.SC : searchDto.getFcltType();
+			wtngDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, searchDto.getTmnlId(), wtngType);
 		} catch (IllegalStateException exception) {
 			return fail(exception.getMessage());
 		}

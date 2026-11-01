@@ -60,8 +60,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastDepHallServiceImpl implements CastDepHallService {
-	/** 출국장 구역 시설 : 출국장(LGT) + 보안검색대(SC / SR) */
-	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT", "SC", "SR");
+	/** 출국장 구역 시설 : 출국장(LGT) */
+	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT");
 
 	/** 아일랜드 마커 색을 맞추기 위한 체크인 구역 시설 */
 	private static final List<String> CHKN_FCLT_CD_LIST = List.of("CC", "CK", "SBD");
@@ -299,7 +299,7 @@ public class CastDepHallServiceImpl implements CastDepHallService {
 		return result;
 	}
 
-	/** 혼잡등급 원천 — 출국장 SC / SR 하루치와 체크인 공용 Queue. 슬롯마다 평가시각만 바꿔 읽는다 */
+	/** 혼잡등급 원천 — 출국장 LGT 하루치와 체크인 공용 Queue. 슬롯마다 평가시각만 바꿔 읽는다 */
 	private static final class CgnSource {
 		private final FcltWtngDay depDay;
 		private final FcltWtngDay chknDay;

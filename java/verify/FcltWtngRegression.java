@@ -35,7 +35,7 @@ public final class FcltWtngRegression {
     }
 
     private static void checkBoundary(int waitSec, CongestionStatus expectedGrade) {
-        for (FcltType type : List.of(FcltType.CHKN, FcltType.DEP)) {
+        for (FcltType type : List.of(FcltType.CHKN, FcltType.DEP, FcltType.SC)) {
             List<FcltWtngSec> rows = new ArrayList<>();
             rows.add(row(EVAL.minusMinutes(40), 0, 0, 0, true, type));
 

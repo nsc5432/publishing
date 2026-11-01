@@ -4,7 +4,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.springframework.stereotype.Service;
@@ -13,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import aoms.pm.cast.domains.dsbd.DepQueueDay;
 import aoms.pm.cast.dto.FcltUnitRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
+import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.TerminalKind;
 import aoms.pm.cast.mapper.CastDsbdMapper;
 import aoms.pm.cast.service.CastDepQueueService;
@@ -39,20 +39,23 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class CastDepQueueServiceImpl implements CastDepQueueService {
-	private static final List<String> DEP_QUEUE_FCLT_CD_LIST = List.of("SC", "SR");
-
 	private final CastDsbdMapper castDsbdMapper;
 
 	@Override
-	public DepQueueDay calculateDepQueueDay(SmltStngDto smltStng, TerminalKind tmnlId) {
+	public DepQueueDay calculateDepQueueDay(SmltStngDto smltStng, TerminalKind tmnlId, FcltType fcltType) {
+		if (fcltType != FcltType.DEP && fcltType != FcltType.SC) {
+			throw new IllegalArgumentException("출국장 결과는 DEP / SC 만 다룹니다. fcltType=" + fcltType);
+		}
+
 		LocalDateTime dayStart = LocalDate.parse(smltStng.getExcnYmd(), DateTimeFormatter.ofPattern("yyyyMMdd")).atStartOfDay();
 
 		// 자정 직후의 직전 30분과 잔여 대기열 역추정은 전날 결과다. 결과 시각이 구간 끝이라 다음 날 00:00 행까지 읽는다
 		return new DepQueueDay(
 				tmnlId,
 				castDsbdMapper.retrieveRsltByUnitList(smltStng.getSmltId(), tmnlId.getFcltTmnlId(), dayStart.minusDays(1),
-						dayStart.plusDays(1).plusMinutes(DepQueueDay.CAST_SLOT_MIN), null, DEP_QUEUE_FCLT_CD_LIST, smltStng.getSmltMdlSn()),
-				retrieveScrtyOpenCntMap(smltStng, tmnlId));
+						dayStart.plusDays(1).plusMinutes(DepQueueDay.CAST_SLOT_MIN), null, fcltType.getUpPsgFcltCdList(), smltStng.getSmltMdlSn()),
+				// LGT 는 운영 수량을 쓰는 계산(추천 / 해소)이 없다
+				fcltType == FcltType.SC ? retrieveScrtyOpenCntMap(smltStng, tmnlId) : Map.of());
 	}
 
 	@Override

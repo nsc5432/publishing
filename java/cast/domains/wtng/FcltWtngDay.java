@@ -48,8 +48,8 @@ public final class FcltWtngDay {
 
 	/** @param secMap 시설별 10분 통계. 저장 결과와 Java 보완 결과가 같은 구조로 들어온다 */
 	public FcltWtngDay(TerminalKind tmnlId, FcltType fcltType, LocalDate baseDate, Map<String, List<FcltWtngSec>> secMap, CgnGradeScale gradeScale) {
-		if (fcltType != FcltType.CHKN && fcltType != FcltType.DEP) {
-			throw new IllegalArgumentException("시설 대기 결과는 CHKN / DEP 만 다룹니다. fcltType=" + fcltType);
+		if (fcltType != FcltType.CHKN && fcltType != FcltType.DEP && fcltType != FcltType.SC) {
+			throw new IllegalArgumentException("시설 대기 결과는 CHKN / DEP / SC 만 다룹니다. fcltType=" + fcltType);
 		}
 
 		this.tmnlId = tmnlId;
@@ -209,7 +209,7 @@ public final class FcltWtngDay {
 			return QueueWaitWindow.unavailable("아일랜드 결과가 없습니다. island=" + unitCd);
 		}
 
-		if (secMap == null || (fcltType == FcltType.DEP && !isPresent(window))) {
+		if (secMap == null || (fcltType != FcltType.CHKN && !isPresent(window))) {
 			return QueueWaitWindow.unavailable("직전 30분 출국장 결과가 없습니다. unitCd=" + unitCd);
 		}
 
@@ -354,7 +354,7 @@ public final class FcltWtngDay {
 
 		return FcltQueueSource.builder()
 				.tmnlId(tmnlId)
-				.fcltType(FcltType.DEP)
+				.fcltType(fcltType)
 				.unitCd(unitCd)
 				.fcltNm(unitCd + "번 출국장")
 				.dataSrc(QueueDataSource.CAST)
@@ -422,7 +422,7 @@ public final class FcltWtngDay {
 		}
 
 		// 출국장은 기존 역추정 범위를 유지하고, 체크인은 저장된 계산 시작점까지 되짚는다
-		int lookbackMin = fcltType == FcltType.DEP ? DEP_LOOKBACK_MIN : Integer.MAX_VALUE;
+		int lookbackMin = fcltType != FcltType.CHKN ? DEP_LOOKBACK_MIN : Integer.MAX_VALUE;
 		// 분당 도착(10분 도착 / 10)을 오차 없이 빼도록 1/SEC_MIN 명 단위 정수로 센다
 		long remaining = (long) last.getEndWtngPsgCnt() * SEC_MIN;
 

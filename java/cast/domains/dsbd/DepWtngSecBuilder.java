@@ -14,7 +14,7 @@ import aoms.pm.cast.domains.wtng.FcltWtngSecs;
 
 /**
  * @Classname : DepWtngSecBuilder.java
- * @Description : 출국장 SC / SR 10분 결과를 공통 10분 구간 [e-10분, e) 의 기본 통계로 옮긴다
+ * @Description : 출국장 LGT 또는 SC / SR 10분 결과를 공통 10분 구간 [e-10분, e) 의 기본 통계로 옮긴다
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>

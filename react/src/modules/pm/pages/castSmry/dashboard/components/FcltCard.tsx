@@ -71,7 +71,7 @@ export function FcltCard({ data, gauge, onDetail, onMove }: FcltCardProps) {
             </div>
             <div className="gauge-row">
                 <div className="gauge">
-                    <div className="k">시간당 처리인원</div>
+                    <div className="k">{variant.processRate.label}</div>
                     <GaugeDonut
                         value={variant.processRate.value}
                         centerText={variant.processRate.centerText}

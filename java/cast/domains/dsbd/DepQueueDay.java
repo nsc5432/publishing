@@ -15,7 +15,7 @@ import aoms.pm.cast.enums.TerminalKind;
 
 /**
  * @Classname : DepQueueDay.java
- * @Description : 터미널 출국장 SC / SR 결과를 출국장 · 결과 시각별로 한 번 묶어 둔 원천 — 평가시각마다 DepQueueWindow 를 만든다
+ * @Description : 터미널 출국장 LGT 또는 SC / SR 결과를 출국장 · 결과 시각별로 한 번 묶어 둔 원천 — 평가시각마다 DepQueueWindow 를 만든다
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
@@ -38,8 +38,8 @@ public final class DepQueueDay {
 	private final Map<String, Integer> oprCntMap;
 
 	/**
-	 * @param rawList   SC / SR 결과 (retrieveRsltByUnitList)
-	 * @param oprCntMap 출국장별 운영 보안검색대 수 (실행 리소스 운영표)
+	 * @param rawList   LGT 또는 SC / SR 결과 (retrieveRsltByUnitList)
+	 * @param oprCntMap 출국장별 운영 보안검색대 수 (실행 리소스 운영표). LGT 는 빈 맵
 	 */
 	public DepQueueDay(TerminalKind tmnlId, List<SmltRsltRawDto> rawList, Map<String, Integer> oprCntMap) {
 		this.tmnlId = tmnlId;
@@ -99,7 +99,7 @@ public final class DepQueueDay {
 		return resultDtSet.contains(dt);
 	}
 
-	/** 같은 결과 시각의 SC / SR 행을 합친 10분 결과 한 칸 */
+	/** 같은 결과 시각의 LGT 또는 SC / SR 행을 합친 10분 결과 한 칸 */
 	static final class Slot {
 		final LocalDateTime dt;
 		int wtngPsgCnt;

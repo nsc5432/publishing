@@ -72,7 +72,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastMapServiceImpl implements CastMapService {
-	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT", "SC", "SR");
+	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT");
 
 	private static final String EMPTY = "";
 	private static final String YN_Y = "Y";
@@ -110,7 +110,7 @@ public class CastMapServiceImpl implements CastMapService {
 		// 체크인은 아일랜드 공용 Queue 를, 출국장은 시각 → (묶음 단위 → 결과) 를 읽는다
 		FcltWtngDay chknDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.CHKN);
 		Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap = retrieveUnitRsltDayMap(searchDto, DPTGT_FCLT_CD_LIST);
-		// 출국장 혼잡등급은 지표 4종과 달리 요약보기 카드와 같은 SC / SR 처리 여객 평균에서 정한다
+		// 출국장 혼잡등급은 지표 4종과 달리 요약보기 카드와 같은 LGT 처리 여객 평균에서 정한다
 		FcltWtngDay depDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.DEP);
 
 		FltSmryRawDto fltSmry = castDsbdMapper.retrieveFltSmry(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList(), null, null);

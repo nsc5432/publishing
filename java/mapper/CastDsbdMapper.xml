@@ -175,10 +175,7 @@
         FROM (
             SELECT
                 A.SMLT_ACTL_DT,
-                CASE
-                    WHEN B.UP_PSG_FCLT_CD = 'LGT' THEN SUBSTR(B.PSG_FCLT_CD, 4, 1)
-                    ELSE SUBSTR(B.PSG_FCLT_CD, 5, 1)
-                END AS DPTGT_NO,
+                SUBSTR(B.PSG_FCLT_CD, 4, 1) AS DPTGT_NO,
                 SUM(A.WTNG_PSG_CNT) AS DPTGT_WTNG_PSG_CNT
             FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
                 INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
@@ -186,13 +183,10 @@
             WHERE A.SMLT_ID = #{smltId}
             AND B.TMNL_ID = #{tmnlId}
             AND B.USE_YN = 'Y'
-            AND B.UP_PSG_FCLT_CD IN ('LGT', 'LC', 'SC', 'SR')
+            AND B.UP_PSG_FCLT_CD = 'LGT'
             GROUP BY
                 A.SMLT_ACTL_DT,
-                CASE
-                    WHEN B.UP_PSG_FCLT_CD = 'LGT' THEN SUBSTR(B.PSG_FCLT_CD, 4, 1)
-                    ELSE SUBSTR(B.PSG_FCLT_CD, 5, 1)
-                END
+                SUBSTR(B.PSG_FCLT_CD, 4, 1)
         ) T
         GROUP BY TO_CHAR(T.SMLT_ACTL_DT, 'HH24')
         ORDER BY TIME
@@ -212,10 +206,8 @@
             WHERE A.PSG_FLOW_DATA_CRT_DT BETWEEN #{ymd} || '0000' AND #{ymd} || '2359'
             AND A.TMNL_ID = #{tmnlId}
             AND LTRIM(TRIM(A.CHKN_ISL_CD), '0') IS NOT NULL
-            AND (
-                (A.FCLT_TYPE_CD = 'DG' AND A.FCLT_NM LIKE 'DG_')
-                OR A.FCLT_TYPE_CD = 'SC'
-            )
+            AND A.FCLT_TYPE_CD = 'DG'
+            AND A.FCLT_NM LIKE 'DG_'
             GROUP BY A.PSG_FLOW_DATA_CRT_DT, LTRIM(TRIM(A.CHKN_ISL_CD), '0')
         ) T
         GROUP BY SUBSTR(T.PSG_FLOW_DATA_CRT_DT, 9, 2)

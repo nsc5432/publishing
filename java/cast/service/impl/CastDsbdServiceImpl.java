@@ -1,6 +1,5 @@
 package aoms.pm.cast.service.impl;
 
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
 import java.time.LocalDate;
@@ -21,7 +20,6 @@ import java.util.function.Function;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import aoms.pm.cast.domains.CgnGradeScale;
 import aoms.pm.cast.domains.CgnOrder;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknSbdDay;
@@ -88,7 +86,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private static final int MIN_PER_DAY = 24 * MIN_PER_HOUR;
 	private static final int DEFAULT_INTRVL_MIN = 60;
 	private static final String DEP_TARGET_NM = "보안검색대";
-	private static final List<String> DEP_CARD_FCLT_CD_LIST = List.of("LGT", "SC", "SR");
+	private static final List<String> DEP_UNIT_FCLT_CD_LIST = List.of("LGT");
+	private static final List<String> SC_MAX_FCLT_CD_LIST = List.of("SC");
 	private static final Comparator<AssignmentSummary> MAIN_ALN_ORDER = Comparator.comparingInt(AssignmentSummary::getAssignedCount).reversed().thenComparing(AssignmentSummary::getAlnCd);
 
 	private final CastDsbdMapper castDsbdMapper;
@@ -411,31 +410,30 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		TerminalKind tmnlId = searchDto.getTmnlId();
 		String smltId = searchDto.getSmltId();
+		String fcltTmnlId = tmnlId.getFcltTmnlId();
 
 		SmltStngDto smltStng = castSmltService.retrieveUniqueSmltStng(smltId);
-		FcltWtngDay wtngDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.DEP);
-		LocalDateTime evalDt = wtngDay.dtOf(toMinutes(searchDto.getHhmm()));
-		CgnGradeScale gradeScale = wtngDay.getGradeScale();
+		// 출국장 대기 / 등급은 LGT, 보안검색대 수 추천 / 해소는 SC / SR 큐에서 정한다
+		FcltWtngDay depDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.DEP);
+		FcltWtngDay scDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.SC);
+		LocalDateTime evalDt = depDay.dtOf(toMinutes(searchDto.getHhmm()));
 
-		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(tmnlId.getFcltTmnlId(), DEP_CARD_FCLT_CD_LIST)
+		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, DEP_UNIT_FCLT_CD_LIST)
+				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
+		Map<String, FcltUnitRawDto> scUnitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, SC_MAX_FCLT_CD_LIST)
 				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
 
-		List<FcltUnitDto> unitList = getDepUnitList(unitMap, wtngDay, evalDt);
-		List<FcltQueueClearance> clearanceList = wtngDay.presentUnitCdList(evalDt).stream()
-				.map(unitCd -> wtngDay.clearanceOf(unitCd, evalDt))
-				.sorted(CgnOrder.byWaitDesc(
-                    (FcltQueueClearance clearance) -> clearance.getObservedWait().getValue(),
-                    clearance -> queueOf(clearance.getSource()),
-                    clearance -> clearance.getSource().getUnitCd()
-                ))
-				.collect(toList());
+		List<FcltUnitDto> unitList = getDepUnitList(unitMap, depDay, evalDt);
+		Set<String> unitCdSet = new TreeSet<>(depDay.presentUnitCdList(evalDt));
+		unitCdSet.addAll(scDay.presentUnitCdList(evalDt));
+
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
-		for (FcltQueueClearance clearance : clearanceList) {
-			String unitCd = clearance.getSource().getUnitCd();
-
-			result.add(getDepFcltCard(clearance, unitMap.get(unitCd), unitList, gradeScale.gradeOf(clearance.getObservedWait()).getValue()));
+		for (String unitCd : unitCdSet) {
+			result.add(getDepFcltCard(unitCd, depDay, evalDt, scDay.clearanceOf(unitCd, evalDt), scUnitMap.get(unitCd), unitList));
 		}
+
+		result.sort(CgnOrder.byWaitDesc(DsbdFcltCardDto::getCgnWtngSec, DsbdFcltCardDto::getWtngPsgCnt, DsbdFcltCardDto::getDptgtNo));
 
 		return result;
 	}
@@ -560,14 +558,18 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return result;
 	}
 
+	// 보유 / 운영 수량은 혼잡해소 팝업과 같은 보안검색대 수 — 보유는 시설 마스터 SC, 운영은 실행 리소스 운영표
 	private DsbdFcltCardDto getDepFcltCard(
-			FcltQueueClearance clearance,
-			FcltUnitRawDto unit,
-			List<FcltUnitDto> unitList,
-			CongestionStatus cgnStatus
+			String unitCd,
+			FcltWtngDay depDay,
+			LocalDateTime evalDt,
+			FcltQueueClearance scClearance,
+			FcltUnitRawDto scUnit,
+			List<FcltUnitDto> unitList
 	) {
-		String unitCd = clearance.getSource().getUnitCd();
-		FcltQueueClearance.Recommend recommend = clearance.recommendOf(FcltQueueClearance.DFLT_TARGET_MIN);
+		FcltQueueClearance.Recommend recommend = scClearance.recommendOf(FcltQueueClearance.DFLT_TARGET_MIN);
+		Integer oprCnt = scClearance.getSource().getOprCnt();
+		Computed<Double> avgWtngSec = depDay.avgWtngSecOf(unitCd, evalDt);
 
 		DsbdFcltCardDto result = new DsbdFcltCardDto();
 		result.setCardId(FcltType.DEP.getValue() + "-" + unitCd);
@@ -575,11 +577,12 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setIsland(EMPTY);
 		result.setDptgtNo(unitCd);
 		result.setFcltNm(unitCd + "번");
-		result.setTotCnt(unit != null ? unit.getTotCnt() : 0);
-		result.setOprCnt(unit != null ? unit.getOprCnt() : 0);
-		result.setWtngPsgCnt(queueOf(clearance.getSource()));
-		applyClearance(result, clearance, recommend);
-		result.setCgnStatus(cgnStatus);
+		result.setTotCnt(scUnit != null ? scUnit.getTotCnt() : 0);
+		result.setOprCnt(oprCnt != null ? oprCnt : 0);
+		result.setWtngPsgCnt(queueOf(depDay.sourceOf(unitCd, evalDt)));
+		applyClearance(result, scClearance, recommend);
+		result.setCgnWtngSec(avgWtngSec.getValue());
+		result.setCgnStatus(depDay.getGradeScale().gradeOf(avgWtngSec).getValue());
 		result.setRecommend(getRecommend(recommend.getReqCnt() == null ? EMPTY : DEP_TARGET_NM, recommend.getReqCnt(), false));
 		result.setUnitList(unitList);
 

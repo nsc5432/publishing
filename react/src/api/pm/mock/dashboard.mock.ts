@@ -638,6 +638,7 @@ const QUEUE_ASMP_LIST: Record<'CHKN' | 'DEP', string[]> = {
     DEP: [
         ...QUEUE_ASMP_COMMON,
         'SC / SR 결과를 합산한 하나의 보안검색 Queue (직렬 / 병렬 관계 미검증)',
+        '혼잡등급 / 평균 대기시간 / 대기인원은 보안검색대 Queue 값이다. 요약보기 카드의 출국장 혼잡등급은 출국장(LGT) 대기로 정하므로 다를 수 있다',
         '잔여 대기열의 도착 시각은 10분 보존식 유입을 분 단위로 균등 분배해 FIFO 로 되짚은 근사다',
     ],
 };

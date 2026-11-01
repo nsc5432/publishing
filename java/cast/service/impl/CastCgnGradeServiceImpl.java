@@ -36,7 +36,7 @@ public class CastCgnGradeServiceImpl implements CastCgnGradeService {
 
 	@Override
 	public CgnGradeScale retrieveGradeScale(FcltType fcltType, String context) {
-		String fcltGroupCd = fcltType == FcltType.DEP ? DEP_GROUP_CD : CHKN_GROUP_CD;
+		String fcltGroupCd = fcltType == FcltType.DEP || fcltType == FcltType.SC ? DEP_GROUP_CD : CHKN_GROUP_CD;
 
 		return new CgnGradeScale(
 				fcltGroupCd,

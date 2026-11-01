@@ -1,0 +1,53 @@
+SET SERVEROUTPUT ON
+WHENEVER SQLERROR EXIT SQL.SQLCODE ROLLBACK
+
+-- 출국장 기준을 LGT 로 전환한다 (docs/plans/2026-11-01-dep-lgt-basis.md).
+-- 기존 DEP 행은 SC / SR 합산 통계라 SC 로 옮기고, 이후 DEP 는 LGT 통계를 저장한다.
+-- 새 코드는 수신 시 SC 행을 넣으므로 반드시 배포 전에 실행한다. 제약이 SC 를 막으면 결과 수신 트랜잭션 전체가 롤백된다.
+DECLARE
+    sc_count NUMBER;
+    moved_count NUMBER := 0;
+BEGIN
+    IF SYS_CONTEXT('USERENV', 'SESSION_USER') != 'PMOWN'
+        OR SYS_CONTEXT('USERENV', 'CURRENT_SCHEMA') != 'PMOWN' THEN
+        RAISE_APPLICATION_ERROR(-20001, 'PMOWN 계정과 스키마에서 실행해주세요.');
+    END IF;
+
+    FOR c IN (
+        SELECT CONSTRAINT_NAME
+        FROM USER_CONSTRAINTS
+        WHERE TABLE_NAME = 'TN_PM_SMLT_FCLT_WTNG_RSLT'
+            AND CONSTRAINT_NAME IN ('CK_WTNG_RSLT_TYPE', 'CK_WTNG_RSLT_NOCS')
+    ) LOOP
+        EXECUTE IMMEDIATE 'ALTER TABLE PMOWN.TN_PM_SMLT_FCLT_WTNG_RSLT DROP CONSTRAINT ' || c.CONSTRAINT_NAME;
+    END LOOP;
+
+    EXECUTE IMMEDIATE 'ALTER TABLE PMOWN.TN_PM_SMLT_FCLT_WTNG_RSLT ADD CONSTRAINT CK_WTNG_RSLT_TYPE '
+        || 'CHECK (FCLT_TYPE_CD IN (''CHKN'', ''DEP'', ''SC''))';
+    EXECUTE IMMEDIATE 'ALTER TABLE PMOWN.TN_PM_SMLT_FCLT_WTNG_RSLT ADD CONSTRAINT CK_WTNG_RSLT_NOCS CHECK ('
+        || '((FCLT_TYPE_CD = ''CHKN'' AND WTNG_NOCS BETWEEN 0 AND 10) '
+        || 'OR (FCLT_TYPE_CD IN (''DEP'', ''SC'') AND WTNG_NOCS BETWEEN 0 AND 1)) '
+        || 'AND ((WTNG_NOCS = 0 AND WTNG_PSG_CNT_SUM = 0 AND MAX_WTNG_PSG_CNT IS NULL) '
+        || 'OR (WTNG_NOCS > 0 AND MAX_WTNG_PSG_CNT IS NOT NULL '
+        || 'AND WTNG_PSG_CNT_SUM >= MAX_WTNG_PSG_CNT '
+        || 'AND WTNG_PSG_CNT_SUM <= MAX_WTNG_PSG_CNT * WTNG_NOCS)))';
+
+    -- SC 행이 있으면 이관이 끝났거나 새 코드가 LGT(DEP) / SC 를 함께 저장한 뒤다. 다시 옮기면 LGT 행이 SC 로 바뀐다
+    SELECT COUNT(*) INTO sc_count FROM PMOWN.TN_PM_SMLT_FCLT_WTNG_RSLT WHERE FCLT_TYPE_CD = 'SC';
+
+    IF sc_count = 0 THEN
+        UPDATE PMOWN.TN_PM_SMLT_FCLT_WTNG_RSLT
+        SET FCLT_TYPE_CD = 'SC'
+        WHERE FCLT_TYPE_CD = 'DEP';
+
+        moved_count := SQL%ROWCOUNT;
+    END IF;
+
+    EXECUTE IMMEDIATE 'COMMENT ON COLUMN PMOWN.TN_PM_SMLT_FCLT_WTNG_RSLT.FCLT_TYPE_CD IS '
+        || '''시설유형코드(CHKN:CC공용큐,DEP:LGT,SC:SC및SR합산)''';
+
+    COMMIT;
+    DBMS_OUTPUT.PUT_LINE('제약을 DEP / SC 로 넓혔습니다. DEP → SC 이관 행 수: ' || moved_count
+        || CASE WHEN sc_count > 0 THEN ' (SC 행이 이미 있어 이관을 건너뛰었습니다)' END);
+END;
+/

@@ -16,7 +16,7 @@ public final class FcltWtngRsltRowsRegression {
     private static int checks;
 
     public static void main(String[] args) {
-        for (FcltType type : List.of(FcltType.CHKN, FcltType.DEP)) {
+        for (FcltType type : List.of(FcltType.CHKN, FcltType.DEP, FcltType.SC)) {
             FcltWtngRsltDto row = rows(type, 61, 120).get(0);
             equal(new BigDecimal("61"), row.getWtngPsecSum(), type + " integer wait sum");
             equal(new BigDecimal("120"), row.getPrcsPsecSum(), type + " integer processing sum");

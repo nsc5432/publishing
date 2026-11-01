@@ -37,7 +37,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class CastFcltWtngRsltCreateServiceImpl implements CastFcltWtngRsltCreateService {
-	private static final List<FcltType> FCLT_TYPE_LIST = List.of(FcltType.CHKN, FcltType.DEP);
+	private static final List<FcltType> FCLT_TYPE_LIST = List.of(FcltType.CHKN, FcltType.DEP, FcltType.SC);
 
 	private final CastSmltService castSmltService;
 	private final CastFcltWtngService castFcltWtngService;

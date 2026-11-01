@@ -60,7 +60,6 @@ public class CastFcltWtngServiceImpl implements CastFcltWtngService {
 	private static final String YMD_FORMAT = "yyyyMMdd";
 	private static final int MINUTE_PER_DAY = ChknQueueSeries.MINUTE_PER_DAY;
 	private static final List<String> CHKN_SRC_FCLT_CD_LIST = List.of("CC");
-	private static final List<String> DEP_SRC_FCLT_CD_LIST = List.of("SC", "SR");
 
 	private final CastFcltWtngRsltMapper castFcltWtngRsltMapper;
 	private final CastChknQueueService castChknQueueService;
@@ -112,7 +111,7 @@ public class CastFcltWtngServiceImpl implements CastFcltWtngService {
 
 		requireDep(fcltType);
 
-		DepQueueDay day = castDepQueueService.calculateDepQueueDay(smltStng, tmnlId);
+		DepQueueDay day = castDepQueueService.calculateDepQueueDay(smltStng, tmnlId, fcltType);
 		List<String> unitCdList = depUnitCdList(day.unitCdList(), day.oprUnitCdList());
 		LocalDateTime rangeStart = DepWtngSecBuilder.rangeStartOf(baseDate, day.firstResultDt());
 		LocalDateTime rangeEnd = DepWtngSecBuilder.rangeEndOf(baseDate);
@@ -164,7 +163,7 @@ public class CastFcltWtngServiceImpl implements CastFcltWtngService {
 
 		LocalDateTime dayStart = baseDate.atStartOfDay();
 		List<FcltWtngSrcDto> srcList = castFcltWtngRsltMapper.retrieveFcltWtngSrcList(
-				smltStng.getSmltId(), smltStng.getSmltMdlSn(), fcltTmnlId, fcltType.getValue(), DEP_SRC_FCLT_CD_LIST,
+				smltStng.getSmltId(), smltStng.getSmltMdlSn(), fcltTmnlId, fcltType.getValue(), fcltType.getUpPsgFcltCdList(),
 				dayStart.minusDays(1), dayStart.plusDays(1).plusMinutes(DepQueueDay.CAST_SLOT_MIN));
 		LocalDateTime firstDt = srcList.stream()
 				.map(FcltWtngSrcDto::getMinActlDt)
@@ -175,8 +174,13 @@ public class CastFcltWtngServiceImpl implements CastFcltWtngService {
 
 		srcList.forEach(src -> srcUnitCdList.add(normalize(src.getUnitCd())));
 
+		// calculateScope 와 같이 운영표 출국장은 SC 에만 더한다
+		Collection<String> oprUnitCdList = fcltType == FcltType.SC
+				? castDepQueueService.retrieveScrtyOpenCntMap(smltStng, tmnlId).keySet()
+				: List.of();
+
 		return new FcltWtngScope(
-				depUnitCdList(srcUnitCdList, castDepQueueService.retrieveScrtyOpenCntMap(smltStng, tmnlId).keySet()),
+				depUnitCdList(srcUnitCdList, oprUnitCdList),
 				DepWtngSecBuilder.rangeStartOf(baseDate, firstDt),
 				DepWtngSecBuilder.rangeEndOf(baseDate),
 				Map.of());
@@ -202,8 +206,8 @@ public class CastFcltWtngServiceImpl implements CastFcltWtngService {
 	}
 
 	private void requireDep(FcltType fcltType) {
-		if (fcltType != FcltType.DEP) {
-			throw new IllegalArgumentException("시설 대기 결과는 CHKN / DEP 만 다룹니다. fcltType=" + fcltType);
+		if (fcltType != FcltType.DEP && fcltType != FcltType.SC) {
+			throw new IllegalArgumentException("시설 대기 결과는 CHKN / DEP / SC 만 다룹니다. fcltType=" + fcltType);
 		}
 	}
 

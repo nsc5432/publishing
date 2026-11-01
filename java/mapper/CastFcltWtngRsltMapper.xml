@@ -57,6 +57,9 @@
                     <when test="fcltTypeCd == 'CHKN'">
                 TRIM(SUBSTR(B.PSG_FCLT_CD, -3, 1)) AS UNIT_CD
                     </when>
+                    <when test="fcltTypeCd == 'DEP'">
+                TRIM(SUBSTR(B.PSG_FCLT_CD, 4, 1)) AS UNIT_CD
+                    </when>
                     <otherwise>
                 TRIM(SUBSTR(B.PSG_FCLT_CD, 5, 1)) AS UNIT_CD
                     </otherwise>

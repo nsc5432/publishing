@@ -66,7 +66,7 @@ export interface FcltCardVariant {
     island?: string;
     num: string;
     meta: FcltCardMeta[];
-    processRate: GaugeData;
+    processRate: GaugeData & { label: string };
     clearTime: GaugeData & { label: string };
     recommend: FcltCardRecommend;
 }
@@ -145,7 +145,7 @@ export const FCLT_QUEUE_LABEL: Record<FcltCardType, FcltQueueLabel> = {
         recommend: '추천 부스 수(총)',
     },
     DEP: {
-        title: '출국장',
+        title: '보안검색대',
         resource: '보안검색대',
         current: '현재 운영 보안검색대',
         input: '운영 보안검색대 수',
