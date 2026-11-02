@@ -631,7 +631,7 @@ html[data-page='terminalMap'] .marker--dep-gate[data-congestion='VERY_BUSY'] {
     background: var(--c-red);
 }
 
-/* 혼잡도 산정 불가 (직전 30분 미관측 / 처리 여객 0명) — 등급 색과 구분되는 중립색 */
+/* 혼잡도 산정 불가 (직전 10분 미관측 / 처리 여객 0명) — 등급 색과 구분되는 중립색 */
 html[data-page='terminalMap'] .marker--dep-gate:not([data-congestion]),
 html[data-page='terminalMap'] .marker--island.is-unknown {
     background: #9aa3b2;

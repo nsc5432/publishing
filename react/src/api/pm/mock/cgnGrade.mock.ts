@@ -27,7 +27,7 @@ const SEVERITY: CongestionStatus[] = ['FREE', 'NORMAL', 'BUSY', 'VERY_BUSY'];
 /** 해소 목표 — 평균 대기시간이 이 값(초) 미만 */
 export const MOCK_NORMAL_UPPER_EXCLUSIVE_SEC = (MOCK_GRADE_ROWS[1].maxVl + 1) * SEC_PER_MIN;
 
-/** 직전 30분 처리 여객 평균 대기시간(초) → 등급. 산정 불가 / 기준 범위 밖은 null */
+/** 직전 10분 처리 여객 평균 대기시간(초) → 등급. 산정 불가 / 기준 범위 밖은 null */
 export function mockGradeOf(avgWtngSec: number | null): CongestionStatus | null {
     if (avgWtngSec === null || !Number.isFinite(avgWtngSec) || avgWtngSec < 0) return null;
 

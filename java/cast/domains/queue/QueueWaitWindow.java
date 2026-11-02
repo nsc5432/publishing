@@ -8,7 +8,7 @@ import java.util.List;
  * 관측 평균과 미래 예측(WaitAvgForecast)이 같은 이력을 쓴다.
  */
 public final class QueueWaitWindow {
-    public static final int WINDOW_MIN = 30;
+    public static final int WINDOW_MIN = 10;
 
     private final double[] prcsPsgCnt;
     private final double[] wtngSecSum;
@@ -19,9 +19,9 @@ public final class QueueWaitWindow {
     private final String psgGroupGap;
 
     /**
-     * @param prcsPsgCnt [t-30, t) 분별 처리인원 (길이 30)
+     * @param prcsPsgCnt [t-10, t) 분별 처리인원 (길이 10)
      * @param wtngSecSum 같은 분에 처리된 여객의 대기시간 합 (초)
-     * @param historyGap 30분 전체를 관측하지 못한 사유. 관측했으면 null
+     * @param historyGap 10분 전체를 관측하지 못한 사유. 관측했으면 null
      * @param psgGroupList t 에 남은 대기열 — 오래 기다린 순
      * @param psgGroupGap  남은 대기열의 도착 시각을 재구성하지 못한 사유. 재구성했으면 null
      */
@@ -48,7 +48,7 @@ public final class QueueWaitWindow {
         return new QueueWaitWindow(new double[WINDOW_MIN], new double[WINDOW_MIN], reason, List.of(), reason);
     }
 
-    /** 직전 30분 처리 여객의 처리인원 가중평균 대기시간 (초, 소수 원값) */
+    /** 직전 10분 처리 여객의 처리인원 가중평균 대기시간 (초, 소수 원값) */
     public Computed<Double> observedAvgWtngSec() {
         if (historyGap != null) {
             return Computed.unavailable(CalculationMethod.PRCS_WAIT_AVG, historyGap);
@@ -57,11 +57,11 @@ public final class QueueWaitWindow {
         double prcsSum = observedPrcsTotal;
 
         if (prcsSum <= 0) {
-            return Computed.unavailable(CalculationMethod.PRCS_WAIT_AVG, "직전 30분에 처리된 여객이 없습니다.");
+            return Computed.unavailable(CalculationMethod.PRCS_WAIT_AVG, "직전 " + WINDOW_MIN + "분에 처리된 여객이 없습니다.");
         }
 
         return Computed.calculated(observedWtngSecTotal / prcsSum, CalculationMethod.PRCS_WAIT_AVG,
-                "[t-30분, t) 처리 여객 " + Math.round(prcsSum) + "명의 처리인원 가중평균 대기시간");
+                "[t-" + WINDOW_MIN + "분, t) 처리 여객 " + Math.round(prcsSum) + "명의 처리인원 가중평균 대기시간");
     }
 
     public double observedPrcsPsgCnt() {

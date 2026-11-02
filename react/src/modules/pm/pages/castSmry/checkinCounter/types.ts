@@ -97,7 +97,7 @@ export interface ChknIslandView {
     island: string;
     /** 표시명 (예: 아일랜드 A) */
     title: string;
-    /** 평가시각 직전 30분 처리 여객 평균 대기시간 기준. 산정 불가면 null */
+    /** 평가시각 직전 10분 처리 여객 평균 대기시간 기준. 산정 불가면 null */
     level: CongestionLevel | null;
     /** 미운영 아일랜드 (그 시각 배정이 없다) */
     isClosed: boolean;

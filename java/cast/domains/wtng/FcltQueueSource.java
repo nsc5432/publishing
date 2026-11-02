@@ -51,7 +51,7 @@ public final class FcltQueueSource {
 	private final String totCntRsn;
 	private final boolean erlangCApplicable;
 	private final List<String> asmpList;
-	/** 혼잡등급 / 해소 / 추천이 함께 쓰는 직전 30분 처리 이력과 잔여 대기열 */
+	/** 혼잡등급 / 해소 / 추천이 함께 쓰는 직전 10분 처리 이력과 잔여 대기열 */
 	private final QueueWaitWindow waitWindow;
 
 	public FacilityQueueInput toArrivalInput() {

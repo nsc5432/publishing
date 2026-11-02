@@ -38,11 +38,11 @@ public final class FcltQueueClearance {
 	private final Computed<Double> observedWait;
 	private final WaitAvgForecast forecast;
 
-	/** @param normalUpperExclusiveSec 해소 목표 — 직전 30분 처리 여객 평균 대기시간이 이 값(초) 미만 */
+	/** @param normalUpperExclusiveSec 해소 목표 — 직전 10분 처리 여객 평균 대기시간이 이 값(초) 미만 */
 	public FcltQueueClearance(FcltQueueSource source, int normalUpperExclusiveSec) {
 		QueueWaitWindow window = source.getWaitWindow() != null
 				? source.getWaitWindow()
-				: QueueWaitWindow.unavailable("혼잡 판정 원천(직전 30분 처리 이력)이 없습니다.");
+				: QueueWaitWindow.unavailable("혼잡 판정 원천(직전 " + QueueWaitWindow.WINDOW_MIN + "분 처리 이력)이 없습니다.");
 
 		this.source = source;
 		this.calculator = toCalculator(source);
@@ -70,7 +70,7 @@ public final class FcltQueueClearance {
 		return service;
 	}
 
-	// 직전 30분 처리 여객 평균 대기시간 (초) — 혼잡등급 판정값
+	// 직전 10분 처리 여객 평균 대기시간 (초) — 혼잡등급 판정값
 	public Computed<Double> getObservedWait() {
 		return observedWait;
 	}
@@ -86,7 +86,7 @@ public final class FcltQueueClearance {
 	}
 
 	/**
-	 * 지정한 운영 수량으로 직전 30분 처리 여객 평균이 목표 미만이 되기까지의 시간.
+	 * 지정한 운영 수량으로 직전 10분 처리 여객 평균이 목표 미만이 되기까지의 시간.
 	 * @param fcstMin 예측 평균을 보고할 시각 (기준시각 + 분)
 	 */
 	public ClearanceResult clearOf(Integer serverCnt, int fcstMin) {
@@ -158,7 +158,7 @@ public final class FcltQueueClearance {
 		/** 기준시각 + 해소 초. 산정 불가 / 해소 불가 / 예측 범위(하루) 초과면 null */
 		private final LocalDateTime clearDt;
 		private final int fcstMin;
-		/** 기준시각 + fcstMin 의 직전 30분 처리 여객 예측 평균 대기시간 (초) */
+		/** 기준시각 + fcstMin 의 직전 10분 처리 여객 예측 평균 대기시간 (초) */
 		private final Computed<Double> fcstWtngSec;
 		private final Computed<Double> nextWtngSec;
 		private final Computed<ErlangCResult> erlang;

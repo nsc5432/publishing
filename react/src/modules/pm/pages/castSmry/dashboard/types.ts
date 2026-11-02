@@ -163,7 +163,7 @@ export interface QueueClearView {
     note: string;
     /** 계산 기준 시각에 새로 줄 선 여객의 예상 대기. 산정할 수 없으면 '' */
     nextWtngText: string;
-    /** 목표 시각의 직전 30분 처리 여객 예측 평균 대기. 산정할 수 없으면 '' */
+    /** 목표 시각의 직전 10분 처리 여객 예측 평균 대기. 산정할 수 없으면 '' */
     fcstWtngText: string;
     /** 이미 목표 미만(none)이면 해소시간이 수량과 무관하게 0 이라, 수량 차이는 이 예측값으로 비교한다 */
     fcst: QueueFcstView;

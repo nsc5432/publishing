@@ -66,7 +66,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 	private static final List<String> DEP_MAX_FCLT_CD_LIST = List.of("SC");
 
 	private static final List<String> COMMON_ASMP_LIST = List.of(
-			"혼잡등급 / 해소 목표는 기준시각 직전 30분 [t-30분, t) 에 처리된 여객의 처리인원 가중평균 대기시간이다. 해소는 이 평균이 NORMAL 상한 미만이 되는 시각",
+			"혼잡등급 / 해소 목표는 기준시각 직전 10분 [t-10분, t) 에 처리된 여객의 처리인원 가중평균 대기시간이다. 해소는 이 평균이 NORMAL 상한 미만이 되는 시각",
 			"미래 평균은 같은 정의의 이동평균이다. 창의 기준시각 이전은 실제 처리 이력, 이후는 1분 단위 유체 FIFO 예측이며 남은 대기자의 대기시간은 이어서 센다",
 			"추천 수량은 목표 시간 안에 목표 미만이 되고 처리능력(수량 × 처리율)이 유입률보다 큰 최소 총수다",
 			"예측 구간 동안 유입률 / 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다",

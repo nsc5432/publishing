@@ -290,7 +290,7 @@ public class CastChknCounterServiceImpl implements CastChknCounterService {
 		return result;
 	}
 
-	// 지표는 슬롯 [hhmm, hhmm+30), 혼잡등급 / 추천은 평가시각 hhmm 의 직전 30분 — 맵형태보기와 같은 규칙이다
+	// 지표는 슬롯 [hhmm, hhmm+30), 혼잡등급 / 추천은 평가시각 hhmm 의 직전 10분 — 맵형태보기와 같은 규칙이다
 	private MapChknRsltDto toChknRslt(String islandCd, ChknQueueDay queueDay, FcltWtngDay wtngDay, int bgnMinute) {
 		FcltWtngSlot queueSlot = queueDay.slotOf(islandCd, bgnMinute, SLOT_MIN);
 		LocalDateTime evalDt = wtngDay.dtOf(bgnMinute);

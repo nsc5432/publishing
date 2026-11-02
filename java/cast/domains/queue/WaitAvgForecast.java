@@ -4,7 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Objects;
 
 /**
- * 시설 수 s 를 평가시각 t 부터 적용했을 때 미래 시각 u 의 직전 30분 [u-30분, u) 처리 여객 평균 대기시간을 예측한다.
+ * 시설 수 s 를 평가시각 t 부터 적용했을 때 미래 시각 u 의 직전 10분 [u-10분, u) 처리 여객 평균 대기시간을 예측한다.
  * 창의 t 이전 부분은 실제 처리 이력, t 이후 부분은 1분 단위 유체 FIFO 예측이다.
  * 남은 대기자의 대기시간은 t 에서 0 으로 되돌리지 않고, 이미 처리된 여객의 대기시간은 시설 수와 무관하다.
  */
@@ -96,7 +96,7 @@ public final class WaitAvgForecast {
 
             if (serverCnt >= stableMinCnt) {
                 return new Search(targetMin, Computed.estimated(serverCnt, CalculationMethod.WAIT_AVG_FORECAST,
-                        targetMin + "분 안에 직전 30분 처리 여객 평균이 " + targetExclusiveSec + "초 미만이 되고 처리능력이 유입보다 큰 최소 총수"),
+                        targetMin + "분 안에 직전 " + WINDOW_MIN + "분 처리 여객 평균이 " + targetExclusiveSec + "초 미만이 되고 처리능력이 유입보다 큰 최소 총수"),
                         stableMinCnt, goalOnlyMinCnt);
             }
         }
@@ -188,12 +188,12 @@ public final class WaitAvgForecast {
 
         if (reachMin == 0) {
             return Computed.calculated(0.0, CalculationMethod.WAIT_AVG_FORECAST,
-                    "직전 30분 처리 여객 평균이 이미 " + targetExclusiveSec + "초 미만입니다.");
+                    "직전 " + WINDOW_MIN + "분 처리 여객 평균이 이미 " + targetExclusiveSec + "초 미만입니다.");
         }
 
         if (reachMin > 0) {
             return Computed.estimated(reachMin * SEC_PER_MIN, CalculationMethod.WAIT_AVG_FORECAST,
-                    reachMin + "분 후 직전 30분 처리 여객 예측 평균이 " + targetExclusiveSec + "초 미만이 됩니다.");
+                    reachMin + "분 후 직전 " + WINDOW_MIN + "분 처리 여객 예측 평균이 " + targetExclusiveSec + "초 미만이 됩니다.");
         }
 
         double capacity = serverCnt == 0 ? 0 : serverCnt * service.getValue();
@@ -211,11 +211,11 @@ public final class WaitAvgForecast {
 
         if (value == null) {
             return Computed.unavailable(CalculationMethod.WAIT_AVG_FORECAST,
-                    fcstMin + "분 후 직전 30분에 처리될 여객이 없습니다. 예측 대기열 " + Math.round(trace.remainAt(fcstMin)) + "명");
+                    fcstMin + "분 후 직전 " + WINDOW_MIN + "분에 처리될 여객이 없습니다. 예측 대기열 " + Math.round(trace.remainAt(fcstMin)) + "명");
         }
 
         return Computed.estimated(value, CalculationMethod.WAIT_AVG_FORECAST,
-                fcstMin + "분 후 시각의 직전 30분 처리 여객 예측 평균 대기시간");
+                fcstMin + "분 후 시각의 직전 " + WINDOW_MIN + "분 처리 여객 예측 평균 대기시간");
     }
 
     private boolean meetsTarget(Trace trace, int targetMin) {
@@ -228,7 +228,7 @@ public final class WaitAvgForecast {
         return atTarget == null ? trace.remainAt(targetMin) == 0 : atTarget < targetExclusiveSec;
     }
 
-    /** 예측 1회의 분별 결과. 창 끝 j 분(t+j)의 평균은 실제 이력 [t-30+j, t) 와 예측 [max(0, j-30), j) 를 합친다 */
+    /** 예측 1회의 분별 결과. 창 끝 j 분(t+j)의 평균은 실제 이력 [t-10+j, t) 와 예측 [max(0, j-10), j) 를 합친다 */
     private static final class Trace {
         private final double[] histPrcsSuffix = new double[WINDOW_MIN + 1];
         private final double[] histWtngSuffix = new double[WINDOW_MIN + 1];
@@ -296,7 +296,7 @@ public final class WaitAvgForecast {
             return clearSec;
         }
 
-        /** 보고 시각의 직전 30분 처리 여객 예측 평균 대기시간 (초) */
+        /** 보고 시각의 직전 10분 처리 여객 예측 평균 대기시간 (초) */
         public Computed<Double> getFcstWtngSec() {
             return fcstWtngSec;
         }

@@ -82,7 +82,7 @@ const FCLT_CARD_GAUGE_LABEL = {
     noCongestion: '혼잡요소 없음',
 };
 
-const WTNG_WINDOW_MIN = 30;
+const WTNG_WINDOW_MIN = 10;
 const MIN_PER_DAY = 24 * 60;
 
 const QUEUE_DATA_SRC_LABEL: Record<QueueDataSrc, string> = {
@@ -101,7 +101,7 @@ const QUEUE_METHOD_LABEL: Record<QueueCalcMethod, string> = {
     QUEUE_BALANCE: '인원 보존식 추정',
     ERLANG_C: 'Erlang C',
     NEXT_ARRIVAL_WAIT: '대기 순번 계산',
-    PRCS_WAIT_AVG: '직전 30분 처리 여객 평균',
+    PRCS_WAIT_AVG: `직전 ${WTNG_WINDOW_MIN}분 처리 여객 평균`,
     WAIT_AVG_FORECAST: '처리 여객 평균 예측',
     CGN_GRADE: '혼잡등급 기준표',
 };
@@ -311,7 +311,7 @@ function formatDtClock(dt: string): string {
     return formatHhmm(dt.slice(8, 12));
 }
 
-/** 예측 평균의 집계 구간 [dt−30분, dt) 표기 (예: 08:20~08:50) */
+/** 예측 평균의 집계 구간 [dt−10분, dt) 표기 (예: 08:40~08:50) */
 function formatWtngWindow(dt: string): string {
     const endMin = Number(dt.slice(8, 10)) * 60 + Number(dt.slice(10, 12));
     const bgnMin = (endMin - WTNG_WINDOW_MIN + MIN_PER_DAY) % MIN_PER_DAY;
@@ -374,7 +374,7 @@ function toNextWtngText(clear: FcltQueueClearDto): string {
     return `새로 줄 서면 약 ${formatSeconds(clear.nextWtngSec)} 대기`;
 }
 
-// 신규 여객 예상과 다른 지표다 — 그 시각 직전 30분에 처리될 여객의 평균
+// 신규 여객 예상과 다른 지표다 — 그 시각 직전 10분에 처리될 여객의 평균
 function toFcstWtngText(clear: FcltQueueClearDto): string {
     if (clear.fcstWtngSec === null) return '';
 
@@ -564,7 +564,7 @@ export function toFcltQueueContextView(dto: FcltQueueScenarioDto): FcltQueueCont
         obsText: `${formatDtClock(dto.obsBgnDt)} ~ ${toClockText(dto.obsEndDt, dto.obsBgnDt)}`,
         dataSrcText: QUEUE_DATA_SRC_LABEL[dto.dataSrc],
         queueText: dto.wtngPsgCnt === null ? '—' : formatCount(dto.wtngPsgCnt),
-        targetText: `직전 30분 처리 여객 ${targetShort} (혼잡등급 NORMAL 상한)`,
+        targetText: `직전 ${WTNG_WINDOW_MIN}분 처리 여객 ${targetShort} (혼잡등급 NORMAL 상한)`,
         wtngAvgText: toWtngAvgText(dto),
         wtngAvgShort: dto.wtngAvgSec === null ? '' : `평균대기 ${formatSeconds(dto.wtngAvgSec)}`,
         arvlText: dto.arvlRate === null ? `— (${dto.arvlMetric.reason})` : `${dto.arvlRate.toFixed(1)}명/분 / ${QUEUE_METHOD_LABEL[dto.arvlMetric.method]}`,

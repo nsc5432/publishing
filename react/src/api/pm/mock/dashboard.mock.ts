@@ -563,7 +563,7 @@ function buildFcltCard(card: FcltCardSeed, hhmm: string, fcltType: 'CHKN' | 'DEP
     const profile = QUEUE_SCENARIO_PROFILES[card.cardId] ?? QUEUE_SCENARIO_PROFILES['T1-CHKN-B'];
     const unitCd = fcltType === 'CHKN' ? card.island : card.dptgtNo;
     const targetMin = QUEUE_TARGET_MIN.dflt;
-    // 평가시각은 조회 시각 그대로다 — 관측구간은 [hhmm-30, hhmm)
+    // 평가시각은 조회 시각 그대로다 — 관측구간은 [hhmm-10, hhmm)
     const baseMinute = toMinuteOfDay(hhmm);
     const capacity = profile.prcsSec === null ? 0 : (profile.oprCnt * 3600) / profile.prcsSec;
     const { reqCnt } = toQueueRecommend(profile, targetMin);
@@ -612,15 +612,15 @@ function buildFcltCardList(tmnlId: TmnlId, hhmm: string, fcltType: 'CHKN' | 'DEP
  * 목업 응답을 입력에 반응시키려고 서버(WaitAvgForecast)와 같은 식을 작게 흉내 낸다.
  * 화면 검증용 fixture 생성기일 뿐 운영 계산은 Java queue 클래스가 맡는다.
  *
- * 해소 = 직전 30분 처리 여객 평균 대기시간이 NORMAL 상한 미만이 되는 시각.
+ * 해소 = 직전 10분 처리 여객 평균 대기시간이 NORMAL 상한 미만이 되는 시각.
  * 창의 평가시각 이전은 관측 이력(평균 obsWtngSec 로 고르게 처리), 이후는 1분 단위 유체 FIFO 예측이다.
  */
 
 interface QueueScenarioProfile {
     wtngPsgCnt: number;
-    /** 직전 30분 처리 여객 평균 대기 (초). null 이면 처리 여객이 없어 산정 불가 */
+    /** 직전 10분 처리 여객 평균 대기 (초). null 이면 처리 여객이 없어 산정 불가 */
     obsWtngSec: number | null;
-    /** 직전 30분 처리인원 (명/시간) */
+    /** 직전 10분 처리인원 (명/시간) */
     obsPrcsPerHour: number;
     /** 남은 대기열이 기다린 시간 — 1분 ~ 이 값(분)에 고르게 퍼져 있다고 본다 */
     queueAgeMaxMin: number;
@@ -646,17 +646,17 @@ const QUEUE_SCENARIO_PROFILES: Record<string, QueueScenarioProfile> = {
     'T1-DEP-1': { wtngPsgCnt: 360, obsWtngSec: 2399.5, obsPrcsPerHour: 450, queueAgeMaxMin: 40, arvlPerHour: 420, prcsSec: 24, oprCnt: 4, totCnt: null },
     // 처리율 미산출 → 추천 / 해소 산정 불가
     'T2-DEP-1': { wtngPsgCnt: 410, obsWtngSec: 2600, obsPrcsPerHour: 500, queueAgeMaxMin: 45, arvlPerHour: 540, prcsSec: null, oprCnt: 2, totCnt: 2 },
-    // 직전 30분 처리 여객 0명 → 등급 산정 불가 (중립색)
+    // 직전 10분 처리 여객 0명 → 등급 산정 불가 (중립색)
     'T2-DEP-2': { wtngPsgCnt: 0, obsWtngSec: null, obsPrcsPerHour: 0, queueAgeMaxMin: 0, arvlPerHour: 0, prcsSec: 24, oprCnt: 1, totCnt: 2 },
 };
 
-const QUEUE_OBS_MIN = 30;
+const QUEUE_OBS_MIN = 10;
 const QUEUE_TARGET_MIN = { dflt: 30, min: 1, max: 120 };
 const QUEUE_HORIZON_MIN = MIN_PER_DAY;
 const QUEUE_EPS = 1e-9;
 
 const QUEUE_ASMP_COMMON = [
-    '혼잡등급 / 해소 목표는 기준시각 직전 30분 [t-30분, t) 에 처리된 여객의 처리인원 가중평균 대기시간이다. 해소는 이 평균이 NORMAL 상한 미만이 되는 시각',
+    `혼잡등급 / 해소 목표는 기준시각 직전 ${QUEUE_OBS_MIN}분 [t-${QUEUE_OBS_MIN}분, t) 에 처리된 여객의 처리인원 가중평균 대기시간이다. 해소는 이 평균이 NORMAL 상한 미만이 되는 시각`,
     '미래 평균은 같은 정의의 이동평균이다. 창의 기준시각 이전은 실제 처리 이력, 이후는 1분 단위 유체 FIFO 예측이며 남은 대기자의 대기시간은 이어서 센다',
     '추천 수량은 목표 시간 안에 목표 미만이 되고 처리능력(수량 × 처리율)이 유입률보다 큰 최소 총수다',
     '예측 구간 동안 유입률 / 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다',
@@ -701,7 +701,7 @@ function toQueueNextWtng(profile: QueueScenarioProfile, fcltCnt: number, capacit
     };
 }
 
-/** 예측 1회 — 창 끝 j분(t+j)의 평균은 관측 이력 [t-30+j, t) 와 예측 [max(0, j-30), j) 를 합친다 */
+/** 예측 1회 — 창 끝 j분(t+j)의 평균은 관측 이력 [t-10+j, t) 와 예측 [max(0, j-10), j) 를 합친다 */
 interface QueueTrace {
     avgAt: (endMin: number) => number | null;
     remainAt: (endMin: number) => number;
@@ -709,7 +709,7 @@ interface QueueTrace {
 
 /** 산정할 수 없으면 사유 문자열, 할 수 있으면 null */
 function forecastGap(profile: QueueScenarioProfile, fcltCnt: number): string | null {
-    if (profile.obsWtngSec === null) return '직전 30분에 처리된 여객이 없습니다.';
+    if (profile.obsWtngSec === null) return `직전 ${QUEUE_OBS_MIN}분에 처리된 여객이 없습니다.`;
     if (fcltCnt > 0 && profile.prcsSec === null) return '시설 처리율을 구할 수 없습니다. 양수인 단일 시설 평균 처리시간이 필요합니다.';
 
     return null;
@@ -812,13 +812,13 @@ function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: strin
         clearMetric = queueMetric('UNAVAILABLE', 'WAIT_AVG_FORECAST', gap);
     } else if (reachMin === 0) {
         clearSec = 0;
-        clearMetric = queueMetric('CALCULATED', 'WAIT_AVG_FORECAST', `직전 30분 처리 여객 평균이 이미 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만입니다.`);
+        clearMetric = queueMetric('CALCULATED', 'WAIT_AVG_FORECAST', `직전 ${QUEUE_OBS_MIN}분 처리 여객 평균이 이미 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만입니다.`);
     } else if (reachMin > 0) {
         clearSec = reachMin * 60;
         clearMetric = queueMetric(
             'ESTIMATED',
             'WAIT_AVG_FORECAST',
-            `${reachMin}분 후 직전 30분 처리 여객 예측 평균이 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만이 됩니다.`,
+            `${reachMin}분 후 직전 ${QUEUE_OBS_MIN}분 처리 여객 예측 평균이 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만이 됩니다.`,
         );
     } else if ((capacity ?? 0) <= lambda) {
         clearMetric = queueMetric(
@@ -841,8 +841,8 @@ function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: strin
             gap !== null
                 ? queueMetric('UNAVAILABLE', 'WAIT_AVG_FORECAST', gap)
                 : fcstWtngSec === null
-                  ? queueMetric('UNAVAILABLE', 'WAIT_AVG_FORECAST', `${fcstMin}분 후 직전 30분에 처리될 여객이 없습니다.`)
-                  : queueMetric('ESTIMATED', 'WAIT_AVG_FORECAST', `${fcstMin}분 후 시각의 직전 30분 처리 여객 예측 평균 대기시간`),
+                  ? queueMetric('UNAVAILABLE', 'WAIT_AVG_FORECAST', `${fcstMin}분 후 직전 ${QUEUE_OBS_MIN}분에 처리될 여객이 없습니다.`)
+                  : queueMetric('ESTIMATED', 'WAIT_AVG_FORECAST', `${fcstMin}분 후 시각의 직전 ${QUEUE_OBS_MIN}분 처리 여객 예측 평균 대기시간`),
         ...toQueueNextWtng(profile, fcltCnt, capacity),
         wtngProb: null,
         loadRatio: null,
@@ -919,7 +919,7 @@ function toQueueRecommend(profile: QueueScenarioProfile, targetMin: number): Fcl
             reqMetric: queueMetric(
                 'ESTIMATED',
                 'WAIT_AVG_FORECAST',
-                `${targetMin}분 안에 직전 30분 처리 여객 평균이 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만이 되고 처리능력이 유입보다 큰 최소 총수`,
+                `${targetMin}분 안에 직전 ${QUEUE_OBS_MIN}분 처리 여객 평균이 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만이 되고 처리능력이 유입보다 큰 최소 총수`,
             ),
         };
     }
@@ -942,7 +942,7 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
     const key = `${req.tmnlId}-${req.fcltType}-${req.unitCd}`;
     const profile = QUEUE_SCENARIO_PROFILES[key] ?? QUEUE_SCENARIO_PROFILES['T1-CHKN-B'];
     const ymd = BASE_INFO.ymd;
-    // 평가시각 = 조회 시각. 관측구간은 그 직전 30분이다
+    // 평가시각 = 조회 시각. 관측구간은 그 직전 10분이다
     const baseMinute = toMinuteOfDay(req.hhmm);
     const mu = profile.prcsSec === null ? null : 3600 / profile.prcsSec;
     const targetMin = req.mode === 'TIME' ? (req.targetMinutes ?? QUEUE_TARGET_MIN.dflt) : QUEUE_TARGET_MIN.dflt;
@@ -975,8 +975,8 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
         wtngAvgPrcsPsgCnt: Math.round((profile.obsPrcsPerHour * QUEUE_OBS_MIN) / MIN_PER_HOUR),
         wtngAvgMetric:
             profile.obsWtngSec === null
-                ? queueMetric('UNAVAILABLE', 'PRCS_WAIT_AVG', '직전 30분에 처리된 여객이 없습니다.')
-                : queueMetric('CALCULATED', 'PRCS_WAIT_AVG', '[t-30분, t) 처리 여객의 처리인원 가중평균 대기시간'),
+                ? queueMetric('UNAVAILABLE', 'PRCS_WAIT_AVG', `직전 ${QUEUE_OBS_MIN}분에 처리된 여객이 없습니다.`)
+                : queueMetric('CALCULATED', 'PRCS_WAIT_AVG', `[t-${QUEUE_OBS_MIN}분, t) 처리 여객의 처리인원 가중평균 대기시간`),
         cgnStatus: mockGradeOf(profile.obsWtngSec),
         oprFcltCnt: profile.oprCnt,
         totCnt: profile.totCnt,

@@ -215,7 +215,7 @@ function toDptgtMarkers(seeds: GateSeed[]): MapMarkerDto[] {
 
 /* ================= 슬롯 ================= */
 
-/** 지표 4종은 슬롯 [hhmm, hhmm+30) 값, 혼잡등급은 평가시각 hhmm 직전 30분 처리 여객 평균 대기시간이다 */
+/** 지표 4종은 슬롯 [hhmm, hhmm+30) 값, 혼잡등급은 평가시각 hhmm 직전 10분 처리 여객 평균 대기시간이다 */
 function toUnitRslt(unitCd: string, peakStep: number, peakWtng: number, step: number): MapUnitRsltDto {
     const cgnWtngSec = mockAvgWtngSec(wtngAt(peakStep, peakWtng, step - 1), WAIT_SEC_PER_PSG);
 

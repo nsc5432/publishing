@@ -55,7 +55,7 @@ export interface DepGateCard extends MarkerPoint {
     dptgtNo: string;
     /** 표시명 (예: 출국장 3) */
     title: string;
-    /** 직전 30분 처리 여객 평균 대기시간 기준. 산정 불가면 null */
+    /** 직전 10분 처리 여객 평균 대기시간 기준. 산정 불가면 null */
     level: CongestionLevel | null;
     stats: DepStat[];
     /** 운영 중인 부스 수 */

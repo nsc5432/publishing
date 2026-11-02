@@ -171,7 +171,7 @@ export interface DsbdFcltCardDto {
     hrlyPrcsRate: number;
     cgnClearTime: string;
     cgnClearRate: number;
-    /** 혼잡 판정값 — 직전 30분 처리 여객 평균 대기시간 (초, 소수 원값) */
+    /** 혼잡 판정값 — 직전 10분 처리 여객 평균 대기시간 (초, 소수 원값) */
     cgnWtngSec: number | null;
     cgnStatus: CongestionStatus | null;
     recommend: FcltRecommendDto;
@@ -222,7 +222,7 @@ export interface FcltQueueClearDto {
     cgnClearMin: number | null;
     cgnClearDt: string;
     clearMetric: QueueMetricDto;
-    /** fcstDt 의 직전 30분 처리 여객 예측 평균 대기시간 (초) */
+    /** fcstDt 의 직전 10분 처리 여객 예측 평균 대기시간 (초) */
     fcstWtngSec: number | null;
     fcstDt: string;
     fcstWtngMetric: QueueMetricDto;
@@ -341,7 +341,7 @@ export interface MapCgnCmprDto {
 
 export interface MapUnitRsltDto {
     unitCd: string;
-    /** 평가시각(hhmm) 직전 30분 처리 여객 평균 대기시간 기준. 산정 불가면 null */
+    /** 평가시각(hhmm) 직전 10분 처리 여객 평균 대기시간 기준. 산정 불가면 null */
     cgnStatus: CongestionStatus | null;
     cgnWtngSec: number | null;
     /** 지표 4종은 슬롯 [hhmm, hhmm+30) 값이다 */

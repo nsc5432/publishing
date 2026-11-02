@@ -39,7 +39,7 @@ public final class ChknQueueCalculator {
      * 구간별 대기인원 변화에서 유입을 거꾸로 계산해 1분 단위로 쪼개 넣고, 부스 처리용량만큼 순차적으로 빼면서 분 단위 대기열/대기시간을 재구성
 	 * @param assignedBoothCnt 분 단위 배정 부스 수 (길이 1440)
 	 * @param fallbackPrcsSec 터미널 CC 처리인원 가중평균 처리시간 (fallback)
-	 * @param originMinute 계산 시작 분 (0 이하). 전날 결과가 있으면 음수라 자정의 대기열과 직전 30분을 이어 받는다
+	 * @param originMinute 계산 시작 분 (0 이하). 전날 결과가 있으면 음수라 자정의 대기열과 직전 10분을 이어 받는다
      * @return ChknQueueSeries(queue(대기인원), processed(처리인원), boothCnt, capacity...)
 	 */
 	public static ChknQueueSeries calculate(

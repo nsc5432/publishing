@@ -320,7 +320,7 @@ public class CastMapServiceImpl implements CastMapService {
 	/*
 	 * 아일랜드 값은 체크인 상세 화면과 같은 공용 Queue 계산기에서 나온다.
 	 * 같은 smltId / 터미널 / 시각이면 두 화면의 대기인원과 혼잡등급이 반드시 같아야 한다.
-	 * 지표 4종은 슬롯 [hhmm, hhmm+30), 혼잡등급 / 추천은 평가시각 hhmm 의 직전 30분 [hhmm-30, hhmm) 이다.
+	 * 지표 4종은 슬롯 [hhmm, hhmm+30), 혼잡등급 / 추천은 평가시각 hhmm 의 직전 10분 [hhmm-10, hhmm) 이다.
 	 */
 	private List<MapChknRsltDto> getChknRsltList(TerminalKind tmnlId, FcltWtngDay chknDay, LocalDateTime evalDt) {
 		List<MapChknRsltDto> result = new ArrayList<>();

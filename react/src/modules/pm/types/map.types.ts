@@ -30,7 +30,7 @@ export const CONGESTION_LABEL: Record<CongestionLevel, string> = {
 };
 
 /**
- * 혼잡도를 산정할 수 없는 시설(직전 30분 미관측 / 처리 여객 0명)은 level 이 null 이다.
+ * 혼잡도를 산정할 수 없는 시설(직전 10분 미관측 / 처리 여객 0명)은 level 이 null 이다.
  * 3색 척도에 끼워 넣지 않고 이 키의 중립 스타일로 그린다.
  */
 export const UNKNOWN_LEVEL_KEY = 'unknown';
@@ -110,5 +110,5 @@ export interface NoticeData {
 /** 알림 단계를 정할 수 없을 때의 표기 */
 export const UNKNOWN_NOTICE: NoticeLevelPreset = {
     label: '산정 불가',
-    message: '직전 30분 처리 여객이 없거나 결과가 비어 있어 혼잡도를 산정할 수 없습니다.',
+    message: '직전 10분 처리 여객이 없거나 결과가 비어 있어 혼잡도를 산정할 수 없습니다.',
 };

@@ -26,7 +26,7 @@ public final class FcltWtngRecommend {
 		this.cgnClearMin = cgnClearMin;
 	}
 
-	/** 직전 30분 유입이 이어진다고 볼 때 30분 안에 처리 여객 평균 대기시간이 NORMAL 이하가 되는 총 소요 부스 수 (현재 운영분 포함) */
+	/** 직전 10분 유입이 이어진다고 볼 때 30분 안에 처리 여객 평균 대기시간이 NORMAL 이하가 되는 총 소요 부스 수 (현재 운영분 포함) */
 	public Integer getReqCnt() {
 		return reqCnt;
 	}

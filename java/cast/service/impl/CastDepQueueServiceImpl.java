@@ -49,7 +49,7 @@ public class CastDepQueueServiceImpl implements CastDepQueueService {
 
 		LocalDateTime dayStart = LocalDate.parse(smltStng.getExcnYmd(), DateTimeFormatter.ofPattern("yyyyMMdd")).atStartOfDay();
 
-		// 자정 직후의 직전 30분과 잔여 대기열 역추정은 전날 결과다. 결과 시각이 구간 끝이라 다음 날 00:00 행까지 읽는다
+		// 자정 직후의 직전 10분과 잔여 대기열 역추정은 전날 결과다. 결과 시각이 구간 끝이라 다음 날 00:00 행까지 읽는다
 		return new DepQueueDay(
 				tmnlId,
 				castDsbdMapper.retrieveRsltByUnitList(smltStng.getSmltId(), tmnlId.getFcltTmnlId(), dayStart.minusDays(1),

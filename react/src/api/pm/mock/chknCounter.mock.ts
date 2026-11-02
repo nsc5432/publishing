@@ -251,7 +251,7 @@ function boothCntAt(seed: IslandSeed, step: number): number {
     return Math.max(1, Math.round(seed.counterCnt * (0.5 + peakRatio / 2)));
 }
 
-/** 평가시각 직전 30분 처리 여객 평균 대기시간 — 직전 슬롯에 문을 닫았거나 하루 첫 슬롯이면 처리 여객이 없어 null */
+/** 평가시각 직전 10분 처리 여객 평균 대기시간(목업은 직전 슬롯으로 근사) — 직전 슬롯에 문을 닫았거나 하루 첫 슬롯이면 처리 여객이 없어 null */
 function avgWtngSecAt(seed: IslandSeed, step: number): number | null {
     const prevOpen = step > 0 && boothCntAt(seed, step - 1) > 0;
 

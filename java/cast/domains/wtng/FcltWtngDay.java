@@ -28,6 +28,7 @@ import aoms.pm.cast.enums.TerminalKind;
  * -----------------------------------------------------------------------------------
  * 수정일 / 수정자 / 수정내용
  * 2026. 10. 24. / 노세찬 / 최초작성
+ * 2026. 11. 03. / 노세찬 / 관측구간을 직전 10분(평가시각 스냅샷)으로 축소
  * -----------------------------------------------------------------------------------
  *
  * </pre>
@@ -77,7 +78,7 @@ public final class FcltWtngDay {
 		return new ArrayList<>(secMapByUnit.keySet());
 	}
 
-	/** 관측구간 [evalDt-30, evalDt) 안에 시설 결과가 한 번이라도 있는 시설 */
+	/** 관측구간 [evalDt-10, evalDt) 안에 시설 결과가 한 번이라도 있는 시설 */
 	public List<String> presentUnitCdList(LocalDateTime evalDt) {
 		List<String> result = new ArrayList<>();
 
@@ -90,7 +91,7 @@ public final class FcltWtngDay {
 		return result;
 	}
 
-	/** 시작 스냅샷(evalDt-30)을 포함해 시설 결과가 한 번이라도 있는지 */
+	/** 시작 스냅샷(evalDt-10)을 포함해 시설 결과가 한 번이라도 있는지 */
 	public boolean hasResult(String unitCd, LocalDateTime evalDt) {
 		requireBoundary(evalDt);
 
@@ -236,7 +237,7 @@ public final class FcltWtngDay {
 				wtngVld ? Math.toIntExact(prevPrcsSum) : null);
 	}
 
-	/** 평가시각 직전 30분 [evalDt-30, evalDt) — 카드 / 혼잡해소 팝업이 읽는 구간 */
+	/** 평가시각 직전 10분 [evalDt-10, evalDt) — 카드 / 혼잡해소 팝업이 읽는 구간 */
 	public FcltWtngSlot windowSlotOf(String unitCd, LocalDateTime evalDt) {
 		return slotOf(unitCd, evalDt.minusMinutes(WINDOW_MIN), WINDOW_MIN);
 	}
@@ -254,7 +255,7 @@ public final class FcltWtngDay {
 		}
 
 		if (secMap == null || (fcltType != FcltType.CHKN && !isPresent(window))) {
-			return QueueWaitWindow.unavailable("직전 30분 출국장 결과가 없습니다. unitCd=" + unitCd);
+			return QueueWaitWindow.unavailable("직전 " + WINDOW_MIN + "분 출국장 결과가 없습니다. unitCd=" + unitCd);
 		}
 
 		double[] prcs = new double[WINDOW_MIN];
@@ -285,7 +286,7 @@ public final class FcltWtngDay {
 		return new QueueWaitWindow(prcs, wtngSec, historyGap, psgGroupList, psgGroupGap, prcsTotal, wtngSecTotal);
 	}
 
-	/** 직전 30분 처리 여객 평균 대기시간 (초, 소수 원값). 저장한 원래 합계와 분모로 계산한다 */
+	/** 직전 10분 처리 여객 평균 대기시간 (초, 소수 원값). 저장한 원래 합계와 분모로 계산한다 */
 	public Computed<Double> avgWtngSecOf(String unitCd, LocalDateTime evalDt) {
 		return waitWindowOf(unitCd, evalDt).observedAvgWtngSec();
 	}
@@ -295,7 +296,7 @@ public final class FcltWtngDay {
 	}
 
 	/**
-	 * 평가시각 evalDt 의 큐 원천. 관측구간은 [evalDt-30, evalDt), 기준시각은 evalDt 이다.
+	 * 평가시각 evalDt 의 큐 원천. 관측구간은 [evalDt-10, evalDt), 기준시각은 evalDt 이다.
 	 * 체크인은 없는 아일랜드면 null, 출국장은 결과가 없어도 값이 빈 원천을 돌려준다.
 	 */
 	public FcltQueueSource sourceOf(String unitCd, LocalDateTime evalDt) {
@@ -424,7 +425,7 @@ public final class FcltWtngDay {
 		return secMap == null || secMap.isEmpty() ? null : secMap.lastEntry().getValue().getEndOperCntom();
 	}
 
-	// 직전 30분 세 구간이 모두 관측되고 처리 여객 전원의 대기시간이 있어야 평균을 낸다
+	// 직전 10분 구간이 관측되고 처리 여객 전원의 대기시간이 있어야 평균을 낸다
 	private String historyGapOf(String unitCd, FcltWtngSec[] window, LocalDateTime evalDt) {
 		LocalDateTime bgnDt = evalDt.minusMinutes(WINDOW_MIN);
 
@@ -433,11 +434,11 @@ public final class FcltWtngDay {
 			LocalDateTime secDt = bgnDt.plusMinutes((long) secIndex * SEC_MIN);
 
 			if (sec == null) {
-				return "직전 30분(" + bgnDt + "부터)을 채울 시뮬레이션 결과가 없습니다. unitCd=" + unitCd + ", secBgngDt=" + secDt;
+				return "직전 " + WINDOW_MIN + "분(" + bgnDt + "부터)을 채울 시뮬레이션 결과가 없습니다. unitCd=" + unitCd + ", secBgngDt=" + secDt;
 			}
 
 			if (!sec.isObsrvn()) {
-				return "직전 30분 중 시뮬레이션 결과가 없는 구간이 있습니다. unitCd=" + unitCd + ", secBgngDt=" + secDt;
+				return "직전 " + WINDOW_MIN + "분 중 시뮬레이션 결과가 없는 구간이 있습니다. unitCd=" + unitCd + ", secBgngDt=" + secDt;
 			}
 		}
 

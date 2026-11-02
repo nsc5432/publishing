@@ -68,7 +68,7 @@ function toStat(wtngPsgCnt: number): MapCgnStatDto {
 /** 대기인원 1명당 평균 대기 환산(초) — 피크 300명이 약 65분(VERY_BUSY), 190명이 약 41분(BUSY)이 된다 */
 const WAIT_SEC_PER_PSG = 13;
 
-/** 평가시각(슬롯 시각) 직전 30분 처리 여객 평균 대기시간 — 첫 슬롯은 전날 결과가 없어 null */
+/** 평가시각(슬롯 시각) 직전 10분 처리 여객 평균 대기시간(목업은 직전 슬롯으로 근사) — 첫 슬롯은 전날 결과가 없어 null */
 function toAvgWtngSec(seed: DepSeed, step: number): number | null {
     return mockAvgWtngSec(step === 0 ? null : wtngAt(seed[3], seed[4], step - 1), WAIT_SEC_PER_PSG);
 }
@@ -177,7 +177,7 @@ function toPrcsRate(wtngPsgCnt: number): number {
     return Math.round((prcs * 100) / (prcs + wtngPsgCnt));
 }
 
-/** 지표 4종은 슬롯 [hhmm, hhmm+30) 값, 혼잡등급은 평가시각 hhmm 직전 30분 처리 여객 평균 대기시간이다 */
+/** 지표 4종은 슬롯 [hhmm, hhmm+30) 값, 혼잡등급은 평가시각 hhmm 직전 10분 처리 여객 평균 대기시간이다 */
 function toUnitRslt(seed: DepSeed, step: number): MapUnitRsltDto {
     const wtngPsgCnt = wtngAt(seed[3], seed[4], step);
     const cgnWtngSec = toAvgWtngSec(seed, step);
