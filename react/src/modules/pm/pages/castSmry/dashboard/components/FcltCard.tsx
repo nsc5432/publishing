@@ -121,13 +121,7 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                             </span>
                         </td>
                     </tr>
-                    <ComparisonRow
-                        label="대기인원"
-                        icon="people"
-                        current={current?.waitingCount}
-                        next={next?.waitingCount}
-                        unit="명"
-                    />
+                    <ComparisonRow label="대기인원" icon="people" current={current?.waitingCount} next={next?.waitingCount} unit="명" />
                     <ComparisonRow
                         label={data.fcltType === 'CHKN' ? '운영 부스' : '운영 검색대'}
                         icon="monitor"
@@ -152,12 +146,7 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                             onClick={() => next && onDetail(variant.unitCd, next.hhmm)}
                         />
                     </tr>
-                    <ComparisonRow
-                        label="혼잡해소 예상"
-                        icon="clock"
-                        current={current?.clearTime.centerText}
-                        next={next?.clearTime.centerText}
-                    />
+                    <ComparisonRow label="혼잡해소 예상" icon="clock" current={current?.clearTime.centerText} next={next?.clearTime.centerText} />
                 </tbody>
             </table>
             <div className="chips" aria-label={`${data.title} 시설 선택 · 조회 시점 혼잡도`}>
@@ -207,15 +196,7 @@ function ComparisonRow({ label, icon, current, next, unit }: ComparisonRowProps)
 function RecommendCell({ snapshot, label, onClick }: RecommendCellProps) {
     return (
         <td>
-            <button
-                type="button"
-                className="rec"
-                aria-label={`${label} 혼잡해소 시뮬레이션`}
-                aria-haspopup="dialog"
-                title={snapshot ? `${snapshot.recommend.name} 총 소요 수량 · ${snapshot.recommend.countNote}` : '조회 결과 없음'}
-                disabled={!snapshot}
-                onClick={onClick}
-            >
+            <button type="button" className="rec" aria-label={`${label} 혼잡해소 시뮬레이션`} aria-haspopup="dialog" disabled={!snapshot} onClick={onClick}>
                 {snapshot?.recommend.count ?? '-'}
                 {snapshot && snapshot.recommend.count !== '-' && <small>개</small>}
             </button>

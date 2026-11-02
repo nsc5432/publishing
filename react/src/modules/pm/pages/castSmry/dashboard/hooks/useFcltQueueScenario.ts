@@ -35,7 +35,7 @@ const DEBOUNCE_MS = 250;
 const INTEGER_PATTERN = /^\d+$/;
 
 function toInitialRequest(target: FcltQueueTarget): ScenarioRequest {
-    return { req: { ...target, mode: 'COUNT' }, key: 'INIT', context: null };
+    return { req: { ...target, mode: 'TIME' }, key: 'INIT', context: null };
 }
 
 // 응답이 어떤 입력의 결과인지 나타내는 키 — 지금 입력과 다르면 이전 결과를 보여주지 않는다
@@ -65,7 +65,8 @@ function loadScenario(request: ScenarioRequest): Promise<ScenarioResult> {
 }
 
 export function useFcltQueueScenario(target: FcltQueueTarget) {
-    const [mode, setMode] = useState<FcltQueueScenarioMode>('COUNT');
+    // 카드의 추천 수량 · 해소 시각과 같은 조건(목표 30분)으로 연다
+    const [mode, setMode] = useState<FcltQueueScenarioMode>('TIME');
     const [draft, setDraft] = useState<ScenarioDraft | null>(null);
     const [request, setRequest] = useState<ScenarioRequest>(() => toInitialRequest(target));
 
