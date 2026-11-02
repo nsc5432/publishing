@@ -694,7 +694,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setAmpm(hour < 12 ? "AM" : "PM");
 		result.setPeakTime(peak.getTime());
 		result.setWtngPsgCnt(peak.getWtngPsgCnt());
-		result.setAvgWtngHr(peak.getWtngHr() / SEC_PER_MIN);
+		result.setAvgWtngHr((int) Math.round(peak.getAvgWtngSec() / SEC_PER_MIN));
 		result.setPrcsPsgCnt(peak.getTrnstPsgCnt());
 
 		return result;

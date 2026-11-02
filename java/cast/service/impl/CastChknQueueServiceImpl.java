@@ -53,7 +53,6 @@ import lombok.extern.slf4j.Slf4j;
 public class CastChknQueueServiceImpl implements CastChknQueueService {
 	private static final String YMD_FORMAT = "yyyyMMdd";
 	private static final int MINUTE_PER_DAY = ChknQueueSeries.MINUTE_PER_DAY;
-	private static final int DEFAULT_INTRVL_MIN = 10;
 
 	private final CastChknMapper castChknMapper;
 
@@ -77,7 +76,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		Map<String, Map<Integer, List<ChknQueueRawDto>>> rawListByIslandAndMinute = groupByIslandAndMinute(rawList, baseDate);
 		BigDecimal tmnlAvgPrcsSec = weightedPrcsSec(rawList);
 		TreeSet<Integer> resultMinuteSet = toResultMinuteSet(rawListByIslandAndMinute);
-		int originMinute = resultMinuteSet.isEmpty() ? 0 : Math.max(Math.min(resultMinuteSet.first(), 0), -MINUTE_PER_DAY);
+		int originMinute = resultMinuteSet.isEmpty() ? 0 : CastChknQueueService.originMinuteOf(resultMinuteSet.first());
 		Map<String, ChknQueueSeries> seriesByIsland = new LinkedHashMap<>();
 
 		for (String island : CHKN_ISLAND_CD_LIST) {
@@ -137,7 +136,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 	}
 
 	/*
-	 * 결과 시각 m 은 구간 [m, m + 결과 간격) 을 덮는다. 결과 간격은 터미널 CC 결과 시각의 최소 간격이며,
+	 * 결과 시각 m 은 구간 끝이라 [m - 결과 간격, m) 을 덮는다. 결과 간격은 터미널 CC 결과 시각의 최소 간격이며,
 	 * 그보다 벌어진 시각 사이와 마지막 결과 뒤(꼬리 구간)는 관측하지 않은 구간으로 둔다.
 	 */
 	private boolean[] toCovered(TreeSet<Integer> resultMinuteSet, int originMinute) {
@@ -154,11 +153,11 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		}
 
 		if (stepMin == Integer.MAX_VALUE) {
-			stepMin = DEFAULT_INTRVL_MIN;
+			stepMin = CAST_SLOT_MIN;
 		}
 
 		for (int minute : resultMinuteSet) {
-			for (int covered = Math.max(minute, originMinute); covered < Math.min(minute + stepMin, MINUTE_PER_DAY); covered++) {
+			for (int covered = Math.max(minute - stepMin, originMinute); covered < Math.min(minute, MINUTE_PER_DAY); covered++) {
 				result[covered - originMinute] = true;
 			}
 		}
@@ -171,13 +170,13 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		List<ChknQueueInterval> result = new ArrayList<>();
 
 		for (int index = 0; index < minuteList.size(); index++) {
-			int bgnMinute = minuteList.get(index);
-			int durationMin = intervalDurationMin(minuteList, index);
-			List<ChknQueueRawDto> boothList = rawListByMinute.get(bgnMinute);
+			int endMinute = minuteList.get(index);
+			int bgnMinute = index == 0 ? endMinute - CAST_SLOT_MIN : minuteList.get(index - 1);
+			List<ChknQueueRawDto> boothList = rawListByMinute.get(endMinute);
 
 			result.add(new ChknQueueInterval(
                 bgnMinute,
-                durationMin,
+                endMinute - bgnMinute,
                 boothList.stream().mapToInt(ChknQueueRawDto::getWtngPsgCnt).sum(),
                 boothList.stream().mapToInt(ChknQueueRawDto::getTrnstPsgCnt).sum(),
                 weightedPrcsSec(boothList),
@@ -211,18 +210,6 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
             null,
             0
         ));
-	}
-
-	private int intervalDurationMin(List<Integer> minuteList, int index) {
-		if (index + 1 < minuteList.size()) {
-			return minuteList.get(index + 1) - minuteList.get(index);
-		}
-
-		if (minuteList.size() < 2) {
-			return DEFAULT_INTRVL_MIN;
-		}
-
-		return minuteList.get(minuteList.size() - 1) - minuteList.get(minuteList.size() - 2);
 	}
 
 	// 가중/단순 평균 처리시간

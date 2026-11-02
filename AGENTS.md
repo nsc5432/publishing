@@ -697,7 +697,10 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
   이어 받는다. 관측 여부는 터미널 CC 결과 시각과 최소 결과 간격으로 정한다 — 마지막 결과 뒤 꼬리 구간은 미관측이다.
 - 출국장은 `DepQueueDay`(`FcltType.DEP` = LGT, `FcltType.SC` = SC/SR 하루치)를 `DepWtngSecBuilder` 가 10분 통계로 바꾸고 `FcltWtngDay` 가 평가한다. 결과 시각은
   구간 끝으로 보고 10분 구간 양 끝 시각이 터미널에 있어야 관측이라 `t−30, t−20, t−10, t` 네 시각이 모두 있어야 한다. 대기시간은 `SUM(AVG_WTNG_HR × TRNST_PSG_CNT)` 로 받는다
-  (`retrieveRsltByUnitList.WTNG_SEC_SUM`). 체크인(결과 시각 = 구간 시작)과 시각 규칙이 다른 것은 기존 그대로이며 CAST 확인 대상이다.
+  (`retrieveRsltByUnitList.WTNG_SEC_SUM`).
+- 체크인도 결과 시각 = 구간 끝이다 (2026-11-02, CAST 확인). 결과 시각 m 은 `[직전 결과 시각, m)`, 첫 결과는 `[m−10, m)` 이고
+  계산 시작 분은 `CastChknQueueService.originMinuteOf` 하나가 정한다(보완 계산 · 저장 완전성 검사 공용). 그 전에 저장된 `CHKN` 10분 결과는
+  구간 시작 해석이라 다시 쓰지 않고 지운다.
 
 ---
 

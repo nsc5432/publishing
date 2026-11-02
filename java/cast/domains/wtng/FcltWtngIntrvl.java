@@ -25,15 +25,24 @@ public final class FcltWtngIntrvl {
 	private final Integer wtngPsgCnt;
 	private final Integer arvlPsgCnt;
 	private final Integer prcsPsgCnt;
-	/** 구간 처리 여객의 처리인원 가중평균 대기시간 (초) */
-	private final Double avgWtngSec;
+	/** 구간 시작 시각 결과([bgnDt-10분, bgnDt) 행) 처리 여객의 대기시간 합 (초). 산정할 수 없으면 null */
+	private final Double wtngSecSum;
+	/** wtngSecSum 의 처리인원. wtngSecSum 이 null 이면 null */
+	private final Integer wtngPrcsPsgCnt;
 
+	// 피크시간과 같은 정의 — 아일랜드 · 출국장 처리 여객을 한데 모은 처리인원 가중평균이다
 	public static FcltWtngIntrvl landsideOf(FcltWtngIntrvl chkn, FcltWtngIntrvl dep) {
 		return new FcltWtngIntrvl(
 				sumOrNull(chkn.getWtngPsgCnt(), dep.getWtngPsgCnt()),
 				chkn.getArvlPsgCnt(),
 				dep.getPrcsPsgCnt(),
-				sumOrNull(chkn.getAvgWtngSec(), dep.getAvgWtngSec()));
+				sumOrNull(chkn.getWtngSecSum(), dep.getWtngSecSum()),
+				sumOrNull(chkn.getWtngPrcsPsgCnt(), dep.getWtngPrcsPsgCnt()));
+	}
+
+	/** 구간 시작 시각 결과 처리 여객의 처리인원 가중평균 대기시간 (초) */
+	public Double getAvgWtngSec() {
+		return wtngSecSum == null || wtngPrcsPsgCnt == null || wtngPrcsPsgCnt == 0 ? null : wtngSecSum / wtngPrcsPsgCnt;
 	}
 
 	private static Integer sumOrNull(Integer first, Integer second) {

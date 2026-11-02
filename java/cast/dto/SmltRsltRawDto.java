@@ -17,6 +17,7 @@ public class SmltRsltRawDto {
 	private int wtngPsgCnt; // 대기여객수 (명)
 	private int trnstPsgCnt; // 통과여객수 (명)
 	private int wtngHr; // 평균대기시간 (초)
+	private double avgWtngSec;
 	private int prcsHr; // 평균처리시간 (초)
 	private double wtngSecSum; // 평균대기시간 × 통과여객수 합 (초). retrieveRsltByUnitList 만 채운다
 	private int wtngNullPsgCnt; // 평균대기시간이 비어 있는 행의 통과여객수 합. retrieveRsltByUnitList 만 채운다

@@ -16,6 +16,14 @@ function check(actual, expected, message) {
     assert.deepEqual(actual, expected, message);
     assertions += 1;
 }
+function checkNear(actual, expected, message) {
+    if (actual === null || expected === null) {
+        check(actual, expected, message);
+        return;
+    }
+    assert.ok(Math.abs(actual - expected) < 1e-9, `${message}: ${actual} != ${expected}`);
+    assertions += 1;
+}
 
 try {
     const { dashboardMock: api } = await server.ssrLoadModule('/src/api/pm/mock/dashboard.mock.ts');
@@ -30,6 +38,7 @@ try {
     });
     const smryInfo = (smry) => [smry.smryWtngPsgCnt, smry.smryAvgWtngSec, smry.smryArvlPsgCnt, smry.smryPrcsPsgCnt];
     const values = (view) => view.summaryInfo.map((cell) => cell.value);
+    const snapshotHour = (time) => Math.floor((Number(time.slice(0, 2)) * 60 + Number(time.slice(2)) - 10) / 60);
     const expectedValues = (smry) => [
         smry.smryWtngPsgCnt === null ? '-' : smry.smryWtngPsgCnt.toLocaleString(),
         smry.smryAvgWtngSec === null ? '-' : String(Math.round(smry.smryAvgWtngSec / 60)),
@@ -48,8 +57,9 @@ try {
                 `${terminal} ${slot.hhmm} map and dashboard format the same summary`);
         }
         const last = dto.slotList.find((slot) => slot.hhmm === '2400').landsideSmry;
-        check([last.smryAvgWtngSec, last.smryArvlPsgCnt, last.smryPrcsPsgCnt], [null, null, null],
+        check([last.smryArvlPsgCnt, last.smryPrcsPsgCnt], [null, null],
             `${terminal} 24:00 has no forward interval`);
+        check(last.smryAvgWtngSec !== null, true, `${terminal} 24:00 wait reads the result ending at midnight`);
         const unknown = toMapDay({ ...dto, slotList: [{ ...dto.slotList[0], landsideSmry: {
             smryWtngPsgCnt: null, smryAvgWtngSec: null, smryArvlPsgCnt: null, smryPrcsPsgCnt: null,
         } }] });
@@ -82,11 +92,12 @@ try {
         check(land.smryWtngPsgCnt, chkn.smryWtngPsgCnt + dep.smryWtngPsgCnt, `${time} landside queue adds both areas`);
         check(land.smryArvlPsgCnt, chkn.smryArvlPsgCnt, `${time} landside inflow is the island inflow`);
         check(land.smryPrcsPsgCnt, dep.smryPrcsPsgCnt, `${time} landside processing is the departure processing`);
-        check(land.smryAvgWtngSec,
-            chkn.smryAvgWtngSec === null || dep.smryAvgWtngSec === null
-                ? chkn.smryAvgWtngSec ?? dep.smryAvgWtngSec
-                : chkn.smryAvgWtngSec + dep.smryAvgWtngSec,
-            `${time} landside wait adds both areas and keeps a single known side`);
+        const [chknRslt, depRslt] = ['CHKN', 'DEP'].map((category) => api.getTmnlRsltByTime('T1', category)[snapshotHour(time)]);
+        const snapshotPrcs = chknRslt.prcsPsgCnt + depRslt.prcsPsgCnt;
+        checkNear(land.smryAvgWtngSec,
+            snapshotPrcs === 0 ? null
+                : (chknRslt.wtngHr * chknRslt.prcsPsgCnt + depRslt.wtngHr * depRslt.prcsPsgCnt) * 60 / snapshotPrcs,
+            `${time} landside wait is weighted over both areas' processed passengers`);
     }
 
     const depHours = api.getTmnlRsltByTime('T1', 'DEP');
@@ -94,9 +105,10 @@ try {
     const [prcs9, prcs10] = [(depHours[9].prcsPsgCnt * 50) / 60, (depHours[10].prcsPsgCnt * 10) / 60];
     check(shifted.smryWtngPsgCnt, depHours[9].fcstWtngPsgCnt, 'queue is the snapshot at the search time');
     check(shifted.smryPrcsPsgCnt, Math.round(prcs9 + prcs10), '09:10 to 10:10 includes overlapping parts of both hours');
-    check(shifted.smryAvgWtngSec,
-        (depHours[9].wtngHr * 60 * prcs9 + depHours[10].wtngHr * 60 * prcs10) / (prcs9 + prcs10),
-        'average wait is weighted by processed passengers');
+    checkNear(shifted.smryAvgWtngSec, depHours[9].wtngHr * 60, 'average wait reads the result ending at the search time');
+    checkNear(smryAt('1000', 'T1', 'DEP').smryAvgWtngSec, depHours[9].wtngHr * 60,
+        '10:00 wait reads 09:50 to 10:00, not the next hour');
+    check(smryAt('0000', 'T1', 'DEP').smryAvgWtngSec, null, 'midnight has no earlier result');
     check(smryAt('2350', 'T1', 'DEP').smryPrcsPsgCnt, Math.round((depHours[23].prcsPsgCnt * 10) / 60),
         'late-night range stops at midnight');
     check(viewAt('2350').barText.endsWith('PM'), true, 'search-time marker uses its own AM/PM');

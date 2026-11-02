@@ -15,7 +15,6 @@ import java.util.TreeSet;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import aoms.pm.cast.domains.chkn.ChknQueueSeries;
 import aoms.pm.cast.domains.chkn.ChknQueueTrajectory;
 import aoms.pm.cast.domains.chkn.ChknWtngSecBuilder;
 import aoms.pm.cast.domains.dsbd.DepQueueDay;
@@ -58,7 +57,6 @@ import lombok.extern.slf4j.Slf4j;
 @Transactional(readOnly = true)
 public class CastFcltWtngServiceImpl implements CastFcltWtngService {
 	private static final String YMD_FORMAT = "yyyyMMdd";
-	private static final int MINUTE_PER_DAY = ChknQueueSeries.MINUTE_PER_DAY;
 	private static final List<String> CHKN_SRC_FCLT_CD_LIST = List.of("CC");
 
 	private final CastFcltWtngRsltMapper castFcltWtngRsltMapper;
@@ -150,7 +148,7 @@ public class CastFcltWtngServiceImpl implements CastFcltWtngService {
 					.filter(Objects::nonNull)
 					.min(Comparator.naturalOrder())
 					.orElse(null);
-			int originMinute = firstDt == null ? 0 : Math.max(Math.min(minuteOf(baseDate, firstDt), 0), -MINUTE_PER_DAY);
+			int originMinute = firstDt == null ? 0 : CastChknQueueService.originMinuteOf(minuteOf(baseDate, firstDt));
 
 			return new FcltWtngScope(
 					CastChknQueueService.CHKN_ISLAND_CD_LIST,

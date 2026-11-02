@@ -182,7 +182,10 @@ public final class FcltWtngDay {
 				prcsVldSum == 0 ? null : prcsSecSum / prcsVldSum);
 	}
 
-	/** 전 시설의 [bgnDt, endDt) 집계. 대기인원은 bgnDt 시점 값, 유입 · 처리 · 대기시간은 구간 10분 행의 합이다 */
+	/**
+	 * 전 시설의 [bgnDt, endDt) 집계. 대기인원 · 대기시간은 bgnDt 결과([bgnDt-10분, bgnDt) 행) 값이고
+	 * 유입 · 처리는 구간 10분 행의 합이다. 대기시간은 요약보기 피크시간과 같은 정의다
+	 */
 	public FcltWtngIntrvl intrvlOf(LocalDateTime bgnDt, LocalDateTime endDt) {
 		requireBoundary(bgnDt);
 		requireBoundary(endDt);
@@ -191,14 +194,23 @@ public final class FcltWtngDay {
 		Integer arvlPsgCnt = null;
 		boolean hasSec = false;
 		long prcsSum = 0;
-		long wtngVldSum = 0;
-		double wtngSecSum = 0;
+		boolean hasPrev = false;
+		long prevPrcsSum = 0;
+		long prevWtngVldSum = 0;
+		double prevWtngSecSum = 0;
 
 		for (TreeMap<LocalDateTime, FcltWtngSec> secMap : secMapByUnit.values()) {
 			FcltWtngSec prev = secMap.get(bgnDt.minusMinutes(SEC_MIN));
 
-			if (prev != null && prev.getEndWtngPsgCnt() != null) {
-				wtngPsgCnt = valueOf(wtngPsgCnt) + prev.getEndWtngPsgCnt();
+			if (prev != null) {
+				hasPrev = true;
+				prevPrcsSum += prev.getPrcsPsgCnt();
+				prevWtngVldSum += prev.getWtngVldPsgCnt();
+				prevWtngSecSum += prev.getWtngPsecSum();
+
+				if (prev.getEndWtngPsgCnt() != null) {
+					wtngPsgCnt = valueOf(wtngPsgCnt) + prev.getEndWtngPsgCnt();
+				}
 			}
 
 			for (FcltWtngSec sec : secMap.subMap(bgnDt, true, endDt, false).values()) {
@@ -210,15 +222,18 @@ public final class FcltWtngDay {
 
 				hasSec = true;
 				prcsSum += sec.getPrcsPsgCnt();
-				wtngVldSum += sec.getWtngVldPsgCnt();
-				wtngSecSum += sec.getWtngPsecSum();
 			}
 		}
 
 		// 대기시간이 빠진 처리 여객이 있으면 평균이 짧은 쪽으로 치우쳐 산정하지 않는다
-		Double avgWtngSec = prcsSum == 0 || wtngVldSum < prcsSum ? null : wtngSecSum / prcsSum;
+		boolean wtngVld = hasPrev && prevWtngVldSum >= prevPrcsSum;
 
-		return new FcltWtngIntrvl(wtngPsgCnt, arvlPsgCnt, hasSec ? Math.toIntExact(prcsSum) : null, avgWtngSec);
+		return new FcltWtngIntrvl(
+				wtngPsgCnt,
+				arvlPsgCnt,
+				hasSec ? Math.toIntExact(prcsSum) : null,
+				wtngVld ? prevWtngSecSum : null,
+				wtngVld ? Math.toIntExact(prevPrcsSum) : null);
 	}
 
 	/** 평가시각 직전 30분 [evalDt-30, evalDt) — 카드 / 혼잡해소 팝업이 읽는 구간 */

@@ -173,6 +173,8 @@ const YESTERDAY_RATIO: Record<TmnlId, number> = { T1: 0.94, T2: 1.05 };
 
 const MIN_PER_HOUR = 60;
 const MIN_PER_DAY = 24 * MIN_PER_HOUR;
+/** 서버 결과 한 칸(10분). 결과 시각은 구간 끝이다 */
+const RSLT_MIN = 10;
 
 /** 시간대별 운항편 — 하루 합이 TMNL_FLT_CNT 와 맞도록 여객 곡선에 비례 배분한다 */
 function toHourlyFlt(tmnlId: TmnlId): number[] {
@@ -197,12 +199,17 @@ function sumByIntrvl(hourly: number[], bgnHhmm: string, intrvlMin: number): numb
     return Math.round(total);
 }
 
-/** 체크인(아일랜드 전체) / 출국장(전체) 하나의 구간 집계. 대기인원은 조회 시각이 속한 시의 값이다 */
-function buildFcltIntrvl(tmnlId: TmnlId, fcltCategory: 'CHKN' | 'DEP', hhmm: string, intrvlMin: number): TmnlSmryInfo {
-    const bgnMin = Number(hhmm.slice(0, 2)) * MIN_PER_HOUR + Number(hhmm.slice(2, 4));
-    const endMin = Math.min(bgnMin + intrvlMin, MIN_PER_DAY);
-    const rsltList = buildRsltList(tmnlId, fcltCategory);
-    const queueAt = (minute: number) => rsltList[Math.min(Math.floor(minute / MIN_PER_HOUR), 23)].fcstWtngPsgCnt;
+/** 대기시간 합 · 그 처리인원을 들고 다녀야 랜드사이드를 한데 모은 가중평균으로 낼 수 있다 */
+interface FcltIntrvl {
+    wtngPsgCnt: number;
+    arvlPsgCnt: number | null;
+    prcsPsgCnt: number | null;
+    wtngSecSum: number;
+    wtngPrcsPsgCnt: number;
+}
+
+/** 시간대(00~23시) 결과에서 [bgnMin, endMin) 과 겹치는 분만큼 처리인원 · 대기시간 합을 비례해 더한다 */
+function sumPrcsByMinute(rsltList: DsbdRsltDto[], bgnMin: number, endMin: number) {
     let prcsPsgCnt = 0;
     let wtngSecSum = 0;
 
@@ -216,37 +223,58 @@ function buildFcltIntrvl(tmnlId: TmnlId, fcltCategory: 'CHKN' | 'DEP', hhmm: str
         wtngSecSum += rslt.wtngHr * MIN_PER_HOUR * prcs;
     }
 
+    return { prcsPsgCnt, wtngSecSum };
+}
+
+/**
+ * 체크인(아일랜드 전체) / 출국장(전체) 하나의 구간 집계. 대기인원은 조회 시각이 속한 시의 값,
+ * 대기시간은 조회 시각에 끝나는 10분(서버의 조회 시각 결과) 처리 여객 기준이다
+ */
+function buildFcltIntrvl(tmnlId: TmnlId, fcltCategory: 'CHKN' | 'DEP', hhmm: string, intrvlMin: number): FcltIntrvl {
+    const bgnMin = Number(hhmm.slice(0, 2)) * MIN_PER_HOUR + Number(hhmm.slice(2, 4));
+    const endMin = Math.min(bgnMin + intrvlMin, MIN_PER_DAY);
+    const rsltList = buildRsltList(tmnlId, fcltCategory);
+    const queueAt = (minute: number) => rsltList[Math.min(Math.floor(minute / MIN_PER_HOUR), 23)].fcstWtngPsgCnt;
+    const intrvl = sumPrcsByMinute(rsltList, bgnMin, endMin);
+    const snapshot = sumPrcsByMinute(rsltList, bgnMin - RSLT_MIN, bgnMin);
     const wtngPsgCnt = queueAt(bgnMin);
 
     return {
-        smryWtngPsgCnt: wtngPsgCnt,
-        smryAvgWtngSec: prcsPsgCnt > 0 ? wtngSecSum / prcsPsgCnt : null,
+        wtngPsgCnt,
         // 서버의 10분 행 유입과 같은 보존식 — 끝 대기 − 시작 대기 + 처리
-        smryArvlPsgCnt: endMin > bgnMin
-            ? Math.max(0, Math.round(queueAt(endMin) - wtngPsgCnt + prcsPsgCnt))
+        arvlPsgCnt: endMin > bgnMin
+            ? Math.max(0, Math.round(queueAt(endMin) - wtngPsgCnt + intrvl.prcsPsgCnt))
             : null,
-        smryPrcsPsgCnt: endMin > bgnMin ? Math.round(prcsPsgCnt) : null,
+        prcsPsgCnt: endMin > bgnMin ? Math.round(intrvl.prcsPsgCnt) : null,
+        wtngSecSum: snapshot.wtngSecSum,
+        wtngPrcsPsgCnt: snapshot.prcsPsgCnt,
     };
 }
 
-function sumOrNull(first: number | null, second: number | null): number | null {
-    return first === null || second === null ? (first ?? second) : first + second;
+function toSmryInfo(intrvl: FcltIntrvl): TmnlSmryInfo {
+    return {
+        smryWtngPsgCnt: intrvl.wtngPsgCnt,
+        smryAvgWtngSec: intrvl.wtngPrcsPsgCnt > 0 ? intrvl.wtngSecSum / intrvl.wtngPrcsPsgCnt : null,
+        smryArvlPsgCnt: intrvl.arvlPsgCnt,
+        smryPrcsPsgCnt: intrvl.prcsPsgCnt,
+    };
 }
 
-/** 랜드사이드는 유입을 진입(아일랜드), 처리를 진출(출국장)로 센다 (서버와 같은 규칙) */
+/** 랜드사이드는 유입을 진입(아일랜드), 처리를 진출(출국장)로, 대기시간은 두 시설 처리 여객을 한데 모아 센다 (서버와 같은 규칙) */
 export function buildSmryInfo(tmnlId: TmnlId, hhmm: string, intrvlMin: number, category: DsbdCategory): TmnlSmryInfo {
     const chkn = buildFcltIntrvl(tmnlId, 'CHKN', hhmm, intrvlMin);
     const dep = buildFcltIntrvl(tmnlId, 'DEP', hhmm, intrvlMin);
 
-    if (category === 'CHKN') return chkn;
-    if (category === 'DEP') return dep;
+    if (category === 'CHKN') return toSmryInfo(chkn);
+    if (category === 'DEP') return toSmryInfo(dep);
 
-    return {
-        smryWtngPsgCnt: sumOrNull(chkn.smryWtngPsgCnt, dep.smryWtngPsgCnt),
-        smryAvgWtngSec: sumOrNull(chkn.smryAvgWtngSec, dep.smryAvgWtngSec),
-        smryArvlPsgCnt: chkn.smryArvlPsgCnt,
-        smryPrcsPsgCnt: dep.smryPrcsPsgCnt,
-    };
+    return toSmryInfo({
+        wtngPsgCnt: chkn.wtngPsgCnt + dep.wtngPsgCnt,
+        arvlPsgCnt: chkn.arvlPsgCnt,
+        prcsPsgCnt: dep.prcsPsgCnt,
+        wtngSecSum: chkn.wtngSecSum + dep.wtngSecSum,
+        wtngPrcsPsgCnt: chkn.wtngPrcsPsgCnt + dep.wtngPrcsPsgCnt,
+    });
 }
 
 function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number, category: DsbdCategory): TmnlSmryDto {
