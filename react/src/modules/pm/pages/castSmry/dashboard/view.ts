@@ -23,12 +23,14 @@ import {
     formatMinutes,
     formatYmd,
     pad2,
+    stepHhmm,
 } from '@/lib/format';
 import {
     FCLT_QUEUE_LABEL,
     SUMMARY_TARGET_LABEL,
     type FcltCardChip,
     type FcltCardData,
+    type FcltCardSnapshot,
     type FcltCardType,
     type FcltCardVariant,
     type FcltQueueContextView,
@@ -51,6 +53,8 @@ interface TerminalViewInput {
     rsltList: DsbdRsltDto[];
     chknCards: DsbdFcltCardDto[];
     dptgtCards: DsbdFcltCardDto[];
+    nextChknCards?: DsbdFcltCardDto[];
+    nextDptgtCards?: DsbdFcltCardDto[];
 }
 
 // 칩 팔레트가 3색이라 여유/보통은 같은 초록을 쓴다
@@ -118,31 +122,25 @@ export function toCalcDateTime(calcDt?: string): string {
     return formatDateTime(calcDt ?? '');
 }
 
-function toFcltCardVariant(card: DsbdFcltCardDto): FcltCardVariant {
+function toFcltCardSnapshot(card: DsbdFcltCardDto, hhmm: string): FcltCardSnapshot {
     const noCongestion = card.cgnClearRate === 100;
-    const isCheckin = card.fcltType === 'CHKN';
 
     return {
-        unitCd: isCheckin ? card.island : card.dptgtNo,
-        island: isCheckin ? '아일랜드' : undefined,
-        num: card.fcltNm,
-        meta: isCheckin
-            ? [
-                  { label: '전체', value: formatCount(card.totCnt) },
-                  { label: '운영', value: formatCount(card.oprCnt), accent: true },
-                  { label: '대기열', value: formatCount(card.wtngPsgCnt) },
-              ]
-            : [{ label: '출국장 대기', value: formatCount(card.wtngPsgCnt) }],
+        hhmm,
+        congestion: card.cgnStatus === null ? '-' : CONGESTION_STATUS_LABEL[card.cgnStatus],
+        congestionKind: card.cgnStatus === null ? 'gray' : CONGESTION_CHIP_CLASS[card.cgnStatus],
+        waitingCount: formatCount(card.wtngPsgCnt),
+        operatingCount: formatCount(card.oprCnt),
         processRate: {
             label: FCLT_CARD_GAUGE_LABEL.prcs,
             value: card.hrlyPrcsRate / 100,
-            centerText: pad2(card.hrlyPrcsPsgCnt),
+            centerText: formatCount(card.hrlyPrcsPsgCnt),
             captionText: 'Pax/Hour',
         },
         clearTime: {
             label: noCongestion ? FCLT_CARD_GAUGE_LABEL.noCongestion : FCLT_CARD_GAUGE_LABEL.clear,
             value: noCongestion ? 0 : card.cgnClearRate / 100,
-            centerText: noCongestion ? '-' : formatHhmm(card.cgnClearTime) || '-',
+            centerText: noCongestion ? '없음' : card.cgnClearTime ? `${formatHhmm(card.cgnClearTime)} 이후` : '-',
             captionText: '이후',
         },
         recommend: {
@@ -155,6 +153,24 @@ function toFcltCardVariant(card: DsbdFcltCardDto): FcltCardVariant {
     };
 }
 
+function toFcltCardVariant(
+    card: DsbdFcltCardDto,
+    current: DsbdFcltCardDto | undefined,
+    next: DsbdFcltCardDto | undefined,
+    hhmm: string,
+): FcltCardVariant {
+    const isCheckin = card.fcltType === 'CHKN';
+
+    return {
+        unitCd: isCheckin ? card.island : card.dptgtNo,
+        island: isCheckin ? '아일랜드' : undefined,
+        num: card.fcltNm,
+        meta: [{ label: '전체', value: formatCount(card.totCnt) }],
+        current: current ? toFcltCardSnapshot(current, hhmm) : null,
+        next: next ? toFcltCardSnapshot(next, stepHhmm(hhmm, 6)) : null,
+    };
+}
+
 // 미운영 칩은 혼잡도와 무관하게 회색으로 눕힌다. 혼잡도를 산정할 수 없는 칩도 등급 색 대신 회색이다.
 function toFcltCardChip(unit: FcltUnitDto): FcltCardChip {
     return {
@@ -164,23 +180,33 @@ function toFcltCardChip(unit: FcltUnitDto): FcltCardChip {
 }
 
 // 카드 순서는 서버가 평균 대기시간이 긴 시설부터 정한다 — 첫 카드가 처음 보이는 시설이다
-function toFcltCardData(fcltType: FcltCardType, cards: DsbdFcltCardDto[], tmnlId: TmnlId): FcltCardData {
+function toFcltCardData(
+    fcltType: FcltCardType,
+    cards: DsbdFcltCardDto[],
+    nextCards: DsbdFcltCardDto[],
+    tmnlId: TmnlId,
+    hhmm: string,
+): FcltCardData {
     const unitPattern = fcltType === 'CHKN' ? /^[A-N]$/ : tmnlId === 'T1' ? /^[1-6]$/ : /^[12]$/;
-    const visibleCards = cards.filter((card) =>
-        unitPattern.test(fcltType === 'CHKN' ? card.island : card.dptgtNo),
-    );
-    const busyCount = visibleCards.filter(
+    const unitOf = (card: DsbdFcltCardDto) => (fcltType === 'CHKN' ? card.island : card.dptgtNo);
+    const currentByUnit = new Map(cards.map((card) => [unitOf(card), card]));
+    const nextByUnit = new Map((stepHhmm(hhmm, 6) ? nextCards : []).map((card) => [unitOf(card), card]));
+    const visibleCards = [...cards, ...[...nextByUnit.values()].filter((card) => !currentByUnit.has(unitOf(card)))].filter((card) => unitPattern.test(unitOf(card)));
+    const visibleCurrentCards = cards.filter((card) => unitPattern.test(unitOf(card)));
+    const busyCount = visibleCurrentCards.filter(
         (card) => card.cgnStatus !== null && BUSY_STATUS.includes(card.cgnStatus),
     ).length;
+    const nextMinute = Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(2)) + 60;
+    const nextClock = `${pad2(Math.floor(nextMinute / 60) % 24)}:${pad2(nextMinute % 60)}`;
 
     return {
         fcltType,
         title: FCLT_CARD_TITLE[fcltType],
-        warn: busyCount > 0 ? `혼잡 ${busyCount}개` : '원활',
-        variants: visibleCards.map(toFcltCardVariant),
-        chips: (cards[0]?.unitList ?? [])
-            .filter((unit) => unitPattern.test(unit.unitCd))
-            .map(toFcltCardChip),
+        warn: busyCount > 0 ? `혼잡 ${busyCount}개` : visibleCurrentCards.some((card) => card.cgnStatus !== null) ? '원활' : '-',
+        currentTime: formatHhmm(hhmm),
+        nextTime: nextMinute >= MIN_PER_DAY ? `다음 날 ${nextClock}` : nextClock,
+        variants: visibleCards.map((card) => toFcltCardVariant(card, currentByUnit.get(unitOf(card)), nextByUnit.get(unitOf(card)), hhmm)),
+        chips: (cards[0]?.unitList ?? nextCards[0]?.unitList ?? []).filter((unit) => unitPattern.test(unit.unitCd)).map((unit) => toFcltCardChip(cards.length ? unit : { ...unit, cgnStatus: null })),
     };
 }
 
@@ -271,7 +297,17 @@ function toSummarySlots(hhmm: string, smry: TmnlSmryDto): SummarySlot[] {
     });
 }
 
-export function toTerminalView({ ymd, hhmm, category, smry, rsltList, chknCards, dptgtCards }: TerminalViewInput): TerminalView {
+export function toTerminalView({
+    ymd,
+    hhmm,
+    category,
+    smry,
+    rsltList,
+    chknCards,
+    dptgtCards,
+    nextChknCards = [],
+    nextDptgtCards = [],
+}: TerminalViewInput): TerminalView {
     // 시간대별 결과는 정시(HH00) 단위라 조회 시각과 같은 '시'를 찾는다.
     const currentIndex = rsltList.findIndex((rslt) => rslt.time.slice(0, 2) === hhmm.slice(0, 2));
     const totalCount = rsltList.reduce((total, rslt) => total + rslt.psgCnt, 0);
@@ -296,8 +332,8 @@ export function toTerminalView({ ymd, hhmm, category, smry, rsltList, chknCards,
         summaryTarget: SUMMARY_TARGET_LABEL[category],
         summaryInfo: toSummaryInfo(smry),
         fcltCards: [
-            toFcltCardData('CHKN', chknCards, smry.tmnlId),
-            toFcltCardData('DEP', dptgtCards, smry.tmnlId),
+            toFcltCardData('CHKN', chknCards, nextChknCards, smry.tmnlId, hhmm),
+            toFcltCardData('DEP', dptgtCards, nextDptgtCards, smry.tmnlId, hhmm),
         ],
         chart: { rsltList },
         tableRows: rsltList.map((rslt) => toTableRow(rslt, totalCount)),

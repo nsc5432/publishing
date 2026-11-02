@@ -203,11 +203,11 @@ function Dashboard() {
         );
     };
 
-    const handleFcltDetail = (tmnlId: TerminalKind) => (fcltType: FcltCardType, unitCd: string) => {
+    const handleFcltDetail = (tmnlId: TerminalKind) => (fcltType: FcltCardType, unitCd: string, hhmm: string) => {
         const terminalQuery = terminalQueries?.[tmnlId];
         if (!terminalQuery) return;
 
-        setFcltQueueTarget({ ...terminalQuery, tmnlId, fcltType, unitCd });
+        setFcltQueueTarget({ ...terminalQuery, hhmm, tmnlId, fcltType, unitCd });
     };
 
     const handleFcltMove = (tmnlId: TerminalKind) => (fcltType: FcltCardType) => {

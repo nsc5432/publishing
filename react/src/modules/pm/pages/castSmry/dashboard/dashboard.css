@@ -1109,7 +1109,9 @@ html[data-page='dashboard'] .p-time-step > button {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: background-color 150ms ease, color 150ms ease;
+    transition:
+        background-color 150ms ease,
+        color 150ms ease;
 }
 
 html[data-page='dashboard'] .p-time-step > button + button {
@@ -1522,15 +1524,17 @@ html[data-page='dashboard'] .fclt-card-head .plus > i > svg {
 }
 
 html[data-page='dashboard'] .fclt-card-mid {
+    position: relative;
     background: rgba(255, 255, 255, 0.7);
     border-radius: 14px;
     margin-top: 6px;
     text-align: center;
-    flex: 1 1 0;
-    min-height: 0;
+    flex: 0 0 auto;
     display: flex;
-    flex-direction: column;
+    align-items: baseline;
     justify-content: center;
+    gap: 6px;
+    padding: 3px 36px;
 }
 
 html[data-page='dashboard'] .fclt-card-mid .isl {
@@ -1568,7 +1572,7 @@ html[data-page='dashboard'] .fclt-card-mid .meta b.acc {
 
 html[data-page='dashboard'] .fclt-card-arrow {
     position: absolute;
-    top: 49%;
+    top: 50%;
     width: 27px;
     height: 27px;
     border-radius: 50%;
@@ -1579,18 +1583,18 @@ html[data-page='dashboard'] .fclt-card-arrow {
     justify-content: center;
     cursor: pointer;
     z-index: 3;
-    transform: translate(-50%, -50%);
+    transform: translateY(-50%);
     color: #8b93a2;
     border: none;
     padding: 0;
 }
 
 html[data-page='dashboard'] .fclt-card-arrow.prev {
-    left: 0;
+    left: 6px;
 }
 
 html[data-page='dashboard'] .fclt-card-arrow.next {
-    left: 100%;
+    right: 6px;
 }
 
 html[data-page='dashboard'] .fclt-card-arrow > i > svg {
@@ -1599,37 +1603,160 @@ html[data-page='dashboard'] .fclt-card-arrow > i > svg {
 }
 
 html[data-page='dashboard'] .gauge-row {
-    display: flex;
-    gap: 9px;
-    margin-top: 5px;
-    flex: 1 1 0;
-    min-height: 0;
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 12px;
+    margin-bottom: clamp(8px, 3vh, 36px);
+    flex: 1 0 auto;
+    font-size: 16px;
+    line-height: 1.3;
 }
 
-html[data-page='dashboard'] .gauge {
-    flex: 1;
-    background: rgba(255, 255, 255, 0.85);
-    border-radius: 12px;
-    display: flex;
-    flex-direction: column;
+html[data-page='dashboard'] .fclt-compare col:first-child {
+    width: 40%;
+}
+
+html[data-page='dashboard'] .fclt-compare th,
+html[data-page='dashboard'] .fclt-compare td {
+    height: auto;
+    padding: 3px;
+    text-align: center;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+html[data-page='dashboard'] .fclt-compare tr {
+    height: auto;
+}
+
+html[data-page='dashboard'] .fclt-compare thead th {
+    color: #596479;
+    font-weight: 500;
+    font-size: 14px;
+    border-radius: 8px 8px 0 0;
+}
+
+html[data-page='dashboard'] .fclt-compare time {
+    display: block;
+    margin-top: 2px;
+    color: #23272f;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+html[data-page='dashboard'] .fclt-compare th[scope='row'] {
+    text-align: left;
+    color: #596479;
+    font-size: 15px;
+    font-weight: 500;
+    padding-left: 4px;
+}
+
+html[data-page='dashboard'] .fclt-metric-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    vertical-align: middle;
+}
+
+html[data-page='dashboard'] .fclt-metric-label > i {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 1px;
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    color: #6879ac;
+    background: #e9edf7;
 }
 
-html[data-page='dashboard'] .gauge .k {
-    font-size: 14px;
-    color: #2b313d;
+html[data-page='dashboard'] .fclt-metric-label > i > svg {
+    width: 15px;
+    height: 15px;
+}
+
+html[data-page='dashboard'] .fclt-compare tbody td {
+    font-weight: 700;
+    color: #23272f;
+}
+
+html[data-page='dashboard'] .fclt-compare tr > :nth-child(2) {
+    background: rgba(255, 255, 255, 0.8);
+}
+
+html[data-page='dashboard'] .fclt-compare tr > :nth-child(3) {
+    background: #edf0fa;
+    border-left: 3px solid #f7f9fc;
+}
+
+html[data-page='dashboard'] .fclt-compare tbody + tbody tr:first-child > * {
+    border-top: 1px solid #dfe4ed;
+    padding-top: 7px;
+}
+
+html[data-page='dashboard'] .fclt-compare tbody:last-child tr:last-child td {
+    border-radius: 0 0 8px 8px;
+}
+
+html[data-page='dashboard'] .fclt-compare small {
+    font-size: 13px;
     font-weight: 500;
+    margin-left: 2px;
+    color: #6c7688;
 }
 
-html[data-page='dashboard'] .gauge .donut {
-    width: var(--donut-size);
-    height: var(--donut-size);
+html[data-page='dashboard'] .fclt-compare-status {
+    font-size: 15px;
+    color: #8a93a3;
 }
 
-html[data-page='dashboard'] .gauge .donut > .donut__chart {
-    display: block;
+html[data-page='dashboard'] .fclt-compare-status[data-congestion='b'] {
+    color: #2f7ff0;
+}
+
+html[data-page='dashboard'] .fclt-compare-status[data-congestion='g'] {
+    color: #0f7d00;
+}
+
+html[data-page='dashboard'] .fclt-compare-status[data-congestion='o'] {
+    color: #b36d00;
+}
+
+html[data-page='dashboard'] .fclt-compare-status[data-congestion='r'] {
+    color: #dd0000;
+}
+
+html[data-page='dashboard'] .fclt-compare .rec {
+    display: inline-flex;
+    flex-direction: row;
+    min-width: 48px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #e3e7fc;
+    color: #4441cc;
+    font-weight: 700;
+}
+
+html[data-page='dashboard'] .fclt-compare .rec:disabled {
+    background: transparent;
+    color: #8a93a3;
+    cursor: default;
+    transform: none;
+    box-shadow: none;
+    filter: none;
+}
+
+html[data-page='dashboard'] .fclt-card-arrow:disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+html[data-page='dashboard'] .fclt-card > .chips {
+    margin-top: auto;
+    padding-top: 5px;
 }
 
 html[data-page='dashboard'] .rec {
@@ -2064,7 +2191,49 @@ html[data-page='dashboard'] .trow.sel {
     }
 
     html[data-page='dashboard'] .fclt-card-mid .num {
-        font-size: 25px;
+        font-size: 22px;
+    }
+
+    html[data-page='dashboard'] .fclt-compare {
+        margin-bottom: 0;
+        font-size: 15px;
+        line-height: 1.2;
+    }
+
+    html[data-page='dashboard'] .fclt-compare th,
+    html[data-page='dashboard'] .fclt-compare td {
+        padding: 1px 2px;
+    }
+
+    html[data-page='dashboard'] .fclt-compare th[scope='row'],
+    html[data-page='dashboard'] .fclt-compare-status {
+        font-size: 14px;
+    }
+
+    html[data-page='dashboard'] .fclt-metric-label {
+        gap: 6px;
+    }
+
+    html[data-page='dashboard'] .fclt-metric-label > i {
+        flex-basis: 20px;
+        width: 20px;
+        height: 20px;
+    }
+
+    html[data-page='dashboard'] .fclt-compare time {
+        font-size: 16px;
+    }
+
+    html[data-page='dashboard'] .fclt-compare tbody + tbody tr:first-child > * {
+        padding-top: 3px;
+    }
+
+    html[data-page='dashboard'] .fclt-compare .rec {
+        padding: 2px 6px;
+    }
+
+    html[data-page='dashboard'] .fclt-card > .chips {
+        padding-top: 2px;
     }
 
     html[data-page='dashboard'] .rec .tag {

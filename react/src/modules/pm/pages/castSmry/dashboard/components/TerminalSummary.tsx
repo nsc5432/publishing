@@ -22,7 +22,7 @@ interface TerminalSummaryProps {
     category: DsbdCategory;
     titleCategory: DsbdCategory | null;
     onTimeChange: (hhmm: string) => void;
-    onFcltDetail: (fcltType: FcltCardType, unitCd: string) => void;
+    onFcltDetail: (fcltType: FcltCardType, unitCd: string, hhmm: string) => void;
     onFcltMove: (fcltType: FcltCardType) => void;
     onMapMove: () => void;
 }
@@ -34,7 +34,6 @@ interface TerminalImages {
 
 interface CongestionTheme {
     panelClass: string;
-    gauge: string;
 }
 
 const TITLE_LEAD: Record<DsbdCategory, string> = {
@@ -64,14 +63,14 @@ const TERMINAL_IMAGES: Record<TerminalKind, TerminalImages> = {
 };
 
 const CONGESTION_THEMES: Record<CongestionStatus, CongestionTheme> = {
-    FREE: { panelClass: 'panel-blue', gauge: '#2f7ff0' },
-    NORMAL: { panelClass: 'panel-green', gauge: '#2f7ff0' },
-    BUSY: { panelClass: 'panel-orange', gauge: '#e0691c' },
-    VERY_BUSY: { panelClass: 'panel-red', gauge: '#d92626' },
+    FREE: { panelClass: 'panel-blue' },
+    NORMAL: { panelClass: 'panel-green' },
+    BUSY: { panelClass: 'panel-orange' },
+    VERY_BUSY: { panelClass: 'panel-red' },
 };
 
 /** 조회 시각에 등급을 산정할 수 있는 시설이 없을 때 — 여유/보통 색으로 대신하지 않는다 */
-const UNKNOWN_THEME: CongestionTheme = { panelClass: 'panel-gray', gauge: '#8a93a3' };
+const UNKNOWN_THEME: CongestionTheme = { panelClass: 'panel-gray' };
 
 export function TerminalSummary({ terminal, data, hhmm, category, titleCategory, onTimeChange, onFcltDetail, onFcltMove, onMapMove }: TerminalSummaryProps) {
     const view = data ?? EMPTY_TERMINAL_VIEW;
@@ -261,7 +260,7 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
 
                 <div className="fclt-cards">
                     {view.fcltCards.map((fcltCard) => (
-                        <FcltCard key={fcltCard.fcltType} data={fcltCard} gauge={theme.gauge} onDetail={(unitCd) => onFcltDetail(fcltCard.fcltType, unitCd)} onMove={() => onFcltMove(fcltCard.fcltType)} />
+                        <FcltCard key={fcltCard.fcltType} data={fcltCard} onDetail={(unitCd, targetHhmm) => onFcltDetail(fcltCard.fcltType, unitCd, targetHhmm)} onMove={() => onFcltMove(fcltCard.fcltType)} />
                     ))}
                 </div>
             </div>

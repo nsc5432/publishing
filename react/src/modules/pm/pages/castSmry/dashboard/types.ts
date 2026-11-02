@@ -62,6 +62,17 @@ export interface FcltCardRecommend {
     countNoteAccent?: boolean;
 }
 
+export interface FcltCardSnapshot {
+    hhmm: string;
+    congestion: string;
+    congestionKind: string;
+    waitingCount: string;
+    operatingCount: string;
+    processRate: GaugeData & { label: string };
+    clearTime: GaugeData & { label: string };
+    recommend: FcltCardRecommend;
+}
+
 /** 시설 카드 캐러셀의 한 페이지(아일랜드/출국장 1개 상태) */
 export interface FcltCardVariant {
     /** 하단 칩(FcltUnitDto.unitCd)과 카드를 잇는 키 — 아일랜드 문자 / 출국장 번호 */
@@ -69,9 +80,8 @@ export interface FcltCardVariant {
     island?: string;
     num: string;
     meta: FcltCardMeta[];
-    processRate: GaugeData & { label: string };
-    clearTime: GaugeData & { label: string };
-    recommend: FcltCardRecommend;
+    current: FcltCardSnapshot | null;
+    next: FcltCardSnapshot | null;
 }
 
 export type FcltCardType = Extract<FcltType, 'CHKN' | 'DEP'>;
@@ -80,6 +90,8 @@ export interface FcltCardData {
     fcltType: FcltCardType;
     title: string;
     warn: string;
+    currentTime: string;
+    nextTime: string;
     variants: FcltCardVariant[];
     /** 카드가 아니라 시설 전체의 유닛 목록 — 카드를 넘겨도 바뀌지 않는다 */
     chips: FcltCardChip[];

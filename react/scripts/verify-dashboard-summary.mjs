@@ -166,7 +166,61 @@ try {
         'existing server responses retain current counts during rollout');
     check(viewAt('0910', legacy).summaryStats[1].stats.map((stat) => stat.value), ['-', '-'],
         'missing future data never reuses the current interval');
-    console.log(`Dashboard interval mock/view: ${assertions} checks passed.`);
+    for (const terminal of ['T1', 'T2']) {
+        for (const fcltType of ['CHKN', 'DEP']) {
+            const unitOf = (card) => fcltType === 'CHKN' ? card.island : card.dptgtNo;
+            const currentCards = api.getFcltCardList(terminal, '0910', fcltType);
+            const nextCards = currentCards.map((card, index) => ({
+                ...card, wtngPsgCnt: 1000 + index, oprCnt: 20 + index,
+                hrlyPrcsPsgCnt: 2000 + index, cgnStatus: 'NORMAL',
+                cgnClearTime: '1030', cgnClearRate: 50,
+                recommend: { ...card.recommend, reqCnt: 30 + index },
+            })).reverse();
+            const cardViewAt = (time, current, next) => toTerminalView({
+                ymd: '20260710', hhmm: time, category: 'PSG', smry: smryAt(time, terminal),
+                rsltList: [], chknCards: fcltType === 'CHKN' ? current : [],
+                dptgtCards: fcltType === 'DEP' ? current : [],
+                nextChknCards: fcltType === 'CHKN' ? next : [],
+                nextDptgtCards: fcltType === 'DEP' ? next : [],
+            }).fcltCards.find((card) => card.fcltType === fcltType);
+            const comparison = cardViewAt('0910', currentCards, nextCards);
+            check([comparison.currentTime, comparison.nextTime], ['09:10', '10:10'],
+                `${terminal} ${fcltType} compares the exact selected time and one hour later`);
+            for (const variant of comparison.variants) {
+                const current = currentCards.find((card) => unitOf(card) === variant.unitCd);
+                const next = nextCards.find((card) => unitOf(card) === variant.unitCd);
+                check(variant.current.waitingCount, current.wtngPsgCnt.toLocaleString(),
+                    `${terminal} ${fcltType} ${variant.unitCd} retains current values`);
+                check([variant.next.waitingCount, variant.next.operatingCount,
+                    variant.next.processRate.centerText, variant.next.recommend.count,
+                    variant.next.clearTime.centerText, variant.next.congestion, variant.next.hhmm],
+                    [next.wtngPsgCnt.toLocaleString(), next.oprCnt.toLocaleString(),
+                        next.hrlyPrcsPsgCnt.toLocaleString(), String(next.recommend.reqCnt),
+                        '10:30 이후', '보통', '1010'],
+                    `${terminal} ${fcltType} ${variant.unitCd} matches future values by facility despite reordered results`);
+            }
+            check(cardViewAt('0910', currentCards, []).variants.every((variant) => variant.next === null), true,
+                `${terminal} ${fcltType} missing future results never reuse current values`);
+            const futureOnly = cardViewAt('0910', [], nextCards);
+            check(futureOnly.variants.every((variant) => variant.current === null && variant.next !== null), true,
+                `${terminal} ${fcltType} future-only facilities retain an unknown current state`);
+            check(futureOnly.chips.every((chip) => chip.kind === 'gray'), true,
+                `${terminal} ${fcltType} unknown current grades never use future chip colors`);
+            const midnightCards = cardViewAt('2350', currentCards, nextCards);
+            check(midnightCards.nextTime, '다음 날 00:50',
+                `${terminal} ${fcltType} midnight comparison labels the next day`);
+            check(midnightCards.variants.every((variant) => variant.next === null), true,
+                `${terminal} ${fcltType} next-day data never wraps to the selected date`);
+            const unknown = cardViewAt('0910', [{ ...currentCards[0], wtngPsgCnt: 0,
+                oprCnt: 0, hrlyPrcsPsgCnt: 0, cgnStatus: null, cgnClearTime: '', cgnClearRate: 0,
+                recommend: { ...currentCards[0].recommend, reqCnt: null } }], []).variants[0].current;
+            check([unknown.waitingCount, unknown.operatingCount, unknown.processRate.centerText,
+                unknown.congestion, unknown.recommend.count, unknown.clearTime.centerText],
+                ['0', '0', '0', '-', '-', '-'],
+                `${terminal} ${fcltType} distinguishes observed zero from unavailable metrics`);
+        }
+    }
+    console.log(`Dashboard interval and facility comparison: ${assertions} checks passed.`);
 } finally {
     await server.close();
 }

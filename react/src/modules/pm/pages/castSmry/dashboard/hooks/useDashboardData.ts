@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { dashboardService } from '@/api/pm/services/dashboard.service';
 import { unwrap } from '@/api/pm/result';
 import { useFetched, type Fetched } from '@/hooks/useFetched';
+import { stepHhmm } from '@/lib/format';
 import type { DsbdCategory, DsbdFcltCardDto, DsbdHeaderDto, TmnlSmryDto } from '@/types/api.types';
 import { SMRY_INTRVL_MIN, type TerminalKind, type TerminalView } from '../types';
 import { toPrimeTime, toTerminalView } from '../view';
@@ -24,6 +25,8 @@ interface PanelBase {
     smry: TmnlSmryDto;
     chknCards: DsbdFcltCardDto[];
     dptgtCards: DsbdFcltCardDto[];
+    nextChknCards: DsbdFcltCardDto[];
+    nextDptgtCards: DsbdFcltCardDto[];
 }
 
 interface PanelQuery {
@@ -73,17 +76,22 @@ export function useTerminalPanel(query: DashboardQuery | null, tmnlId: TerminalK
         panelQuery,
         ({ query: dashboardQuery, tmnlId: terminal, category: smryCategory }) => {
             const { smltId, hhmm } = dashboardQuery;
+            const nextHhmm = stepHhmm(hhmm, 6);
 
             return Promise.all([
                 dashboardService.getTmnlSmry(smltId, terminal, hhmm, SMRY_INTRVL_MIN, smryCategory).then((dto) => unwrap(dto, PANEL_FAIL)),
                 dashboardService.getFcltCardList(smltId, terminal, hhmm, 'CHKN'),
                 dashboardService.getFcltCardList(smltId, terminal, hhmm, 'DEP'),
-            ]).then(([smry, chknCards, dptgtCards]): PanelBase => ({
+                nextHhmm ? dashboardService.getFcltCardList(smltId, terminal, nextHhmm, 'CHKN') : Promise.resolve([]),
+                nextHhmm ? dashboardService.getFcltCardList(smltId, terminal, nextHhmm, 'DEP') : Promise.resolve([]),
+            ]).then(([smry, chknCards, dptgtCards, nextChknCards, nextDptgtCards]): PanelBase => ({
                 query: dashboardQuery,
                 category: smryCategory,
                 smry,
                 chknCards,
                 dptgtCards,
+                nextChknCards,
+                nextDptgtCards,
             }));
         },
         PANEL_FAIL,
@@ -109,6 +117,8 @@ export function useTerminalPanel(query: DashboardQuery | null, tmnlId: TerminalK
                 rsltList: hourlyResults.data,
                 chknCards: panelBase.data.chknCards,
                 dptgtCards: panelBase.data.dptgtCards,
+                nextChknCards: panelBase.data.nextChknCards,
+                nextDptgtCards: panelBase.data.nextDptgtCards,
             }),
             error,
             responseSeq,
