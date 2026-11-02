@@ -56,8 +56,8 @@
         AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
         </if>
         <if test="bgnHhmm != null and endHhmm != null">
-        AND A.PREDC_HM &gt;= #{bgnHhmm}
-        AND A.PREDC_HM &lt; #{endHhmm}
+        AND NVL(TRIM(A.PREDC_HM), A.SCHDL_HM) &gt;= #{bgnHhmm}
+        AND NVL(TRIM(A.PREDC_HM), A.SCHDL_HM) &lt; #{endHhmm}
         </if>
         AND A.CSHR_STTS_CD != 'SL'
         AND A.PSG_CGO_SE_CD = 'Y'

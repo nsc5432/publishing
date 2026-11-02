@@ -2,13 +2,13 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="aoms.pm.cast.mapper.CastResourceConditionMapper">
     <select id="retrieveFlightHours" resultType="aoms.pm.cast.dto.FltPsgRawDto">
-        SELECT SUBSTR(NVL(A.PREDC_HM, A.DEP_ARR_HM), 1, 2) AS HOUR, COUNT(*) AS FLT_CNT,
+        SELECT SUBSTR(NVL(TRIM(A.PREDC_HM), A.DEP_ARR_HM), 1, 2) AS HOUR, COUNT(*) AS FLT_CNT,
                NVL(SUM(GREATEST(NVL(A.BDPSG_CNT, 0) - NVL(A.TRNS_BDPSG_CNT, 0), 0)), 0) AS PSG_CNT
         FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB A
         WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{resourceId}, 'FS', '')
         AND A.ARR_DEP_SE_CD = 'D' AND A.DOM_INTL_SE_CD != 'D'
         AND A.TMNL_ID IN (<foreach collection="tmnlIds" item="terminal" separator=",">#{terminal}</foreach>)
-        GROUP BY SUBSTR(NVL(A.PREDC_HM, A.DEP_ARR_HM), 1, 2)
+        GROUP BY SUBSTR(NVL(TRIM(A.PREDC_HM), A.DEP_ARR_HM), 1, 2)
         ORDER BY HOUR
     </select>
     <select id="retrieveIslands" resultType="aoms.pm.cast.dto.ChknIslandDto">
