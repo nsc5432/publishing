@@ -36,7 +36,7 @@
 |---|---|---|
 | `PSG` · `FLT` | 랜드사이드 | 아일랜드 + 출국장 |
 | `CHKN` | 아일랜드 | 체크인 아일랜드 전체 (유인 카운터 `CC` 공용 Queue) |
-| `DEP` | 출국장 | 출국장 전체 (`SC`+`SR`) |
+| `DEP` | 출국장 | 출국장 전체 (`LGT`) |
 
 원천은 시설 카드와 같은 10분 대기 결과(`FcltWtngDay`, `TN_PM_SMLT_FCLT_WTNG_RSLT`)다.
 구간은 `[hhmm, hhmm+intrvlMin)`이고 24시에서 자른다. `intrvlMin`은 10분 단위여야 한다.

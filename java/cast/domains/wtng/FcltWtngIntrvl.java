@@ -21,7 +21,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public final class FcltWtngIntrvl {
-	/** 구간 시작 시각의 대기인원 합 */
+	/** 구간 시작 시각의 대기인원 합 — 각 시설 [bgnDt-10분, bgnDt) 행의 종료 대기인원 */
 	private final Integer wtngPsgCnt;
 	private final Integer arvlPsgCnt;
 	private final Integer prcsPsgCnt;
