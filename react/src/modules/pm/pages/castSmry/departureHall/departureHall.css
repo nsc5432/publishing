@@ -447,8 +447,8 @@ html[data-page='departureHall'] .dep-card {
     container-type: inline-size;
     display: flex;
     flex-direction: column;
-    gap: min(14px, 6.4cqw);
-    padding: min(14px, 6.4cqw);
+    gap: min(10px, 4.5cqw);
+    padding: min(12px, 5.5cqw);
     border-radius: 16px;
     background: #fff;
     box-shadow: var(--shadow-float);
@@ -457,10 +457,12 @@ html[data-page='departureHall'] .dep-card {
 /* 도면 위에 뜬 카드 — 마커와 같은 무대 좌표를 쓴다 */
 html[data-page='departureHall'] .dep-card--float {
     position: absolute;
-    top: var(--y);
+    /* 무대가 위로 벗어난 만큼 보정해 카드 상단이 도면 영역 안에 남도록 한다. */
+    top: max(var(--y), calc(28.5% + 175px));
     left: var(--x);
-    width: 12.38cqw;
-    max-width: 220px;
+    z-index: 1;
+    width: 13cqw;
+    max-width: 232px;
     transform: translate(-50%, -50%);
     transition:
         transform 0.15s,
@@ -484,7 +486,7 @@ html[data-page='departureHall'] .dep-card__head {
 }
 
 html[data-page='departureHall'] .dep-card__title {
-    font-size: min(17px, 7.7cqw);
+    font-size: clamp(15px, 8.5cqw, 18px);
     font-weight: 700;
     color: var(--c-primary);
     white-space: nowrap;
@@ -495,7 +497,7 @@ html[data-page='departureHall'] .state-badge {
     padding: 3px 10px;
     border-radius: 4px;
     color: #fff;
-    font-size: min(12px, 5.4cqw);
+    font-size: clamp(11px, 5.7cqw, 12px);
     font-weight: 700;
     white-space: nowrap;
 }
@@ -533,7 +535,7 @@ html[data-page='departureHall'] .dep-stat__item {
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    padding: min(10px, 4.5cqw) min(6px, 2.7cqw);
+    padding: min(8px, 4cqw) min(6px, 2.7cqw);
 }
 
 /* 가운데 세로선 */
@@ -559,18 +561,18 @@ html[data-page='departureHall'] .dep-stat__item:nth-child(n + 3)::after {
 }
 
 html[data-page='departureHall'] .dep-stat__ico {
-    width: min(24px, 10.9cqw);
-    height: min(24px, 10.9cqw);
+    width: clamp(22px, 11.5cqw, 24px);
+    height: clamp(22px, 11.5cqw, 24px);
 }
 
 html[data-page='departureHall'] .dep-stat__label {
-    font-size: min(12px, 5.4cqw);
+    font-size: clamp(11px, 5.7cqw, 12px);
     color: var(--c-text-sub);
     white-space: nowrap;
 }
 
 html[data-page='departureHall'] .dep-stat__value {
-    font-size: min(24px, 10.9cqw);
+    font-size: clamp(22px, 11.5cqw, 24px);
     font-weight: 700;
     color: var(--c-text);
     white-space: nowrap;
@@ -582,7 +584,7 @@ html[data-page='departureHall'] .dep-stat__value.is-point {
 
 html[data-page='departureHall'] .dep-stat__value em {
     margin-left: 1px;
-    font-size: min(12px, 5.4cqw);
+    font-size: clamp(11px, 5.7cqw, 12px);
     font-style: normal;
     font-weight: 500;
     color: var(--c-text-sub);
@@ -592,8 +594,12 @@ html[data-page='departureHall'] .dep-stat .stat__cmpr {
     align-self: stretch;
     margin-top: min(4px, 1.8cqw);
     padding-top: min(4px, 1.8cqw);
-    font-size: clamp(8px, 4.5cqw, 10px);
-    line-height: 1.4;
+    font-size: clamp(11px, 5.7cqw, 12px);
+    line-height: 1.35;
+}
+
+html[data-page='departureHall'] .dep-stat .stat__cmpr-base b {
+    display: block;
 }
 
 /* ==========================================================================
@@ -905,6 +911,6 @@ html[data-page='departureHall'] .ico-calendar {
     }
 
     html[data-page='departureHall'] .dep-card--float {
-        max-width: 190px;
+        max-width: 210px;
     }
 }

@@ -75,10 +75,11 @@ const FCLT_CARD_TITLE: Record<FcltCardType, string> = {
     DEP: '출국장',
 };
 
-// 출국장 카드의 처리 · 해소 · 추천은 보안검색대 큐 값이라 상단 출국장 대기와 구분해 적는다
-const FCLT_CARD_GAUGE_LABEL: Record<FcltCardType, { prcs: string; clear: string; noCongestion: string }> = {
-    CHKN: { prcs: '시간당 처리인원', clear: '혼잡해소 예상', noCongestion: '혼잡요소 없음' },
-    DEP: { prcs: '보안검색 처리인원', clear: '보안검색 해소', noCongestion: '보안검색 원활' },
+// 출국장 카드의 처리 · 해소 · 추천은 보안검색대 큐 값이며, 상단 대기는 출국장 값이다
+const FCLT_CARD_GAUGE_LABEL = {
+    prcs: '시간당 처리인원',
+    clear: '혼잡해소 예상',
+    noCongestion: '혼잡요소 없음',
 };
 
 const WTNG_WINDOW_MIN = 30;
@@ -120,7 +121,6 @@ export function toCalcDateTime(calcDt?: string): string {
 function toFcltCardVariant(card: DsbdFcltCardDto): FcltCardVariant {
     const noCongestion = card.cgnClearRate === 100;
     const isCheckin = card.fcltType === 'CHKN';
-    const gaugeLabel = FCLT_CARD_GAUGE_LABEL[isCheckin ? 'CHKN' : 'DEP'];
 
     return {
         unitCd: isCheckin ? card.island : card.dptgtNo,
@@ -134,13 +134,13 @@ function toFcltCardVariant(card: DsbdFcltCardDto): FcltCardVariant {
               ]
             : [{ label: '출국장 대기', value: formatCount(card.wtngPsgCnt) }],
         processRate: {
-            label: gaugeLabel.prcs,
+            label: FCLT_CARD_GAUGE_LABEL.prcs,
             value: card.hrlyPrcsRate / 100,
             centerText: pad2(card.hrlyPrcsPsgCnt),
             captionText: 'Pax/Hour',
         },
         clearTime: {
-            label: noCongestion ? gaugeLabel.noCongestion : gaugeLabel.clear,
+            label: noCongestion ? FCLT_CARD_GAUGE_LABEL.noCongestion : FCLT_CARD_GAUGE_LABEL.clear,
             value: noCongestion ? 0 : card.cgnClearRate / 100,
             centerText: noCongestion ? '-' : formatHhmm(card.cgnClearTime) || '-',
             captionText: '이후',

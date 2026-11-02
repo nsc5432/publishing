@@ -881,21 +881,28 @@ html[data-page='dashboard'] .board .u {
 }
 
 html[data-page='dashboard'] .p-peak {
+    position: relative;
     flex: 92 0 0;
     background: #f7f5fa;
     border: 1px solid #e4dfec;
     border-radius: 14px;
-    padding: 5px 5px 6px;
+    padding: 12px 5px 6px;
     display: flex;
     flex-direction: column;
 }
 
 html[data-page='dashboard'] .peak-title {
+    position: absolute;
+    top: 2px;
+    left: 12px;
+    transform: translateY(-50%);
+    background: #f7f5fa;
+    padding: 0 4px;
+    white-space: nowrap;
     font-size: 15px;
     line-height: 18px;
     font-weight: 700;
     letter-spacing: -0.5px;
-    padding-left: 0.5rem;
 }
 
 html[data-page='dashboard'] .peak-body {

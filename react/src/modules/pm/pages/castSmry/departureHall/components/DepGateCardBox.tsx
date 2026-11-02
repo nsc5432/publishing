@@ -20,24 +20,16 @@ interface DepGateCardBoxProps {
 }
 
 /**
- * 출국장 카드 1장 — 혼잡 상태 뱃지 + 지표 4종.
- * 도면 위에 떠 있을 때는 마커와 같은 무대 좌표(--x / --y)로 자리를 잡는다.
+ * 출국장 카드
  */
 export function DepGateCardBox({ card, floating = true, active = false }: DepGateCardBoxProps) {
     const floatStyle = floating ? toStagePosition(card.x, card.y) : undefined;
 
     return (
-        <article
-            className={`dep-card${floating ? ' dep-card--float' : ''}${card.isClosed ? ' is-off' : ''}${
-                active ? ' is-active' : ''
-            }`}
-            style={floatStyle}
-        >
+        <article className={`dep-card${floating ? ' dep-card--float' : ''}${card.isClosed ? ' is-off' : ''}${active ? ' is-active' : ''}`} style={floatStyle}>
             <div className="dep-card__head">
                 <h3 className="dep-card__title">{card.title}</h3>
-                <span className={`state-badge state-badge--${toLevelKey(card.level)}`}>
-                    {toLevelLabel(card.level)}
-                </span>
+                <span className={`state-badge state-badge--${toLevelKey(card.level)}`}>{toLevelLabel(card.level)}</span>
             </div>
 
             <ul className="dep-stat">
@@ -46,15 +38,9 @@ export function DepGateCardBox({ card, floating = true, active = false }: DepGat
 
                     return (
                         <li className="dep-stat__item" key={stat.icon}>
-                            <IconComponent
-                                className="dep-stat__ico"
-                                aria-hidden="true"
-                                focusable="false"
-                            />
+                            <IconComponent className="dep-stat__ico" aria-hidden="true" focusable="false" />
                             <span className="dep-stat__label">{stat.label}</span>
-                            <strong
-                                className={`dep-stat__value${stat.isHighlighted ? ' is-point' : ''}`}
-                            >
+                            <strong className={`dep-stat__value${stat.isHighlighted ? ' is-point' : ''}`}>
                                 {stat.value}
                                 <em>{stat.unit}</em>
                             </strong>
