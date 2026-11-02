@@ -4,14 +4,14 @@ import { userSmltService } from '@/api/pm/services/userSmlt.service';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import type { UserSmltFltPsgDto } from '@/types/api.types';
 import { useTerminalData } from '../../hooks/useTerminalData';
-import { runSave } from '../../save';
 import { TerminalPanel } from '../../components/TerminalPanel';
 import { TERMINALS, enabledTerminals, type SmltTabProps, type TerminalKind } from '../../types';
 import { FlightPaxChart } from './components/FlightPaxChart';
 import { FlightEditor } from './components/FlightEditor';
-import { EMPTY_FLIGHT_PAX, toFlightPax, toSaveReq } from './view';
+import type { FlightPaxDraft } from './types';
+import { EMPTY_DRAFT, EMPTY_FLIGHT_PAX, toDraft, toFlightPax, toSaveReq } from './view';
 
-type RatioState = Record<TerminalKind, number>;
+type DraftState = Record<TerminalKind, FlightPaxDraft>;
 
 const fetchFltPsg = (query: UserSmltQuery, tmnlId: TerminalKind) => userSmltService.getFltPsgInfo(query, tmnlId);
 
@@ -20,8 +20,6 @@ const keepDto = (dto: UserSmltFltPsgDto) => dto;
 export function FlightPaxTab({
     query,
     busy,
-    beginRequest,
-    endRequest,
     onDraftChange,
     reloadKey,
     enabled,
@@ -31,14 +29,14 @@ export function FlightPaxTab({
     readOnly,
 }: SmltTabProps) {
     const { raw: dtoByTerminal, error, responseSeq } = useTerminalData(query, reloadKey, fetchFltPsg, keepDto, '운항편/여객수 정보를 불러오지 못했습니다.');
-    const [ratios, setRatios] = useState<RatioState>({ T1: 0, T2: 0 });
+    const [drafts, setDrafts] = useState<DraftState>({ T1: EMPTY_DRAFT, T2: EMPTY_DRAFT });
 
     const panelDataByTerminal = useMemo(
         () => ({
-            T1: dtoByTerminal.T1 ? toFlightPax(dtoByTerminal.T1, ratios.T1) : EMPTY_FLIGHT_PAX,
-            T2: dtoByTerminal.T2 ? toFlightPax(dtoByTerminal.T2, ratios.T2) : EMPTY_FLIGHT_PAX,
+            T1: dtoByTerminal.T1 ? toFlightPax(dtoByTerminal.T1, drafts.T1) : EMPTY_FLIGHT_PAX,
+            T2: dtoByTerminal.T2 ? toFlightPax(dtoByTerminal.T2, drafts.T2) : EMPTY_FLIGHT_PAX,
         }),
-        [dtoByTerminal, ratios],
+        [dtoByTerminal, drafts],
     );
 
     const dirty = useRef<Record<TerminalKind, boolean>>({ T1: false, T2: false });
@@ -46,37 +44,40 @@ export function FlightPaxTab({
     useErrorAlert(error, responseSeq);
 
     useEffect(() => {
-        setRatios({
-            T1: dtoByTerminal.T1?.ajmtRt ?? 0,
-            T2: dtoByTerminal.T2?.ajmtRt ?? 0,
+        setDrafts({
+            T1: dtoByTerminal.T1 ? toDraft(dtoByTerminal.T1) : EMPTY_DRAFT,
+            T2: dtoByTerminal.T2 ? toDraft(dtoByTerminal.T2) : EMPTY_DRAFT,
         });
     }, [dtoByTerminal]);
 
-    const handleRatioChange = (terminal: TerminalKind, ratio: number) => {
+    const updateDraft = (terminal: TerminalKind, update: (draft: FlightPaxDraft) => FlightPaxDraft) => {
         if (busy) return;
         dirty.current[terminal] = true;
-        setRatios((previousRatios) => ({ ...previousRatios, [terminal]: ratio }));
+        setDrafts((previousDrafts) => ({ ...previousDrafts, [terminal]: update(previousDrafts[terminal]) }));
     };
 
-    const handleSave = async (terminal: TerminalKind) => {
-        if (busy || readOnly) return;
-        const dto = dtoByTerminal[terminal];
-        const ymd = query.ymd;
-        if (!dto || !ymd) return;
+    const handleRatioChange = (terminal: TerminalKind, ratio: number) =>
+        updateDraft(terminal, (draft) => ({ ajmtRt: ratio, hourRates: draft.hourRates.map(() => ratio) }));
 
-        if (!beginRequest()) return;
-        const saved = await runSave(userSmltService.saveFltPsgInfo(toSaveReq(ymd, terminal, ratios[terminal])), '운항편/여객수 저장에 실패했습니다.');
-        endRequest(saved);
-        if (saved) dirty.current[terminal] = false;
-    };
+    const handleHourRatioChange = (terminal: TerminalKind, index: number, ratio: number) =>
+        updateDraft(terminal, (draft) => ({
+            ...draft,
+            hourRates: draft.hourRates.map((hourRate, hourIndex) => (hourIndex === index ? ratio : hourRate)),
+        }));
 
     useEffect(() => {
-        onDraftChange('flightPax', () => ({
-            fltPsgList: TERMINALS.filter((terminal) => dirty.current[terminal] && dtoByTerminal[terminal]).map((terminal) =>
-                toSaveReq(query.ymd, terminal, ratios[terminal]),
-            ),
-        }));
-    }, [dtoByTerminal, onDraftChange, query.ymd, ratios]);
+        onDraftChange('flightPax', {
+            collect: (all = false) => ({
+                fltPsgList: TERMINALS.flatMap((terminal) => {
+                    const dto = dtoByTerminal[terminal];
+                    return (all || dirty.current[terminal]) && dto ? [toSaveReq(query.ymd, terminal, dto, drafts[terminal])] : [];
+                }),
+            }),
+            onSaved: () => {
+                dirty.current = { T1: false, T2: false };
+            },
+        });
+    }, [dtoByTerminal, onDraftChange, query.ymd, drafts]);
 
     const enabledCount = enabledTerminals(enabled).length;
 
@@ -112,18 +113,14 @@ export function FlightPaxTab({
                                 </div>
                             </>
                         }
-                        footer={
-                            <button type="button" className="btn btn--save" disabled={busy || readOnly || !dtoByTerminal[terminal]} onClick={() => handleSave(terminal)}>
-                                현재상태 저장
-                            </button>
-                        }
                     >
                         <FlightPaxChart data={panelData.chart} />
 
                         <FlightEditor
                             readOnly={readOnly}
-                            ratio={ratios[terminal]}
+                            ratio={drafts[terminal].ajmtRt}
                             onRatioChange={(ratio) => handleRatioChange(terminal, ratio)}
+                            onHourRatioChange={(index, ratio) => handleHourRatioChange(terminal, index, ratio)}
                             rows={panelData.rows}
                             disabled={busy || !terminalEnabled || Boolean(readOnly)}
                         />

@@ -40,6 +40,7 @@ export { default as PoliceOnPurpleIcon } from '@/assets/svg/police-on-purple-ico
 export { default as PreArrowGreenIcon } from '@/assets/svg/pre-arrow-green-icon.svg?react';
 export { default as PreArrowIcon } from '@/assets/svg/pre-arrow-icon.svg?react';
 export { default as SearchIcon } from '@/assets/svg/search-icon.svg?react';
+export { default as SaveIcon } from '@/assets/svg/save-icon.svg?react';
 export { default as SearchWhiteIcon } from '@/assets/svg/search-white-icon.svg?react';
 export { default as SelfCheckinIcon } from '@/assets/svg/self-checkin-icon.svg?react';
 export { default as SelfCheckinOnIcon } from '@/assets/svg/self-checkin-on-icon.svg?react';

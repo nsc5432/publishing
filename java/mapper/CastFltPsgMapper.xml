@@ -12,7 +12,7 @@
             SELECT
                 A.TMNL_ID,
                 A.DOM_INTL_SE_CD,
-                NVL(A.PREDC_HM, A.SCHDL_HM) AS HM,
+                NVL(TRIM(A.PREDC_HM), A.SCHDL_HM) AS HM,
                 GREATEST(
                     NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0)
                     - NVL(TO_NUMBER(TRIM(A.RSVT_TRNS_BDPSG_CNT)), 0),
@@ -56,6 +56,19 @@
         AND A.TMNL_ID = #{fcltTmnlId}
     </select>
 
+    <select id="retrieveUserFltPsgHourList" resultType="aoms.pm.cast.dto.FltPsgHourDto">
+        /* CastFltPsgMapper.retrieveUserFltPsgHourList */
+        SELECT
+            A.BGNG_HM AS BGN_TIME,
+            NVL(A.AJMT_RT, 0) AS AJMT_RT
+        FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT A
+        WHERE 1 = 1
+        AND A.OWNER_USER_ID = #{loginUserId}
+        AND A.EXCN_YMD = #{ymd}
+        AND A.TMNL_ID = #{fcltTmnlId}
+        ORDER BY A.BGNG_HM
+    </select>
+
     <insert id="insertUserFltPsg" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
         /* CastFltPsgMapper.insertUserFltPsg */
         INSERT INTO PMOWN.TN_PM_SMLT_USER_FLT_PSG_AJMT (
@@ -90,4 +103,38 @@
         AND EXCN_YMD = #{ymd}
         AND TMNL_ID = #{fcltTmnlId}
     </update>
+
+    <delete id="deleteUserFltPsgHourList" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
+        /* CastFltPsgMapper.deleteUserFltPsgHourList */
+        DELETE FROM PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT
+        WHERE 1 = 1
+        AND OWNER_USER_ID = #{loginUserId}
+        AND EXCN_YMD = #{ymd}
+        AND TMNL_ID = #{fcltTmnlId}
+    </delete>
+
+    <insert id="insertUserFltPsgHourList" parameterType="aoms.pm.cast.dto.UserSmltFltPsgSaveDto">
+        /* CastFltPsgMapper.insertUserFltPsgHourList */
+        INSERT ALL
+        <foreach collection="hourList" item="hour">
+        INTO PMOWN.TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT (
+            OWNER_USER_ID, EXCN_YMD,
+            TMNL_ID,
+            BGNG_HM,
+            AJMT_RT,
+            FRST_RGTR_ID,
+            FRST_RGTR_IP_ADDR,
+            FRST_REG_DT
+        ) VALUES (
+            #{loginUserId}, #{ymd},
+            #{fcltTmnlId},
+            #{hour.bgnTime},
+            #{hour.ajmtRt},
+            #{loginUserId},
+            #{loginIpAddr},
+            CURRENT_TIMESTAMP
+        )
+        </foreach>
+        SELECT 1 FROM DUAL
+    </insert>
 </mapper>

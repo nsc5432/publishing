@@ -515,6 +515,7 @@ export interface FltPsgHourDto {
     bgnTime: string;
     endTime: string;
     psgCnt: number;
+    ajmtRt: number;
 }
 
 export interface UserSmltFltPsgDto extends JsonResponse {
@@ -528,10 +529,16 @@ export interface UserSmltFltPsgDto extends JsonResponse {
     hourList: FltPsgHourDto[];
 }
 
+export interface UserSmltFltPsgHourReq {
+    bgnTime: string;
+    ajmtRt: number;
+}
+
 export interface UserSmltFltPsgSaveReq {
     ymd: string;
     tmnlId: TmnlId;
     ajmtRt: number;
+    hourList: UserSmltFltPsgHourReq[];
 }
 
 /* --------- 조회 결과 공용 (체크인 카운터 / 출국장) --------- */

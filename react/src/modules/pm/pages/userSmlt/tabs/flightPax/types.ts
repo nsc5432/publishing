@@ -35,14 +35,20 @@ export interface FlightPaxChartData {
     items: FlightPaxChartItem[];
 }
 
-/** 시간대별 표 1행 — 전체 비율이 걸린 뒤의 값 */
+/** 시간대별 표 1행 — 그 시간대 비율이 걸린 뒤의 값 */
 export interface HourRow {
     start: string;
     end: string;
-    /** 수정 비율 (예: 10%) */
-    adjust: string;
+    /** 수정 비율 (%) */
+    ajmtRt: number;
     /** 승객 수 (예: 12,340명) */
     pax: string;
+}
+
+/** 터미널 1개분 편집 상태 — hourRates 는 hourList 와 같은 순서 */
+export interface FlightPaxDraft {
+    ajmtRt: number;
+    hourRates: number[];
 }
 
 /** 터미널 1개분 데이터 */

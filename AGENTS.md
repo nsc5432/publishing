@@ -109,6 +109,9 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
    - 2026-11-01 체크인카운터 Queue 차트 비교선으로 `ChknCounterSlotDto.xovisWtngPsgCnt`(`Integer`, 없으면 null)를 더했다. 원천은
      `CastChknMapper.retrievePsgWtngSumBySlotList` — `TN_PM_PSG_WTNG_INFO` `Queue` 행의 슬롯 `[hhmm, hhmm+30)` 안 마지막 스냅샷 터미널 합이다.
      Xovis 는 A · G · I 를 재지 않고 `-SBD` 줄을 포함하므로 Cast(CC 전 아일랜드) 선과 범위가 다르다. **새 이름도 이제 고정이다.**
+   - 2026-11-02 운항 수정 비율을 시간대별로 넓혔다. `FltPsgHourDto.ajmtRt`(그 시간대에 적용되는 비율),
+     저장 요청 `UserSmltFltPsgSaveReq.hourList`(`UserSmltFltPsgHourReq`: `bgnTime` · `ajmtRt`)를 더했다.
+     원천은 `TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT` 이고 시간대 값이 `ajmtRt` 를 덮어쓴다. **새 이름도 이제 고정이다.**
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).
@@ -448,7 +451,8 @@ docs/user-smlt-master-redesign.md를 따른다.
 
 ### 11.1 현재상태와 실행
 
-- 편집용 7개 테이블의 키는 (OWNER_USER_ID, EXCN_YMD, TMNL_ID, 기존 시설·시간·부스 키)다.
+- 편집용 8개 테이블의 키는 (OWNER_USER_ID, EXCN_YMD, TMNL_ID, 기존 시설·시간·부스 키)다.
+  운항 시간대별 비율 `TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT` 는 2026-11-02 추가(`java/ddl/2026-11-02-user-flt-psg-hourly-ratio.sql`).
   OWNER_USER_ID는 세션 사용자로 강제하며 요청의 사용자 필드를 신뢰하지 않는다.
 - 현재상태 조회·저장은 ymd + tmnlId를 사용한다. 과거 결과 ID가 없어도 조회·저장한다.
   비교 KPI만 별도 일일 결과 ID를 쓴다. 없는 영역은 해당 일자 운영자료, 운항 조정률은 0%다.
@@ -526,6 +530,9 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   과거 3개월 평균·좌석×0.75 추정은 쓰지 않는다(castrest 원본 fallback 제거).
 - 운항 조정은 국제선 출발 GREATEST(예약-환승,0) 몫만 늘린다. 조회와 발행의 필터·ROW_NUMBER를 맞춘다.
   기준 여객수는 FS001 값이고, 늘리는 몫만 조회 화면과 같은 예약 기준이다.
+  비율은 편의 시간대 `SUBSTR(NVL(TRIM(PREDC_HM), SCHDL_HM), 1, 2)` 로 찾는다(2026-11-02). 조회 집계와 발행이
+  같은 식이어야 화면에서 바꾼 시간대의 편이 바뀐다. 결과 여객수는 `GREATEST(…, 0)` — 실탑승 입력 편은
+  감소 조정이 음수를 만들 수 있다. 운항편 수는 조정하지 않는다(화면 운항편 차트도 배수를 걸지 않는다).
 - 사용자 DepartureGate는 운영 Y 출국장 × 운영구간 × `001` 조합(East/West·SD·FR)마다 1행이다 (2026-10-20,
   [계획](docs/plans/2026-10-20-user-smlt-dptgt-lane-chkn-type.md)). 레인은 스마트패스 = FR `Y`, 일반 = FR `N` 그룹 안에서
   `001` 레인 비율로 나눈다(내림 후 잔여는 소수부 큰 순). `001` 조합이 없는 운영 Y 출국장은 발행 전에 실패한다.

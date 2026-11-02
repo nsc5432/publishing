@@ -7,7 +7,6 @@ import { TerminalPanel } from '../../components/TerminalPanel';
 import { formatHour } from '../../format';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
-import { runSave } from '../../save';
 import { TERMINALS, enabledTerminals, type BlockItem, type SmltTabProps, type TerminalKind } from '../../types';
 import { DepartureEditDock } from './components/DepartureEditDock';
 import type { DepartureGate } from './types';
@@ -51,8 +50,6 @@ function toGateItems(gates: DepartureGate[]): BlockItem[] {
 export function DepartureTab({
     query,
     busy,
-    beginRequest,
-    endRequest,
     onDraftChange,
     reloadKey,
     enabled,
@@ -145,25 +142,19 @@ export function DepartureTab({
     const collectGates = (terminal: TerminalKind) => gatesByTerminal[terminal].map((gate) => dock?.drafts[terminal][gate.no] ?? gate);
 
     useEffect(() => {
-        onDraftChange('departure', () => ({
-            depList: TERMINALS.filter((terminal) => edited.current[terminal] && terminalData[terminal]).map((terminal) =>
-                toSaveReq(query.ymd, terminal, collectGates(terminal)),
-            ),
-        }));
+        onDraftChange('departure', {
+            collect: (all = false) => ({
+                depList: TERMINALS.filter((terminal) => (all || edited.current[terminal]) && terminalData[terminal]).map((terminal) =>
+                    toSaveReq(query.ymd, terminal, collectGates(terminal)),
+                ),
+            }),
+            onSaved: () => {
+                setGatesByTerminal({ T1: collectGates('T1'), T2: collectGates('T2') });
+                setDock(null);
+                edited.current = { T1: false, T2: false };
+            },
+        });
     });
-
-    const handleSave = async (terminal: TerminalKind) => {
-        if (busy || readOnly || !terminalData[terminal]) return;
-        if (!beginRequest()) return;
-        const gates = collectGates(terminal);
-        const saved = await runSave(userSmltService.saveDepInfo(toSaveReq(query.ymd, terminal, gates)), '출국장 저장에 실패했습니다.');
-        endRequest(saved);
-        if (saved) {
-            setGatesByTerminal((previous) => ({ ...previous, [terminal]: gates }));
-            setDock((previous) => (previous ? { ...previous, drafts: { ...previous.drafts, [terminal]: {} } } : null));
-            edited.current[terminal] = false;
-        }
-    };
 
     return (
         <>
@@ -197,11 +188,6 @@ export function DepartureTab({
                                     <strong className="summary__value summary__value--accent">{operatingGates.length}</strong>
                                 </div>
                             </>
-                        }
-                        footer={
-                            <button type="button" className="btn btn--save" disabled={busy || readOnly || !terminalData[terminal]} onClick={() => handleSave(terminal)}>
-                                현재상태 저장
-                            </button>
                         }
                     >
                         <BlockChart

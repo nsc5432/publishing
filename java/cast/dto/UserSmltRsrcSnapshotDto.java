@@ -47,6 +47,7 @@ public class UserSmltRsrcSnapshotDto extends AomsDefaultDto {
 	@AllArgsConstructor
 	public static class FltAjmtRow {
 		private String tmnlId;
+		private String hour; // HH
 		private int ajmtRt;
 	}
 

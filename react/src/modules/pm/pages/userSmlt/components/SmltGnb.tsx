@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import { CalendarIcon, PlayIcon, SearchWhiteIcon } from '@/components/icons';
+import { CalendarIcon, PlayIcon, SaveIcon, SearchWhiteIcon } from '@/components/icons';
 import { formatYmd, toDateInputValue, toYmd } from '@/lib/format';
 
 interface SmltGnbProps {
@@ -14,12 +14,13 @@ interface SmltGnbProps {
     onDateChange?: (ymd: string) => void;
 
     onSearch?: () => void;
+    onSave?: () => void;
     onRun?: () => void;
     busy?: boolean;
     saveDt?: string;
 }
 
-export function SmltGnb({ title, ymd, steps, onBack, onDateChange, onSearch, onRun, busy, saveDt }: SmltGnbProps) {
+export function SmltGnb({ title, ymd, steps, onBack, onDateChange, onSearch, onSave, onRun, busy, saveDt }: SmltGnbProps) {
     const dateRef = useRef<HTMLInputElement>(null);
 
     const handleOpenCalendar = () => {
@@ -79,6 +80,13 @@ export function SmltGnb({ title, ymd, steps, onBack, onDateChange, onSearch, onR
                         </button>
                     )}
                 </div>
+
+                {onSave && (
+                    <button type="button" className="btn btn--save" onClick={onSave} disabled={busy}>
+                        <SaveIcon aria-hidden="true" />
+                        <span>현재상태 저장</span>
+                    </button>
+                )}
 
                 {onRun && (
                     <button type="button" className="btn btn--run" onClick={onRun} disabled={busy}>

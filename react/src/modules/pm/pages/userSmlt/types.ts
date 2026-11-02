@@ -17,12 +17,15 @@ export function otherTerminal(terminal: TerminalKind): TerminalKind {
     return terminal === 'T1' ? 'T2' : 'T1';
 }
 
+export interface SmltDraft {
+    collect: (all?: boolean) => Partial<UserSmltExecReq>;
+    onSaved: () => void;
+}
+
 export interface SmltTabProps {
     query: UserSmltQuery;
     busy: boolean;
-    beginRequest: () => boolean;
-    endRequest: (saved?: boolean) => void;
-    onDraftChange: (tab: SmltTabKey, collect: () => Partial<UserSmltExecReq>) => void;
+    onDraftChange: (tab: SmltTabKey, draft: SmltDraft) => void;
 
     reloadKey: number;
     enabled: TerminalEnabled;

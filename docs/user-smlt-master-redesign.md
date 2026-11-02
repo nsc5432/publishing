@@ -24,7 +24,7 @@
 | retrieveUserSmltInfo | ymd, tmnlId | ymd, saveDt, 상태. 편집용 smltId 반환 제거 |
 | retrieveFltPsgInfo / retrieveChknCounterInfo / retrieveDepInfo | ymd, tmnlId | 현재 사용자의 해당 날짜 조건. 저장이 없으면 운영자료 |
 | 같은 조회의 공개 확정 조건 경로 | smltId, tmnlId | 실행의 리소스 ID로 원천 조건 조회. 현재상태 소유자 필터 없음 |
-| saveFltPsgInfo | ymd, tmnlId, ajmtRt | 세션 사용자 현재상태만 저장 |
+| saveFltPsgInfo | ymd, tmnlId, ajmtRt, hourList[bgnTime, ajmtRt] | 세션 사용자 현재상태만 저장. 시간대 목록은 같은 범위 전체 교체 |
 | saveChknCounterInfo | ymd, tmnlId, islandList | 같은 범위 전체 교체 |
 | saveDepInfo | ymd, tmnlId, dptgtList | 같은 범위 전체 교체 |
 | executeUserSmlt | ymd, fltPsgList, chknList, depList | 새 smltId, smltReqId, WAITING, 빈 실제 시작 시각 |
@@ -34,13 +34,19 @@
 peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓값이다.
 실행의 세 배열은 **변경한 터미널·영역만** 담는다. 빠진 영역은 기존 저장 조건 또는 운영자료를 읽는다.
 같은 배열에 터미널을 중복 전달하면 실패한다. 각 편집 항목의 날짜는 실행의 ymd로 강제한다.
+2026-11-02에 운항 수정 비율을 시간대별(1시간, 5% 단위, -100~100)로 넓혔다. 시간대 값이 전체 비율을 덮어쓰고,
+값이 없는 시간대는 ajmtRt를 쓴다. 조회 응답 hourList[].ajmtRt는 그 시간대에 실제로 적용되는 비율이다.
+시간대는 편의 NVL(예상시각, 계획시각) 시(HH)로 정하며 조회와 발행이 같은 식을 쓴다. 운항편 수는 바뀌지 않는다.
 
 예시:
 
 ~~~json
 {
   "ymd": "20261011",
-  "fltPsgList": [{ "ymd": "20261011", "tmnlId": "T1", "ajmtRt": 10 }],
+  "fltPsgList": [{
+    "ymd": "20261011", "tmnlId": "T1", "ajmtRt": 10,
+    "hourList": [{ "bgnTime": "0000", "ajmtRt": 10 }, { "bgnTime": "1000", "ajmtRt": 30 }]
+  }],
   "chknList": [],
   "depList": []
 }

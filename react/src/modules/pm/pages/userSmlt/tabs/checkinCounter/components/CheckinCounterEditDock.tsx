@@ -1,7 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { T1WhiteIcon, T2WhiteIcon } from '@/components/icons';
 import type { TerminalKind } from '../../../types';
 import { CountStepper } from '../../../components/CountStepper';
 import { TimeBar } from '../../../components/TimeBar';
+import { ISLAND_BOOTHS } from '../constants';
 import type { CheckinIsland } from '../types';
 import { assignedBoothCount } from '../view';
 import { AirlinePopover } from './AirlinePopover';
@@ -49,6 +51,7 @@ export function CheckinCounterEditDock({
     const boothsRef = useRef<HTMLDivElement>(null);
     const [popover, setPopover] = useState<PopoverPos | null>(null);
 
+    const BadgeIcon = terminal === 'T1' ? T1WhiteIcon : T2WhiteIcon;
     const anchorBooth = selectedBooths.length > 0 ? selectedBooths[Math.floor(selectedBooths.length / 2)] : null;
 
     useLayoutEffect(() => {
@@ -99,8 +102,10 @@ export function CheckinCounterEditDock({
     return (
         <section className="dock" aria-label="아일랜드 편집">
             <div className="dock__head">
-                <span className="dock__tmnl">{terminal}</span>
-                <div className="isles">
+                <span className="dock__tmnl" data-terminal={terminal} role="img" aria-label={terminal}>
+                    <BadgeIcon aria-hidden="true" />
+                </span>
+                <div className="isles" role="group" aria-label="아일랜드 선택">
                     {codes.map((code) => {
                         const island = islands.find((it) => it.label === code);
 
@@ -109,10 +114,14 @@ export function CheckinCounterEditDock({
                                 key={code}
                                 type="button"
                                 className={`isle${island ? ' is-on' : ''}${selected.includes(code) ? ' is-sel' : ''}`}
-                                style={island ? { background: `var(--${island.color})` } : undefined}
                                 aria-pressed={selected.includes(code)}
                                 onClick={() => onSelect(code)}
                             >
+                                <i
+                                    className="gatepick__dot"
+                                    style={island ? { background: `var(--${island.color})` } : undefined}
+                                    aria-hidden="true"
+                                />
                                 {code}
                             </button>
                         );
@@ -127,7 +136,7 @@ export function CheckinCounterEditDock({
                     <div className="dock__cols">
                         <section className="dock__col">
                             <p className="dsec__title">
-                                {draft.label} 아일랜드 {assignedBoothCount(draft)}석<span className="dsec__hint">끌어서 여러 석 선택</span>
+                                {draft.label} 아일랜드 {assignedBoothCount(draft)}대 / {ISLAND_BOOTHS}대<span className="dsec__hint">끌어서 여러 대 선택</span>
                             </p>
 
                             <div className="booths" ref={boothsRef}>
@@ -143,7 +152,9 @@ export function CheckinCounterEditDock({
                                     <BoothGrid booths={draft.booths} side="R" selected={selectedBooths} onSelect={onSelectBooths} disabled={disabled} />
                                 </div>
 
-                                {!disabled && popover && <AirlinePopover airlines={airlines} count={selectedBooths.length} pos={popover} onPick={assignAirline} />}
+                                {!disabled && popover && (
+                                    <AirlinePopover airlines={airlines} count={selectedBooths.length} pos={popover} onPick={assignAirline} />
+                                )}
                             </div>
                         </section>
 
@@ -168,7 +179,7 @@ export function CheckinCounterEditDock({
                             취소
                         </button>
                         <button type="button" className="btn btn--primary" onClick={onConfirm} disabled={disabled}>
-                            변경
+                            적용
                         </button>
                     </div>
                 </>

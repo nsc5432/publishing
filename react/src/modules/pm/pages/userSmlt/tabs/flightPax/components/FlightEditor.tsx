@@ -5,31 +5,30 @@ import type { HourRow } from '../types';
 interface FlightEditorProps {
     ratio: number;
     onRatioChange: (ratio: number) => void;
+    onHourRatioChange: (index: number, ratio: number) => void;
     rows: HourRow[];
     disabled: boolean;
     readOnly?: boolean;
 }
 
+interface RatioStepperProps {
+    value: number;
+    onChange: (ratio: number) => void;
+    disabled: boolean;
+    label: string;
+    className?: string;
+}
+
 const clamp = (value: number) => Math.max(MIN_RATIO, Math.min(MAX_RATIO, value));
 
-export function FlightEditor({ ratio, onRatioChange, rows, disabled, readOnly }: FlightEditorProps) {
+export function FlightEditor({ ratio, onRatioChange, onHourRatioChange, rows, disabled, readOnly }: FlightEditorProps) {
     return (
         <div className="editor">
             {!readOnly && (
                 <div className="editor__opts">
-                    <p className="editor__label">운항편 전체 비율로 수정</p>
+                    <p className="editor__label">전체 시간대 승객 수 일괄 수정</p>
 
-                    <div className="stepper">
-                        <button type="button" className="stepper__btn" disabled={disabled} onClick={() => onRatioChange(clamp(ratio - RATIO_STEP))}>
-                            <ChevronLeftIcon aria-hidden="true" />
-                            <span className="blind">감소</span>
-                        </button>
-                        <span className="stepper__value">{ratio}%</span>
-                        <button type="button" className="stepper__btn" disabled={disabled} onClick={() => onRatioChange(clamp(ratio + RATIO_STEP))}>
-                            <ChevronRightIcon aria-hidden="true" />
-                            <span className="blind">증가</span>
-                        </button>
-                    </div>
+                    <RatioStepper value={ratio} onChange={onRatioChange} disabled={disabled} label="전체" />
                 </div>
             )}
 
@@ -39,22 +38,48 @@ export function FlightEditor({ ratio, onRatioChange, rows, disabled, readOnly }:
                         <tr>
                             <th scope="col">시작시간</th>
                             <th scope="col">종료시간</th>
-                            <th scope="col">수정</th>
+                            {!readOnly && <th scope="col">수정</th>}
                             <th scope="col">승객 수</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {rows.map((row) => (
+                        {rows.map((row, index) => (
                             <tr key={row.start}>
                                 <td>{row.start}</td>
                                 <td>{row.end}</td>
-                                {!readOnly && <td className="is-num">{row.adjust}</td>}
+                                {!readOnly && (
+                                    <td className="is-num">
+                                        <RatioStepper
+                                            className="stepper--row"
+                                            value={row.ajmtRt}
+                                            onChange={(hourRatio) => onHourRatioChange(index, hourRatio)}
+                                            disabled={disabled}
+                                            label={`${row.start}~${row.end}`}
+                                        />
+                                    </td>
+                                )}
                                 <td className="is-num">{row.pax}</td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
             </div>
+        </div>
+    );
+}
+
+function RatioStepper({ value, onChange, disabled, label, className }: RatioStepperProps) {
+    return (
+        <div className={className ? `stepper ${className}` : 'stepper'}>
+            <button type="button" className="stepper__btn" disabled={disabled || value <= MIN_RATIO} onClick={() => onChange(clamp(value - RATIO_STEP))}>
+                <ChevronLeftIcon aria-hidden="true" />
+                <span className="blind">{label} 감소</span>
+            </button>
+            <span className="stepper__value">{value}%</span>
+            <button type="button" className="stepper__btn" disabled={disabled || value >= MAX_RATIO} onClick={() => onChange(clamp(value + RATIO_STEP))}>
+                <ChevronRightIcon aria-hidden="true" />
+                <span className="blind">{label} 증가</span>
+            </button>
         </div>
     );
 }

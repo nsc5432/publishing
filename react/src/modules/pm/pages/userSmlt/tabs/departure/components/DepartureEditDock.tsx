@@ -1,3 +1,4 @@
+import { T1WhiteIcon, T2WhiteIcon } from '@/components/icons';
 import { CountStepper } from '../../../components/CountStepper';
 import { TimeBar } from '../../../components/TimeBar';
 import { formatOperating } from '../../../format';
@@ -20,20 +21,15 @@ const GATE_NOS: Record<TerminalKind, number[]> = {
     T2: [1, 2],
 };
 
-export function DepartureEditDock({
-    disabled,
-    terminal,
-    gates,
-    draft,
-    onSelect,
-    onPatch,
-    onConfirm,
-    onCancel,
-}: DepartureEditDockProps) {
+export function DepartureEditDock({ disabled, terminal, gates, draft, onSelect, onPatch, onConfirm, onCancel }: DepartureEditDockProps) {
+    const BadgeIcon = terminal === 'T1' ? T1WhiteIcon : T2WhiteIcon;
+
     return (
         <section className="dock" data-editor="departure" aria-label="출국장 편집">
             <div className="dock__head">
-                <span className="dock__tmnl">{terminal}</span>
+                <span className="dock__tmnl" data-terminal={terminal} role="img" aria-label={terminal}>
+                    <BadgeIcon aria-hidden="true" />
+                </span>
                 <div className="gatepick" role="group" aria-label="출국장 선택">
                     {GATE_NOS[terminal].map((no) => {
                         const gate = gates.find((candidate) => candidate.no === no);
@@ -43,22 +39,12 @@ export function DepartureEditDock({
                             <button
                                 key={no}
                                 type="button"
-                                className={
-                                    `gatepick__item${selectedGate ? ' is-on' : ''}` +
-                                    `${gate?.off ? ' is-off' : ''}`
-                                }
+                                className={`gatepick__item${selectedGate ? ' is-on' : ''}` + `${gate?.off ? ' is-off' : ''}`}
                                 aria-pressed={selectedGate}
                                 disabled={!gate}
                                 onClick={() => onSelect(no)}
                             >
-                                <i
-                                    className="gatepick__dot"
-                                    style={
-                                        gate && !gate.off
-                                            ? { background: `var(--${gate.color})` }
-                                            : undefined
-                                    }
-                                />
+                                <i className="gatepick__dot" style={gate && !gate.off ? { background: `var(--${gate.color})` } : undefined} />
                                 {no}번
                             </button>
                         );
@@ -99,36 +85,21 @@ export function DepartureEditDock({
                     <p className="dsec__title">
                         운영시간<span className="dsec__hint">1시간 단위</span>
                     </p>
-                    <TimeBar
-                        label="선택 범위"
-                        ranges={draft.ranges}
-                        onChange={(ranges) => onPatch({ ranges })}
-                        disabled={disabled || draft.off}
-                    />
+                    <TimeBar label="선택 범위" ranges={draft.ranges} onChange={(ranges) => onPatch({ ranges })} disabled={disabled || draft.off} />
                 </section>
 
                 <section className="dock__col">
                     <p className="dsec__title">
                         검색대 구성<span className="dsec__hint">{draft.no}번 출국장 소속</span>
                     </p>
-                    <CountStepper
-                        label="일반"
-                        value={draft.gnrlSrchCntom}
-                        onChange={(gnrlSrchCntom) => onPatch({ gnrlSrchCntom })}
-                        disabled={disabled}
-                    />
+                    <CountStepper label="일반" value={draft.gnrlSrchCntom} onChange={(gnrlSrchCntom) => onPatch({ gnrlSrchCntom })} disabled={disabled} />
                     <CountStepper
                         label="스마트패스"
                         value={draft.smartPassSrchCntom}
                         onChange={(smartPassSrchCntom) => onPatch({ smartPassSrchCntom })}
                         disabled={disabled}
                     />
-                    <CountStepper
-                        label="보안검색대"
-                        value={draft.scshCntom}
-                        onChange={(scshCntom) => onPatch({ scshCntom })}
-                        disabled={disabled}
-                    />
+                    <CountStepper label="보안검색대" value={draft.scshCntom} onChange={(scshCntom) => onPatch({ scshCntom })} disabled={disabled} />
                 </section>
             </div>
 
@@ -136,13 +107,8 @@ export function DepartureEditDock({
                 <button type="button" className="btn btn--ghost" onClick={onCancel}>
                     취소
                 </button>
-                <button
-                    type="button"
-                    className="btn btn--primary"
-                    onClick={onConfirm}
-                    disabled={disabled}
-                >
-                    변경
+                <button type="button" className="btn btn--primary" onClick={onConfirm} disabled={disabled}>
+                    적용
                 </button>
             </div>
         </section>

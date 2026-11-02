@@ -15,16 +15,7 @@ interface DetailDrawerProps {
 /**
  * 우측 상세 드로어 껍데기 — 체크인 카운터 / 출국장 공용.
  */
-export function DetailDrawer({
-    badge,
-    badgeColor,
-    title,
-    subtitle,
-    onClose,
-    onConfirm,
-    disabled = false,
-    children,
-}: DetailDrawerProps) {
+export function DetailDrawer({ badge, badgeColor, title, subtitle, onClose, onConfirm, disabled = false, children }: DetailDrawerProps) {
     return (
         <aside className="drawer" role="dialog" aria-label={title}>
             <div className="drawer__head">
@@ -50,7 +41,7 @@ export function DetailDrawer({
                     취소
                 </button>
                 <button type="button" className="btn btn--primary" onClick={onConfirm} disabled={disabled}>
-                    변경
+                    적용
                 </button>
             </div>
         </aside>

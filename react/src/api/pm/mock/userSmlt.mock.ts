@@ -3,6 +3,7 @@ import type {
     ChknIslandDto,
     FcltType,
     FltPsgChartDto,
+    FltPsgHourDto,
     JsonResponse,
     MapMarkerDto,
     SmltKpiDto,
@@ -38,40 +39,51 @@ function toChart(totCnt: number, maxCnt: number, ratios: number[]): FltPsgChartD
     };
 }
 
-function toHourList(counts: number[]) {
+function toHourList(counts: number[]): FltPsgHourDto[] {
     const pad = (hour: number) => `${String(hour).padStart(2, '0')}00`;
 
     return counts.map((psgCnt, i) => ({
-        bgnTime: pad(4 + i),
-        endTime: pad(5 + i),
+        bgnTime: pad(i),
+        endTime: pad(i + 1),
         psgCnt,
+        ajmtRt: 0,
     }));
 }
 
+function toPsgChart(hourList: FltPsgHourDto[]): FltPsgChartDto {
+    const itemList = CHART_TIMES.map((time) => ({
+        time,
+        cnt: hourList
+            .filter((hour) => Number(hour.bgnTime.slice(0, 2)) >= Number(time) && Number(hour.bgnTime.slice(0, 2)) < Number(time) + 2)
+            .reduce((sum, hour) => sum + hour.psgCnt, 0),
+    }));
+    return {
+        totCnt: itemList.reduce((sum, item) => sum + item.cnt, 0),
+        maxCnt: Math.max(0, ...itemList.map((item) => item.cnt)),
+        itemList,
+    };
+}
+
+function toFltPsg(tmnlId: TmnlId, fltCnt: number, fltChart: FltPsgChartDto, counts: number[]): UserSmltFltPsgDto {
+    const hourList = toHourList(counts);
+    const psgChart = toPsgChart(hourList);
+    return { ...OK, tmnlId, fltCnt, psgCnt: psgChart.totCnt, peakTime: '1600', ajmtRt: 0, fltChart, psgChart, hourList };
+}
+
 const FLT_PSG: Record<TmnlId, UserSmltFltPsgDto> = {
-    T1: {
-        ...OK,
-        tmnlId: 'T1',
-        fltCnt: 15,
-        psgCnt: 1234567,
-        peakTime: '1600',
-        ajmtRt: 10,
-        fltChart: toChart(1234, 300, [16, 6, 5, 8, 6, 33, 40, 67, 68, 67, 33, 33]),
-        psgChart: toChart(1234567, 90000, [15, 6, 6, 10, 7, 34, 39, 68, 68, 67, 34, 33]),
-        hourList: toHourList([12340, 18220, 24510, 31080, 44760, 52300, 61940, 58120, 49870, 55430, 67210, 63050]),
-    },
-    T2: {
-        ...OK,
-        tmnlId: 'T2',
-        fltCnt: 9,
-        psgCnt: 842310,
-        peakTime: '1600',
-        ajmtRt: 0,
-        fltChart: toChart(842, 300, [11, 5, 4, 6, 9, 22, 31, 44, 52, 48, 27, 21]),
-        psgChart: toChart(842310, 90000, [12, 4, 5, 7, 10, 23, 30, 45, 53, 47, 26, 20]),
-        hourList: toHourList([8120, 11460, 16900, 21340, 29770, 35010, 41220, 39880, 33150, 37600, 45730, 42090]),
-    },
+    T1: toFltPsg('T1', 15, toChart(1234, 300, [16, 6, 5, 8, 6, 33, 40, 67, 68, 67, 33, 33]), [
+        3100, 1800, 1200, 2600, 12340, 18220, 24510, 31080, 44760, 52300, 61940, 58120,
+        49870, 55430, 67210, 63050, 58800, 51200, 44300, 38700, 30100, 22400, 14800, 7600,
+    ]),
+    T2: toFltPsg('T2', 9, toChart(842, 300, [11, 5, 4, 6, 9, 22, 31, 44, 52, 48, 27, 21]), [
+        2050, 1210, 830, 1740, 8120, 11460, 16900, 21340, 29770, 35010, 41220, 39880,
+        33150, 37600, 45730, 42090, 39020, 34110, 29540, 25800, 20070, 14930, 9870, 5060,
+    ]),
 };
+
+const RATIO_ERROR = '수정 비율은 -100 ~ 100 사이 5% 단위여야 합니다.';
+const HOUR_RATIO_ERROR = '시간대별 수정 비율은 -100 ~ 100 사이 5% 단위여야 합니다.';
+const isRatio = (value: number) => Number.isInteger(value) && value >= -100 && value <= 100 && value % 5 === 0;
 
 function toWaitList(counts: number[]): WaitPsgDto[] {
     return counts.map((waitPsgCnt, hour) => ({ hour, waitPsgCnt }));
@@ -332,8 +344,16 @@ function saveFlt(request: UserSmltFltPsgSaveReq, state: Map<string, CurrentCondi
     validateYmd(request.ymd);
     const id = key(request.ymd, request.tmnlId);
     const value = structuredClone(state.get(id) ?? {});
-    if (!Number.isFinite(request.ajmtRt) || request.ajmtRt < -100 || request.ajmtRt > 100) throw new Error('수정 비율은 -100 ~ 100 사이여야 합니다.');
-    value.flt = { value: { ...defaults(request.tmnlId).flt, ajmtRt: request.ajmtRt }, saveDt: stamp() };
+    if (!isRatio(request.ajmtRt)) throw new Error(RATIO_ERROR);
+    const base = defaults(request.tmnlId).flt;
+    const hourRates = new Map<string, number>();
+    for (const hour of request.hourList ?? []) {
+        if (!base.hourList.some((baseHour) => baseHour.bgnTime === hour.bgnTime) || hourRates.has(hour.bgnTime)) throw new Error('시간대별 수정 구간이 올바르지 않거나 중복됐습니다.');
+        if (!isRatio(hour.ajmtRt)) throw new Error(HOUR_RATIO_ERROR);
+        hourRates.set(hour.bgnTime, hour.ajmtRt);
+    }
+    const hourList = base.hourList.map((hour) => ({ ...hour, ajmtRt: hourRates.get(hour.bgnTime) ?? request.ajmtRt }));
+    value.flt = { value: { ...base, ajmtRt: request.ajmtRt, hourList }, saveDt: stamp() };
     state.set(id, value);
 }
 function saveChkn(request: UserSmltChknSaveReq, state: Map<string, CurrentConditions>) {
@@ -366,9 +386,9 @@ function publishResources(id: string, values: Record<TmnlId, Conditions>): Recor
             const resourceId = `${id}:${terminal}`;
             if (mockResources.has(resourceId)) throw new Error('이미 지정된 리소스입니다.');
             const resource = structuredClone(values[terminal]);
-            const factor = 1 + resource.flt.ajmtRt / 100;
             resource.flt.hourList.forEach((hour) => {
-                hour.psgCnt = Math.round(hour.psgCnt * factor);
+                hour.psgCnt = Math.max(0, Math.round(hour.psgCnt * (1 + hour.ajmtRt / 100)));
+                hour.ajmtRt = 0;
             });
             resource.flt.psgCnt = resource.flt.hourList.reduce((sum, hour) => sum + hour.psgCnt, 0);
             resource.flt.psgChart.itemList.forEach((item) => {

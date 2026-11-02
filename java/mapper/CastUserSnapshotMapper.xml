@@ -27,16 +27,17 @@
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         WITH AJMT AS (
-            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS NUMBER) AS AJMT_RT FROM DUAL WHERE 1 = 0
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(2)) AS HOUR, CAST(NULL AS NUMBER) AS AJMT_RT FROM DUAL WHERE 1 = 0
             <foreach collection="fltAjmtList" item="row">
-            UNION ALL SELECT #{row.tmnlId}, #{row.ajmtRt} FROM DUAL
+            UNION ALL SELECT #{row.tmnlId}, #{row.hour}, #{row.ajmtRt} FROM DUAL
             </foreach>
         )
         SELECT
             #{rsrcNo}, X.DOM_INTL_SE_CD, X.FLIGHTDIRECTION, X.DEPARRTERMINAL, X.AIRLINECODE, X.OPERATORCAT,
             X.FLIGHTNUMBER, X.SCHD_DT, X.SCHD_HM, X.PREDC_HM, X.ACTL_HM,
             X.AIRPORTCODE, X.STANDNUMBER, X.GATE, X.CONTACTREMOTE, X.SEATS,
-            X.PAXCOUNT + ROUND(
+            -- 실탑승 입력 편은 PAXCOUNT 가 예약-환승보다 작을 수 있어 감소 조정이 음수를 만든다
+            GREATEST(X.PAXCOUNT + ROUND(
                 CASE
                     WHEN X.FLIGHTDIRECTION = 'D' AND X.DOM_INTL_SE_CD != 'D'
                     THEN GREATEST(
@@ -45,7 +46,7 @@
                     )
                     ELSE 0
                 END * X.AJMT_RT / 100
-            ),
+            ), 0),
             X.TRANSFERPAX, X.BELT, X.AIRCRAFTTYPE, X.CHECKINRANGE,
             X.SBDAVAILABLE, X.GD_IRR_YN, X.TRIANGLE, X.BUS, X.ARRIVALGATE,
             TO_TIMESTAMP(SUBSTR(X.FRST_BAG_INPUT_DT_RAW, 1, 12), 'YYYYMMDDHH24MI'),
@@ -58,6 +59,7 @@
                     SELECT NVL(J.AJMT_RT, 0)
                     FROM AJMT J
                     WHERE J.TMNL_ID = DECODE(F.CF_TER_ID_X, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
+                    AND J.HOUR = SUBSTR(NVL(F.PREDC_HM, F.SCHD_HM), 1, 2)
                 ), 0) AS AJMT_RT,
                 ROW_NUMBER() OVER (
                     PARTITION BY F.FLIGHTDIRECTION, F.FLIGHTNUMBER, F.SCHD_DT, F.SCHD_HM
@@ -85,16 +87,16 @@
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
         WITH AJMT AS (
-            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS NUMBER) AS AJMT_RT FROM DUAL WHERE 1 = 0
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(2)) AS HOUR, CAST(NULL AS NUMBER) AS AJMT_RT FROM DUAL WHERE 1 = 0
             <foreach collection="fltAjmtList" item="row">
-            UNION ALL SELECT #{row.tmnlId}, #{row.ajmtRt} FROM DUAL
+            UNION ALL SELECT #{row.tmnlId}, #{row.hour}, #{row.ajmtRt} FROM DUAL
             </foreach>
         )
         SELECT
             #{rsrcNo}, A.DOM_INTL_SE_CD, A.ARR_DEP_SE_CD, A.TMNL_ID, A.ALN_CD, A.ALN_CTGRY,
             A.FLTNM, A.DALY_FLTSH_ID, A.DEP_ARR_YMD, A.DEP_ARR_HM, A.PREDC_HM, A.ACTL_HM,
             A.ARR_DEP_ARPT_CD, A.ACST_NO, A.GATE_NO, A.GATE_TYPE, A.ARCFT_STGCP,
-            NVL(A.BDPSG_CNT, 0) + ROUND(
+            GREATEST(NVL(A.BDPSG_CNT, 0) + ROUND(
                 CASE
                     WHEN A.ARR_DEP_SE_CD = 'D' AND A.DOM_INTL_SE_CD != 'D'
                     THEN GREATEST(NVL(A.BDPSG_CNT, 0) - NVL(A.TRNS_BDPSG_CNT, 0), 0)
@@ -103,8 +105,9 @@
                     SELECT NVL(F.AJMT_RT, 0)
                     FROM AJMT F
                     WHERE F.TMNL_ID = DECODE(A.TMNL_ID, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
+                    AND F.HOUR = SUBSTR(NVL(TRIM(A.PREDC_HM), A.DEP_ARR_HM), 1, 2)
                 ), 0) / 100
-            ),
+            ), 0),
             A.TRNS_BDPSG_CNT, A.CRSL_NO, A.ARCFT_SUBTYPE_CD, A.CKNCT_RANGE_CN,
             A.SLF_CHKN_PSBLTY_YN, A.IRR_FLT_YN, A.TDFLT_YN, NVL(A.BUS_NEED_YN, 'N'), A.WAYO_ID,
             A.FRST_BAG_INPUT_DT, A.LAST_BAG_INPUT_DT,

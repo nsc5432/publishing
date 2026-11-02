@@ -19,9 +19,7 @@ export function AirlinePopover({ airlines, count, pos, onPick }: AirlinePopoverP
     const { sync } = rail;
 
     const halfWidth = bounds.width / 2;
-    const x = bounds.width
-        ? Math.max(halfWidth, Math.min(pos.x, bounds.containerWidth - halfWidth))
-        : pos.x;
+    const x = bounds.width ? Math.max(halfWidth, Math.min(pos.x, bounds.containerWidth - halfWidth)) : pos.x;
 
     useLayoutEffect(() => {
         const element = popoverRef.current;
@@ -67,13 +65,15 @@ export function AirlinePopover({ airlines, count, pos, onPick }: AirlinePopoverP
         <div
             ref={popoverRef}
             className="airpop"
-            style={{
-                '--x': `${x}px`,
-                '--y': `${pos.y}px`,
-                '--airpop-arrow-x': `${pos.x - x + halfWidth}px`,
-            } as CSSProperties}
+            style={
+                {
+                    '--x': `${x}px`,
+                    '--y': `${pos.y}px`,
+                    '--airpop-arrow-x': `${pos.x - x + halfWidth}px`,
+                } as CSSProperties
+            }
         >
-            <p className="airpop__head">{count}석 선택 / 항공사 배정</p>
+            <p className="airpop__head">{count}대 선택 / 항공사 배정</p>
 
             <div className={`airpop__rail${rail.scrollable ? ' is-scrollable' : ''}${rail.atStart ? '' : ' is-scrolled'}${rail.atEnd ? ' is-end' : ''}`}>
                 <div

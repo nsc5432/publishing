@@ -6,6 +6,7 @@ import aoms.pm.cast.dto.UserSmltCurrentDto;
 import org.apache.ibatis.annotations.Param;
 import org.egovframe.rte.psl.dataaccess.mapper.Mapper;
 
+import aoms.pm.cast.dto.FltPsgHourDto;
 import aoms.pm.cast.dto.FltPsgRawDto;
 import aoms.pm.cast.dto.UserFltPsgRawDto;
 import aoms.pm.cast.dto.UserSmltFltPsgSaveDto;
@@ -19,7 +20,13 @@ public interface CastFltPsgMapper {
 
     UserFltPsgRawDto retrieveUserFltPsg(UserSmltCurrentDto scope);
 
+    List<FltPsgHourDto> retrieveUserFltPsgHourList(UserSmltCurrentDto scope);
+
     void insertUserFltPsg(UserSmltFltPsgSaveDto saveDto);
 
     int updateUserFltPsg(UserSmltFltPsgSaveDto saveDto);
+
+    void deleteUserFltPsgHourList(UserSmltFltPsgSaveDto saveDto);
+
+    void insertUserFltPsgHourList(UserSmltFltPsgSaveDto saveDto);
 }

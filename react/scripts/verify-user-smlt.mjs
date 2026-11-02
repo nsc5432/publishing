@@ -206,6 +206,76 @@ try {
     check(afterCancelSummary.totCnt === remainingSummary.totCnt - 1 && afterCancelSummary.runningCnt === remainingSummary.runningCnt - 1, 'cancellation refreshes total and waiting/running counts');
     check(ratio() === savedRatio, 'cancellation preserves saved current conditions');
     check(Object.values(cancelResources).every((id) => mockResources.has(id)), 'cancellation preserves published resources');
+
+    session.userId = 'verification-C';
+    const hourlyYmd = '20261013';
+    const baseHours = api.getFltPsgInfo({ ymd: hourlyYmd }, 'T1').hourList;
+    const peakHour = baseHours[10].bgnTime;
+    const hourRate = (hour) => (hour.bgnTime === peakHour ? 30 : 10);
+    api.saveFltPsgInfo({ ymd: hourlyYmd, tmnlId: 'T1', ajmtRt: 10, hourList: baseHours.map((hour) => ({ bgnTime: hour.bgnTime, ajmtRt: hourRate(hour) })) });
+    check(api.getFltPsgInfo({ ymd: hourlyYmd }, 'T1').hourList.every((hour) => hour.ajmtRt === hourRate(hour)), 'hourly ratio overrides the overall ratio');
+    api.saveFltPsgInfo({ ymd: hourlyYmd, tmnlId: 'T2', ajmtRt: -20 });
+    check(api.getFltPsgInfo({ ymd: hourlyYmd }, 'T2').hourList.every((hour) => hour.ajmtRt === -20), 'hours without a saved ratio follow the overall ratio');
+    assert.throws(() => api.saveFltPsgInfo({ ymd: hourlyYmd, tmnlId: 'T1', ajmtRt: 7 }), /5% 단위/);
+    assert.throws(() => api.saveFltPsgInfo({ ymd: hourlyYmd, tmnlId: 'T1', ajmtRt: 10, hourList: [{ bgnTime: peakHour, ajmtRt: 12 }] }), /5% 단위/);
+    assert.throws(() => api.saveFltPsgInfo({ ymd: hourlyYmd, tmnlId: 'T1', ajmtRt: 10, hourList: [{ bgnTime: peakHour, ajmtRt: 10 }, { bgnTime: peakHour, ajmtRt: 20 }] }), /중복/);
+    check(api.getFltPsgInfo({ ymd: hourlyYmd }, 'T1').hourList.every((hour) => hour.ajmtRt === hourRate(hour)), 'rejected hourly save keeps the draft');
+    const hourly = api.execute({ ymd: hourlyYmd, fltPsgList: [], chknList: [], depList: [] });
+    const published = api.getFltPsgInfo({ ymd: hourlyYmd, smltId: hourly.smltId }, 'T1');
+    check(published.psgCnt === baseHours.reduce((sum, hour) => sum + Math.round(hour.psgCnt * (1 + hourRate(hour) / 100)), 0), 'execution applies each hourly ratio');
+    check(published.hourList.every((hour) => hour.ajmtRt === 0), 'published hours are not adjusted twice');
+    const { runSave } = await server.ssrLoadModule('/src/modules/pm/pages/userSmlt/save.ts');
+    const { userSmltService } = await server.ssrLoadModule('/src/api/pm/services/userSmlt.service.ts');
+    const { setDialogRef } = await server.ssrLoadModule('/src/lib/dialog.ts');
+    const saveMethods = ['saveFltPsgInfo', 'saveChknCounterInfo', 'saveDepInfo'];
+    const originalSaves = saveMethods.map((method) => userSmltService[method]);
+    const alerts = [];
+    const saves = [];
+    const batchYmd = '20261014';
+    const terminals = ['T1', 'T2'];
+    const batch = {
+        ymd: batchYmd,
+        fltPsgList: terminals.map((tmnlId, index) => ({ ymd: batchYmd, tmnlId, ajmtRt: (index + 1) * 10 })),
+        chknList: terminals.map((tmnlId) => ({
+            ymd: batchYmd, tmnlId,
+            islandList: api.getChknCounterInfo({ ymd: batchYmd }, tmnlId).islandList.map((island) => ({ ...island, kioskCnt: island.kioskCnt + 1 })),
+        })),
+        depList: terminals.map((tmnlId) => ({
+            ymd: batchYmd, tmnlId,
+            dptgtList: api.getDepInfo({ ymd: batchYmd }, tmnlId).dptgtList.map((gate) => ({ ...gate, scshCntom: gate.scshCntom + 1 })),
+        })),
+    };
+    setDialogRef({ alert: async (options) => { alerts.push(options); }, confirm: async () => true });
+    try {
+        saveMethods.forEach((method) => {
+            userSmltService[method] = async (item) => {
+                saves.push([method, item.tmnlId]);
+                return api[method](item);
+            };
+        });
+        check(await runSave(batch), 'global save succeeds for both terminals and all tabs');
+        check(saves.length === 6 && alerts.length === 1 && alerts[0].title === '저장', 'global save sends six requests and shows one completion');
+        for (const terminal of terminals) {
+            check(ratio(terminal, batchYmd) === batch.fltPsgList.find((item) => item.tmnlId === terminal).ajmtRt, `${terminal} flight draft survives re-query`);
+            check(api.getChknCounterInfo({ ymd: batchYmd }, terminal).islandList[0].kioskCnt === batch.chknList.find((item) => item.tmnlId === terminal).islandList[0].kioskCnt, `${terminal} check-in draft survives re-query`);
+            check(api.getDepInfo({ ymd: batchYmd }, terminal).dptgtList[0].scshCntom === batch.depList.find((item) => item.tmnlId === terminal).dptgtList[0].scshCntom, `${terminal} departure draft survives re-query`);
+        }
+        const saveFlight = userSmltService.saveFltPsgInfo;
+        userSmltService.saveFltPsgInfo = async (item) => item.tmnlId === 'T2' ? { error: true, errorMessage: 'T2 저장 오류' } : saveFlight(item);
+        saves.length = 0;
+        alerts.length = 0;
+        check(!await runSave(batch), 'body error makes global save fail');
+        check(saves.length === 1 && alerts.length === 1 && alerts[0].title === '저장 실패', 'failed batch stops later saves and shows one failure');
+        userSmltService.saveFltPsgInfo = async () => { throw new Error('통신 오류'); };
+        alerts.length = 0;
+        check(!await runSave(batch) && alerts[0].title === '저장 실패', 'network rejection makes global save fail');
+        userSmltService.saveFltPsgInfo = saveFlight;
+        alerts.length = 0;
+        check(await runSave(batch) && alerts.length === 1, 'failed global save can be retried');
+    } finally {
+        saveMethods.forEach((method, index) => { userSmltService[method] = originalSaves[index]; });
+        setDialogRef(null);
+    }
     session.userId = originalUser;
     console.log('User simulation scenarios passed: ' + assertions);
 } finally {

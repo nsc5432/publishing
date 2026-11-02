@@ -7,19 +7,11 @@ import { TerminalPanel } from '../../components/TerminalPanel';
 import { formatHour } from '../../format';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { useTerminalData } from '../../hooks/useTerminalData';
-import { runSave } from '../../save';
 import { BLOCK_COLORS, TERMINALS, enabledTerminals, type BlockItem, type SmltTabProps, type TerminalKind } from '../../types';
 import { CheckinCounterEditDock } from './components/CheckinCounterEditDock';
-import { ISLAND_BOOTHS, SIDE_BOOTHS } from './constants';
+import { ISLAND_BOOTHS } from './constants';
 import type { CheckinIsland, TerminalCheckinCounter } from './types';
-import {
-    EMPTY_CHECKIN_COUNTER,
-    assignedBoothCount,
-    toBooths,
-    toCheckinCounter,
-    toCheckinCounterKpis,
-    toSaveReq,
-} from './view';
+import { EMPTY_CHECKIN_COUNTER, assignedBoothCount, toBooths, toCheckinCounter, toCheckinCounterKpis, toSaveReq } from './view';
 
 type EditState = Record<TerminalKind, CheckinIsland[]>;
 
@@ -34,16 +26,12 @@ interface DockState {
 const EMPTY_EDIT: EditState = { T1: [], T2: [] };
 const EMPTY_DOCK: DockState = { terminal: 'T1', draft: null, target: null, selectedBooths: [], changed: false };
 const FETCH_FAIL = '체크인 카운터 정보를 불러오지 못했습니다.';
-const SAVE_FAIL = '체크인 카운터 저장에 실패했습니다.';
 
 const CHART_LEVELS = 13;
 const CHART_ROW_H = 18;
 
 async function fetchChkn(query: UserSmltQuery, tmnlId: TerminalKind) {
-    const [checkin, flightPax] = await Promise.all([
-        userSmltService.getChknCounterInfo(query, tmnlId),
-        userSmltService.getFltPsgInfo(query, tmnlId),
-    ]);
+    const [checkin, flightPax] = await Promise.all([userSmltService.getChknCounterInfo(query, tmnlId), userSmltService.getFltPsgInfo(query, tmnlId)]);
 
     return {
         ...unwrap(checkin, FETCH_FAIL),
@@ -75,8 +63,6 @@ function newIsland(terminalData: TerminalCheckinCounter, label: string): Checkin
 export function CheckinCounterTab({
     query,
     busy,
-    beginRequest,
-    endRequest,
     onDraftChange,
     reloadKey,
     enabled,
@@ -164,28 +150,19 @@ export function CheckinCounterTab({
         return dock.target === null ? [...islands, dock.draft] : islands.map((island) => (island.label === dock.target ? dock.draft! : island));
     };
     useEffect(() => {
-        onDraftChange('checkinCounter', () => ({
-            chknList: TERMINALS.filter((terminal) => dirty.current[terminal] && terminalData[terminal]).map((terminal) =>
-                toSaveReq(query.ymd, terminal, collectIslands(terminal)),
-            ),
-        }));
+        onDraftChange('checkinCounter', {
+            collect: (all = false) => ({
+                chknList: TERMINALS.filter((terminal) => (all || dirty.current[terminal]) && terminalData[terminal]).map((terminal) =>
+                    toSaveReq(query.ymd, terminal, collectIslands(terminal)),
+                ),
+            }),
+            onSaved: () => {
+                setIslandsByTerminal({ T1: collectIslands('T1'), T2: collectIslands('T2') });
+                setDock(EMPTY_DOCK);
+                dirty.current = { T1: false, T2: false };
+            },
+        });
     });
-
-    const handleSave = async (terminal: TerminalKind) => {
-        if (busy || readOnly) return;
-        const ymd = query.ymd;
-        if (!ymd || !terminalData[terminal]) return;
-
-        if (!beginRequest()) return;
-        const islands = collectIslands(terminal);
-        const saved = await runSave(userSmltService.saveChknCounterInfo(toSaveReq(ymd, terminal, islands)), SAVE_FAIL);
-        endRequest(saved);
-        if (saved) {
-            setIslandsByTerminal((previous) => ({ ...previous, [terminal]: islands }));
-            if (dock.terminal === terminal) setDock({ ...EMPTY_DOCK, terminal });
-            dirty.current[terminal] = false;
-        }
-    };
 
     return (
         <>
@@ -218,17 +195,12 @@ export function CheckinCounterTab({
                                 </div>
                             </>
                         }
-                        footer={
-                            <button type="button" className="btn btn--save" disabled={busy || readOnly || !terminalData[terminal]} onClick={() => handleSave(terminal)}>
-                                현재상태 저장
-                            </button>
-                        }
                     >
                         <BlockChart
                             items={toBlockItems(panelIslands)}
                             title="시간대별 운영 아일랜드"
                             unit="(단위: 아일랜드 수)"
-                            unitNote={`1블럭 = 아일랜드 1개(${ISLAND_BOOTHS}석)`}
+                            unitNote={`1블럭 = 아일랜드 1개(${ISLAND_BOOTHS}대)`}
                             levels={CHART_LEVELS}
                             rowH={CHART_ROW_H}
                             unitSize={ISLAND_BOOTHS}
@@ -236,17 +208,14 @@ export function CheckinCounterTab({
                             legend={panelIslands.map((island) => ({
                                 label: island.label,
                                 color: island.color,
-                                note: `${assignedBoothCount(island)}석`,
+                                note: `${assignedBoothCount(island)}대`,
                             }))}
                             line={panelData.wait}
                             selected={terminal === focusTerminal && draft ? [draft.label] : []}
                             onBlockSelect={(label) => openIsland(terminal, label, true)}
-                            formatTip={(item, hour) => {
-                                const one = item.sides?.length === 1 ? item.sides[0] : null;
-                                const detail = one ? `${one} ${SIDE_BOOTHS}석 / ${one === 'L' ? 'R' : 'L'} 미운영` : `L ${SIDE_BOOTHS}석 / R ${SIDE_BOOTHS}석`;
-
-                                return `아일랜드 ${item.label} / ${detail} / ${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
-                            }}
+                            formatTip={(item, hour) =>
+                                `아일랜드 ${item.label} ${item.size}대 / ${ISLAND_BOOTHS}대 · ${formatHour(hour)} ~ ${formatHour(hour + 1)}`
+                            }
                             disabled={!terminalEnabled}
                         />
                     </TerminalPanel>

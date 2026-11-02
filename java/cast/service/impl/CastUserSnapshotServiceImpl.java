@@ -15,6 +15,7 @@ import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.dto.ChknBoothDto;
 import aoms.pm.cast.dto.ChknIslandDto;
 import aoms.pm.cast.dto.DepGateDto;
+import aoms.pm.cast.dto.FltPsgHourDto;
 import aoms.pm.cast.dto.OprTimeDto;
 import aoms.pm.cast.dto.UserSmltCustomCondDto;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto;
@@ -118,7 +119,9 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 
     private void addRows(UserSmltRsrcSnapshotDto snapshot, UserSmltCustomCondDto cond) {
         String tmnlId = cond.getTmnlId().getFcltTmnlId();
-        snapshot.getFltAjmtList().add(new FltAjmtRow(tmnlId, cond.getFlt().getAjmtRt()));
+        for (FltPsgHourDto hour : list(cond.getFlt().getHourList())) {
+            snapshot.getFltAjmtList().add(new FltAjmtRow(tmnlId, hour.getBgnTime().substring(0, 2), hour.getAjmtRt()));
+        }
         for (ChknIslandDto island : list(cond.getChkn().getIslandList())) {
             snapshot.getChknIslList().add(new ChknIslRow(tmnlId, island.getIsland(), island.getKioskCnt(), island.getBagDropCnt()));
             addOperHrRows(snapshot.getChknOperHrList(), tmnlId, island.getIsland(), island.getOprTimeList());
