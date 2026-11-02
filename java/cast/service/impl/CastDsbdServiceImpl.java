@@ -9,7 +9,6 @@ import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -22,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import aoms.pm.cast.domains.CgnOrder;
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
-import aoms.pm.cast.domains.chkn.ChknSbdDay;
 import aoms.pm.cast.domains.dsbd.AssignmentSummary;
 import aoms.pm.cast.domains.dsbd.IslandMainAln;
 import aoms.pm.cast.domains.queue.Computed;
@@ -84,8 +82,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
     private static final int SEC_PER_MIN = 60;
 	private static final int MIN_PER_HOUR = 60;
 	private static final int MIN_PER_DAY = 24 * MIN_PER_HOUR;
-	private static final int DEFAULT_INTRVL_MIN = 60;
-	private static final String DEP_TARGET_NM = "보안검색대";
+	private static final int DEFAULT_INTRVL_MIN = 60;	private static final String DEP_TARGET_NM = "보안검색대";
 	private static final List<String> DEP_UNIT_FCLT_CD_LIST = List.of("LGT");
 	private static final List<String> SC_MAX_FCLT_CD_LIST = List.of("SC");
 	private static final Comparator<AssignmentSummary> MAIN_ALN_ORDER = Comparator.comparingInt(AssignmentSummary::getAssignedCount).reversed().thenComparing(AssignmentSummary::getAlnCd);
@@ -215,7 +212,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setYesterdayFltDiffCnt(baseFltSmry.getDepFltCnt() - yesterdayFltSmry.getDepFltCnt());
 		result.setYesterdayPsgDiffCnt(baseFltSmry.getDepPsgCnt() - yesterdayFltSmry.getDepPsgCnt());
 		result.setBrdgRate(getBrdgRate(baseFltSmry));
-		result.setPeak(getPeak(searchDto.getSmltId(), tmnlId));
+		result.setPeak(getPeak(retrieveRsltHourSnapshotList(smltStng, tmnlId, DsbdCategory.PSG)));
 
 		int intrvlMin = searchDto.getIntrvlMin() != null ? searchDto.getIntrvlMin() : DEFAULT_INTRVL_MIN;
 		String bgnHhmm = searchDto.getHhmm();
@@ -346,9 +343,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			return retrieveDepRsltByTime(searchDto.getSmltId(), tmnlId, smltStng.getExcnYmd());
 		}
 
-		Map<String, SmltRsltRawDto> rsltByHour = castDsbdMapper
-				.retrieveRsltByHourList(searchDto.getSmltId(), tmnlId.getFcltTmnlId(), category.getUpPsgFcltCdList())
-				.stream().collect(toMap(SmltRsltRawDto::getTime, Function.identity(), (first, ignored) -> first));
+		Map<String, SmltRsltRawDto> rsltByHour = retrieveRsltHourSnapshotList(smltStng, tmnlId, category).stream()
+				.collect(toMap(SmltRsltRawDto::getTime, Function.identity(), (first, ignored) -> first));
 
 		Map<String, FltPsgRawDto> fltPsgByHour = castFltPsgMapper
 				.retrieveFltPsgHourList(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList())
@@ -676,14 +672,18 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return dowType == DowType.WEEKEND ? "주말(" + dowNm + ")" : "평일(" + dowNm + ")";
 	}
 
-	private PeakDto getPeak(String smltId, TerminalKind tmnlId) {
-		List<SmltRsltRawDto> rsltList = castDsbdMapper.retrieveRsltByHourList(smltId, tmnlId.getFcltTmnlId(), DsbdCategory.PSG.getUpPsgFcltCdList());
+	private List<SmltRsltRawDto> retrieveRsltHourSnapshotList(SmltStngDto smltStng, TerminalKind tmnlId, DsbdCategory category) {
+		LocalDateTime dayStart = parseYmd(smltStng.getExcnYmd()).atStartOfDay();
+		return castDsbdMapper.retrieveRsltHourSnapshotList(smltStng.getSmltId(), tmnlId.getFcltTmnlId(),
+				dayStart, dayStart.plusDays(1), category.getUpPsgFcltCdList(), smltStng.getSmltMdlSn());
+	}
+
+	private PeakDto getPeak(List<SmltRsltRawDto> snapshotList) {
+		SmltRsltRawDto peak = snapshotList.stream().max(Comparator.comparingInt(SmltRsltRawDto::getWtngPsgCnt)).orElse(null);
 
 		PeakDto result = new PeakDto();
 		result.setAmpm("AM");
 		result.setPeakTime(EMPTY);
-
-		SmltRsltRawDto peak = rsltList.stream().max(Comparator.comparingInt(SmltRsltRawDto::getWtngPsgCnt)).orElse(null);
 
 		if (peak == null) {
 			return result;
@@ -694,15 +694,14 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setAmpm(hour < 12 ? "AM" : "PM");
 		result.setPeakTime(peak.getTime());
 		result.setWtngPsgCnt(peak.getWtngPsgCnt());
-		result.setMaxWtngHr(peak.getWtngHr() / SEC_PER_MIN);
-		result.setHrlyPrcsPsgCnt(peak.getTrnstPsgCnt());
+		result.setAvgWtngHr(peak.getWtngHr() / SEC_PER_MIN);
+		result.setPrcsPsgCnt(peak.getTrnstPsgCnt());
 
 		return result;
 	}
 
     // PRIME TIME 체크인카운터
 	private List<DsbdRsltDto> retrieveChknRsltByTime(SmltStngDto smltStng, TerminalKind tmnlId) {
-		String smltId = smltStng.getSmltId();
 		String excnYmd = smltStng.getExcnYmd();
 		Map<String, FltPsgRawDto> fltPsgByHour = castFltPsgMapper
             .retrieveFltPsgHourList(excnYmd, tmnlId.getFltTmnlIdList())
@@ -710,9 +709,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
         // Cast Queue
 		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltStng, tmnlId);
-		ChknSbdDay sbdDay = castChknQueueService.retrieveChknSbdDay(smltId, tmnlId, excnYmd);
-		Set<String> islandCdSet = new LinkedHashSet<>(queueDay.islandCdList());
-		islandCdSet.addAll(sbdDay.islandCdList());
 
         // Xovis Queue
         String lastWeekYmd = formatYmd(parseYmd(excnYmd).minusDays(7));
@@ -730,8 +726,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			result.add(toChknRsltDto(
                 hour,
                 queueDay,
-                sbdDay,
-                islandCdSet,
                 fltPsgByHour.get(hour),
                 psgWtngByHour.get(hour + "00"),
                 lastWeekPsgWtngByHour.get(hour + "00")
@@ -744,8 +738,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private DsbdRsltDto toChknRsltDto(
         String hour,
         ChknQueueDay queueDay,
-        ChknSbdDay sbdDay,
-        Set<String> islandCdSet,
         FltPsgRawDto fltPsg,
         PsgWtngRawDto psgWtng,
         PsgWtngRawDto lastWeekPsgWtng
@@ -754,27 +746,22 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		int endMinute = bgnMinute + MIN_PER_HOUR;
 		FcltWtngSlot cc = queueDay.tmnlSeries().slotOf(bgnMinute, MIN_PER_HOUR);
 		int maxIslandQueue = 0;
-		int endQueue = cc.getCurrentQueue();
 
-		for (String island : islandCdSet) {
-			endQueue += sbdDay.queueAt(island, endMinute - 1);
-
+		for (String island : queueDay.islandCdList()) {
 			for (int minute = bgnMinute; minute < endMinute; minute++) {
-				maxIslandQueue = Math.max(maxIslandQueue, queueDay.queueAt(island, minute) + sbdDay.queueAt(island, minute));
+				maxIslandQueue = Math.max(maxIslandQueue, queueDay.queueAt(island, minute));
 			}
 		}
 
-		int prcsPsgCnt = cc.getPrcsPsgCnt() + sbdDay.prcsPsgCnt(bgnMinute, MIN_PER_HOUR);
-		long waitSecSum = (long) cc.getAvgWaitSec() * cc.getPrcsPsgCnt() + sbdDay.waitSecSum(bgnMinute, MIN_PER_HOUR);
-		long prcsSecSum = (long) cc.getAvgPrcsSec() * cc.getPrcsPsgCnt() + sbdDay.prcsSecSum(bgnMinute, MIN_PER_HOUR);
+		int prcsPsgCnt = cc.getPrcsPsgCnt();
 		DsbdRsltDto result = new DsbdRsltDto();
 		result.setTime(hour + "00");
 		result.setPsgCnt(fltPsg == null ? 0 : fltPsg.getPsgCnt());
 		result.setFcstWtngPsgCnt(maxIslandQueue);
 		result.setPrcsPsgCnt(prcsPsgCnt);
-		result.setWtngHr(prcsPsgCnt == 0 ? 0 : Math.toIntExact(waitSecSum / prcsPsgCnt / SEC_PER_MIN));
-		result.setPrcsHr(prcsPsgCnt == 0 ? 0 : Math.toIntExact(prcsSecSum / prcsPsgCnt / SEC_PER_MIN));
-		result.setPrcsRate(SmltUtils.toPrcsRate(prcsPsgCnt, endQueue));
+		result.setWtngHr(prcsPsgCnt == 0 ? 0 : cc.getAvgWaitSec() / SEC_PER_MIN);
+		result.setPrcsHr(prcsPsgCnt == 0 ? 0 : cc.getAvgPrcsSec() / SEC_PER_MIN);
+		result.setPrcsRate(SmltUtils.toPrcsRate(prcsPsgCnt, cc.getCurrentQueue()));
 		result.setWtngPsgCnt(psgWtng == null ? null : psgWtng.getWtngPsgCnt());
 		result.setLastWeekWtngPsgCnt(lastWeekPsgWtng == null ? 0 : lastWeekPsgWtng.getWtngPsgCnt());
 

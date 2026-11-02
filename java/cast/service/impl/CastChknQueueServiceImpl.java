@@ -21,7 +21,6 @@ import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknQueueInterval;
 import aoms.pm.cast.domains.chkn.ChknQueueSeries;
 import aoms.pm.cast.domains.chkn.ChknQueueTrajectory;
-import aoms.pm.cast.domains.chkn.ChknSbdDay;
 import aoms.pm.cast.dto.ChknBoothOperRawDto;
 import aoms.pm.cast.dto.ChknQueueRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
@@ -104,60 +103,6 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 		}
 
 		return result;
-	}
-
-	@Override
-	public ChknSbdDay retrieveChknSbdDay(String smltId, TerminalKind tmnlId, String excnYmd) {
-		List<ChknQueueRawDto> rawList = castChknMapper.retrieveChknQueueRawList(smltId, tmnlId.getFcltTmnlId(), "SBD", null);
-		LocalDate baseDate = LocalDate.parse(excnYmd, DateTimeFormatter.ofPattern(YMD_FORMAT));
-
-		Map<String, Map<Integer, List<ChknQueueRawDto>>> rawListByIslandAndMinute = groupByIslandAndMinute(rawList, baseDate);
-		Map<String, int[]> queueByIsland = new LinkedHashMap<>();
-		int[] processed = new int[MINUTE_PER_DAY];
-		long[] waitSecSum = new long[MINUTE_PER_DAY];
-		long[] prcsSecSum = new long[MINUTE_PER_DAY];
-
-		for (Map.Entry<String, Map<Integer, List<ChknQueueRawDto>>> islandEntry : rawListByIslandAndMinute.entrySet()) {
-			String island = islandEntry.getKey();
-			Map<Integer, List<ChknQueueRawDto>> rawListByMinute = islandEntry.getValue();
-
-			queueByIsland.put(island, toSbdQueue(rawListByMinute));
-
-			for (Map.Entry<Integer, List<ChknQueueRawDto>> minuteEntry : rawListByMinute.entrySet()) {
-				int minute = minuteEntry.getKey();
-
-				if (minute < 0 || minute >= MINUTE_PER_DAY) {
-					continue;
-				}
-
-				for (ChknQueueRawDto raw : minuteEntry.getValue()) {
-					processed[minute] += raw.getTrnstPsgCnt();
-					waitSecSum[minute] += (long) raw.getWtngHr() * raw.getTrnstPsgCnt();
-					prcsSecSum[minute] += (long) raw.getPrcsHr() * raw.getTrnstPsgCnt();
-				}
-			}
-		}
-
-		return new ChknSbdDay(queueByIsland, processed, waitSecSum, prcsSecSum);
-	}
-
-	private int[] toSbdQueue(Map<Integer, List<ChknQueueRawDto>> rawListByMinute) {
-		List<Integer> minuteList = new ArrayList<>(rawListByMinute.keySet());
-		int[] queue = new int[MINUTE_PER_DAY];
-
-		for (int index = 0; index < minuteList.size(); index++) {
-			int bgnMinute = minuteList.get(index);
-			int endMinute = bgnMinute + intervalDurationMin(minuteList, index);
-			int wtngEndPsgCnt = rawListByMinute.get(bgnMinute).stream()
-					.mapToInt(ChknQueueRawDto::getWtngPsgCnt)
-					.sum();
-
-			for (int minute = Math.max(bgnMinute, 0); minute < Math.min(endMinute, MINUTE_PER_DAY); minute++) {
-				queue[minute] = wtngEndPsgCnt;
-			}
-		}
-
-		return queue;
 	}
 
 	private Map<String, Map<Integer, List<ChknQueueRawDto>>> groupByIslandAndMinute(

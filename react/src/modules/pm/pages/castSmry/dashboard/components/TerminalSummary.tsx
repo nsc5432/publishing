@@ -150,14 +150,14 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                                 <div className="cell">
                                     <div className="k">대기시간</div>
                                     <div>
-                                        <b>{view.peak.maxWait}</b>
+                                        <b>{view.peak.avgWait}</b>
                                         <span className="u">분</span>
                                     </div>
                                 </div>
                                 <div className="cell">
                                     <div className="k">처리인원</div>
                                     <div>
-                                        <b>{view.peak.hourlyProcess}</b>
+                                        <b>{view.peak.process}</b>
                                         <span className="u">명</span>
                                     </div>
                                 </div>

@@ -143,8 +143,8 @@ const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
             ampm: 'AM',
             peakTime: '1000',
             wtngPsgCnt: 268,
-            maxWtngHr: 40,
-            hrlyPrcsPsgCnt: 240,
+            avgWtngHr: 40,
+            prcsPsgCnt: 40,
         },
     },
     T2: {
@@ -162,8 +162,8 @@ const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
             ampm: 'AM',
             peakTime: '0900',
             wtngPsgCnt: 212,
-            maxWtngHr: 35,
-            hrlyPrcsPsgCnt: 230,
+            avgWtngHr: 35,
+            prcsPsgCnt: 38,
         },
     },
 };

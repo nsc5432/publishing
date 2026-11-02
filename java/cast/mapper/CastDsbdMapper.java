@@ -47,6 +47,15 @@ public interface CastDsbdMapper {
 			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList
 	);
 
+	List<SmltRsltRawDto> retrieveRsltHourSnapshotList(
+			@Param("smltId") String smltId,
+			@Param("tmnlId") String tmnlId,
+			@Param("bgnDt") LocalDateTime bgnDt,
+			@Param("endDt") LocalDateTime endDt,
+			@Param("upPsgFcltCdList") List<String> upPsgFcltCdList,
+			@Param("smltMdlSn") Integer smltMdlSn
+	);
+
 	List<PsgWtngRawDto> retrievePsgWtngByHourList(
 			@Param("ymd") String ymd,
 			@Param("tmnlId") String tmnlId,

@@ -240,7 +240,7 @@ export interface TerminalView {
         pax: { delta: string; value: string };
         boardingRate: string;
     };
-    peak: { ampm: string; time: string; totalWait: string; maxWait: string; hourlyProcess: string };
+    peak: { ampm: string; time: string; totalWait: string; avgWait: string; process: string };
     /** 요약 뷰 상단 2셀 × 3개 시간대 */
     summaryStats: SummarySlot[];
     /** 요약정보 대상 — '\n' 이 들어갈 수 있다 */

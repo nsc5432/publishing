@@ -106,16 +106,16 @@
         /* CastDsbdMapper.retrieveRsltByHourList */
         SELECT
             C.HOUR || '00' AS TIME,
-            NVL(MAX(C.WTNG_PSG_CNT), 0) AS WTNG_PSG_CNT,
+            NVL(MAX(C.TMNL_WTNG_PSG_CNT), 0) AS WTNG_PSG_CNT,
             NVL(MAX(C.FCLT_TRNST_PSG_CNT), 0) AS TRNST_PSG_CNT,
             NVL(ROUND(AVG(C.AVG_WTNG_HR)), 0) AS WTNG_HR,
             NVL(ROUND(AVG(C.AVG_PRCS_HR)), 0) AS PRCS_HR
         FROM (
             SELECT
                 TO_CHAR(A.SMLT_ACTL_DT, 'HH24') AS HOUR,
-                A.WTNG_PSG_CNT,
                 A.AVG_WTNG_HR,
                 A.AVG_PRCS_HR,
+                SUM(A.WTNG_PSG_CNT) OVER (PARTITION BY A.SMLT_ACTL_DT) AS TMNL_WTNG_PSG_CNT,
                 SUM(A.TRNST_PSG_CNT) OVER (PARTITION BY TO_CHAR(A.SMLT_ACTL_DT, 'HH24'), B.UP_PSG_FCLT_CD) AS FCLT_TRNST_PSG_CNT
             FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
                 INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
@@ -128,6 +128,34 @@
         ) C
         GROUP BY C.HOUR
         ORDER BY TIME
+    </select>
+
+    <select id="retrieveRsltHourSnapshotList" resultType="aoms.pm.cast.dto.SmltRsltRawDto">
+        /* CastDsbdMapper.retrieveRsltHourSnapshotList */
+        SELECT
+            TO_CHAR(A.SMLT_ACTL_DT, 'HH24MI') AS TIME,
+            NVL(SUM(A.WTNG_PSG_CNT), 0) AS WTNG_PSG_CNT,
+            NVL(SUM(A.TRNST_PSG_CNT), 0) AS TRNST_PSG_CNT,
+            NVL(ROUND(SUM(A.AVG_WTNG_HR * A.TRNST_PSG_CNT)
+                / NULLIF(SUM(CASE WHEN A.AVG_WTNG_HR IS NOT NULL THEN A.TRNST_PSG_CNT END), 0)), 0) AS WTNG_HR,
+            NVL(ROUND(SUM(A.AVG_PRCS_HR * A.TRNST_PSG_CNT)
+                / NULLIF(SUM(CASE WHEN A.AVG_PRCS_HR IS NOT NULL THEN A.TRNST_PSG_CNT END), 0)), 0) AS PRCS_HR
+        FROM PMOWN.TN_PM_SMLT_RSLT_DTL A
+            INNER JOIN PMOWN.TN_PM_SMLT_PSG_FCLT B
+            ON A.PSG_FCLT_CD = B.PSG_FCLT_CD
+        WHERE 1 = 1
+        AND A.SMLT_ID = #{smltId}
+        AND B.TMNL_ID = #{tmnlId}
+        AND B.USE_YN = 'Y'
+        AND B.UP_PSG_FCLT_CD IN (<foreach collection="upPsgFcltCdList" item="item" separator=",">#{item}</foreach>)
+        <if test="smltMdlSn != null">
+        AND A.SMLT_MDL_SN = #{smltMdlSn}
+        </if>
+        AND A.SMLT_ACTL_DT &gt;= #{bgnDt}
+        AND A.SMLT_ACTL_DT &lt; #{endDt}
+        AND TO_CHAR(A.SMLT_ACTL_DT, 'MI') = '00'
+        GROUP BY A.SMLT_ACTL_DT
+        ORDER BY A.SMLT_ACTL_DT
     </select>
 
     <select id="retrievePsgWtngIslSumByHourList" resultType="aoms.pm.cast.dto.PsgWtngRawDto">
@@ -145,6 +173,7 @@
             AND A.PSG_FLOW_DATA_CRT_DT BETWEEN #{ymd} || '0000' AND #{ymd} || '2359'
             AND A.TMNL_ID = #{tmnlId}
             AND A.FCLT_TYPE_CD = 'Queue'
+            AND A.FCLT_NM NOT LIKE '%-SBD'
             GROUP BY A.PSG_FLOW_DATA_CRT_DT, A.CHKN_ISL_CD
         ) T
         GROUP BY SUBSTR(T.PSG_FLOW_DATA_CRT_DT, 9, 2)
@@ -154,16 +183,28 @@
     <select id="retrievePsgWtngByHourList" resultType="aoms.pm.cast.dto.PsgWtngRawDto">
         /* CastDsbdMapper.retrievePsgWtngByHourList */
         SELECT
-            SUBSTR(A.PSG_FLOW_DATA_CRT_DT, 9, 2) || '00' AS TIME,
-            NVL(MAX(A.WTNG_LINE_LEN), 0) AS WTNG_PSG_CNT
-        FROM PMOWN.TN_PM_PSG_WTNG_INFO A
-        WHERE 1 = 1
-        AND A.PSG_FLOW_DATA_CRT_DT BETWEEN #{ymd} || '0000' AND #{ymd} || '2359'
-        AND A.TMNL_ID = #{tmnlId}
-        <if test="fcltTypeCdList != null and fcltTypeCdList.size() > 0">
-        AND A.FCLT_TYPE_CD IN (<foreach collection="fcltTypeCdList" item="item" separator=",">#{item}</foreach>)
-        </if>
-        GROUP BY SUBSTR(A.PSG_FLOW_DATA_CRT_DT, 9, 2)
+            SUBSTR(T.PSG_FLOW_DATA_CRT_DT, 9, 2) || '00' AS TIME,
+            NVL(MAX(T.TMNL_WTNG_LINE_LEN), 0) AS WTNG_PSG_CNT
+        FROM (
+            SELECT
+                A.PSG_FLOW_DATA_CRT_DT,
+                SUM(A.WTNG_LINE_LEN) AS TMNL_WTNG_LINE_LEN
+            FROM PMOWN.TN_PM_PSG_WTNG_INFO A
+            WHERE 1 = 1
+            AND A.PSG_FLOW_DATA_CRT_DT BETWEEN #{ymd} || '0000' AND #{ymd} || '2359'
+            <!-- Cast 선과 같이 매시 정각 스냅샷만 쓴다 -->
+            AND SUBSTR(A.PSG_FLOW_DATA_CRT_DT, 11, 2) = '00'
+            AND A.TMNL_ID = #{tmnlId}
+            <if test="fcltTypeCdList != null and fcltTypeCdList.size() > 0">
+            AND A.FCLT_TYPE_CD IN (<foreach collection="fcltTypeCdList" item="item" separator=",">#{item}</foreach>)
+            </if>
+            <!-- DG{n} 이 DG{n}_E · DG{n}_W 를 포함한 출국장 전체 줄이라 합산 시 중복된다 -->
+            AND (A.FCLT_TYPE_CD &lt;&gt; 'DG' OR A.FCLT_NM LIKE 'DG_')
+            <!-- Cast 가 유인 카운터(CC)만 보므로 셀프백드롭 줄을 뺀다 -->
+            AND (A.FCLT_TYPE_CD &lt;&gt; 'Queue' OR A.FCLT_NM NOT LIKE '%-SBD')
+            GROUP BY A.PSG_FLOW_DATA_CRT_DT
+        ) T
+        GROUP BY SUBSTR(T.PSG_FLOW_DATA_CRT_DT, 9, 2)
         ORDER BY TIME
     </select>
 

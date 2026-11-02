@@ -4,7 +4,6 @@ import java.util.List;
 
 import aoms.pm.cast.domains.chkn.ChknQueueDay;
 import aoms.pm.cast.domains.chkn.ChknQueueTrajectory;
-import aoms.pm.cast.domains.chkn.ChknSbdDay;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.enums.TerminalKind;
 
@@ -17,6 +16,4 @@ public interface CastChknQueueService {
 
 	/** smltStng 의 모델 결과만으로 계산한 1분 Queue. 혼잡등급 기준표를 읽지 않는다 */
 	ChknQueueTrajectory calculateChknQueue(SmltStngDto smltStng, TerminalKind tmnlId);
-
-	ChknSbdDay retrieveChknSbdDay(String smltId, TerminalKind tmnlId, String excnYmd);
 }

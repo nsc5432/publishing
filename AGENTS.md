@@ -108,10 +108,15 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
      대신 슬롯 `MapChknRsltDto.maxQueuePsgCnt` 의 아일랜드 단위 최댓값과 그 아일랜드 · 슬롯 시각을 그린다. **새 이름도 이제 고정이다.**
    - 2026-11-01 체크인카운터 Queue 차트 비교선으로 `ChknCounterSlotDto.xovisWtngPsgCnt`(`Integer`, 없으면 null)를 더했다. 원천은
      `CastChknMapper.retrievePsgWtngSumBySlotList` — `TN_PM_PSG_WTNG_INFO` `Queue` 행의 슬롯 `[hhmm, hhmm+30)` 안 마지막 스냅샷 터미널 합이다.
-     Xovis 는 A · G · I 를 재지 않고 `-SBD` 줄을 포함하므로 Cast(CC 전 아일랜드) 선과 범위가 다르다. **새 이름도 이제 고정이다.**
+     Xovis 는 A · G · I 를 재지 않으므로 Cast(CC 전 아일랜드) 선과 범위가 다르다. `-SBD` 줄은 2026-11-02 부터 뺀다. **새 이름도 이제 고정이다.**
    - 2026-11-02 운항 수정 비율을 시간대별로 넓혔다. `FltPsgHourDto.ajmtRt`(그 시간대에 적용되는 비율),
      저장 요청 `UserSmltFltPsgSaveReq.hourList`(`UserSmltFltPsgHourReq`: `bgnTime` · `ajmtRt`)를 더했다.
      원천은 `TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT` 이고 시간대 값이 `ajmtRt` 를 덮어쓴다. **새 이름도 이제 고정이다.**
+   - 2026-11-02 요약보기 피크시간을 매시 정각 결과 스냅샷(결과 시각 = 10분 구간 끝) 기준으로 바꾸고 `PeakDto.maxWtngHr` → `avgWtngHr`,
+     `hrlyPrcsPsgCnt` → `prcsPsgCnt` 로 고쳤다. 값이 최대 · 시간당이 아니라 피크 시각 10분 구간의 처리인원 가중평균 대기시간(분)과 처리인원이다.
+     `DsbdFcltCardDto.hrlyPrcsPsgCnt` 는 시간당 환산값이라 그대로다. 피크는 정각 스냅샷 중 CC + LGT
+     대기인원 합이 가장 큰 시각(`HH00`)이고, PSG · FLT 시간대별 차트도 같은 조회(`CastDsbdMapper.retrieveRsltHourSnapshotList`)를 읽는다.
+     같은 날 Xovis `Queue` 조회 전부에서 `-SBD` 줄을 뺐고, 요약보기 CHKN 차트의 Cast 선에서도 SBD 기기 대기를 뺐다(§13). **새 이름도 이제 고정이다.**
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).
@@ -644,9 +649,9 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 
 - **Queue 대상은 유인 카운터 `CC` 뿐이다.** `CK`(셀프체크인) · `SBD`(셀프백드롭)는 자원 정보로만
   남고 Queue·혼잡·추천 계산에서 빠진다.
-- 요약보기 시간대별 CHKN 차트는 `CC` 공용 Queue에 아일랜드별 SBD 기기 대기를 더한다. SBD가 있는
-  아일랜드에서는 체크인 카드와 값이 다른 것이 의도된 동작이다
-  ([구현 계획](docs/plans/2026-10-15-dsbd-chkn-chart-island-queue.md)).
+- 요약보기 시간대별 CHKN 차트도 `CC` 공용 Queue 만 쓴다. 2026-10-15 에 더했던 아일랜드별 SBD 기기 대기는
+  2026-11-02 에 뺐고, Xovis 쪽도 `-SBD` 줄을 뺀다
+  ([이전 구현 계획](docs/plans/2026-10-15-dsbd-chkn-chart-island-queue.md)).
 - 산식은 `wtngEndPsgCnt[t] - wtngEndPsgCnt[t-1] + intvPrcsPsgCnt[t]` 로 유입을 역산해 1분 단위
   FIFO 로 흘린다. **`QueueLength_Current` 는 부스별 독립 값이고 `FinishedClients_Abs` 는 누적이
   아니라 구간 처리인원**이라는 두 전제가 깨지면 산식 전체가 무너진다.

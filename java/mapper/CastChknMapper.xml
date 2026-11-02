@@ -62,6 +62,7 @@
                 AND A.PSG_FLOW_DATA_CRT_DT BETWEEN #{ymd} || '0000' AND #{ymd} || '2359'
                 AND A.TMNL_ID = #{tmnlId}
                 AND A.FCLT_TYPE_CD = 'Queue'
+                AND A.FCLT_NM NOT LIKE '%-SBD'
                 GROUP BY A.PSG_FLOW_DATA_CRT_DT
             ) S
         ) T

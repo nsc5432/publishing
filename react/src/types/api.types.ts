@@ -91,8 +91,8 @@ export interface PeakDto {
     ampm: 'AM' | 'PM';
     peakTime: string;
     wtngPsgCnt: number;
-    maxWtngHr: number;
-    hrlyPrcsPsgCnt: number;
+    avgWtngHr: number;
+    prcsPsgCnt: number;
 }
 
 export interface DsbdFltIntrvlDto {
