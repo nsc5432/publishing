@@ -222,7 +222,10 @@ function Dashboard() {
         navigate(`${FCLT_DETAIL_PATH[fcltType]}?${detailParams.toString()}`);
     };
 
-    const handleMapMove = () => navigate(TERMINAL_MAP_PATH);
+    const handleMapMove = (tmnlId: TerminalKind) => () => {
+        const mapParams = new URLSearchParams({ tmnlId });
+        navigate(`${TERMINAL_MAP_PATH}?${mapParams.toString()}`);
+    };
 
     const executor = execDetail ? { dept: execDetail.deptNm, name: execDetail.userNm } : undefined;
 
@@ -248,8 +251,8 @@ function Dashboard() {
                     onCategoryChange={handleCategoryChange}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary terminal="T1" data={terminal1View} hhmm={terminalQueries?.T1.hhmm ?? ''} category={category} titleCategory={primeCategoryOf('T1')} onTimeChange={handleTerminalTimeChange('T1')} onFcltDetail={handleFcltDetail('T1')} onFcltMove={handleFcltMove('T1')} onMapMove={handleMapMove} />
-                        <TerminalSummary terminal="T2" data={terminal2View} hhmm={terminalQueries?.T2.hhmm ?? ''} category={category} titleCategory={primeCategoryOf('T2')} onTimeChange={handleTerminalTimeChange('T2')} onFcltDetail={handleFcltDetail('T2')} onFcltMove={handleFcltMove('T2')} onMapMove={handleMapMove} />
+                        <TerminalSummary terminal="T1" data={terminal1View} hhmm={terminalQueries?.T1.hhmm ?? ''} category={category} titleCategory={primeCategoryOf('T1')} onTimeChange={handleTerminalTimeChange('T1')} onFcltDetail={handleFcltDetail('T1')} onFcltMove={handleFcltMove('T1')} onMapMove={handleMapMove('T1')} />
+                        <TerminalSummary terminal="T2" data={terminal2View} hhmm={terminalQueries?.T2.hhmm ?? ''} category={category} titleCategory={primeCategoryOf('T2')} onTimeChange={handleTerminalTimeChange('T2')} onFcltDetail={handleFcltDetail('T2')} onFcltMove={handleFcltMove('T2')} onMapMove={handleMapMove('T2')} />
                     </section>
                 </HeaderSummary>
             </div>

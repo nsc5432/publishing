@@ -19,16 +19,3 @@ html:is([data-page='terminalMap'], [data-page='departureHall']) .stat__cmpr-base
     color: var(--c-text);
     white-space: nowrap;
 }
-
-html:is([data-page='terminalMap'], [data-page='departureHall']) .stat__cmpr-diff {
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-html:is([data-page='terminalMap'], [data-page='departureHall']) .stat__cmpr-diff--up {
-    color: var(--c-red);
-}
-
-html:is([data-page='terminalMap'], [data-page='departureHall']) .stat__cmpr-diff--down {
-    color: #2f6ff0;
-}

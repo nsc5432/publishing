@@ -596,11 +596,6 @@ html[data-page='departureHall'] .dep-stat .stat__cmpr {
     line-height: 1.4;
 }
 
-html[data-page='departureHall'] .dep-stat .stat__cmpr-diff {
-    white-space: normal;
-    overflow-wrap: anywhere;
-}
-
 /* ==========================================================================
    7. 표 보기
    ========================================================================== */

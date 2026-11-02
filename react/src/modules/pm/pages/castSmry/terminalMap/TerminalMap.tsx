@@ -1,6 +1,6 @@
 import './terminalMap.css';
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lnb } from '@/components/lnb';
 import { useBaseInfo } from '@/hooks/useBaseInfo';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
@@ -9,7 +9,7 @@ import { dialog } from '@/lib/dialog';
 import { todayYmd } from '@/lib/format';
 import { useTimeline } from '@/modules/pm/hooks/useTimeline';
 import { CongestionNotice } from './components/CongestionNotice';
-import { FacilityMiniModal } from './components/FacilityMiniModal';
+import { DptgtModal } from './components/DptgtModal';
 import { Header } from './components/Header';
 import { IslandModal } from './components/IslandModal';
 import { MapStage } from './components/MapStage';
@@ -27,12 +27,15 @@ const DEP_DETAIL_PATH = '/rui/pm/daily-smlt/departureHall';
 function TerminalMap() {
     usePageScope('terminalMap');
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
 
     const [ymd, setYmd] = useState(todayYmd);
     const [draftYmd, setDraftYmd] = useState(ymd);
     const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd);
 
-    const [terminal, setTerminal] = useState<TerminalKind>('T1');
+    const [terminal, setTerminal] = useState<TerminalKind>(() =>
+        searchParams.get('tmnlId') === 'T2' ? 'T2' : 'T1',
+    );
     const [selectedIsland, setSelectedIsland] = useState<IslandMarker | null>(null);
     const [selectedDepGate, setSelectedDepGate] = useState<DepGateMarker | null>(null);
     const timeline = useTimeline(TIMELINE_RANGE);
@@ -140,7 +143,7 @@ function TerminalMap() {
             )}
 
             {dptgtGateDetail && (
-                <FacilityMiniModal
+                <DptgtModal
                     detail={dptgtGateDetail}
                     onClose={() => setSelectedDepGate(null)}
                     onDetailClick={handleDetailMove(DEP_DETAIL_PATH)}

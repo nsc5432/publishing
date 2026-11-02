@@ -3,7 +3,7 @@ import { PlusIcon } from '@/components/icons';
 import { useModalDismiss } from '../hooks/useModalDismiss';
 import { toLevelKey, toLevelLabel, type FacilityDetail } from '../types';
 
-interface FacilityMiniModalProps {
+interface DptgtModalProps {
     detail: FacilityDetail;
     onClose: () => void;
     onDetailClick?: () => void;
@@ -12,7 +12,7 @@ interface FacilityMiniModalProps {
 /**
  * 시설 혼잡 현황 미니 팝업
  */
-export function FacilityMiniModal({ detail, onClose, onDetailClick }: FacilityMiniModalProps) {
+export function DptgtModal({ detail, onClose, onDetailClick }: DptgtModalProps) {
     const closeRef = useModalDismiss(onClose);
 
     return (
