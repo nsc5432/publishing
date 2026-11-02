@@ -1808,7 +1808,7 @@ html[data-page='userSmlt'] .dock {
 }
 
 html[data-page='userSmlt'] .panels:has(> .dock, > fieldset:not([hidden]) > .dock) .panel {
-    padding-bottom: calc(clamp(16px, 2.4vh, 26px) + 104px);
+    padding-bottom: calc(clamp(16px, 2.4vh, 26px) + var(--dock-h, 104px));
 }
 
 html[data-page='userSmlt'] .dock__head {
@@ -1849,6 +1849,38 @@ html[data-page='userSmlt'] .dock__hint {
     font-size: 11px;
     color: var(--text-mute);
     white-space: nowrap;
+}
+
+html[data-page='userSmlt'] .dock__guide {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin: 0 0 0 auto;
+    padding: 0 12px;
+    height: 28px;
+    line-height: 28px;
+    border-radius: 999px;
+    background: var(--pm-primary-soft);
+    color: var(--pm-primary);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+html[data-page='userSmlt'] .dock__guide::before {
+    content: '';
+    display: inline-block;
+    margin-right: 6px;
+    vertical-align: 1px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pm-primary);
+}
+
+html[data-page='userSmlt'] .dock__guide + .dock__hint {
+    margin-left: 0;
 }
 
 html[data-page='userSmlt'] .dock__empty {
@@ -1973,42 +2005,57 @@ html[data-page='userSmlt'] .boothgrid.is-dragging {
     user-select: none;
 }
 
-html[data-page='userSmlt'] .airpop {
-    position: absolute;
-    left: var(--x);
-    top: var(--y);
-    z-index: 5;
-    transform: translate(-50%, 8px);
+html[data-page='userSmlt'] .airpal {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
-    width: max-content;
-    max-width: min(420px, 100%);
-    padding: 8px 10px 10px;
-    border: 1px solid #e2e2ee;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    margin-top: 6px;
+    padding: 7px 10px;
+    border: 1px dashed #d6d6e6;
     border-radius: 10px;
-    background: #fff;
-    box-shadow: 0 10px 26px rgba(35, 45, 90, 0.18);
+    background: #fafafd;
+    transition:
+        border-color 0.15s,
+        background 0.15s,
+        box-shadow 0.15s;
 }
 
-html[data-page='userSmlt'] .airpop::before {
-    content: '';
-    position: absolute;
-    left: var(--airpop-arrow-x, 50%);
-    top: -5px;
-    width: 8px;
-    height: 8px;
-    transform: translateX(-50%) rotate(45deg);
-    border-top: 1px solid #e2e2ee;
-    border-left: 1px solid #e2e2ee;
+html[data-page='userSmlt'] .airpal.is-ready {
+    border-style: solid;
+    border-color: var(--pm-primary);
     background: #fff;
+    box-shadow: 0 4px 14px rgba(68, 65, 204, 0.14);
 }
 
-html[data-page='userSmlt'] .airpop__head {
+html[data-page='userSmlt'] .airpal__head {
+    flex: 0 0 auto;
     margin: 0;
     font-size: 11px;
     font-weight: 700;
     color: var(--text-mute);
+    white-space: nowrap;
+}
+
+html[data-page='userSmlt'] .airpal.is-ready .airpal__head {
+    color: var(--pm-primary);
+}
+
+html[data-page='userSmlt'] .airpal .airpop__rail {
+    flex: 1 1 auto;
+}
+
+html[data-page='userSmlt'] .airpal:not(.is-ready) .airchip {
+    opacity: 0.45;
+    cursor: default;
+}
+
+html[data-page='userSmlt'] .airpal:not(.is-ready) .airchip:hover {
+    background: var(--pm-primary-soft);
+}
+
+html[data-page='userSmlt'] .airpal:not(.is-ready) .airchip--ghost:hover {
+    background: #fff;
 }
 
 html[data-page='userSmlt'] .airpop__rail {

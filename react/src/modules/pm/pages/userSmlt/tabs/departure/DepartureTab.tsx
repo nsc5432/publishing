@@ -16,15 +16,14 @@ type EditState = Record<TerminalKind, DepartureGate[]>;
 type SelectState = Record<TerminalKind, number | null>;
 type GateDrafts = Record<number, DepartureGate>;
 
-interface DockState {
-    terminal: TerminalKind;
-    no: number;
+interface DraftState {
     drafts: Record<TerminalKind, GateDrafts>;
+    changed: boolean;
 }
 
 const EMPTY_EDIT: EditState = { T1: [], T2: [] };
 const EMPTY_SELECT: SelectState = { T1: null, T2: null };
-const EMPTY_DRAFTS: Record<TerminalKind, GateDrafts> = { T1: {}, T2: {} };
+const EMPTY_DRAFT_STATE: DraftState = { drafts: { T1: {}, T2: {} }, changed: false };
 
 async function fetchDep(query: UserSmltQuery, tmnlId: TerminalKind) {
     const [departure, flightPax] = await Promise.all([
@@ -60,7 +59,7 @@ export function DepartureTab({
 }: SmltTabProps) {
     const { data: terminalData, error, responseSeq } = useTerminalData(query, reloadKey, fetchDep, toDeparture, '출국장 정보를 불러오지 못했습니다.');
     const [gatesByTerminal, setGatesByTerminal] = useState<EditState>(EMPTY_EDIT);
-    const [dock, setDock] = useState<DockState | null>(null);
+    const [draftState, setDraftState] = useState<DraftState>(EMPTY_DRAFT_STATE);
     const [selected, setSelected] = useState<SelectState>(EMPTY_SELECT);
 
     const edited = useRef<Record<TerminalKind, boolean>>({ T1: false, T2: false });
@@ -68,15 +67,22 @@ export function DepartureTab({
     useErrorAlert(error, responseSeq);
 
     const enabledCount = enabledTerminals(enabled).length;
-    const openDock = dock?.terminal === focusTerminal ? dock : null;
-    const draft = openDock ? openDock.drafts[openDock.terminal][openDock.no] : null;
+
+    const collectGates = (terminal: TerminalKind) => gatesByTerminal[terminal].map((gate) => draftState.drafts[terminal][gate.no] ?? gate);
+
+    const selectedGateOf = (terminal: TerminalKind) => {
+        const gates = collectGates(terminal);
+        return gates.find((gate) => gate.no === selected[terminal]) ?? gates[0] ?? null;
+    };
+
+    const draft = selectedGateOf(focusTerminal);
 
     useEffect(() => {
         const t1Gates = terminalData.T1?.gates ?? [];
         const t2Gates = terminalData.T2?.gates ?? [];
 
         setGatesByTerminal({ T1: t1Gates, T2: t2Gates });
-        setDock(null);
+        setDraftState(EMPTY_DRAFT_STATE);
         setSelected(EMPTY_SELECT);
     }, [terminalData]);
 
@@ -86,60 +92,31 @@ export function DepartureTab({
 
         onFocusChange(terminal);
         setSelected((previousSelection) => ({ ...previousSelection, [terminal]: no }));
-        setDock((previousDock) => {
-            const drafts = previousDock?.drafts ?? EMPTY_DRAFTS;
-            const gateDrafts = drafts[terminal];
-
-            return {
-                terminal,
-                no,
-                drafts: { ...drafts, [terminal]: { ...gateDrafts, [no]: gateDrafts[no] ?? gate } },
-            };
-        });
-    };
-
-    const openDetail = (terminal: TerminalKind) => {
-        const gates = gatesByTerminal[terminal];
-        if (gates.length === 0) return;
-
-        const selectedGate = gates.find((gate) => gate.no === selected[terminal]) ?? gates[0];
-        openGate(terminal, selectedGate.no);
     };
 
     const patchDraft = (patch: Partial<DepartureGate>) => {
-        if (busy || readOnly) return;
-        if (dock) edited.current[dock.terminal] = true;
-        setDock((previousDock) => {
-            if (!previousDock) return previousDock;
-
-            const gateDrafts = previousDock.drafts[previousDock.terminal];
+        if (busy || readOnly || !draft) return;
+        const terminal = focusTerminal;
+        edited.current[terminal] = true;
+        setDraftState((previous) => {
+            const gateDrafts = previous.drafts[terminal];
 
             return {
-                ...previousDock,
+                changed: true,
                 drafts: {
-                    ...previousDock.drafts,
-                    [previousDock.terminal]: {
-                        ...gateDrafts,
-                        [previousDock.no]: { ...gateDrafts[previousDock.no], ...patch },
-                    },
+                    ...previous.drafts,
+                    [terminal]: { ...gateDrafts, [draft.no]: { ...(gateDrafts[draft.no] ?? draft), ...patch } },
                 },
             };
         });
     };
 
     const handleConfirm = () => {
-        if (busy || readOnly || !dock) return;
+        if (busy || readOnly) return;
 
-        const { drafts } = dock;
-        setGatesByTerminal((previousGates) => ({
-            ...previousGates,
-            T1: previousGates.T1.map((gate) => drafts.T1[gate.no] ?? gate),
-            T2: previousGates.T2.map((gate) => drafts.T2[gate.no] ?? gate),
-        }));
-        setDock(null);
+        setGatesByTerminal({ T1: collectGates('T1'), T2: collectGates('T2') });
+        setDraftState(EMPTY_DRAFT_STATE);
     };
-
-    const collectGates = (terminal: TerminalKind) => gatesByTerminal[terminal].map((gate) => dock?.drafts[terminal][gate.no] ?? gate);
 
     useEffect(() => {
         onDraftChange('departure', {
@@ -150,7 +127,7 @@ export function DepartureTab({
             }),
             onSaved: () => {
                 setGatesByTerminal({ T1: collectGates('T1'), T2: collectGates('T2') });
-                setDock(null);
+                setDraftState(EMPTY_DRAFT_STATE);
                 edited.current = { T1: false, T2: false };
             },
         });
@@ -163,7 +140,7 @@ export function DepartureTab({
                 const gates = gatesByTerminal[terminal];
                 const terminalEnabled = enabled[terminal];
                 const operatingGates = gates.filter((gate) => !gate.off);
-                const selectedGateNo = selected[terminal];
+                const selectedGate = selectedGateOf(terminal);
 
                 return (
                     <TerminalPanel
@@ -199,26 +176,8 @@ export function DepartureTab({
                             gridLeft={GUTTER}
                             blockFontSize={13}
                             line={panelData.wait}
-                            actions={
-                                readOnly ? undefined : (
-                                    <button type="button" className="bchart__act" disabled={!terminalEnabled} onClick={() => openDetail(terminal)}>
-                                        세부 운영시간 직접 설정
-                                    </button>
-                                )
-                            }
-                            selected={selectedGateNo !== null ? [String(selectedGateNo)] : []}
-                            onBlockSelect={(label) => {
-                                if (busy) return;
-
-                                const no = Number(label);
-                                if (selectedGateNo === no) {
-                                    setSelected((previousSelection) => ({ ...previousSelection, [terminal]: null }));
-                                    setDock(null);
-                                    return;
-                                }
-
-                                openGate(terminal, no);
-                            }}
+                            selected={terminal === focusTerminal && selectedGate ? [String(selectedGate.no)] : []}
+                            onBlockSelect={(label) => openGate(terminal, Number(label))}
                             formatTip={(item, hour) => {
                                 const gate = gates.find((it) => String(it.no) === item.label);
                                 const range = gate?.ranges.find((it) => hour >= it.start && hour < it.end);
@@ -232,16 +191,17 @@ export function DepartureTab({
                 );
             })}
 
-            {openDock && draft && (
+            {draft && (
                 <DepartureEditDock
-                    terminal={openDock.terminal}
+                    terminal={focusTerminal}
                     disabled={busy || !!readOnly}
-                    gates={collectGates(openDock.terminal)}
+                    gates={collectGates(focusTerminal)}
                     draft={draft}
-                    onSelect={(no) => openGate(openDock.terminal, no)}
+                    changed={draftState.changed}
+                    onSelect={(no) => openGate(focusTerminal, no)}
                     onPatch={patchDraft}
                     onConfirm={handleConfirm}
-                    onCancel={() => setDock(null)}
+                    onCancel={() => setDraftState(EMPTY_DRAFT_STATE)}
                 />
             )}
         </>

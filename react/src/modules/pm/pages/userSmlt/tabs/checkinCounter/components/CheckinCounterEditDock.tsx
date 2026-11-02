@@ -1,12 +1,13 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { T1WhiteIcon, T2WhiteIcon } from '@/components/icons';
 import type { TerminalKind } from '../../../types';
 import { CountStepper } from '../../../components/CountStepper';
 import { TimeBar } from '../../../components/TimeBar';
+import { useDockHeight } from '../../../hooks/useDockHeight';
 import { ISLAND_BOOTHS } from '../constants';
 import type { CheckinIsland } from '../types';
 import { assignedBoothCount } from '../view';
-import { AirlinePopover } from './AirlinePopover';
+import { AirlinePalette } from './AirlinePalette';
 import { BoothGrid } from './BoothGrid';
 
 interface CheckinCounterEditDockProps {
@@ -18,6 +19,7 @@ interface CheckinCounterEditDockProps {
     onSelect: (label: string) => void;
 
     draft: CheckinIsland | null;
+    changed: boolean;
     onPatch: (next: Partial<CheckinIsland>) => void;
 
     airlines: string[];
@@ -28,9 +30,11 @@ interface CheckinCounterEditDockProps {
     onCancel: () => void;
 }
 
-interface PopoverPos {
-    x: number;
-    y: number;
+function toGuide(draft: CheckinIsland | null, selectedBoothCount: number, changed: boolean) {
+    if (!draft) return '차트의 블록이나 아일랜드 버튼을 눌러 편집할 아일랜드를 고르세요.';
+    if (selectedBoothCount > 0) return `선택한 부스 ${selectedBoothCount}대에 배정할 항공사를 고르세요.`;
+    if (changed) return `변경한 내용은 적용을 눌러 ${draft.label} 아일랜드에 반영하세요.`;
+    return `${draft.label} 아일랜드의 부스를 클릭하거나 끌어서 고르세요.`;
 }
 
 export function CheckinCounterEditDock({
@@ -41,6 +45,7 @@ export function CheckinCounterEditDock({
     selected,
     onSelect,
     draft,
+    changed,
     onPatch,
     airlines,
     selectedBooths,
@@ -48,25 +53,12 @@ export function CheckinCounterEditDock({
     onConfirm,
     onCancel,
 }: CheckinCounterEditDockProps) {
+    const dockRef = useRef<HTMLElement>(null);
     const boothsRef = useRef<HTMLDivElement>(null);
-    const [popover, setPopover] = useState<PopoverPos | null>(null);
 
     const BadgeIcon = terminal === 'T1' ? T1WhiteIcon : T2WhiteIcon;
-    const anchorBooth = selectedBooths.length > 0 ? selectedBooths[Math.floor(selectedBooths.length / 2)] : null;
 
-    useLayoutEffect(() => {
-        const boothContainer = boothsRef.current;
-        const anchorCell = anchorBooth === null ? null : boothContainer?.querySelector<HTMLElement>(`[data-booth-no="${anchorBooth}"]`);
-
-        setPopover(
-            anchorCell
-                ? {
-                      x: anchorCell.offsetLeft + anchorCell.offsetWidth / 2,
-                      y: anchorCell.offsetTop + anchorCell.offsetHeight,
-                  }
-                : null,
-        );
-    }, [anchorBooth]);
+    useDockHeight(dockRef);
 
     useEffect(() => {
         if (selectedBooths.length === 0) return;
@@ -100,7 +92,7 @@ export function CheckinCounterEditDock({
     };
 
     return (
-        <section className="dock" aria-label="아일랜드 편집">
+        <section ref={dockRef} className="dock" aria-label="아일랜드 편집">
             <div className="dock__head">
                 <span className="dock__tmnl" data-terminal={terminal} role="img" aria-label={terminal}>
                     <BadgeIcon aria-hidden="true" />
@@ -127,6 +119,11 @@ export function CheckinCounterEditDock({
                         );
                     })}
                 </div>
+                {!disabled && (
+                    <p className="dock__guide" role="status">
+                        {toGuide(draft, selectedBooths.length, changed)}
+                    </p>
+                )}
             </div>
 
             {draft === null ? (
@@ -152,9 +149,7 @@ export function CheckinCounterEditDock({
                                     <BoothGrid booths={draft.booths} side="R" selected={selectedBooths} onSelect={onSelectBooths} disabled={disabled} />
                                 </div>
 
-                                {!disabled && popover && (
-                                    <AirlinePopover airlines={airlines} count={selectedBooths.length} pos={popover} onPick={assignAirline} />
-                                )}
+                                {!disabled && <AirlinePalette airlines={airlines} count={selectedBooths.length} onPick={assignAirline} />}
                             </div>
                         </section>
 
@@ -175,10 +170,10 @@ export function CheckinCounterEditDock({
                     </div>
 
                     <div className="dock__foot">
-                        <button type="button" className="btn btn--ghost" onClick={onCancel}>
+                        <button type="button" className="btn btn--ghost" onClick={onCancel} disabled={!changed}>
                             취소
                         </button>
-                        <button type="button" className="btn btn--primary" onClick={onConfirm} disabled={disabled}>
+                        <button type="button" className="btn btn--primary" onClick={onConfirm} disabled={disabled || !changed}>
                             적용
                         </button>
                     </div>

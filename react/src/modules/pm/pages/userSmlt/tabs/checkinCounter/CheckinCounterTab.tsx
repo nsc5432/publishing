@@ -60,6 +60,18 @@ function newIsland(terminalData: TerminalCheckinCounter, label: string): Checkin
     };
 }
 
+function toDock(terminal: TerminalKind, label: string, islands: CheckinIsland[], source: TerminalCheckinCounter): DockState {
+    const island = islands.find((candidate) => candidate.label === label);
+
+    return {
+        terminal,
+        draft: island ?? newIsland(source, label),
+        target: island ? label : null,
+        selectedBooths: [],
+        changed: false,
+    };
+}
+
 export function CheckinCounterTab({
     query,
     busy,
@@ -90,47 +102,50 @@ export function CheckinCounterTab({
     const enabledCount = enabledTerminals(enabled).length;
     const focusData = terminalData[focusTerminal] ?? EMPTY_CHECKIN_COUNTER;
     const focusIslands = islandsByTerminal[focusTerminal];
-    const draft = dock.terminal === focusTerminal ? dock.draft : null;
 
-    const openIsland = (terminal: TerminalKind, label: string, toggle = false) => {
+    const islandDock = (terminal: TerminalKind, label: string) =>
+        toDock(terminal, label, islandsByTerminal[terminal], terminalData[terminal] ?? EMPTY_CHECKIN_COUNTER);
+
+    const isDockOf = (candidate: DockState, terminal: TerminalKind) => candidate.terminal === terminal && candidate.draft !== null;
+
+    const defaultDock = (terminal: TerminalKind): DockState => {
+        const label = islandsByTerminal[terminal][0]?.label ?? terminalData[terminal]?.islandCodes[0];
+        return label ? islandDock(terminal, label) : { ...EMPTY_DOCK, terminal };
+    };
+
+    const activeDock = isDockOf(dock, focusTerminal) ? dock : defaultDock(focusTerminal);
+    const draft = activeDock.draft;
+
+    const keepPendingChanges = () => {
+        if (!dock.draft || !dock.changed) return;
+        const previous = collectIslands(dock.terminal);
+        setIslandsByTerminal((current) => ({ ...current, [dock.terminal]: previous }));
+    };
+
+    const updateActiveDock = (update: (current: DockState) => DockState) => {
+        if (dock !== activeDock) keepPendingChanges();
+        setDock((previousDock) => update(isDockOf(previousDock, focusTerminal) ? previousDock : activeDock));
+    };
+
+    const openIsland = (terminal: TerminalKind, label: string) => {
         if (busy || !terminalData[terminal]) return;
-        const selected = dock.terminal === terminal && dock.draft?.label === label;
-        if (selected && !toggle) return;
-        if (dock.draft && dock.changed) {
-            const previous = collectIslands(dock.terminal);
-            setIslandsByTerminal((current) => ({ ...current, [dock.terminal]: previous }));
-        }
         onFocusChange(terminal);
-        if (selected) {
-            setDock({ ...EMPTY_DOCK, terminal });
-            return;
-        }
-        setDock((previousDock) => {
-            if (previousDock.terminal === terminal && previousDock.draft?.label === label) {
-                return previousDock;
-            }
-
-            const island = islandsByTerminal[terminal].find((candidate) => candidate.label === label);
-            const source = terminalData[terminal] ?? EMPTY_CHECKIN_COUNTER;
-
-            return {
-                terminal,
-                draft: island ?? newIsland(source, label),
-                target: island ? label : null,
-                selectedBooths: [],
-                changed: false,
-            };
-        });
+        const current = isDockOf(dock, terminal) ? dock : defaultDock(terminal);
+        if (current.draft?.label === label) return;
+        keepPendingChanges();
+        setDock(islandDock(terminal, label));
     };
 
     const patchDraft = (patch: Partial<CheckinIsland>) => {
-        if (busy || readOnly) return;
-        dirty.current[dock.terminal] = true;
-        setDock((previousDock) => (previousDock.draft ? { ...previousDock, changed: true, draft: { ...previousDock.draft, ...patch } } : previousDock));
+        if (busy || readOnly || !draft) return;
+        dirty.current[activeDock.terminal] = true;
+        updateActiveDock((current) => (current.draft ? { ...current, changed: true, draft: { ...current.draft, ...patch } } : current));
     };
 
+    const selectBooths = (boothNos: number[]) => updateActiveDock((current) => ({ ...current, selectedBooths: boothNos }));
+
     const handleConfirm = () => {
-        const { terminal, draft: edited, target } = dock;
+        const { terminal, draft: edited, target } = activeDock;
         if (busy || readOnly || !edited) return;
         dirty.current[terminal] = true;
 
@@ -141,7 +156,12 @@ export function CheckinCounterTab({
                     ? [...previousIslands[terminal], edited]
                     : previousIslands[terminal].map((island) => (island.label === target ? edited : island)),
         }));
-        setDock({ ...EMPTY_DOCK, terminal });
+        setDock({ terminal, draft: edited, target: edited.label, selectedBooths: [], changed: false });
+    };
+
+    const handleCancel = () => {
+        if (!draft) return;
+        setDock(islandDock(activeDock.terminal, draft.label));
     };
 
     const collectIslands = (terminal: TerminalKind) => {
@@ -157,8 +177,10 @@ export function CheckinCounterTab({
                 ),
             }),
             onSaved: () => {
-                setIslandsByTerminal({ T1: collectIslands('T1'), T2: collectIslands('T2') });
-                setDock(EMPTY_DOCK);
+                const saved = { T1: collectIslands('T1'), T2: collectIslands('T2') };
+                const { terminal, draft: current } = activeDock;
+                setIslandsByTerminal(saved);
+                setDock(current ? toDock(terminal, current.label, saved[terminal], terminalData[terminal] ?? EMPTY_CHECKIN_COUNTER) : EMPTY_DOCK);
                 dirty.current = { T1: false, T2: false };
             },
         });
@@ -212,7 +234,7 @@ export function CheckinCounterTab({
                             }))}
                             line={panelData.wait}
                             selected={terminal === focusTerminal && draft ? [draft.label] : []}
-                            onBlockSelect={(label) => openIsland(terminal, label, true)}
+                            onBlockSelect={(label) => openIsland(terminal, label)}
                             formatTip={(item, hour) =>
                                 `아일랜드 ${item.label} ${item.size}대 / ${ISLAND_BOOTHS}대 · ${formatHour(hour)} ~ ${formatHour(hour + 1)}`
                             }
@@ -230,17 +252,13 @@ export function CheckinCounterTab({
                 selected={draft ? [draft.label] : []}
                 onSelect={(label) => openIsland(focusTerminal, label)}
                 draft={draft}
+                changed={activeDock.changed}
                 onPatch={patchDraft}
                 airlines={focusData.airlines}
-                selectedBooths={draft ? dock.selectedBooths : []}
-                onSelectBooths={(boothNos) =>
-                    setDock((previousDock) => ({
-                        ...previousDock,
-                        selectedBooths: boothNos,
-                    }))
-                }
+                selectedBooths={activeDock.selectedBooths}
+                onSelectBooths={selectBooths}
                 onConfirm={handleConfirm}
-                onCancel={() => setDock({ ...EMPTY_DOCK, terminal: focusTerminal })}
+                onCancel={handleCancel}
             />
         </>
     );
