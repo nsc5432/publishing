@@ -173,6 +173,7 @@ try {
             const nextCards = currentCards.map((card, index) => ({
                 ...card, wtngPsgCnt: 1000 + index, oprCnt: 20 + index,
                 hrlyPrcsPsgCnt: 2000 + index, cgnStatus: 'NORMAL',
+                cgnWtngSec: 120 + index * 60,
                 cgnClearTime: '1030', cgnClearRate: 50,
                 recommend: { ...card.recommend, reqCnt: 30 + index },
             })).reverse();
@@ -191,10 +192,10 @@ try {
                 const next = nextCards.find((card) => unitOf(card) === variant.unitCd);
                 check(variant.current.waitingCount, current.wtngPsgCnt.toLocaleString(),
                     `${terminal} ${fcltType} ${variant.unitCd} retains current values`);
-                check([variant.next.waitingCount, variant.next.operatingCount,
+                check([variant.next.waitingCount, variant.next.waitingTime, variant.next.operatingCount,
                     variant.next.processRate.centerText, variant.next.recommend.count,
                     variant.next.clearTime.centerText, variant.next.congestion, variant.next.hhmm],
-                    [next.wtngPsgCnt.toLocaleString(), next.oprCnt.toLocaleString(),
+                    [next.wtngPsgCnt.toLocaleString(), String(next.cgnWtngSec / 60), next.oprCnt.toLocaleString(),
                         next.hrlyPrcsPsgCnt.toLocaleString(), String(next.recommend.reqCnt),
                         '10:30 이후', '보통', '1010'],
                     `${terminal} ${fcltType} ${variant.unitCd} matches future values by facility despite reordered results`);
@@ -212,12 +213,18 @@ try {
             check(midnightCards.variants.every((variant) => variant.next === null), true,
                 `${terminal} ${fcltType} next-day data never wraps to the selected date`);
             const unknown = cardViewAt('0910', [{ ...currentCards[0], wtngPsgCnt: 0,
-                oprCnt: 0, hrlyPrcsPsgCnt: 0, cgnStatus: null, cgnClearTime: '', cgnClearRate: 0,
+                oprCnt: 0, hrlyPrcsPsgCnt: 0, cgnStatus: null, cgnWtngSec: null, cgnClearTime: '', cgnClearRate: 0,
                 recommend: { ...currentCards[0].recommend, reqCnt: null } }], []).variants[0].current;
-            check([unknown.waitingCount, unknown.operatingCount, unknown.processRate.centerText,
+            check([unknown.waitingCount, unknown.waitingTime, unknown.operatingCount, unknown.processRate.centerText,
                 unknown.congestion, unknown.recommend.count, unknown.clearTime.centerText],
-                ['0', '0', '0', '-', '-', '-'],
+                ['0', '-', '0', '0', '-', '-', '-'],
                 `${terminal} ${fcltType} distinguishes observed zero from unavailable metrics`);
+            check(cardViewAt('0910', [{ ...currentCards[0], cgnWtngSec: 0 }], [])
+                .variants[0].current.waitingTime, '0',
+                `${terminal} ${fcltType} observed zero wait remains zero minutes`);
+            check(cardViewAt('0910', [{ ...currentCards[0], cgnWtngSec: 125 }], [])
+                .variants[0].current.waitingTime, '2',
+                `${terminal} ${fcltType} waiting time converts seconds to whole minutes`);
         }
     }
     console.log(`Dashboard interval and facility comparison: ${assertions} checks passed.`);

@@ -33,6 +33,36 @@ export function SmltGnb({ title, ymd, steps, onBack, onDateChange, onSearch, onS
         else input.focus();
     };
 
+    const datePicker = (
+        <div className="date-picker">
+            <span className="date-picker__label">기준일자</span>
+            <div className="date-picker__field">
+                <button type="button" className="date-picker__btn" disabled={!onDateChange || busy} onClick={handleOpenCalendar}>
+                    <CalendarIcon className="date-picker__icon" aria-hidden="true" />
+                    <span className="date-picker__value">{formatYmd(ymd)}</span>
+                </button>
+                {onDateChange && (
+                    <input
+                        ref={dateRef}
+                        type="date"
+                        disabled={busy}
+                        className="date-picker__input"
+                        value={toDateInputValue(ymd)}
+                        aria-label="기준일자"
+                        tabIndex={-1}
+                        onChange={(event) => onDateChange(toYmd(event.target.value))}
+                    />
+                )}
+            </div>
+            {onSearch && (
+                <button type="button" className="date-picker__search" onClick={onSearch} disabled={busy}>
+                    <SearchWhiteIcon aria-hidden="true" />
+                    <span className="blind">검색</span>
+                </button>
+            )}
+        </div>
+    );
+
     return (
         <header
             className="gnb"
@@ -50,36 +80,10 @@ export function SmltGnb({ title, ymd, steps, onBack, onDateChange, onSearch, onS
 
             <h1 className="gnb__title">{title}</h1>
 
-            <div className="gnb__center">{steps}</div>
+            <div className={steps ? 'gnb__center' : 'gnb__center gnb__center--date'}>{steps || datePicker}</div>
 
             <div className="gnb__right">
-                <div className="date-picker">
-                    <span className="date-picker__label">기준일자</span>
-                    <div className="date-picker__field">
-                        <button type="button" className="date-picker__btn" disabled={!onDateChange || busy} onClick={handleOpenCalendar}>
-                            <CalendarIcon className="date-picker__icon" aria-hidden="true" />
-                            <span className="date-picker__value">{formatYmd(ymd)}</span>
-                        </button>
-                        {onDateChange && (
-                            <input
-                                ref={dateRef}
-                                type="date"
-                                disabled={busy}
-                                className="date-picker__input"
-                                value={toDateInputValue(ymd)}
-                                aria-label="기준일자"
-                                tabIndex={-1}
-                                onChange={(event) => onDateChange(toYmd(event.target.value))}
-                            />
-                        )}
-                    </div>
-                    {onSearch && (
-                        <button type="button" className="date-picker__search" onClick={onSearch} disabled={busy}>
-                            <SearchWhiteIcon aria-hidden="true" />
-                            <span className="blind">검색</span>
-                        </button>
-                    )}
-                </div>
+                {steps && datePicker}
 
                 {onSave && (
                     <button type="button" className="btn btn--save" onClick={onSave} disabled={busy}>

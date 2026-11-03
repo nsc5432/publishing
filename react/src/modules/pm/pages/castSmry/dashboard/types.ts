@@ -67,9 +67,10 @@ export interface FcltCardSnapshot {
     congestion: string;
     congestionKind: string;
     waitingCount: string;
+    waitingTime: string;
     operatingCount: string;
     processRate: GaugeData & { label: string };
-    clearTime: GaugeData & { label: string };
+    clearTime: GaugeData & { label: string; clockText: string };
     recommend: FcltCardRecommend;
 }
 

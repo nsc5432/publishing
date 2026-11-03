@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { EChartsOption } from '@/lib/echarts';
+import { EChart } from '@/components/charts/EChart';
 import { Icon } from '@/components/icons/InlineIcon';
-import type { IconName } from '@/components/icons/InlineIcon';
 import type { FcltCardData, FcltCardSnapshot } from '../types';
 
 interface FcltCardProps {
@@ -9,40 +10,74 @@ interface FcltCardProps {
     onMove: () => void;
 }
 
-interface MetricLabelProps {
-    label: string;
-    icon: IconName;
-}
-
-interface ComparisonRowProps extends MetricLabelProps {
-    current?: string;
-    next?: string;
-    unit?: string;
-}
-
-interface RecommendCellProps {
+interface FlowPointProps {
     snapshot: FcltCardSnapshot | null;
     label: string;
-    onClick: () => void;
+    time: string;
 }
+
+interface FlowMetricProps {
+    icon: 'people' | 'clock';
+    label: string;
+    value: string;
+    unit: string;
+}
+
+interface GaugeDonutProps {
+    value: number;
+    centerText: string;
+    captionText: string;
+    accentColor: string;
+}
+
+const GAUGE_ACCENT: Record<string, string> = {
+    b: '#2f7ff0',
+    g: '#2f7ff0',
+    o: '#e0691c',
+    r: '#d92626',
+    gray: '#8a93a3',
+};
+const SWEEP_ANGLE = 360 * 0.84;
+const START_ANGLE = 360 - 119;
+const END_ANGLE = START_ANGLE - SWEEP_ANGLE;
+const RADIUS = `${((30 / 37) * 100).toFixed(1)}%`;
+const RING_WIDTH = 3.4;
 
 export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
     const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
-    const variantIndex = Math.max(
-        0,
-        data.variants.findIndex((item) => item.unitCd === selectedUnit),
+    const variantsByUnit = useMemo(
+        () => new Map(data.variants.map((item) => [item.unitCd, item])),
+        [data.variants],
     );
-    const variant = data.variants[variantIndex];
+    const unitOrder = useMemo(() => {
+        const chipUnits = data.chips
+            .map((chip) => chip.label)
+            .filter((unitCd) => variantsByUnit.has(unitCd));
+        const listedUnits = new Set(chipUnits);
+
+        return [
+            ...chipUnits,
+            ...data.variants
+                .map((item) => item.unitCd)
+                .filter((unitCd) => !listedUnits.has(unitCd)),
+        ];
+    }, [data.chips, data.variants, variantsByUnit]);
+    const variant = variantsByUnit.get(selectedUnit ?? '') ?? data.variants[0];
     const selectedChip = data.chips.find((chip) => chip.label === variant?.unitCd);
+    const current = variant?.current;
+    const accentColor = GAUGE_ACCENT[current?.congestionKind ?? 'gray'];
 
     const cycleVariant = (direction: number) => {
-        const nextIndex = (variantIndex + direction + data.variants.length) % data.variants.length;
-        setSelectedUnit(data.variants[nextIndex].unitCd);
+        setSelectedUnit((previous) => {
+            const unitCd = variantsByUnit.has(previous ?? '') ? previous : data.variants[0]?.unitCd;
+            if (unitOrder.length < 2) return unitCd ?? null;
+
+            const index = Math.max(0, unitOrder.indexOf(unitCd ?? ''));
+            return unitOrder[(index + direction + unitOrder.length) % unitOrder.length];
+        });
     };
 
     if (!variant) return null;
-
-    const { current, next } = variant;
 
     return (
         <div className="fclt-card">
@@ -50,105 +85,106 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                 <b>{data.title}</b>
                 <div className="warn">
                     <span>{data.warn}</span>
-                    <button type="button" className="plus" aria-label={`${data.title} 상세 화면으로 이동`} onClick={onMove}>
+                    <button
+                        type="button"
+                        className="plus"
+                        aria-label={`${data.title} 상세 화면으로 이동`}
+                        onClick={onMove}
+                    >
                         <Icon name="plus" />
                     </button>
                 </div>
             </div>
             <div className="fclt-card-mid">
-                <button
-                    type="button"
-                    className="fclt-card-arrow prev"
-                    aria-label={`이전 ${data.title} 시설`}
-                    disabled={data.variants.length < 2}
-                    onClick={() => cycleVariant(-1)}
-                >
-                    <Icon name="chevL" />
-                </button>
-                <div className="isl">{variant.island}</div>
-                <div className="num" data-congestion={selectedChip?.kind}>
-                    {variant.num}
+                <div className="fclt-unit-summary">
+                    <div className="fclt-unit-frame">
+                        <div className="fclt-unit-heading">
+                            <span className="isl">{variant.island}</span>
+                            <b className="num" data-congestion={selectedChip?.kind}>
+                                {variant.num}
+                            </b>
+                        </div>
+                        <div className="meta">
+                            {variant.meta.map((cell) => (
+                                <span key={cell.label}>
+                                    {cell.label}
+                                    <b>{cell.value}</b>개
+                                </span>
+                            ))}
+                            <span>
+                                운영<b className="acc">{current?.operatingCount ?? '-'}</b>개
+                            </span>
+                        </div>
+                    </div>
+                    <button
+                        type="button"
+                        className="fclt-card-arrow prev"
+                        aria-label={`이전 ${data.title} 시설`}
+                        disabled={unitOrder.length < 2}
+                        onClick={() => cycleVariant(-1)}
+                    >
+                        <Icon name="chevL" />
+                    </button>
+                    <button
+                        type="button"
+                        className="fclt-card-arrow next"
+                        aria-label={`다음 ${data.title} 시설`}
+                        disabled={unitOrder.length < 2}
+                        onClick={() => cycleVariant(1)}
+                    >
+                        <Icon name="chevR" />
+                    </button>
                 </div>
-                <div className="meta">
-                    {variant.meta.map((metaCell) => (
-                        <span key={metaCell.label}>
-                            {metaCell.label} <b className={metaCell.accent ? 'acc' : undefined}>{metaCell.value}</b>개
-                        </span>
-                    ))}
+                <div className="fclt-flow" aria-label={`${data.title} ${variant.num} 혼잡 변화`}>
+                    <FlowPoint snapshot={variant.current} label="현재" time={data.currentTime} />
+                    <div className="fclt-flow-link" aria-hidden="true">
+                        <span />
+                        <Icon name="chevR" />
+                    </div>
+                    <FlowPoint snapshot={variant.next} label="+1시간" time={data.nextTime} />
                 </div>
-                <button
-                    type="button"
-                    className="fclt-card-arrow next"
-                    aria-label={`다음 ${data.title} 시설`}
-                    disabled={data.variants.length < 2}
-                    onClick={() => cycleVariant(1)}
-                >
-                    <Icon name="chevR" />
-                </button>
             </div>
-            <table className="gauge-row fclt-compare" aria-label={`${data.title} ${variant.num} 시점 비교`}>
-                <colgroup>
-                    <col />
-                    <col />
-                    <col />
-                </colgroup>
-                <thead>
-                    <tr>
-                        <td />
-                        <th scope="col">
-                            <span>현재</span>
-                            <time>{data.currentTime}</time>
-                        </th>
-                        <th scope="col">
-                            <span>+1시간</span>
-                            <time>{data.nextTime}</time>
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <th scope="row">
-                            <MetricLabel label="혼잡도" icon="chart" />
-                        </th>
-                        <td>
-                            <span className="fclt-compare-status" data-congestion={current?.congestionKind}>
-                                {current?.congestion ?? '-'}
-                            </span>
-                        </td>
-                        <td>
-                            <span className="fclt-compare-status" data-congestion={next?.congestionKind}>
-                                {next?.congestion ?? '-'}
-                            </span>
-                        </td>
-                    </tr>
-                    <ComparisonRow label="대기인원" icon="people" current={current?.waitingCount} next={next?.waitingCount} unit="명" />
-                    <ComparisonRow
-                        label={data.fcltType === 'CHKN' ? '운영 부스' : '운영 검색대'}
-                        icon="monitor"
-                        current={current?.operatingCount}
-                        next={next?.operatingCount}
-                        unit="개"
+            <div className="gauge-row" aria-label={`${data.currentTime} 기준 운영 지표`}>
+                <div className="gauge">
+                    <div className="k">시간당 처리인원</div>
+                    <GaugeDonut
+                        value={current?.processRate.value ?? 0}
+                        centerText={current?.processRate.centerText ?? '-'}
+                        captionText={current ? current.processRate.captionText : ''}
+                        accentColor={accentColor}
                     />
-                </tbody>
-                <tbody>
-                    <tr>
-                        <th scope="row">
-                            <MetricLabel label="추천 운영 수" icon="checkCircle" />
-                        </th>
-                        <RecommendCell
-                            snapshot={current}
-                            label={`${data.title} ${variant.unitCd} ${data.currentTime}`}
-                            onClick={() => current && onDetail(variant.unitCd, current.hhmm)}
-                        />
-                        <RecommendCell
-                            snapshot={next}
-                            label={`${data.title} ${variant.unitCd} ${data.nextTime}`}
-                            onClick={() => next && onDetail(variant.unitCd, next.hhmm)}
-                        />
-                    </tr>
-                    <ComparisonRow label="혼잡해소 예상" icon="clock" current={current?.clearTime.centerText} next={next?.clearTime.centerText} />
-                </tbody>
-            </table>
+                </div>
+                <button
+                    type="button"
+                    className="rec"
+                    aria-label={`${data.title} ${variant.unitCd} ${data.currentTime} 혼잡해소 시뮬레이션`}
+                    aria-haspopup="dialog"
+                    disabled={!current}
+                    onClick={() => current && onDetail(variant.unitCd, current.hhmm)}
+                >
+                    <span className="tag">추천</span>
+                    <span className="name">
+                        {current?.recommend.name ||
+                            (data.fcltType === 'CHKN' ? '체크인카운터' : '보안검색대')}
+                    </span>
+                    <span className="cnt">
+                        {current?.recommend.count ?? '-'}
+                        <small>개</small>
+                    </span>
+                    <span className={`cap${current?.recommend.countNoteAccent ? ' u' : ''}`}>
+                        {current?.recommend.countNote ?? '소요'}
+                    </span>
+                </button>
+                <div className="gauge">
+                    <div className="k">{current?.clearTime.label ?? '혼잡해소 예상'}</div>
+                    <GaugeDonut
+                        value={current?.clearTime.value ?? 0}
+                        centerText={current?.clearTime.clockText ?? '-'}
+                        captionText={current?.clearTime.captionText ?? ''}
+                        accentColor={accentColor}
+                    />
+                </div>
+            </div>
             <div className="chips" aria-label={`${data.title} 시설 선택 · 조회 시점 혼잡도`}>
                 {data.chips.map((chip) => (
                     <button
@@ -168,38 +204,97 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
     );
 }
 
-function MetricLabel({ label, icon }: MetricLabelProps) {
+function FlowPoint({ snapshot, label, time }: FlowPointProps) {
     return (
-        <span className="fclt-metric-label">
+        <div className="fclt-flow-point" data-congestion={snapshot?.congestionKind ?? 'gray'}>
+            <div className="fclt-flow-time">
+                <span className="fclt-flow-period">{label}</span>
+                <time>{time}</time>
+            </div>
+            <span className="fclt-flow-status">{snapshot?.congestion ?? '-'}</span>
+            <div className="fclt-flow-metrics">
+                <FlowMetric
+                    icon="people"
+                    label="대기인원"
+                    value={snapshot?.waitingCount ?? '-'}
+                    unit="명"
+                />
+                <FlowMetric
+                    icon="clock"
+                    label="대기시간"
+                    value={snapshot?.waitingTime ?? '-'}
+                    unit="분"
+                />
+            </div>
+        </div>
+    );
+}
+
+function FlowMetric({ icon, label, value, unit }: FlowMetricProps) {
+    return (
+        <div className="fclt-flow-count">
             <Icon name={icon} />
-            <span>{label}</span>
-        </span>
+            <span className="fclt-flow-label">{label}</span>
+            <span className="fclt-flow-value">
+                <strong>{value}</strong>
+                {value !== '-' && <small>{unit}</small>}
+            </span>
+        </div>
     );
 }
 
-function ComparisonRow({ label, icon, current, next, unit }: ComparisonRowProps) {
-    return (
-        <tr>
-            <th scope="row">
-                <MetricLabel label={label} icon={icon} />
-            </th>
-            {[current, next].map((value, index) => (
-                <td key={index}>
-                    {value ?? '-'}
-                    {unit && value !== undefined && value !== '-' && <small>{unit}</small>}
-                </td>
-            ))}
-        </tr>
+function GaugeDonut({ value, centerText, captionText, accentColor }: GaugeDonutProps) {
+    const option = useMemo<EChartsOption>(
+        () => ({
+            animation: false,
+            series: [
+                {
+                    type: 'gauge',
+                    silent: true,
+                    center: ['50%', '50%'],
+                    radius: RADIUS,
+                    startAngle: START_ANGLE,
+                    endAngle: END_ANGLE,
+                    min: 0,
+                    max: 1,
+                    axisLine: {
+                        roundCap: true,
+                        lineStyle: { width: RING_WIDTH, color: [[1, '#e7ebf2']] },
+                    },
+                    progress: {
+                        show: true,
+                        roundCap: true,
+                        width: RING_WIDTH,
+                        itemStyle: { color: accentColor },
+                    },
+                    pointer: { show: false },
+                    axisTick: { show: false },
+                    splitLine: { show: false },
+                    axisLabel: { show: false },
+                    detail: {
+                        offsetCenter: [0, -5],
+                        formatter: () => centerText,
+                        fontSize: 15.6,
+                        fontWeight: 700,
+                        color: '#23272f',
+                        fontFamily: 'Pretendard, sans-serif',
+                    },
+                    title: {
+                        offsetCenter: [0, 9],
+                        fontSize: 9.7,
+                        color: '#8a93a3',
+                        fontFamily: 'Pretendard, sans-serif',
+                    },
+                    data: [{ value: Math.min(Math.max(value, 0), 1), name: captionText }],
+                },
+            ],
+        }),
+        [value, centerText, captionText, accentColor],
     );
-}
 
-function RecommendCell({ snapshot, label, onClick }: RecommendCellProps) {
     return (
-        <td>
-            <button type="button" className="rec" aria-label={`${label} 혼잡해소 시뮬레이션`} aria-haspopup="dialog" disabled={!snapshot} onClick={onClick}>
-                {snapshot?.recommend.count ?? '-'}
-                {snapshot && snapshot.recommend.count !== '-' && <small>개</small>}
-            </button>
-        </td>
+        <div className="donut" role="img" aria-label={`${centerText} ${captionText}`}>
+            <EChart className="donut__chart" option={option} />
+        </div>
     );
 }

@@ -132,6 +132,11 @@ html[data-page='userSmlt'] .gnb__right {
         flex-basis: 100%;
     }
 
+    html[data-page='userSmlt'] .gnb__center--date {
+        order: 0;
+        flex-basis: auto;
+    }
+
     html[data-page='userSmlt'] .gnb__right {
         margin-left: auto;
     }
@@ -140,17 +145,18 @@ html[data-page='userSmlt'] .gnb__right {
 html[data-page='userSmlt'] .date-picker {
     display: flex;
     align-items: center;
-    gap: 10px;
-    height: clamp(36px, 4.1vh, 44px);
-    padding: 0 6px 0 22px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.92);
-    box-shadow: 0 2px 8px rgba(80, 78, 140, 0.08);
+    gap: 8px;
+    height: 42px;
+    padding: 0 4px 0 0;
+    border-radius: 21px;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(46, 50, 94, 0.07);
 }
 
 html[data-page='userSmlt'] .date-picker__label {
-    font-size: 13px;
-    color: #5a5f6b;
+    padding-left: 20px;
+    font-size: 15px;
+    color: #5a6478;
 }
 
 html[data-page='userSmlt'] .date-picker__field {
@@ -163,11 +169,17 @@ html[data-page='userSmlt'] .date-picker__btn {
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 0;
+    padding: 4px 6px;
     border: none;
+    border-radius: 10px;
     background: none;
     font-family: inherit;
     cursor: pointer;
+    transition: background 0.15s;
+}
+
+html[data-page='userSmlt'] .date-picker__btn:hover:not(:disabled) {
+    background: #eff2fb;
 }
 
 html[data-page='userSmlt'] .date-picker__btn:disabled {
@@ -175,15 +187,16 @@ html[data-page='userSmlt'] .date-picker__btn:disabled {
 }
 
 html[data-page='userSmlt'] .date-picker__icon {
-    width: 18px;
-    height: 18px;
+    width: 19px;
+    height: 19px;
     display: block;
 }
 
 html[data-page='userSmlt'] .date-picker__value {
-    font-size: 15px;
-    font-weight: 500;
-    letter-spacing: 0.2px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f2430;
+    letter-spacing: -0.4px;
 }
 
 html[data-page='userSmlt'] .date-picker__input {
@@ -199,9 +212,9 @@ html[data-page='userSmlt'] .date-picker__search {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 32px;
-    height: 32px;
-    margin-left: 6px;
+    width: 34px;
+    height: 34px;
+    margin-left: 12px;
     border-radius: 50%;
     background: var(--pm-primary);
     transition: background 0.15s;
@@ -212,8 +225,8 @@ html[data-page='userSmlt'] .date-picker__search:hover {
 }
 
 html[data-page='userSmlt'] .date-picker__search svg {
-    width: 16px;
-    height: 16px;
+    width: 17px;
+    height: 17px;
 }
 
 html[data-page='userSmlt'] .btn {
@@ -2273,7 +2286,7 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
 
     html[data-page='userSmlt'] .date-picker {
         gap: 8px;
-        padding-left: 14px;
+        padding-left: 8px;
     }
 
     html[data-page='userSmlt'] .date-picker__label {

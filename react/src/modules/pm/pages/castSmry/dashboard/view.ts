@@ -130,6 +130,7 @@ function toFcltCardSnapshot(card: DsbdFcltCardDto, hhmm: string): FcltCardSnapsh
         congestion: card.cgnStatus === null ? '-' : CONGESTION_STATUS_LABEL[card.cgnStatus],
         congestionKind: card.cgnStatus === null ? 'gray' : CONGESTION_CHIP_CLASS[card.cgnStatus],
         waitingCount: formatCount(card.wtngPsgCnt),
+        waitingTime: card.cgnWtngSec === null ? '-' : formatCount(Math.round(card.cgnWtngSec / 60)),
         operatingCount: formatCount(card.oprCnt),
         processRate: {
             label: FCLT_CARD_GAUGE_LABEL.prcs,
@@ -141,7 +142,8 @@ function toFcltCardSnapshot(card: DsbdFcltCardDto, hhmm: string): FcltCardSnapsh
             label: noCongestion ? FCLT_CARD_GAUGE_LABEL.noCongestion : FCLT_CARD_GAUGE_LABEL.clear,
             value: noCongestion ? 0 : card.cgnClearRate / 100,
             centerText: noCongestion ? '없음' : card.cgnClearTime ? `${formatHhmm(card.cgnClearTime)} 이후` : '-',
-            captionText: '이후',
+            clockText: noCongestion ? '없음' : formatHhmm(card.cgnClearTime) || '-',
+            captionText: noCongestion || !card.cgnClearTime ? '' : '이후',
         },
         recommend: {
             tag: '추천',
