@@ -620,7 +620,6 @@ html[data-page='dashboard'] .p-top {
 }
 
 html[data-page='dashboard'] .p-iconbox {
-    background: linear-gradient(180deg, #a6a1b6 0%, #858094 100%);
     width: 79px;
     border-radius: 24px;
     display: flex;
@@ -633,6 +632,14 @@ html[data-page='dashboard'] .p-iconbox {
         inset 0 1px 1px rgba(255, 255, 255, 0.5),
         inset 0 -10px 22px rgba(0, 0, 0, 0.07),
         0 6px 16px rgba(46, 50, 94, 0.1);
+}
+
+html[data-page='dashboard'] .p-iconbox[data-terminal='T1'] {
+    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+}
+
+html[data-page='dashboard'] .p-iconbox[data-terminal='T2'] {
+    background: linear-gradient(180deg, #14b8a6 0%, #0d9488 100%);
 }
 
 html[data-page='dashboard'] .p-iconbox::before {

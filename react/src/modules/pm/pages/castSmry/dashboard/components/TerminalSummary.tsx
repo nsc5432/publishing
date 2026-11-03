@@ -95,7 +95,7 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
     return (
         <section className={`panel ${theme.panelClass}`}>
             <div className="p-top">
-                <button type="button" className="p-iconbox" aria-label={`${terminal} 맵형태보기로 이동`} onClick={onMapMove}>
+                <button type="button" className="p-iconbox" data-terminal={terminal} aria-label={`${terminal} 맵형태보기로 이동`} onClick={onMapMove}>
                     <img className="tbig" alt="terminal" src={images.big} />
                     <span className="p-map" aria-hidden="true">
                         <img className="p-map-ic" alt="" src={mapWhiteIcon} />
