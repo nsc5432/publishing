@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, type CSSProperties } from 'react';
-import type { ECElementEvent, EChartsType } from 'echarts/core';
-import { echarts, ReactEChartsCore, type EChartsOption } from '@/lib/echarts';
+import type { ECElementEvent } from 'echarts/core';
+import { echarts, ReactEChartsCore, type EChartsInstance, type EChartsOption } from '@/lib/echarts';
 
 export interface EChartProps {
     option: EChartsOption;
     className?: string;
     style?: CSSProperties;
     onClick?: (params: ECElementEvent) => void;
-    onChartReady?: (chart: EChartsType) => void;
+    onChartReady?: (chart: EChartsInstance) => void;
 }
 
 const FILL: CSSProperties = { width: '100%', height: '100%' };

@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { EChartsType } from 'echarts/core';
-import type { EChartsOption } from '@/lib/echarts';
+import type { EChartsInstance, EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import type { DsbdRsltDto } from '@/types/api.types';
 import { formatCount } from '@/lib/format';
@@ -47,7 +46,7 @@ export function TerminalChart({ rsltList, selectedHhmm, onHourSelect }: Terminal
     const rsltListRef = useRef(rsltList);
     const hourSelectRef = useRef(onHourSelect);
 
-    const handleChartReady = useCallback((chart: EChartsType) => {
+    const handleChartReady = useCallback((chart: EChartsInstance) => {
         // 점(5px)만 눌리는 series click 대신 그리드 아무 곳이나 가장 가까운 시로 받는다
         chart.getZr().on('click', (event) => {
             const point = [event.offsetX, event.offsetY];

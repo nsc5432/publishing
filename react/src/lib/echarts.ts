@@ -35,6 +35,8 @@ echarts.use([
 ]);
 
 export { echarts, ReactEChartsCore };
+// echarts-for-react 가 다른 echarts 사본을 잡는 설치에서도 onChartReady 타입이 맞도록 그쪽 타입을 쓴다
+export type { EChartsInstance } from 'echarts-for-react/lib/types';
 export type {
     BarSeriesOption,
     CustomSeriesOption,
