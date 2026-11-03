@@ -245,6 +245,11 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			applyTmnlCgn(result, chknDay, depDay, evalDt);
 			applySmryInfo(result, searchDto.getCategory(), chknDay.intrvlOf(evalDt, smryEndDt), depDay.intrvlOf(evalDt, smryEndDt));
 
+			if (searchDto.getCategory() != DsbdCategory.CHKN && searchDto.getCategory() != DsbdCategory.DEP) {
+				// 랜드사이드 대기인원은 피크시간과 같은 CAST 원값이다. 체크인 몫을 공용 Queue 로 재구성하면 피크와 어긋난다
+				result.setSmryWtngPsgCnt(retrieveRsltWtngPsgCnt(wtngStng, tmnlId, evalDt));
+			}
+
 			List<DsbdFltIntrvlDto> intrvlList = retrieveFltIntrvlList(baseDate, fltTmnlIdList, bgnHhmm, intrvlMin);
 			DsbdFltIntrvlDto currentIntrvl = intrvlList.get(0);
 
@@ -311,6 +316,17 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setSmryAvgWtngSec(intrvl.getAvgWtngSec());
 		result.setSmryArvlPsgCnt(intrvl.getArvlPsgCnt());
 		result.setSmryPrcsPsgCnt(intrvl.getPrcsPsgCnt());
+	}
+
+	private Integer retrieveRsltWtngPsgCnt(SmltStngDto smltStng, TerminalKind tmnlId, LocalDateTime smltActlDt) {
+		List<SmltRsltRawDto> rsltList = castDsbdMapper.retrieveRsltByUnitList(smltStng.getSmltId(), tmnlId.getFcltTmnlId(),
+				null, null, smltActlDt, DsbdCategory.PSG.getUpPsgFcltCdList(), smltStng.getSmltMdlSn());
+
+		if (rsltList.isEmpty()) {
+			return null;
+		}
+
+		return rsltList.stream().mapToInt(SmltRsltRawDto::getWtngPsgCnt).sum();
 	}
 
 	// 체크인 / 출국장 기준표가 달라 대기시간이 아니라 등급으로 비교한다

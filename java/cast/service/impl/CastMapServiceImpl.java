@@ -38,6 +38,7 @@ import aoms.pm.cast.dto.SmltMapSlotDto;
 import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.dto.SmltStngDto;
 import aoms.pm.cast.enums.CongestionStatus;
+import aoms.pm.cast.enums.DsbdCategory;
 import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.PmRole;
 import aoms.pm.cast.enums.TerminalKind;
@@ -113,6 +114,7 @@ public class CastMapServiceImpl implements CastMapService {
 		Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap = retrieveUnitRsltDayMap(searchDto, DPTGT_FCLT_CD_LIST);
 		// 출국장 혼잡등급은 지표 4종과 달리 요약보기 카드와 같은 LGT 처리 여객 평균에서 정한다
 		FcltWtngDay depDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.DEP);
+		Map<LocalDateTime, Integer> landsideWtngByDt = retrieveLandsideWtngDayMap(smltStng, tmnlId, chknDay);
 
 		FltSmryRawDto fltSmry = castDsbdMapper.retrieveFltSmry(smltStng.getExcnYmd(), tmnlId.getFltTmnlIdList(), null, null);
 
@@ -124,12 +126,21 @@ public class CastMapServiceImpl implements CastMapService {
 		result.setChknMarkerList(getChknMarkerList(tmnlId));
 		result.setGateMarkerList(MapLayout.gateMarkerList());
 		result.setChknInfoList(getChknInfoList(tmnlId));
-		result.setSlotList(getSlotList(tmnlId, chknDay, dptgtDayMap, depDay));
+		result.setSlotList(getSlotList(tmnlId, chknDay, dptgtDayMap, depDay, landsideWtngByDt));
 
 		return result;
 	}
 
 	/* ================= 결과 조회 ================= */
+
+	// 랜드사이드 대기인원은 요약보기 피크시간 · 요약정보와 같은 CAST 원값(CC + LGT 합)이다. 24:00 슬롯까지 읽는다
+	private Map<LocalDateTime, Integer> retrieveLandsideWtngDayMap(SmltStngDto smltStng, TerminalKind tmnlId, FcltWtngDay chknDay) {
+		return castDsbdMapper.retrieveRsltByUnitList(smltStng.getSmltId(), tmnlId.getFcltTmnlId(),
+				chknDay.dtOf(0), chknDay.dtOf(HOUR_PER_DAY * MINUTE_PER_HOUR).plusMinutes(1), null,
+				DsbdCategory.PSG.getUpPsgFcltCdList(), smltStng.getSmltMdlSn())
+				.stream()
+				.collect(Collectors.groupingBy(SmltRsltRawDto::getSmltActlDt, Collectors.summingInt(SmltRsltRawDto::getWtngPsgCnt)));
+	}
 
 	private Map<String, Map<String, SmltRsltRawDto>> retrieveUnitRsltDayMap(
 			MapSearchDto searchDto, List<String> upPsgFcltCdList) {
@@ -277,7 +288,8 @@ public class CastMapServiceImpl implements CastMapService {
 			TerminalKind tmnlId,
 			FcltWtngDay chknDay,
 			Map<String, Map<String, SmltRsltRawDto>> dptgtDayMap,
-			FcltWtngDay depDay) {
+			FcltWtngDay depDay,
+			Map<LocalDateTime, Integer> landsideWtngByDt) {
 		List<SmltMapSlotDto> result = new ArrayList<>();
 
 		for (String hhmm : TimeBucketUtils.slotTimeList(SLOT_BGN_HOUR)) {
@@ -288,7 +300,7 @@ public class CastMapServiceImpl implements CastMapService {
 			SmltMapSlotDto slot = new SmltMapSlotDto();
 			slot.setHhmm(hhmm);
 			slot.setNotice(getNotice(chknRsltList, dptgtMap, depDay, evalDt));
-			slot.setLandsideSmry(getLandsideSmry(chknDay, depDay, evalDt));
+			slot.setLandsideSmry(getLandsideSmry(chknDay, depDay, evalDt, landsideWtngByDt.get(evalDt)));
 			slot.setChknRsltList(chknRsltList);
 			slot.setDptgtRsltList(getDptgtRsltList(tmnlId, depDay, evalDt));
 			slot.setChknCmpr(SmltUtils.toCgnCmpr(chknDay.cmprOf(MapLayout.islandCdList(tmnlId), evalDt, SLOT_MIN)));
@@ -300,7 +312,7 @@ public class CastMapServiceImpl implements CastMapService {
 		return result;
 	}
 
-	private MapLandsideSmryDto getLandsideSmry(FcltWtngDay chknDay, FcltWtngDay depDay, LocalDateTime evalDt) {
+	private MapLandsideSmryDto getLandsideSmry(FcltWtngDay chknDay, FcltWtngDay depDay, LocalDateTime evalDt, Integer wtngPsgCnt) {
 		LocalDateTime dayEndDt = chknDay.dtOf(HOUR_PER_DAY * MINUTE_PER_HOUR);
 		LocalDateTime endDt = evalDt.plusHours(1);
 		if (endDt.isAfter(dayEndDt)) {
@@ -310,7 +322,7 @@ public class CastMapServiceImpl implements CastMapService {
 				chknDay.intrvlOf(evalDt, endDt), depDay.intrvlOf(evalDt, endDt));
 		MapLandsideSmryDto result = new MapLandsideSmryDto();
 
-		result.setSmryWtngPsgCnt(intrvl.getWtngPsgCnt());
+		result.setSmryWtngPsgCnt(wtngPsgCnt);
 		result.setSmryAvgWtngSec(intrvl.getAvgWtngSec());
 		result.setSmryArvlPsgCnt(intrvl.getArvlPsgCnt());
 		result.setSmryPrcsPsgCnt(intrvl.getPrcsPsgCnt());

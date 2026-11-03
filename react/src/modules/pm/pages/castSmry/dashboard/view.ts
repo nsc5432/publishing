@@ -226,8 +226,7 @@ export function toPrimeTime(rsltLists: DsbdRsltDto[][], category: DsbdCategory):
 
     for (const rsltList of rsltLists) {
         for (const rslt of rsltList) {
-            const count =
-                category === 'PSG' || category === 'FLT' ? rslt.psgCnt : rslt.fcstWtngPsgCnt;
+            const count = category === 'FLT' ? rslt.psgCnt : rslt.fcstWtngPsgCnt;
 
             if (!/^([01]\d|2[0-3])[0-5]\d$/.test(rslt.time) || !Number.isFinite(count)) continue;
 

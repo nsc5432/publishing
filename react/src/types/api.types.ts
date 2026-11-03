@@ -121,7 +121,10 @@ export interface TmnlSmryDto extends JsonResponse {
     intrvlYesterdayFltDiffCnt: number;
     intrvlYesterdayPsgDiffCnt: number;
     intrvlList: DsbdFltIntrvlDto[];
-    /** 요약정보 — 대상은 요청 category 를 따른다 (PSG/FLT 랜드사이드 = 아일랜드 + 출국장, CHKN 아일랜드 전체, DEP 출국장 전체) */
+    /**
+     * 요약정보 — 대상은 요청 category 를 따른다 (PSG/FLT 랜드사이드 = 아일랜드 + 출국장, CHKN 아일랜드 전체, DEP 출국장 전체)
+     * 랜드사이드 대기인원만 피크시간과 같은 CAST 원값(CC + LGT)이다
+     */
     smryWtngPsgCnt: number | null;
     /** [hhmm, hhmm+intrvlMin) 처리 여객 평균 대기시간 (초). 랜드사이드는 아일랜드 + 출국장, 한쪽만 산정되면 그 값 */
     smryAvgWtngSec: number | null;

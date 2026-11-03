@@ -32,7 +32,7 @@ public class TmnlSmryDto extends JsonResponse {
 	private int intrvlYesterdayPsgDiffCnt; // 전일 같은 구간 대비 여객 증감
 	private List<DsbdFltIntrvlDto> intrvlList = new ArrayList<>();
 	// 요약정보 — 대상은 요청 category 를 따른다 (PSG/FLT 랜드사이드, CHKN 아일랜드 전체, DEP 출국장 전체)
-	private Integer smryWtngPsgCnt; // 조회 시각의 전체 대기인원
+	private Integer smryWtngPsgCnt; // 조회 시각의 전체 대기인원. 랜드사이드는 피크시간과 같은 CAST 원값(CC + LGT)
 	private Double smryAvgWtngSec; // [hhmm, hhmm+intrvlMin) 처리 여객 평균 대기시간 (초). 랜드사이드는 아일랜드 + 출국장
 	private Integer smryArvlPsgCnt; // 구간 유입인원. 랜드사이드는 아일랜드 유입
 	private Integer smryPrcsPsgCnt; // 구간 처리인원. 랜드사이드는 출국장 처리
