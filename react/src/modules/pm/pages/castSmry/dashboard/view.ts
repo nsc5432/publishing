@@ -58,6 +58,11 @@ interface TerminalViewInput {
     nextDptgtCards?: DsbdFcltCardDto[];
 }
 
+interface ProcessScale {
+    max: number;
+    avg: number | null;
+}
+
 // 칩 팔레트가 3색이라 여유/보통은 같은 초록을 쓴다
 const CONGESTION_CHIP_CLASS: Record<CongestionStatus, string> = {
     FREE: 'b',
@@ -135,7 +140,18 @@ function toFcltCardDiff(next: number | null, current: number | null): FcltCardDi
     return { text: formatDiff(diff), dir: diff > 0 ? 'up' : 'down' };
 }
 
-function toFcltCardSnapshot(card: DsbdFcltCardDto, hhmm: string): FcltCardSnapshot {
+// 서버가 산정 불가 처리인원을 0 으로 내려 0 인 시설은 평균에서 뺀다
+function toProcessScale(cards: DsbdFcltCardDto[]): ProcessScale {
+    const activeCounts = cards.filter((card) => card.oprCnt > 0 && card.hrlyPrcsPsgCnt > 0).map((card) => card.hrlyPrcsPsgCnt);
+    const max = Math.max(0, ...cards.map((card) => card.hrlyPrcsPsgCnt));
+
+    return {
+        max,
+        avg: activeCounts.length < 2 ? null : activeCounts.reduce((sum, count) => sum + count, 0) / activeCounts.length,
+    };
+}
+
+function toFcltCardSnapshot(card: DsbdFcltCardDto, hhmm: string, scale: ProcessScale): FcltCardSnapshot {
     const noCongestion = card.cgnClearRate === 100;
     const wtngMin = toWtngMin(card);
 
@@ -148,9 +164,13 @@ function toFcltCardSnapshot(card: DsbdFcltCardDto, hhmm: string): FcltCardSnapsh
         operatingCount: formatCount(card.oprCnt),
         processRate: {
             label: FCLT_CARD_GAUGE_LABEL.prcs,
-            value: card.hrlyPrcsRate / 100,
+            value: scale.max > 0 ? card.hrlyPrcsPsgCnt / scale.max : 0,
             centerText: formatCount(card.hrlyPrcsPsgCnt),
             captionText: 'Pax/Hour',
+            average:
+                scale.avg === null
+                    ? undefined
+                    : { value: scale.avg / scale.max, text: `평균 ${formatCount(Math.round(scale.avg))}` },
         },
         clearTime: {
             label: noCongestion ? FCLT_CARD_GAUGE_LABEL.noCongestion : FCLT_CARD_GAUGE_LABEL.clear,
@@ -174,6 +194,8 @@ function toFcltCardVariant(
     current: DsbdFcltCardDto | undefined,
     next: DsbdFcltCardDto | undefined,
     hhmm: string,
+    scale: ProcessScale,
+    nextScale: ProcessScale,
 ): FcltCardVariant {
     const isCheckin = card.fcltType === 'CHKN';
 
@@ -181,8 +203,8 @@ function toFcltCardVariant(
         unitCd: isCheckin ? card.island : card.dptgtNo,
         num: card.fcltNm,
         meta: [{ label: '전체', value: formatCount(card.totCnt) }],
-        current: current ? toFcltCardSnapshot(current, hhmm) : null,
-        next: next ? toFcltCardNextSnapshot(next, current, hhmm) : null,
+        current: current ? toFcltCardSnapshot(current, hhmm, scale) : null,
+        next: next ? toFcltCardNextSnapshot(next, current, hhmm, nextScale) : null,
     };
 }
 
@@ -191,8 +213,9 @@ function toFcltCardNextSnapshot(
     next: DsbdFcltCardDto,
     current: DsbdFcltCardDto | undefined,
     hhmm: string,
+    scale: ProcessScale,
 ): FcltCardSnapshot {
-    const snapshot = toFcltCardSnapshot(next, stepHhmm(hhmm, 6));
+    const snapshot = toFcltCardSnapshot(next, stepHhmm(hhmm, 6), scale);
     if (!current) return snapshot;
 
     return {
@@ -227,6 +250,8 @@ function toFcltCardData(
     const busyCount = visibleCurrentCards.filter(
         (card) => card.cgnStatus !== null && BUSY_STATUS.includes(card.cgnStatus),
     ).length;
+    const scale = toProcessScale(visibleCurrentCards);
+    const nextScale = toProcessScale([...nextByUnit.values()].filter((card) => unitPattern.test(unitOf(card))));
     const nextMinute = Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(2)) + 60;
     const nextClock = `${pad2(Math.floor(nextMinute / 60) % 24)}:${pad2(nextMinute % 60)}`;
 
@@ -236,7 +261,7 @@ function toFcltCardData(
         warn: busyCount > 0 ? `혼잡 ${busyCount}개` : visibleCurrentCards.some((card) => card.cgnStatus !== null) ? '원활' : '-',
         currentTime: formatHhmm(hhmm),
         nextTime: nextMinute >= MIN_PER_DAY ? `다음 날 ${nextClock}` : nextClock,
-        variants: visibleCards.map((card) => toFcltCardVariant(card, currentByUnit.get(unitOf(card)), nextByUnit.get(unitOf(card)), hhmm)),
+        variants: visibleCards.map((card) => toFcltCardVariant(card, currentByUnit.get(unitOf(card)), nextByUnit.get(unitOf(card)), hhmm, scale, nextScale)),
         chips: (cards[0]?.unitList ?? nextCards[0]?.unitList ?? []).filter((unit) => unitPattern.test(unit.unitCd)).map((unit) => toFcltCardChip(cards.length ? unit : { ...unit, cgnStatus: null })),
     };
 }

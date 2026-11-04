@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import { Icon } from '@/components/icons/InlineIcon';
-import type { FcltCardData, FcltCardDiff, FcltCardSnapshot } from '../types';
+import type { FcltCardData, FcltCardDiff, FcltCardSnapshot, GaugeAverage } from '../types';
 
 interface FcltCardProps {
     data: FcltCardData;
@@ -29,6 +29,7 @@ interface GaugeDonutProps {
     centerText: string;
     captionText: string;
     accentColor: string;
+    average?: GaugeAverage;
 }
 
 const GAUGE_ACCENT: Record<string, string> = {
@@ -43,6 +44,13 @@ const START_ANGLE = 360 - 119;
 const END_ANGLE = START_ANGLE - SWEEP_ANGLE;
 const RADIUS = `${((30 / 37) * 100).toFixed(1)}%`;
 const RING_WIDTH = 3.4;
+const INNER_RADIUS = `${((25 / 37) * 100).toFixed(1)}%`;
+const INNER_RING_WIDTH = 2.6;
+const AVERAGE_COLOR = '#6c7688';
+const BASE_DONUT_SIZE = 72;
+const TRACK_STOPS: [number, string][] = [[1, '#e7ebf2']];
+
+const clamp01 = (value: number) => Math.min(Math.max(value, 0), 1);
 
 export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
     const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
@@ -138,6 +146,7 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                         centerText={current?.processRate.centerText ?? '-'}
                         captionText={current ? current.processRate.captionText : ''}
                         accentColor={accentColor}
+                        average={current?.processRate.average}
                     />
                 </div>
                 <button
@@ -231,7 +240,23 @@ function FlowMetric({ icon, label, value, unit, diff }: FlowMetricProps) {
     );
 }
 
-function GaugeDonut({ value, centerText, captionText, accentColor }: GaugeDonutProps) {
+function GaugeDonut({ value, centerText, captionText, accentColor, average }: GaugeDonutProps) {
+    const donutRef = useRef<HTMLDivElement>(null);
+    const [sizeRatio, setSizeRatio] = useState(1);
+    const averageValue = average?.value;
+    const averageText = average?.text;
+    // 차트 글자는 px 고정이라 촘촘 모드(58px)에서 안쪽 링과 겹친다 — 두 겹일 때만 도넛 크기에 맞춰 줄인다
+    const textScale = averageText ? sizeRatio : 1;
+
+    useEffect(() => {
+        const el = donutRef.current;
+        if (!el) return;
+
+        const observer = new ResizeObserver(([entry]) => setSizeRatio(Math.min(entry.contentRect.width / BASE_DONUT_SIZE, 1)));
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
     const option = useMemo<EChartsOption>(
         () => ({
             animation: false,
@@ -247,7 +272,7 @@ function GaugeDonut({ value, centerText, captionText, accentColor }: GaugeDonutP
                     max: 1,
                     axisLine: {
                         roundCap: true,
-                        lineStyle: { width: RING_WIDTH, color: [[1, '#e7ebf2']] },
+                        lineStyle: { width: RING_WIDTH, color: TRACK_STOPS },
                     },
                     progress: {
                         show: true,
@@ -260,28 +285,65 @@ function GaugeDonut({ value, centerText, captionText, accentColor }: GaugeDonutP
                     splitLine: { show: false },
                     axisLabel: { show: false },
                     detail: {
-                        offsetCenter: [0, -5],
+                        offsetCenter: [0, -5 * textScale],
                         formatter: () => centerText,
-                        fontSize: 15.6,
+                        fontSize: 15.6 * textScale,
                         fontWeight: 700,
                         color: '#23272f',
                         fontFamily: 'Pretendard, sans-serif',
                     },
                     title: {
-                        offsetCenter: [0, 9],
-                        fontSize: 9.7,
-                        color: '#8a93a3',
+                        offsetCenter: [0, 9 * textScale],
+                        fontSize: 9.7 * textScale,
+                        fontWeight: averageText ? 600 : 400,
+                        color: averageText ? AVERAGE_COLOR : '#8a93a3',
                         fontFamily: 'Pretendard, sans-serif',
                     },
-                    data: [{ value: Math.min(Math.max(value, 0), 1), name: captionText }],
+                    data: [{ value: clamp01(value), name: averageText ?? captionText }],
                 },
+                ...(averageValue === undefined
+                    ? []
+                    : [
+                          {
+                              type: 'gauge' as const,
+                              silent: true,
+                              center: ['50%', '50%'],
+                              radius: INNER_RADIUS,
+                              startAngle: START_ANGLE,
+                              endAngle: END_ANGLE,
+                              min: 0,
+                              max: 1,
+                              axisLine: {
+                                  roundCap: true,
+                                  lineStyle: { width: INNER_RING_WIDTH, color: TRACK_STOPS },
+                              },
+                              progress: {
+                                  show: true,
+                                  roundCap: true,
+                                  width: INNER_RING_WIDTH,
+                                  itemStyle: { color: AVERAGE_COLOR },
+                              },
+                              pointer: { show: false },
+                              axisTick: { show: false },
+                              splitLine: { show: false },
+                              axisLabel: { show: false },
+                              detail: { show: false },
+                              title: { show: false },
+                              data: [{ value: clamp01(averageValue) }],
+                          },
+                      ]),
             ],
         }),
-        [value, centerText, captionText, accentColor],
+        [value, centerText, captionText, accentColor, averageValue, averageText, textScale],
     );
 
     return (
-        <div className="donut" role="img" aria-label={`${centerText} ${captionText}`}>
+        <div
+            ref={donutRef}
+            className="donut"
+            role="img"
+            aria-label={averageText ? `${centerText} ${captionText}, 활성 시설 ${averageText}` : `${centerText} ${captionText}`}
+        >
             <EChart className="donut__chart" option={option} />
         </div>
     );

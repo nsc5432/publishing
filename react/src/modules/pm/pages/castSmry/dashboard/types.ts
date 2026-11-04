@@ -40,6 +40,12 @@ export interface GaugeData {
     captionText: string;
 }
 
+export interface GaugeAverage {
+    /** 안쪽 링 채움 비율 (0~1) */
+    value: number;
+    text: string;
+}
+
 export interface FcltCardChip {
     label: string;
     /** dashboard.css 의 .chip.r/.g/.o/.gray 등 */
@@ -76,7 +82,7 @@ export interface FcltCardSnapshot {
     waitingCountDiff?: FcltCardDiff;
     waitingTimeDiff?: FcltCardDiff;
     operatingCount: string;
-    processRate: GaugeData & { label: string };
+    processRate: GaugeData & { label: string; average?: GaugeAverage };
     clearTime: GaugeData & { label: string; clockText: string };
     recommend: FcltCardRecommend;
 }
