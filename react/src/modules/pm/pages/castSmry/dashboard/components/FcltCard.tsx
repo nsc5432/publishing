@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import { Icon } from '@/components/icons/InlineIcon';
-import type { FcltCardData, FcltCardSnapshot } from '../types';
+import type { FcltCardData, FcltCardDiff, FcltCardSnapshot } from '../types';
 
 interface FcltCardProps {
     data: FcltCardData;
@@ -21,6 +21,7 @@ interface FlowMetricProps {
     label: string;
     value: string;
     unit: string;
+    diff?: FcltCardDiff;
 }
 
 interface GaugeDonutProps {
@@ -45,22 +46,12 @@ const RING_WIDTH = 3.4;
 
 export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
     const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
-    const variantsByUnit = useMemo(
-        () => new Map(data.variants.map((item) => [item.unitCd, item])),
-        [data.variants],
-    );
+    const variantsByUnit = useMemo(() => new Map(data.variants.map((item) => [item.unitCd, item])), [data.variants]);
     const unitOrder = useMemo(() => {
-        const chipUnits = data.chips
-            .map((chip) => chip.label)
-            .filter((unitCd) => variantsByUnit.has(unitCd));
+        const chipUnits = data.chips.map((chip) => chip.label).filter((unitCd) => variantsByUnit.has(unitCd));
         const listedUnits = new Set(chipUnits);
 
-        return [
-            ...chipUnits,
-            ...data.variants
-                .map((item) => item.unitCd)
-                .filter((unitCd) => !listedUnits.has(unitCd)),
-        ];
+        return [...chipUnits, ...data.variants.map((item) => item.unitCd).filter((unitCd) => !listedUnits.has(unitCd))];
     }, [data.chips, data.variants, variantsByUnit]);
     const variant = variantsByUnit.get(selectedUnit ?? '') ?? data.variants[0];
     const selectedChip = data.chips.find((chip) => chip.label === variant?.unitCd);
@@ -85,12 +76,7 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                 <b>{data.title}</b>
                 <div className="warn">
                     <span>{data.warn}</span>
-                    <button
-                        type="button"
-                        className="plus"
-                        aria-label={`${data.title} 상세 화면으로 이동`}
-                        onClick={onMove}
-                    >
+                    <button type="button" className="plus" aria-label={`${data.title} 상세 화면으로 이동`} onClick={onMove}>
                         <Icon name="plus" />
                     </button>
                 </div>
@@ -99,7 +85,7 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                 <div className="fclt-unit-summary">
                     <div className="fclt-unit-frame">
                         <div className="fclt-unit-heading">
-                            <span className="isl">{variant.island}</span>
+                            {data.fcltType === 'CHKN' && <span className="isl">아일랜드</span>}
                             <b className="num" data-congestion={selectedChip?.kind}>
                                 {variant.num}
                             </b>
@@ -163,17 +149,12 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                     onClick={() => current && onDetail(variant.unitCd, current.hhmm)}
                 >
                     <span className="tag">추천</span>
-                    <span className="name">
-                        {current?.recommend.name ||
-                            (data.fcltType === 'CHKN' ? '체크인카운터' : '보안검색대')}
-                    </span>
+                    <span className="name">{current?.recommend.name || (data.fcltType === 'CHKN' ? '체크인카운터' : '보안검색대')}</span>
                     <span className="cnt">
                         {current?.recommend.count ?? '-'}
                         <small>개</small>
                     </span>
-                    <span className={`cap${current?.recommend.countNoteAccent ? ' u' : ''}`}>
-                        {current?.recommend.countNote ?? '소요'}
-                    </span>
+                    <span className={`cap${current?.recommend.countNoteAccent ? ' u' : ''}`}>{current?.recommend.countNote ?? '소요'}</span>
                 </button>
                 <div className="gauge">
                     <div className="k">{current?.clearTime.label ?? '혼잡해소 예상'}</div>
@@ -218,19 +199,21 @@ function FlowPoint({ snapshot, label, time }: FlowPointProps) {
                     label="대기인원"
                     value={snapshot?.waitingCount ?? '-'}
                     unit="명"
+                    diff={snapshot?.waitingCountDiff}
                 />
                 <FlowMetric
                     icon="clock"
                     label="대기시간"
                     value={snapshot?.waitingTime ?? '-'}
                     unit="분"
+                    diff={snapshot?.waitingTimeDiff}
                 />
             </div>
         </div>
     );
 }
 
-function FlowMetric({ icon, label, value, unit }: FlowMetricProps) {
+function FlowMetric({ icon, label, value, unit, diff }: FlowMetricProps) {
     return (
         <div className="fclt-flow-count">
             <Icon name={icon} />
@@ -238,6 +221,11 @@ function FlowMetric({ icon, label, value, unit }: FlowMetricProps) {
             <span className="fclt-flow-value">
                 <strong>{value}</strong>
                 {value !== '-' && <small>{unit}</small>}
+                {diff && (
+                    <em className="fclt-flow-diff" data-dir={diff.dir} aria-label={`현재 대비 ${diff.text}${unit}`}>
+                        {diff.text}
+                    </em>
+                )}
             </span>
         </div>
     );

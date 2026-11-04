@@ -30,13 +30,15 @@
 
     <select id="retrieveFltSmry" resultType="aoms.pm.cast.dto.FltSmryRawDto">
         /* CastDsbdMapper.retrieveFltSmry */
+        <!-- 대상 편 조건 · 여객수는 CastFltPsgMapper.retrieveFltPsgHourList 와 같아야 한다.
+             정각 1시간 구간 값이 요약보기 시간대별 차트의 운항편 · 여객수와 같아지는 근거다 -->
         SELECT
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN 1 ELSE 0 END), 0) AS DEP_FLT_CNT,
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN 1 ELSE 0 END), 0) AS ARR_FLT_CNT,
-            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN
-                NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0) - NVL(TO_NUMBER(TRIM(A.RSVT_TRNS_BDPSG_CNT)), 0) ELSE 0 END), 0) AS DEP_PSG_CNT,
-            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN
-                NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0) - NVL(TO_NUMBER(TRIM(A.RSVT_TRNS_BDPSG_CNT)), 0) ELSE 0 END), 0) AS ARR_PSG_CNT,
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN GREATEST(
+                NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0) - NVL(TO_NUMBER(TRIM(A.RSVT_TRNS_BDPSG_CNT)), 0), 0) ELSE 0 END), 0) AS DEP_PSG_CNT,
+            NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN GREATEST(
+                NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0) - NVL(TO_NUMBER(TRIM(A.RSVT_TRNS_BDPSG_CNT)), 0), 0) ELSE 0 END), 0) AS ARR_PSG_CNT,
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN
                 CASE WHEN NVL(TO_NUMBER(TRIM(A.PFR_BRDG_TNOPE)), 0)
                     + NVL(TO_NUMBER(TRIM(A.FREE_BRDG_TNOPE)), 0)
@@ -50,8 +52,8 @@
                 THEN TO_NUMBER(TRIM(A.ARCFT_STGCP)) ELSE 0 END), 0) AS SEAT_CNT
         FROM GOOWN.TN_GO_GD_DATA A
         WHERE 1 = 1
-        AND NVL(TO_NUMBER(TRIM(A.ARCFT_STGCP)), 0) &gt; 0
         AND A.GD_SE_YMD = #{ymd}
+        AND A.TMNL_ID IN ('P01', 'P02', 'P03')
         <if test="tmnlIdList != null and tmnlIdList.size() > 0">
         AND A.TMNL_ID IN (<foreach collection="tmnlIdList" item="item" separator=",">#{item}</foreach>)
         </if>
@@ -60,12 +62,15 @@
         AND NVL(TRIM(A.PREDC_HM), A.SCHDL_HM) &lt; #{endHhmm}
         </if>
         AND A.CSHR_STTS_CD != 'SL'
-        AND A.PSG_CGO_SE_CD = 'Y'
+        AND A.DLY_RSN_CD NOT IN ('2', '3')
         AND A.ARCFT_USE_SE_CD IN ('0', '1')
         AND A.GD_FLT_PRPS_CD IN ('00', '05')
-        AND A.FRY_YN NOT IN ('Y')
-        AND A.DOM_INTL_SE_CD NOT IN ('D')
-        AND A.DLY_RSN_CD NOT IN ('2', '3')
+        AND A.PSG_CGO_SE_CD = 'Y'
+        AND A.FRY_YN = 'N'
+        AND A.LCRFT_YN = 'N'
+        AND A.DOM_INTL_SE_CD != 'D'
+        AND A.SCHDL_HM IS NOT NULL
+        AND NVL(TO_NUMBER(TRIM(A.ARCFT_STGCP)), 0) &gt; 0
     </select>
 
     <select id="retrieveHourlyBdpsgAnceList" resultType="aoms.pm.cast.dto.BdpsgAnceRawDto">

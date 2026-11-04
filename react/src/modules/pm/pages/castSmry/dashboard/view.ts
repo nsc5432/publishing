@@ -30,6 +30,7 @@ import {
     SUMMARY_TARGET_LABEL,
     type FcltCardChip,
     type FcltCardData,
+    type FcltCardDiff,
     type FcltCardSnapshot,
     type FcltCardType,
     type FcltCardVariant,
@@ -122,15 +123,28 @@ export function toCalcDateTime(calcDt?: string): string {
     return formatDateTime(calcDt ?? '');
 }
 
+function toWtngMin(card: DsbdFcltCardDto): number | null {
+    return card.cgnWtngSec === null ? null : Math.round(card.cgnWtngSec / 60);
+}
+
+function toFcltCardDiff(next: number | null, current: number | null): FcltCardDiff | undefined {
+    if (next === null || current === null) return undefined;
+
+    const diff = next - current;
+    if (diff === 0) return { text: '0', dir: 'flat' };
+    return { text: formatDiff(diff), dir: diff > 0 ? 'up' : 'down' };
+}
+
 function toFcltCardSnapshot(card: DsbdFcltCardDto, hhmm: string): FcltCardSnapshot {
     const noCongestion = card.cgnClearRate === 100;
+    const wtngMin = toWtngMin(card);
 
     return {
         hhmm,
         congestion: card.cgnStatus === null ? '-' : CONGESTION_STATUS_LABEL[card.cgnStatus],
         congestionKind: card.cgnStatus === null ? 'gray' : CONGESTION_CHIP_CLASS[card.cgnStatus],
         waitingCount: formatCount(card.wtngPsgCnt),
-        waitingTime: card.cgnWtngSec === null ? '-' : formatCount(Math.round(card.cgnWtngSec / 60)),
+        waitingTime: wtngMin === null ? '-' : formatCount(wtngMin),
         operatingCount: formatCount(card.oprCnt),
         processRate: {
             label: FCLT_CARD_GAUGE_LABEL.prcs,
@@ -165,11 +179,26 @@ function toFcltCardVariant(
 
     return {
         unitCd: isCheckin ? card.island : card.dptgtNo,
-        island: isCheckin ? '아일랜드' : undefined,
         num: card.fcltNm,
         meta: [{ label: '전체', value: formatCount(card.totCnt) }],
         current: current ? toFcltCardSnapshot(current, hhmm) : null,
-        next: next ? toFcltCardSnapshot(next, stepHhmm(hhmm, 6)) : null,
+        next: next ? toFcltCardNextSnapshot(next, current, hhmm) : null,
+    };
+}
+
+// 표시값과 증감이 어긋나지 않도록 대기시간은 반올림한 분끼리 뺀다
+function toFcltCardNextSnapshot(
+    next: DsbdFcltCardDto,
+    current: DsbdFcltCardDto | undefined,
+    hhmm: string,
+): FcltCardSnapshot {
+    const snapshot = toFcltCardSnapshot(next, stepHhmm(hhmm, 6));
+    if (!current) return snapshot;
+
+    return {
+        ...snapshot,
+        waitingCountDiff: toFcltCardDiff(next.wtngPsgCnt, current.wtngPsgCnt),
+        waitingTimeDiff: toFcltCardDiff(toWtngMin(next), toWtngMin(current)),
     };
 }
 
@@ -228,7 +257,7 @@ export function toPrimeTime(rsltLists: DsbdRsltDto[][], category: DsbdCategory):
 
     for (const rsltList of rsltLists) {
         for (const rslt of rsltList) {
-            const count = category === 'FLT' ? rslt.psgCnt : rslt.fcstWtngPsgCnt;
+            const count = category === 'FLT' ? rslt.fltCnt : rslt.fcstWtngPsgCnt;
 
             if (!/^([01]\d|2[0-3])[0-5]\d$/.test(rslt.time) || !Number.isFinite(count)) continue;
 

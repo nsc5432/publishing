@@ -13,13 +13,7 @@ import { defaultTime, todayYmd } from '@/lib/format';
 import { useBaseInfo } from '@/hooks/useBaseInfo';
 import { loadingBar } from '@/lib/loading-bar';
 import { toCalcDateTime, toPlanDate, toSimulationType } from './view';
-import {
-    useDayOverview,
-    usePrimeTime,
-    useTerminalPanel,
-    type DashboardQuery,
-    type PrimeTimeQuery,
-} from './hooks/useDashboardData';
+import { useDayOverview, usePrimeTime, useTerminalPanel, type DashboardQuery, type PrimeTimeQuery } from './hooks/useDashboardData';
 import { useExecDetail } from './hooks/useExecDetail';
 import type { FcltCardType, FcltQueueTarget, TerminalKind } from './types';
 
@@ -50,17 +44,11 @@ function Dashboard() {
     const [searchParams, setSearchParams] = useSearchParams();
     const targetSmltId = searchParams.get('smltId') ?? '';
     const userSmltRoute = useMatch('/rui/pm/user-smlt/dashboard');
-    const targetSmltType: SmltType =
-        userSmltRoute || searchParams.get('smltType') === 'USER' ? 'USER' : 'DAILY';
+    const targetSmltType: SmltType = userSmltRoute || searchParams.get('smltType') === 'USER' ? 'USER' : 'DAILY';
 
     const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
     const [draftYmd, setDraftYmd] = useState(ymd);
-    const {
-        data: baseInfo,
-        error: baseError,
-        responseSeq: baseResponseSeq,
-        isCurrent: isBaseInfoCurrent,
-    } = useBaseInfo(ymd, targetSmltId, targetSmltType);
+    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq, isCurrent: isBaseInfoCurrent } = useBaseInfo(ymd, targetSmltId, targetSmltType);
 
     const simulationType = toSimulationType(targetSmltType);
     const isUserSmlt = simulationType === 'user';
@@ -88,20 +76,11 @@ function Dashboard() {
     }, [baseInfo, isBaseInfoCurrent]);
 
     const primeQuery = useMemo<PrimeTimeQuery | null>(() => {
-        if (
-            !primeRequest ||
-            !baseInfo ||
-            !isBaseInfoCurrent ||
-            (isUserSmlt ? baseInfo.ymd : ymd) !== primeRequest.ymd
-        ) return null;
+        if (!primeRequest || !baseInfo || !isBaseInfoCurrent || (isUserSmlt ? baseInfo.ymd : ymd) !== primeRequest.ymd) return null;
 
         return { ...primeRequest, smltId: baseInfo.smltId, ymd: baseInfo.ymd };
     }, [primeRequest, baseInfo, isBaseInfoCurrent, isUserSmlt, ymd]);
-    const {
-        data: primeTime,
-        error: primeError,
-        responseSeq: primeResponseSeq,
-    } = usePrimeTime(primeQuery);
+    const { data: primeTime, error: primeError, responseSeq: primeResponseSeq } = usePrimeTime(primeQuery);
     // useFetched 는 새 조회 중에도 이전 실패를 들고 있어 응답 순번으로 이번 요청의 실패만 가린다
     const isPrimeFailed = !!primeError && primeResponseSeq !== primeStartSeq;
     const isPrimeLoading = primeRequest !== null && !isPrimeFailed;
@@ -137,10 +116,7 @@ function Dashboard() {
 
     const error = baseError || primeError || dayOverviewError || t1Error || t2Error;
 
-    useErrorAlert(
-        error,
-        baseResponseSeq + primeResponseSeq + dayOverviewResponseSeq + t1ResponseSeq + t2ResponseSeq,
-    );
+    useErrorAlert(error, baseResponseSeq + primeResponseSeq + dayOverviewResponseSeq + t1ResponseSeq + t2ResponseSeq);
 
     const primeCategoryOf = (tmnlId: TerminalKind) =>
         activePrime && terminalQueries?.[tmnlId].hhmm === activePrime.times[tmnlId] ? activePrime.category : null;
@@ -198,9 +174,7 @@ function Dashboard() {
 
     const handleTerminalTimeChange = (tmnlId: TerminalKind) => (hhmm: string) => {
         setPrimeRequest(null);
-        setTerminalQueries((prev) =>
-            !prev || prev[tmnlId].hhmm === hhmm ? prev : { ...prev, [tmnlId]: { ...prev[tmnlId], hhmm } },
-        );
+        setTerminalQueries((prev) => (!prev || prev[tmnlId].hhmm === hhmm ? prev : { ...prev, [tmnlId]: { ...prev[tmnlId], hhmm } }));
     };
 
     const handleFcltDetail = (tmnlId: TerminalKind) => (fcltType: FcltCardType, unitCd: string, hhmm: string) => {
@@ -251,8 +225,28 @@ function Dashboard() {
                     onCategoryChange={handleCategoryChange}
                 >
                     <section className="row row--panels">
-                        <TerminalSummary terminal="T1" data={terminal1View} hhmm={terminalQueries?.T1.hhmm ?? ''} category={category} titleCategory={primeCategoryOf('T1')} onTimeChange={handleTerminalTimeChange('T1')} onFcltDetail={handleFcltDetail('T1')} onFcltMove={handleFcltMove('T1')} onMapMove={handleMapMove('T1')} />
-                        <TerminalSummary terminal="T2" data={terminal2View} hhmm={terminalQueries?.T2.hhmm ?? ''} category={category} titleCategory={primeCategoryOf('T2')} onTimeChange={handleTerminalTimeChange('T2')} onFcltDetail={handleFcltDetail('T2')} onFcltMove={handleFcltMove('T2')} onMapMove={handleMapMove('T2')} />
+                        <TerminalSummary
+                            terminal="T1"
+                            data={terminal1View}
+                            hhmm={terminalQueries?.T1.hhmm ?? ''}
+                            category={category}
+                            titleCategory={primeCategoryOf('T1')}
+                            onTimeChange={handleTerminalTimeChange('T1')}
+                            onFcltDetail={handleFcltDetail('T1')}
+                            onFcltMove={handleFcltMove('T1')}
+                            onMapMove={handleMapMove('T1')}
+                        />
+                        <TerminalSummary
+                            terminal="T2"
+                            data={terminal2View}
+                            hhmm={terminalQueries?.T2.hhmm ?? ''}
+                            category={category}
+                            titleCategory={primeCategoryOf('T2')}
+                            onTimeChange={handleTerminalTimeChange('T2')}
+                            onFcltDetail={handleFcltDetail('T2')}
+                            onFcltMove={handleFcltMove('T2')}
+                            onMapMove={handleMapMove('T2')}
+                        />
                     </section>
                 </HeaderSummary>
             </div>

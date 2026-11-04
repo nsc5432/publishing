@@ -113,8 +113,14 @@
 
 .header-info-cards .plan-col .k {
     font-size: 13px;
+    line-height: 16px;
     color: #858ea0;
     margin-bottom: 1px;
+}
+
+/* 여객 행은 라벨이 없어 라벨 높이(16 + 1)만큼 내려 '총 여객' 값과 높이를 맞춘다 */
+.header-info-cards .plan-col .psg {
+    padding-top: 17px;
 }
 
 /* 운항편 / 총 여객 합계.
@@ -148,6 +154,10 @@
     line-height: 1.1;
 }
 
+.header-info-cards .plan-dep .v {
+    font-weight: 600;
+}
+
 /* 여객 행(6자리)은 운항편 행(3~4자리)과 같은 폭에 담기도록 한 단계 줄인다 */
 .header-info-cards .plan-dep .psg .v,
 .header-info-cards .plan-arr .psg .v {
@@ -157,7 +167,7 @@
 
 .header-info-cards .plan-total .v {
     font-size: 31px;
-    font-weight: 600;
+    font-weight: 400;
     letter-spacing: -1.2px;
     line-height: 1.1;
 }

@@ -343,19 +343,22 @@ const MEASURED_UNTIL_HOUR = 14;
 
 function buildRsltList(tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] {
     const scale = CATEGORY_SCALE[category];
+    // 운항편 · 여객수는 터미널 요약 구간과 같은 곡선이다 — 정각 1시간 구간 값이 차트 막대와 같아야 한다
+    const hourlyFlt = toHourlyFlt(tmnlId);
 
-    return HOURLY_PSG[tmnlId].map((_, hour) => {
+    return HOURLY_PSG[tmnlId].map((psgCnt, hour) => {
         const sourceHour = (hour - CATEGORY_PEAK_HOUR[category] + CATEGORY_PEAK_HOUR.PSG + 24) % 24;
-        const base = HOURLY_PSG[tmnlId][sourceHour];
-        const psgCnt = Math.round(base * scale);
-        const fcstWtngPsgCnt = Math.round(psgCnt * 0.12);
+        const load = Math.round(HOURLY_PSG[tmnlId][sourceHour] * scale);
+        const fltCnt = Math.round(hourlyFlt[hour]);
+        const fcstWtngPsgCnt = Math.round(load * 0.12);
 
         return {
             time: `${String(hour).padStart(2, '0')}00`,
-            psgCnt,
+            psgCnt: category === 'FLT' ? fltCnt : psgCnt,
+            fltCnt,
             wtngPsgCnt: hour <= MEASURED_UNTIL_HOUR ? Math.round(fcstWtngPsgCnt * (0.85 + ((hour * 13) % 6) / 20)) : null,
             wtngHr: Math.min(40, Math.round(fcstWtngPsgCnt / 8)),
-            prcsPsgCnt: Math.round(psgCnt * 0.9),
+            prcsPsgCnt: Math.round(load * 0.9),
             prcsHr: Math.min(30, Math.round(fcstWtngPsgCnt / 12)),
             prcsRate: 70 + ((hour * 7) % 26),
             fcstWtngPsgCnt,
@@ -560,7 +563,7 @@ function toMinuteOfDay(hhmm: string): number {
 
 // 서버처럼 카드도 혼잡해소 팝업 첫 화면(TIME / 목표 30분)과 같은 프로필 / 같은 식으로 만든다
 function buildFcltCard(card: FcltCardSeed, hhmm: string, fcltType: 'CHKN' | 'DEP'): DsbdFcltCardDto {
-    const profile = QUEUE_SCENARIO_PROFILES[card.cardId] ?? QUEUE_SCENARIO_PROFILES['T1-CHKN-B'];
+    const profile = queueProfileAt(card.cardId, hhmm);
     const unitCd = fcltType === 'CHKN' ? card.island : card.dptgtNo;
     const targetMin = QUEUE_TARGET_MIN.dflt;
     // 평가시각은 조회 시각 그대로다 — 관측구간은 [hhmm-10, hhmm)
@@ -649,6 +652,32 @@ const QUEUE_SCENARIO_PROFILES: Record<string, QueueScenarioProfile> = {
     // 직전 10분 처리 여객 0명 → 등급 산정 불가 (중립색)
     'T2-DEP-2': { wtngPsgCnt: 0, obsWtngSec: null, obsPrcsPerHour: 0, queueAgeMaxMin: 0, arvlPerHour: 0, prcsSec: 24, oprCnt: 1, totCnt: 2 },
 };
+
+// 카드의 +1시간 증감이 보이도록 대기열을 시간대에 따라 흔든다. 시설마다 위상이 달라 같은 시각에도 증가 · 감소가 섞인다.
+// 위 프로필의 경계 사례(39분 59초 등)는 배율이 1.0 인 시각에만 그대로 나온다.
+const QUEUE_LOAD_BY_HOUR = [0.6, 0.6, 0.6, 0.7, 0.8, 1.0, 1.2, 1.4, 1.3, 1.1, 1.0, 0.9, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.2, 1.0, 0.9, 0.8, 0.7, 0.6];
+const QUEUE_LOAD_PHASE: Record<string, number> = {
+    'T1-CHKN-B': 0,
+    'T1-CHKN-D': 3,
+    'T2-CHKN-C': 1,
+    'T2-CHKN-E': 5,
+    'T1-DEP-3': 2,
+    'T1-DEP-1': 0,
+    'T2-DEP-1': 4,
+    'T2-DEP-2': 0,
+};
+
+function queueProfileAt(key: string, hhmm: string): QueueScenarioProfile {
+    const profile = QUEUE_SCENARIO_PROFILES[key] ?? QUEUE_SCENARIO_PROFILES['T1-CHKN-B'];
+    const load = QUEUE_LOAD_BY_HOUR[(Number(hhmm.slice(0, 2)) + (QUEUE_LOAD_PHASE[key] ?? 0)) % 24];
+
+    return {
+        ...profile,
+        wtngPsgCnt: Math.round(profile.wtngPsgCnt * load),
+        obsWtngSec: profile.obsWtngSec === null ? null : profile.obsWtngSec * load,
+        queueAgeMaxMin: Math.round(profile.queueAgeMaxMin * load),
+    };
+}
 
 const QUEUE_OBS_MIN = 10;
 const QUEUE_TARGET_MIN = { dflt: 30, min: 1, max: 120 };
@@ -940,7 +969,7 @@ function failQueueScenario(errorMessage: string): FcltQueueScenarioDto {
 
 function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto {
     const key = `${req.tmnlId}-${req.fcltType}-${req.unitCd}`;
-    const profile = QUEUE_SCENARIO_PROFILES[key] ?? QUEUE_SCENARIO_PROFILES['T1-CHKN-B'];
+    const profile = queueProfileAt(key, req.hhmm);
     const ymd = BASE_INFO.ymd;
     // 평가시각 = 조회 시각. 관측구간은 그 직전 10분이다
     const baseMinute = toMinuteOfDay(req.hhmm);

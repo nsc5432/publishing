@@ -77,7 +77,6 @@ export function HeaderInfoCards({ planDate, header }: HeaderInfoCardsProps) {
                             </div>
                         </div>
                     </div>
-                    {/* 출발 열은 두 행을 아우르는 한 박스로 강조 */}
                     <div className="plan-col plan-dep">
                         <div className="cell">
                             <div className="k">출발</div>
@@ -86,9 +85,7 @@ export function HeaderInfoCards({ planDate, header }: HeaderInfoCardsProps) {
                                 <span className="u">편</span>
                             </div>
                         </div>
-                        {/* 여객 행은 6자리(천단위 구분 포함)까지 들어오므로 운항편 행과 글자 크기를 나눈다 */}
                         <div className="cell psg">
-                            <div className="k">출발</div>
                             <div>
                                 <span className="v">{countText(plan?.depPsgCnt)}</span>
                                 <span className="u">명</span>
@@ -104,7 +101,6 @@ export function HeaderInfoCards({ planDate, header }: HeaderInfoCardsProps) {
                             </div>
                         </div>
                         <div className="cell psg">
-                            <div className="k">도착</div>
                             <div>
                                 <span className="v">{plan ? formatCount(arrPsgCnt) : EMPTY}</span>
                                 <span className="u">명</span>

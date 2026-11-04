@@ -140,6 +140,7 @@ export type DsbdCategory = 'PSG' | 'FLT' | 'CHKN' | 'DEP';
 export interface DsbdRsltDto {
     time: string;
     psgCnt: number;
+    fltCnt: number;
     wtngPsgCnt: number | null;
     wtngHr: number;
     prcsPsgCnt: number;

@@ -62,12 +62,19 @@ export interface FcltCardRecommend {
     countNoteAccent?: boolean;
 }
 
+export interface FcltCardDiff {
+    text: string;
+    dir: 'up' | 'down' | 'flat';
+}
+
 export interface FcltCardSnapshot {
     hhmm: string;
     congestion: string;
     congestionKind: string;
     waitingCount: string;
     waitingTime: string;
+    waitingCountDiff?: FcltCardDiff;
+    waitingTimeDiff?: FcltCardDiff;
     operatingCount: string;
     processRate: GaugeData & { label: string };
     clearTime: GaugeData & { label: string; clockText: string };
@@ -78,7 +85,6 @@ export interface FcltCardSnapshot {
 export interface FcltCardVariant {
     /** 하단 칩(FcltUnitDto.unitCd)과 카드를 잇는 키 — 아일랜드 문자 / 출국장 번호 */
     unitCd: string;
-    island?: string;
     num: string;
     meta: FcltCardMeta[];
     current: FcltCardSnapshot | null;

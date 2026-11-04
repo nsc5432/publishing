@@ -716,6 +716,20 @@ html[data-page='dashboard'] button.p-iconbox:focus-visible {
     outline-offset: 2px;
 }
 
+html[data-page='dashboard'] .p-iconbox .p-iconbox-lbl {
+    position: absolute;
+    top: 16px;
+    left: 0;
+    right: 0;
+    z-index: 1;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
 html[data-page='dashboard'] .p-iconbox .p-map {
     position: absolute;
     left: 50%;
@@ -1021,6 +1035,17 @@ html[data-page='dashboard'] .legend > span > i::after {
     background: inherit;
 }
 
+html[data-page='dashboard'] .legend > span > i.legend__bar {
+    width: 12px;
+    height: 10px;
+    border-radius: 2px 2px 0 0;
+    background: rgba(148, 163, 196, 0.55);
+}
+
+html[data-page='dashboard'] .legend > span > i.legend__bar::after {
+    display: none;
+}
+
 html[data-page='dashboard'] .chart-bg {
     position: absolute;
     inset: 6px 8px 2px;
@@ -1029,7 +1054,7 @@ html[data-page='dashboard'] .chart-bg {
     background-repeat: no-repeat;
     background-position: center 52%;
     background-size: 72% auto;
-    opacity: 0.16;
+    opacity: 0.32;
     -webkit-mask: radial-gradient(72% 72% at 50% 52%, #000 55%, transparent 92%);
     mask: radial-gradient(72% 72% at 50% 52%, #000 55%, transparent 92%);
 }
@@ -1094,7 +1119,7 @@ html[data-page='dashboard'] .p-title-txt {
 html[data-page='dashboard'] .p-time-step {
     flex-shrink: 0;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     gap: 0;
     margin-left: 10px;
     padding: 1px;
@@ -1105,11 +1130,11 @@ html[data-page='dashboard'] .p-time-step {
 }
 
 html[data-page='dashboard'] .p-time-step > button {
-    width: 26px;
-    height: 12px;
+    width: 24px;
+    height: 20px;
     padding: 0;
     border: none;
-    border-radius: 4px 4px 0 0;
+    border-radius: 4px 0 0 4px;
     background: transparent;
     color: #3776d4;
     display: flex;
@@ -1122,8 +1147,8 @@ html[data-page='dashboard'] .p-time-step > button {
 }
 
 html[data-page='dashboard'] .p-time-step > button + button {
-    border-radius: 0 0 4px 4px;
-    box-shadow: 0 -1px 0 #d4e2f7;
+    border-radius: 0 4px 4px 0;
+    box-shadow: -1px 0 0 #d4e2f7;
 }
 
 html[data-page='dashboard'] .p-time-step > button:hover:not(:disabled) {
@@ -1150,7 +1175,7 @@ html[data-page='dashboard'] .p-time-step > button:disabled {
 
 html[data-page='dashboard'] .p-time-step svg {
     width: 14px;
-    height: 12px;
+    height: 14px;
 }
 
 html[data-page='dashboard'] .p-bar {
@@ -1269,7 +1294,7 @@ html[data-page='dashboard'] .sum-two {
     position: relative;
     flex: 0 0 440px;
     max-width: 56%;
-    background: #f7f5fa;
+    background: #f0edf6;
     border: 1px solid #d8d4e0;
     border-radius: 14px;
     display: grid;
@@ -1281,10 +1306,11 @@ html[data-page='dashboard'] .sum-two {
 html[data-page='dashboard'] .sum-cell {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 22px repeat(2, minmax(0, 1fr));
+    grid-template-rows: 22px minmax(0, 1fr);
     align-items: center;
     gap: 2px;
     min-width: 0;
+    min-height: 0;
     padding: 0 7px;
 }
 
@@ -1307,11 +1333,6 @@ html[data-page='dashboard'] .sum-time {
     white-space: nowrap;
 }
 
-html[data-page='dashboard'] .p-note + .sum-cell .sum-time {
-    background: #e9e5f4;
-    color: #656080;
-}
-
 html[data-page='dashboard'] .sum-time time {
     font-size: 12px;
     font-weight: 600;
@@ -1321,24 +1342,52 @@ html[data-page='dashboard'] .sum-time time {
     line-height: 1.1;
 }
 
+html[data-page='dashboard'] .sum-metrics {
+    display: grid;
+    grid-template-columns: 15px minmax(0, 1fr);
+    align-self: stretch;
+    gap: 3px;
+    min-width: 0;
+    min-height: 0;
+}
+
+html[data-page='dashboard'] .sum-metric-icons,
+html[data-page='dashboard'] .sum-metric-values {
+    display: grid;
+    grid-template-rows: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+    min-height: 0;
+}
+
+html[data-page='dashboard'] .sum-metric-icons {
+    padding: 3px 0;
+}
+
+html[data-page='dashboard'] .sum-metric-values {
+    padding: 2px 4px;
+    background: #fff;
+    border: 1px solid #e4dfec;
+    border-radius: 8px;
+}
+
 html[data-page='dashboard'] .sum-metric {
     display: flex;
     align-items: center;
-    gap: 3px;
+    justify-content: center;
+    gap: 2px;
     min-width: 0;
+    line-height: 1.1;
 }
 
-html[data-page='dashboard'] .sum-metric:last-child {
-    justify-content: flex-start;
-}
-
-html[data-page='dashboard'] .sum-metric > i {
+html[data-page='dashboard'] .sum-metric-icons > i {
     width: 15px;
     height: 15px;
     flex-shrink: 0;
 }
 
-html[data-page='dashboard'] .sum-metric > i > svg {
+html[data-page='dashboard'] .sum-metric-icons > i > svg {
     width: 15px;
     height: 15px;
 }
@@ -1347,6 +1396,7 @@ html[data-page='dashboard'] .sum-two .p-note {
     left: 12px;
     padding: 0 4px;
     font-size: 11px;
+    background: #f0edf6;
 }
 
 html[data-page='dashboard'] .sum-cell .val {
@@ -1366,7 +1416,7 @@ html[data-page='dashboard'] .sum-cell .u {
 }
 
 html[data-page='dashboard'] .sum-cell .sub {
-    margin-left: auto;
+    margin-left: 0;
     font-size: 10px;
     color: #7c8698;
     white-space: nowrap;
@@ -1621,7 +1671,7 @@ html[data-page='dashboard'] .fclt-card-mid .isl {
 }
 
 html[data-page='dashboard'] .fclt-card-mid .num {
-    font-size: 30px;
+    font-size: 36px;
     font-weight: 700;
     color: var(--fclt-congestion-color, #979797);
     letter-spacing: -1.2px;
@@ -1847,6 +1897,22 @@ html[data-page='dashboard'] .fclt-flow-value {
 html[data-page='dashboard'] .fclt-flow-count small {
     font-size: 12px;
     color: #6c7688;
+}
+
+html[data-page='dashboard'] .fclt-flow-diff {
+    margin-left: 3px;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 600;
+    color: #8a93a3;
+}
+
+html[data-page='dashboard'] .fclt-flow-diff[data-dir='up'] {
+    color: #d92626;
+}
+
+html[data-page='dashboard'] .fclt-flow-diff[data-dir='down'] {
+    color: #2f7ff0;
 }
 
 html[data-page='dashboard'] .fclt-flow-link {
@@ -2378,8 +2444,7 @@ html[data-page='dashboard'] .trow.sel {
 }
 
 /* 1002px 아래에서는 여백 압축만으로 추천 문구와 칩의 겹침을 막을 수 없다. */
-@media (min-width: 1350px) and (max-height: 1079px),
-    (min-width: 1350px) and (max-width: 1599px) {
+@media (min-width: 1350px) and (max-height: 1079px), (min-width: 1350px) and (max-width: 1599px) {
     html[data-page='dashboard'] {
         --donut-size: 58px;
     }
@@ -2405,7 +2470,7 @@ html[data-page='dashboard'] .trow.sel {
     }
 
     html[data-page='dashboard'] .fclt-card-mid .num {
-        font-size: 22px;
+        font-size: 30px;
         line-height: 1;
     }
 

@@ -5,11 +5,13 @@ import type { DsbdRsltDto } from '@/types/api.types';
 import { formatCount } from '@/lib/format';
 import { AXIS_LABEL, toTooltipItems, TOOLTIP_TEXT_STYLE } from '@/lib/chart';
 
-const GRID = { left: 40, right: 16, top: 26, bottom: 14 };
+const GRID = { left: 40, right: 34, top: 40, bottom: 14 };
 const Y_TICK_COUNT = 6;
 const X_LABEL_INTERVAL = 3;
 const POINT_ANIMATION_DELAY_MS = 40;
 const REPLAY_INTERVAL_MS = 10 * 1000; // 10초
+const SERIES_UNIT: Record<string, string> = { 예측: '명', 실적: '명', 운항편: '건' };
+const AXIS_NAME = { nameLocation: 'end' as const, nameGap: 8, nameTextStyle: { ...AXIS_LABEL } };
 
 function toAreaGradient(rgb: string) {
     return {
@@ -47,7 +49,6 @@ export function TerminalChart({ rsltList, selectedHhmm, onHourSelect }: Terminal
     const hourSelectRef = useRef(onHourSelect);
 
     const handleChartReady = useCallback((chart: EChartsInstance) => {
-        // 점(5px)만 눌리는 series click 대신 그리드 아무 곳이나 가장 가까운 시로 받는다
         chart.getZr().on('click', (event) => {
             const point = [event.offsetX, event.offsetY];
             if (!chart.containPixel({ gridIndex: 0 }, point)) return;
@@ -70,6 +71,7 @@ export function TerminalChart({ rsltList, selectedHhmm, onHourSelect }: Terminal
 
     const option = useMemo<EChartsOption>(() => {
         const axisMax = roundUpAxisMax(Math.max(1, ...rsltList.map((rslt) => Math.max(rslt.fcstWtngPsgCnt, rslt.wtngPsgCnt ?? 0))));
+        const fltAxisMax = roundUpAxisMax(Math.max(1, ...rsltList.map((rslt) => rslt.fltCnt)));
         const selectedIndex = rsltList.findIndex((rslt) => rslt.time.slice(0, 2) === selectedHhmm.slice(0, 2));
 
         return {
@@ -91,18 +93,20 @@ export function TerminalChart({ rsltList, selectedHhmm, onHourSelect }: Terminal
                 formatter: (params) => {
                     const tooltipItems = toTooltipItems(params);
                     const seriesItems = tooltipItems.filter(
-                        (item) => (item.seriesName === '예측' || item.seriesName === '실적') && item.value !== null && item.value !== undefined,
+                        (item) => item.seriesName !== undefined && item.seriesName in SERIES_UNIT && item.value !== null && item.value !== undefined,
                     );
                     if (seriesItems.length === 0) return '';
 
-                    const lines = seriesItems.map((item) => `${item.marker}${item.seriesName} <b>${formatCount(Number(item.value))}</b>명`).join('<br/>');
+                    const lines = seriesItems
+                        .map((item) => `${item.marker}${item.seriesName} <b>${formatCount(Number(item.value))}</b>${SERIES_UNIT[item.seriesName ?? '']}`)
+                        .join('<br/>');
 
                     return `${seriesItems[0].axisValue}<br/>${lines}`;
                 },
             },
             xAxis: {
                 type: 'category',
-                boundaryGap: false,
+                boundaryGap: true,
                 data: rsltList.map((rslt) => `${Number(rslt.time.slice(0, 2))}H`),
                 axisLine: { show: false },
                 axisTick: { show: false },
@@ -117,26 +121,58 @@ export function TerminalChart({ rsltList, selectedHhmm, onHourSelect }: Terminal
                     },
                 },
             },
-            yAxis: {
-                type: 'value',
-                min: 0,
-                max: axisMax,
-                interval: axisMax / Y_TICK_COUNT,
-                axisLine: { show: false },
-                axisTick: { show: false },
-                axisLabel: {
-                    ...AXIS_LABEL,
-                    margin: 14,
-                    formatter: (value: number) => formatCount(Math.round(value)),
-                },
-                splitLine: {
-                    lineStyle: {
-                        color: ['transparent', ...Array<string>(Y_TICK_COUNT).fill('#eceff5')],
-                        width: 1,
+            yAxis: [
+                {
+                    type: 'value',
+                    name: '대기인원(명)',
+                    ...AXIS_NAME,
+                    nameTextStyle: { ...AXIS_NAME.nameTextStyle, align: 'left', padding: [0, 0, 0, -GRID.left + 4] },
+                    min: 0,
+                    max: axisMax,
+                    interval: axisMax / Y_TICK_COUNT,
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    axisLabel: {
+                        ...AXIS_LABEL,
+                        margin: 14,
+                        formatter: (value: number) => formatCount(Math.round(value)),
+                    },
+                    splitLine: {
+                        lineStyle: {
+                            color: ['transparent', ...Array<string>(Y_TICK_COUNT).fill('#eceff5')],
+                            width: 1,
+                        },
                     },
                 },
-            },
+                {
+                    type: 'value',
+                    name: '운항편(건)',
+                    ...AXIS_NAME,
+                    nameTextStyle: { ...AXIS_NAME.nameTextStyle, align: 'right', padding: [0, -GRID.right + 4, 0, 0] },
+                    min: 0,
+                    max: fltAxisMax,
+                    interval: fltAxisMax / Y_TICK_COUNT,
+                    axisLine: { show: false },
+                    axisTick: { show: false },
+                    axisLabel: {
+                        ...AXIS_LABEL,
+                        margin: 8,
+                        formatter: (value: number) => formatCount(Math.round(value)),
+                    },
+                    splitLine: { show: false },
+                },
+            ],
             series: [
+                {
+                    name: '운항편',
+                    type: 'bar',
+                    yAxisIndex: 1,
+                    z: 1,
+                    barWidth: '56%',
+                    itemStyle: { color: 'rgba(148, 163, 196, 0.32)', borderRadius: [3, 3, 0, 0] },
+                    emphasis: { itemStyle: { color: 'rgba(148, 163, 196, 0.55)' } },
+                    data: rsltList.map((rslt) => rslt.fltCnt),
+                },
                 {
                     name: '예측',
                     type: 'line',

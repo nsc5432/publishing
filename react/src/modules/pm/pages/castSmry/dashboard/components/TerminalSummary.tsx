@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import t1White from '@/assets/svg/t1-white.svg';
 import t2White from '@/assets/svg/t2-white.svg';
-import t1Blue from '@/assets/svg/t1-blue.svg';
+import t1Blue from '@/assets/svg/t1-blue-deep.svg';
 import t2Teal from '@/assets/svg/t2-teal-full.svg';
 import mapIcon from '@/assets/svg/map-icon.svg';
 import mapWhiteIcon from '@/assets/svg/map-white-icon.svg';
@@ -96,6 +96,7 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
         <section className={`panel ${theme.panelClass}`}>
             <div className="p-top">
                 <button type="button" className="p-iconbox" data-terminal={terminal} aria-label={`${terminal} 맵형태보기로 이동`} onClick={onMapMove}>
+                    <span className="p-iconbox-lbl">출국장</span>
                     <img className="tbig" alt="terminal" src={images.big} />
                     <span className="p-map" aria-hidden="true">
                         <img className="p-map-ic" alt="" src={mapWhiteIcon} />
@@ -175,6 +176,10 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                             <i style={{ background: '#3b82f6' }} />
                             {legendSubject} Xovis 대기인원
                         </span>
+                        <span>
+                            <i className="legend__bar" />
+                            운항편
+                        </span>
                     </div>
                     <TerminalChart rsltList={view.chart.rsltList} selectedHhmm={hhmm} onHourSelect={onTimeChange} />
                 </div>
@@ -185,19 +190,17 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                     <span className="p-title-in">
                         <span className="p-title-txt">{view.barText}</span>
                         <span className="p-time-step">
-                            <button type="button" aria-label="10분 뒤" disabled={!laterHhmm} onClick={() => onTimeChange(laterHhmm)}>
-                                <Icon name="caretU" />
-                            </button>
                             <button type="button" aria-label="10분 전" disabled={!earlierHhmm} onClick={() => onTimeChange(earlierHhmm)}>
-                                <Icon name="caretD" />
+                                <Icon name="chevL" />
+                            </button>
+                            <button type="button" aria-label="10분 뒤" disabled={!laterHhmm} onClick={() => onTimeChange(laterHhmm)}>
+                                <Icon name="chevR" />
                             </button>
                         </span>
                     </span>
                 </div>
                 <div className="p-bar">
-                    {titleCategory && (
-                        <span className="p-bar-txt">{TITLE_LEAD[titleCategory]} 가장 많을 때</span>
-                    )}
+                    {titleCategory && <span className="p-bar-txt">{TITLE_LEAD[titleCategory]} 가장 많을 때</span>}
                     <button
                         type="button"
                         className={`p-switch${viewKind === 'summary' ? ' on' : ''}`}
@@ -220,18 +223,26 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                                     <span>{slot.label}</span>
                                     <time>{slot.time}</time>
                                 </div>
-                                {slot.stats.map((stat) => (
-                                    <div className="sum-metric" key={stat.unit}>
-                                        <Icon name={stat.icon} className={stat.iconClass} />
-                                        <div className="val">
-                                            <span className="big">{stat.value}</span>
-                                            <span className="u">{stat.unit}</span>
-                                        </div>
-                                        <span className="sub" aria-label={`${stat.deltaLabel} ${stat.delta}`}>
-                                            <span className="danger">({stat.delta})</span>
-                                        </span>
+                                <div className="sum-metrics">
+                                    <div className="sum-metric-icons">
+                                        {slot.stats.map((stat) => (
+                                            <Icon key={stat.unit} name={stat.icon} className={stat.iconClass} />
+                                        ))}
                                     </div>
-                                ))}
+                                    <div className="sum-metric-values">
+                                        {slot.stats.map((stat) => (
+                                            <div className="sum-metric" key={stat.unit}>
+                                                <div className="val">
+                                                    <span className="big">{stat.value}</span>
+                                                    <span className="u">{stat.unit}</span>
+                                                </div>
+                                                <span className="sub" aria-label={`${stat.deltaLabel} ${stat.delta}`}>
+                                                    <span className="danger">({stat.delta})</span>
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -260,7 +271,12 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
 
                 <div className="fclt-cards">
                     {view.fcltCards.map((fcltCard) => (
-                        <FcltCard key={fcltCard.fcltType} data={fcltCard} onDetail={(unitCd, targetHhmm) => onFcltDetail(fcltCard.fcltType, unitCd, targetHhmm)} onMove={() => onFcltMove(fcltCard.fcltType)} />
+                        <FcltCard
+                            key={fcltCard.fcltType}
+                            data={fcltCard}
+                            onDetail={(unitCd, targetHhmm) => onFcltDetail(fcltCard.fcltType, unitCd, targetHhmm)}
+                            onMove={() => onFcltMove(fcltCard.fcltType)}
+                        />
                     ))}
                 </div>
             </div>

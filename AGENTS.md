@@ -117,6 +117,8 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
      `DsbdFcltCardDto.hrlyPrcsPsgCnt` 는 시간당 환산값이라 그대로다. 피크는 정각 스냅샷 중 CC + LGT
      대기인원 합이 가장 큰 시각(`HH00`)이고, PSG · FLT 시간대별 차트도 같은 조회(`CastDsbdMapper.retrieveRsltHourSnapshotList`)를 읽는다.
      같은 날 Xovis `Queue` 조회 전부에서 `-SBD` 줄을 뺐고, 요약보기 CHKN 차트의 Cast 선에서도 SBD 기기 대기를 뺐다(§13). **새 이름도 이제 고정이다.**
+   - 2026-11-04 요약보기 시간대별 차트의 운항편 막대용으로 `DsbdRsltDto.fltCnt`(시간당 운항편수)를 더했다. 카테고리와 무관하게 채우며,
+     FLT 카테고리의 `psgCnt` 와 같은 값이다. Prime Time 운항편 피크(`toPrimeTime`)도 이 값을 읽는다. **새 이름도 이제 고정이다.**
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).
@@ -576,11 +578,19 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   좌석수(`ARCFT_STGCP`) 0·NULL 편은 이 조각에서 제외한다(2026-10-27). 섞이면 CAST가 결과 없이 Finished로 끝난다.
   여객수는 실탑승 입력(`INPT_YN='Y'`, 1~1000명) → 예약승객수 순이며, 둘 다 없는 편은 제외한다.
   과거 3개월 평균·좌석×0.75 추정은 쓰지 않는다(castrest 원본 fallback 제거).
-- 운항 조정은 국제선 출발 GREATEST(예약-환승,0) 몫만 늘린다. 조회와 발행의 필터·ROW_NUMBER를 맞춘다.
+- 운항 조정은 국제선 출발 GREATEST(예약-환승,0) 몫만 늘린다. 조회와 발행의 필터를 맞춘다
+  (발행 INSERT 의 ROW_NUMBER 는 위 PK 보호용이고 조회에는 두지 않는다, 2026-11-04).
   기준 여객수는 FS001 값이고, 늘리는 몫만 조회 화면과 같은 예약 기준이다.
   비율은 편의 시간대 `SUBSTR(NVL(TRIM(PREDC_HM), SCHDL_HM), 1, 2)` 로 찾는다(2026-11-02). 조회 집계와 발행이
   같은 식이어야 화면에서 바꾼 시간대의 편이 바뀐다. 결과 여객수는 `GREATEST(…, 0)` — 실탑승 입력 편은
   감소 조정이 음수를 만들 수 있다. 운항편 수는 조정하지 않는다(화면 운항편 차트도 배수를 걸지 않는다).
+- 운항 원천 `GOOWN.TN_GO_GD_DATA` 의 `ARCFT_USE_SE_CD` 는 CAST 발행(`CastApiMapper`)과 화면 조회 모든 SQL 에서
+  `IN ('0', '1')` 이다(2026-11-04). 한 곳만 `'0'` 으로 좁히면 발행과 조회의 대상 편이 갈린다.
+- 요약보기 운항편 · 여객 조회 `CastDsbdMapper.retrieveFltSmry`(헤더 · 터미널 패널 · 요약 구간 · 맵 요약)와
+  `CastFltPsgMapper.retrieveFltPsgHourList`(시간대별 차트 · 사용자 시뮬레이션 운항)는 대상 편 조건(P01~P03 · 좌석수 > 0 ·
+  `FRY_YN` · `LCRFT_YN` = `'N'` · `SCHDL_HM` NOT NULL 등)과 편별 `GREATEST(예약-환승,0)` 을 같게 둔다 (2026-11-04).
+  원천이 편 키(`ARR_DEP_SE_CD` · `FLTNM` · `GD_SE_YMD` · `SCHDL_HM`) 유일을 보장하므로 두 조회는 중복 제거 `ROW_NUMBER` 를 두지 않는다. 정각 1시간 요약 구간(Prime Time 현재 / +1시간 / +2시간)이 차트의 그 시 막대와 같아야 하므로 한쪽 조건을 바꾸면
+  다른 쪽도 함께 바꾼다. 목업도 같은 곡선(`toHourlyFlt`)을 쓰며 `npm run verify:dsbd` 가 대조한다.
 - 사용자 DepartureGate는 운영 Y 출국장 × 운영구간 × `001` 조합(East/West·SD·FR)마다 1행이다 (2026-10-20,
   [계획](docs/plans/2026-10-20-user-smlt-dptgt-lane-chkn-type.md)). 레인은 스마트패스 = FR `Y`, 일반 = FR `N` 그룹 안에서
   `001` 레인 비율로 나눈다(내림 후 잔여는 소수부 큰 순). `001` 조합이 없는 운영 Y 출국장은 발행 전에 실패한다.

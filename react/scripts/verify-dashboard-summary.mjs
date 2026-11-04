@@ -117,7 +117,7 @@ try {
         smryWtngPsgCnt: null, smryAvgWtngSec: null, smryArvlPsgCnt: null, smryPrcsPsgCnt: null,
     })), ['-', '-', '-', '-'], 'unknown summary results never fall back to daily peak');
 
-    for (const [category, expectedTime] of [['PSG', '0800'], ['FLT', '0900'], ['CHKN', '1000'], ['DEP', '1100']]) {
+    for (const [category, expectedTime] of [['PSG', '0800'], ['FLT', '0800'], ['CHKN', '1000'], ['DEP', '1100']]) {
         const time = toPrimeTime(['T1', 'T2'].map((terminal) => api.getTmnlRsltByTime(terminal, category)), category);
         check(time, expectedTime, `${category} Prime Time selects its peak hour`);
         check(values(viewAt(time, smryAt(time, 'T1', category), category)), expectedValues(smryAt(time, 'T1', category)),
@@ -126,6 +126,18 @@ try {
     }
     check(JSON.stringify(smryInfo(smryAt('0900', 'T2'))) !== JSON.stringify(smryInfo(smryAt('0900'))), true,
         'second terminal has independent summary results');
+
+    for (const terminal of ['T1', 'T2']) {
+        for (const category of ['PSG', 'FLT', 'CHKN', 'DEP']) {
+            const mismatched = api.getTmnlRsltByTime(terminal, category).filter((rslt) => {
+                const smry = smryAt(rslt.time, terminal, category);
+                const psgCnt = category === 'FLT' ? smry.intrvlFltCnt : smry.intrvlPsgCnt;
+                return rslt.fltCnt !== smry.intrvlFltCnt || rslt.psgCnt !== psgCnt;
+            });
+            check(mismatched.map((rslt) => rslt.time), [],
+                `${terminal} ${category} hourly chart counts equal the on-the-hour summary interval`);
+        }
+    }
 
     for (const terminal of ['T1', 'T2']) {
         const smry = smryAt('0910', terminal);

@@ -773,6 +773,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		DsbdRsltDto result = new DsbdRsltDto();
 		result.setTime(hour + "00");
 		result.setPsgCnt(fltPsg == null ? 0 : fltPsg.getPsgCnt());
+		result.setFltCnt(fltPsg == null ? 0 : fltPsg.getFltCnt());
 		result.setFcstWtngPsgCnt(maxIslandQueue);
 		result.setPrcsPsgCnt(prcsPsgCnt);
 		result.setWtngHr(prcsPsgCnt == 0 ? 0 : cc.getAvgWaitSec() / SEC_PER_MIN);
@@ -835,6 +836,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		if (fltPsg != null) {
 			result.setPsgCnt(category == DsbdCategory.FLT ? fltPsg.getFltCnt() : fltPsg.getPsgCnt());
+			result.setFltCnt(fltPsg.getFltCnt());
 		}
 
 		if (rslt != null) {

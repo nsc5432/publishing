@@ -11,6 +11,7 @@ import lombok.Setter;
 public class DsbdRsltDto {
 	private String time; // HHmm
 	private int psgCnt; // 여객수 (명)
+	private int fltCnt; // 운항편수 (건)
 	private Integer wtngPsgCnt; // 실측 대기인원 (명)
 	private int wtngHr; // 대기시간 (분)
 	private int prcsPsgCnt; // 처리인원 (명)
