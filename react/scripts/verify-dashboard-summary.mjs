@@ -128,6 +128,12 @@ try {
         'second terminal has independent summary results');
 
     for (const terminal of ['T1', 'T2']) {
+        const chartOf = (category) => api.getTmnlRsltByTime(terminal, category)
+            .map(({ psgCnt: _psgCnt, ...rslt }) => rslt);
+        check(chartOf('FLT'), chartOf('PSG'), `${terminal} flight and passenger tiles draw the same chart`);
+    }
+
+    for (const terminal of ['T1', 'T2']) {
         for (const category of ['PSG', 'FLT', 'CHKN', 'DEP']) {
             const mismatched = api.getTmnlRsltByTime(terminal, category).filter((rslt) => {
                 const smry = smryAt(rslt.time, terminal, category);

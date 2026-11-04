@@ -320,20 +320,21 @@ function buildTmnlSmry(tmnlId: TmnlId, hhmm: string, intrvlMin: number, category
 
 /* ================= 시간대별 결과 (차트 / 테이블) ================= */
 
+/** 운항편은 여객수와 같은 시설(CC + LGT)을 읽는다 — 서버 `DsbdCategory` 와 같은 규칙이라 두 차트가 같다 */
+type WtngCategory = Exclude<DsbdCategory, 'FLT'>;
+
 /**
  * 퀵 타일(조회 대상)에 따라 값의 규모가 달라진다.
  * 실제로는 서버가 지표별로 다른 값을 내려주지만, 목업은 출발여객 곡선의 배율과 피크 시각을 바꾼다.
  */
-const CATEGORY_SCALE: Record<DsbdCategory, number> = {
+const CATEGORY_SCALE: Record<WtngCategory, number> = {
     PSG: 1,
-    FLT: 0.018,
     CHKN: 0.45,
     DEP: 0.32,
 };
 
-const CATEGORY_PEAK_HOUR: Record<DsbdCategory, number> = {
+const CATEGORY_PEAK_HOUR: Record<WtngCategory, number> = {
     PSG: 8,
-    FLT: 9,
     CHKN: 10,
     DEP: 11,
 };
@@ -342,12 +343,13 @@ const CATEGORY_PEAK_HOUR: Record<DsbdCategory, number> = {
 const MEASURED_UNTIL_HOUR = 14;
 
 function buildRsltList(tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] {
-    const scale = CATEGORY_SCALE[category];
+    const wtngCategory: WtngCategory = category === 'FLT' ? 'PSG' : category;
+    const scale = CATEGORY_SCALE[wtngCategory];
     // 운항편 · 여객수는 터미널 요약 구간과 같은 곡선이다 — 정각 1시간 구간 값이 차트 막대와 같아야 한다
     const hourlyFlt = toHourlyFlt(tmnlId);
 
     return HOURLY_PSG[tmnlId].map((psgCnt, hour) => {
-        const sourceHour = (hour - CATEGORY_PEAK_HOUR[category] + CATEGORY_PEAK_HOUR.PSG + 24) % 24;
+        const sourceHour = (hour - CATEGORY_PEAK_HOUR[wtngCategory] + CATEGORY_PEAK_HOUR.PSG + 24) % 24;
         const load = Math.round(HOURLY_PSG[tmnlId][sourceHour] * scale);
         const fltCnt = Math.round(hourlyFlt[hour]);
         const fcstWtngPsgCnt = Math.round(load * 0.12);
