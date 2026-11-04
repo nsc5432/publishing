@@ -114,12 +114,12 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                                 <div className="p-line">
                                     <span className="p-big">{view.stats.flights.value}</span>
                                     <span className="p-u">편</span>
-                                    <span className="p-delta">{view.stats.flights.delta}</span>
+                                    <span className="p-delta">({view.stats.flights.delta})</span>
                                 </div>
                                 <div className="p-line">
                                     <span className="p-big">{view.stats.pax.value}</span>
                                     <span className="p-u">명</span>
-                                    <span className="p-delta">{view.stats.pax.delta}</span>
+                                    <span className="p-delta">({view.stats.pax.delta})</span>
                                 </div>
                             </div>
                             <div className="board">

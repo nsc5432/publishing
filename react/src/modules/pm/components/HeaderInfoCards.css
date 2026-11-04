@@ -95,22 +95,14 @@
     color: #00b3ab;
 }
 
-/* 운항편 / 총 여객 합계 박스 — 두 행을 세로로 아우른다.
-   총 여객은 6자리 + 천단위 구분(예: 111,340)까지 들어와 폭을 그 기준으로 잡는다 */
-.header-info-cards .plan-total {
-    width: 130px;
-    flex-shrink: 0;
-    margin: 0 8px;
-    white-space: nowrap;
-    background: rgba(255, 255, 255, 0.92);
-    border: 1px solid rgba(160, 168, 200, 0.35);
-    border-radius: 12px;
-    box-shadow: 0 1px 4px rgba(46, 50, 94, 0.06);
+/* 운항편 · 출발 · 도착 세 열. 열마다 운항편 / 여객 두 행을 같은 높이로 나눈다 */
+.header-info-cards .plan-col {
     display: flex;
     flex-direction: column;
+    white-space: nowrap;
 }
 
-.header-info-cards .plan-total .cell {
+.header-info-cards .plan-col .cell {
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -119,40 +111,37 @@
     text-align: center;
 }
 
-.header-info-cards .plan-total .k {
+.header-info-cards .plan-col .k {
     font-size: 13px;
     color: #858ea0;
     margin-bottom: 1px;
 }
 
-.header-info-cards .plan-cols {
-    /* 출발 / 도착 두 행 */
+/* 운항편 / 총 여객 합계.
+   총 여객은 6자리 + 천단위 구분(예: 111,340)까지 들어와 폭을 그 기준으로 잡는다 */
+.header-info-cards .plan-total {
+    width: 130px;
+    flex-shrink: 0;
+}
+
+.header-info-cards .plan-dep,
+.header-info-cards .plan-arr {
     flex: 1;
     min-width: 0;
-    display: flex;
-    flex-direction: column;
 }
 
-.header-info-cards .stat-cells {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    white-space: nowrap;
+/* 출발 박스 — 두 행을 세로로 아우른다 */
+.header-info-cards .plan-dep {
+    margin: 0 8px;
+    padding: 0 6px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(160, 168, 200, 0.35);
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(46, 50, 94, 0.06);
 }
 
-.header-info-cards .stat-cells > div {
-    flex: 1;
-    min-width: 0;
-    text-align: center;
-}
-
-.header-info-cards .stat-cells .k {
-    font-size: 13px;
-    color: #858ea0;
-    margin-bottom: 1px;
-}
-
-.header-info-cards .stat-cells .v {
+.header-info-cards .plan-dep .v,
+.header-info-cards .plan-arr .v {
     font-size: 29px;
     font-weight: 500;
     letter-spacing: -1.2px;
@@ -160,7 +149,8 @@
 }
 
 /* 여객 행(6자리)은 운항편 행(3~4자리)과 같은 폭에 담기도록 한 단계 줄인다 */
-.header-info-cards .stat-psg .v {
+.header-info-cards .plan-dep .psg .v,
+.header-info-cards .plan-arr .psg .v {
     font-size: 24px;
     letter-spacing: -1px;
 }
@@ -177,8 +167,7 @@
     letter-spacing: -1px;
 }
 
-.header-info-cards .stat-cells .u,
-.header-info-cards .plan-total .u {
+.header-info-cards .plan-col .u {
     font-size: 15px;
     color: #3c4350;
     margin-left: 3px;
@@ -386,6 +375,9 @@
 
     .header-info-cards .plan-total {
         width: 112px;
+    }
+
+    .header-info-cards .plan-dep {
         margin: 0 6px;
     }
 
@@ -397,11 +389,13 @@
         font-size: 23px;
     }
 
-    .header-info-cards .stat-cells .v {
+    .header-info-cards .plan-dep .v,
+    .header-info-cards .plan-arr .v {
         font-size: 26px;
     }
 
-    .header-info-cards .stat-psg .v {
+    .header-info-cards .plan-dep .psg .v,
+    .header-info-cards .plan-arr .psg .v {
         font-size: 21px;
     }
 }

@@ -61,8 +61,7 @@ export function HeaderInfoCards({ planDate, header }: HeaderInfoCardsProps) {
                             <Icon name="people" className="i-teal i-people-lg" />
                         </span>
                     </div>
-                    {/* 운항편 / 총 여객 합계는 두 행을 아우르는 한 박스로 강조 */}
-                    <div className="plan-total">
+                    <div className="plan-col plan-total">
                         <div className="cell">
                             <div className="k">운항편</div>
                             <div>
@@ -78,26 +77,37 @@ export function HeaderInfoCards({ planDate, header }: HeaderInfoCardsProps) {
                             </div>
                         </div>
                     </div>
-                    {/* 여객 행은 6자리(천단위 구분 포함)까지 들어오므로 운항편 행과 글자 크기를 나눈다 */}
-                    <div className="plan-cols">
-                        <div className="stat-cells stat-flt">
+                    {/* 출발 열은 두 행을 아우르는 한 박스로 강조 */}
+                    <div className="plan-col plan-dep">
+                        <div className="cell">
+                            <div className="k">출발</div>
                             <div>
-                                <div className="k">출발</div>
-                                <div className="v">{countText(plan?.depFltCnt)}</div>
-                            </div>
-                            <div>
-                                <div className="k">도착</div>
-                                <div className="v">{countText(plan?.arrFltCnt)}</div>
+                                <span className="v">{countText(plan?.depFltCnt)}</span>
+                                <span className="u">편</span>
                             </div>
                         </div>
-                        <div className="stat-cells stat-psg">
+                        {/* 여객 행은 6자리(천단위 구분 포함)까지 들어오므로 운항편 행과 글자 크기를 나눈다 */}
+                        <div className="cell psg">
+                            <div className="k">출발</div>
                             <div>
-                                <div className="k">출발</div>
-                                <div className="v">{countText(plan?.depPsgCnt)}</div>
+                                <span className="v">{countText(plan?.depPsgCnt)}</span>
+                                <span className="u">명</span>
                             </div>
+                        </div>
+                    </div>
+                    <div className="plan-col plan-arr">
+                        <div className="cell">
+                            <div className="k">도착</div>
                             <div>
-                                <div className="k">도착</div>
-                                <div className="v">{plan ? formatCount(arrPsgCnt) : EMPTY}</div>
+                                <span className="v">{countText(plan?.arrFltCnt)}</span>
+                                <span className="u">편</span>
+                            </div>
+                        </div>
+                        <div className="cell psg">
+                            <div className="k">도착</div>
+                            <div>
+                                <span className="v">{plan ? formatCount(arrPsgCnt) : EMPTY}</span>
+                                <span className="u">명</span>
                             </div>
                         </div>
                     </div>
