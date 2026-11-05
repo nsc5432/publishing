@@ -124,7 +124,10 @@ const HEADER: DsbdHeaderDto = {
 /* ================= 터미널 패널 요약 ================= */
 
 /** 조회 시각과 무관한 부분 — 구간 4필드는 buildTmnlSmry 가 얹는다 */
-type TmnlSmryInfo = Pick<TmnlSmryDto, 'smryWtngPsgCnt' | 'smryAvgWtngSec' | 'smryArvlPsgCnt' | 'smryPrcsPsgCnt'>;
+type TmnlSmryInfo = Pick<
+    TmnlSmryDto,
+    'smryWtngPsgCnt' | 'smryAvgWtngSec' | 'smryIntvArvlPsgCnt' | 'smryIntvPrcsPsgCnt' | 'smryArvlPsgCnt' | 'smryPrcsPsgCnt'
+>;
 type TmnlSmryBase = Omit<TmnlSmryDto, 'cgnStatus' | 'intrvlMin' | 'intrvlFltCnt' | 'intrvlPsgCnt' | 'intrvlYesterdayFltDiffCnt' | 'intrvlYesterdayPsgDiffCnt' | 'intrvlList' | keyof TmnlSmryInfo>;
 
 const TMNL_SMRY: Record<TmnlId, TmnlSmryBase> = {
@@ -202,6 +205,8 @@ function sumByIntrvl(hourly: number[], bgnHhmm: string, intrvlMin: number): numb
 /** 대기시간 합 · 그 처리인원을 들고 다녀야 랜드사이드를 한데 모은 가중평균으로 낼 수 있다 */
 interface FcltIntrvl {
     wtngPsgCnt: number;
+    intvArvlPsgCnt: number | null;
+    intvPrcsPsgCnt: number | null;
     arvlPsgCnt: number | null;
     prcsPsgCnt: number | null;
     wtngSecSum: number;
@@ -238,9 +243,14 @@ function buildFcltIntrvl(tmnlId: TmnlId, fcltCategory: 'CHKN' | 'DEP', hhmm: str
     const intrvl = sumPrcsByMinute(rsltList, bgnMin, endMin);
     const snapshot = sumPrcsByMinute(rsltList, bgnMin - RSLT_MIN, bgnMin);
     const wtngPsgCnt = queueAt(bgnMin);
+    const hasSnapshot = bgnMin >= RSLT_MIN;
 
     return {
         wtngPsgCnt,
+        intvArvlPsgCnt: hasSnapshot
+            ? Math.max(0, Math.round(wtngPsgCnt - queueAt(bgnMin - RSLT_MIN) + snapshot.prcsPsgCnt))
+            : null,
+        intvPrcsPsgCnt: hasSnapshot ? Math.round(snapshot.prcsPsgCnt) : null,
         // 서버의 10분 행 유입과 같은 보존식 — 끝 대기 − 시작 대기 + 처리
         arvlPsgCnt: endMin > bgnMin
             ? Math.max(0, Math.round(queueAt(endMin) - wtngPsgCnt + intrvl.prcsPsgCnt))
@@ -255,6 +265,8 @@ function toSmryInfo(intrvl: FcltIntrvl): TmnlSmryInfo {
     return {
         smryWtngPsgCnt: intrvl.wtngPsgCnt,
         smryAvgWtngSec: intrvl.wtngPrcsPsgCnt > 0 ? intrvl.wtngSecSum / intrvl.wtngPrcsPsgCnt : null,
+        smryIntvArvlPsgCnt: intrvl.intvArvlPsgCnt,
+        smryIntvPrcsPsgCnt: intrvl.intvPrcsPsgCnt,
         smryArvlPsgCnt: intrvl.arvlPsgCnt,
         smryPrcsPsgCnt: intrvl.prcsPsgCnt,
     };
@@ -270,6 +282,8 @@ export function buildSmryInfo(tmnlId: TmnlId, hhmm: string, intrvlMin: number, c
 
     return toSmryInfo({
         wtngPsgCnt: chkn.wtngPsgCnt + dep.wtngPsgCnt,
+        intvArvlPsgCnt: chkn.intvArvlPsgCnt,
+        intvPrcsPsgCnt: dep.intvPrcsPsgCnt,
         arvlPsgCnt: chkn.arvlPsgCnt,
         prcsPsgCnt: dep.prcsPsgCnt,
         wtngSecSum: chkn.wtngSecSum + dep.wtngSecSum,

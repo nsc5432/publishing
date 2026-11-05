@@ -34,6 +34,8 @@ public class TmnlSmryDto extends JsonResponse {
 	// 요약정보 — 대상은 요청 category 를 따른다 (PSG/FLT 랜드사이드, CHKN 아일랜드 전체, DEP 출국장 전체)
 	private Integer smryWtngPsgCnt; // 조회 시각의 전체 대기인원. 랜드사이드는 피크시간과 같은 CAST 원값(CC + LGT)
 	private Double smryAvgWtngSec; // [hhmm, hhmm+intrvlMin) 처리 여객 평균 대기시간 (초). 랜드사이드는 아일랜드 + 출국장
+	private Integer smryIntvArvlPsgCnt; // 조회 시각 10분 결과([hhmm-10, hhmm) 행) 유입인원. 랜드사이드는 아일랜드 유입
+	private Integer smryIntvPrcsPsgCnt; // 조회 시각 10분 결과([hhmm-10, hhmm) 행) 처리인원. 랜드사이드는 출국장 처리
 	private Integer smryArvlPsgCnt; // 구간 유입인원. 랜드사이드는 아일랜드 유입
 	private Integer smryPrcsPsgCnt; // 구간 처리인원. 랜드사이드는 출국장 처리
 	private PeakDto peak; // 피크시간 지표

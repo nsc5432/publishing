@@ -32,7 +32,7 @@ try {
     const { toMapDay, EMPTY_MAP_SLOT } = await server.ssrLoadModule('/src/modules/pm/pages/castSmry/terminalMap/view.ts');
     const smryAt = (time, terminal = 'T1', category = 'PSG') => api.getTmnlSmry(terminal, time, 60, category);
     const viewAt = (time, smry = smryAt(time), category = 'PSG') => toTerminalView({
-        ymd: '20260710', hhmm: time, category, smry,
+        hhmm: time, category, smry,
         rsltList: api.getTmnlRsltByTime(smry.tmnlId, category),
         chknCards: [], dptgtCards: [],
     });
@@ -42,6 +42,8 @@ try {
     const expectedValues = (smry) => [
         smry.smryWtngPsgCnt === null ? '-' : smry.smryWtngPsgCnt.toLocaleString(),
         smry.smryAvgWtngSec === null ? '-' : String(Math.round(smry.smryAvgWtngSec / 60)),
+        smry.smryIntvArvlPsgCnt === null ? '-' : smry.smryIntvArvlPsgCnt.toLocaleString(),
+        smry.smryIntvPrcsPsgCnt === null ? '-' : smry.smryIntvPrcsPsgCnt.toLocaleString(),
         smry.smryArvlPsgCnt === null ? '-' : smry.smryArvlPsgCnt.toLocaleString(),
         smry.smryPrcsPsgCnt === null ? '-' : smry.smryPrcsPsgCnt.toLocaleString(),
     ];
@@ -53,7 +55,8 @@ try {
             const smry = smryAt(slot.hhmm, terminal);
             check(smryInfo(slot.landsideSmry), smryInfo(smry),
                 `${terminal} ${slot.hhmm} map summary agrees with the dashboard's 60-minute landside result`);
-            check(day.slots[slot.hhmm].summaryInfo, viewAt(slot.hhmm, smry).summaryInfo,
+            const dsbdValues = values(viewAt(slot.hhmm, smry));
+            check(values(day.slots[slot.hhmm]), [0, 1, 4, 5].map((index) => dsbdValues[index]),
                 `${terminal} ${slot.hhmm} map and dashboard format the same summary`);
         }
         const last = dto.slotList.find((slot) => slot.hhmm === '2400').landsideSmry;
@@ -79,7 +82,8 @@ try {
     check(smryAt('0800').peak, smryAt('0900').peak, 'daily peak remains independent of search time');
     check(values(viewAt('0900')), expectedValues(smryAt('0900')), 'summary reads the category summary fields');
     check(viewAt('0900').summaryInfo.map((cell) => cell.label),
-        ['전체\n대기인원', '평균\n대기시간', '시간당\n유입인원', '시간당\n처리인원'], 'summary labels describe the metrics');
+        ['전체 대기인원', '평균 대기시간', '유입인원', '처리인원', '시간당 유입인원', '시간당 처리인원'],
+        'summary labels describe the metrics');
 
     for (const [category, target] of [['PSG', '랜드\n사이드'], ['FLT', '랜드\n사이드'], ['CHKN', '아일랜드'], ['DEP', '출국장']]) {
         check(viewAt('0900', smryAt('0900', 'T1', category), category).summaryTarget, target,
@@ -92,6 +96,9 @@ try {
         check(land.smryWtngPsgCnt, chkn.smryWtngPsgCnt + dep.smryWtngPsgCnt, `${time} landside queue adds both areas`);
         check(land.smryArvlPsgCnt, chkn.smryArvlPsgCnt, `${time} landside inflow is the island inflow`);
         check(land.smryPrcsPsgCnt, dep.smryPrcsPsgCnt, `${time} landside processing is the departure processing`);
+        check(land.smryIntvArvlPsgCnt, chkn.smryIntvArvlPsgCnt, `${time} landside 10-minute inflow is the island inflow`);
+        check(land.smryIntvPrcsPsgCnt, dep.smryIntvPrcsPsgCnt,
+            `${time} landside 10-minute processing is the departure processing`);
         const [chknRslt, depRslt] = ['CHKN', 'DEP'].map((category) => api.getTmnlRsltByTime('T1', category)[snapshotHour(time)]);
         const snapshotPrcs = chknRslt.prcsPsgCnt + depRslt.prcsPsgCnt;
         checkNear(land.smryAvgWtngSec,
@@ -108,14 +115,22 @@ try {
     checkNear(shifted.smryAvgWtngSec, depHours[9].wtngHr * 60, 'average wait reads the result ending at the search time');
     checkNear(smryAt('1000', 'T1', 'DEP').smryAvgWtngSec, depHours[9].wtngHr * 60,
         '10:00 wait reads 09:50 to 10:00, not the next hour');
+    check(shifted.smryIntvPrcsPsgCnt, Math.round((depHours[9].prcsPsgCnt * 10) / 60),
+        '10-minute processing reads the result ending at the search time');
+    check(smryAt('1000', 'T1', 'DEP').smryIntvArvlPsgCnt,
+        Math.max(0, Math.round(depHours[10].fcstWtngPsgCnt - depHours[9].fcstWtngPsgCnt + (depHours[9].prcsPsgCnt * 10) / 60)),
+        '10-minute inflow balances the queue change across 09:50 to 10:00');
     check(smryAt('0000', 'T1', 'DEP').smryAvgWtngSec, null, 'midnight has no earlier result');
+    check([smryAt('0000', 'T1', 'DEP').smryIntvArvlPsgCnt, smryAt('0000', 'T1', 'DEP').smryIntvPrcsPsgCnt], [null, null],
+        'midnight has no earlier 10-minute result');
     check(smryAt('2350', 'T1', 'DEP').smryPrcsPsgCnt, Math.round((depHours[23].prcsPsgCnt * 10) / 60),
         'late-night range stops at midnight');
     check(viewAt('2350').barText.endsWith('PM'), true, 'search-time marker uses its own AM/PM');
     check(values(viewAt('0300')), expectedValues(smryAt('0300')), 'observed zero counts stay zero');
     check(values(viewAt('0900', { ...smryAt('0900'),
-        smryWtngPsgCnt: null, smryAvgWtngSec: null, smryArvlPsgCnt: null, smryPrcsPsgCnt: null,
-    })), ['-', '-', '-', '-'], 'unknown summary results never fall back to daily peak');
+        smryWtngPsgCnt: null, smryAvgWtngSec: null, smryIntvArvlPsgCnt: null, smryIntvPrcsPsgCnt: null,
+        smryArvlPsgCnt: null, smryPrcsPsgCnt: null,
+    })), ['-', '-', '-', '-', '-', '-'], 'unknown summary results never fall back to daily peak');
 
     for (const [category, expectedTime] of [['PSG', '0800'], ['FLT', '0800'], ['CHKN', '1000'], ['DEP', '1100']]) {
         const time = toPrimeTime(['T1', 'T2'].map((terminal) => api.getTmnlRsltByTime(terminal, category)), category);
@@ -196,7 +211,7 @@ try {
                 recommend: { ...card.recommend, reqCnt: 30 + index },
             })).reverse();
             const cardViewAt = (time, current, next) => toTerminalView({
-                ymd: '20260710', hhmm: time, category: 'PSG', smry: smryAt(time, terminal),
+                hhmm: time, category: 'PSG', smry: smryAt(time, terminal),
                 rsltList: [], chknCards: fcltType === 'CHKN' ? current : [],
                 dptgtCards: fcltType === 'DEP' ? current : [],
                 nextChknCards: fcltType === 'CHKN' ? next : [],

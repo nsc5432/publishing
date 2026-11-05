@@ -184,7 +184,7 @@ public final class FcltWtngDay {
 	}
 
 	/**
-	 * 전 시설의 [bgnDt, endDt) 집계. 대기인원 · 대기시간은 bgnDt 결과([bgnDt-10분, bgnDt) 행) 값이고
+	 * 전 시설의 [bgnDt, endDt) 집계. 대기인원 · 대기시간 · 10분 유입 · 10분 처리는 bgnDt 결과([bgnDt-10분, bgnDt) 행) 값이고
 	 * 유입 · 처리는 구간 10분 행의 합이다. 대기시간은 요약보기 피크시간과 같은 정의다
 	 */
 	public FcltWtngIntrvl intrvlOf(LocalDateTime bgnDt, LocalDateTime endDt) {
@@ -192,6 +192,7 @@ public final class FcltWtngDay {
 		requireBoundary(endDt);
 
 		Integer wtngPsgCnt = null;
+		Integer prevArvlPsgCnt = null;
 		Integer arvlPsgCnt = null;
 		boolean hasSec = false;
 		long prcsSum = 0;
@@ -212,6 +213,12 @@ public final class FcltWtngDay {
 				if (prev.getEndWtngPsgCnt() != null) {
 					wtngPsgCnt = valueOf(wtngPsgCnt) + prev.getEndWtngPsgCnt();
 				}
+
+				Integer prevArrival = arrivalOf(secMap, prev);
+
+				if (prevArrival != null) {
+					prevArvlPsgCnt = valueOf(prevArvlPsgCnt) + prevArrival;
+				}
 			}
 
 			for (FcltWtngSec sec : secMap.subMap(bgnDt, true, endDt, false).values()) {
@@ -231,6 +238,8 @@ public final class FcltWtngDay {
 
 		return new FcltWtngIntrvl(
 				wtngPsgCnt,
+				prevArvlPsgCnt,
+				hasPrev ? Math.toIntExact(prevPrcsSum) : null,
 				arvlPsgCnt,
 				hasSec ? Math.toIntExact(prcsSum) : null,
 				wtngVld ? prevWtngSecSum : null,

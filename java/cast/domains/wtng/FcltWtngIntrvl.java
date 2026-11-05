@@ -23,6 +23,10 @@ import lombok.Getter;
 public final class FcltWtngIntrvl {
 	/** 구간 시작 시각의 대기인원 합 — 각 시설 [bgnDt-10분, bgnDt) 행의 종료 대기인원 */
 	private final Integer wtngPsgCnt;
+	/** 구간 시작 시각 결과([bgnDt-10분, bgnDt) 행)의 유입인원 합 */
+	private final Integer intvArvlPsgCnt;
+	/** 구간 시작 시각 결과([bgnDt-10분, bgnDt) 행)의 처리인원 합 */
+	private final Integer intvPrcsPsgCnt;
 	private final Integer arvlPsgCnt;
 	private final Integer prcsPsgCnt;
 	/** 구간 시작 시각 결과([bgnDt-10분, bgnDt) 행) 처리 여객의 대기시간 합 (초). 산정할 수 없으면 null */
@@ -34,6 +38,8 @@ public final class FcltWtngIntrvl {
 	public static FcltWtngIntrvl landsideOf(FcltWtngIntrvl chkn, FcltWtngIntrvl dep) {
 		return new FcltWtngIntrvl(
 				sumOrNull(chkn.getWtngPsgCnt(), dep.getWtngPsgCnt()),
+				chkn.getIntvArvlPsgCnt(),
+				dep.getIntvPrcsPsgCnt(),
 				chkn.getArvlPsgCnt(),
 				dep.getPrcsPsgCnt(),
 				sumOrNull(chkn.getWtngSecSum(), dep.getWtngSecSum()),

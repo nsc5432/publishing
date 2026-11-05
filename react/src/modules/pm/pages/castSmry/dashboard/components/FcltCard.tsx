@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import { Icon } from '@/components/icons/InlineIcon';
+import { EMPTY_FCLT_CARD_VARIANT } from '../view';
 import type { FcltCardData, FcltCardDiff, FcltCardSnapshot, GaugeAverage } from '../types';
 
 interface FcltCardProps {
@@ -61,7 +62,7 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
 
         return [...chipUnits, ...data.variants.map((item) => item.unitCd).filter((unitCd) => !listedUnits.has(unitCd))];
     }, [data.chips, data.variants, variantsByUnit]);
-    const variant = variantsByUnit.get(selectedUnit ?? '') ?? data.variants[0];
+    const variant = variantsByUnit.get(selectedUnit ?? '') ?? data.variants[0] ?? EMPTY_FCLT_CARD_VARIANT;
     const selectedChip = data.chips.find((chip) => chip.label === variant?.unitCd);
     const current = variant?.current;
     const accentColor = GAUGE_ACCENT[current?.congestionKind ?? 'gray'];
@@ -75,8 +76,6 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
             return unitOrder[(index + direction + unitOrder.length) % unitOrder.length];
         });
     };
-
-    if (!variant) return null;
 
     return (
         <div className="fclt-card">

@@ -128,6 +128,10 @@ export interface TmnlSmryDto extends JsonResponse {
     smryWtngPsgCnt: number | null;
     /** [hhmm, hhmm+intrvlMin) 처리 여객 평균 대기시간 (초). 랜드사이드는 아일랜드 + 출국장, 한쪽만 산정되면 그 값 */
     smryAvgWtngSec: number | null;
+    /** hhmm 10분 결과([hhmm-10, hhmm) 행) 유입. 랜드사이드는 아일랜드 유입 (진입) */
+    smryIntvArvlPsgCnt: number | null;
+    /** hhmm 10분 결과([hhmm-10, hhmm) 행) 처리. 랜드사이드는 출국장 처리 (진출) */
+    smryIntvPrcsPsgCnt: number | null;
     /** 랜드사이드는 아일랜드 유입 (진입) */
     smryArvlPsgCnt: number | null;
     /** 랜드사이드는 출국장 처리 (진출) */

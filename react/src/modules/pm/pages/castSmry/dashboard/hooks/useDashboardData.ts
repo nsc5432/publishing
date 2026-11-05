@@ -110,7 +110,6 @@ export function useTerminalPanel(query: DashboardQuery | null, tmnlId: TerminalK
 
         return {
             data: toTerminalView({
-                ymd: panelBase.data.query.ymd,
                 hhmm: panelBase.data.query.hhmm,
                 category: panelBase.data.category,
                 smry: panelBase.data.smry,

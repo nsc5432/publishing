@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import t1White from '@/assets/svg/t1-white.svg';
 import t2White from '@/assets/svg/t2-white.svg';
 import t1Blue from '@/assets/svg/t1-blue-deep.svg';
@@ -215,6 +215,7 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
 
             <div className="view" hidden={viewKind !== 'summary'}>
                 <div className="sum-top">
+                    {/* 전일 대비 */}
                     <div className="sum-two">
                         <div className="p-note">* 전일 대비</div>
                         {view.summaryStats.map((slot) => (
@@ -246,24 +247,22 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                             </div>
                         ))}
                     </div>
+                    {/* 요약정보 (랜드사이드, 아일랜드, 출국장) */}
                     <div className="sum-info">
                         <div className="lbl">
                             <Multiline text={view.summaryTarget} />
                         </div>
                         <div className="cells">
-                            {view.summaryInfo.map((cell, cellIndex) => (
-                                <Fragment key={cell.label}>
-                                    {cellIndex > 0 && <span className="sep">/</span>}
-                                    <div className="cell">
-                                        <div className="k">
-                                            <Multiline text={cell.label} />
-                                        </div>
-                                        <div className="val">
-                                            <b>{cell.value}</b>
-                                            <span className="u">{cell.unit}</span>
-                                        </div>
+                            {view.summaryInfo.map((cell) => (
+                                <div className="cell" key={cell.label}>
+                                    <div className="k">
+                                        <Multiline text={cell.label} />
                                     </div>
-                                </Fragment>
+                                    <div className="val">
+                                        <b>{cell.value}</b>
+                                        <span className="u">{cell.unit}</span>
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     </div>

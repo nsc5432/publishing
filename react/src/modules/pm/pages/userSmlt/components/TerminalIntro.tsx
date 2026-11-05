@@ -28,7 +28,7 @@ export function TerminalIntro({ ymd, onStart }: TerminalIntroProps) {
     return (
         <div className="intro">
             <div className="intro__header">
-                <HeaderInfoCards planDate={formatYmd(ymd, '-')} header={header} />
+                <HeaderInfoCards planDate={formatYmd(ymd, '/')} header={header} />
             </div>
 
             <div className="intro__cards">

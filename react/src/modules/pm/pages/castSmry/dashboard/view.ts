@@ -13,9 +13,8 @@ import type {
     TmnlId,
     TmnlSmryDto,
 } from '@/types/api.types';
-import { toSummaryInfo } from '@/modules/pm/summary';
+import { toDsbdSummaryInfo } from '@/modules/pm/summary';
 import {
-    dowLabel,
     formatCount,
     formatDateTime,
     formatDiff,
@@ -47,7 +46,6 @@ import {
 } from './types';
 
 interface TerminalViewInput {
-    ymd: string;
     hhmm: string;
     category: DsbdCategory;
     smry: TmnlSmryDto;
@@ -121,7 +119,7 @@ export function toSimulationType(smltType: SmltType): SimulationType {
 }
 
 export function toPlanDate(ymd?: string): string {
-    return formatYmd(ymd ?? '', '-');
+    return formatYmd(ymd ?? '', '/');
 }
 
 export function toCalcDateTime(calcDt?: string): string {
@@ -258,9 +256,9 @@ function toFcltCardData(
     return {
         fcltType,
         title: FCLT_CARD_TITLE[fcltType],
-        warn: busyCount > 0 ? `혼잡 ${busyCount}개` : visibleCurrentCards.some((card) => card.cgnStatus !== null) ? '원활' : '-',
+        warn: visibleCards.length === 0 ? '데이터 없음' : busyCount > 0 ? `혼잡 ${busyCount}개` : visibleCurrentCards.some((card) => card.cgnStatus !== null) ? '원활' : '-',
         currentTime: formatHhmm(hhmm),
-        nextTime: nextMinute >= MIN_PER_DAY ? `다음 날 ${nextClock}` : nextClock,
+        nextTime: !hhmm ? '-' : nextMinute >= MIN_PER_DAY ? `다음 날 ${nextClock}` : nextClock,
         variants: visibleCards.map((card) => toFcltCardVariant(card, currentByUnit.get(unitOf(card)), nextByUnit.get(unitOf(card)), hhmm, scale, nextScale)),
         chips: (cards[0]?.unitList ?? nextCards[0]?.unitList ?? []).filter((unit) => unitPattern.test(unit.unitCd)).map((unit) => toFcltCardChip(cards.length ? unit : { ...unit, cgnStatus: null })),
     };
@@ -353,7 +351,6 @@ function toSummarySlots(hhmm: string, smry: TmnlSmryDto): SummarySlot[] {
 }
 
 export function toTerminalView({
-    ymd,
     hhmm,
     category,
     smry,
@@ -369,7 +366,7 @@ export function toTerminalView({
     const ampm = Number(hhmm.slice(0, 2)) < 12 ? 'AM' : 'PM';
 
     return {
-        barText: `${formatYmd(ymd, '-')} ${dowLabel(ymd)} ${formatHhmm(hhmm)} ${ampm}`,
+        barText: `${formatHhmm(hhmm)} ${ampm}`,
         cgnStatus: smry.cgnStatus,
         stats: {
             flights: { delta: formatDiff(smry.fltDiffCnt), value: formatCount(smry.fltCnt) },
@@ -385,7 +382,7 @@ export function toTerminalView({
         },
         summaryStats: toSummarySlots(hhmm, smry),
         summaryTarget: SUMMARY_TARGET_LABEL[category],
-        summaryInfo: toSummaryInfo(smry),
+        summaryInfo: toDsbdSummaryInfo(smry),
         fcltCards: [
             toFcltCardData('CHKN', chknCards, nextChknCards, smry.tmnlId, hhmm),
             toFcltCardData('DEP', dptgtCards, nextDptgtCards, smry.tmnlId, hhmm),
@@ -682,6 +679,14 @@ export function toFcltQueueResultView(dto: FcltQueueScenarioDto): FcltQueueResul
     };
 }
 
+export const EMPTY_FCLT_CARD_VARIANT: FcltCardVariant = {
+    unitCd: '',
+    num: '-',
+    meta: [{ label: '전체', value: '-' }],
+    current: null,
+    next: null,
+};
+
 export const EMPTY_TERMINAL_VIEW: TerminalView = {
     barText: '-',
     cgnStatus: null,
@@ -694,7 +699,10 @@ export const EMPTY_TERMINAL_VIEW: TerminalView = {
     summaryStats: [],
     summaryTarget: '',
     summaryInfo: [],
-    fcltCards: [],
+    fcltCards: [
+        toFcltCardData('CHKN', [], [], 'T1', ''),
+        toFcltCardData('DEP', [], [], 'T1', ''),
+    ],
     chart: { rsltList: [] },
     tableRows: [],
     defaultSelectedRow: 0,

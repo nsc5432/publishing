@@ -46,7 +46,6 @@ export function HeaderInfoCards({ planDate, header }: HeaderInfoCardsProps) {
 
     return (
         <div className="header-info-cards">
-            {/* 일일 운항계획 */}
             <div className="card c-plan">
                 <div className="card-head">
                     <span className="card-title">일일 운항계획</span>

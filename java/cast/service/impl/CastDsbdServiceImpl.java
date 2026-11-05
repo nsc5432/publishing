@@ -314,6 +314,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 
 		result.setSmryWtngPsgCnt(intrvl.getWtngPsgCnt());
 		result.setSmryAvgWtngSec(intrvl.getAvgWtngSec());
+		result.setSmryIntvArvlPsgCnt(intrvl.getIntvArvlPsgCnt());
+		result.setSmryIntvPrcsPsgCnt(intrvl.getIntvPrcsPsgCnt());
 		result.setSmryArvlPsgCnt(intrvl.getArvlPsgCnt());
 		result.setSmryPrcsPsgCnt(intrvl.getPrcsPsgCnt());
 	}

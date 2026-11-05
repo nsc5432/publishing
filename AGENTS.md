@@ -119,6 +119,8 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
      같은 날 Xovis `Queue` 조회 전부에서 `-SBD` 줄을 뺐고, 요약보기 CHKN 차트의 Cast 선에서도 SBD 기기 대기를 뺐다(§13). **새 이름도 이제 고정이다.**
    - 2026-11-04 요약보기 시간대별 차트의 운항편 막대용으로 `DsbdRsltDto.fltCnt`(시간당 운항편수)를 더했다. 카테고리와 무관하게 채우며,
      FLT 카테고리의 `psgCnt` 와 같은 값이다. Prime Time 운항편 피크(`toPrimeTime`)도 이 값을 읽는다. **새 이름도 이제 고정이다.**
+   - 2026-11-05 요약정보를 6칸으로 늘리며 `TmnlSmryDto.smryIntvArvlPsgCnt` · `smryIntvPrcsPsgCnt`(조회 시각 10분 결과 `[hhmm−10, hhmm)` 행의
+     유입 · 처리)를 더했다. 원천은 `FcltWtngDay.intrvlOf` 가 대기인원 · 평균 대기시간과 같이 읽는 행이다. `MapLandsideSmryDto` 에는 없다. **새 이름도 이제 고정이다.**
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).
