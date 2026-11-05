@@ -14,6 +14,7 @@ public class DsbdRsltDto {
 	private int fltCnt; // 운항편수 (건)
 	private Integer wtngPsgCnt; // 실측 대기인원 (명)
 	private int wtngHr; // 대기시간 (분)
+	private Integer arvlPsgCnt;
 	private int prcsPsgCnt; // 처리인원 (명)
 	private int prcsHr; // 처리시간 (분)
 	private int prcsRate; // 처리율 (%)

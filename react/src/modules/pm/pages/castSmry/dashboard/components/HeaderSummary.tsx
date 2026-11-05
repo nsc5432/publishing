@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { QuickCheckinIcon, QuickFlightIcon, QuickGateIcon, QuickPaxIcon } from '@/components/icons';
+import { Icon } from '@/components/icons/InlineIcon';
 import type { DsbdCategory, DsbdHeaderDto } from '@/types/api.types';
 import { HeaderInfoCards } from '@/modules/pm/components/HeaderInfoCards';
 
@@ -8,6 +9,7 @@ interface HeaderSummaryProps {
     dayOverview: DsbdHeaderDto | null;
     activePrimeCategory: DsbdCategory | null;
     onCategoryChange: (category: DsbdCategory) => void;
+    onPrimeReset: () => void;
     children: ReactNode;
 }
 
@@ -23,6 +25,7 @@ export function HeaderSummary({
     dayOverview,
     activePrimeCategory,
     onCategoryChange,
+    onPrimeReset,
     children,
 }: HeaderSummaryProps) {
     return (
@@ -32,7 +35,18 @@ export function HeaderSummary({
                     <HeaderInfoCards planDate={planDate} header={dayOverview} />
 
                     <div className="quick c-quick">
-                        <div className="quick-title">PRIME TIME</div>
+                        <div className="quick-head">
+                            <div className="quick-title">PRIME TIME</div>
+                            <button
+                                type="button"
+                                className="quick-reset"
+                                aria-label="현재 시각으로 초기화"
+                                title="현재 시각으로 초기화"
+                                onClick={onPrimeReset}
+                            >
+                                <Icon name="reset" />
+                            </button>
+                        </div>
                         <div className="quick-grid">
                             {QUICK_TILES.map((tile) => (
                                 <button

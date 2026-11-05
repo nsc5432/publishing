@@ -1819,7 +1819,7 @@ html[data-page='userSmlt'] .dock__tmnl {
     border-radius: 999px;
     background: linear-gradient(160deg, #6e9ddb 0%, #4e7fc4 100%);
     color: #eef0f8;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.04em;
     box-shadow: 0 3px 10px rgba(78, 127, 196, 0.28);
@@ -1838,7 +1838,7 @@ html[data-page='userSmlt'] .dock__tmnl svg {
 
 html[data-page='userSmlt'] .dock__hint {
     margin: 0 0 0 auto;
-    font-size: 11px;
+    font-size: 13px;
     color: var(--text-mute);
     white-space: nowrap;
 }
@@ -1853,7 +1853,7 @@ html[data-page='userSmlt'] .dock__guide {
     border-radius: 999px;
     background: var(--pm-primary-soft);
     color: var(--pm-primary);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     white-space: nowrap;
     overflow: hidden;
@@ -1878,7 +1878,7 @@ html[data-page='userSmlt'] .dock__guide + .dock__hint {
 html[data-page='userSmlt'] .dock__empty {
     margin: 0;
     padding: 10px 0 4px;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-mute);
 }
 
@@ -1929,6 +1929,34 @@ html[data-page='userSmlt'] .dock__foot {
 html[data-page='userSmlt'] .dock__foot .btn {
     min-width: 110px;
     height: 38px;
+    font-size: 16px;
+}
+
+html[data-page='userSmlt'] .dock .dsec__title,
+html[data-page='userSmlt'] .dock .drow__label,
+html[data-page='userSmlt'] .dock .gatepick__item,
+html[data-page='userSmlt'] .dock .isle,
+html[data-page='userSmlt'] .dock .seg__item,
+html[data-page='userSmlt'] .dock .timebar__head {
+    font-size: 15px;
+}
+
+html[data-page='userSmlt'] .dock .dsec__hint,
+html[data-page='userSmlt'] .dock .drow__label small {
+    font-size: 13px;
+}
+
+html[data-page='userSmlt'] .dock .drow .stepper__btn {
+    font-size: 18px;
+}
+
+html[data-page='userSmlt'] .dock .drow .stepper__value {
+    font-size: 16px;
+}
+
+html[data-page='userSmlt'] .dock .airchip,
+html[data-page='userSmlt'] .dock .timebar__scale {
+    font-size: 14px;
 }
 
 html[data-page='userSmlt'] .booths {
@@ -1954,7 +1982,7 @@ html[data-page='userSmlt'] .booths__side {
     border-radius: 5px;
     background: var(--pm-primary-soft);
     color: var(--pm-primary);
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -1980,7 +2008,7 @@ html[data-page='userSmlt'] .boothgrid--strip .bcell {
     min-width: 0;
     height: 38px;
     padding: 0 4px;
-    font-size: 10px;
+    font-size: 12px;
     line-height: 1.2;
     overflow: hidden;
 }
@@ -1990,7 +2018,7 @@ html[data-page='userSmlt'] .boothgrid--strip .bcell__no {
     min-width: 16px;
     height: 13px;
     padding: 0 3px;
-    font-size: 9px;
+    font-size: 11px;
 }
 
 html[data-page='userSmlt'] .boothgrid.is-dragging {
@@ -2023,7 +2051,7 @@ html[data-page='userSmlt'] .airpal.is-ready {
 html[data-page='userSmlt'] .airpal__head {
     flex: 0 0 auto;
     margin: 0;
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 700;
     color: var(--text-mute);
     white-space: nowrap;

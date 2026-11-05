@@ -147,6 +147,7 @@ export interface DsbdRsltDto {
     fltCnt: number;
     wtngPsgCnt: number | null;
     wtngHr: number;
+    arvlPsgCnt: number | null;
     prcsPsgCnt: number;
     prcsHr: number;
     prcsRate: number;

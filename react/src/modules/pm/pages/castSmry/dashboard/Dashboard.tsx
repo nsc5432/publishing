@@ -162,6 +162,18 @@ function Dashboard() {
         }
     };
 
+    const handlePrimeReset = () => {
+        setPrimeRequest(null);
+        setActivePrime(null);
+        setCategory(DEFAULT_CATEGORY);
+
+        if (!baseInfo || !isBaseInfoCurrent) return;
+
+        const nowQuery = { smltId: baseInfo.smltId, ymd: baseInfo.ymd, hhmm: defaultTime(baseInfo.avlTimes) };
+        setQuery(nowQuery);
+        setTerminalQueries({ T1: nowQuery, T2: nowQuery });
+    };
+
     const handleViewConfig = () => {
         const configParams = new URLSearchParams({
             mode: 'view',
@@ -223,6 +235,7 @@ function Dashboard() {
                     dayOverview={dayOverview}
                     activePrimeCategory={primeCategoryOf('T1') ?? primeCategoryOf('T2')}
                     onCategoryChange={handleCategoryChange}
+                    onPrimeReset={handlePrimeReset}
                 >
                     <section className="row row--panels">
                         <TerminalSummary

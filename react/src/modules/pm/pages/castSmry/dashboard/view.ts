@@ -268,6 +268,8 @@ function toTableRow(rslt: DsbdRsltDto, totalCount: number): TableRow {
     return {
         time: formatHhmm(rslt.time),
         pax: formatCount(rslt.psgCnt),
+        arrivalPax: rslt.arvlPsgCnt == null ? '-' : formatCount(rslt.arvlPsgCnt),
+        processedPax: formatCount(rslt.prcsPsgCnt),
         wait: formatMinutes(rslt.wtngHr),
         process: formatMinutes(rslt.prcsHr),
         timeShare: (totalCount > 0 ? (rslt.psgCnt / totalCount) * 100 : 0).toFixed(1),

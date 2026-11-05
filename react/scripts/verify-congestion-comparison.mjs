@@ -56,37 +56,62 @@ try {
 
     const stat = { wtngPsgCnt: 25, wtngHr: 130, prcsPsgCnt: 60, prcsHr: 20 };
     const cmpr = { unitCnt: 4, totWtngPsgCnt: 100, avgPrcsPsgCnt: 40, avgWtngHr: 100, avgPrcsHr: 20 };
-    const comparisons = toCongestionStats('출국장', stat, cmpr).map((item) => item.cmpr);
+    const chipOf = ({ text, arrow, tone }) => [text, arrow, tone];
+    const stats = toCongestionStats('출국장', stat, cmpr);
     check(
-        comparisons.map(({ label }) => label),
-        ['전체 출국장', '출국장 평균', '출국장 평균', '출국장 평균'],
-        'metric comparison labels',
+        stats.map(({ cmpr: item }) => chipOf(item)),
+        [
+            ['전체의 25%', null, 'even'],
+            ['평균보다 30초', 'up', 'worse'],
+            ['평균보다 20명', 'up', 'better'],
+            ['평균 수준', null, 'even'],
+        ],
+        'share, deltas and equality; more processed passengers is better',
     );
     check(
-        comparisons.map(({ diff }) => diff),
-        ['비중 25%', '▲ 30초 (+30%)', '▲ 20명 (+50%)', '평균과 같음'],
-        'share, deltas and equality',
+        stats.map(({ point }) => point === true),
+        [false, true, false, false],
+        'only worse-than-average values are highlighted',
     );
-    check(toCongestionStats('출국장', { ...stat, wtngHr: 70 }, cmpr)[1].cmpr.diff, '▼ 30초 (-30%)', 'below-average difference');
+    check(stats[1].cmpr.title, '출국장 평균 100초 · 30초 높음', 'chip title carries the average');
     check(
-        toCongestionStats('출국장', { ...stat, wtngHr: 100 }, { ...cmpr, avgWtngHr: 100.4 })[1].cmpr.diff,
-        '평균과 같음',
+        chipOf(toCongestionStats('출국장', { ...stat, wtngHr: 70 }, cmpr)[1].cmpr),
+        ['평균보다 30초', 'down', 'better'],
+        'below-average waiting is better',
+    );
+    check(
+        chipOf(toCongestionStats('출국장', { ...stat, wtngHr: 105 }, cmpr)[1].cmpr),
+        ['평균 수준', null, 'even'],
+        'differences within 10% are treated as average',
+    );
+    check(
+        chipOf(toCongestionStats('출국장', { ...stat, wtngPsgCnt: 60 }, cmpr)[0].cmpr),
+        ['전체의 60%', null, 'worse'],
+        'queue share above the active-facility average is worse',
+    );
+    check(
+        chipOf(toCongestionStats('출국장', { ...stat, wtngHr: 100 }, { ...cmpr, avgWtngHr: 100.4 })[1].cmpr),
+        ['평균 수준', null, 'even'],
         'comparison uses the displayed rounded average',
     );
 
     const empty = { unitCnt: 0, totWtngPsgCnt: 0, avgPrcsPsgCnt: null, avgWtngHr: null, avgPrcsHr: null };
     check(mockCgnCmpr([]), empty, 'no facilities yield unavailable averages');
     check(
-        toCongestionStats('출국장', stat, empty).map(({ cmpr: item }) => [item.value, item.diff, item.trend]),
+        toCongestionStats('출국장', stat, empty).map(({ cmpr: item }) => chipOf(item)),
         [
-            ['0명', '비중 -', null],
-            ['-', '', null],
-            ['-', '', null],
-            ['-', '', null],
+            ['전체 0명', null, 'even'],
+            ['평균 -', null, 'even'],
+            ['평균 -', null, 'even'],
+            ['평균 -', null, 'even'],
         ],
         'unavailable comparisons remain unavailable',
     );
-    check(toCongestionStats('출국장', stat, { ...cmpr, avgWtngHr: 0 })[1].cmpr.diff, '▲ 130초', 'zero average does not produce an infinite percentage');
+    check(
+        chipOf(toCongestionStats('출국장', stat, { ...cmpr, avgWtngHr: 0 })[1].cmpr),
+        ['평균보다 130초', 'up', 'worse'],
+        'zero average still yields a direction',
+    );
 
     const row = (unitCd, oprBoothCnt, values) => ({ unitCd, oprBoothCnt, stat: values });
     const weighted = mockCgnCmpr([

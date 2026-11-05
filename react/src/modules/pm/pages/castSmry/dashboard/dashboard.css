@@ -412,6 +412,13 @@ html[data-page='dashboard'] .quick {
     box-shadow: var(--sh);
 }
 
+html[data-page='dashboard'] .quick-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
 html[data-page='dashboard'] .quick-title {
     font-size: 17px;
     font-weight: 700;
@@ -419,6 +426,29 @@ html[data-page='dashboard'] .quick-title {
     letter-spacing: -0.3px;
     padding: 2px 0 0 5px;
     flex-shrink: 0;
+}
+
+html[data-page='dashboard'] .quick-reset {
+    width: 24px;
+    height: 24px;
+    margin-top: 2px;
+    padding: 0;
+    border-radius: 50%;
+    border: 1px solid #e2ecfd;
+    background: #eff5ff;
+    color: #3b39c9;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+html[data-page='dashboard'] .quick-reset:hover {
+    background: #e2ecfd;
+}
+
+html[data-page='dashboard'] .quick-reset i {
+    display: inline-flex;
 }
 
 html[data-page='dashboard'] .quick-grid {
@@ -2204,7 +2234,7 @@ html[data-page='dashboard'] .table {
 html[data-page='dashboard'] .thead,
 html[data-page='dashboard'] .trow {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 html[data-page='dashboard'] .thead {

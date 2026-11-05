@@ -286,6 +286,8 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                     <div className="thead">
                         <div>시간대</div>
                         <div>{category === 'FLT' ? '운항편수' : '예약승객수'}</div>
+                        <div>유입인원</div>
+                        <div>처리인원</div>
                         <div>대기시간</div>
                         <div>처리시간</div>
                         <div title={category === 'FLT' ? '해당 터미널의 하루 전체 운항편수 대비 비중' : '예측 대기인원(명)'}>
@@ -301,6 +303,8 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                         >
                             <div>{row.time}</div>
                             <div>{row.pax}</div>
+                            <div>{row.arrivalPax}</div>
+                            <div>{row.processedPax}</div>
                             <div className="w">{row.wait}</div>
                             <div className="w">{row.process}</div>
                             <div>{category === 'FLT' ? row.timeShare : row.waitingPax}</div>

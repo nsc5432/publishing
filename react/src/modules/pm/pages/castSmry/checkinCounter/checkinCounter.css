@@ -56,10 +56,7 @@ html[data-page='checkinCounter'] .wrap {
     height: 100%;
     color: var(--c-text);
     background:
-        radial-gradient(120% 80% at 50% 55%,
-            rgba(202, 219, 243, 0.55) 0%,
-            rgba(238, 241, 248, 0) 70%),
-        linear-gradient(180deg, #fafbfe 0%, #eaeef7 100%);
+        radial-gradient(120% 80% at 50% 55%, rgba(202, 219, 243, 0.55) 0%, rgba(238, 241, 248, 0) 70%), linear-gradient(180deg, #fafbfe 0%, #eaeef7 100%);
 }
 
 html[data-page='checkinCounter'] .body {
@@ -172,16 +169,16 @@ html[data-page='checkinCounter'] .radio label::before {
     box-sizing: border-box;
 }
 
-html[data-page='checkinCounter'] .radio input:checked+label {
+html[data-page='checkinCounter'] .radio input:checked + label {
     color: var(--c-text);
     font-weight: 600;
 }
 
-html[data-page='checkinCounter'] .radio input:checked+label::before {
+html[data-page='checkinCounter'] .radio input:checked + label::before {
     border-color: var(--c-primary);
 }
 
-html[data-page='checkinCounter'] .radio input:checked+label::after {
+html[data-page='checkinCounter'] .radio input:checked + label::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -193,7 +190,7 @@ html[data-page='checkinCounter'] .radio input:checked+label::after {
     background: var(--c-primary);
 }
 
-html[data-page='checkinCounter'] .radio input:focus-visible+label::before {
+html[data-page='checkinCounter'] .radio input:focus-visible + label::before {
     outline: 2px solid var(--c-primary);
     outline-offset: 2px;
 }
@@ -503,7 +500,7 @@ html[data-page='checkinCounter'] .chkn-chart__legend i.is-line {
 
 /* 차트의 Xovis 점선과 같은 색 · 같은 간격 */
 html[data-page='checkinCounter'] .chkn-chart__legend i.is-line.is-xovis {
-    background: repeating-linear-gradient(90deg, #26314d 0 4px, transparent 4px 7px);
+    background: repeating-linear-gradient(90deg, #b4bccb 0 4px, transparent 4px 7px);
 }
 
 html[data-page='checkinCounter'] .chkn-chart__plot {
@@ -573,6 +570,21 @@ html[data-page='checkinCounter'] .chkn-chip__sub {
     border-left: 1px solid rgba(255, 255, 255, 0.35);
     font-size: 11px;
     opacity: 0.75;
+}
+
+html[data-page='checkinCounter'] .chkn-chip__sub > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+}
+
+html[data-page='checkinCounter'] .chkn-chip__sub [data-ic] {
+    display: inline-flex;
+}
+
+html[data-page='checkinCounter'] .chkn-chip__sub svg {
+    width: 12px;
+    height: 12px;
 }
 
 /* 칩 색은 표 보기의 상태 뱃지와 같은 근거(그 시각 혼잡도)를 쓴다 */
@@ -809,11 +821,7 @@ html[data-page='checkinCounter'] .range__input {
 html[data-page='checkinCounter'] .range__input::-webkit-slider-runnable-track {
     height: 6px;
     border-radius: 3px;
-    background: linear-gradient(to right,
-            var(--c-primary) 0%,
-            var(--c-primary) var(--val, 0%),
-            #d6dbe6 var(--val, 0%),
-            #d6dbe6 100%);
+    background: linear-gradient(to right, var(--c-primary) 0%, var(--c-primary) var(--val, 0%), #d6dbe6 var(--val, 0%), #d6dbe6 100%);
 }
 
 html[data-page='checkinCounter'] .range__input::-webkit-slider-thumb {
@@ -883,7 +891,6 @@ html[data-page='checkinCounter'] .ico-calendar {
    11. 해상도 대응
    ========================================================================== */
 @media screen and (max-height: 900px) {
-
     /* 헤더 높이는 공용 토큰(--pm-header-h)이 함께 줄어든다. common.css 참고 */
     html[data-page='checkinCounter'] .chkn-summary {
         gap: 8px;

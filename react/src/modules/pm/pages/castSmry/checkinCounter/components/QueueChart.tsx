@@ -13,7 +13,6 @@ interface QueueChartProps {
 
 const BOOTH_SERIES = '운영 부스';
 const BOOTH_STACK = 'booth';
-/** 아일랜드 목록 순서(A~N)대로 무지개 순 — 13곳을 넘으면 처음부터 다시 쓴다 */
 const ISLAND_COLORS = [
     '#e5484d',
     '#f76b15',
@@ -30,10 +29,9 @@ const ISLAND_COLORS = [
     '#ad7f58',
 ];
 const QUEUE_COLOR = '#f2762e';
-const QUEUE_SERIES = 'Cast Queue 대기인원';
-/** 무지개색 아일랜드 막대와 겹치지 않게 무채색 계열 점선으로 그린다 */
-const XOVIS_COLOR = '#26314d';
-const XOVIS_SERIES = 'Xovis Queue 대기인원';
+const QUEUE_SERIES = 'Cast Queue';
+const XOVIS_COLOR = '#b4bccb';
+const XOVIS_SERIES = 'Xovis Queue';
 const Y_TICKS = 5;
 const GRID = { left: 38, right: 44, top: 16, bottom: 24 };
 const NOW_LINE_COLOR = 'rgba(68, 65, 204, 0.45)';
@@ -235,9 +233,7 @@ export function QueueChart({ queue, step, time }: QueueChartProps) {
     return (
         <div className="chkn-chart">
             <div className="chkn-chart__head">
-                <p className="chkn-chart__title">
-                    30분 단위 아일랜드별 운영 부스와 Cast · Xovis Queue 대기인원 <em>(단위: 개 / 명)</em>
-                </p>
+                <p className="chkn-chart__title">아일랜드 운영 대비 대기인원</p>
                 <ul className="chkn-chart__legend">
                     {queue.islands.map((island, index) => (
                         <li key={island.island} title={island.title}>

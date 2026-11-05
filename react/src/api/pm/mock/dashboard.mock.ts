@@ -374,6 +374,7 @@ function buildRsltList(tmnlId: TmnlId, category: DsbdCategory): DsbdRsltDto[] {
             fltCnt,
             wtngPsgCnt: hour <= MEASURED_UNTIL_HOUR ? Math.round(fcstWtngPsgCnt * (0.85 + ((hour * 13) % 6) / 20)) : null,
             wtngHr: Math.min(40, Math.round(fcstWtngPsgCnt / 8)),
+            arvlPsgCnt: load,
             prcsPsgCnt: Math.round(load * 0.9),
             prcsHr: Math.min(30, Math.round(fcstWtngPsgCnt / 12)),
             prcsRate: 70 + ((hour * 7) % 26),

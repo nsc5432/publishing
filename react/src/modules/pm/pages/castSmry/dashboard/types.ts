@@ -129,6 +129,8 @@ export interface SummarySlot {
 export interface TableRow {
     time: string;
     pax: string;
+    arrivalPax: string;
+    processedPax: string;
     wait: string;
     process: string;
     timeShare: string;

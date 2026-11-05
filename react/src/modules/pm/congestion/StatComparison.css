@@ -2,20 +2,38 @@
 html:is([data-page='terminalMap'], [data-page='departureHall']) .stat__cmpr {
     display: flex;
     grid-column: 1 / -1;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    margin: 8px 0 0;
-    padding-top: 8px;
-    border-top: 1px dashed #d8dce5;
+    justify-content: center;
+    margin: 6px 0 0;
     font-size: 11px;
     line-height: 1.3;
-    text-align: center;
-    color: var(--c-text-sub);
 }
 
-html:is([data-page='terminalMap'], [data-page='departureHall']) .stat__cmpr-base b {
-    font-weight: 700;
-    color: var(--c-text);
+html:is([data-page='terminalMap'], [data-page='departureHall']) .stat__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 600;
     white-space: nowrap;
+    cursor: default;
+}
+
+html:is([data-page='terminalMap'], [data-page='departureHall']) .stat__chip-arrow {
+    font-size: 0.8em;
+}
+
+html:is([data-page='terminalMap'], [data-page='departureHall']) .stat__chip--worse {
+    background: #fdecec;
+    color: #d42424;
+}
+
+html:is([data-page='terminalMap'], [data-page='departureHall']) .stat__chip--better {
+    background: #e8f0fe;
+    color: #2563d6;
+}
+
+html:is([data-page='terminalMap'], [data-page='departureHall']) .stat__chip--even {
+    background: #eceef3;
+    color: #6b7280;
 }

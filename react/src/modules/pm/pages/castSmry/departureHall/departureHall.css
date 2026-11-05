@@ -582,13 +582,12 @@ html[data-page='departureHall'] .dep-stat__value em {
 html[data-page='departureHall'] .dep-stat .stat__cmpr {
     align-self: stretch;
     margin-top: min(4px, 1.8cqw);
-    padding-top: min(4px, 1.8cqw);
-    font-size: clamp(11px, 5.7cqw, 12px);
+    font-size: clamp(10px, 5.2cqw, 11px);
     line-height: 1.35;
 }
 
-html[data-page='departureHall'] .dep-stat .stat__cmpr-base b {
-    display: block;
+html[data-page='departureHall'] .dep-stat .stat__chip {
+    padding: 2px min(8px, 3.5cqw);
 }
 
 /* ==========================================================================

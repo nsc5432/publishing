@@ -8,6 +8,7 @@ export type IconName =
     | 'user'
     | 'building'
     | 'monitor'
+    | 'booth'
     | 'pin'
     | 'grid'
     | 'map'
@@ -37,7 +38,8 @@ export type IconName =
     | 'dataLink'
     | 'checkCircle'
     | 'spinner'
-    | 'planeDep';
+    | 'planeDep'
+    | 'reset';
 
 const LINE = {
     fill: 'none' as const,
@@ -118,6 +120,14 @@ const ICONS: Record<IconName, ReactNode> = {
             <path d="M8 20.5h8" />
         </svg>
     ),
+    booth: (
+        <svg viewBox="0 0 24 24" {...LINE}>
+            <circle cx="12" cy="6.2" r="2.7" />
+            <path d="M7.2 13a4.8 4.8 0 0 1 9.6 0" />
+            <rect x="2.8" y="13" width="18.4" height="4.2" rx="1" />
+            <path d="M5.2 17.2v3.6M18.8 17.2v3.6" />
+        </svg>
+    ),
     pin: (
         <svg viewBox="0 0 24 24" {...LINE} width={23} height={23}>
             <path d="M12 21.5s7-6.2 7-11.3A7 7 0 0 0 5 10.2c0 5.1 7 11.3 7 11.3z" />
@@ -173,6 +183,12 @@ const ICONS: Record<IconName, ReactNode> = {
             <g transform="rotate(45 12 12)">
                 <path d="M21.6 16.3v-1.9l-7.9-4.9V3.1c0-.85-.7-1.55-1.55-1.55h-.3c-.85 0-1.55.7-1.55 1.55v6.4l-7.9 4.9v1.9l7.9-2.5v5.6l-2.1 1.55v1.5l3.8-1.05 3.8 1.05v-1.5l-2.1-1.55v-5.6l7.9 2.5z" />
             </g>
+        </svg>
+    ),
+    reset: (
+        <svg viewBox="0 0 24 24" {...LINE} strokeWidth={2.2} width={16} height={16}>
+            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
         </svg>
     ),
     people: (

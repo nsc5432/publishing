@@ -48,6 +48,22 @@ try {
         smry.smryPrcsPsgCnt === null ? '-' : smry.smryPrcsPsgCnt.toLocaleString(),
     ];
 
+    for (const category of ['PSG', 'FLT', 'CHKN', 'DEP']) {
+        const result = api.getTmnlRsltByTime('T1', category)[0];
+        const tableRow = (overrides) => toTerminalView({
+            hhmm: '0000', category, smry: smryAt('0000', 'T1', category),
+            rsltList: [{ ...result, psgCnt: 12, arvlPsgCnt: 1234, prcsPsgCnt: 5678, ...overrides }],
+            chknCards: [], dptgtCards: [],
+        }).tableRows[0];
+        const row = tableRow({});
+        check([row.pax, row.arrivalPax, row.processedPax], ['12', '1,234', '5,678'],
+            `${category} detail keeps reservation or flight counts separate from arrivals and processed passengers`);
+        check(tableRow({ arvlPsgCnt: null }).arrivalPax, '-', `${category} unknown arrivals stay unknown`);
+        check(tableRow({ arvlPsgCnt: undefined }).arrivalPax, '-', `${category} missing arrivals from older responses stay unknown`);
+        const zero = tableRow({ arvlPsgCnt: 0, prcsPsgCnt: 0 });
+        check([zero.arrivalPax, zero.processedPax], ['0', '0'], `${category} known zero passenger counts stay zero`);
+    }
+
     for (const terminal of ['T1', 'T2']) {
         const dto = mapMock.getSmltMap(terminal);
         const day = toMapDay(dto);

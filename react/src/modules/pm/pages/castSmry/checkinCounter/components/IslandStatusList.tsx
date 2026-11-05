@@ -1,3 +1,4 @@
+import { Icon } from '@/components/icons/InlineIcon';
 import { formatCount } from '@/lib/format';
 import { toWaitMin } from '../view';
 import { toLevelKey, toLevelLabel, type ChknIslandView } from '../types';
@@ -22,8 +23,14 @@ export function IslandStatusList({ islands }: IslandStatusListProps) {
                         <b className="chkn-chip__label">{island.island}</b>
                         <span className="chkn-chip__value">{island.isClosed ? '미운영' : `${formatCount(island.queuePsgCnt)}명`}</span>
                         <span className="chkn-chip__sub">
-                            <span>운영 부스: {island.isClosed ? '-' : `${island.oprBoothCnt}개`}</span>
-                            <span>대기시간: {island.isClosed ? '-' : `${toWaitMin(island.waitSec)}분`}</span>
+                            <span title="운영 부스">
+                                <Icon name="booth" />
+                                {island.isClosed ? '-' : `${island.oprBoothCnt}개`}
+                            </span>
+                            <span title="대기시간">
+                                <Icon name="clock" />
+                                {island.isClosed ? '-' : `${toWaitMin(island.waitSec)}분`}
+                            </span>
                         </span>
                     </li>
                 ))}
