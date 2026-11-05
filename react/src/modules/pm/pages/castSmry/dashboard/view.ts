@@ -200,7 +200,7 @@ function toFcltCardVariant(
     return {
         unitCd: isCheckin ? card.island : card.dptgtNo,
         num: card.fcltNm,
-        meta: [{ label: '전체', value: formatCount(card.totCnt) }],
+        totalCount: formatCount(card.totCnt),
         current: current ? toFcltCardSnapshot(current, hhmm, scale) : null,
         next: next ? toFcltCardNextSnapshot(next, current, hhmm, nextScale) : null,
     };
@@ -684,7 +684,7 @@ export function toFcltQueueResultView(dto: FcltQueueScenarioDto): FcltQueueResul
 export const EMPTY_FCLT_CARD_VARIANT: FcltCardVariant = {
     unitCd: '',
     num: '-',
-    meta: [{ label: '전체', value: '-' }],
+    totalCount: '-',
     current: null,
     next: null,
 };

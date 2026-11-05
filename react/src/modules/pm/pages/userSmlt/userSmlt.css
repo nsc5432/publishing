@@ -1010,6 +1010,18 @@ html[data-page='userSmlt'] .editor__label {
     color: #3d4350;
 }
 
+html[data-page='userSmlt'] .editor__bulk {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+html[data-page='userSmlt'] .editor__bulk-label {
+    font-size: clamp(12px, 1.35vh, 14px);
+    color: #5b6170;
+    white-space: nowrap;
+}
+
 html[data-page='userSmlt'] .table-wrap {
     flex: 1 1 auto;
     min-height: 0;

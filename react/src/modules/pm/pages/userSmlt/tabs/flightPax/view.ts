@@ -84,7 +84,8 @@ function toRows(dto: UserSmltFltPsgDto, hourRates: number[]): HourRow[] {
             start: formatHhmm(hourRow.bgnTime),
             end: formatHhmm(hourRow.endTime),
             ajmtRt,
-            pax: `${formatCount(scale(hourRow.psgCnt, toFactor(ajmtRt)))}명`,
+            pax: `${formatCount(hourRow.psgCnt)}명`,
+            adjPax: `${formatCount(scale(hourRow.psgCnt, toFactor(ajmtRt)))}명`,
         };
     });
 }

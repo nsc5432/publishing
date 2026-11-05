@@ -543,6 +543,7 @@ html[data-page='checkinCounter'] .chkn-strip__list {
 
 html[data-page='checkinCounter'] .chkn-chip {
     display: flex;
+    position: relative;
     align-items: center;
     gap: 6px;
     padding: 5px 10px;
@@ -576,6 +577,54 @@ html[data-page='checkinCounter'] .chkn-chip__sub > span {
     display: inline-flex;
     align-items: center;
     gap: 3px;
+}
+
+/* 칩 hover 툴팁 — 첫 칩이 카드 왼쪽에서 잘리지 않게 칩 왼쪽에 맞춘다 */
+html[data-page='checkinCounter'] .chkn-chip__tip {
+    display: grid;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    z-index: 5;
+    grid-template-columns: auto auto;
+    gap: 3px 14px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: #fff;
+    background: #1f2a3c;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25);
+    font-size: 12px;
+    line-height: 1.4;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(4px);
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+}
+
+html[data-page='checkinCounter'] .chkn-chip__tip > span {
+    color: rgba(255, 255, 255, 0.65);
+}
+
+html[data-page='checkinCounter'] .chkn-chip__tip > b {
+    font-weight: 600;
+    text-align: right;
+}
+
+html[data-page='checkinCounter'] .chkn-chip__tip::after {
+    position: absolute;
+    top: 100%;
+    left: 16px;
+    border: 5px solid transparent;
+    border-top-color: #1f2a3c;
+    content: '';
+}
+
+html[data-page='checkinCounter'] .chkn-chip:hover .chkn-chip__tip {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 html[data-page='checkinCounter'] .chkn-chip__sub [data-ic] {

@@ -92,8 +92,8 @@ export function FlightPaxChart({ data }: FlightPaxChartProps) {
                             name={data.pax.title}
                             legendType="rect"
                             fill={`url(#${gradientId})`}
-                            barSize={9}
-                            radius={[2, 2, 0, 0]}
+                            barSize={36}
+                            radius={[4, 4, 0, 0]}
                             isAnimationActive
                             animationDuration={300}
                             animationEasing="ease-out"

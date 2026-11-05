@@ -52,13 +52,6 @@ export interface FcltCardChip {
     kind: string;
 }
 
-export interface FcltCardMeta {
-    label: string;
-    value: string;
-    /** 값을 강조색으로 (dashboard.css 의 .acc) */
-    accent?: boolean;
-}
-
 export interface FcltCardRecommend {
     tag: string;
     name: string;
@@ -92,7 +85,7 @@ export interface FcltCardVariant {
     /** 하단 칩(FcltUnitDto.unitCd)과 카드를 잇는 키 — 아일랜드 문자 / 출국장 번호 */
     unitCd: string;
     num: string;
-    meta: FcltCardMeta[];
+    totalCount: string;
     current: FcltCardSnapshot | null;
     next: FcltCardSnapshot | null;
 }

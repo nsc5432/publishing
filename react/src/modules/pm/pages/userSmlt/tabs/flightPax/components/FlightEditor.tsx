@@ -26,9 +26,12 @@ export function FlightEditor({ ratio, onRatioChange, onHourRatioChange, rows, di
         <div className="editor">
             {!readOnly && (
                 <div className="editor__opts">
-                    <p className="editor__label">전체 시간대 승객 수 일괄 수정</p>
+                    <p className="editor__label">시간대별 승객 수</p>
 
-                    <RatioStepper value={ratio} onChange={onRatioChange} disabled={disabled} label="전체" />
+                    <div className="editor__bulk">
+                        <span className="editor__bulk-label">일괄 수정</span>
+                        <RatioStepper value={ratio} onChange={onRatioChange} disabled={disabled} label="전체" />
+                    </div>
                 </div>
             )}
 
@@ -38,8 +41,9 @@ export function FlightEditor({ ratio, onRatioChange, onHourRatioChange, rows, di
                         <tr>
                             <th scope="col">시작시간</th>
                             <th scope="col">종료시간</th>
-                            {!readOnly && <th scope="col">수정</th>}
                             <th scope="col">승객 수</th>
+                            <th scope="col">변경 승객 수</th>
+                            {!readOnly && <th scope="col">수정</th>}
                         </tr>
                     </thead>
                     <tbody>
@@ -47,6 +51,8 @@ export function FlightEditor({ ratio, onRatioChange, onHourRatioChange, rows, di
                             <tr key={row.start}>
                                 <td>{row.start}</td>
                                 <td>{row.end}</td>
+                                <td className="is-num">{row.pax}</td>
+                                <td className="is-num">{row.adjPax}</td>
                                 {!readOnly && (
                                     <td className="is-num">
                                         <RatioStepper
@@ -58,7 +64,6 @@ export function FlightEditor({ ratio, onRatioChange, onHourRatioChange, rows, di
                                         />
                                     </td>
                                 )}
-                                <td className="is-num">{row.pax}</td>
                             </tr>
                         ))}
                     </tbody>

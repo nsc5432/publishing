@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import { Icon } from '@/components/icons/InlineIcon';
@@ -55,6 +55,7 @@ const clamp01 = (value: number) => Math.min(Math.max(value, 0), 1);
 
 export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
     const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
+    const tipId = useId();
     const variantsByUnit = useMemo(() => new Map(data.variants.map((item) => [item.unitCd, item])), [data.variants]);
     const unitOrder = useMemo(() => {
         const chipUnits = data.chips.map((chip) => chip.label).filter((unitCd) => variantsByUnit.has(unitCd));
@@ -66,6 +67,8 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
     const selectedChip = data.chips.find((chip) => chip.label === variant?.unitCd);
     const current = variant?.current;
     const accentColor = GAUGE_ACCENT[current?.congestionKind ?? 'gray'];
+    const unitName = data.fcltType === 'CHKN' ? '체크인카운터' : '보안검색대';
+    const operatingCount = current?.operatingCount ?? '-';
 
     const cycleVariant = (direction: number) => {
         setSelectedUnit((previous) => {
@@ -90,24 +93,19 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
             </div>
             <div className="fclt-card-mid">
                 <div className="fclt-unit-summary">
-                    <div className="fclt-unit-frame">
+                    <div className="fclt-unit-frame" tabIndex={0} aria-describedby={tipId}>
                         <div className="fclt-unit-heading">
                             {data.fcltType === 'CHKN' && <span className="isl">아일랜드</span>}
                             <b className="num" data-congestion={selectedChip?.kind}>
                                 {variant.num}
                             </b>
-                        </div>
-                        <div className="meta">
-                            {variant.meta.map((cell) => (
-                                <span key={cell.label}>
-                                    {cell.label}
-                                    <b>{cell.value}</b>개
-                                </span>
-                            ))}
-                            <span>
-                                운영<b className="acc">{current?.operatingCount ?? '-'}</b>개
+                            <span className="fclt-unit-count">
+                                (<b className="acc">{operatingCount}</b>/{variant.totalCount})
                             </span>
                         </div>
+                        <span id={tipId} className="fclt-unit-tip" role="tooltip">
+                            운영 {unitName} {operatingCount}개 / 전체 {variant.totalCount}개
+                        </span>
                     </div>
                     <button
                         type="button"
@@ -157,7 +155,7 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                     onClick={() => current && onDetail(variant.unitCd, current.hhmm)}
                 >
                     <span className="tag">추천</span>
-                    <span className="name">{current?.recommend.name || (data.fcltType === 'CHKN' ? '체크인카운터' : '보안검색대')}</span>
+                    <span className="name">{current?.recommend.name || unitName}</span>
                     <span className="cnt">
                         {current?.recommend.count ?? '-'}
                         <small>개</small>
@@ -222,10 +220,11 @@ function FlowPoint({ snapshot, label, time }: FlowPointProps) {
 }
 
 function FlowMetric({ icon, label, value, unit, diff }: FlowMetricProps) {
+    const tipId = useId();
+
     return (
-        <div className="fclt-flow-count">
+        <div className="fclt-flow-count" tabIndex={0} aria-describedby={tipId}>
             <Icon name={icon} />
-            <span className="fclt-flow-label">{label}</span>
             <span className="fclt-flow-value">
                 <strong>{value}</strong>
                 {value !== '-' && <small>{unit}</small>}
@@ -235,6 +234,9 @@ function FlowMetric({ icon, label, value, unit, diff }: FlowMetricProps) {
                     {diff.text}
                 </em>
             )}
+            <span id={tipId} className="fclt-flow-tip" role="tooltip">
+                {label}
+            </span>
         </div>
     );
 }

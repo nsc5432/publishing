@@ -43,6 +43,8 @@ export interface HourRow {
     ajmtRt: number;
     /** 승객 수 (예: 12,340명) */
     pax: string;
+    /** 수정 비율이 걸린 승객 수 */
+    adjPax: string;
 }
 
 /** 터미널 1개분 편집 상태 — hourRates 는 hourList 와 같은 순서 */
