@@ -78,12 +78,14 @@ export function SmltGnb({ title, ymd, steps, onBack, onDateChange, onSearch, onS
                 </button>
             )}
 
-            <h1 className="gnb__title">{title}</h1>
+            <h1 className="pm-title">
+                PM 예측관리 <span>/ {title}</span>
+            </h1>
 
-            <div className={steps ? 'gnb__center' : 'gnb__center gnb__center--date'}>{steps || datePicker}</div>
+            {steps && <div className="gnb__center">{steps}</div>}
 
             <div className="gnb__right">
-                {steps && datePicker}
+                {datePicker}
 
                 {onSave && (
                     <button type="button" className="btn btn--save" onClick={onSave} disabled={busy}>

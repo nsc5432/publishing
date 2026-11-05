@@ -20,11 +20,11 @@
        화면 셸 규격 — 헤더 / LNB 레일이 세 화면에서 같은 자리/같은 크기로
        보이도록 하는 단일 기준값. 화면 CSS 는 이 토큰만 참조한다.
        ----------------------------------------------------------------- */
-    --pm-header-h: 70px;
+    --pm-header-h: 58px;
     /* 헤더 / GNB 높이 */
     --pm-shell-x: 24px;
     /* 본문 좌우 바깥 여백 */
-    --pm-shell-top: 16px;
+    --pm-shell-top: 10px;
     /* 헤더 ↔ 본문 */
     --pm-shell-bottom: 20px;
     /* 본문 ↔ 화면 하단 */
@@ -40,8 +40,8 @@
    여기 한 곳만 바꾸면 전부 함께 줄어든다. */
 @media screen and (max-height: 900px) {
     :root {
-        --pm-header-h: 60px;
-        --pm-shell-top: 12px;
+        --pm-header-h: 52px;
+        --pm-shell-top: 8px;
         --pm-shell-bottom: 14px;
     }
 }
@@ -159,6 +159,20 @@ td {
     min-height: 0;
     overflow-x: auto;
     overflow-y: hidden;
+}
+
+.pm-title {
+    margin: 0;
+    color: #23272f;
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+    white-space: nowrap;
+}
+
+.pm-title span {
+    color: #949ab0;
+    font-weight: 600;
 }
 
 /* ---------------------------------------------------------------------

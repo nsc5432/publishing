@@ -54,14 +54,6 @@ html[data-page='userSmlt'] .gnb {
     background: linear-gradient(90deg, #ebe9f4 0%, #edecf5 45%, #f4f2f8 100%);
 }
 
-html[data-page='userSmlt'] .gnb__title {
-    margin: 0;
-    font-size: 17px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-    white-space: nowrap;
-}
-
 html[data-page='userSmlt'] .gnb__back {
     flex: 0 0 auto;
     padding: 0;
@@ -111,10 +103,6 @@ html[data-page='userSmlt'] .gnb__right {
         padding-left: 0;
         pointer-events: auto;
     }
-
-    html[data-page='userSmlt'] .gnb__right {
-        margin-left: 0;
-    }
 }
 
 @media screen and (max-width: 1600px) {
@@ -130,15 +118,6 @@ html[data-page='userSmlt'] .gnb__right {
     html[data-page='userSmlt'] .gnb__center {
         order: 1;
         flex-basis: 100%;
-    }
-
-    html[data-page='userSmlt'] .gnb__center--date {
-        order: 0;
-        flex-basis: auto;
-    }
-
-    html[data-page='userSmlt'] .gnb__right {
-        margin-left: auto;
     }
 }
 
@@ -2254,7 +2233,7 @@ html[data-page='userSmlt'] .airpop__rail.is-scrollable.is-end .airpop__grip {
         gap: 10px;
     }
 
-    html[data-page='userSmlt'] .gnb__title {
+    html[data-page='userSmlt'] .pm-title {
         font-size: 15px;
     }
 

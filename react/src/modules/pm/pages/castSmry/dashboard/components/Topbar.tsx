@@ -48,7 +48,7 @@ export function Topbar({
 
     return (
         <header className="topbar">
-            <h1>
+            <h1 className="pm-title">
                 PM 예측관리 <span>/ {SIMULATION_TITLE[simulationType]}</span>
             </h1>
             <div className="spacer" />
@@ -77,8 +77,6 @@ export function Topbar({
                     <span className="blind">조회</span>
                 </button>
             </div>
-
-            <div className="spacer" />
 
             <div className="top-right">
                 <span className="btn-primary">{SIMULATION_LABEL[simulationType]}</span>

@@ -52,23 +52,6 @@ html[data-page='castConfig'] .header {
     padding: 0 var(--pm-shell-x);
 }
 
-html[data-page='castConfig'] .header__title {
-    font-size: 19px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-html[data-page='castConfig'] .header__title strong {
-    color: var(--cast-primary);
-}
-
-html[data-page='castConfig'] .header__note {
-    justify-self: end;
-    color: #6b7280;
-    font-size: 12px;
-    white-space: nowrap;
-}
-
 html[data-page='castConfig'] .cast-config-container {
     display: flex;
     position: relative;
@@ -1259,12 +1242,6 @@ html[data-page='castConfig'] .cast-config-page-number.is-current {
     html[data-page='castConfig'] .cast-config-legend {
         margin-top: 12px;
         padding-block: 10px;
-    }
-}
-
-@media screen and (max-width: 1380px) {
-    html[data-page='castConfig'] .header__note {
-        display: none;
     }
 }
 

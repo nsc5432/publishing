@@ -119,24 +119,12 @@ html[data-page='facilityMap'] .listcol {
    ========================================================================== */
 html[data-page='facilityMap'] .header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 24px;
     align-items: center;
     flex: none;
     height: var(--pm-header-h);
     padding: 0 var(--pm-shell-x);
-}
-
-html[data-page='facilityMap'] .header__title {
-    font-size: 19px;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-html[data-page='facilityMap'] .header__note {
-    justify-self: end;
-    font-size: 12px;
-    color: var(--c-text-sub);
-    white-space: nowrap;
 }
 
 /* 검색바 --------------------------------------------------------------- */
@@ -158,7 +146,7 @@ html[data-page='facilityMap'] .search-bar__field {
 }
 
 html[data-page='facilityMap'] .search-bar__label {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 500;
     color: #454b57;
     white-space: nowrap;
@@ -182,7 +170,7 @@ html[data-page='facilityMap'] .radio input {
 html[data-page='facilityMap'] .radio label {
     position: relative;
     padding-left: 22px;
-    font-size: 13px;
+    font-size: 15px;
     color: #454b57;
     cursor: pointer;
     white-space: nowrap;

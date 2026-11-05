@@ -55,18 +55,10 @@ html[data-page='monitoring'] .gnb {
     background: linear-gradient(90deg, #ebe9f4 0%, #edecf5 45%, #f4f2f8 100%);
 }
 
-html[data-page='monitoring'] .gnb__title {
-    margin: 0;
-    font-size: 17px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-    white-space: nowrap;
-}
-
 html[data-page='monitoring'] .gnb__center {
     flex: 1;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
 }
 
 html[data-page='monitoring'] .datebox {

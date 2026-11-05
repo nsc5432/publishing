@@ -84,22 +84,11 @@ html[data-page='checkinCounter'] .container {
    ========================================================================== */
 html[data-page='checkinCounter'] .header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     flex: none;
     height: var(--pm-header-h);
     padding: 0 var(--pm-shell-x);
-}
-
-html[data-page='checkinCounter'] .header__title {
-    font-size: 19px;
-    font-weight: 700;
-    color: var(--c-text);
-    white-space: nowrap;
-}
-
-html[data-page='checkinCounter'] .header__title strong {
-    font-weight: 700;
 }
 
 /* 검색바 --------------------------------------------------------------- */
@@ -121,7 +110,7 @@ html[data-page='checkinCounter'] .search-bar__field {
 }
 
 html[data-page='checkinCounter'] .search-bar__label {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 500;
     color: #454b57;
     white-space: nowrap;
@@ -134,8 +123,8 @@ html[data-page='checkinCounter'] .input-date {
 }
 
 html[data-page='checkinCounter'] .input-date__input {
-    width: 104px;
-    font-size: 13px;
+    width: 144px;
+    font-size: 18px;
     font-weight: 600;
     color: var(--c-text);
     cursor: pointer;
@@ -163,7 +152,7 @@ html[data-page='checkinCounter'] .radio input {
 html[data-page='checkinCounter'] .radio label {
     position: relative;
     padding-left: 22px;
-    font-size: 13px;
+    font-size: 15px;
     color: #454b57;
     cursor: pointer;
     white-space: nowrap;

@@ -11,8 +11,8 @@ interface HeaderProps {
 export function Header({ terminal, onTerminalChange, onSearch }: HeaderProps) {
     return (
         <header className="header">
-            <h1 className="header__title">
-                PM 예측관리 / <strong>시설물 매핑</strong>
+            <h1 className="pm-title">
+                PM 예측관리 <span>/ 시설물 매핑</span>
             </h1>
 
             <div className="search-bar">
@@ -41,11 +41,6 @@ export function Header({ terminal, onTerminalChange, onSearch }: HeaderProps) {
                     <span className="blind">조회</span>
                 </button>
             </div>
-
-            {/* 고칠 수 있는 값이 한 칸뿐이라는 사실을 화면이 먼저 말해 준다. */}
-            <p className="header__note">
-                CAST 시뮬레이션명만 수정할 수 있습니다. 나머지 값은 조회 전용입니다.
-            </p>
         </header>
     );
 }

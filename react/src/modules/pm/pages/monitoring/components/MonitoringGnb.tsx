@@ -67,7 +67,9 @@ export function MonitoringGnb({ title, range, onChange, onSearch, refreshSeconds
 
     return (
         <header className="gnb">
-            <h1 className="gnb__title">{title}</h1>
+            <h1 className="pm-title">
+                PM 예측관리 <span>/ {title}</span>
+            </h1>
 
             <div className="gnb__center">
                 <div className="datebox">

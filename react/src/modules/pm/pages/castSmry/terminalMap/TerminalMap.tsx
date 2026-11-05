@@ -16,7 +16,7 @@ import { MapStage } from './components/MapStage';
 import { OperCards } from './components/OperCards';
 import { Timeline } from '@/modules/pm/components/Timeline';
 import { useSmltMap, type MapQuery } from './hooks/useTerminalMapData';
-import { EMPTY_MAP_SLOT, EMPTY_SUMMARY } from './view';
+import { EMPTY_MAP_SLOT } from './view';
 import { TIMELINE_RANGE } from './timeline';
 import type { DepGateMarker, IslandMarker, TerminalKind } from './types';
 
@@ -102,7 +102,6 @@ function TerminalMap() {
                 terminal={terminal}
                 onDateChange={setDraftYmd}
                 onTerminalChange={handleTerminalChange}
-                summary={mapDay?.summary ?? EMPTY_SUMMARY}
                 onSearch={handleSearch}
             />
 

@@ -1,27 +1,26 @@
 import type { MouseEvent } from 'react';
 import { SearchIcon } from '@/components/icons';
 import { toDateInputValue, toYmd } from '@/lib/format';
-import { TERMINAL_LABEL, TERMINALS, type HeaderSummary, type TerminalKind } from '../types';
+import { TERMINAL_LABEL, TERMINALS, type TerminalKind } from '../types';
 
 interface HeaderProps {
     baseYmd: string;
     terminal: TerminalKind;
     onDateChange: (ymd: string) => void;
     onTerminalChange: (terminal: TerminalKind) => void;
-    summary: HeaderSummary;
     onSearch: () => void;
 }
 
-/** 상단 헤더 — 타이틀 / 조회 조건(기준일자/터미널) / 운항/여객 요약 */
-export function Header({ baseYmd, terminal, onDateChange, onTerminalChange, summary, onSearch }: HeaderProps) {
+/** 상단 헤더 — 타이틀 / 조회 조건(기준일자/터미널) */
+export function Header({ baseYmd, terminal, onDateChange, onTerminalChange, onSearch }: HeaderProps) {
     const handleOpenCalendar = (event: MouseEvent<HTMLInputElement>) => {
         if (typeof event.currentTarget.showPicker === 'function') event.currentTarget.showPicker();
     };
 
     return (
         <header className="header">
-            <h1 className="header__title">
-                PM 예측관리 / <strong>일일 시뮬레이션 결과 조회</strong>
+            <h1 className="pm-title">
+                PM 예측관리 <span>/ 일일 시뮬레이션 결과 조회</span>
             </h1>
 
             <div className="search-bar">
@@ -67,17 +66,6 @@ export function Header({ baseYmd, terminal, onDateChange, onTerminalChange, summ
                     <span className="blind">조회</span>
                 </button>
             </div>
-
-            <dl className="header__summary">
-                <div className="header__summary-item">
-                    <dt>운항</dt>
-                    <dd>{summary.flight}</dd>
-                </div>
-                <div className="header__summary-item">
-                    <dt>여객</dt>
-                    <dd>{summary.pax}</dd>
-                </div>
-            </dl>
         </header>
     );
 }

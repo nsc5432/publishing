@@ -145,7 +145,7 @@ function UserSmltConfig() {
     return (
         <>
             <SmltGnb
-                title={readOnly ? 'PM 예측관리 / 사용자 시뮬레이션 설정 조건 조회' : 'PM 예측관리 / 사용자 시뮬레이션'}
+                title={readOnly ? '사용자 시뮬레이션 설정 조건 조회' : '사용자 시뮬레이션'}
                 ymd={ymd}
                 steps={picked ? <SmltTabs activeTab={activeTab} onTabChange={handleTabChange} /> : undefined}
                 onBack={readOnly ? () => navigate(-1) : undefined}

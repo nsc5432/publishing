@@ -21,8 +21,8 @@ export function Header({ baseYmd, terminal, onDateChange, onTerminalChange, onSe
 
     return (
         <header className="header">
-            <h1 className="header__title">
-                PM 예측관리 / <strong>일일 시뮬레이션 결과 조회</strong>
+            <h1 className="pm-title">
+                PM 예측관리 <span>/ 일일 시뮬레이션 결과 조회</span>
             </h1>
 
             <div className="search-bar">

@@ -75,46 +75,12 @@ html[data-page='terminalMap'] .container {
    ========================================================================== */
 html[data-page='terminalMap'] .header {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 24px;
     align-items: center;
     flex: none;
     height: var(--pm-header-h);
     padding: 0 var(--pm-shell-x);
-}
-
-html[data-page='terminalMap'] .header__title {
-    font-size: 19px;
-    font-weight: 700;
-    color: var(--c-text);
-    white-space: nowrap;
-}
-
-html[data-page='terminalMap'] .header__title strong {
-    font-weight: 700;
-}
-
-html[data-page='terminalMap'] .header__summary {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    justify-self: end;
-    text-align: right;
-}
-
-html[data-page='terminalMap'] .header__summary-item {
-    display: flex;
-    gap: 10px;
-    justify-content: flex-end;
-    font-size: 13px;
-}
-
-html[data-page='terminalMap'] .header__summary-item dt {
-    color: var(--c-text-sub);
-}
-
-html[data-page='terminalMap'] .header__summary-item dd {
-    font-weight: 500;
-    color: var(--c-text);
 }
 
 /* 검색바 --------------------------------------------------------------- */
@@ -136,7 +102,7 @@ html[data-page='terminalMap'] .search-bar__field {
 }
 
 html[data-page='terminalMap'] .search-bar__label {
-    font-size: 13px;
+    font-size: 15px;
     font-weight: 500;
     color: #454b57;
     white-space: nowrap;
@@ -149,8 +115,8 @@ html[data-page='terminalMap'] .input-date {
 }
 
 html[data-page='terminalMap'] .input-date__input {
-    width: 104px;
-    font-size: 13px;
+    width: 144px;
+    font-size: 18px;
     font-weight: 600;
     color: var(--c-text);
     cursor: pointer;
@@ -178,7 +144,7 @@ html[data-page='terminalMap'] .radio input {
 html[data-page='terminalMap'] .radio label {
     position: relative;
     padding-left: 22px;
-    font-size: 13px;
+    font-size: 15px;
     color: #454b57;
     cursor: pointer;
     white-space: nowrap;
