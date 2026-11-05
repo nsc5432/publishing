@@ -54,7 +54,6 @@ export function CheckinCounterEditDock({
     onCancel,
 }: CheckinCounterEditDockProps) {
     const dockRef = useRef<HTMLElement>(null);
-    const boothsRef = useRef<HTMLDivElement>(null);
 
     const BadgeIcon = terminal === 'T1' ? T1WhiteIcon : T2WhiteIcon;
 
@@ -65,7 +64,7 @@ export function CheckinCounterEditDock({
 
         const handleOutsidePointerDown = (event: Event) => {
             const target = event.target as Node | null;
-            if (target && boothsRef.current?.contains(target)) return;
+            if (target && dockRef.current?.contains(target)) return;
 
             onSelectBooths([]);
         };
@@ -88,7 +87,6 @@ export function CheckinCounterEditDock({
         onPatch({
             booths: draft.booths.map((booth) => (selectedBoothNos.has(booth.no) ? { ...booth, airline } : booth)),
         });
-        onSelectBooths([]);
     };
 
     return (
@@ -136,7 +134,7 @@ export function CheckinCounterEditDock({
                                 {draft.label} 아일랜드 {assignedBoothCount(draft)}대 / {ISLAND_BOOTHS}대<span className="dsec__hint">끌어서 여러 대 선택</span>
                             </p>
 
-                            <div className="booths" ref={boothsRef}>
+                            <div className="booths">
                                 <div className="booths__row">
                                     <span className="booths__side">L</span>
                                     <BoothGrid booths={draft.booths} side="L" selected={selectedBooths} onSelect={onSelectBooths} disabled={disabled} />

@@ -230,12 +230,12 @@ function FlowMetric({ icon, label, value, unit, diff }: FlowMetricProps) {
             <span className="fclt-flow-value">
                 <strong>{value}</strong>
                 {value !== '-' && <small>{unit}</small>}
-                {diff && (
-                    <em className="fclt-flow-diff" data-dir={diff.dir} aria-label={`현재 대비 ${diff.text}${unit}`}>
-                        {diff.text}
-                    </em>
-                )}
             </span>
+            {diff && (
+                <em className="fclt-flow-diff" data-dir={diff.dir} aria-label={`현재 대비 ${diff.text}${unit}`}>
+                    {diff.text}
+                </em>
+            )}
         </div>
     );
 }

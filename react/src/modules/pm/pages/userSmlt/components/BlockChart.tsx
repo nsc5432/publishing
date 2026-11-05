@@ -190,8 +190,10 @@ function splitBlock(box: BlockBox, operatingSide: 'L' | 'R', paint: BlockPaint):
         },
         style: {
             fill: paint.fill,
-            opacity: paint.opacity * SIDE_OFF_OPACITY,
+            opacity: paint.opacity,
+            fillOpacity: SIDE_OFF_OPACITY,
             stroke: paint.fill,
+            strokeOpacity: 1,
             lineWidth: 1,
         },
     };

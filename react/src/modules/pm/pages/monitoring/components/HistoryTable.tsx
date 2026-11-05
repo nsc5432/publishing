@@ -15,8 +15,8 @@ interface HistoryTableProps {
 }
 
 const COLUMNS: Record<HistoryKind, string[]> = {
-    standard: ['번호', '시작일시', '종료일시', '소요시간', '상태', '결과'],
-    user: ['번호', '부서', '성명', '시작일시', '종료일시', '소요시간', '상태', '조건', '결과', '취소'],
+    standard: ['번호', '시작일시', '종료일시', '소요시간(분)', '상태', '결과'],
+    user: ['번호', '부서', '성명', '시작일시', '종료일시', '소요시간(분)', '상태', '조건', '결과', '취소'],
 };
 
 const TBL_COLS: Record<HistoryKind, string> = {
@@ -86,7 +86,7 @@ export function HistoryTable({
                                 {showUser && <div>{row.name}</div>}
                                 <div>{row.startAt}</div>
                                 <div>{row.endAt}</div>
-                                <div>{row.duration}</div>
+                                <div>{row.duration} 분</div>
                                 <div className={`tbl__state is-${row.status}`}>
                                     {RUN_STATUS_LABEL[row.status]}
                                     {showUser && row.status === 'running' && (

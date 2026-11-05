@@ -1847,7 +1847,7 @@ html[data-page='dashboard'] .fclt-flow-status::before {
 
 html[data-page='dashboard'] .fclt-flow-metrics {
     display: grid;
-    grid-template-columns: 15px auto auto;
+    grid-template-columns: 15px auto auto auto;
     justify-content: center;
     gap: 3px 4px;
     margin-top: 3px;
@@ -1888,6 +1888,7 @@ html[data-page='dashboard'] .fclt-flow-label {
 html[data-page='dashboard'] .fclt-flow-value {
     display: inline-flex;
     align-items: baseline;
+    align-self: baseline;
     justify-content: flex-end;
     gap: 2px;
     margin-left: 12px;
@@ -1900,7 +1901,7 @@ html[data-page='dashboard'] .fclt-flow-count small {
 }
 
 html[data-page='dashboard'] .fclt-flow-diff {
-    margin-left: 3px;
+    align-self: baseline;
     font-size: 11px;
     font-style: normal;
     font-weight: 600;
@@ -2550,7 +2551,7 @@ html[data-page='dashboard'] .trow.sel {
     }
 
     html[data-page='dashboard'] .fclt-flow-metrics {
-        grid-template-columns: 12px auto auto;
+        grid-template-columns: 12px auto auto auto;
         gap: 1px 3px;
         margin-top: 3px;
         grid-column: 1 / -1;
@@ -2653,7 +2654,7 @@ html[data-page='dashboard'] .trow.sel {
     }
 
     html[data-page='dashboard'] .fclt-flow-metrics {
-        grid-template-columns: 10px auto auto;
+        grid-template-columns: 10px auto auto auto;
         gap: 1px 2px;
     }
 
