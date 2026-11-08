@@ -55,10 +55,10 @@ html[data-page='dashboard'] {
     --box-blue: #eaf3ff;
     --box-mint: #f0fffc;
     --lost: clamp(0px, 1080px - 100vh, 120px);
-    --main-gap: calc(22px - var(--lost) * 0.06);
+    --main-gap: calc(12px - var(--lost) * 0.06);
     --top-row-h: calc(176px - var(--lost) * 0.17);
-    --title-gap: calc(24px - var(--lost) * 0.11);
-    --view-gap: calc(26px - var(--lost) * 0.12);
+    --title-gap: calc(12px - var(--lost) * 0.11);
+    --view-gap: calc(18px - var(--lost) * 0.12);
     --sum-top-h: calc(100px - var(--lost) * 0.13);
     --p-top-h: 199px;
     --donut-size: 72px;
@@ -176,6 +176,19 @@ html[data-page='dashboard'] .topbar {
 
 html[data-page='dashboard'] .topbar .spacer {
     flex: 1;
+}
+
+/* 사용자 결과는 보기 탭이 한 줄을 더 쓴다. 제목과 뜻이 겹치는 배지부터, 다음은 실행자를 접는다 */
+@media (max-width: 1759px) {
+    html[data-page='dashboard'] .topbar--user .btn-primary {
+        display: none;
+    }
+}
+
+@media (max-width: 1599px) {
+    html[data-page='dashboard'] .topbar--user .exec {
+        display: none;
+    }
 }
 
 html[data-page='dashboard'] .datebox {

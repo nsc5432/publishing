@@ -1,10 +1,11 @@
 import './dashboard.css';
 import { useEffect, useMemo, useState } from 'react';
-import { useMatch, useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lnb } from '@/components/lnb';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
-import type { DsbdCategory, SmltType } from '@/types/api.types';
+import { useSmltScope } from '@/modules/pm/hooks/useSmltScope';
+import type { DsbdCategory } from '@/types/api.types';
 import { FcltQueueScenarioModal } from './components/FcltQueueScenarioModal';
 import { HeaderSummary } from './components/HeaderSummary';
 import { TerminalSummary } from './components/TerminalSummary';
@@ -28,12 +29,10 @@ interface ActivePrime {
 
 const USER_SMLT_CONFIG_PATH = '/rui/pm/user-smlt/config';
 
-const TERMINAL_MAP_PATH = '/rui/pm/daily-smlt/terminalMap';
-
-const FCLT_DETAIL_PATH: Record<FcltCardType, string> = {
-    CHKN: '/rui/pm/daily-smlt/checkinCounter',
-    DEP: '/rui/pm/daily-smlt/departureHall',
-};
+const FCLT_DETAIL_VIEW = {
+    CHKN: 'checkinCounter',
+    DEP: 'departureHall',
+} as const satisfies Record<FcltCardType, string>;
 
 const DEFAULT_CATEGORY: DsbdCategory = 'PSG';
 
@@ -42,9 +41,7 @@ function Dashboard() {
     const navigate = useNavigate();
 
     const [searchParams, setSearchParams] = useSearchParams();
-    const targetSmltId = searchParams.get('smltId') ?? '';
-    const userSmltRoute = useMatch('/rui/pm/user-smlt/dashboard');
-    const targetSmltType: SmltType = userSmltRoute || searchParams.get('smltType') === 'USER' ? 'USER' : 'DAILY';
+    const { smltId: targetSmltId, smltType: targetSmltType, pathOf } = useSmltScope();
 
     const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
     const [draftYmd, setDraftYmd] = useState(ymd);
@@ -133,7 +130,7 @@ function Dashboard() {
 
         if (draftYmd !== ymd) {
             setYmd(draftYmd);
-            setSearchParams({}, { replace: true });
+            setSearchParams({ ymd: draftYmd }, { replace: true });
             setActivePrime(null);
             return;
         }
@@ -158,7 +155,7 @@ function Dashboard() {
 
         if (!isUserSmlt && primeYmd !== ymd) {
             setYmd(primeYmd);
-            setSearchParams({}, { replace: true });
+            setSearchParams({ ymd: primeYmd }, { replace: true });
         }
     };
 
@@ -197,20 +194,13 @@ function Dashboard() {
     };
 
     const handleFcltMove = (tmnlId: TerminalKind) => (fcltType: FcltCardType) => {
-        const detailParams = new URLSearchParams({ tmnlId });
         const terminalQuery = terminalQueries?.[tmnlId];
 
-        if (terminalQuery) {
-            detailParams.set('ymd', terminalQuery.ymd);
-            detailParams.set('hhmm', terminalQuery.hhmm);
-        }
-
-        navigate(`${FCLT_DETAIL_PATH[fcltType]}?${detailParams.toString()}`);
+        navigate(pathOf(FCLT_DETAIL_VIEW[fcltType], { ymd: terminalQuery?.ymd, tmnlId, hhmm: terminalQuery?.hhmm }));
     };
 
     const handleMapMove = (tmnlId: TerminalKind) => () => {
-        const mapParams = new URLSearchParams({ tmnlId });
-        navigate(`${TERMINAL_MAP_PATH}?${mapParams.toString()}`);
+        navigate(pathOf('terminalMap', { ymd: terminalQueries?.[tmnlId].ymd ?? ymd, tmnlId }));
     };
 
     const executor = execDetail ? { dept: execDetail.deptNm, name: execDetail.userNm } : undefined;

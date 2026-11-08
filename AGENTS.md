@@ -24,12 +24,16 @@
 | 맵형태보기 | `/rui/pm/daily-smlt/terminalMap` | `modules/pm/pages/castSmry/terminalMap` |
 | 체크인카운터 | `/rui/pm/daily-smlt/checkinCounter` | `modules/pm/pages/castSmry/checkinCounter` |
 | 출국장 | `/rui/pm/daily-smlt/departureHall` | `modules/pm/pages/castSmry/departureHall` |
+| 사용자 시뮬레이션 결과 (요약 · 맵 · 체크인 · 출국장) | `/rui/pm/user-smlt/{dashboard,terminalMap,checkinCounter,departureHall}?smltId=` | 위 4개 폴더 재사용 |
 | 사용자 시뮬레이션 조건설정 | `/rui/pm/user-smlt/config` | `modules/pm/pages/userSmlt` |
 | 시뮬레이션 모니터링 | `/rui/pm/smlt-monitoring` | `modules/pm/pages/monitoring` |
 | 시설물 매핑 | `/rui/pm/fclt-map` | `modules/pm/pages/facilityMap` |
 | Cast 설정 | `/rui/pm/cast-config` | `modules/pm/pages/castConfig` |
 
 앱 base 는 `/rui/`. 라우팅·프리로드는 `src/App.tsx`.
+일일 · 사용자 결과는 같은 화면을 경로 접두어(`daily-smlt` / `user-smlt`)로 가른다 (`modules/pm/hooks/useSmltScope`).
+일일 화면끼리는 LNB 가 `ymd` 만 이어 가고, 사용자 결과 4화면은 헤더의 보기 탭(`SmltViewTabs`)이 `smltId` 를 들고 오간다.
+LNB 는 `smltId` 를 넘기지 않는다.
 화면 접근은 롤로 갈린다 — §12.
 
 ---

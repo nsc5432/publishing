@@ -35,6 +35,7 @@ function UserSmltConfig() {
     const viewTmnlId = searchParams.get('tmnlId') as TerminalKind | null;
 
     const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
+    const [inputYmd, setInputYmd] = useState(ymd);
     const [reloadKey, setReloadKey] = useState(0);
     const [infoVersion, setInfoVersion] = useState(0);
     const { saveDt, error, responseSeq } = useSmltInfo(readOnly ? '' : ymd, reloadKey + infoVersion);
@@ -71,12 +72,8 @@ function UserSmltConfig() {
     const handleSearch = () => {
         if (running.current) return;
         collectors.current = {};
+        setYmd(inputYmd);
         setReloadKey((key) => key + 1);
-    };
-    const handleDateChange = (value: string) => {
-        if (running.current) return;
-        collectors.current = {};
-        setYmd(value);
     };
     const handleTabChange = (tab: SmltTabKey) => {
         setVisited((tabs) => (tabs.includes(tab) ? tabs : [...tabs, tab]));
@@ -146,10 +143,10 @@ function UserSmltConfig() {
         <>
             <SmltGnb
                 title={readOnly ? '사용자 시뮬레이션 설정 조건 조회' : '사용자 시뮬레이션'}
-                ymd={ymd}
+                ymd={readOnly ? ymd : inputYmd}
                 steps={picked ? <SmltTabs activeTab={activeTab} onTabChange={handleTabChange} /> : undefined}
                 onBack={readOnly ? () => navigate(-1) : undefined}
-                onDateChange={readOnly ? undefined : handleDateChange}
+                onDateChange={readOnly ? undefined : setInputYmd}
                 onSearch={readOnly ? undefined : handleSearch}
                 onSave={picked && !readOnly ? handleSave : undefined}
                 onRun={picked && !readOnly ? handleRun : undefined}

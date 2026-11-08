@@ -7,6 +7,7 @@ import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
 import { dialog } from '@/lib/dialog';
 import { todayYmd } from '@/lib/format';
+import { useSmltScope } from '@/modules/pm/hooks/useSmltScope';
 import { hhmmToStep, useTimeline } from '@/modules/pm/hooks/useTimeline';
 import { Header } from './components/Header';
 import { IslandStatusList } from './components/IslandStatusList';
@@ -23,10 +24,11 @@ import { EMPTY_CHKN_SLOT, EMPTY_QUEUE } from './view';
 function CheckinCounter() {
     usePageScope('checkinCounter');
 
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { smltId, smltType, isUserSmlt } = useSmltScope();
     const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
     const [draftYmd, setDraftYmd] = useState(ymd);
-    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd);
+    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd, smltId, smltType);
 
     const [terminal, setTerminal] = useState<TerminalKind>(() =>
         searchParams.get('tmnlId') === 'T2' ? 'T2' : 'T1',
@@ -56,6 +58,7 @@ function CheckinCounter() {
 
         if (draftYmd !== ymd) {
             setYmd(draftYmd);
+            setSearchParams({ ymd: draftYmd }, { replace: true });
             return;
         }
 
@@ -64,7 +67,14 @@ function CheckinCounter() {
 
     return (
         <div className="wrap">
-            <Header baseYmd={draftYmd} terminal={terminal} onDateChange={setDraftYmd} onTerminalChange={setTerminal} onSearch={handleSearch} />
+            <Header
+                baseYmd={isUserSmlt ? (baseInfo?.ymd ?? ymd) : draftYmd}
+                terminal={terminal}
+                isUserSmlt={isUserSmlt}
+                onDateChange={setDraftYmd}
+                onTerminalChange={setTerminal}
+                onSearch={handleSearch}
+            />
 
             <div className="body">
                 <Lnb />

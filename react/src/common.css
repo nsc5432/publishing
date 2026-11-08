@@ -175,6 +175,61 @@ td {
     font-weight: 600;
 }
 
+/* 사용자 시뮬레이션 결과 화면 — 제목 오른쪽에 보기 탭을 붙인다 (modules/pm/components/SmltViewTabs.tsx) */
+.pm-header-lead {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-width: 0;
+}
+
+.smlt-view-tabs {
+    display: flex;
+    flex: none;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 2px 8px rgba(46, 50, 94, 0.07);
+}
+
+.smlt-view-tabs__item {
+    height: 34px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 999px;
+    background: none;
+    color: #5a6478;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition:
+        background 0.15s,
+        color 0.15s;
+}
+
+.smlt-view-tabs__item:hover:not(.on) {
+    background: #eff2fb;
+    color: #2b313d;
+}
+
+.smlt-view-tabs__item.on {
+    background: linear-gradient(150deg, #4441cc, #5b57de);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(68, 65, 204, 0.28);
+    cursor: default;
+}
+
+/* 사용자 결과는 실행 대상일에 묶여 있어 기준일자를 바꿀 수 없다 */
+html[data-page] .input-date__input:disabled {
+    color: #9aa1b1;
+    cursor: default;
+}
+
 /* ---------------------------------------------------------------------
    4-1. LNB — 좌측 네비게이션 레일 (components/lnb/Lnb.tsx)
    --------------------------------------------------------------------- */

@@ -8,6 +8,7 @@ import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
 import { dialog } from '@/lib/dialog';
 import { todayYmd } from '@/lib/format';
+import { useSmltScope } from '@/modules/pm/hooks/useSmltScope';
 import { hhmmToStep, useTimeline } from '@/modules/pm/hooks/useTimeline';
 import { CongestionNotice } from './components/CongestionNotice';
 import { DepChartView } from './components/DepChartView';
@@ -24,10 +25,11 @@ import type { DepGateMarker, TerminalKind, ViewMode } from './types';
 function DepartureHall() {
     usePageScope('departureHall');
 
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { smltId, smltType, isUserSmlt } = useSmltScope();
     const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
     const [draftYmd, setDraftYmd] = useState(ymd);
-    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd);
+    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd, smltId, smltType);
 
     const [terminal, setTerminal] = useState<TerminalKind>(() =>
         searchParams.get('tmnlId') === 'T2' ? 'T2' : 'T1',
@@ -64,6 +66,7 @@ function DepartureHall() {
 
         if (draftYmd !== ymd) {
             setYmd(draftYmd);
+            setSearchParams({ ymd: draftYmd }, { replace: true });
             setActiveDepGate(null);
             return;
         }
@@ -73,7 +76,14 @@ function DepartureHall() {
 
     return (
         <div className="wrap">
-            <Header baseYmd={draftYmd} terminal={terminal} onDateChange={setDraftYmd} onTerminalChange={handleTerminalChange} onSearch={handleSearch} />
+            <Header
+                baseYmd={isUserSmlt ? (baseInfo?.ymd ?? ymd) : draftYmd}
+                terminal={terminal}
+                isUserSmlt={isUserSmlt}
+                onDateChange={setDraftYmd}
+                onTerminalChange={handleTerminalChange}
+                onSearch={handleSearch}
+            />
 
             <div className="body">
                 <Lnb />

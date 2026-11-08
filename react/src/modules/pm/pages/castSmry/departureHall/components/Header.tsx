@@ -1,11 +1,13 @@
 import type { MouseEvent } from 'react';
 import { SearchIcon } from '@/components/icons';
 import { toDateInputValue, toYmd } from '@/lib/format';
+import { SmltViewTabs } from '@/modules/pm/components/SmltViewTabs';
 import { TERMINAL_LABEL, type TerminalKind } from '../types';
 
 interface HeaderProps {
     baseYmd: string;
     terminal: TerminalKind;
+    isUserSmlt: boolean;
     onDateChange: (ymd: string) => void;
     onTerminalChange: (terminal: TerminalKind) => void;
     onSearch: () => void;
@@ -14,16 +16,19 @@ interface HeaderProps {
 const TERMINALS: TerminalKind[] = ['T1', 'T2'];
 
 /** 상단 헤더 — 타이틀 / 조회 조건(기준일자 / 터미널) */
-export function Header({ baseYmd, terminal, onDateChange, onTerminalChange, onSearch }: HeaderProps) {
+export function Header({ baseYmd, terminal, isUserSmlt, onDateChange, onTerminalChange, onSearch }: HeaderProps) {
     const handleOpenCalendar = (event: MouseEvent<HTMLInputElement>) => {
         if (typeof event.currentTarget.showPicker === 'function') event.currentTarget.showPicker();
     };
 
     return (
         <header className="header">
-            <h1 className="pm-title">
-                PM 예측관리 <span>/ 일일 시뮬레이션 결과 조회</span>
-            </h1>
+            <div className="pm-header-lead">
+                <h1 className="pm-title">
+                    PM 예측관리 <span>/ {isUserSmlt ? '사용자' : '일일'} 시뮬레이션 결과 조회</span>
+                </h1>
+                {isUserSmlt && <SmltViewTabs active="departureHall" ymd={baseYmd} tmnlId={terminal} />}
+            </div>
 
             <div className="search-bar">
                 <div className="search-bar__field">
@@ -37,6 +42,7 @@ export function Header({ baseYmd, terminal, onDateChange, onTerminalChange, onSe
                             id="baseDate"
                             className="input-date__input"
                             value={toDateInputValue(baseYmd)}
+                            disabled={isUserSmlt}
                             onChange={(event) => onDateChange(toYmd(event.target.value))}
                             onClick={handleOpenCalendar}
                         />

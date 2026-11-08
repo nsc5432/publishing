@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { Icon } from '@/components/icons/InlineIcon';
 import { formatYmd, toDateInputValue, toYmd } from '@/lib/format';
+import { SmltViewTabs } from '@/modules/pm/components/SmltViewTabs';
 import { SIMULATION_LABEL, SIMULATION_TITLE, type SimulationType } from '../types';
 
 export interface Executor {
@@ -47,10 +48,11 @@ export function Topbar({
     };
 
     return (
-        <header className="topbar">
+        <header className={`topbar${isUserSmlt ? ' topbar--user' : ''}`}>
             <h1 className="pm-title">
                 PM 예측관리 <span>/ {SIMULATION_TITLE[simulationType]}</span>
             </h1>
+            {isUserSmlt && <SmltViewTabs active="dashboard" ymd={baseYmd} />}
             <div className="spacer" />
 
             <div className="datebox">

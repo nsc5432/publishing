@@ -72,7 +72,11 @@ function App() {
                             <Route path="/rui/pm/daily-smlt/departureHall" element={<DepartureHallPage />} />
                             <Route path="/rui/pm/daily-smlt/checkinCounter" element={<CheckinCounterPage />} />
                             <Route path="/rui/pm/user-smlt/config" element={<UserSmltConfigPage />} />
-                            <Route path="/rui/pm/user-smlt/dashboard" element={<DashboardPage />} />
+                            {/* 일일 경로와 같은 컴포넌트라 key 가 없으면 모드를 오갈 때 상태가 그대로 남는다 */}
+                            <Route path="/rui/pm/user-smlt/dashboard" element={<DashboardPage key="user" />} />
+                            <Route path="/rui/pm/user-smlt/terminalMap" element={<TerminalMapPage key="user" />} />
+                            <Route path="/rui/pm/user-smlt/departureHall" element={<DepartureHallPage key="user" />} />
+                            <Route path="/rui/pm/user-smlt/checkinCounter" element={<CheckinCounterPage key="user" />} />
                             <Route path="/rui/pm/smlt-monitoring" element={<MonitoringPage />} />
                             <Route path="/rui/pm/fclt-map" element={<FacilityMapPage />} />
                             <Route path="/rui/pm/cast-config" element={<CastConfigPage />} />

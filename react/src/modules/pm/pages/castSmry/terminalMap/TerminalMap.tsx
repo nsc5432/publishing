@@ -7,6 +7,7 @@ import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { usePageScope } from '@/hooks/usePageScope';
 import { dialog } from '@/lib/dialog';
 import { todayYmd } from '@/lib/format';
+import { useSmltScope, type SmltView } from '@/modules/pm/hooks/useSmltScope';
 import { useTimeline } from '@/modules/pm/hooks/useTimeline';
 import { CongestionNotice } from './components/CongestionNotice';
 import { DptgtModal } from './components/DptgtModal';
@@ -20,18 +21,16 @@ import { EMPTY_MAP_SLOT } from './view';
 import { TIMELINE_RANGE } from './timeline';
 import type { DepGateMarker, IslandMarker, TerminalKind } from './types';
 
-const CHKN_DETAIL_PATH = '/rui/pm/daily-smlt/checkinCounter';
-
-const DEP_DETAIL_PATH = '/rui/pm/daily-smlt/departureHall';
-
 function TerminalMap() {
     usePageScope('terminalMap');
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
+    const { smltId, smltType, isUserSmlt, pathOf } = useSmltScope();
 
-    const [ymd, setYmd] = useState(todayYmd);
+    const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
     const [draftYmd, setDraftYmd] = useState(ymd);
-    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd);
+    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd, smltId, smltType);
+    const viewYmd = isUserSmlt ? (baseInfo?.ymd ?? ymd) : ymd;
 
     const [terminal, setTerminal] = useState<TerminalKind>(() =>
         searchParams.get('tmnlId') === 'T2' ? 'T2' : 'T1',
@@ -72,9 +71,8 @@ function TerminalMap() {
         setSelectedDepGate(null);
     };
 
-    const handleDetailMove = (path: string) => () => {
-        const detailParams = new URLSearchParams({ ymd, tmnlId: terminal, hhmm: timeline.hhmm });
-        navigate(`${path}?${detailParams.toString()}`);
+    const handleDetailMove = (view: SmltView) => () => {
+        navigate(pathOf(view, { ymd: viewYmd, tmnlId: terminal, hhmm: timeline.hhmm }));
     };
 
     const handleSearch = () => {
@@ -85,6 +83,7 @@ function TerminalMap() {
 
         if (draftYmd !== ymd) {
             setYmd(draftYmd);
+            setSearchParams({ ymd: draftYmd }, { replace: true });
             setSelectedIsland(null);
             setSelectedDepGate(null);
             return;
@@ -98,8 +97,9 @@ function TerminalMap() {
     return (
         <div className="wrap">
             <Header
-                baseYmd={draftYmd}
+                baseYmd={isUserSmlt ? viewYmd : draftYmd}
                 terminal={terminal}
+                isUserSmlt={isUserSmlt}
                 onDateChange={setDraftYmd}
                 onTerminalChange={handleTerminalChange}
                 onSearch={handleSearch}
@@ -137,7 +137,7 @@ function TerminalMap() {
                 <IslandModal
                     detail={islandDetail}
                     onClose={() => setSelectedIsland(null)}
-                    onDetailClick={handleDetailMove(CHKN_DETAIL_PATH)}
+                    onDetailClick={handleDetailMove('checkinCounter')}
                 />
             )}
 
@@ -145,7 +145,7 @@ function TerminalMap() {
                 <DptgtModal
                     detail={dptgtGateDetail}
                     onClose={() => setSelectedDepGate(null)}
-                    onDetailClick={handleDetailMove(DEP_DETAIL_PATH)}
+                    onDetailClick={handleDetailMove('departureHall')}
                 />
             )}
         </div>

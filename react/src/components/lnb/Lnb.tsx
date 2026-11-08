@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Icon, type IconName } from '@/components/icons/InlineIcon';
 import { useUserInfo } from '@/hooks/useUserInfo';
 import { filterNavItems } from '@/modules/pm/auth/access';
+import { isDailySmltPath } from '@/modules/pm/hooks/useSmltScope';
 import { LNB_HOME_PATH, LNB_TOP, LNB_USER, type NavItem } from './navItems';
 
 interface NavButtonProps {
@@ -54,6 +55,14 @@ interface LnbProps {
     user?: { dept: string; name: string };
 }
 
+// 일일 결과 화면끼리는 조회 중인 기준일자만 이어 간다. 결과 ID 는 넘기지 않는다
+function toNavigatePath(path: string, pathname: string, search: string): string {
+    const ymd = new URLSearchParams(search).get('ymd');
+    if (!ymd || !isDailySmltPath(pathname) || !isDailySmltPath(path)) return path;
+
+    return `${path}?${new URLSearchParams({ ymd }).toString()}`;
+}
+
 function toActiveId(items: NavItem[], pathname: string): string | undefined {
     if (pathname === LNB_HOME_PATH) return items[0]?.id;
     return items.find((item) => {
@@ -63,7 +72,7 @@ function toActiveId(items: NavItem[], pathname: string): string | undefined {
 }
 
 export function Lnb({ topItems = LNB_TOP, onSelect, onBeforeNavigate, user = LNB_USER }: LnbProps) {
-    const { pathname } = useLocation();
+    const { pathname, search } = useLocation();
     const [open, setOpen] = useState(false);
     const navigate = useNavigate();
     const navRef = useRef<HTMLElement>(null);
@@ -95,7 +104,7 @@ export function Lnb({ topItems = LNB_TOP, onSelect, onBeforeNavigate, user = LNB
     const handleNavigate = async (item: NavItem) => {
         if (onBeforeNavigate && !(await onBeforeNavigate())) return;
         onSelect?.(item.id);
-        if (item.path) navigate(item.path);
+        if (item.path) navigate(toNavigatePath(item.path, pathname, search));
     };
 
     return (
