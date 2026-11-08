@@ -531,6 +531,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setTotCnt(unit != null ? unit.getTotCnt() : 0);
 		result.setOprCnt(slot.getOprBoothCnt());
 		result.setWtngPsgCnt(queuePsgCnt);
+		result.setHrlyArvlPsgCnt(wtngDay.arvlPsgCntOf(unitCd, evalDt, prcsMin));
 		result.setHrlyPrcsPsgCnt(wtngDay.slotOf(unitCd, evalDt, prcsMin).getPrcsPsgCnt());
 		applyClearance(result, clearance, recommend);
 		result.setCgnStatus(wtngDay.gradeOf(unitCd, evalDt).getValue());
@@ -584,6 +585,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setTotCnt(scUnit != null ? scUnit.getTotCnt() : 0);
 		result.setOprCnt(oprCnt != null ? oprCnt : 0);
 		result.setWtngPsgCnt(queueOf(depDay.sourceOf(unitCd, evalDt)));
+		result.setHrlyArvlPsgCnt(depDay.arvlPsgCntOf(unitCd, evalDt, prcsMin));
 		result.setHrlyPrcsPsgCnt(depDay.slotOf(unitCd, evalDt, prcsMin).getPrcsPsgCnt());
 		applyClearance(result, scClearance, recommend);
 		result.setCgnWtngSec(avgWtngSec.getValue());
@@ -601,11 +603,21 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		Computed<Double> loadRatio = clearance.getLoadRatio();
 		FcltQueueClearance.ClearanceResult clear = recommend.getReqClear();
 		Integer clearMin = clear == null ? null : clear.getClearMin();
+		Integer oprCnt = clearance.getSource().getOprCnt();
+		// 혼잡해소 팝업 COUNT 모드에 현재 운영 수량을 넣은 결과와 같다
+		FcltQueueClearance.ClearanceResult oprClear = oprCnt == null ? null : clearance.clearOf(oprCnt, FcltQueueClearance.DFLT_TARGET_MIN);
+		Integer oprClearMin = oprClear == null ? null : oprClear.getClearMin();
 
 		card.setCgnWtngSec(clearance.getObservedWait().getValue());
 		card.setHrlyPrcsRate(loadRatio.hasValue() ? toRoundedInt(loadRatio.getValue() * 100) : 0);
-		card.setCgnClearTime(clearMin == null ? EMPTY : clear.getClearDt().format(DateTimeFormatter.ofPattern("HHmm")));
+		card.setCgnClearTime(clearMin == null ? EMPTY : toHhmm(clear.getClearDt()));
 		card.setCgnClearRate(clearMin == null ? 0 : toClearRate(clearMin));
+		card.setOprCgnClearTime(oprClearMin == null ? EMPTY : toHhmm(oprClear.getClearDt()));
+		card.setOprCgnClearMin(oprClearMin);
+	}
+
+	private String toHhmm(LocalDateTime dt) {
+		return dt.format(DateTimeFormatter.ofPattern("HHmm"));
 	}
 
 	private FcltRecommendDto getRecommend(String targetName, Integer reqCnt, boolean needAssign) {

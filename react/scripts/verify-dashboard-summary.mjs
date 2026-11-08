@@ -233,9 +233,9 @@ try {
             const currentCards = api.getFcltCardList(terminal, '0910', fcltType);
             const nextCards = currentCards.map((card, index) => ({
                 ...card, wtngPsgCnt: 1000 + index, oprCnt: 20 + index,
-                hrlyPrcsPsgCnt: 2000 + index, cgnStatus: 'NORMAL',
+                hrlyArvlPsgCnt: 2100 + index, hrlyPrcsPsgCnt: 2000 + index, cgnStatus: 'NORMAL',
                 cgnWtngSec: 120 + index * 60,
-                cgnClearTime: '1030', cgnClearRate: 50,
+                cgnClearTime: '1030', cgnClearRate: 50, oprCgnClearTime: '1050', oprCgnClearMin: 100,
                 recommend: { ...card.recommend, reqCnt: 30 + index },
             })).reverse();
             const cardViewAt = (time, current, next) => toTerminalView({
@@ -254,11 +254,12 @@ try {
                 check(variant.current.waitingCount, current.wtngPsgCnt.toLocaleString(),
                     `${terminal} ${fcltType} ${variant.unitCd} retains current values`);
                 check([variant.next.waitingCount, variant.next.waitingTime, variant.next.operatingCount,
-                    variant.next.processRate.centerText, variant.next.recommend.count,
-                    variant.next.clearTime.centerText, variant.next.congestion, variant.next.hhmm],
+                    variant.next.hourly.arrival.centerText, variant.next.hourly.process.centerText, variant.next.hourly.queueDiff?.text,
+                    variant.next.recommend.count, variant.next.clear.current, variant.next.clear.recommend,
+                    variant.next.congestion, variant.next.hhmm],
                     [next.wtngPsgCnt.toLocaleString(), String(next.cgnWtngSec / 60), next.oprCnt.toLocaleString(),
-                        next.hrlyPrcsPsgCnt.toLocaleString(), String(next.recommend.reqCnt),
-                        '10:30 이후', '보통', '1010'],
+                        next.hrlyArvlPsgCnt.toLocaleString(), next.hrlyPrcsPsgCnt.toLocaleString(), '+100',
+                        String(next.recommend.reqCnt), '10:50', '10:30', '보통', '1010'],
                     `${terminal} ${fcltType} ${variant.unitCd} matches future values by facility despite reordered results`);
             }
             check(cardViewAt('0910', currentCards, []).variants.every((variant) => variant.next === null), true,
@@ -274,12 +275,30 @@ try {
             check(midnightCards.variants.every((variant) => variant.next === null), true,
                 `${terminal} ${fcltType} next-day data never wraps to the selected date`);
             const unknown = cardViewAt('0910', [{ ...currentCards[0], wtngPsgCnt: 0,
-                oprCnt: 0, hrlyPrcsPsgCnt: 0, cgnStatus: null, cgnWtngSec: null, cgnClearTime: '', cgnClearRate: 0,
+                oprCnt: 0, hrlyArvlPsgCnt: null, hrlyPrcsPsgCnt: 0, cgnStatus: null, cgnWtngSec: null,
+                cgnClearTime: '', cgnClearRate: 0, oprCgnClearTime: '', oprCgnClearMin: null,
                 recommend: { ...currentCards[0].recommend, reqCnt: null } }], []).variants[0].current;
-            check([unknown.waitingCount, unknown.waitingTime, unknown.operatingCount, unknown.processRate.centerText,
-                unknown.congestion, unknown.recommend.count, unknown.clearTime.centerText],
-                ['0', '-', '0', '0', '-', '-', '-'],
+            check([unknown.waitingCount, unknown.waitingTime, unknown.operatingCount, unknown.hourly.arrival.centerText,
+                unknown.hourly.process.centerText, unknown.hourly.queueDiff, unknown.congestion, unknown.recommend.count,
+                unknown.clear.current, unknown.clear.recommend],
+                ['0', '-', '0', '-', '0', undefined, '-', '-', '-', '-'],
                 `${terminal} ${fcltType} distinguishes observed zero from unavailable metrics`);
+            const gauges = cardViewAt('0910', [
+                { ...currentCards[0], oprCnt: 1, hrlyArvlPsgCnt: 400, hrlyPrcsPsgCnt: 200 },
+                { ...currentCards[1], oprCnt: 1, hrlyArvlPsgCnt: 100, hrlyPrcsPsgCnt: 300 },
+            ], []).variants.map((variant) => variant.current.hourly);
+            check(gauges.map((hourly) => [hourly.arrival.value, hourly.process.value]), [[1, 0.5], [0.25, 0.75]],
+                `${terminal} ${fcltType} arrival and process rings share one scale`);
+            check(gauges.map((hourly) => [hourly.arrival.average, hourly.process.average]),
+                Array(2).fill([{ value: 0.625, text: '평균 250' }, { value: 0.625, text: '평균 250' }]),
+                `${terminal} ${fcltType} inner rings average active facilities`);
+            const clearOf = (patch) => cardViewAt('0910', [{ ...currentCards[0], ...patch }], []).variants[0].current.clear;
+            check(Object.values(clearOf({ cgnClearRate: 100, cgnClearTime: '0910', oprCgnClearTime: '0910', oprCgnClearMin: 0 })),
+                ['혼잡요소 없음', '없음', '없음'],
+                `${terminal} ${fcltType} no congestion shows none for both counts`);
+            check(clearOf({ cgnClearRate: 50, cgnClearTime: '0925', oprCgnClearTime: '', oprCgnClearMin: null,
+                recommend: { ...currentCards[0].recommend, reqCnt: 9 } }).current, '해소 불가',
+                `${terminal} ${fcltType} current count without clearance is unreachable when a recommendation exists`);
             check(cardViewAt('0910', [{ ...currentCards[0], cgnWtngSec: 0 }], [])
                 .variants[0].current.waitingTime, '0',
                 `${terminal} ${fcltType} observed zero wait remains zero minutes`);

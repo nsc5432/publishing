@@ -1,5 +1,6 @@
 package aoms.pm.cast.domains.wtng;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -40,6 +41,7 @@ public final class FcltWtngDay {
 	private static final int WINDOW_MIN = QueueWaitWindow.WINDOW_MIN;
 	private static final int SEC_PER_WINDOW = WINDOW_MIN / SEC_MIN;
 	private static final double SEC_PER_MIN = 60.0;
+	private static final int FCST_ARVL_MIN = 60;
 
 	private final TerminalKind tmnlId;
 	private final FcltType fcltType;
@@ -68,6 +70,13 @@ public final class FcltWtngDay {
 
 	public LocalDateTime dtOf(int minuteOfDay) {
 		return dayStart.plusMinutes(minuteOfDay);
+	}
+
+	// 해소 예측 유입 구간 [evalDt, evalDt+60) — 요약보기 카드 시간당 유입과 같이 24시에서 자른다
+	private int fcstArvlMinOf(LocalDateTime evalDt) {
+		long remainMin = Duration.between(evalDt, dayStart.plusDays(1)).toMinutes();
+
+		return (int) Math.max(0, Math.min(FCST_ARVL_MIN, remainMin));
 	}
 
 	public CgnGradeScale getGradeScale() {
@@ -146,6 +155,29 @@ public final class FcltWtngDay {
 				prcsVldSum == 0 ? 0 : Math.toIntExact(Math.round(prcsSecSum / prcsVldSum)),
 				capacitySum <= 0 ? 0 : (int) Math.min(100, prcsSum * 100 / capacitySum),
 				valueOf(last.getEndOperCntom()));
+	}
+
+	/** [bgnDt, bgnDt+minutes) 유입 합. intrvlOf 와 같은 보존식이며 도출할 수 있는 행이 없으면 null */
+	public Integer arvlPsgCntOf(String unitCd, LocalDateTime bgnDt, int minutes) {
+		requireBoundary(bgnDt);
+
+		TreeMap<LocalDateTime, FcltWtngSec> secMap = secMapByUnit.get(unitCd);
+
+		if (secMap == null) {
+			return null;
+		}
+
+		Integer result = null;
+
+		for (FcltWtngSec sec : secMap.subMap(bgnDt, true, bgnDt.plusMinutes(minutes), false).values()) {
+			Integer arrival = arrivalOf(secMap, sec);
+
+			if (arrival != null) {
+				result = valueOf(result) + arrival;
+			}
+		}
+
+		return result;
 	}
 
 	/** [bgnDt, bgnDt+minutes) 의 시설 비교 기준. 평균은 slotOf 와 같은 가중 방식으로 10분 행에서 다시 합산한다 */
@@ -377,6 +409,8 @@ public final class FcltWtngDay {
 				.oprCnt(slot.getOprBoothCnt())
 				.erlangCApplicable(true)
 				.waitWindow(waitWindow)
+				.fcstArvlPsgCnt(arvlPsgCntOf(unitCd, evalDt, fcstArvlMinOf(evalDt)))
+				.fcstArvlMin(fcstArvlMinOf(evalDt))
 				.build();
 	}
 
@@ -424,6 +458,8 @@ public final class FcltWtngDay {
 				.oprCnt(depOprCntOf(unitCd))
 				.erlangCApplicable(true)
 				.waitWindow(waitWindow)
+				.fcstArvlPsgCnt(arvlPsgCntOf(unitCd, evalDt, fcstArvlMinOf(evalDt)))
+				.fcstArvlMin(fcstArvlMinOf(evalDt))
 				.build();
 	}
 

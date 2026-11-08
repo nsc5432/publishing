@@ -40,19 +40,6 @@ export const SUMMARY_SCOPE: Record<DsbdCategory, FcltCardType[]> = {
 
 /* ================= 터미널 패널 뷰 모델 ================= */
 
-export interface GaugeData {
-    /** 도넛 게이지 채움 비율 (0~1) */
-    value: number;
-    centerText: string;
-    captionText: string;
-}
-
-export interface GaugeAverage {
-    /** 안쪽 링 채움 비율 (0~1) */
-    value: number;
-    text: string;
-}
-
 export interface FcltCardChip {
     label: string;
     /** dashboard.css 의 .chip.r/.g/.o/.gray 등 */
@@ -73,6 +60,37 @@ export interface FcltCardDiff {
     dir: 'up' | 'down' | 'flat';
 }
 
+export interface FcltCardCapacity {
+    kind: 'enough' | 'short' | 'unknown';
+    text: string;
+}
+
+export interface GaugeAverage {
+    /** 안쪽 링 채움 비율 (0~1) */
+    value: number;
+    text: string;
+}
+
+export interface GaugeData {
+    /** 도넛 게이지 채움 비율 (0~1) */
+    value: number;
+    centerText: string;
+    average?: GaugeAverage;
+}
+
+export interface FcltCardHourly {
+    arrival: GaugeData;
+    process: GaugeData;
+    /** 유입 − 처리 = 그 1시간 동안의 대기열 증감 */
+    queueDiff?: FcltCardDiff;
+}
+
+export interface FcltCardClear {
+    label: string;
+    current: string;
+    recommend: string;
+}
+
 export interface FcltCardSnapshot {
     hhmm: string;
     congestion: string;
@@ -82,8 +100,10 @@ export interface FcltCardSnapshot {
     waitingCountDiff?: FcltCardDiff;
     waitingTimeDiff?: FcltCardDiff;
     operatingCount: string;
-    processRate: GaugeData & { label: string; average?: GaugeAverage };
-    clearTime: GaugeData & { label: string; clockText: string };
+    /** 운영 수량이 추천 총 소요 수량(reqCnt)을 감당하는지 */
+    capacity: FcltCardCapacity;
+    hourly: FcltCardHourly;
+    clear: FcltCardClear;
     recommend: FcltCardRecommend;
 }
 
@@ -102,7 +122,6 @@ export type FcltCardType = Extract<FcltType, 'CHKN' | 'DEP'>;
 export interface FcltCardData {
     fcltType: FcltCardType;
     title: string;
-    warn: string;
     currentTime: string;
     nextTime: string;
     variants: FcltCardVariant[];

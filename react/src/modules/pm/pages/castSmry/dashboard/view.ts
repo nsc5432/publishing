@@ -29,12 +29,16 @@ import {
     SMRY_INTRVL_MIN,
     SUMMARY_SCOPE,
     SUMMARY_TARGET_LABEL,
+    type FcltCardCapacity,
     type FcltCardChip,
+    type FcltCardClear,
     type FcltCardData,
     type FcltCardDiff,
+    type FcltCardHourly,
     type FcltCardSnapshot,
     type FcltCardType,
     type FcltCardVariant,
+    type GaugeData,
     type FcltQueueContextView,
     type FcltQueueResultView,
     type QueueClearView,
@@ -60,9 +64,10 @@ interface TerminalViewInput {
     nextDptgtCards?: DsbdFcltCardDto[];
 }
 
-interface ProcessScale {
+interface HourlyScale {
     max: number;
-    avg: number | null;
+    arrivalAvg: number | null;
+    processAvg: number | null;
 }
 
 // 칩 팔레트가 3색이라 여유/보통은 같은 초록을 쓴다
@@ -72,8 +77,6 @@ const CONGESTION_CHIP_CLASS: Record<CongestionStatus, string> = {
     BUSY: 'o',
     VERY_BUSY: 'r',
 };
-
-const BUSY_STATUS: CongestionStatus[] = ['BUSY', 'VERY_BUSY'];
 
 const CONGESTION_STATUS_LABEL: Record<CongestionStatus, string> = {
     FREE: '여유',
@@ -87,9 +90,13 @@ const FCLT_CARD_TITLE: Record<FcltCardType, string> = {
     DEP: '출국장',
 };
 
+const FCLT_CARD_UNIT_NOUN: Record<FcltCardType, string> = {
+    CHKN: '부스',
+    DEP: '검색대',
+};
+
 // 출국장 카드의 처리 · 해소 · 추천은 보안검색대 큐 값이며, 상단 대기는 출국장 값이다
 const FCLT_CARD_GAUGE_LABEL = {
-    prcs: '시간당 처리인원',
     clear: '혼잡해소 예상',
     noCongestion: '혼잡요소 없음',
 };
@@ -142,19 +149,66 @@ function toFcltCardDiff(next: number | null, current: number | null): FcltCardDi
     return { text: formatDiff(diff), dir: diff > 0 ? 'up' : 'down' };
 }
 
-// 서버가 산정 불가 처리인원을 0 으로 내려 0 인 시설은 평균에서 뺀다
-function toProcessScale(cards: DsbdFcltCardDto[]): ProcessScale {
-    const activeCounts = cards.filter((card) => card.oprCnt > 0 && card.hrlyPrcsPsgCnt > 0).map((card) => card.hrlyPrcsPsgCnt);
-    const max = Math.max(0, ...cards.map((card) => card.hrlyPrcsPsgCnt));
+function toFcltCardCapacity(card: DsbdFcltCardDto): FcltCardCapacity {
+    const noun = FCLT_CARD_UNIT_NOUN[card.fcltType];
+    const { reqCnt } = card.recommend;
 
+    if (reqCnt === null) return { kind: 'unknown', text: `${noun} 산정 불가` };
+    if (reqCnt <= card.oprCnt) return { kind: 'enough', text: `${noun} 충분` };
+    return { kind: 'short', text: `${noun} ${formatCount(reqCnt - card.oprCnt)}개 부족` };
+}
+
+function toActiveAvg(cards: DsbdFcltCardDto[], valueOf: (card: DsbdFcltCardDto) => number | null): number | null {
+    const values = cards.filter((card) => card.oprCnt > 0).map(valueOf).filter((value): value is number => value !== null && value > 0);
+
+    return values.length < 2 ? null : values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+// 유입 · 처리 링이 같은 눈금이어야 한 시설의 두 링 길이를 견줄 수 있다. 서버가 산정 불가 처리인원을 0 으로 내려 0 인 시설은 평균에서 뺀다
+function toHourlyScale(cards: DsbdFcltCardDto[]): HourlyScale {
     return {
-        max,
-        avg: activeCounts.length < 2 ? null : activeCounts.reduce((sum, count) => sum + count, 0) / activeCounts.length,
+        max: Math.max(0, ...cards.map((card) => Math.max(card.hrlyArvlPsgCnt ?? 0, card.hrlyPrcsPsgCnt))),
+        arrivalAvg: toActiveAvg(cards, (card) => card.hrlyArvlPsgCnt ?? null),
+        processAvg: toActiveAvg(cards, (card) => card.hrlyPrcsPsgCnt),
     };
 }
 
-function toFcltCardSnapshot(card: DsbdFcltCardDto, hhmm: string, scale: ProcessScale): FcltCardSnapshot {
-    const noCongestion = card.cgnClearRate === 100;
+function toGaugeData(value: number | null, avg: number | null, max: number): GaugeData {
+    return {
+        value: value === null || max <= 0 ? 0 : value / max,
+        centerText: value === null ? '-' : formatCount(value),
+        average: avg === null || max <= 0 ? undefined : { value: avg / max, text: `평균 ${formatCount(Math.round(avg))}` },
+    };
+}
+
+function toFcltCardHourly(card: DsbdFcltCardDto, scale: HourlyScale): FcltCardHourly {
+    const arvlPsgCnt = card.hrlyArvlPsgCnt ?? null;
+
+    return {
+        arrival: toGaugeData(arvlPsgCnt, scale.arrivalAvg, scale.max),
+        process: toGaugeData(card.hrlyPrcsPsgCnt, scale.processAvg, scale.max),
+        queueDiff: toFcltCardDiff(arvlPsgCnt, arvlPsgCnt === null ? null : card.hrlyPrcsPsgCnt),
+    };
+}
+
+// 운영 수량 해소값이 없는데 추천은 나왔다면 원천은 있다는 뜻이라 하루 안에 해소되지 않는 경우다
+function toFcltCardClear(card: DsbdFcltCardDto): FcltCardClear {
+    if (card.cgnClearRate === 100) {
+        return { label: FCLT_CARD_GAUGE_LABEL.noCongestion, current: '없음', recommend: '없음' };
+    }
+
+    const oprClearMin = card.oprCgnClearMin ?? null;
+    const current =
+        oprClearMin === 0 ? '없음' : oprClearMin !== null ? formatHhmm(card.oprCgnClearTime) : card.recommend.reqCnt !== null ? '해소 불가' : '-';
+
+    return {
+        label: FCLT_CARD_GAUGE_LABEL.clear,
+        current,
+        recommend: formatHhmm(card.cgnClearTime) || '-',
+    };
+}
+
+function toFcltCardSnapshot(card: DsbdFcltCardDto, hhmm: string, scale: HourlyScale): FcltCardSnapshot {
     const wtngMin = toWtngMin(card);
 
     return {
@@ -164,23 +218,9 @@ function toFcltCardSnapshot(card: DsbdFcltCardDto, hhmm: string, scale: ProcessS
         waitingCount: formatCount(card.wtngPsgCnt),
         waitingTime: wtngMin === null ? '-' : formatCount(wtngMin),
         operatingCount: formatCount(card.oprCnt),
-        processRate: {
-            label: FCLT_CARD_GAUGE_LABEL.prcs,
-            value: scale.max > 0 ? card.hrlyPrcsPsgCnt / scale.max : 0,
-            centerText: formatCount(card.hrlyPrcsPsgCnt),
-            captionText: 'Pax/Hour',
-            average:
-                scale.avg === null
-                    ? undefined
-                    : { value: scale.avg / scale.max, text: `평균 ${formatCount(Math.round(scale.avg))}` },
-        },
-        clearTime: {
-            label: noCongestion ? FCLT_CARD_GAUGE_LABEL.noCongestion : FCLT_CARD_GAUGE_LABEL.clear,
-            value: noCongestion ? 0 : card.cgnClearRate / 100,
-            centerText: noCongestion ? '없음' : card.cgnClearTime ? `${formatHhmm(card.cgnClearTime)} 이후` : '-',
-            clockText: noCongestion ? '없음' : formatHhmm(card.cgnClearTime) || '-',
-            captionText: noCongestion || !card.cgnClearTime ? '' : '이후',
-        },
+        capacity: toFcltCardCapacity(card),
+        hourly: toFcltCardHourly(card, scale),
+        clear: toFcltCardClear(card),
         recommend: {
             tag: '추천',
             name: card.recommend.targetNm,
@@ -196,8 +236,8 @@ function toFcltCardVariant(
     current: DsbdFcltCardDto | undefined,
     next: DsbdFcltCardDto | undefined,
     hhmm: string,
-    scale: ProcessScale,
-    nextScale: ProcessScale,
+    scale: HourlyScale,
+    nextScale: HourlyScale,
 ): FcltCardVariant {
     const isCheckin = card.fcltType === 'CHKN';
 
@@ -215,7 +255,7 @@ function toFcltCardNextSnapshot(
     next: DsbdFcltCardDto,
     current: DsbdFcltCardDto | undefined,
     hhmm: string,
-    scale: ProcessScale,
+    scale: HourlyScale,
 ): FcltCardSnapshot {
     const snapshot = toFcltCardSnapshot(next, stepHhmm(hhmm, 6), scale);
     if (!current) return snapshot;
@@ -248,19 +288,14 @@ function toFcltCardData(
     const currentByUnit = new Map(cards.map((card) => [unitOf(card), card]));
     const nextByUnit = new Map((stepHhmm(hhmm, 6) ? nextCards : []).map((card) => [unitOf(card), card]));
     const visibleCards = [...cards, ...[...nextByUnit.values()].filter((card) => !currentByUnit.has(unitOf(card)))].filter((card) => unitPattern.test(unitOf(card)));
-    const visibleCurrentCards = cards.filter((card) => unitPattern.test(unitOf(card)));
-    const busyCount = visibleCurrentCards.filter(
-        (card) => card.cgnStatus !== null && BUSY_STATUS.includes(card.cgnStatus),
-    ).length;
-    const scale = toProcessScale(visibleCurrentCards);
-    const nextScale = toProcessScale([...nextByUnit.values()].filter((card) => unitPattern.test(unitOf(card))));
+    const scale = toHourlyScale(cards.filter((card) => unitPattern.test(unitOf(card))));
+    const nextScale = toHourlyScale([...nextByUnit.values()].filter((card) => unitPattern.test(unitOf(card))));
     const nextMinute = Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(2)) + 60;
     const nextClock = `${pad2(Math.floor(nextMinute / 60) % 24)}:${pad2(nextMinute % 60)}`;
 
     return {
         fcltType,
         title: FCLT_CARD_TITLE[fcltType],
-        warn: visibleCards.length === 0 ? '데이터 없음' : busyCount > 0 ? `혼잡 ${busyCount}개` : visibleCurrentCards.some((card) => card.cgnStatus !== null) ? '원활' : '-',
         currentTime: formatHhmm(hhmm),
         nextTime: !hhmm ? '-' : nextMinute >= MIN_PER_DAY ? `다음 날 ${nextClock}` : nextClock,
         variants: visibleCards.map((card) => toFcltCardVariant(card, currentByUnit.get(unitOf(card)), nextByUnit.get(unitOf(card)), hhmm, scale, nextScale)),

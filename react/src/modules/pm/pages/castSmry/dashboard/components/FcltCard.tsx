@@ -3,7 +3,7 @@ import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import { Icon } from '@/components/icons/InlineIcon';
 import { EMPTY_FCLT_CARD_VARIANT } from '../view';
-import type { FcltCardData, FcltCardDiff, FcltCardSnapshot, GaugeAverage } from '../types';
+import type { FcltCardData, FcltCardDiff, FcltCardSnapshot, GaugeData } from '../types';
 
 interface FcltCardProps {
     data: FcltCardData;
@@ -26,20 +26,13 @@ interface FlowMetricProps {
 }
 
 interface GaugeDonutProps {
-    value: number;
-    centerText: string;
-    captionText: string;
+    label: string;
+    data: GaugeData | undefined;
     accentColor: string;
-    average?: GaugeAverage;
 }
 
-const GAUGE_ACCENT: Record<string, string> = {
-    b: '#2f7ff0',
-    g: '#2f7ff0',
-    o: '#e0691c',
-    r: '#d92626',
-    gray: '#8a93a3',
-};
+const ARRIVAL_COLOR = '#7a5fd6';
+const PROCESS_COLOR = '#2f7ff0';
 const SWEEP_ANGLE = 360 * 0.84;
 const START_ANGLE = 360 - 119;
 const END_ANGLE = START_ANGLE - SWEEP_ANGLE;
@@ -66,7 +59,6 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
     const variant = variantsByUnit.get(selectedUnit ?? '') ?? data.variants[0] ?? EMPTY_FCLT_CARD_VARIANT;
     const selectedChip = data.chips.find((chip) => chip.label === variant?.unitCd);
     const current = variant?.current;
-    const accentColor = GAUGE_ACCENT[current?.congestionKind ?? 'gray'];
     const unitName = data.fcltType === 'CHKN' ? '체크인카운터' : '보안검색대';
     const operatingCount = current?.operatingCount ?? '-';
 
@@ -85,7 +77,6 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
             <div className="fclt-card-head">
                 <b>{data.title}</b>
                 <div className="warn">
-                    <span>{data.warn}</span>
                     <button type="button" className="plus" aria-label={`${data.title} 상세 화면으로 이동`} onClick={onMove}>
                         <Icon name="plus" />
                     </button>
@@ -103,8 +94,19 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                                 (<b className="acc">{operatingCount}</b>/{variant.totalCount})
                             </span>
                         </div>
+                        <div className="fclt-unit-status">
+                            <span className="fclt-unit-cgn" data-congestion={current?.congestionKind ?? 'gray'}>
+                                {current?.congestion ?? '-'}
+                            </span>
+                            {current && (
+                                <span className="fclt-unit-capa" data-capacity={current.capacity.kind}>
+                                    {current.capacity.text}
+                                </span>
+                            )}
+                        </div>
                         <span id={tipId} className="fclt-unit-tip" role="tooltip">
                             운영 {unitName} {operatingCount}개 / 전체 {variant.totalCount}개
+                            {current && current.recommend.count !== '-' && ` · 추천 ${current.recommend.count}개`}
                         </span>
                     </div>
                     <button
@@ -136,15 +138,19 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                 </div>
             </div>
             <div className="gauge-row" aria-label={`${data.currentTime} 기준 운영 지표`}>
-                <div className="gauge">
-                    <div className="k">시간당 처리인원</div>
-                    <GaugeDonut
-                        value={current?.processRate.value ?? 0}
-                        centerText={current?.processRate.centerText ?? '-'}
-                        captionText={current ? current.processRate.captionText : ''}
-                        accentColor={accentColor}
-                        average={current?.processRate.average}
-                    />
+                <div className="gauge fclt-gauge-hrly">
+                    <div className="fclt-gauge-donuts">
+                        <GaugeDonut label="유입" data={current?.hourly.arrival} accentColor={ARRIVAL_COLOR} />
+                        <GaugeDonut label="처리" data={current?.hourly.process} accentColor={PROCESS_COLOR} />
+                    </div>
+                    <div className="fclt-gauge-hrly-info">
+                        <span className="k">시간당 인원</span>
+                        {current?.hourly.queueDiff && (
+                            <em className="fclt-gauge-diff" data-dir={current.hourly.queueDiff.dir}>
+                                대기열 {current.hourly.queueDiff.text}
+                            </em>
+                        )}
+                    </div>
                 </div>
                 <button
                     type="button"
@@ -162,14 +168,18 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                     </span>
                     <span className={`cap${current?.recommend.countNoteAccent ? ' u' : ''}`}>{current?.recommend.countNote ?? '소요'}</span>
                 </button>
-                <div className="gauge">
-                    <div className="k">{current?.clearTime.label ?? '혼잡해소 예상'}</div>
-                    <GaugeDonut
-                        value={current?.clearTime.value ?? 0}
-                        centerText={current?.clearTime.clockText ?? '-'}
-                        captionText={current?.clearTime.captionText ?? ''}
-                        accentColor={accentColor}
-                    />
+                <div className="gauge fclt-gauge-clear">
+                    <div className="k">{current?.clear.label ?? '혼잡해소 예상'}</div>
+                    <dl className="fclt-gauge-list">
+                        <div>
+                            <dt>현재 {operatingCount}개</dt>
+                            <dd>{current?.clear.current ?? '-'}</dd>
+                        </div>
+                        <div className="is-rec">
+                            <dt>추천 {current?.recommend.count ?? '-'}개</dt>
+                            <dd>{current?.clear.recommend ?? '-'}</dd>
+                        </div>
+                    </dl>
                 </div>
             </div>
             <div className="chips" aria-label={`${data.title} 시설 선택 · 조회 시점 혼잡도`}>
@@ -241,14 +251,15 @@ function FlowMetric({ icon, label, value, unit, diff }: FlowMetricProps) {
     );
 }
 
-function GaugeDonut({ value, centerText, captionText, accentColor, average }: GaugeDonutProps) {
+function GaugeDonut({ label, data, accentColor }: GaugeDonutProps) {
     const donutRef = useRef<HTMLDivElement>(null);
     const [sizeRatio, setSizeRatio] = useState(1);
-    const averageValue = average?.value;
-    const averageText = average?.text;
-    // 차트 글자는 px 고정이라 촘촘 모드(58px)에서 안쪽 링과 겹친다 — 두 겹일 때만 도넛 크기에 맞춰 줄인다
-    const textScale = averageText ? sizeRatio : 1;
+    const value = data?.value ?? 0;
+    const centerText = data?.centerText ?? '-';
+    const averageValue = data?.average?.value;
+    const averageText = data?.average?.text;
 
+    // 차트 글자는 px 고정이라 칸 폭에 맞춰 줄어든 도넛에서 링과 겹친다 — 도넛 크기에 맞춰 줄인다
     useEffect(() => {
         const el = donutRef.current;
         if (!el) return;
@@ -286,21 +297,21 @@ function GaugeDonut({ value, centerText, captionText, accentColor, average }: Ga
                     splitLine: { show: false },
                     axisLabel: { show: false },
                     detail: {
-                        offsetCenter: [0, -5 * textScale],
+                        offsetCenter: [0, (averageText ? -5 : 0) * sizeRatio],
                         formatter: () => centerText,
-                        fontSize: 15.6 * textScale,
+                        fontSize: 15.6 * sizeRatio,
                         fontWeight: 700,
                         color: '#23272f',
                         fontFamily: 'Pretendard, sans-serif',
                     },
                     title: {
-                        offsetCenter: [0, 9 * textScale],
-                        fontSize: 9.7 * textScale,
-                        fontWeight: averageText ? 600 : 400,
-                        color: averageText ? AVERAGE_COLOR : '#8a93a3',
+                        offsetCenter: [0, 9 * sizeRatio],
+                        fontSize: 9.7 * sizeRatio,
+                        fontWeight: 600,
+                        color: AVERAGE_COLOR,
                         fontFamily: 'Pretendard, sans-serif',
                     },
-                    data: [{ value: clamp01(value), name: averageText ?? captionText }],
+                    data: [{ value: clamp01(value), name: averageText ?? '' }],
                 },
                 ...(averageValue === undefined
                     ? []
@@ -335,17 +346,22 @@ function GaugeDonut({ value, centerText, captionText, accentColor, average }: Ga
                       ]),
             ],
         }),
-        [value, centerText, captionText, accentColor, averageValue, averageText, textScale],
+        [value, centerText, accentColor, averageValue, averageText, sizeRatio],
     );
 
     return (
-        <div
-            ref={donutRef}
-            className="donut"
-            role="img"
-            aria-label={averageText ? `${centerText} ${captionText}, 활성 시설 ${averageText}` : `${centerText} ${captionText}`}
-        >
-            <EChart className="donut__chart" option={option} />
+        <div className="fclt-gauge-donut">
+            <div
+                ref={donutRef}
+                className="donut"
+                role="img"
+                aria-label={averageText ? `${label} ${centerText}명, 활성 시설 ${averageText}명` : `${label} ${centerText}명`}
+            >
+                <EChart className="donut__chart" option={option} />
+            </div>
+            <span className="fclt-gauge-donut-label" style={{ color: accentColor }}>
+                {label}
+            </span>
         </div>
     );
 }

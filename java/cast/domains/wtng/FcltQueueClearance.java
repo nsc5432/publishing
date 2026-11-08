@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 
 import lombok.Getter;
 
+import aoms.pm.cast.domains.queue.CalculationMethod;
 import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.queue.ErlangCResult;
 import aoms.pm.cast.domains.queue.FacilityQueueCalculator;
@@ -30,6 +31,7 @@ public final class FcltQueueClearance {
 	public static final int DFLT_TARGET_MIN = 30; // 목표 해소시간 기본값(분)
 
 	private static final double SEC_PER_MIN = 60.0;
+	private static final double MIN_PER_HOUR = 60.0;
 
 	private final FcltQueueSource source;
 	private final FacilityQueueCalculator calculator;
@@ -46,7 +48,7 @@ public final class FcltQueueClearance {
 
 		this.source = source;
 		this.calculator = toCalculator(source);
-		this.arrival = calculator.estimateArrivalRateByQueueBalance(source.toArrivalInput());
+		this.arrival = arrivalOf(source, calculator);
 		this.service = calculator.estimateServiceRatePerHour();
 		this.observedWait = window.observedAvgWtngSec();
 		this.forecast = new WaitAvgForecast(window, arrival, service, normalUpperExclusiveSec);
@@ -129,6 +131,19 @@ public final class FcltQueueClearance {
 
 	private FacilityQueueInput inputOf(Integer serverCnt) {
 		return source.toScenarioInput(arrival, serverCnt);
+	}
+
+	// 앞으로 올 CAST 유입을 쓰면 직전 10분 유입이 이어진다는 가정보다 다가오는 피크 · 감소를 반영한다
+	private static Computed<Double> arrivalOf(FcltQueueSource source, FacilityQueueCalculator calculator) {
+		Integer fcstArvlPsgCnt = source.getFcstArvlPsgCnt();
+		int fcstArvlMin = source.getFcstArvlMin();
+
+		if (fcstArvlPsgCnt == null || fcstArvlMin <= 0) {
+			return calculator.estimateArrivalRateByQueueBalance(source.toArrivalInput());
+		}
+
+		return Computed.estimated(fcstArvlPsgCnt * MIN_PER_HOUR / fcstArvlMin, CalculationMethod.EXTERNAL_INPUT,
+				"기준시각부터 " + fcstArvlMin + "분 CAST 유입 " + fcstArvlPsgCnt + "명 / " + fcstArvlMin + "분 × 60 (명/시간)");
 	}
 
 	private static FacilityQueueCalculator toCalculator(FcltQueueSource source) {

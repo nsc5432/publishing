@@ -1662,12 +1662,6 @@ html[data-page='dashboard'] .fclt-card-head .warn {
     gap: 12px;
 }
 
-html[data-page='dashboard'] .fclt-card-head .warn > span {
-    font-size: 14px;
-    color: var(--red);
-    font-weight: 600;
-}
-
 html[data-page='dashboard'] .fclt-card-head .plus {
     width: 25px;
     height: 25px;
@@ -1714,19 +1708,17 @@ html[data-page='dashboard'] .fclt-card-mid {
     border-radius: 14px;
     margin-top: 6px;
     text-align: center;
-    flex: 1 1 0;
-    min-height: 171px;
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    gap: clamp(3px, calc(3px + (100vh - 1080px) * 0.15), 32px);
+    gap: 6px;
     padding: 4px 6px;
 }
 
 html[data-page='dashboard'] .fclt-unit-summary {
     position: relative;
     display: flex;
-    flex: 1 1 0;
+    flex: 0 0 auto;
     width: 100%;
 }
 
@@ -1739,7 +1731,7 @@ html[data-page='dashboard'] .fclt-unit-frame {
     justify-content: center;
     gap: 0;
     width: 100%;
-    padding: 2px 24px;
+    padding: 7px 24px;
     border: 1px solid #dce2ee;
     border-radius: 12px;
     background: #fafbff;
@@ -1781,8 +1773,51 @@ html[data-page='dashboard'] .fclt-unit-count b.acc {
     color: #4a56d8;
 }
 
+html[data-page='dashboard'] .fclt-unit-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 5px;
+}
+
+html[data-page='dashboard'] .fclt-unit-status .fclt-unit-cgn {
+    margin-top: 0;
+}
+
+html[data-page='dashboard'] .fclt-unit-capa {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border: 1px solid #dfe4ee;
+    border-radius: 6px;
+    background: #fff;
+    color: #596479;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .fclt-unit-capa[data-capacity='enough'] {
+    border-color: #cfe6cc;
+    color: #0f7d00;
+}
+
+html[data-page='dashboard'] .fclt-unit-capa[data-capacity='short'] {
+    border-color: #f5c4c4;
+    background: #fde9e9;
+    color: #d92626;
+}
+
+html[data-page='dashboard'] .fclt-unit-capa[data-capacity='unknown'] {
+    color: #8a93a3;
+    font-weight: 600;
+}
+
 html[data-page='dashboard'] .fclt-unit-tip {
-    bottom: 6px;
+    top: calc(100% + 4px);
     left: 50%;
     transform: translateX(-50%);
 }
@@ -1843,12 +1878,11 @@ html[data-page='dashboard'] .fclt-card-arrow > i > svg {
 
 html[data-page='dashboard'] .fclt-flow {
     display: flex;
-    flex: 1 1 0;
+    flex: 0 0 auto;
     align-items: stretch;
     justify-content: center;
     gap: 6px;
     width: 100%;
-    margin-top: 1px;
 }
 
 html[data-page='dashboard'] .fclt-flow-point {
@@ -1875,22 +1909,31 @@ html[data-page='dashboard'] .fclt-flow-point:last-child {
     background: linear-gradient(145deg, #f1effc, #f9f9ff);
 }
 
-html[data-page='dashboard'] .fclt-flow-point[data-congestion='b'] {
+html[data-page='dashboard'] .fclt-unit-cgn {
+    --fclt-flow-color: #8a93a3;
+    --fclt-flow-tint: #edf0f4;
+}
+
+html[data-page='dashboard'] .fclt-flow-point[data-congestion='b'],
+html[data-page='dashboard'] .fclt-unit-cgn[data-congestion='b'] {
     --fclt-flow-color: #2f7ff0;
     --fclt-flow-tint: #e8f1ff;
 }
 
-html[data-page='dashboard'] .fclt-flow-point[data-congestion='g'] {
+html[data-page='dashboard'] .fclt-flow-point[data-congestion='g'],
+html[data-page='dashboard'] .fclt-unit-cgn[data-congestion='g'] {
     --fclt-flow-color: #0f7d00;
     --fclt-flow-tint: #e8f4e7;
 }
 
-html[data-page='dashboard'] .fclt-flow-point[data-congestion='o'] {
+html[data-page='dashboard'] .fclt-flow-point[data-congestion='o'],
+html[data-page='dashboard'] .fclt-unit-cgn[data-congestion='o'] {
     --fclt-flow-color: #b36d00;
     --fclt-flow-tint: #fff0da;
 }
 
-html[data-page='dashboard'] .fclt-flow-point[data-congestion='r'] {
+html[data-page='dashboard'] .fclt-flow-point[data-congestion='r'],
+html[data-page='dashboard'] .fclt-unit-cgn[data-congestion='r'] {
     --fclt-flow-color: #d92626;
     --fclt-flow-tint: #fde9e9;
 }
@@ -1930,7 +1973,8 @@ html[data-page='dashboard'] .fclt-flow-point:last-child .fclt-flow-period {
     color: #6652b4;
 }
 
-html[data-page='dashboard'] .fclt-flow-status {
+html[data-page='dashboard'] .fclt-flow-status,
+html[data-page='dashboard'] .fclt-unit-cgn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1946,7 +1990,8 @@ html[data-page='dashboard'] .fclt-flow-status {
     line-height: 1.4;
 }
 
-html[data-page='dashboard'] .fclt-flow-status::before {
+html[data-page='dashboard'] .fclt-flow-status::before,
+html[data-page='dashboard'] .fclt-unit-cgn::before {
     content: '';
     width: 5px;
     height: 5px;
@@ -2051,8 +2096,65 @@ html[data-page='dashboard'] .gauge-row {
     display: flex;
     gap: 8px;
     margin-top: 7px;
-    flex: 0 0 100px;
+    /* 내용이 아니라 남는 높이를 받는다 — 세로로 쌓은 도넛이 그 안에서 줄어든다 */
+    flex: 1 1 0;
+    min-height: 100px;
+}
+
+html[data-page='dashboard'] .fclt-gauge-hrly {
+    justify-content: flex-start;
+    padding: 5px 2px 4px;
+}
+
+html[data-page='dashboard'] .fclt-gauge-donuts {
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    width: 100%;
     min-height: 0;
+}
+
+/* 도넛 크기를 차트 캔버스(내용)에서 받으면 한 번 줄어든 캔버스가 칸을 붙잡아 다시 커지지 않는다 — 칸 크기로만 정한다 */
+html[data-page='dashboard'] .fclt-gauge-donut {
+    container-type: size;
+    display: flex;
+    flex: 1 1 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 0;
+}
+
+html[data-page='dashboard'] .fclt-gauge-donut > .donut {
+    flex: none;
+    width: min(var(--donut-size), 100cqw, calc(100cqh - 12px));
+    aspect-ratio: 1;
+    overflow: hidden;
+}
+
+html[data-page='dashboard'] .fclt-gauge-hrly-info {
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 2px 5px;
+    margin-top: 2px;
+}
+
+html[data-page='dashboard'] .fclt-gauge-donut .donut__chart {
+    display: block;
+}
+
+html[data-page='dashboard'] .fclt-gauge-donut-label {
+    margin-top: -6px;
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.2;
 }
 
 html[data-page='dashboard'] .gauge {
@@ -2075,13 +2177,70 @@ html[data-page='dashboard'] .gauge .k {
     white-space: nowrap;
 }
 
-html[data-page='dashboard'] .gauge .donut {
-    width: var(--donut-size);
-    height: var(--donut-size);
+html[data-page='dashboard'] .fclt-gauge-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 100%;
+    margin: 0;
+    padding: 0 7px;
 }
 
-html[data-page='dashboard'] .gauge .donut > .donut__chart {
-    display: block;
+html[data-page='dashboard'] .fclt-gauge-list > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+    line-height: 1.25;
+}
+
+html[data-page='dashboard'] .fclt-gauge-list dt {
+    flex-shrink: 0;
+    color: #7b8496;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .fclt-gauge-list dd {
+    min-width: 0;
+    margin: 0 0 0 auto;
+    overflow: hidden;
+    color: #23272f;
+    font-size: 15px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .fclt-gauge-clear .fclt-gauge-list > .is-rec dt,
+html[data-page='dashboard'] .fclt-gauge-clear .fclt-gauge-list > .is-rec dd {
+    color: #4a56d8;
+}
+
+html[data-page='dashboard'] .fclt-gauge-diff {
+    padding: 0 6px;
+    border-radius: 5px;
+    background: #edf0f4;
+    color: #596479;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 700;
+    line-height: 1.5;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .fclt-gauge-diff[data-dir='up'] {
+    background: #fde9e9;
+    color: #d92626;
+}
+
+html[data-page='dashboard'] .fclt-gauge-diff[data-dir='down'] {
+    background: #e8f1ff;
+    color: #2f7ff0;
 }
 
 html[data-page='dashboard'] .gauge-row > .rec {
@@ -2567,7 +2726,6 @@ html[data-page='dashboard'] .trow.sel {
 
     html[data-page='dashboard'] .fclt-card-mid {
         margin-top: 4px;
-        min-height: 104px;
         padding: 2px 4px;
         gap: 2px;
     }
@@ -2587,8 +2745,30 @@ html[data-page='dashboard'] .trow.sel {
     }
 
     html[data-page='dashboard'] .fclt-unit-frame {
-        padding: 1px 20px;
+        padding: 4px 20px;
         border-radius: 9px;
+    }
+
+    html[data-page='dashboard'] .fclt-unit-status {
+        margin-top: 2px;
+        gap: 3px;
+    }
+
+    html[data-page='dashboard'] .fclt-unit-status .fclt-unit-cgn,
+    html[data-page='dashboard'] .fclt-unit-capa {
+        min-width: 0;
+        padding: 0 5px;
+        font-size: 11px;
+        line-height: 1.3;
+    }
+
+    html[data-page='dashboard'] .fclt-unit-status .fclt-unit-cgn {
+        gap: 3px;
+    }
+
+    html[data-page='dashboard'] .fclt-unit-status .fclt-unit-cgn::before {
+        width: 4px;
+        height: 4px;
     }
 
     html[data-page='dashboard'] .fclt-flow {
@@ -2667,9 +2847,18 @@ html[data-page='dashboard'] .trow.sel {
     }
 
     html[data-page='dashboard'] .gauge-row {
-        flex-basis: 80px;
+        min-height: 80px;
         margin-top: 5px;
         gap: 6px;
+    }
+
+    html[data-page='dashboard'] .fclt-gauge-donuts {
+        gap: 1px;
+    }
+
+    html[data-page='dashboard'] .fclt-gauge-donut-label {
+        margin-top: -4px;
+        font-size: 11px;
     }
 
     html[data-page='dashboard'] .gauge {
@@ -2679,6 +2868,24 @@ html[data-page='dashboard'] .trow.sel {
     html[data-page='dashboard'] .gauge .k {
         font-size: 12px;
         line-height: 1.2;
+    }
+
+    html[data-page='dashboard'] .fclt-gauge-list {
+        gap: 1px;
+        padding: 0 4px;
+    }
+
+    html[data-page='dashboard'] .fclt-gauge-list dt {
+        font-size: 11px;
+    }
+
+    html[data-page='dashboard'] .fclt-gauge-list dd {
+        font-size: 13px;
+    }
+
+    html[data-page='dashboard'] .fclt-gauge-diff {
+        font-size: 10px;
+        line-height: 1.4;
     }
 
     html[data-page='dashboard'] .gauge-row > .rec {
@@ -2726,10 +2933,6 @@ html[data-page='dashboard'] .trow.sel {
 }
 
 @media (min-width: 1350px) and (max-width: 1599px) and (min-height: 930px) {
-    html[data-page='dashboard'] .fclt-card-mid {
-        min-height: 126px;
-    }
-
     html[data-page='dashboard'] .fclt-flow-point {
         display: flex;
         flex-direction: column;

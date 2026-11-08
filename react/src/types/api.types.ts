@@ -176,10 +176,16 @@ export interface DsbdFcltCardDto {
     totCnt: number;
     oprCnt: number;
     wtngPsgCnt: number;
+    /** [hhmm, hhmm+60) 유입인원 합. 출국장은 LGT. 도출할 행이 없으면 null */
+    hrlyArvlPsgCnt: number | null;
     hrlyPrcsPsgCnt: number;
     hrlyPrcsRate: number;
     cgnClearTime: string;
     cgnClearRate: number;
+    /** 현재 운영 수량 유지 시 혼잡해소 예상 시각 HHmm. 산정 불가 / 해소 불가면 '' */
+    oprCgnClearTime: string;
+    /** 현재 운영 수량 유지 시 해소 분. 이미 해소면 0, 산정 불가 / 해소 불가면 null */
+    oprCgnClearMin: number | null;
     /** 혼잡 판정값 — 직전 10분 처리 여객 평균 대기시간 (초, 소수 원값) */
     cgnWtngSec: number | null;
     cgnStatus: CongestionStatus | null;

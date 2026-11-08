@@ -422,7 +422,7 @@ const DPTGT_UNITS: Record<TmnlId, FcltUnitDto[]> = {
 };
 
 /** 등급 / 평균 / 해소값은 buildFcltCard 가 프로필에서 채운다 */
-type FcltCardSeed = Omit<DsbdFcltCardDto, 'cgnWtngSec'>;
+type FcltCardSeed = Omit<DsbdFcltCardDto, 'cgnWtngSec' | 'hrlyArvlPsgCnt' | 'oprCgnClearTime' | 'oprCgnClearMin'>;
 
 const CHKN_CARDS: Record<TmnlId, FcltCardSeed[]> = {
     T1: [
@@ -589,6 +589,8 @@ function buildFcltCard(card: FcltCardSeed, hhmm: string, fcltType: 'CHKN' | 'DEP
     const { reqCnt } = toQueueRecommend(profile, targetMin);
     const clear = reqCnt === null ? null : toQueueClear(profile, reqCnt, BASE_INFO.ymd, baseMinute, targetMin);
     const clearMin = clear?.cgnClearMin == null ? null : Math.ceil(clear.cgnClearMin - 1e-9);
+    const oprClear = toQueueClear(profile, profile.oprCnt, BASE_INFO.ymd, baseMinute, targetMin);
+    const oprClearMin = oprClear.cgnClearMin == null ? null : Math.ceil(oprClear.cgnClearMin - 1e-9);
     const cgnStatus = mockGradeOf(profile.obsWtngSec);
 
     return {
@@ -597,9 +599,12 @@ function buildFcltCard(card: FcltCardSeed, hhmm: string, fcltType: 'CHKN' | 'DEP
         oprCnt: profile.oprCnt,
         totCnt: profile.totCnt ?? card.totCnt,
         wtngPsgCnt: profile.wtngPsgCnt,
+        hrlyArvlPsgCnt: Math.round(profile.arvlPerHour),
         hrlyPrcsRate: capacity === 0 ? 0 : Math.round((profile.arvlPerHour / capacity) * 100),
         cgnClearTime: clear === null || clearMin === null ? '' : clear.cgnClearDt.slice(8, 12),
         cgnClearRate: clearMin === null ? 0 : Math.round((Math.max(targetMin - clearMin, 0) / targetMin) * 100),
+        oprCgnClearTime: oprClearMin === null ? '' : oprClear.cgnClearDt.slice(8, 12),
+        oprCgnClearMin: oprClearMin,
         cgnWtngSec: profile.obsWtngSec,
         cgnStatus,
         recommend: {
