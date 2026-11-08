@@ -190,8 +190,8 @@ try {
         }
         const slots = viewAt('0910', smry).summaryStats;
         check(slots.map((slot) => [slot.label, slot.time]),
-            [['현재', '09:10'], ['+1시간', '10:10'], ['+2시간', '11:10']],
-            `${terminal} labels use confirmed search time`);
+            [['현재', ''], ['+1시간', '10:10'], ['+2시간', '11:10']],
+            `${terminal} hides current time and derives future labels from confirmed search time`);
         check(slots[1].stats.map((stat) => stat.value),
             [smry.intrvlList[1].fltCnt.toLocaleString(), smry.intrvlList[1].psgCnt.toLocaleString()],
             `${terminal} displays both counts from the future interval`);
@@ -200,11 +200,11 @@ try {
     check(smryAt('2210').intrvlList.map((slot) => [slot.bgnHhmm, slot.endHhmm]),
         [['2210', '2310'], ['2310', '2400']], 'last same-day interval stops at midnight');
     const midnight = viewAt('2350').summaryStats;
-    check(midnight.map((slot) => slot.time), ['23:50', '다음 날 00:50', '다음 날 01:50'],
+    check(midnight.map((slot) => slot.time), ['', '다음 날 00:50', '다음 날 01:50'],
         'future-day labels never wrap back to the search date');
-    check(midnight.slice(1).flatMap((slot) => slot.stats.map((stat) => [stat.value, stat.delta])),
-        [['-', '-'], ['-', '-'], ['-', '-'], ['-', '-']],
-        'out-of-date windows show unknown counts and differences');
+    check(midnight.slice(1).flatMap((slot) => slot.stats.map((stat) => stat.value)),
+        ['-', '-', '-', '-'],
+        'out-of-date windows show unknown counts');
     check(viewAt('0300').summaryStats[0].stats.map((stat) => stat.value), ['0', '0'],
         'observed zero flights and passengers remain zero');
 

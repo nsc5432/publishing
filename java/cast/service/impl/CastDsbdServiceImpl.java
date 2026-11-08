@@ -417,6 +417,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		FcltWtngDay depDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.DEP);
 		FcltWtngDay scDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.SC);
 		LocalDateTime evalDt = depDay.dtOf(toMinutes(searchDto.getHhmm()));
+		int prcsMin = prcsWindowMin(searchDto.getHhmm());
 
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, DEP_UNIT_FCLT_CD_LIST)
 				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
@@ -430,7 +431,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
 		for (String unitCd : unitCdSet) {
-			result.add(getDepFcltCard(unitCd, depDay, evalDt, scDay.clearanceOf(unitCd, evalDt), scUnitMap.get(unitCd), unitList));
+			result.add(getDepFcltCard(unitCd, depDay, evalDt, prcsMin, scDay.clearanceOf(unitCd, evalDt), scUnitMap.get(unitCd), unitList));
 		}
 
 		result.sort(CgnOrder.byWaitDesc(DsbdFcltCardDto::getCgnWtngSec, DsbdFcltCardDto::getWtngPsgCnt, DsbdFcltCardDto::getDptgtNo));
@@ -448,6 +449,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		SmltStngDto smltStng = castSmltService.retrieveUniqueSmltStng(smltId);
 		FcltWtngDay wtngDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.CHKN);
 		LocalDateTime evalDt = wtngDay.dtOf(toMinutes(hhmm));
+		int prcsMin = prcsWindowMin(hhmm);
 		IslandMainAln islandMainAln = retrieveIslandMainAln(smltStng, fcltTmnlId, evalDt);
 
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, List.of("CC"))
@@ -457,7 +459,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
 		for (String unitCd : sortedByWait(wtngDay, evalDt)) {
-			result.add(getChknFcltCard(unitCd, wtngDay, evalDt, unitMap.get(unitCd), unitList, islandMainAln, baseContext));
+			result.add(getChknFcltCard(unitCd, wtngDay, evalDt, prcsMin, unitMap.get(unitCd), unitList, islandMainAln, baseContext));
 		}
 
 		return result;
@@ -505,7 +507,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return result;
 	}
 
-	private DsbdFcltCardDto getChknFcltCard(String unitCd, FcltWtngDay wtngDay, LocalDateTime evalDt, FcltUnitRawDto unit, List<FcltUnitDto> unitList, IslandMainAln islandMainAln, String baseContext) {
+	private DsbdFcltCardDto getChknFcltCard(String unitCd, FcltWtngDay wtngDay, LocalDateTime evalDt, int prcsMin, FcltUnitRawDto unit, List<FcltUnitDto> unitList, IslandMainAln islandMainAln, String baseContext) {
 		String unitContext = unitContext(baseContext, FcltType.CHKN, unitCd);
 		FcltQueueClearance clearance = wtngDay.clearanceOf(unitCd, evalDt);
 
@@ -529,6 +531,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setTotCnt(unit != null ? unit.getTotCnt() : 0);
 		result.setOprCnt(slot.getOprBoothCnt());
 		result.setWtngPsgCnt(queuePsgCnt);
+		result.setHrlyPrcsPsgCnt(wtngDay.slotOf(unitCd, evalDt, prcsMin).getPrcsPsgCnt());
 		applyClearance(result, clearance, recommend);
 		result.setCgnStatus(wtngDay.gradeOf(unitCd, evalDt).getValue());
 		result.setRecommend(getRecommend(mainAlnNm, reqCnt, needAssign));
@@ -563,6 +566,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			String unitCd,
 			FcltWtngDay depDay,
 			LocalDateTime evalDt,
+			int prcsMin,
 			FcltQueueClearance scClearance,
 			FcltUnitRawDto scUnit,
 			List<FcltUnitDto> unitList
@@ -580,6 +584,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setTotCnt(scUnit != null ? scUnit.getTotCnt() : 0);
 		result.setOprCnt(oprCnt != null ? oprCnt : 0);
 		result.setWtngPsgCnt(queueOf(depDay.sourceOf(unitCd, evalDt)));
+		result.setHrlyPrcsPsgCnt(depDay.slotOf(unitCd, evalDt, prcsMin).getPrcsPsgCnt());
 		applyClearance(result, scClearance, recommend);
 		result.setCgnWtngSec(avgWtngSec.getValue());
 		result.setCgnStatus(depDay.getGradeScale().gradeOf(avgWtngSec).getValue());
@@ -593,13 +598,11 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	 * 해소값은 보유 수량을 넘어도 추천 수량을 가정
 	 */
 	private void applyClearance(DsbdFcltCardDto card, FcltQueueClearance clearance, FcltQueueClearance.Recommend recommend) {
-		Computed<Double> prcsPerHour = clearance.getObservedPrcsPerHour();
 		Computed<Double> loadRatio = clearance.getLoadRatio();
 		FcltQueueClearance.ClearanceResult clear = recommend.getReqClear();
 		Integer clearMin = clear == null ? null : clear.getClearMin();
 
 		card.setCgnWtngSec(clearance.getObservedWait().getValue());
-		card.setHrlyPrcsPsgCnt(prcsPerHour.hasValue() ? toRoundedInt(prcsPerHour.getValue()) : 0);
 		card.setHrlyPrcsRate(loadRatio.hasValue() ? toRoundedInt(loadRatio.getValue() * 100) : 0);
 		card.setCgnClearTime(clearMin == null ? EMPTY : clear.getClearDt().format(DateTimeFormatter.ofPattern("HHmm")));
 		card.setCgnClearRate(clearMin == null ? 0 : toClearRate(clearMin));
@@ -618,6 +621,11 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		int remainingMinutes = Math.max(FcltQueueClearance.DFLT_TARGET_MIN - clearMin, 0);
 
 		return remainingMinutes * 100 / FcltQueueClearance.DFLT_TARGET_MIN;
+	}
+
+	// 요약정보 시간당 처리인원과 같은 [hhmm, hhmm+60) 구간 — 24시에서 자른다
+	private int prcsWindowMin(String hhmm) {
+		return Math.min(DEFAULT_INTRVL_MIN, MIN_PER_DAY - toMinutes(hhmm));
 	}
 
 	private int toRoundedInt(double value) {

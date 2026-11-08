@@ -1027,7 +1027,7 @@ html[data-page='dashboard'] .legend > span > i.legend__bar {
     width: 12px;
     height: 10px;
     border-radius: 2px 2px 0 0;
-    background: rgba(148, 163, 196, 0.55);
+    background: rgba(148, 163, 196, 0.6);
 }
 
 html[data-page='dashboard'] .legend > span > i.legend__bar::after {
@@ -1042,7 +1042,7 @@ html[data-page='dashboard'] .chart-bg {
     background-repeat: no-repeat;
     background-position: center 52%;
     background-size: 72% auto;
-    opacity: 0.32;
+    opacity: 0.14;
     -webkit-mask: radial-gradient(72% 72% at 50% 52%, #000 55%, transparent 92%);
     mask: radial-gradient(72% 72% at 50% 52%, #000 55%, transparent 92%);
 }
@@ -1339,6 +1339,10 @@ html[data-page='dashboard'] .sum-metrics {
     min-height: 0;
 }
 
+html[data-page='dashboard'] .sum-cell + .sum-cell .sum-metrics {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 html[data-page='dashboard'] .sum-metric-icons,
 html[data-page='dashboard'] .sum-metric-values {
     display: grid;
@@ -1403,18 +1407,6 @@ html[data-page='dashboard'] .sum-cell .u {
     margin-left: 2px;
 }
 
-html[data-page='dashboard'] .sum-cell .sub {
-    margin-left: 0;
-    font-size: 10px;
-    color: #7c8698;
-    white-space: nowrap;
-}
-
-html[data-page='dashboard'] .sum-cell .sub .danger {
-    margin-left: 0;
-    font-weight: 600;
-}
-
 @container (max-width: 420px) {
     html[data-page='dashboard'] .sum-cell {
         padding: 0 5px;
@@ -1431,10 +1423,6 @@ html[data-page='dashboard'] .sum-cell .sub .danger {
 
     html[data-page='dashboard'] .sum-cell .big {
         font-size: 15px;
-    }
-
-    html[data-page='dashboard'] .sum-cell .sub {
-        font-size: 9px;
     }
 }
 

@@ -111,7 +111,14 @@
     text-align: center;
 }
 
+.header-info-cards .plan-col .cell > div:last-child {
+    align-self: stretch;
+    text-align: right;
+}
+
 .header-info-cards .plan-col .k {
+    align-self: stretch;
+    text-align: right;
     font-size: 13px;
     line-height: 16px;
     color: #858ea0;
@@ -140,6 +147,24 @@
 .header-info-cards .plan-dep {
     margin: 0 8px;
     padding: 0 6px;
+    border: 1px solid transparent;
+}
+
+.header-info-cards .plan-dep-highlight {
+    position: relative;
+    isolation: isolate;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-self: flex-end;
+    width: max-content;
+}
+
+.header-info-cards .plan-dep-highlight::before {
+    content: '';
+    position: absolute;
+    inset: -1px -7px;
+    z-index: -1;
     background: rgba(255, 255, 255, 0.92);
     border: 1px solid rgba(160, 168, 200, 0.35);
     border-radius: 12px;

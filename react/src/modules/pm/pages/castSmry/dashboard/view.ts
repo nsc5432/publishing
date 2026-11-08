@@ -119,7 +119,7 @@ export function toSimulationType(smltType: SmltType): SimulationType {
 }
 
 export function toPlanDate(ymd?: string): string {
-    return formatYmd(ymd ?? '', '/');
+    return formatYmd(ymd ?? '', '-');
 }
 
 export function toCalcDateTime(calcDt?: string): string {
@@ -326,7 +326,7 @@ function toSummarySlots(hhmm: string, smry: TmnlSmryDto): SummarySlot[] {
 
         return {
             label: offset === 0 ? '현재' : `+${offset}시간`,
-            time: bgnMin >= MIN_PER_DAY ? `다음 날 ${clock}` : clock,
+            time: offset === 0 ? '' : bgnMin >= MIN_PER_DAY ? `다음 날 ${clock}` : clock,
             range: slot
                 ? `${formatHhmm(slot.bgnHhmm)}~${formatHhmm(slot.endHhmm)}`
                 : '조회일 범위 밖',
@@ -336,16 +336,12 @@ function toSummarySlots(hhmm: string, smry: TmnlSmryDto): SummarySlot[] {
                     iconClass: 'i-blue i-32',
                     value: slot ? formatCount(slot.fltCnt) : '-',
                     unit: '편',
-                    deltaLabel: '전일 대비',
-                    delta: slot ? formatDiff(slot.yesterdayFltDiffCnt) : '-',
                 },
                 {
                     icon: 'people',
                     iconClass: 'i-teal i-32',
                     value: slot ? formatCount(slot.psgCnt) : '-',
                     unit: '명',
-                    deltaLabel: '전일 대비',
-                    delta: slot ? formatDiff(slot.yesterdayPsgDiffCnt) : '-',
                 },
             ],
         };

@@ -77,17 +77,19 @@ export function HeaderInfoCards({ planDate, header }: HeaderInfoCardsProps) {
                         </div>
                     </div>
                     <div className="plan-col plan-dep">
-                        <div className="cell">
-                            <div className="k">출발</div>
-                            <div>
-                                <span className="v">{countText(plan?.depFltCnt)}</span>
-                                <span className="u">편</span>
+                        <div className="plan-dep-highlight">
+                            <div className="cell">
+                                <div className="k">출발</div>
+                                <div>
+                                    <span className="v">{countText(plan?.depFltCnt)}</span>
+                                    <span className="u">편</span>
+                                </div>
                             </div>
-                        </div>
-                        <div className="cell psg">
-                            <div>
-                                <span className="v">{countText(plan?.depPsgCnt)}</span>
-                                <span className="u">명</span>
+                            <div className="cell psg">
+                                <div>
+                                    <span className="v">{countText(plan?.depPsgCnt)}</span>
+                                    <span className="u">명</span>
+                                </div>
                             </div>
                         </div>
                     </div>

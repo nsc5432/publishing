@@ -169,8 +169,8 @@ export function TerminalChart({ rsltList, selectedHhmm, onHourSelect }: Terminal
                     yAxisIndex: 1,
                     z: 1,
                     barWidth: '56%',
-                    itemStyle: { color: 'rgba(148, 163, 196, 0.32)', borderRadius: [3, 3, 0, 0] },
-                    emphasis: { itemStyle: { color: 'rgba(148, 163, 196, 0.55)' } },
+                    itemStyle: { color: 'rgba(148, 163, 196, 0.6)', borderRadius: [3, 3, 0, 0] },
+                    emphasis: { itemStyle: { color: 'rgba(148, 163, 196, 0.8)' } },
                     data: rsltList.map((rslt) => rslt.fltCnt),
                 },
                 {

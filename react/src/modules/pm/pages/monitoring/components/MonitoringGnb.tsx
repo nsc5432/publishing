@@ -44,7 +44,7 @@ function DateTimeField({ label, date, hour, minute, onDateChange, onHourChange, 
             <div className="datepick">
                 <button type="button" className="datepick__btn" onClick={handleOpenCalendar}>
                     <Icon name="calendar" className="cal" />
-                    <span className="val">{date}</span>
+                    <span className="val">{formatYmd(toYmd(date), '-')}</span>
                 </button>
                 <input
                     ref={dateRef}

@@ -39,7 +39,7 @@ export function SmltGnb({ title, ymd, steps, onBack, onDateChange, onSearch, onS
             <div className="date-picker__field">
                 <button type="button" className="date-picker__btn" disabled={!onDateChange || busy} onClick={handleOpenCalendar}>
                     <CalendarIcon className="date-picker__icon" aria-hidden="true" />
-                    <span className="date-picker__value">{formatYmd(ymd)}</span>
+                    <span className="date-picker__value">{formatYmd(ymd, '-')}</span>
                 </button>
                 {onDateChange && (
                     <input

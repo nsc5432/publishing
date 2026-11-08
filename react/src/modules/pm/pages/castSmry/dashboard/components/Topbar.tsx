@@ -58,7 +58,7 @@ export function Topbar({
                 <div className="datepick">
                     <button type="button" className="datepick__btn" disabled={isUserSmlt} onClick={handleOpenCalendar}>
                         <Icon name="calendar" className="cal" />
-                        <span className="val">{formatYmd(baseYmd)}</span>
+                        <span className="val">{formatYmd(baseYmd, '-')}</span>
                     </button>
                     <input
                         ref={dateRef}

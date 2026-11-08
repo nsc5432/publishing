@@ -108,8 +108,6 @@ export interface SummaryStat {
     iconClass: string;
     value: string;
     unit: string;
-    deltaLabel: string;
-    delta: string;
 }
 
 export interface SummarySlot {

@@ -215,21 +215,23 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
 
             <div className="view" hidden={viewKind !== 'summary'}>
                 <div className="sum-top">
-                    {/* 전일 대비 */}
+                    {/* 운항 계획 */}
                     <div className="sum-two">
-                        <div className="p-note">* 전일 대비</div>
-                        {view.summaryStats.map((slot) => (
+                        <div className="p-note">* 운항 계획</div>
+                        {view.summaryStats.map((slot, slotIndex) => (
                             <div className="sum-cell" key={slot.label} title={slot.range}>
                                 <div className="sum-time">
                                     <span>{slot.label}</span>
-                                    <time>{slot.time}</time>
+                                    {slot.time && <time>{slot.time}</time>}
                                 </div>
                                 <div className="sum-metrics">
-                                    <div className="sum-metric-icons">
-                                        {slot.stats.map((stat) => (
-                                            <Icon key={stat.unit} name={stat.icon} className={stat.iconClass} />
-                                        ))}
-                                    </div>
+                                    {slotIndex === 0 && (
+                                        <div className="sum-metric-icons">
+                                            {slot.stats.map((stat) => (
+                                                <Icon key={stat.unit} name={stat.icon} className={stat.iconClass} />
+                                            ))}
+                                        </div>
+                                    )}
                                     <div className="sum-metric-values">
                                         {slot.stats.map((stat) => (
                                             <div className="sum-metric" key={stat.unit}>
@@ -237,9 +239,6 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                                                     <span className="big">{stat.value}</span>
                                                     <span className="u">{stat.unit}</span>
                                                 </div>
-                                                <span className="sub" aria-label={`${stat.deltaLabel} ${stat.delta}`}>
-                                                    <span className="danger">({stat.delta})</span>
-                                                </span>
                                             </div>
                                         ))}
                                     </div>
