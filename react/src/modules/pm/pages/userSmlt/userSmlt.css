@@ -1010,6 +1010,45 @@ html[data-page='userSmlt'] .editor__label {
     color: #3d4350;
 }
 
+html[data-page='userSmlt'] .editor__head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+html[data-page='userSmlt'] .seg--sm {
+    padding: 3px;
+}
+
+html[data-page='userSmlt'] .seg--sm .seg__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: clamp(22px, 2.6vh, 28px);
+    padding: 0 14px;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+html[data-page='userSmlt'] .seg__diff {
+    padding: 0 5px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+html[data-page='userSmlt'] .seg__diff[data-dir='up'] {
+    background: #fde9e9;
+    color: #d92626;
+}
+
+html[data-page='userSmlt'] .seg__diff[data-dir='down'] {
+    background: #e8f1ff;
+    color: #2f7ff0;
+}
+
 html[data-page='userSmlt'] .editor__bulk {
     display: flex;
     align-items: center;
@@ -1034,6 +1073,11 @@ html[data-page='userSmlt'] .data-table {
     width: 100%;
     border-collapse: collapse;
     font-size: clamp(11px, 1.25vh, 13px);
+}
+
+/* 남는 높이는 tbody 행이 나눠 갖고, 모자라면 .table-wrap 이 스크롤한다 */
+html[data-page='userSmlt'] .data-table--fill {
+    height: 100%;
 }
 
 html[data-page='userSmlt'] .data-table th {

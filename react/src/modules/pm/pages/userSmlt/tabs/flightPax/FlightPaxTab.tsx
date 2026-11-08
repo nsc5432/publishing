@@ -8,7 +8,7 @@ import { TerminalPanel } from '../../components/TerminalPanel';
 import { TERMINALS, enabledTerminals, type SmltTabProps, type TerminalKind } from '../../types';
 import { FlightPaxChart } from './components/FlightPaxChart';
 import { FlightEditor } from './components/FlightEditor';
-import type { FlightPaxDraft } from './types';
+import type { DayHalf, FlightPaxDraft } from './types';
 import { EMPTY_DRAFT, EMPTY_FLIGHT_PAX, toDraft, toFlightPax, toSaveReq } from './view';
 
 type DraftState = Record<TerminalKind, FlightPaxDraft>;
@@ -30,6 +30,7 @@ export function FlightPaxTab({
 }: SmltTabProps) {
     const { raw: dtoByTerminal, error, responseSeq } = useTerminalData(query, reloadKey, fetchFltPsg, keepDto, '운항편/여객수 정보를 불러오지 못했습니다.');
     const [drafts, setDrafts] = useState<DraftState>({ T1: EMPTY_DRAFT, T2: EMPTY_DRAFT });
+    const [half, setHalf] = useState<DayHalf>('AM');
 
     const panelDataByTerminal = useMemo(
         () => ({
@@ -122,6 +123,9 @@ export function FlightPaxTab({
                             onRatioChange={(ratio) => handleRatioChange(terminal, ratio)}
                             onHourRatioChange={(index, ratio) => handleHourRatioChange(terminal, index, ratio)}
                             rows={panelData.rows}
+                            halfDiffs={panelData.halfDiffs}
+                            half={half}
+                            onHalfChange={setHalf}
                             disabled={busy || !terminalEnabled || Boolean(readOnly)}
                         />
                     </TerminalPanel>

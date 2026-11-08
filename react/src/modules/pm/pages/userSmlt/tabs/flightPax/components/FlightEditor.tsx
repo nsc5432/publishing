@@ -1,12 +1,15 @@
 import { ChevronLeftIcon, ChevronRightIcon } from '@/components/icons';
-import { MAX_RATIO, MIN_RATIO, RATIO_STEP } from '../constants';
-import type { HourRow } from '../types';
+import { DAY_HALVES, MAX_RATIO, MIN_RATIO, RATIO_STEP } from '../constants';
+import type { DayHalf, HalfDiff, HourRow } from '../types';
 
 interface FlightEditorProps {
     ratio: number;
     onRatioChange: (ratio: number) => void;
     onHourRatioChange: (index: number, ratio: number) => void;
     rows: HourRow[];
+    halfDiffs: Record<DayHalf, HalfDiff>;
+    half: DayHalf;
+    onHalfChange: (half: DayHalf) => void;
     disabled: boolean;
     readOnly?: boolean;
 }
@@ -21,22 +24,45 @@ interface RatioStepperProps {
 
 const clamp = (value: number) => Math.max(MIN_RATIO, Math.min(MAX_RATIO, value));
 
-export function FlightEditor({ ratio, onRatioChange, onHourRatioChange, rows, disabled, readOnly }: FlightEditorProps) {
+export function FlightEditor({ ratio, onRatioChange, onHourRatioChange, rows, halfDiffs, half, onHalfChange, disabled, readOnly }: FlightEditorProps) {
+    const visibleRows = rows.map((row, index) => ({ row, index })).filter(({ row }) => row.half === half);
+
     return (
         <div className="editor">
-            {!readOnly && (
-                <div className="editor__opts">
+            <div className="editor__opts">
+                <div className="editor__head">
                     <p className="editor__label">시간대별 승객 수</p>
 
+                    <div className="seg seg--sm" role="group" aria-label="표시 시간대">
+                        {DAY_HALVES.map((item) => (
+                            <button
+                                key={item.id}
+                                type="button"
+                                className={`seg__item${item.id === half ? ' is-on' : ''}`}
+                                aria-pressed={item.id === half}
+                                onClick={() => onHalfChange(item.id)}
+                            >
+                                {item.label}
+                                {halfDiffs[item.id].dir !== 'none' && (
+                                    <span className="seg__diff" data-dir={halfDiffs[item.id].dir}>
+                                        {halfDiffs[item.id].text}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {!readOnly && (
                     <div className="editor__bulk">
                         <span className="editor__bulk-label">일괄 수정</span>
                         <RatioStepper value={ratio} onChange={onRatioChange} disabled={disabled} label="전체" />
                     </div>
-                </div>
-            )}
+                )}
+            </div>
 
             <div className="table-wrap scroll-area">
-                <table className="data-table">
+                <table className="data-table data-table--fill">
                     <thead>
                         <tr>
                             <th scope="col">시작시간</th>
@@ -47,7 +73,7 @@ export function FlightEditor({ ratio, onRatioChange, onHourRatioChange, rows, di
                         </tr>
                     </thead>
                     <tbody>
-                        {rows.map((row, index) => (
+                        {visibleRows.map(({ row, index }) => (
                             <tr key={row.start}>
                                 <td>{row.start}</td>
                                 <td>{row.end}</td>

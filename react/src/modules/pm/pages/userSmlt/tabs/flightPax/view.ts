@@ -1,10 +1,12 @@
 import type { FltPsgChartDto, TmnlId, UserSmltFltPsgDto, UserSmltFltPsgSaveReq } from '@/types/api.types';
-import { formatCount, formatHhmm, pad2 } from '@/lib/format';
-import type { ChartData, FlightPaxChartData, FlightPaxDraft, HourRow, TerminalFlightPax } from './types';
+import { formatCount, formatDiff, formatHhmm, pad2 } from '@/lib/format';
+import type { ChartData, DayHalf, FlightPaxChartData, FlightPaxDraft, HalfDiff, HourRow, TerminalFlightPax } from './types';
 
 const toFactor = (ajmtRt: number) => 1 + ajmtRt / 100;
 
 const scale = (value: number, factor: number) => Math.round(value * factor);
+
+const toHalf = (hhmm: string): DayHalf => (Number(hhmm.slice(0, 2)) < 12 ? 'AM' : 'PM');
 
 const AXIS_GROWTH_RATE = 0.5;
 
@@ -83,11 +85,22 @@ function toRows(dto: UserSmltFltPsgDto, hourRates: number[]): HourRow[] {
         return {
             start: formatHhmm(hourRow.bgnTime),
             end: formatHhmm(hourRow.endTime),
+            half: toHalf(hourRow.bgnTime),
             ajmtRt,
             pax: `${formatCount(hourRow.psgCnt)}명`,
             adjPax: `${formatCount(scale(hourRow.psgCnt, toFactor(ajmtRt)))}명`,
         };
     });
+}
+
+function toHalfDiff(dto: UserSmltFltPsgDto, hourRates: number[], half: DayHalf): HalfDiff {
+    const diff = dto.hourList.reduce(
+        (sum, hourRow, index) =>
+            toHalf(hourRow.bgnTime) === half ? sum + scale(hourRow.psgCnt, toFactor(hourRates[index] ?? 0)) - hourRow.psgCnt : sum,
+        0,
+    );
+    if (diff === 0) return { text: '', dir: 'none' };
+    return { text: formatDiff(diff), dir: diff > 0 ? 'up' : 'down' };
 }
 
 export function toDraft(dto: UserSmltFltPsgDto): FlightPaxDraft {
@@ -101,6 +114,10 @@ export function toFlightPax(dto: UserSmltFltPsgDto, draft: FlightPaxDraft): Term
         peak: toPeakHour(dto.peakTime),
         chart: toCombinedChart(dto, draft.hourRates),
         rows: toRows(dto, draft.hourRates),
+        halfDiffs: {
+            AM: toHalfDiff(dto, draft.hourRates, 'AM'),
+            PM: toHalfDiff(dto, draft.hourRates, 'PM'),
+        },
     };
 }
 
@@ -125,4 +142,8 @@ export const EMPTY_FLIGHT_PAX: TerminalFlightPax = {
         items: [],
     },
     rows: [],
+    halfDiffs: {
+        AM: { text: '', dir: 'none' },
+        PM: { text: '', dir: 'none' },
+    },
 };

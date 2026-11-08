@@ -35,10 +35,19 @@ export interface FlightPaxChartData {
     items: FlightPaxChartItem[];
 }
 
+export type DayHalf = 'AM' | 'PM';
+
+/** 오전/오후 승객 수 증감 — 변경 승객 수 − 승객 수 합 */
+export interface HalfDiff {
+    text: string;
+    dir: 'up' | 'down' | 'none';
+}
+
 /** 시간대별 표 1행 — 그 시간대 비율이 걸린 뒤의 값 */
 export interface HourRow {
     start: string;
     end: string;
+    half: DayHalf;
     /** 수정 비율 (%) */
     ajmtRt: number;
     /** 승객 수 (예: 12,340명) */
@@ -63,4 +72,5 @@ export interface TerminalFlightPax {
     peak: string;
     chart: FlightPaxChartData;
     rows: HourRow[];
+    halfDiffs: Record<DayHalf, HalfDiff>;
 }
