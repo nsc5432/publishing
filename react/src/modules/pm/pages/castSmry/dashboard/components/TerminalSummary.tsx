@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import t1White from '@/assets/svg/t1-white.svg';
 import t2White from '@/assets/svg/t2-white.svg';
 import t1Blue from '@/assets/svg/t1-blue-deep.svg';
@@ -79,10 +79,15 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
     const legendSubject = LEGEND_SUBJECT[category];
     const laterHhmm = stepHhmm(hhmm, 1);
     const earlierHhmm = stepHhmm(hhmm, -1);
+    const summaryScopeText = view.summaryScope
+        .filter((chip) => chip.active)
+        .map((chip) => chip.label)
+        .join(' + ');
 
     const [viewKind, setViewKind] = useState<ViewKind>('summary');
     const [selectedRow, setSelectedRow] = useState(view.defaultSelectedRow);
     const selectedRowRef = useRef<HTMLDivElement>(null);
+    const summaryTipId = useId();
 
     useEffect(() => {
         setSelectedRow(view.defaultSelectedRow);
@@ -247,10 +252,21 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                         ))}
                     </div>
                     {/* 요약정보 (랜드사이드, 아일랜드, 출국장) */}
-                    <div className="sum-info">
+                    <div
+                        className="sum-info"
+                        tabIndex={view.summaryTip.length > 0 ? 0 : undefined}
+                        aria-describedby={view.summaryTip.length > 0 ? summaryTipId : undefined}
+                    >
                         <div className="lbl">
                             <Multiline text={view.summaryTarget} />
                         </div>
+                        <ul className="sum-scope" aria-label="계산 대상 시설">
+                            {view.summaryScope.map((chip) => (
+                                <li key={chip.label} className={`sum-scope-chip${chip.active ? ' on' : ''}`}>
+                                    {chip.label}
+                                </li>
+                            ))}
+                        </ul>
                         <div className="cells">
                             {view.summaryInfo.map((cell) => (
                                 <div className="cell" key={cell.label}>
@@ -264,6 +280,23 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                                 </div>
                             ))}
                         </div>
+                        {view.summaryTip.length > 0 && (
+                            <div id={summaryTipId} className="sum-info-tip" role="tooltip">
+                                <div className="sum-info-tip-head">
+                                    {view.summaryTarget} · {summaryScopeText}
+                                </div>
+                                {view.summaryTip.map((row) => (
+                                    <div className="sum-info-tip-row" key={row.label}>
+                                        <span className="sum-info-tip-label">{row.label}</span>
+                                        <span className="sum-info-tip-range">{row.range}</span>
+                                        <span className="sum-info-tip-value">
+                                            {row.value}
+                                            <span className="sum-info-tip-unit">{row.unit}</span>
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
 

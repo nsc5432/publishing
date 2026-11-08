@@ -71,7 +71,7 @@ try {
             const smry = smryAt(slot.hhmm, terminal);
             check(smryInfo(slot.landsideSmry), smryInfo(smry),
                 `${terminal} ${slot.hhmm} map summary agrees with the dashboard's 60-minute landside result`);
-            const dsbdValues = values(viewAt(slot.hhmm, smry));
+            const dsbdValues = viewAt(slot.hhmm, smry).summaryTip.map((row) => row.value);
             check(values(day.slots[slot.hhmm]), [0, 1, 4, 5].map((index) => dsbdValues[index]),
                 `${terminal} ${slot.hhmm} map and dashboard format the same summary`);
         }
@@ -96,14 +96,26 @@ try {
     check(JSON.stringify(smryInfo(smryAt('0800'))) !== JSON.stringify(smryInfo(smryAt('0900'))), true,
         '09:00 updates the summary from 08:00');
     check(smryAt('0800').peak, smryAt('0900').peak, 'daily peak remains independent of search time');
-    check(values(viewAt('0900')), expectedValues(smryAt('0900')), 'summary reads the category summary fields');
+    check(values(viewAt('0900')), expectedValues(smryAt('0900')).slice(0, 4), 'summary reads the category summary fields');
+    check(viewAt('0900').summaryTip.map((row) => row.value), expectedValues(smryAt('0900')),
+        'tooltip retains all six category summary metrics');
+    check(viewAt('0910').summaryTip.map((row) => row.range),
+        ['09:10 기준', '09:00~09:10', '09:00~09:10', '09:00~09:10', '09:10~10:10', '09:10~10:10'],
+        'tooltip distinguishes snapshot, preceding ten minutes and following hour');
+    check(viewAt('2350').summaryTip.slice(4).map((row) => row.range), ['23:50~24:00', '23:50~24:00'],
+        'tooltip hourly ranges stop at midnight');
     check(viewAt('0900').summaryInfo.map((cell) => cell.label),
-        ['전체 대기인원', '평균 대기시간', '유입인원', '처리인원', '시간당 유입인원', '시간당 처리인원'],
+        ['전체 대기인원', '평균 대기시간', '유입인원', '처리인원'],
         'summary labels describe the metrics');
 
-    for (const [category, target] of [['PSG', '랜드\n사이드'], ['FLT', '랜드\n사이드'], ['CHKN', '아일랜드'], ['DEP', '출국장']]) {
+    for (const [category, target, activeScope] of [
+        ['PSG', '랜드사이드', [true, true]], ['FLT', '랜드사이드', [true, true]],
+        ['CHKN', '아일랜드', [true, false]], ['DEP', '출국장', [false, true]],
+    ]) {
         check(viewAt('0900', smryAt('0900', 'T1', category), category).summaryTarget, target,
             `${category} summary names its target`);
+        check(viewAt('0900', smryAt('0900', 'T1', category), category).summaryScope.map((chip) => chip.active),
+            activeScope, `${category} highlights only its target facilities`);
     }
 
     for (const time of ['0300', '0900', '0910', '2350']) {
@@ -142,16 +154,16 @@ try {
     check(smryAt('2350', 'T1', 'DEP').smryPrcsPsgCnt, Math.round((depHours[23].prcsPsgCnt * 10) / 60),
         'late-night range stops at midnight');
     check(viewAt('2350').barText.endsWith('PM'), true, 'search-time marker uses its own AM/PM');
-    check(values(viewAt('0300')), expectedValues(smryAt('0300')), 'observed zero counts stay zero');
+    check(values(viewAt('0300')), expectedValues(smryAt('0300')).slice(0, 4), 'observed zero counts stay zero');
     check(values(viewAt('0900', { ...smryAt('0900'),
         smryWtngPsgCnt: null, smryAvgWtngSec: null, smryIntvArvlPsgCnt: null, smryIntvPrcsPsgCnt: null,
         smryArvlPsgCnt: null, smryPrcsPsgCnt: null,
-    })), ['-', '-', '-', '-', '-', '-'], 'unknown summary results never fall back to daily peak');
+    })), ['-', '-', '-', '-'], 'unknown summary results never fall back to daily peak');
 
     for (const [category, expectedTime] of [['PSG', '0800'], ['FLT', '0800'], ['CHKN', '1000'], ['DEP', '1100']]) {
         const time = toPrimeTime(['T1', 'T2'].map((terminal) => api.getTmnlRsltByTime(terminal, category)), category);
         check(time, expectedTime, `${category} Prime Time selects its peak hour`);
-        check(values(viewAt(time, smryAt(time, 'T1', category), category)), expectedValues(smryAt(time, 'T1', category)),
+        check(values(viewAt(time, smryAt(time, 'T1', category), category)), expectedValues(smryAt(time, 'T1', category)).slice(0, 4),
             `${category} Prime Time summary uses its own target at the selected search time`);
         check(smryAt(time).peak, smryAt('0900').peak, `${category} Prime Time preserves daily peak information`);
     }

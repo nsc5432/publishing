@@ -1,8 +1,8 @@
 import type { CongestionStatus, DsbdCategory, DsbdRsltDto, FcltType } from '@/types/api.types';
 import type { IconName } from '@/components/icons/InlineIcon';
-import type { SummaryInfoCell } from '@/modules/pm/summary';
+import type { SummaryInfoCell, SummaryTipRow } from '@/modules/pm/summary';
 
-export type { SummaryInfoCell } from '@/modules/pm/summary';
+export type { SummaryInfoCell, SummaryTipRow } from '@/modules/pm/summary';
 
 export type SimulationType = 'daily' | 'user';
 
@@ -25,10 +25,17 @@ export const SMRY_INTRVL_MIN = 60;
 
 /** 요약정보 대상 — 랜드사이드는 아일랜드 + 출국장 */
 export const SUMMARY_TARGET_LABEL: Record<DsbdCategory, string> = {
-    PSG: '랜드\n사이드',
-    FLT: '랜드\n사이드',
+    PSG: '랜드사이드',
+    FLT: '랜드사이드',
     CHKN: '아일랜드',
     DEP: '출국장',
+};
+
+export const SUMMARY_SCOPE: Record<DsbdCategory, FcltCardType[]> = {
+    PSG: ['CHKN', 'DEP'],
+    FLT: ['CHKN', 'DEP'],
+    CHKN: ['CHKN'],
+    DEP: ['DEP'],
 };
 
 /* ================= 터미널 패널 뷰 모델 ================= */
@@ -108,6 +115,11 @@ export interface SummaryStat {
     iconClass: string;
     value: string;
     unit: string;
+}
+
+export interface SummaryScopeChip {
+    label: string;
+    active: boolean;
 }
 
 export interface SummarySlot {
@@ -263,7 +275,9 @@ export interface TerminalView {
     summaryStats: SummarySlot[];
     /** 요약정보 대상 — '\n' 이 들어갈 수 있다 */
     summaryTarget: string;
+    summaryScope: SummaryScopeChip[];
     summaryInfo: SummaryInfoCell[];
+    summaryTip: SummaryTipRow[];
     fcltCards: FcltCardData[];
     /** 큰 차트 — 좌표 계산은 그리는 쪽(TerminalChart)이 한다 */
     chart: { rsltList: DsbdRsltDto[] };

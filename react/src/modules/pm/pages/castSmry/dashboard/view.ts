@@ -13,7 +13,7 @@ import type {
     TmnlId,
     TmnlSmryDto,
 } from '@/types/api.types';
-import { toDsbdSummaryInfo } from '@/modules/pm/summary';
+import { toDsbdSummaryInfo, toDsbdSummaryTip } from '@/modules/pm/summary';
 import {
     formatCount,
     formatDateTime,
@@ -26,6 +26,8 @@ import {
 } from '@/lib/format';
 import {
     FCLT_QUEUE_LABEL,
+    SMRY_INTRVL_MIN,
+    SUMMARY_SCOPE,
     SUMMARY_TARGET_LABEL,
     type FcltCardChip,
     type FcltCardData,
@@ -40,7 +42,9 @@ import {
     type QueueFcstView,
     type QueueRecommendView,
     type SimulationType,
+    type SummaryScopeChip,
     type SummarySlot,
+    type SummaryTipRow,
     type TableRow,
     type TerminalView,
 } from './types';
@@ -348,6 +352,26 @@ function toSummarySlots(hhmm: string, smry: TmnlSmryDto): SummarySlot[] {
     });
 }
 
+function toSummaryScope(category: DsbdCategory): SummaryScopeChip[] {
+    return (['CHKN', 'DEP'] as const).map((fcltType) => ({
+        label: FCLT_CARD_TITLE[fcltType],
+        active: SUMMARY_SCOPE[category].includes(fcltType),
+    }));
+}
+
+function toSummaryTip(hhmm: string, smry: TmnlSmryDto): SummaryTipRow[] {
+    const baseMin = Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(2, 4));
+    const toClock = (min: number) => `${pad2(Math.floor(min / 60))}:${pad2(min % 60)}`;
+    const intvBgnMin = (baseMin - WTNG_WINDOW_MIN + MIN_PER_DAY) % MIN_PER_DAY;
+    const hourlyEndMin = Math.min(baseMin + SMRY_INTRVL_MIN, MIN_PER_DAY);
+
+    return toDsbdSummaryTip(smry, {
+        snapshot: `${toClock(baseMin)} 기준`,
+        intv: `${toClock(intvBgnMin)}~${toClock(baseMin)}`,
+        hourly: `${toClock(baseMin)}~${toClock(hourlyEndMin)}`,
+    });
+}
+
 export function toTerminalView({
     hhmm,
     category,
@@ -380,7 +404,9 @@ export function toTerminalView({
         },
         summaryStats: toSummarySlots(hhmm, smry),
         summaryTarget: SUMMARY_TARGET_LABEL[category],
+        summaryScope: toSummaryScope(category),
         summaryInfo: toDsbdSummaryInfo(smry),
+        summaryTip: toSummaryTip(hhmm, smry),
         fcltCards: [
             toFcltCardData('CHKN', chknCards, nextChknCards, smry.tmnlId, hhmm),
             toFcltCardData('DEP', dptgtCards, nextDptgtCards, smry.tmnlId, hhmm),
@@ -696,7 +722,9 @@ export const EMPTY_TERMINAL_VIEW: TerminalView = {
     peak: { ampm: '', time: '-', totalWait: '-', avgWait: '-', process: '-' },
     summaryStats: [],
     summaryTarget: '',
+    summaryScope: [],
     summaryInfo: [],
+    summaryTip: [],
     fcltCards: [
         toFcltCardData('CHKN', [], [], 'T1', ''),
         toFcltCardData('DEP', [], [], 'T1', ''),

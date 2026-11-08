@@ -8,6 +8,16 @@ export interface SummaryInfoCell {
     unit: string;
 }
 
+export interface SummaryTipRow extends SummaryInfoCell {
+    range: string;
+}
+
+export interface SummaryTipRange {
+    snapshot: string;
+    intv: string;
+    hourly: string;
+}
+
 function toCountCell(label: string, count: number | null | undefined): SummaryInfoCell {
     return { label, value: count == null ? '-' : formatCount(count), unit: '명' };
 }
@@ -25,14 +35,22 @@ export function toSummaryInfo(smry?: MapLandsideSmryDto | null): SummaryInfoCell
     ];
 }
 
-/** 요약보기는 조회 시각 10분 결과의 유입 · 처리를 시간당 값 앞에 더 보여 준다 */
 export function toDsbdSummaryInfo(smry?: TmnlSmryDto | null): SummaryInfoCell[] {
     return [
         toCountCell('전체 대기인원', smry?.smryWtngPsgCnt),
         toMinuteCell('평균 대기시간', smry?.smryAvgWtngSec),
         toCountCell('유입인원', smry?.smryIntvArvlPsgCnt),
         toCountCell('처리인원', smry?.smryIntvPrcsPsgCnt),
-        toCountCell('시간당 유입인원', smry?.smryArvlPsgCnt),
-        toCountCell('시간당 처리인원', smry?.smryPrcsPsgCnt),
+    ];
+}
+
+export function toDsbdSummaryTip(smry: TmnlSmryDto, range: SummaryTipRange): SummaryTipRow[] {
+    return [
+        { ...toCountCell('전체 대기인원', smry.smryWtngPsgCnt), range: range.snapshot },
+        { ...toMinuteCell('평균 대기시간', smry.smryAvgWtngSec), range: range.intv },
+        { ...toCountCell('유입인원', smry.smryIntvArvlPsgCnt), range: range.intv },
+        { ...toCountCell('처리인원', smry.smryIntvPrcsPsgCnt), range: range.intv },
+        { ...toCountCell('시간당 유입인원', smry.smryArvlPsgCnt), range: range.hourly },
+        { ...toCountCell('시간당 처리인원', smry.smryPrcsPsgCnt), range: range.hourly },
     ];
 }

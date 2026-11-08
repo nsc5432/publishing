@@ -494,6 +494,9 @@ html[data-page='dashboard'] .qtile.active {
 
 /* ============ panels ============ */
 html[data-page='dashboard'] .panel {
+    --p-iconbox-w: 79px;
+    --p-mid-w: 298px;
+    --p-col-gap: 20px;
     background: var(--panel-bg);
     border-radius: 20px;
     padding: 12px 16px 11px;
@@ -602,13 +605,13 @@ html[data-page='dashboard'] .panel-gray .rec {
 /* --- panel top --- */
 html[data-page='dashboard'] .p-top {
     display: flex;
-    gap: 20px;
+    gap: var(--p-col-gap);
     height: var(--p-top-h);
     flex-shrink: 0;
 }
 
 html[data-page='dashboard'] .p-iconbox {
-    width: 79px;
+    width: var(--p-iconbox-w);
     border-radius: 24px;
     display: flex;
     align-items: center;
@@ -760,7 +763,7 @@ html[data-page='dashboard'] .p-iconbox:focus-visible .p-map-ic--on {
 }
 
 html[data-page='dashboard'] .p-mid {
-    width: 298px;
+    width: var(--p-mid-w);
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -1273,15 +1276,16 @@ html[data-page='dashboard'] .view[hidden] {
 /* --- summary view --- */
 html[data-page='dashboard'] .sum-top {
     display: flex;
-    gap: 20px;
+    gap: var(--p-col-gap);
     height: var(--sum-top-h);
     flex-shrink: 0;
 }
 
+/* 오른쪽 끝을 위 지난주 同요일 박스(.p-mid)에 맞춘다 */
 html[data-page='dashboard'] .sum-two {
     position: relative;
-    flex: 0 1 440px;
-    max-width: 56%;
+    flex: 0 1 calc(var(--p-iconbox-w) + var(--p-col-gap) + var(--p-mid-w));
+    min-width: 0;
     background: #f0edf6;
     border: 1px solid #d8d4e0;
     border-radius: 14px;
@@ -1407,7 +1411,7 @@ html[data-page='dashboard'] .sum-cell .u {
     margin-left: 2px;
 }
 
-@container (max-width: 420px) {
+@container (max-width: 380px) {
     html[data-page='dashboard'] .sum-cell {
         padding: 0 5px;
     }
@@ -1427,6 +1431,7 @@ html[data-page='dashboard'] .sum-cell .u {
 }
 
 html[data-page='dashboard'] .sum-info {
+    position: relative;
     flex: 1;
     border-radius: 14px;
     display: flex;
@@ -1434,6 +1439,7 @@ html[data-page='dashboard'] .sum-info {
     align-items: center;
     padding: 0 14px;
     gap: 10px;
+    outline: none;
     background: linear-gradient(102deg, #e7fcf9 0%, #d3f4f3 20%, #eefefb 70%, #f5fffd 100%);
     border: 1px solid #bbe8e3;
 }
@@ -1458,23 +1464,54 @@ html[data-page='dashboard'] .sum-info .lbl {
     font-weight: 700;
     line-height: 1.25;
     letter-spacing: -0.5px;
+    white-space: nowrap;
     flex-shrink: 0;
 }
 
-/* 대기 · 10분 · 시간당 짝을 한 열에 위아래로 둔다 */
+html[data-page='dashboard'] .sum-info:focus-visible {
+    box-shadow: 0 0 0 2px var(--acc-soft);
+}
+
+html[data-page='dashboard'] .sum-scope {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    flex-shrink: 0;
+}
+
+html[data-page='dashboard'] .sum-scope-chip {
+    padding: 2px 8px;
+    border: 1px dashed #c3c9d3;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 0.55);
+    color: #a3aab6;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.3;
+    text-align: center;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .sum-scope-chip.on {
+    border: 1px solid var(--acc-soft);
+    background: var(--acc-soft);
+    color: #fff;
+    font-weight: 700;
+}
+
 html[data-page='dashboard'] .sum-info .cells {
     flex: 1;
     min-width: 0;
     align-self: stretch;
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    grid-auto-flow: column;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     padding: 6px 0;
     container-type: inline-size;
 }
 
-/* 지표가 6칸이라 라벨을 값 위에 쌓아 칸 폭을 줄인다 */
 html[data-page='dashboard'] .sum-info .cell {
     display: flex;
     flex-direction: column;
@@ -1485,7 +1522,7 @@ html[data-page='dashboard'] .sum-info .cell {
     padding: 0 4px;
 }
 
-html[data-page='dashboard'] .sum-info .cell:nth-child(n + 3) {
+html[data-page='dashboard'] .sum-info .cell + .cell {
     border-left: 1px solid rgb(60 67 80 / 0.12);
 }
 
@@ -1528,6 +1565,58 @@ html[data-page='dashboard'] .sum-info .u {
     html[data-page='dashboard'] .sum-info .u {
         font-size: 10.5px;
     }
+}
+
+html[data-page='dashboard'] .sum-info-tip {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 5;
+    display: grid;
+    grid-template-columns: auto auto auto;
+    column-gap: 14px;
+    row-gap: 3px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: #23272f;
+    color: #fff;
+    font-size: 12px;
+    line-height: 1.35;
+    white-space: nowrap;
+    pointer-events: none;
+    visibility: hidden;
+}
+
+html[data-page='dashboard'] .sum-info:hover .sum-info-tip,
+html[data-page='dashboard'] .sum-info:focus-visible .sum-info-tip {
+    visibility: visible;
+}
+
+html[data-page='dashboard'] .sum-info-tip-head {
+    grid-column: 1 / -1;
+    margin-bottom: 3px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgb(255 255 255 / 0.18);
+    font-weight: 700;
+}
+
+html[data-page='dashboard'] .sum-info-tip-row {
+    display: contents;
+}
+
+html[data-page='dashboard'] .sum-info-tip-range {
+    color: #a9b1bf;
+}
+
+html[data-page='dashboard'] .sum-info-tip-value {
+    font-weight: 700;
+    text-align: right;
+}
+
+html[data-page='dashboard'] .sum-info-tip-unit {
+    margin-left: 2px;
+    font-weight: 400;
+    color: #c9d0db;
 }
 
 /* --- fclt cards --- */
