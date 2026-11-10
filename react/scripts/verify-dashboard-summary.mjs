@@ -167,6 +167,23 @@ try {
             `${category} Prime Time summary uses its own target at the selected search time`);
         check(smryAt(time).peak, smryAt('0900').peak, `${category} Prime Time preserves daily peak information`);
     }
+    for (const terminal of ['T1', 'T2']) {
+        for (const category of ['CHKN', 'DEP']) {
+            const time = toPrimeTime(['T1', 'T2'].map((tmnl) => api.getTmnlRsltByTime(tmnl, category)), category);
+            for (const hhmm of [time, '0000', '0910', '2350']) {
+                const view = toTerminalView({
+                    hhmm, category, smry: smryAt(hhmm, terminal, category), rsltList: [],
+                    chknCards: api.getFcltCardList(terminal, hhmm, 'CHKN'),
+                    dptgtCards: api.getFcltCardList(terminal, hhmm, 'DEP'),
+                });
+                check(view.fcltCards.find((card) => card.fcltType === category).totalWaitingCount, view.summaryInfo[0].value,
+                    `${terminal} ${category} ${hhmm} card total queue equals the summary total queue`);
+            }
+        }
+    }
+    check(toTerminalView({ hhmm: '0910', category: 'CHKN', smry: smryAt('0910', 'T1', 'CHKN'), rsltList: [],
+        chknCards: [], dptgtCards: [] }).fcltCards.map((card) => card.totalWaitingCount), ['-', '-'],
+        'card total queue without card results stays unknown');
     check(JSON.stringify(smryInfo(smryAt('0900', 'T2'))) !== JSON.stringify(smryInfo(smryAt('0900'))), true,
         'second terminal has independent summary results');
 

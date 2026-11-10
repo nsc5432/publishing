@@ -1,8 +1,8 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import t1White from '@/assets/svg/t1-white.svg';
 import t2White from '@/assets/svg/t2-white.svg';
-import t1Blue from '@/assets/svg/t1-blue-deep.svg';
-import t2Teal from '@/assets/svg/t2-teal-full.svg';
+import t1Gray from '@/assets/svg/t1-gray.svg';
+import t2Gray from '@/assets/svg/t2-gray.svg';
 import mapIcon from '@/assets/svg/map-icon.svg';
 import mapWhiteIcon from '@/assets/svg/map-white-icon.svg';
 import { Icon } from '@/components/icons/InlineIcon';
@@ -58,8 +58,8 @@ const DETAIL_TITLE: Record<DsbdCategory, string> = {
 };
 
 const TERMINAL_IMAGES: Record<TerminalKind, TerminalImages> = {
-    T1: { big: t1White, watermark: t1Blue },
-    T2: { big: t2White, watermark: t2Teal },
+    T1: { big: t1White, watermark: t1Gray },
+    T2: { big: t2White, watermark: t2Gray },
 };
 
 const CONGESTION_THEMES: Record<CongestionStatus, CongestionTheme> = {
@@ -110,7 +110,7 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                 </button>
                 <div className="p-mid">
                     <div className="p-stats">
-                        <div className="p-note">* 지난주 同요일 대비</div>
+                        <div className="p-note">지난주 同요일 대비</div>
                         <div className="p-stat-main">
                             <div className="p-stat-icons">
                                 <Icon name="plane" className="i-blue i-26" />
@@ -120,12 +120,12 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                                 <div className="p-line">
                                     <span className="p-big">{view.stats.flights.value}</span>
                                     <span className="p-u">편</span>
-                                    <span className="p-delta">({view.stats.flights.delta})</span>
+                                    <span className="p-delta">{view.stats.flights.delta}</span>
                                 </div>
                                 <div className="p-line">
                                     <span className="p-big">{view.stats.pax.value}</span>
                                     <span className="p-u">명</span>
-                                    <span className="p-delta">({view.stats.pax.delta})</span>
+                                    <span className="p-delta">{view.stats.pax.delta}</span>
                                 </div>
                             </div>
                             <div className="board">
@@ -141,7 +141,7 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                         <div className="peak-title">피크시간</div>
                         <div className="peak-body">
                             <div className="peak-cells">
-                                <div className="peak-badge">
+                                <div className="peak-badge" data-terminal={terminal}>
                                     <div className="k">{view.peak.ampm}</div>
                                     <div className="v">{view.peak.time}</div>
                                 </div>
@@ -175,11 +175,11 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                     <div className="legend">
                         <span>
                             <i style={{ background: '#f43f3f' }} />
-                            {legendSubject} Cast 대기인원
+                            {legendSubject} Cast
                         </span>
                         <span>
                             <i style={{ background: '#3b82f6' }} />
-                            {legendSubject} Xovis 대기인원
+                            {legendSubject} Xovis
                         </span>
                         <span>
                             <i className="legend__bar" />
@@ -222,7 +222,7 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                 <div className="sum-top">
                     {/* 운항 계획 */}
                     <div className="sum-two">
-                        <div className="p-note">* 운항 계획</div>
+                        <div className="p-note">운항 계획</div>
                         {view.summaryStats.map((slot, slotIndex) => (
                             <div className="sum-cell" key={slot.label} title={slot.range}>
                                 <div className="sum-time">
@@ -256,6 +256,7 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                         tabIndex={view.summaryTip.length > 0 ? 0 : undefined}
                         aria-describedby={view.summaryTip.length > 0 ? summaryTipId : undefined}
                     >
+                        <div className="p-note">요약정보</div>
                         <div className="lbl">
                             <Multiline text={view.summaryTarget} />
                         </div>

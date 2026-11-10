@@ -59,7 +59,7 @@ html[data-page='dashboard'] {
     --top-row-h: calc(176px - var(--lost) * 0.17);
     --title-gap: calc(12px - var(--lost) * 0.11);
     --view-gap: calc(18px - var(--lost) * 0.12);
-    --sum-top-h: calc(100px - var(--lost) * 0.13);
+    --sum-top-h: calc(92px - var(--lost) * 0.13);
     --p-top-h: 199px;
     --donut-size: 72px;
     --panel-min-h: 660px;
@@ -942,6 +942,7 @@ html[data-page='dashboard'] .peak-title {
     line-height: 18px;
     font-weight: 700;
     letter-spacing: -0.5px;
+    color: #e5383b;
 }
 
 html[data-page='dashboard'] .peak-body {
@@ -951,8 +952,65 @@ html[data-page='dashboard'] .peak-body {
 }
 
 html[data-page='dashboard'] .peak-badge {
-    background: #eeebf4;
+    --peak-hi: 255, 112, 67;
+    --peak-lo: 176, 18, 48;
+    --peak-base: #e0283a;
+    --peak-glow: rgba(200, 30, 50, 0.45);
+    --peak-k-shadow: rgba(150, 20, 40, 0.25);
+    --peak-v-shadow: rgba(110, 10, 30, 0.45);
+    position: relative;
+    overflow: hidden;
     border-radius: 10px;
+    background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 60%),
+        radial-gradient(circle at 15% 15%, rgba(var(--peak-hi), 1) 0%, rgba(var(--peak-hi), 0) 60%),
+        radial-gradient(circle at 90% 95%, rgba(var(--peak-lo), 1) 0%, rgba(var(--peak-lo), 0) 65%), var(--peak-base);
+    box-shadow:
+        0 4px 14px var(--peak-glow),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+html[data-page='dashboard'] .peak-badge[data-terminal='T1'] {
+    --peak-hi: 129, 140, 248;
+    --peak-lo: 55, 48, 163;
+    --peak-base: #4f46e5;
+    --peak-glow: rgba(67, 56, 202, 0.42);
+    --peak-k-shadow: rgba(30, 27, 110, 0.3);
+    --peak-v-shadow: rgba(30, 27, 110, 0.5);
+}
+
+html[data-page='dashboard'] .peak-badge[data-terminal='T2'] {
+    --peak-hi: 34, 211, 238;
+    --peak-lo: 21, 94, 117;
+    --peak-base: #0891b2;
+    --peak-glow: rgba(8, 145, 178, 0.42);
+    --peak-k-shadow: rgba(8, 51, 68, 0.35);
+    --peak-v-shadow: rgba(8, 51, 68, 0.55);
+}
+
+/* 위쪽 절반 유리 광택 — 배경이 단색이라 backdrop-filter 로는 유리 질감이 나지 않는다 */
+html[data-page='dashboard'] .peak-badge::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 52% 0;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0) 100%);
+    pointer-events: none;
+}
+
+html[data-page='dashboard'] .peak-badge > * {
+    position: relative;
+}
+
+html[data-page='dashboard'] .peak-cells .peak-badge .k {
+    color: rgba(255, 255, 255, 0.92);
+    font-weight: 600;
+    text-shadow: 0 1px 2px var(--peak-k-shadow);
+}
+
+html[data-page='dashboard'] .peak-cells .peak-badge .v {
+    color: #fff;
+    text-shadow: 0 1px 3px var(--peak-v-shadow);
 }
 
 html[data-page='dashboard'] .peak-cells {
@@ -1057,7 +1115,7 @@ html[data-page='dashboard'] .legend > span > i.legend__bar {
     width: 12px;
     height: 10px;
     border-radius: 2px 2px 0 0;
-    background: rgba(148, 163, 196, 0.6);
+    background: rgba(63, 128, 234, 0.55);
 }
 
 html[data-page='dashboard'] .legend > span > i.legend__bar::after {
@@ -1301,7 +1359,13 @@ html[data-page='dashboard'] .view[hidden] {
 }
 
 /* --- summary view --- */
+/* 요약정보 지표 칸의 라벨 · 값 줄 높이(.sum-info .k · .val). 운항 계획 두 줄과 칩 두 개가 이 두 줄을 따라간다 */
 html[data-page='dashboard'] .sum-top {
+    --sum-k-h: calc(13.5px * 1.2);
+    --sum-v-h: calc(25px * 1.15);
+    --sum-line-gap: 6px;
+    /* .sum-scope-chip: 글자 12px × 1.3 + 위아래 padding 2px + border 1px */
+    --sum-chip-h: calc(12px * 1.3 + 6px);
     display: flex;
     gap: var(--p-col-gap);
     height: var(--sum-top-h);
@@ -1318,19 +1382,18 @@ html[data-page='dashboard'] .sum-two {
     border-radius: 14px;
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    padding: 8px 4px 4px;
+    padding: 0 4px;
     container-type: inline-size;
 }
 
 html[data-page='dashboard'] .sum-cell {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 22px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) calc(var(--sum-k-h) + var(--sum-v-h) + var(--sum-line-gap)) minmax(0, 1fr);
     align-items: center;
-    gap: 2px;
     min-width: 0;
     min-height: 0;
-    padding: 0 7px;
+    padding: 0 8px;
 }
 
 html[data-page='dashboard'] .sum-cell + .sum-cell {
@@ -1338,6 +1401,7 @@ html[data-page='dashboard'] .sum-cell + .sum-cell {
 }
 
 html[data-page='dashboard'] .sum-time {
+    align-self: end;
     display: flex;
     align-items: center;
     justify-content: flex-end;
@@ -1346,7 +1410,7 @@ html[data-page='dashboard'] .sum-time {
     min-height: 22px;
     padding: 2px 4px;
     border-radius: 6px;
-    font-size: 11px;
+    font-size: 12px;
     line-height: 1.2;
     color: #7c8698;
     white-space: nowrap;
@@ -1370,17 +1434,13 @@ html[data-page='dashboard'] .sum-metric-values {
     display: grid;
     grid-template-rows: repeat(2, minmax(0, 1fr));
     align-items: center;
-    gap: 2px;
+    row-gap: var(--sum-line-gap);
     min-width: 0;
     min-height: 0;
 }
 
-html[data-page='dashboard'] .sum-metric-icons {
-    padding: 3px 0;
-}
-
 html[data-page='dashboard'] .sum-metric-values {
-    padding: 2px 4px;
+    padding: 0 4px;
 }
 
 html[data-page='dashboard'] .sum-metric {
@@ -1406,7 +1466,7 @@ html[data-page='dashboard'] .sum-metric-icons > i > svg {
 html[data-page='dashboard'] .sum-two .p-note {
     left: 12px;
     padding: 0 4px;
-    font-size: 11px;
+    font-size: 14px;
     background: #f0edf6;
 }
 
@@ -1415,29 +1475,34 @@ html[data-page='dashboard'] .sum-cell .val {
 }
 
 html[data-page='dashboard'] .sum-cell .big {
-    font-size: 17px;
+    font-size: 21px;
     font-weight: 700;
     letter-spacing: -0.6px;
 }
 
+/* 첫 줄은 운항편 수 — 여객수만 강조한다 */
+html[data-page='dashboard'] .sum-metric:first-child .big {
+    font-weight: 400;
+}
+
 html[data-page='dashboard'] .sum-cell .u {
-    font-size: 11px;
+    font-size: 13px;
     color: #3c4350;
     margin-left: 2px;
 }
 
 @container (max-width: 380px) {
     html[data-page='dashboard'] .sum-cell {
-        padding: 0 5px;
+        padding-inline: 5px;
     }
 
     html[data-page='dashboard'] .sum-time {
         gap: 4px;
-        font-size: 10px;
+        font-size: 11px;
     }
 
     html[data-page='dashboard'] .sum-cell .big {
-        font-size: 15px;
+        font-size: 19px;
     }
 }
 
@@ -1470,24 +1535,52 @@ html[data-page='dashboard'] .panel-red .sum-info {
     border-color: #f0c0c0;
 }
 
+/* 배경이 그라디언트라 왼쪽 끝 색으로 테두리를 가린다 */
+html[data-page='dashboard'] .sum-info .p-note {
+    left: 12px;
+    padding: 0 4px;
+    font-size: 14px;
+    background: #e7fcf9;
+}
+
+html[data-page='dashboard'] .panel-green .sum-info .p-note {
+    background: #eafbec;
+}
+
+html[data-page='dashboard'] .panel-orange .sum-info .p-note {
+    background: #fef3e2;
+}
+
+html[data-page='dashboard'] .panel-red .sum-info .p-note {
+    background: #fdeaea;
+}
+
+html[data-page='dashboard'] .panel-gray .sum-info .p-note {
+    background: #f1f3f6;
+}
+
 html[data-page='dashboard'] .sum-info .lbl {
-    font-size: 17px;
+    font-size: 18px;
     font-weight: 700;
     line-height: 1.25;
     letter-spacing: -0.5px;
     white-space: nowrap;
     flex-shrink: 0;
+    /* 가장 긴 대상명 '랜드사이드'(5자) 기준 — 대상이 바뀌어도 칩 · 지표 칸 위치가 움직이지 않게 */
+    width: 5em;
+    text-align: center;
 }
 
 html[data-page='dashboard'] .sum-info:focus-visible {
     box-shadow: 0 0 0 2px var(--acc-soft);
 }
 
+/* 칩 중심 간격을 라벨 줄 ↔ 값 줄 간격과 같게 두고, 아래 margin 으로 라벨 · 값 묶음과 같은 높이만큼 올린다 */
 html[data-page='dashboard'] .sum-scope {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin: 0;
+    gap: calc((var(--sum-k-h) + var(--sum-v-h)) / 2 + var(--sum-line-gap) - var(--sum-chip-h));
+    margin: 0 0 calc((var(--sum-v-h) - var(--sum-k-h)) / 2);
     padding: 0;
     list-style: none;
     flex-shrink: 0;
@@ -1499,7 +1592,7 @@ html[data-page='dashboard'] .sum-scope-chip {
     border-radius: 999px;
     background: rgb(255 255 255 / 0.55);
     color: #a3aab6;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     line-height: 1.3;
     text-align: center;
@@ -1528,6 +1621,7 @@ html[data-page='dashboard'] .sum-info .cell {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    gap: var(--sum-line-gap);
     min-width: 0;
     min-height: 0;
     padding: 0 4px;
@@ -1538,7 +1632,7 @@ html[data-page='dashboard'] .sum-info .cell + .cell {
 }
 
 html[data-page='dashboard'] .sum-info .k {
-    font-size: 11.5px;
+    font-size: 13.5px;
     color: #7c8698;
     line-height: 1.2;
     text-align: center;
@@ -1551,30 +1645,30 @@ html[data-page='dashboard'] .sum-info .val {
 }
 
 html[data-page='dashboard'] .sum-info b {
-    font-size: 21px;
+    font-size: 25px;
     font-weight: 700;
     color: var(--acc-soft);
     letter-spacing: -0.6px;
 }
 
 html[data-page='dashboard'] .sum-info .u {
-    font-size: 14.5px;
+    font-size: 16.5px;
     color: #3c4350;
     margin-left: 2px;
 }
 
 @container (max-width: 250px) {
     html[data-page='dashboard'] .sum-info .k {
-        font-size: 10.5px;
+        font-size: 12.5px;
         letter-spacing: -0.4px;
     }
 
     html[data-page='dashboard'] .sum-info b {
-        font-size: 19px;
+        font-size: 23px;
     }
 
     html[data-page='dashboard'] .sum-info .u {
-        font-size: 13.5px;
+        font-size: 15.5px;
     }
 }
 
@@ -1591,7 +1685,7 @@ html[data-page='dashboard'] .sum-info-tip {
     border-radius: 8px;
     background: #23272f;
     color: #fff;
-    font-size: 12px;
+    font-size: 13px;
     line-height: 1.35;
     white-space: nowrap;
     pointer-events: none;
@@ -1665,6 +1759,47 @@ html[data-page='dashboard'] .fclt-card-head b {
     font-size: 17px;
     font-weight: 700;
     letter-spacing: -0.5px;
+}
+
+html[data-page='dashboard'] .fclt-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+html[data-page='dashboard'] .fclt-card-total {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.75);
+    color: #23272f;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .fclt-card-total > i {
+    display: inline-flex;
+    color: #8b96ad;
+}
+
+html[data-page='dashboard'] .fclt-card-total svg {
+    width: 14px;
+    height: 14px;
+}
+
+html[data-page='dashboard'] .fclt-card-total strong {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+html[data-page='dashboard'] .fclt-card-total small {
+    font-size: 12px;
+    color: #6c7688;
 }
 
 html[data-page='dashboard'] .fclt-card-head .warn {
@@ -1763,7 +1898,7 @@ html[data-page='dashboard'] .fclt-card-mid .isl {
 }
 
 html[data-page='dashboard'] .fclt-card-mid .num {
-    font-size: 36px;
+    font-size: 32px;
     font-weight: 700;
     color: var(--fclt-congestion-color, #979797);
     letter-spacing: -1.2px;
@@ -1794,7 +1929,17 @@ html[data-page='dashboard'] .fclt-unit-status {
 }
 
 html[data-page='dashboard'] .fclt-unit-status .fclt-unit-cgn {
+    min-width: 66px;
     margin-top: 0;
+    padding: 3px 12px;
+    gap: 5px;
+    border-radius: 7px;
+    font-size: 15px;
+}
+
+html[data-page='dashboard'] .fclt-unit-status .fclt-unit-cgn::before {
+    width: 6px;
+    height: 6px;
 }
 
 html[data-page='dashboard'] .fclt-unit-capa {
@@ -1833,6 +1978,13 @@ html[data-page='dashboard'] .fclt-unit-tip {
     transform: translateX(-50%);
 }
 
+html[data-page='dashboard'] .fclt-card-total-tip {
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+html[data-page='dashboard'] .fclt-card-total-tip,
 html[data-page='dashboard'] .fclt-unit-tip,
 html[data-page='dashboard'] .fclt-flow-tip {
     position: absolute;
@@ -1848,6 +2000,8 @@ html[data-page='dashboard'] .fclt-flow-tip {
     visibility: hidden;
 }
 
+html[data-page='dashboard'] .fclt-card-total:hover .fclt-card-total-tip,
+html[data-page='dashboard'] .fclt-card-total:focus-visible .fclt-card-total-tip,
 html[data-page='dashboard'] .fclt-unit-frame:hover .fclt-unit-tip,
 html[data-page='dashboard'] .fclt-unit-frame:focus-visible .fclt-unit-tip,
 html[data-page='dashboard'] .fclt-flow-count:hover .fclt-flow-tip,
@@ -1998,6 +2152,16 @@ html[data-page='dashboard'] .fclt-unit-cgn {
     line-height: 1.4;
 }
 
+html[data-page='dashboard'] .fclt-flow-status {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 0;
+    margin-top: 0;
+    padding: 0 6px;
+    font-size: 11px;
+}
+
 html[data-page='dashboard'] .fclt-flow-status::before,
 html[data-page='dashboard'] .fclt-unit-cgn::before {
     content: '';
@@ -2121,6 +2285,7 @@ html[data-page='dashboard'] .gauge-row {
 }
 
 html[data-page='dashboard'] .fclt-gauge-case {
+    --donut-size: 88px;
     position: relative;
     overflow: hidden;
     justify-content: flex-start;
@@ -2130,12 +2295,12 @@ html[data-page='dashboard'] .fclt-gauge-case {
 html[data-page='dashboard'] .fclt-gauge-ribbon {
     position: absolute;
     top: 9px;
-    left: -19px;
-    width: 68px;
-    padding: 1px 0;
+    left: -21px;
+    width: 76px;
+    padding: 2px 0;
     background: #6c7688;
     color: #fff;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
     line-height: 1.3;
     text-align: center;
@@ -2145,7 +2310,7 @@ html[data-page='dashboard'] .fclt-gauge-ribbon {
 }
 
 html[data-page='dashboard'] .fclt-gauge-case.is-rec .fclt-gauge-ribbon {
-    background: #4a56d8;
+    background: #e00000;
 }
 
 html[data-page='dashboard'] .fclt-gauge-case .k b {
@@ -2304,6 +2469,14 @@ html[data-page='dashboard'] .fclt-gauge-donut-label {
     font-size: 12px;
     font-weight: 700;
     line-height: 1.2;
+    white-space: nowrap;
+}
+
+html[data-page='dashboard'] .fclt-gauge-donut-label small {
+    margin-left: 3px;
+    color: #8a93a3;
+    font-size: 10px;
+    font-weight: 600;
 }
 
 html[data-page='dashboard'] .gauge {
@@ -2375,8 +2548,8 @@ html[data-page='dashboard'] .gauge-row .rec .tag {
     color: #fff;
     background: #e00000;
     border-radius: 5px;
-    padding: 0 12px;
-    font-size: 13px;
+    padding: 1px 14px;
+    font-size: 14px;
     font-weight: 700;
 }
 
@@ -2858,7 +3031,7 @@ html[data-page='dashboard'] .trow.sel {
     }
 
     html[data-page='dashboard'] .fclt-card-mid .num {
-        font-size: 30px;
+        font-size: 27px;
         line-height: 1;
     }
 
@@ -2885,17 +3058,24 @@ html[data-page='dashboard'] .trow.sel {
     }
 
     html[data-page='dashboard'] .fclt-unit-status .fclt-unit-cgn {
-        gap: 3px;
+        min-width: 54px;
+        padding: 1px 9px;
+        gap: 4px;
+        font-size: 13px;
     }
 
     html[data-page='dashboard'] .fclt-unit-status .fclt-unit-cgn::before {
-        width: 4px;
-        height: 4px;
+        width: 5px;
+        height: 5px;
     }
 
     html[data-page='dashboard'] .fclt-flow {
         --flow-donut: 60px;
         margin-top: 0;
+    }
+
+    html[data-page='dashboard'] .fclt-gauge-case {
+        --donut-size: 72px;
     }
 
     html[data-page='dashboard'] .fclt-flow-point {
@@ -2958,7 +3138,6 @@ html[data-page='dashboard'] .trow.sel {
         line-height: 1.1;
     }
 
-
     html[data-page='dashboard'] .gauge-row {
         min-height: 80px;
         margin-top: 5px;
@@ -3002,9 +3181,9 @@ html[data-page='dashboard'] .trow.sel {
 
     html[data-page='dashboard'] .fclt-gauge-ribbon {
         top: 7px;
-        left: -20px;
-        width: 62px;
-        font-size: 9px;
+        left: -22px;
+        width: 68px;
+        font-size: 10px;
     }
 
     html[data-page='dashboard'] .fclt-gauge-head {
@@ -3038,6 +3217,11 @@ html[data-page='dashboard'] .trow.sel {
     html[data-page='dashboard'] .gauge-row .rec .cap {
         font-size: 11px;
         line-height: 1.2;
+    }
+
+    html[data-page='dashboard'] .gauge-row .rec .tag {
+        padding: 1px 12px;
+        font-size: 12px;
     }
 
     html[data-page='dashboard'] .gauge-row .rec .name {

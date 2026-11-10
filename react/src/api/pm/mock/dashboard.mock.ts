@@ -693,13 +693,37 @@ const QUEUE_LOAD_PHASE: Record<string, number> = {
     'T2-DEP-2': 0,
 };
 
+function queueLoadAt(key: string, hhmm: string): number {
+    return QUEUE_LOAD_BY_HOUR[(Number(hhmm.slice(0, 2)) + (QUEUE_LOAD_PHASE[key] ?? 0)) % 24];
+}
+
+// 서버는 카드와 요약정보(아일랜드 · 출국장)가 같은 10분 행을 읽어 카드 대기인원 합 = 전체 대기인원이다. 목업은 요약 곡선 값을 시설에 나눠 맞춘다
+function queueShareAt(key: string, hhmm: string): number | null {
+    const [tmnlId, fcltType] = key.split('-');
+    const keys = Object.keys(QUEUE_SCENARIO_PROFILES).filter((other) => other.startsWith(`${tmnlId}-${fcltType}-`));
+    const index = keys.indexOf(key);
+    if (index < 0 || (fcltType !== 'CHKN' && fcltType !== 'DEP')) return null;
+
+    const total = buildFcltIntrvl(tmnlId as TmnlId, fcltType, hhmm, MIN_PER_HOUR).wtngPsgCnt;
+    const weights = keys.map((other) => QUEUE_SCENARIO_PROFILES[other].wtngPsgCnt * queueLoadAt(other, hhmm));
+    const weightSum = weights.reduce((sum, weight) => sum + weight, 0);
+    if (weightSum === 0) return index === 0 ? total : 0;
+
+    const raw = weights.map((weight) => (total * weight) / weightSum);
+    const floors = raw.map(Math.floor);
+    const rest = total - floors.reduce((sum, value) => sum + value, 0);
+    const bonusOrder = keys.map((_, i) => i).sort((a, b) => raw[b] - floors[b] - (raw[a] - floors[a]) || a - b);
+
+    return floors[index] + (bonusOrder.indexOf(index) < rest ? 1 : 0);
+}
+
 function queueProfileAt(key: string, hhmm: string): QueueScenarioProfile {
     const profile = QUEUE_SCENARIO_PROFILES[key] ?? QUEUE_SCENARIO_PROFILES['T1-CHKN-B'];
-    const load = QUEUE_LOAD_BY_HOUR[(Number(hhmm.slice(0, 2)) + (QUEUE_LOAD_PHASE[key] ?? 0)) % 24];
+    const load = queueLoadAt(key, hhmm);
 
     return {
         ...profile,
-        wtngPsgCnt: Math.round(profile.wtngPsgCnt * load),
+        wtngPsgCnt: queueShareAt(key, hhmm) ?? Math.round(profile.wtngPsgCnt * load),
         obsWtngSec: profile.obsWtngSec === null ? null : profile.obsWtngSec * load,
         queueAgeMaxMin: Math.round(profile.queueAgeMaxMin * load),
     };

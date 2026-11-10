@@ -55,7 +55,7 @@ export function FlightEditor({ ratio, onRatioChange, onHourRatioChange, rows, ha
 
                 {!readOnly && (
                     <div className="editor__bulk">
-                        <span className="editor__bulk-label">일괄 수정</span>
+                        <span className="editor__bulk-label">일괄 조정</span>
                         <RatioStepper value={ratio} onChange={onRatioChange} disabled={disabled} label="전체" />
                     </div>
                 )}

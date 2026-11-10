@@ -171,7 +171,7 @@
     box-shadow: 0 1px 4px rgba(46, 50, 94, 0.06);
 }
 
-.header-info-cards .plan-dep .v,
+.header-info-cards .plan-total .v,
 .header-info-cards .plan-arr .v {
     font-size: 29px;
     font-weight: 500;
@@ -179,22 +179,23 @@
     line-height: 1.1;
 }
 
-.header-info-cards .plan-dep .v {
-    font-weight: 600;
-}
-
 /* 여객 행(6자리)은 운항편 행(3~4자리)과 같은 폭에 담기도록 한 단계 줄인다 */
-.header-info-cards .plan-dep .psg .v,
+.header-info-cards .plan-total .cell + .cell .v,
 .header-info-cards .plan-arr .psg .v {
     font-size: 24px;
     letter-spacing: -1px;
 }
 
-.header-info-cards .plan-total .v {
-    font-size: 31px;
-    font-weight: 400;
-    letter-spacing: -1.2px;
+.header-info-cards .plan-dep .v {
+    font-size: 33px;
+    font-weight: 700;
+    letter-spacing: -1.3px;
     line-height: 1.1;
+}
+
+.header-info-cards .plan-dep .psg .v {
+    font-size: 27px;
+    letter-spacing: -1.1px;
 }
 
 .header-info-cards .plan-total .v.teal {
@@ -416,22 +417,26 @@
         margin: 0 6px;
     }
 
-    .header-info-cards .plan-total .v {
-        font-size: 27px;
-    }
-
     .header-info-cards .plan-total .v.teal {
         font-size: 23px;
     }
 
-    .header-info-cards .plan-dep .v,
+    .header-info-cards .plan-total .v,
     .header-info-cards .plan-arr .v {
         font-size: 26px;
     }
 
-    .header-info-cards .plan-dep .psg .v,
+    .header-info-cards .plan-total .cell + .cell .v,
     .header-info-cards .plan-arr .psg .v {
         font-size: 21px;
+    }
+
+    .header-info-cards .plan-dep .v {
+        font-size: 29px;
+    }
+
+    .header-info-cards .plan-dep .psg .v {
+        font-size: 24px;
     }
 }
 

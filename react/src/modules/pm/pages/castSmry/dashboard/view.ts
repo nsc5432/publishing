@@ -14,16 +14,7 @@ import type {
     TmnlSmryDto,
 } from '@/types/api.types';
 import { toDsbdSummaryInfo, toDsbdSummaryTip } from '@/modules/pm/summary';
-import {
-    formatCount,
-    formatDateTime,
-    formatDiff,
-    formatHhmm,
-    formatMinutes,
-    formatYmd,
-    pad2,
-    stepHhmm,
-} from '@/lib/format';
+import { formatCount, formatDateTime, formatDiff, formatHhmm, formatMinutes, formatYmd, pad2, stepHhmm } from '@/lib/format';
 import {
     FCLT_QUEUE_LABEL,
     SMRY_INTRVL_MIN,
@@ -88,6 +79,11 @@ const CONGESTION_STATUS_LABEL: Record<CongestionStatus, string> = {
 
 const FCLT_CARD_TITLE: Record<FcltCardType, string> = {
     CHKN: '체크인카운터',
+    DEP: '출국장',
+};
+
+const SUMMARY_SCOPE_LABEL: Record<FcltCardType, string> = {
+    CHKN: '체크인',
     DEP: '출국장',
 };
 
@@ -162,7 +158,10 @@ function toFcltCardCapacity(card: DsbdFcltCardDto): FcltCardCapacity {
 }
 
 function toActiveAvg(cards: DsbdFcltCardDto[], valueOf: (card: DsbdFcltCardDto) => number | null): number | null {
-    const values = cards.filter((card) => card.oprCnt > 0).map(valueOf).filter((value): value is number => value !== null && value > 0);
+    const values = cards
+        .filter((card) => card.oprCnt > 0)
+        .map(valueOf)
+        .filter((value): value is number => value !== null && value > 0);
 
     return values.length < 2 ? null : values.reduce((sum, value) => sum + value, 0) / values.length;
 }
@@ -265,7 +264,7 @@ function toFcltCardSnapshot(card: DsbdFcltCardDto, hhmm: string, scale: HourlySc
             tag: '추천',
             name: card.recommend.targetNm,
             count: card.recommend.reqCnt === null ? '-' : String(card.recommend.reqCnt),
-            countNote: card.recommend.needAssignYn === 'Y' ? '배정 필요' : '소요',
+            countNote: card.recommend.needAssignYn === 'Y' ? '배정 필요' : '운영',
             countNoteAccent: card.recommend.needAssignYn === 'N',
         },
     };
@@ -291,12 +290,7 @@ function toFcltCardVariant(
 }
 
 // 표시값과 증감이 어긋나지 않도록 대기시간은 반올림한 분끼리 뺀다
-function toFcltCardNextSnapshot(
-    next: DsbdFcltCardDto,
-    current: DsbdFcltCardDto | undefined,
-    hhmm: string,
-    scale: HourlyScale,
-): FcltCardSnapshot {
+function toFcltCardNextSnapshot(next: DsbdFcltCardDto, current: DsbdFcltCardDto | undefined, hhmm: string, scale: HourlyScale): FcltCardSnapshot {
     const snapshot = toFcltCardSnapshot(next, stepHhmm(hhmm, 6), scale);
     if (!current) return snapshot;
 
@@ -316,27 +310,29 @@ function toFcltCardChip(unit: FcltUnitDto): FcltCardChip {
 }
 
 // 카드 순서는 서버가 평균 대기시간이 긴 시설부터 정한다 — 첫 카드가 처음 보이는 시설이다
-function toFcltCardData(
-    fcltType: FcltCardType,
-    cards: DsbdFcltCardDto[],
-    nextCards: DsbdFcltCardDto[],
-    tmnlId: TmnlId,
-    hhmm: string,
-): FcltCardData {
+function toFcltCardData(fcltType: FcltCardType, cards: DsbdFcltCardDto[], nextCards: DsbdFcltCardDto[], tmnlId: TmnlId, hhmm: string): FcltCardData {
     const unitPattern = fcltType === 'CHKN' ? /^[A-N]$/ : tmnlId === 'T1' ? /^[1-6]$/ : /^[12]$/;
     const unitOf = (card: DsbdFcltCardDto) => (fcltType === 'CHKN' ? card.island : card.dptgtNo);
     const currentByUnit = new Map(cards.map((card) => [unitOf(card), card]));
     const nextByUnit = new Map((stepHhmm(hhmm, 6) ? nextCards : []).map((card) => [unitOf(card), card]));
-    const visibleCards = [...cards, ...[...nextByUnit.values()].filter((card) => !currentByUnit.has(unitOf(card)))].filter((card) => unitPattern.test(unitOf(card)));
+    const visibleCards = [...cards, ...[...nextByUnit.values()].filter((card) => !currentByUnit.has(unitOf(card)))].filter((card) =>
+        unitPattern.test(unitOf(card)),
+    );
     const scale = toHourlyScale(cards.filter((card) => unitPattern.test(unitOf(card))));
     const nextScale = toHourlyScale([...nextByUnit.values()].filter((card) => unitPattern.test(unitOf(card))));
+    // 요약정보 전체 대기인원(아일랜드 · 출국장)과 같은 시설 범위여야 해서 칩 패턴으로 거르지 않는다
+    const totalWaitingCount = cards.length ? formatCount(cards.reduce((sum, card) => sum + card.wtngPsgCnt, 0)) : '-';
 
     return {
         fcltType,
         title: FCLT_CARD_TITLE[fcltType],
         currentTime: formatHhmm(hhmm),
+        totalWaitingCount,
         variants: visibleCards.map((card) => toFcltCardVariant(card, currentByUnit.get(unitOf(card)), nextByUnit.get(unitOf(card)), hhmm, scale, nextScale)),
-        chips: (cards[0]?.unitList ?? nextCards[0]?.unitList ?? []).filter((unit) => unitPattern.test(unit.unitCd)).map((unit) => toFcltCardChip(cards.length ? unit : { ...unit, cgnStatus: null })),
+        chips: (cards[0]?.unitList ?? nextCards[0]?.unitList ?? [])
+            .filter((unit) => unitPattern.test(unit.unitCd))
+            .sort((a, b) => b.unitCd.localeCompare(a.unitCd, undefined, { numeric: true }))
+            .map((unit) => toFcltCardChip(cards.length ? unit : { ...unit, cgnStatus: null })),
     };
 }
 
@@ -403,9 +399,7 @@ function toSummarySlots(hhmm: string, smry: TmnlSmryDto): SummarySlot[] {
         return {
             label: offset === 0 ? '현재' : `+${offset}시간`,
             time: offset === 0 ? '' : bgnMin >= MIN_PER_DAY ? `다음 날 ${clock}` : clock,
-            range: slot
-                ? `${formatHhmm(slot.bgnHhmm)}~${formatHhmm(slot.endHhmm)}`
-                : '조회일 범위 밖',
+            range: slot ? `${formatHhmm(slot.bgnHhmm)}~${formatHhmm(slot.endHhmm)}` : '조회일 범위 밖',
             stats: [
                 {
                     icon: 'plane',
@@ -426,7 +420,7 @@ function toSummarySlots(hhmm: string, smry: TmnlSmryDto): SummarySlot[] {
 
 function toSummaryScope(category: DsbdCategory): SummaryScopeChip[] {
     return (['CHKN', 'DEP'] as const).map((fcltType) => ({
-        label: FCLT_CARD_TITLE[fcltType],
+        label: SUMMARY_SCOPE_LABEL[fcltType],
         active: SUMMARY_SCOPE[category].includes(fcltType),
     }));
 }
@@ -479,10 +473,7 @@ export function toTerminalView({
         summaryScope: toSummaryScope(category),
         summaryInfo: toDsbdSummaryInfo(smry),
         summaryTip: toSummaryTip(hhmm, smry),
-        fcltCards: [
-            toFcltCardData('CHKN', chknCards, nextChknCards, smry.tmnlId, hhmm),
-            toFcltCardData('DEP', dptgtCards, nextDptgtCards, smry.tmnlId, hhmm),
-        ],
+        fcltCards: [toFcltCardData('CHKN', chknCards, nextChknCards, smry.tmnlId, hhmm), toFcltCardData('DEP', dptgtCards, nextDptgtCards, smry.tmnlId, hhmm)],
         chart: { rsltList },
         tableRows: rsltList.map((rslt) => toTableRow(rslt, totalCount)),
         defaultSelectedRow: Math.max(0, currentIndex),
@@ -797,10 +788,7 @@ export const EMPTY_TERMINAL_VIEW: TerminalView = {
     summaryScope: [],
     summaryInfo: [],
     summaryTip: [],
-    fcltCards: [
-        toFcltCardData('CHKN', [], [], 'T1', ''),
-        toFcltCardData('DEP', [], [], 'T1', ''),
-    ],
+    fcltCards: [toFcltCardData('CHKN', [], [], 'T1', ''), toFcltCardData('DEP', [], [], 'T1', '')],
     chart: { rsltList: [] },
     tableRows: [],
     defaultSelectedRow: 0,

@@ -14,6 +14,7 @@ interface FcltCardProps {
 interface FlowPointProps {
     snapshot: FcltCardSnapshot | null;
     label: string;
+    showBusyStatus?: boolean;
 }
 
 interface FlowMetricProps {
@@ -50,12 +51,14 @@ const BASE_DONUT_SIZE = 72;
 const TRACK_STOPS: [number, string][] = [[1, '#e7ebf2']];
 
 const CLEAR_TRACK_TIP = '지금부터 60분 · 세로선 = 목표 30분';
+const BUSY_CONGESTION_KINDS = new Set(['o', 'r']);
 
-const clamp01 =(value: number) => Math.min(Math.max(value, 0), 1);
+const clamp01 = (value: number) => Math.min(Math.max(value, 0), 1);
 
 export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
     const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
     const tipId = useId();
+    const totalTipId = useId();
     const variantsByUnit = useMemo(() => new Map(data.variants.map((item) => [item.unitCd, item])), [data.variants]);
     const unitOrder = useMemo(() => {
         const chipUnits = data.chips.map((chip) => chip.label).filter((unitCd) => variantsByUnit.has(unitCd));
@@ -82,7 +85,22 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
     return (
         <div className="fclt-card">
             <div className="fclt-card-head">
-                <b>{data.title}</b>
+                <div className="fclt-card-title">
+                    <b>{data.title}</b>
+                    <span
+                        className="fclt-card-total"
+                        tabIndex={0}
+                        aria-label={`${data.title} 전체 대기인원 ${data.totalWaitingCount}명`}
+                        aria-describedby={totalTipId}
+                    >
+                        <Icon name="people" />
+                        <strong>{data.totalWaitingCount}</strong>
+                        {data.totalWaitingCount !== '-' && <small>명</small>}
+                        <span id={totalTipId} className="fclt-card-total-tip" role="tooltip">
+                            시설 전체 대기인원
+                        </span>
+                    </span>
+                </div>
                 <div className="warn">
                     <button type="button" className="plus" aria-label={`${data.title} 상세 화면으로 이동`} onClick={onMove}>
                         <Icon name="plus" />
@@ -135,7 +153,7 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                     <div className="fclt-flow-link">
                         <GaugeDonut label="유입" data={current?.hourly.arrival} accentColor={ARRIVAL_COLOR} />
                     </div>
-                    <FlowPoint snapshot={variant.next} label="+1시간" />
+                    <FlowPoint snapshot={variant.next} label="+1시간" showBusyStatus />
                 </div>
             </div>
             <div className="gauge-row" aria-label={`${data.currentTime} 기준 운영 지표`}>
@@ -202,7 +220,7 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                     </div>
                 </div>
             </div>
-            <div className="chips" aria-label={`${data.title} 시설 선택 · 조회 시점 혼잡도`}>
+            <div className="chips" aria-label={`${data.title} 시설 선택 chip`}>
                 {data.chips.map((chip) => (
                     <button
                         type="button"
@@ -221,28 +239,18 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
     );
 }
 
-function FlowPoint({ snapshot, label }: FlowPointProps) {
+function FlowPoint({ snapshot, label, showBusyStatus = false }: FlowPointProps) {
+    const isBusy = BUSY_CONGESTION_KINDS.has(snapshot?.congestionKind ?? '');
+
     return (
         <div className="fclt-flow-point" data-congestion={snapshot?.congestionKind ?? 'gray'}>
             <div className="fclt-flow-time">
                 <span className="fclt-flow-period">{label}</span>
             </div>
-            <span className="fclt-flow-status">{snapshot?.congestion ?? '-'}</span>
+            {showBusyStatus && isBusy && <span className="fclt-flow-status">{snapshot?.congestion}</span>}
             <div className="fclt-flow-metrics">
-                <FlowMetric
-                    icon="people"
-                    label="대기인원"
-                    value={snapshot?.waitingCount ?? '-'}
-                    unit="명"
-                    diff={snapshot?.waitingCountDiff}
-                />
-                <FlowMetric
-                    icon="clock"
-                    label="대기시간"
-                    value={snapshot?.waitingTime ?? '-'}
-                    unit="분"
-                    diff={snapshot?.waitingTimeDiff}
-                />
+                <FlowMetric icon="people" label="대기인원" value={snapshot?.waitingCount ?? '-'} unit="명" diff={snapshot?.waitingCountDiff} />
+                <FlowMetric icon="clock" label="대기시간" value={snapshot?.waitingTime ?? '-'} unit="분" diff={snapshot?.waitingTimeDiff} />
             </div>
         </div>
     );
@@ -296,7 +304,7 @@ function GaugeDonut({ label, data, accentColor }: GaugeDonutProps) {
         const el = donutRef.current;
         if (!el) return;
 
-        const observer = new ResizeObserver(([entry]) => setSizeRatio(Math.min(entry.contentRect.width / BASE_DONUT_SIZE, 1)));
+        const observer = new ResizeObserver(([entry]) => setSizeRatio(entry.contentRect.width / BASE_DONUT_SIZE));
         observer.observe(el);
         return () => observer.disconnect();
     }, []);
@@ -387,12 +395,17 @@ function GaugeDonut({ label, data, accentColor }: GaugeDonutProps) {
                 ref={donutRef}
                 className="donut"
                 role="img"
-                aria-label={averageText ? `${label} ${centerText}명, 활성 시설 ${averageText}명` : `${label} ${centerText}명`}
+                aria-label={
+                    averageText
+                        ? `${label} 시간당 ${centerText}명, 활성 시설 시간당 ${averageText}명`
+                        : `${label} 시간당 ${centerText}명`
+                }
             >
                 <EChart className="donut__chart" option={option} />
             </div>
             <span className="fclt-gauge-donut-label" style={{ color: accentColor }}>
                 {label}
+                <small>명/h</small>
             </span>
         </div>
     );

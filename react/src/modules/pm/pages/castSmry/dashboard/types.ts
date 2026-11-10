@@ -138,6 +138,7 @@ export interface FcltCardData {
     fcltType: FcltCardType;
     title: string;
     currentTime: string;
+    totalWaitingCount: string;
     variants: FcltCardVariant[];
     /** 카드가 아니라 시설 전체의 유닛 목록 — 카드를 넘겨도 바뀌지 않는다 */
     chips: FcltCardChip[];
