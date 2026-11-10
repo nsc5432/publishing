@@ -29,7 +29,12 @@ function TerminalMap() {
 
     const [ymd, setYmd] = useState(() => searchParams.get('ymd') || todayYmd());
     const [draftYmd, setDraftYmd] = useState(ymd);
-    const { data: baseInfo, error: baseError, responseSeq: baseResponseSeq } = useBaseInfo(ymd, smltId, smltType);
+    const {
+        data: baseInfo,
+        error: baseError,
+        responseSeq: baseResponseSeq,
+        isCurrent: baseIsCurrent,
+    } = useBaseInfo(ymd, smltId, smltType);
     const viewYmd = isUserSmlt ? (baseInfo?.ymd ?? ymd) : ymd;
 
     const [terminal, setTerminal] = useState<TerminalKind>(() =>
@@ -42,8 +47,11 @@ function TerminalMap() {
     const [query, setQuery] = useState<MapQuery | null>(null);
 
     useEffect(() => {
-        setQuery(baseInfo ? { smltId: baseInfo.smltId, tmnlId: terminal } : null);
-    }, [baseInfo, terminal]);
+        // 기준일자만 바뀐 사이에는 이전 smltId 와 새 일자가 섞이므로 기준정보가 새로 올 때까지 기다린다
+        if (baseInfo && !baseIsCurrent) return;
+
+        setQuery(baseInfo ? { smltId: baseInfo.smltId, tmnlId: terminal, ymd: viewYmd } : null);
+    }, [baseInfo, baseIsCurrent, terminal, viewYmd]);
 
     const { data: mapDay, error: mapError, responseSeq: mapResponseSeq } = useSmltMap(query);
 
@@ -91,7 +99,7 @@ function TerminalMap() {
 
         if (!baseInfo) return;
 
-        setQuery({ smltId: baseInfo.smltId, tmnlId: terminal });
+        setQuery({ smltId: baseInfo.smltId, tmnlId: terminal, ymd: viewYmd });
     };
 
     return (

@@ -1013,55 +1013,149 @@ html[data-page='terminalMap'] .stat__value em {
     color: var(--c-text-sub);
 }
 
-/* 매출 테이블 ----------------------------------------------------------- */
-html[data-page='terminalMap'] .tbl-sales {
+/* 상업시설 매출 --------------------------------------------------------- */
+html[data-page='terminalMap'] .sec-head--sales .sec-head__title::before {
+    background: var(--c-primary);
+}
+
+html[data-page='terminalMap'] .sales__base {
+    font-size: 12px;
+    color: var(--c-text-sub);
+}
+
+html[data-page='terminalMap'] .sales__kpi {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
     margin-top: 12px;
     border-radius: 12px;
-    overflow: hidden;
-    table-layout: fixed;
+    background: #f4f3fc;
 }
 
-html[data-page='terminalMap'] .tbl-sales th,
-html[data-page='terminalMap'] .tbl-sales td {
-    height: 46px;
-    padding: 6px 10px;
-    font-size: 14px;
-    vertical-align: middle;
+html[data-page='terminalMap'] .sales__kpi-item {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 6px;
 }
 
-html[data-page='terminalMap'] .tbl-sales th {
-    background: #e9e7f7;
-    color: #3a3f4c;
-    font-weight: 500;
-    text-align: center;
+html[data-page='terminalMap'] .sales__kpi-item + .sales__kpi-item::before {
+    content: '';
+    position: absolute;
+    top: 16px;
+    bottom: 16px;
+    left: 0;
+    width: 1px;
+    background: #e2e1f2;
 }
 
-html[data-page='terminalMap'] .tbl-sales td {
-    background: #fff;
-    color: var(--c-text);
-    font-weight: 500;
-    text-align: center;
+html[data-page='terminalMap'] .sales__kpi-label {
+    font-size: 12px;
+    color: var(--c-text-sub);
     white-space: nowrap;
 }
 
-html[data-page='terminalMap'] .rate {
-    margin-left: 12px;
-    font-size: 13px;
+html[data-page='terminalMap'] .sales__kpi-value {
+    font-size: 20px;
     font-weight: 700;
+    color: var(--c-text);
+    white-space: nowrap;
 }
 
-html[data-page='terminalMap'] .rate--up {
-    color: var(--c-red);
+html[data-page='terminalMap'] .sales__kpi-value em {
+    margin-left: 2px;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 500;
+    color: var(--c-text-sub);
 }
 
-html[data-page='terminalMap'] .rate--down {
-    color: #2f6ff0;
+html[data-page='terminalMap'] .sales__rank {
+    display: grid;
+    gap: 6px;
+    margin: 10px 0 0;
+    padding: 0;
+    list-style: none;
 }
 
-html[data-page='terminalMap'] .rate__base {
-    margin-left: 4px;
+html[data-page='terminalMap'] .sales__rank-item {
+    display: grid;
+    grid-template-columns: 20px minmax(0, 1fr) 96px 52px 34px;
+    align-items: center;
+    column-gap: 8px;
     font-size: 12px;
     color: var(--c-text-sub);
+}
+
+html[data-page='terminalMap'] .sales__rank-no {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--c-primary);
+    background: #e6e4f8;
+}
+
+html[data-page='terminalMap'] .sales__rank-no--1 {
+    color: #fff;
+    background: var(--c-primary);
+}
+
+html[data-page='terminalMap'] .sales__rank-name {
+    overflow: hidden;
+    font-weight: 500;
+    color: var(--c-text);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+html[data-page='terminalMap'] .sales__rank-bar {
+    height: 6px;
+    border-radius: 3px;
+    background: #eceef4;
+    overflow: hidden;
+}
+
+html[data-page='terminalMap'] .sales__rank-bar i {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    background: #8f8ae0;
+}
+
+html[data-page='terminalMap'] .sales__rank-amt {
+    font-weight: 700;
+    color: var(--c-text);
+    text-align: right;
+    white-space: nowrap;
+}
+
+html[data-page='terminalMap'] .sales__rank-share {
+    text-align: right;
+    white-space: nowrap;
+}
+
+html[data-page='terminalMap'] .sales__chart {
+    margin-top: 10px;
+}
+
+html[data-page='terminalMap'] .sales__foot {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--c-text-sub);
+}
+
+html[data-page='terminalMap'] .sales__foot strong {
+    margin-left: 4px;
+    font-weight: 700;
+    color: var(--c-text);
 }
 
 /* 상세보기 버튼 --------------------------------------------------------- */

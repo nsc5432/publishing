@@ -1,13 +1,8 @@
 import { StatComparison } from '@/modules/pm/congestion/StatComparison';
 import { CounterConIcon, PlusIcon, SelfCheckinIcon } from '@/components/icons';
 import { useModalDismiss } from '../hooks/useModalDismiss';
-import {
-    toLevelKey,
-    toLevelLabel,
-    type FacilityKind,
-    type IslandDetail,
-    type IslandSales,
-} from '../types';
+import { toLevelKey, toLevelLabel, type FacilityKind, type IslandDetail } from '../types';
+import { SalesPanel } from './SalesPanel';
 
 interface IslandModalProps {
     detail: IslandDetail;
@@ -75,7 +70,7 @@ export function IslandModal({ detail, onClose, onDetailClick }: IslandModalProps
                         ))}
                     </ul>
 
-                    {detail.sales && <SalesTable sales={detail.sales} />}
+                    {detail.sales && <SalesPanel sales={detail.sales} />}
                 </div>
 
                 <div className="modal__foot">
@@ -86,41 +81,5 @@ export function IslandModal({ detail, onClose, onDetailClick }: IslandModalProps
                 </div>
             </div>
         </div>
-    );
-}
-
-function SalesTable({ sales }: { sales: IslandSales }) {
-    return (
-        <table className="tbl-sales">
-            <caption className="blind">상업시설 매출 정보</caption>
-            <colgroup>
-                <col style={{ width: 112 }} />
-                <col />
-                <col style={{ width: 112 }} />
-                <col style={{ width: 86 }} />
-            </colgroup>
-            <tbody>
-                <tr>
-                    <th scope="row">총 매출</th>
-                    <td>{sales.total}</td>
-                    <th scope="row">상업시설 수</th>
-                    <td>{sales.storeCount}</td>
-                </tr>
-                <tr>
-                    <th scope="row">인원대비 매출</th>
-                    <td colSpan={3}>{sales.perPax}</td>
-                </tr>
-                <tr>
-                    <th scope="row">매출 인원 증감</th>
-                    <td colSpan={3}>
-                        {sales.paxDelta}
-                        <span className={`rate rate--${sales.rateUp ? 'up' : 'down'}`}>
-                            {sales.rate}
-                        </span>
-                        <span className="rate__base">{sales.rateBase}</span>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
     );
 }

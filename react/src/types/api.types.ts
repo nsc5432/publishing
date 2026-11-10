@@ -396,6 +396,24 @@ export interface MapSalesDto {
     cmprYear: string;
 }
 
+export interface CmrcStoreSalesDto {
+    storeCd: string;
+    storeNm: string;
+    /** 0~23시 전체 매출금액(원). 매출이 없는 시간은 0, 실적이 아직 없는 시간은 null */
+    hrlyAmtList: Array<number | null>;
+}
+
+export interface IslandCmrcSalesDto {
+    island: string;
+    storeList: CmrcStoreSalesDto[];
+}
+
+export interface CmrcSalesDto extends JsonResponse {
+    ymd: string;
+    tmnlId: TmnlId;
+    islandList: IslandCmrcSalesDto[];
+}
+
 export interface MapFcltItemDto {
     fcltType: FcltType;
     fcltNm: string;

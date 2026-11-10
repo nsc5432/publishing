@@ -83,14 +83,47 @@ export interface FacilityItem {
     rate?: string;
 }
 
+export interface SalesKpi {
+    label: string;
+    value: string;
+    /** 값이 없으면('-') 비운다 */
+    unit: string;
+    hint?: string;
+}
+
+/** 24시간 막대 한 칸 — 실적이 없는 시간은 null 이라 막대를 그리지 않는다 */
+export interface SalesBar {
+    hour: number;
+    amt: number | null;
+    /** 툴팁 표기 (예: 3,240만원 · 실적 없음) */
+    amtLabel: string;
+}
+
+/** 그 시의 매장 매출 순위 한 줄 */
+export interface SalesRankItem {
+    rank: number;
+    name: string;
+    /** 예: 42만원 */
+    amtLabel: string;
+    /** 예: 18% — 그 시 아일랜드 매출 대비 */
+    shareLabel: string;
+    /** 막대 길이 (0~1) */
+    share: number;
+}
+
 export interface IslandSales {
-    total: string;
-    storeCount: string;
-    perPax: string;
-    paxDelta: string;
-    rate: string;
-    rateUp: boolean;
-    rateBase: string;
+    /** 예: 14시 기준 */
+    baseLabel: string;
+    kpis: SalesKpi[];
+    /** 매출이 있는 매장만, 최대 3곳 */
+    topStores: SalesRankItem[];
+    bars: SalesBar[];
+    /** 타임라인이 가리키는 시 (막대 강조) */
+    activeHour: number;
+    /** 예: 12 / 15개 */
+    openStore: string;
+    /** 예: 11시 */
+    peakHour: string;
 }
 
 export interface IslandDetail {
