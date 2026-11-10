@@ -290,14 +290,11 @@ function toFcltCardData(
     const visibleCards = [...cards, ...[...nextByUnit.values()].filter((card) => !currentByUnit.has(unitOf(card)))].filter((card) => unitPattern.test(unitOf(card)));
     const scale = toHourlyScale(cards.filter((card) => unitPattern.test(unitOf(card))));
     const nextScale = toHourlyScale([...nextByUnit.values()].filter((card) => unitPattern.test(unitOf(card))));
-    const nextMinute = Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(2)) + 60;
-    const nextClock = `${pad2(Math.floor(nextMinute / 60) % 24)}:${pad2(nextMinute % 60)}`;
 
     return {
         fcltType,
         title: FCLT_CARD_TITLE[fcltType],
         currentTime: formatHhmm(hhmm),
-        nextTime: !hhmm ? '-' : nextMinute >= MIN_PER_DAY ? `다음 날 ${nextClock}` : nextClock,
         variants: visibleCards.map((card) => toFcltCardVariant(card, currentByUnit.get(unitOf(card)), nextByUnit.get(unitOf(card)), hhmm, scale, nextScale)),
         chips: (cards[0]?.unitList ?? nextCards[0]?.unitList ?? []).filter((unit) => unitPattern.test(unit.unitCd)).map((unit) => toFcltCardChip(cards.length ? unit : { ...unit, cgnStatus: null })),
     };

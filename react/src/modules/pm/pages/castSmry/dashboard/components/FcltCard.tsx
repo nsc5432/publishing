@@ -14,7 +14,6 @@ interface FcltCardProps {
 interface FlowPointProps {
     snapshot: FcltCardSnapshot | null;
     label: string;
-    time: string;
 }
 
 interface FlowMetricProps {
@@ -129,12 +128,12 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                     </button>
                 </div>
                 <div className="fclt-flow" aria-label={`${data.title} ${variant.num} 혼잡 변화`}>
-                    <FlowPoint snapshot={variant.current} label="현재" time={data.currentTime} />
+                    <FlowPoint snapshot={variant.current} label="현재" />
                     <div className="fclt-flow-link" aria-hidden="true">
                         <span />
                         <Icon name="chevR" />
                     </div>
-                    <FlowPoint snapshot={variant.next} label="+1시간" time={data.nextTime} />
+                    <FlowPoint snapshot={variant.next} label="+1시간" />
                 </div>
             </div>
             <div className="gauge-row" aria-label={`${data.currentTime} 기준 운영 지표`}>
@@ -201,12 +200,11 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
     );
 }
 
-function FlowPoint({ snapshot, label, time }: FlowPointProps) {
+function FlowPoint({ snapshot, label }: FlowPointProps) {
     return (
         <div className="fclt-flow-point" data-congestion={snapshot?.congestionKind ?? 'gray'}>
             <div className="fclt-flow-time">
                 <span className="fclt-flow-period">{label}</span>
-                <time>{time}</time>
             </div>
             <span className="fclt-flow-status">{snapshot?.congestion ?? '-'}</span>
             <div className="fclt-flow-metrics">

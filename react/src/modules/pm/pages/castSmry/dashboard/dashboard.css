@@ -1326,7 +1326,7 @@ html[data-page='dashboard'] .sum-cell + .sum-cell {
 html[data-page='dashboard'] .sum-time {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     gap: 6px;
     min-width: 0;
     min-height: 22px;
@@ -1338,18 +1338,9 @@ html[data-page='dashboard'] .sum-time {
     white-space: nowrap;
 }
 
-html[data-page='dashboard'] .sum-time time {
-    font-size: 12px;
-    font-weight: 600;
-    color: #3f3b50;
-    white-space: nowrap;
-    text-align: center;
-    line-height: 1.1;
-}
-
 html[data-page='dashboard'] .sum-metrics {
     display: grid;
-    grid-template-columns: 15px minmax(0, 1fr);
+    grid-template-columns: 20px minmax(0, 1fr);
     align-self: stretch;
     gap: 3px;
     min-width: 0;
@@ -1376,29 +1367,26 @@ html[data-page='dashboard'] .sum-metric-icons {
 
 html[data-page='dashboard'] .sum-metric-values {
     padding: 2px 4px;
-    background: #fff;
-    border: 1px solid #e4dfec;
-    border-radius: 8px;
 }
 
 html[data-page='dashboard'] .sum-metric {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-end;
     gap: 2px;
     min-width: 0;
     line-height: 1.1;
 }
 
 html[data-page='dashboard'] .sum-metric-icons > i {
-    width: 15px;
-    height: 15px;
+    width: 20px;
+    height: 20px;
     flex-shrink: 0;
 }
 
 html[data-page='dashboard'] .sum-metric-icons > i > svg {
-    width: 15px;
-    height: 15px;
+    width: 20px;
+    height: 20px;
 }
 
 html[data-page='dashboard'] .sum-two .p-note {
@@ -1432,10 +1420,6 @@ html[data-page='dashboard'] .sum-cell .u {
     html[data-page='dashboard'] .sum-time {
         gap: 4px;
         font-size: 10px;
-    }
-
-    html[data-page='dashboard'] .sum-time time {
-        font-size: 11px;
     }
 
     html[data-page='dashboard'] .sum-cell .big {
@@ -1553,14 +1537,14 @@ html[data-page='dashboard'] .sum-info .val {
 }
 
 html[data-page='dashboard'] .sum-info b {
-    font-size: 18px;
+    font-size: 21px;
     font-weight: 700;
     color: var(--acc-soft);
     letter-spacing: -0.6px;
 }
 
 html[data-page='dashboard'] .sum-info .u {
-    font-size: 11.5px;
+    font-size: 14.5px;
     color: #3c4350;
     margin-left: 2px;
 }
@@ -1572,11 +1556,11 @@ html[data-page='dashboard'] .sum-info .u {
     }
 
     html[data-page='dashboard'] .sum-info b {
-        font-size: 16px;
+        font-size: 19px;
     }
 
     html[data-page='dashboard'] .sum-info .u {
-        font-size: 10.5px;
+        font-size: 13.5px;
     }
 }
 
@@ -1960,12 +1944,6 @@ html[data-page='dashboard'] .fclt-flow-time {
     color: #7b8496;
     font-size: 12px;
     line-height: 1.3;
-}
-
-html[data-page='dashboard'] .fclt-flow-time time {
-    color: #596479;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
 }
 
 html[data-page='dashboard'] .fclt-flow-period {
@@ -2806,11 +2784,6 @@ html[data-page='dashboard'] .trow.sel {
         gap: 2px;
         justify-content: flex-start;
         flex-wrap: nowrap;
-    }
-
-    html[data-page='dashboard'] .fclt-flow-time time {
-        font-size: 10px;
-        white-space: nowrap;
     }
 
     html[data-page='dashboard'] .fclt-flow-period {

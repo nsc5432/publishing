@@ -227,7 +227,6 @@ export function TerminalSummary({ terminal, data, hhmm, category, titleCategory,
                             <div className="sum-cell" key={slot.label} title={slot.range}>
                                 <div className="sum-time">
                                     <span>{slot.label}</span>
-                                    {slot.time && <time>{slot.time}</time>}
                                 </div>
                                 <div className="sum-metrics">
                                     {slotIndex === 0 && (
