@@ -16,6 +16,7 @@ import { loadingBar } from '@/lib/loading-bar';
 import { toCalcDateTime, toPlanDate, toSimulationType } from './view';
 import { useDayOverview, usePrimeTime, useTerminalPanel, type DashboardQuery, type PrimeTimeQuery } from './hooks/useDashboardData';
 import { useExecDetail } from './hooks/useExecDetail';
+import { useFitToViewport } from './hooks/useFitToViewport';
 import type { FcltCardType, FcltQueueTarget, TerminalKind } from './types';
 
 type PrimeTimeRequest = Pick<PrimeTimeQuery, 'ymd' | 'category'>;
@@ -38,6 +39,7 @@ const DEFAULT_CATEGORY: DsbdCategory = 'PSG';
 
 function Dashboard() {
     usePageScope('dashboard');
+    useFitToViewport();
     const navigate = useNavigate();
 
     const [searchParams, setSearchParams] = useSearchParams();

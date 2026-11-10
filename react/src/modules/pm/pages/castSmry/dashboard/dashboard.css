@@ -92,6 +92,20 @@ html[data-page='dashboard'] .app {
     overflow: hidden;
 }
 
+/* 세로가 기준 높이 미만이면 셸 전체를 높이 비율로 줄인다(hooks/useFitToViewport).
+   미디어쿼리는 zoom 을 반영하지 않으므로 높이 기준 미디어쿼리를 두지 않는다. */
+html[data-page='dashboard'][data-dsbd-fit] {
+    --lost: 0px;
+    --pm-header-h: 58px;
+    --pm-shell-top: 10px;
+    --pm-shell-bottom: 20px;
+}
+
+html[data-page='dashboard'][data-dsbd-fit] .pm-shell {
+    height: var(--dsbd-fit-h);
+    zoom: var(--dsbd-fit);
+}
+
 html[data-page='dashboard'] .body {
     display: flex;
     flex: 1;
@@ -2818,8 +2832,8 @@ html[data-page='dashboard'] .trow.sel {
     }
 }
 
-/* 1002px 아래에서는 여백 압축만으로 추천 문구와 칩의 겹침을 막을 수 없다. */
-@media (min-width: 1350px) and (max-height: 1079px), (min-width: 1350px) and (max-width: 1599px) {
+/* 폭 1350~1599px 에서는 카드 폭이 좁아 기본 크기로는 추천 문구와 칩이 겹친다. */
+@media (min-width: 1350px) and (max-width: 1599px) {
     html[data-page='dashboard'] {
         --donut-size: 58px;
     }
@@ -3060,7 +3074,7 @@ html[data-page='dashboard'] .trow.sel {
     }
 }
 
-@media (min-width: 1350px) and (max-width: 1599px) and (min-height: 930px) {
+@media (min-width: 1350px) and (max-width: 1599px) {
     html[data-page='dashboard'] .fclt-flow-point {
         display: flex;
         flex-direction: column;
@@ -3094,59 +3108,6 @@ html[data-page='dashboard'] .trow.sel {
 
     html[data-page='dashboard'] .fclt-flow-count strong {
         font-size: 16px;
-    }
-}
-
-@media (min-width: 1350px) and (max-width: 1599px) and (min-height: 930px) and (max-height: 1079px) {
-    html[data-page='dashboard'] {
-        --lost: 120px;
-    }
-
-    html[data-page='dashboard'] .main {
-        zoom: 0.95;
-    }
-}
-
-/* zoom 안에서 100vh 가 커져 여백 압축이 풀리지 않도록 --lost 를 고정한다. */
-@media (min-width: 1350px) and (max-height: 929px) {
-    html[data-page='dashboard'] {
-        --lost: 120px;
-    }
-}
-
-@media (min-width: 1350px) and (max-height: 929px) {
-    html[data-page='dashboard'] .main {
-        zoom: 0.95;
-    }
-}
-
-@media (min-width: 1350px) and (max-height: 868px) {
-    html[data-page='dashboard'] .main {
-        zoom: 0.88;
-    }
-}
-
-@media (min-width: 1350px) and (max-height: 811px) {
-    html[data-page='dashboard'] .main {
-        zoom: 0.82;
-    }
-}
-
-@media (min-width: 1350px) and (max-height: 761px) {
-    html[data-page='dashboard'] .main {
-        zoom: 0.76;
-    }
-}
-
-@media (min-width: 1350px) and (max-height: 712px) {
-    html[data-page='dashboard'] .main {
-        zoom: 0.68;
-    }
-}
-
-@media (min-width: 1350px) and (max-width: 1599px) and (min-height: 869px) and (max-height: 1001px) {
-    html[data-page='dashboard'] .main {
-        zoom: 0.88;
     }
 }
 
@@ -3270,7 +3231,7 @@ html[data-page='dashboard'] .trow.sel {
     }
 }
 
-/* body 포털은 .app의 zoom/overflow 영향을 받지 않는다. */
+/* body 포털은 .pm-shell 의 zoom 과 .app 의 overflow 영향을 받지 않는다. */
 .fqs {
     --fqs-surface: #ffffff;
     --fqs-soft: #f6f6fa;
