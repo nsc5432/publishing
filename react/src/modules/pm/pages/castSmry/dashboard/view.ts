@@ -32,6 +32,7 @@ import {
     type FcltCardCapacity,
     type FcltCardChip,
     type FcltCardClear,
+    type FcltCardClearTrack,
     type FcltCardData,
     type FcltCardDiff,
     type FcltCardHourly,
@@ -103,6 +104,8 @@ const FCLT_CARD_GAUGE_LABEL = {
 
 const WTNG_WINDOW_MIN = 10;
 const MIN_PER_DAY = 24 * 60;
+const CLEAR_TARGET_MIN = 30;
+const CLEAR_AXIS_MIN = 60;
 
 const QUEUE_DATA_SRC_LABEL: Record<QueueDataSrc, string> = {
     CAST: 'CAST 예측',
@@ -167,7 +170,7 @@ function toActiveAvg(cards: DsbdFcltCardDto[], valueOf: (card: DsbdFcltCardDto) 
 // 유입 · 처리 링이 같은 눈금이어야 한 시설의 두 링 길이를 견줄 수 있다. 서버가 산정 불가 처리인원을 0 으로 내려 0 인 시설은 평균에서 뺀다
 function toHourlyScale(cards: DsbdFcltCardDto[]): HourlyScale {
     return {
-        max: Math.max(0, ...cards.map((card) => Math.max(card.hrlyArvlPsgCnt ?? 0, card.hrlyPrcsPsgCnt))),
+        max: Math.max(0, ...cards.map((card) => Math.max(card.hrlyArvlPsgCnt ?? 0, card.hrlyPrcsPsgCnt, card.reqHrlyPrcsPsgCnt ?? 0))),
         arrivalAvg: toActiveAvg(cards, (card) => card.hrlyArvlPsgCnt ?? null),
         processAvg: toActiveAvg(cards, (card) => card.hrlyPrcsPsgCnt),
     };
@@ -187,24 +190,61 @@ function toFcltCardHourly(card: DsbdFcltCardDto, scale: HourlyScale): FcltCardHo
     return {
         arrival: toGaugeData(arvlPsgCnt, scale.arrivalAvg, scale.max),
         process: toGaugeData(card.hrlyPrcsPsgCnt, scale.processAvg, scale.max),
-        queueDiff: toFcltCardDiff(arvlPsgCnt, arvlPsgCnt === null ? null : card.hrlyPrcsPsgCnt),
+        recommendProcess: toGaugeData(card.reqHrlyPrcsPsgCnt ?? null, null, scale.max),
     };
 }
 
+function toMinuteOfDay(hhmm: string): number {
+    return Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(2, 4));
+}
+
+// 해소 시각은 HHmm 이라 자정을 넘기면 평가시각보다 작다
+function toClearMin(clearTime: string, hhmm: string): number | null {
+    if (!clearTime) return null;
+
+    return (toMinuteOfDay(clearTime) - toMinuteOfDay(hhmm) + MIN_PER_DAY) % MIN_PER_DAY;
+}
+
+function toClearTrack(clearMin: number | null, unreachable: boolean): FcltCardClearTrack {
+    if (clearMin === null) return { kind: unreachable ? 'unreachable' : 'unknown', pos: unreachable ? 1 : 0 };
+    if (clearMin === 0) return { kind: 'done', pos: 0 };
+    if (clearMin > CLEAR_AXIS_MIN) return { kind: 'beyond', pos: 1 };
+
+    return { kind: clearMin <= CLEAR_TARGET_MIN ? 'inTarget' : 'overTarget', pos: clearMin / CLEAR_AXIS_MIN };
+}
+
+function toClearSaving(currentMin: number | null, recommendMin: number | null, currentUnreachable: boolean): string | undefined {
+    if (recommendMin === null) return undefined;
+    if (currentUnreachable) return '해소 가능';
+    if (currentMin === null || recommendMin >= currentMin) return undefined;
+
+    return `${formatCount(currentMin - recommendMin)}분 단축`;
+}
+
 // 운영 수량 해소값이 없는데 추천은 나왔다면 원천은 있다는 뜻이라 하루 안에 해소되지 않는 경우다
-function toFcltCardClear(card: DsbdFcltCardDto): FcltCardClear {
+function toFcltCardClear(card: DsbdFcltCardDto, hhmm: string): FcltCardClear {
+    const targetPos = CLEAR_TARGET_MIN / CLEAR_AXIS_MIN;
+
     if (card.cgnClearRate === 100) {
-        return { label: FCLT_CARD_GAUGE_LABEL.noCongestion, current: '없음', recommend: '없음' };
+        const done = toClearTrack(0, false);
+        return { label: FCLT_CARD_GAUGE_LABEL.noCongestion, current: '없음', recommend: '없음', currentTrack: done, recommendTrack: done, targetPos };
     }
 
     const oprClearMin = card.oprCgnClearMin ?? null;
-    const current =
-        oprClearMin === 0 ? '없음' : oprClearMin !== null ? formatHhmm(card.oprCgnClearTime) : card.recommend.reqCnt !== null ? '해소 불가' : '-';
+    const currentUnreachable = oprClearMin === null && card.recommend.reqCnt !== null;
+    const current = oprClearMin === 0 ? '없음' : oprClearMin !== null ? formatHhmm(card.oprCgnClearTime) : currentUnreachable ? '해소 불가' : '-';
+    // 단축 분이 표시 시각의 차와 같도록 두 값 모두 HHmm 에서 구한다
+    const currentMin = oprClearMin === 0 ? 0 : oprClearMin === null ? null : toClearMin(card.oprCgnClearTime, hhmm);
+    const recommendMin = toClearMin(card.cgnClearTime, hhmm);
 
     return {
         label: FCLT_CARD_GAUGE_LABEL.clear,
         current,
         recommend: formatHhmm(card.cgnClearTime) || '-',
+        currentTrack: toClearTrack(currentMin, currentUnreachable),
+        recommendTrack: toClearTrack(recommendMin, false),
+        targetPos,
+        saving: toClearSaving(currentMin, recommendMin, currentUnreachable),
     };
 }
 
@@ -220,7 +260,7 @@ function toFcltCardSnapshot(card: DsbdFcltCardDto, hhmm: string, scale: HourlySc
         operatingCount: formatCount(card.oprCnt),
         capacity: toFcltCardCapacity(card),
         hourly: toFcltCardHourly(card, scale),
-        clear: toFcltCardClear(card),
+        clear: toFcltCardClear(card, hhmm),
         recommend: {
             tag: '추천',
             name: card.recommend.targetNm,

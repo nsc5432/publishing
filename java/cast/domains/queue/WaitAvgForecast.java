@@ -57,6 +57,18 @@ public final class WaitAvgForecast {
         return new Projection(clearOf(trace, serverCnt, horizonMin), avgAt(trace, fcstMin));
     }
 
+    /** 시설 수 s 를 평가시각 t 부터 적용했을 때 [t, t+minutes) 예측 처리인원 */
+    public Computed<Double> forecastPrcsPsgCnt(Integer serverCnt, int minutes) {
+        String gap = gapOf(serverCnt);
+
+        if (gap != null) {
+            return Computed.unavailable(CalculationMethod.WAIT_AVG_FORECAST, gap);
+        }
+
+        return Computed.estimated(simulate(serverCnt, minutes).prcsUntil(minutes), CalculationMethod.WAIT_AVG_FORECAST,
+                serverCnt + "개 적용 시 기준시각부터 " + minutes + "분 예측 처리인원");
+    }
+
     /** 목표 시간 안에 목표 미만이 되고 처리능력이 유입보다 큰 최소 시설 수 (현재 운영분 포함 총수) */
     public Search search(int targetMin) {
         if (targetMin <= 0) {
@@ -275,6 +287,10 @@ public final class WaitAvgForecast {
             }
 
             return -1;
+        }
+
+        private double prcsUntil(int endMin) {
+            return predPrcsPrefix[endMin];
         }
 
         private double remainAt(int endMin) {

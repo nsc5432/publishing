@@ -21,6 +21,7 @@ public class DsbdFcltCardDto {
 	private int wtngPsgCnt; // 평가시각(hhmm) 대기인원 (명). 출국장은 LGT
 	private Integer hrlyArvlPsgCnt; // [hhmm, hhmm+60) 유입인원 합 (24시에서 자른다). 출국장은 LGT. 도출할 행이 없으면 null
 	private int hrlyPrcsPsgCnt; // [hhmm, hhmm+60) 처리인원 합 (24시에서 자른다). 출국장은 LGT
+	private Integer reqHrlyPrcsPsgCnt; // 추천 수량을 기준시각부터 적용했을 때 [hhmm, hhmm+60) 예측 처리인원 (24시에서 자른다). 출국장은 보안검색대. 산정 불가면 null
 	private int hrlyPrcsRate; // 부하율 rho × 100. 100 을 넘을 수 있다. 산정 불가면 0
 	private String cgnClearTime; // 추천 수량 적용 시 혼잡해소 예상 시각 HHmm. 산정 불가면 ''
 	private int cgnClearRate; // 혼잡해소 게이지 max(30 - 해소분, 0) / 30 × 100

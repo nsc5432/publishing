@@ -179,6 +179,8 @@ export interface DsbdFcltCardDto {
     /** [hhmm, hhmm+60) 유입인원 합. 출국장은 LGT. 도출할 행이 없으면 null */
     hrlyArvlPsgCnt: number | null;
     hrlyPrcsPsgCnt: number;
+    /** 추천 수량(reqCnt)을 hhmm 부터 적용했을 때 [hhmm, hhmm+60) 예측 처리인원. 출국장은 보안검색대. 산정 불가면 null */
+    reqHrlyPrcsPsgCnt: number | null;
     hrlyPrcsRate: number;
     cgnClearTime: string;
     cgnClearRate: number;

@@ -422,7 +422,7 @@ const DPTGT_UNITS: Record<TmnlId, FcltUnitDto[]> = {
 };
 
 /** 등급 / 평균 / 해소값은 buildFcltCard 가 프로필에서 채운다 */
-type FcltCardSeed = Omit<DsbdFcltCardDto, 'cgnWtngSec' | 'hrlyArvlPsgCnt' | 'oprCgnClearTime' | 'oprCgnClearMin'>;
+type FcltCardSeed = Omit<DsbdFcltCardDto, 'cgnWtngSec' | 'hrlyArvlPsgCnt' | 'reqHrlyPrcsPsgCnt' | 'oprCgnClearTime' | 'oprCgnClearMin'>;
 
 const CHKN_CARDS: Record<TmnlId, FcltCardSeed[]> = {
     T1: [
@@ -592,6 +592,9 @@ function buildFcltCard(card: FcltCardSeed, hhmm: string, fcltType: 'CHKN' | 'DEP
     const oprClear = toQueueClear(profile, profile.oprCnt, BASE_INFO.ymd, baseMinute, targetMin);
     const oprClearMin = oprClear.cgnClearMin == null ? null : Math.ceil(oprClear.cgnClearMin - 1e-9);
     const cgnStatus = mockGradeOf(profile.obsWtngSec);
+    const prcsMin = Math.min(MIN_PER_HOUR, 24 * MIN_PER_HOUR - baseMinute);
+    const reqHrlyPrcsPsgCnt =
+        reqCnt === null || forecastGap(profile, reqCnt) !== null ? null : Math.round(simulateQueue(profile, reqCnt, prcsMin).prcsUntil(prcsMin));
 
     return {
         ...card,
@@ -600,6 +603,7 @@ function buildFcltCard(card: FcltCardSeed, hhmm: string, fcltType: 'CHKN' | 'DEP
         totCnt: profile.totCnt ?? card.totCnt,
         wtngPsgCnt: profile.wtngPsgCnt,
         hrlyArvlPsgCnt: Math.round(profile.arvlPerHour),
+        reqHrlyPrcsPsgCnt,
         hrlyPrcsRate: capacity === 0 ? 0 : Math.round((profile.arvlPerHour / capacity) * 100),
         cgnClearTime: clear === null || clearMin === null ? '' : clear.cgnClearDt.slice(8, 12),
         cgnClearRate: clearMin === null ? 0 : Math.round((Math.max(targetMin - clearMin, 0) / targetMin) * 100),
@@ -756,6 +760,7 @@ function toQueueNextWtng(profile: QueueScenarioProfile, fcltCnt: number, capacit
 interface QueueTrace {
     avgAt: (endMin: number) => number | null;
     remainAt: (endMin: number) => number;
+    prcsUntil: (endMin: number) => number;
 }
 
 /** 산정할 수 없으면 사유 문자열, 할 수 있으면 null */
@@ -825,6 +830,7 @@ function simulateQueue(profile: QueueScenarioProfile, fcltCnt: number, minutes: 
             return prcsSum <= QUEUE_EPS ? null : waitSum / prcsSum;
         },
         remainAt: (endMin) => (endMin === 0 ? profile.wtngPsgCnt : remain[endMin - 1]),
+        prcsUntil: (endMin) => prcs.slice(0, endMin).reduce((sum, value) => sum + value, 0),
     };
 }
 

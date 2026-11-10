@@ -1873,12 +1873,15 @@ html[data-page='dashboard'] .fclt-card-arrow > i > svg {
     height: 17px;
 }
 
+/* 유입 도넛이 두 흐름 카드 사이에 떠 있다 — 간격은 도넛보다 좁아 양쪽 카드 가장자리에 살짝 걸친다 */
 html[data-page='dashboard'] .fclt-flow {
+    --flow-donut: 76px;
+    position: relative;
     display: flex;
     flex: 0 0 auto;
     align-items: stretch;
     justify-content: center;
-    gap: 6px;
+    gap: calc(var(--flow-donut) - 24px);
     width: 100%;
 }
 
@@ -2064,23 +2067,34 @@ html[data-page='dashboard'] .fclt-flow-diff[data-dir='down'] {
 }
 
 html[data-page='dashboard'] .fclt-flow-link {
+    --donut-size: var(--flow-donut);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 1;
     display: flex;
-    align-items: center;
-    flex: 0 0 24px;
     justify-content: center;
-    height: 24px;
-    color: #8d99b6;
-    align-self: center;
+    transform: translate(-50%, -50%);
 }
 
-html[data-page='dashboard'] .fclt-flow-link > span {
-    display: none;
+/* 떠 있는 칸이라 크기 컨테이너로 두지 않고 고정 크기로 그린다 */
+html[data-page='dashboard'] .fclt-flow-link .fclt-gauge-donut {
+    container-type: normal;
+    flex: none;
 }
 
-html[data-page='dashboard'] .fclt-flow-link svg {
-    width: 15px;
-    height: 15px;
-    margin-left: 0;
+html[data-page='dashboard'] .fclt-flow-link .fclt-gauge-donut > .donut {
+    width: var(--donut-size);
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 3px 10px rgba(47, 65, 105, 0.16);
+}
+
+html[data-page='dashboard'] .fclt-flow-link .fclt-gauge-donut-label {
+    position: relative;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: #fff;
 }
 
 html[data-page='dashboard'] .gauge-row {
@@ -2092,9 +2106,149 @@ html[data-page='dashboard'] .gauge-row {
     min-height: 100px;
 }
 
-html[data-page='dashboard'] .fclt-gauge-hrly {
+html[data-page='dashboard'] .fclt-gauge-case {
+    position: relative;
+    overflow: hidden;
     justify-content: flex-start;
-    padding: 5px 2px 4px;
+    padding: 4px 2px;
+}
+
+html[data-page='dashboard'] .fclt-gauge-ribbon {
+    position: absolute;
+    top: 9px;
+    left: -19px;
+    width: 68px;
+    padding: 1px 0;
+    background: #6c7688;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: center;
+    transform: rotate(-45deg);
+    box-shadow: 0 1px 2px rgba(35, 39, 47, 0.18);
+    pointer-events: none;
+}
+
+html[data-page='dashboard'] .fclt-gauge-case.is-rec .fclt-gauge-ribbon {
+    background: #4a56d8;
+}
+
+html[data-page='dashboard'] .fclt-gauge-case .k b {
+    color: #23272f;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+html[data-page='dashboard'] .fclt-gauge-case.is-rec .k b,
+html[data-page='dashboard'] .fclt-gauge-case.is-rec .fclt-gauge-list dt,
+html[data-page='dashboard'] .fclt-gauge-case.is-rec .fclt-gauge-list dd {
+    color: #4a56d8;
+}
+
+/* 부족 표시 / 단축 배지는 한쪽에만 있을 수 있다 — 그 줄 높이만큼 양쪽을 맞춰야 두 도넛 크기가 같다 */
+html[data-page='dashboard'] .fclt-gauge-head {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-height: 40px;
+}
+
+html[data-page='dashboard'] .fclt-gauge-foot {
+    display: flex;
+    flex-shrink: 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    width: 100%;
+}
+
+html[data-page='dashboard'] .fclt-clear-track {
+    --track-color: #8a93a3;
+    position: relative;
+    flex-shrink: 0;
+    width: calc(100% - 14px);
+    height: 6px;
+    margin: 2px 0;
+    border-radius: 3px;
+    background: #e7ebf2;
+}
+
+html[data-page='dashboard'] .fclt-clear-track[data-kind='done'],
+html[data-page='dashboard'] .fclt-clear-track[data-kind='inTarget'] {
+    --track-color: #0f7d00;
+}
+
+html[data-page='dashboard'] .fclt-clear-track[data-kind='overTarget'] {
+    --track-color: #b36d00;
+}
+
+html[data-page='dashboard'] .fclt-clear-track[data-kind='beyond'],
+html[data-page='dashboard'] .fclt-clear-track[data-kind='unreachable'] {
+    --track-color: #d92626;
+}
+
+html[data-page='dashboard'] .fclt-clear-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: calc(var(--pos) * 100%);
+    border-radius: inherit;
+    background: var(--track-color);
+}
+
+html[data-page='dashboard'] .fclt-clear-track[data-kind='unreachable'] .fclt-clear-fill {
+    width: 100%;
+    background: repeating-linear-gradient(135deg, #d92626 0 3px, #f7c7c7 3px 6px);
+}
+
+html[data-page='dashboard'] .fclt-clear-target {
+    position: absolute;
+    top: -3px;
+    bottom: -3px;
+    left: calc(var(--target) * 100%);
+    border-left: 1.5px dashed #6c7688;
+}
+
+html[data-page='dashboard'] .fclt-clear-dot {
+    position: absolute;
+    top: 50%;
+    left: calc(var(--pos) * 100%);
+    width: 10px;
+    height: 10px;
+    border: 2px solid var(--track-color);
+    border-radius: 50%;
+    background: #fff;
+    transform: translate(-50%, -50%);
+}
+
+/* 60분 축 밖 — 끝점을 화살표로 그린다 */
+html[data-page='dashboard'] .fclt-clear-track[data-kind='beyond'] .fclt-clear-dot {
+    width: 0;
+    height: 0;
+    border-width: 5px 0 5px 7px;
+    border-style: solid;
+    border-color: transparent transparent transparent var(--track-color);
+    border-radius: 0;
+    background: none;
+    transform: translate(-20%, -50%);
+}
+
+html[data-page='dashboard'] .fclt-clear-saving {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 8px;
+    border: 1px solid #cfe6cc;
+    border-radius: 6px;
+    background: #e8f4e7;
+    color: #0f7d00;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.4;
+    white-space: nowrap;
 }
 
 html[data-page='dashboard'] .fclt-gauge-donuts {
@@ -2125,16 +2279,6 @@ html[data-page='dashboard'] .fclt-gauge-donut > .donut {
     width: min(var(--donut-size), 100cqw, calc(100cqh - 12px));
     aspect-ratio: 1;
     overflow: hidden;
-}
-
-html[data-page='dashboard'] .fclt-gauge-hrly-info {
-    display: flex;
-    flex-shrink: 0;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 2px 5px;
-    margin-top: 2px;
 }
 
 html[data-page='dashboard'] .fclt-gauge-donut .donut__chart {
@@ -2205,33 +2349,6 @@ html[data-page='dashboard'] .fclt-gauge-list dd {
     font-variant-numeric: tabular-nums;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-html[data-page='dashboard'] .fclt-gauge-clear .fclt-gauge-list > .is-rec dt,
-html[data-page='dashboard'] .fclt-gauge-clear .fclt-gauge-list > .is-rec dd {
-    color: #4a56d8;
-}
-
-html[data-page='dashboard'] .fclt-gauge-diff {
-    padding: 0 6px;
-    border-radius: 5px;
-    background: #edf0f4;
-    color: #596479;
-    font-size: 11px;
-    font-style: normal;
-    font-weight: 700;
-    line-height: 1.5;
-    white-space: nowrap;
-}
-
-html[data-page='dashboard'] .fclt-gauge-diff[data-dir='up'] {
-    background: #fde9e9;
-    color: #d92626;
-}
-
-html[data-page='dashboard'] .fclt-gauge-diff[data-dir='down'] {
-    background: #e8f1ff;
-    color: #2f7ff0;
 }
 
 html[data-page='dashboard'] .gauge-row > .rec {
@@ -2763,8 +2880,8 @@ html[data-page='dashboard'] .trow.sel {
     }
 
     html[data-page='dashboard'] .fclt-flow {
+        --flow-donut: 60px;
         margin-top: 0;
-        gap: 3px;
     }
 
     html[data-page='dashboard'] .fclt-flow-point {
@@ -2827,10 +2944,6 @@ html[data-page='dashboard'] .trow.sel {
         line-height: 1.1;
     }
 
-    html[data-page='dashboard'] .fclt-flow-link {
-        flex-basis: 20px;
-        height: 20px;
-    }
 
     html[data-page='dashboard'] .gauge-row {
         min-height: 80px;
@@ -2869,9 +2982,38 @@ html[data-page='dashboard'] .trow.sel {
         font-size: 13px;
     }
 
-    html[data-page='dashboard'] .fclt-gauge-diff {
-        font-size: 10px;
-        line-height: 1.4;
+    html[data-page='dashboard'] .fclt-gauge-case .k b {
+        font-size: 13px;
+    }
+
+    html[data-page='dashboard'] .fclt-gauge-ribbon {
+        top: 7px;
+        left: -20px;
+        width: 62px;
+        font-size: 9px;
+    }
+
+    html[data-page='dashboard'] .fclt-gauge-head {
+        min-height: 34px;
+    }
+
+    html[data-page='dashboard'] .fclt-gauge-foot {
+        gap: 2px;
+    }
+
+    html[data-page='dashboard'] .fclt-clear-track {
+        height: 5px;
+    }
+
+    html[data-page='dashboard'] .fclt-clear-dot {
+        width: 9px;
+        height: 9px;
+    }
+
+    html[data-page='dashboard'] .fclt-clear-saving {
+        padding: 0 5px;
+        font-size: 11px;
+        line-height: 1.3;
     }
 
     html[data-page='dashboard'] .gauge-row > .rec {

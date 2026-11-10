@@ -81,14 +81,29 @@ export interface GaugeData {
 export interface FcltCardHourly {
     arrival: GaugeData;
     process: GaugeData;
-    /** 유입 − 처리 = 그 1시간 동안의 대기열 증감 */
-    queueDiff?: FcltCardDiff;
+    /** 추천 수량 적용 시 예측 처리인원 — 안쪽 평균 링 없음 */
+    recommendProcess: GaugeData;
+}
+
+/** done: 이미 해소 · inTarget: 목표 시간 안 · overTarget: 목표 초과 · beyond: 축(60분) 밖 · unreachable: 해소 불가 · unknown: 산정 불가 */
+export type FcltCardClearKind = 'done' | 'inTarget' | 'overTarget' | 'beyond' | 'unreachable' | 'unknown';
+
+export interface FcltCardClearTrack {
+    kind: FcltCardClearKind;
+    /** 해소 지점 (0~1, 축 = 지금 → +60분) */
+    pos: number;
 }
 
 export interface FcltCardClear {
     label: string;
     current: string;
     recommend: string;
+    currentTrack: FcltCardClearTrack;
+    recommendTrack: FcltCardClearTrack;
+    /** 목표선 위치 (0~1) */
+    targetPos: number;
+    /** 추천 수량이 현재보다 빨리 해소할 때만 — 'N분 단축' / '해소 가능' */
+    saving?: string;
 }
 
 export interface FcltCardSnapshot {

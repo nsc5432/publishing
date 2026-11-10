@@ -1,9 +1,9 @@
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { EChartsOption } from '@/lib/echarts';
 import { EChart } from '@/components/charts/EChart';
 import { Icon } from '@/components/icons/InlineIcon';
 import { EMPTY_FCLT_CARD_VARIANT } from '../view';
-import type { FcltCardData, FcltCardDiff, FcltCardSnapshot, GaugeData } from '../types';
+import type { FcltCardClearTrack, FcltCardData, FcltCardDiff, FcltCardSnapshot, GaugeData } from '../types';
 
 interface FcltCardProps {
     data: FcltCardData;
@@ -24,6 +24,11 @@ interface FlowMetricProps {
     diff?: FcltCardDiff;
 }
 
+interface ClearTrackProps {
+    track: FcltCardClearTrack | undefined;
+    targetPos: number | undefined;
+}
+
 interface GaugeDonutProps {
     label: string;
     data: GaugeData | undefined;
@@ -32,6 +37,7 @@ interface GaugeDonutProps {
 
 const ARRIVAL_COLOR = '#7a5fd6';
 const PROCESS_COLOR = '#2f7ff0';
+const RECOMMEND_COLOR = '#4a56d8';
 const SWEEP_ANGLE = 360 * 0.84;
 const START_ANGLE = 360 - 119;
 const END_ANGLE = START_ANGLE - SWEEP_ANGLE;
@@ -43,7 +49,9 @@ const AVERAGE_COLOR = '#6c7688';
 const BASE_DONUT_SIZE = 72;
 const TRACK_STOPS: [number, string][] = [[1, '#e7ebf2']];
 
-const clamp01 = (value: number) => Math.min(Math.max(value, 0), 1);
+const CLEAR_TRACK_TIP = '지금부터 60분 · 세로선 = 목표 30분';
+
+const clamp01 =(value: number) => Math.min(Math.max(value, 0), 1);
 
 export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
     const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
@@ -97,11 +105,6 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                             <span className="fclt-unit-cgn" data-congestion={current?.congestionKind ?? 'gray'}>
                                 {current?.congestion ?? '-'}
                             </span>
-                            {current && (
-                                <span className="fclt-unit-capa" data-capacity={current.capacity.kind}>
-                                    {current.capacity.text}
-                                </span>
-                            )}
                         </div>
                         <span id={tipId} className="fclt-unit-tip" role="tooltip">
                             운영 {unitName} {operatingCount}개 / 전체 {variant.totalCount}개
@@ -129,26 +132,36 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                 </div>
                 <div className="fclt-flow" aria-label={`${data.title} ${variant.num} 혼잡 변화`}>
                     <FlowPoint snapshot={variant.current} label="현재" />
-                    <div className="fclt-flow-link" aria-hidden="true">
-                        <span />
-                        <Icon name="chevR" />
+                    <div className="fclt-flow-link">
+                        <GaugeDonut label="유입" data={current?.hourly.arrival} accentColor={ARRIVAL_COLOR} />
                     </div>
                     <FlowPoint snapshot={variant.next} label="+1시간" />
                 </div>
             </div>
             <div className="gauge-row" aria-label={`${data.currentTime} 기준 운영 지표`}>
-                <div className="gauge fclt-gauge-hrly">
+                <div className="gauge fclt-gauge-case">
+                    <span className="fclt-gauge-ribbon">현재</span>
+                    <div className="fclt-gauge-head">
+                        <div className="k">
+                            <b>{operatingCount}</b>개
+                        </div>
+                        {current && (
+                            <span className="fclt-unit-capa" data-capacity={current.capacity.kind}>
+                                {current.capacity.text}
+                            </span>
+                        )}
+                    </div>
                     <div className="fclt-gauge-donuts">
-                        <GaugeDonut label="유입" data={current?.hourly.arrival} accentColor={ARRIVAL_COLOR} />
                         <GaugeDonut label="처리" data={current?.hourly.process} accentColor={PROCESS_COLOR} />
                     </div>
-                    <div className="fclt-gauge-hrly-info">
-                        <span className="k">시간당 인원</span>
-                        {current?.hourly.queueDiff && (
-                            <em className="fclt-gauge-diff" data-dir={current.hourly.queueDiff.dir}>
-                                대기열 {current.hourly.queueDiff.text}
-                            </em>
-                        )}
+                    <div className="fclt-gauge-foot">
+                        <dl className="fclt-gauge-list" aria-label={current?.clear.label}>
+                            <div>
+                                <dt>해소</dt>
+                                <dd>{current?.clear.current ?? '-'}</dd>
+                            </div>
+                        </dl>
+                        <ClearTrack track={current?.clear.currentTrack} targetPos={current?.clear.targetPos} />
                     </div>
                 </div>
                 <button
@@ -167,18 +180,26 @@ export function FcltCard({ data, onDetail, onMove }: FcltCardProps) {
                     </span>
                     <span className={`cap${current?.recommend.countNoteAccent ? ' u' : ''}`}>{current?.recommend.countNote ?? '소요'}</span>
                 </button>
-                <div className="gauge fclt-gauge-clear">
-                    <div className="k">{current?.clear.label ?? '혼잡해소 예상'}</div>
-                    <dl className="fclt-gauge-list">
-                        <div>
-                            <dt>현재 {operatingCount}개</dt>
-                            <dd>{current?.clear.current ?? '-'}</dd>
+                <div className="gauge fclt-gauge-case is-rec">
+                    <span className="fclt-gauge-ribbon">추천</span>
+                    <div className="fclt-gauge-head">
+                        <div className="k">
+                            <b>{current?.recommend.count ?? '-'}</b>개
                         </div>
-                        <div className="is-rec">
-                            <dt>추천 {current?.recommend.count ?? '-'}개</dt>
-                            <dd>{current?.clear.recommend ?? '-'}</dd>
-                        </div>
-                    </dl>
+                        {current?.clear.saving && <span className="fclt-clear-saving">{current.clear.saving}</span>}
+                    </div>
+                    <div className="fclt-gauge-donuts">
+                        <GaugeDonut label="처리" data={current?.hourly.recommendProcess} accentColor={RECOMMEND_COLOR} />
+                    </div>
+                    <div className="fclt-gauge-foot">
+                        <dl className="fclt-gauge-list" aria-label={current?.clear.label}>
+                            <div>
+                                <dt>해소</dt>
+                                <dd>{current?.clear.recommend ?? '-'}</dd>
+                            </div>
+                        </dl>
+                        <ClearTrack track={current?.clear.recommendTrack} targetPos={current?.clear.targetPos} />
+                    </div>
                 </div>
             </div>
             <div className="chips" aria-label={`${data.title} 시설 선택 · 조회 시점 혼잡도`}>
@@ -245,6 +266,19 @@ function FlowMetric({ icon, label, value, unit, diff }: FlowMetricProps) {
             <span id={tipId} className="fclt-flow-tip" role="tooltip">
                 {label}
             </span>
+        </div>
+    );
+}
+
+function ClearTrack({ track, targetPos }: ClearTrackProps) {
+    const kind = track?.kind ?? 'unknown';
+    const style = { '--pos': track?.pos ?? 0, '--target': targetPos ?? 0.5 } as CSSProperties;
+
+    return (
+        <div className="fclt-clear-track" data-kind={kind} style={style} title={CLEAR_TRACK_TIP} aria-hidden="true">
+            <span className="fclt-clear-fill" />
+            <span className="fclt-clear-target" />
+            {kind !== 'unreachable' && kind !== 'unknown' && <span className="fclt-clear-dot" />}
         </div>
     );
 }

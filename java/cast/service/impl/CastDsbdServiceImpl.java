@@ -533,7 +533,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setWtngPsgCnt(queuePsgCnt);
 		result.setHrlyArvlPsgCnt(wtngDay.arvlPsgCntOf(unitCd, evalDt, prcsMin));
 		result.setHrlyPrcsPsgCnt(wtngDay.slotOf(unitCd, evalDt, prcsMin).getPrcsPsgCnt());
-		applyClearance(result, clearance, recommend);
+		applyClearance(result, clearance, recommend, prcsMin);
 		result.setCgnStatus(wtngDay.gradeOf(unitCd, evalDt).getValue());
 		result.setRecommend(getRecommend(mainAlnNm, reqCnt, needAssign));
 		result.setUnitList(unitList);
@@ -587,7 +587,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setWtngPsgCnt(queueOf(depDay.sourceOf(unitCd, evalDt)));
 		result.setHrlyArvlPsgCnt(depDay.arvlPsgCntOf(unitCd, evalDt, prcsMin));
 		result.setHrlyPrcsPsgCnt(depDay.slotOf(unitCd, evalDt, prcsMin).getPrcsPsgCnt());
-		applyClearance(result, scClearance, recommend);
+		applyClearance(result, scClearance, recommend, prcsMin);
 		result.setCgnWtngSec(avgWtngSec.getValue());
 		result.setCgnStatus(depDay.getGradeScale().gradeOf(avgWtngSec).getValue());
 		result.setRecommend(getRecommend(recommend.getReqCnt() == null ? EMPTY : DEP_TARGET_NM, recommend.getReqCnt(), false));
@@ -599,7 +599,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	/*
 	 * 해소값은 보유 수량을 넘어도 추천 수량을 가정
 	 */
-	private void applyClearance(DsbdFcltCardDto card, FcltQueueClearance clearance, FcltQueueClearance.Recommend recommend) {
+	private void applyClearance(DsbdFcltCardDto card, FcltQueueClearance clearance, FcltQueueClearance.Recommend recommend, int prcsMin) {
 		Computed<Double> loadRatio = clearance.getLoadRatio();
 		FcltQueueClearance.ClearanceResult clear = recommend.getReqClear();
 		Integer clearMin = clear == null ? null : clear.getClearMin();
@@ -607,7 +607,10 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		// 혼잡해소 팝업 COUNT 모드에 현재 운영 수량을 넣은 결과와 같다
 		FcltQueueClearance.ClearanceResult oprClear = oprCnt == null ? null : clearance.clearOf(oprCnt, FcltQueueClearance.DFLT_TARGET_MIN);
 		Integer oprClearMin = oprClear == null ? null : oprClear.getClearMin();
+		Integer reqCnt = recommend.getReqCnt();
+		Computed<Double> reqPrcsPsgCnt = reqCnt == null ? null : clearance.prcsPsgCntOf(reqCnt, prcsMin);
 
+		card.setReqHrlyPrcsPsgCnt(reqPrcsPsgCnt == null || !reqPrcsPsgCnt.hasValue() ? null : toRoundedInt(reqPrcsPsgCnt.getValue()));
 		card.setCgnWtngSec(clearance.getObservedWait().getValue());
 		card.setHrlyPrcsRate(loadRatio.hasValue() ? toRoundedInt(loadRatio.getValue() * 100) : 0);
 		card.setCgnClearTime(clearMin == null ? EMPTY : toHhmm(clear.getClearDt()));

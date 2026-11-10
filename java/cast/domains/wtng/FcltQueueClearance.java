@@ -107,6 +107,11 @@ public final class FcltQueueClearance {
         );
 	}
 
+	/** 지정한 운영 수량을 기준시각부터 적용했을 때 [기준시각, 기준시각+minutes) 예측 처리인원 */
+	public Computed<Double> prcsPsgCntOf(Integer serverCnt, int minutes) {
+		return forecast.forecastPrcsPsgCnt(serverCnt, minutes);
+	}
+
 	/** 지정한 목표 시간 안에 평균 대기시간을 목표 미만으로 낮추고 처리능력이 유입보다 큰 총 운영 수량 */
 	public Recommend recommendOf(int targetMin) {
 		WaitAvgForecast.Search search = forecast.search(targetMin);

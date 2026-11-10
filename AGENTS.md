@@ -128,6 +128,9 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
    - 2026-11-08 시설 카드 지표 줄 개편(§14)으로 `DsbdFcltCardDto.hrlyArvlPsgCnt`(`Integer`, `[hhmm, hhmm+60)` 유입 합, 없으면 null)와
      `oprCgnClearTime`(현재 운영 수량 유지 시 해소 HHmm, 없으면 '') · `oprCgnClearMin`(`Integer`, 이미 해소면 0, 산정 · 해소 불가면 null)을 더했다.
      유입 원천은 `FcltWtngDay.arvlPsgCntOf`. **새 이름도 이제 고정이다.**
+   - 2026-11-10 시설 카드 지표 줄을 현재 / 추천 적용 두 칸으로 나누며 `DsbdFcltCardDto.reqHrlyPrcsPsgCnt`(`Integer`, 추천 수량을
+     평가시각부터 적용했을 때 `[hhmm, hhmm+60)` 예측 처리인원, 출국장은 보안검색대, 산정 불가면 null)를 더했다. 원천은
+     `FcltQueueClearance.prcsPsgCntOf` → `WaitAvgForecast.forecastPrcsPsgCnt`(해소 예측과 같은 1분 유체 FIFO)다. **새 이름도 이제 고정이다.**
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).
@@ -440,8 +443,8 @@ CAST 는 `REQ_GetResource` 요청에 날짜를 싣지 않는다 — 본문이 `@
 - 여백 예산은 뷰포트 `1002px` 에서 바닥난다. 그 아래(`min-width:1600px and max-height:1001px`)는
   **촘촘 모드** — 게이트 카드의 글자와 게이지(`--donut-size` 72px → 58px)를 한 단계 낮춰 약 40px 을 더 번다.
   시설 카드는 위쪽(시설 요약 · 현재/+1시간)이 내용 높이만 쓰고, 남는 높이는 지표 줄(`.gauge-row`, 최소 100px · 촘촘 80px)이 받는다
-  (2026-11-08, `flex: 1 1 0` — 내용 높이가 아니라 남는 높이). 유입 · 처리 도넛은 세로로 쌓여 있어 그 높이가 모자라면
-  `--donut-size` 아래로 줄고 `GaugeDonut` 이 글자를 같은 비율로 줄인다.
+  (2026-11-08, `flex: 1 1 0` — 내용 높이가 아니라 남는 높이). 현재 · 추천 처리 도넛은 그 높이가 모자라면
+  `--donut-size` 아래로 줄고 `GaugeDonut` 이 글자를 같은 비율로 줄인다. 위쪽 유입 도넛은 고정 크기다 (2026-11-10).
 - 촘촘 모드로도 안 되는 `930px` 미만은 `.main` 에 **`zoom`** 을 5단계로 건다
   (929→0.95 · 868→0.88 · 811→0.82 · 761→0.76 · 712→0.68, 뷰포트 646px 까지).
   `transform: scale` 이 아니라 `zoom` 인 이유는 축소된 크기로 레이아웃이 다시 계산되기
@@ -818,6 +821,12 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
     유입 · 처리 중 최댓값 = 1)이고 안쪽 링은 각각의 활성 시설(운영 > 0 · 값 > 0, 2개 이상) 단순 평균이다. 현재 운영 해소
     `oprCgnClearTime` · `oprCgnClearMin` 은 팝업 COUNT 모드에 현재 운영 수량(`source.oprCnt`)을 넣은 결과와 같다. 운영 해소값이 없고 추천은
     있으면 화면이 '해소 불가'로 그린다(원천은 있으니 하루 안에 해소되지 않는 경우다). 아래 처리인원 링 · 혼잡해소 게이지 설명은 그 전 화면 기록이다
+  - 2026-11-10 배치: 유입 도넛은 위쪽 현재 → +1시간 사이(`fclt-flow-link`)로 옮겼고 대기열 증감은 뺐다. 지표 줄은
+    왼쪽 '현재'(운영 수량 · 부족 표시 · 처리 `hrlyPrcsPsgCnt` · 운영 해소) / 가운데 추천 / 오른쪽 '추천'(추천 수량 · 단축 배지 · `reqHrlyPrcsPsgCnt` · 추천 해소)이다.
+    추천 도넛은 평균 링이 없고 눈금(최댓값)에 추천 처리인원도 넣는다. 왼쪽 처리는 CAST 결과, 오른쪽은 예측 모델 값이라 원천이 다르다.
+    해소 시각 아래 타임라인 바는 지금 → +60분 축에 해소 지점을, 30분에 목표선을 그린다. 분은 표시 시각과 어긋나지 않게 두 칸 모두
+    `HHmm − 평가시각`(자정 넘김 보정)으로 구한다. 추천이 더 빠르면 '추천' 칸 수량 아래에 'N분 단축'(현재가 해소 불가면 '해소 가능') 배지를 단다.
+    유입 도넛은 흐름 카드 사이에 absolute 로 떠 있다(76px · 촘촘 60px)
   - **해소 예측 유입률 λ 는 기준시각부터 1시간 CAST 유입이다** (2026-11-08). `FcltWtngDay` 가 `[t, t+60)`(24시에서 자른다) 유입 합을
     `FcltQueueSource.fcstArvlPsgCnt` 로 싣고 `FcltQueueClearance` 가 시간당으로 바꿔 쓴다(`EXTERNAL_INPUT`). 그 구간 결과가 없을 때만
     관측구간 보존식으로 떨어진다. μ · Q0 · s 는 그대로 직전 10분이다. 공용 평가기라 카드 · 팝업 · 맵 · 체크인 상세의 추천 · 해소가 같이 바뀐다.
