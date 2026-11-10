@@ -110,6 +110,10 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
    - 2026-11-01 체크인카운터 결과 지표에 `ChknCounterDto.maxWaitMin`(당일 처리 여객 최대 대기, 분)을 더했다. 원천은 터미널 공용 Queue
      `ChknQueueSeries.waitDistribution` 의 최대 칸이다. 같은 날 화면 지표에서 처리용량 사용률을 빼고, 최대 Queue 는 `kpi.maxQueuePsgCnt`(터미널 합)
      대신 슬롯 `MapChknRsltDto.maxQueuePsgCnt` 의 아일랜드 단위 최댓값과 그 아일랜드 · 슬롯 시각을 그린다. **새 이름도 이제 고정이다.**
+     2026-11-11 최대 Queue 는 슬롯 안 최댓값(`maxQueuePsgCnt`) 대신 아일랜드 칩과 같은 슬롯 끝 Queue(`stat.wtngPsgCnt`)의 하루 최댓값으로 바꿨다.
+     칩을 눌러 같은 숫자를 확인할 수 있는 대신 30분 슬롯 안의 1분 피크는 보지 않는다.
+     같은 날 최대 대기도 `maxWaitMin`(여객 1명 최대) 대신 아일랜드 칩과 같은 슬롯 평균 대기(`stat.wtngHr`, 미운영 칸 제외)의
+     하루 최댓값과 그 아일랜드 · 슬롯 시각으로 바꿨다. `maxWaitMin` 은 응답에 남지만 화면이 읽지 않는다.
    - 2026-11-01 체크인카운터 Queue 차트 비교선으로 `ChknCounterSlotDto.xovisWtngPsgCnt`(`Integer`, 없으면 null)를 더했다. 원천은
      `CastChknMapper.retrievePsgWtngSumBySlotList` — `TN_PM_PSG_WTNG_INFO` `Queue` 행의 슬롯 `[hhmm, hhmm+30)` 안 마지막 스냅샷 터미널 합이다.
      Xovis 는 A · G · I 를 재지 않으므로 Cast(CC 전 아일랜드) 선과 범위가 다르다. `-SBD` 줄은 2026-11-02 부터 뺀다. **새 이름도 이제 고정이다.**

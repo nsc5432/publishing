@@ -410,14 +410,17 @@ html[data-page='departureHall'] .marker--island {
     font-size: 21px;
 }
 
+html[data-page='departureHall'] .marker--dep-gate.is-normal,
 html[data-page='departureHall'] .marker--island.is-normal {
     background: var(--c-green);
 }
 
+html[data-page='departureHall'] .marker--dep-gate.is-busy,
 html[data-page='departureHall'] .marker--island.is-busy {
     background: var(--c-orange);
 }
 
+html[data-page='departureHall'] .marker--dep-gate.is-crowded,
 html[data-page='departureHall'] .marker--island.is-crowded {
     background: var(--c-red);
 }
@@ -506,16 +509,42 @@ html[data-page='departureHall'] .state-badge--crowded {
 
 /* 혼잡도 산정 불가 (직전 10분 미관측 / 처리 여객 0명) — 등급 색과 구분되는 중립색 */
 html[data-page='departureHall'] .state-badge--unknown,
+html[data-page='departureHall'] .marker--dep-gate.is-unknown,
 html[data-page='departureHall'] .marker--island.is-unknown {
     background: #9aa3b2;
 }
 
-/* 지표 4종 (2 x 2) ------------------------------------------------------- */
+/* 지표 4종 (인원 | 시간 2열, 열마다 아이콘 하나) ------------------------- */
 html[data-page='departureHall'] .dep-stat {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     border-radius: 12px;
     background: #f6f7fa;
+}
+
+html[data-page='departureHall'] .dep-stat__col {
+    display: flex;
+    position: relative;
+    flex-direction: column;
+    align-items: center;
+    padding-top: min(8px, 4cqw);
+}
+
+/* 가운데 세로선 */
+html[data-page='departureHall'] .dep-stat__col + .dep-stat__col::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    bottom: 10%;
+    left: 0;
+    width: 1px;
+    background: #e2e5ec;
+}
+
+html[data-page='departureHall'] .dep-stat__list {
+    display: flex;
+    align-self: stretch;
+    flex-direction: column;
 }
 
 html[data-page='departureHall'] .dep-stat__item {
@@ -524,22 +553,11 @@ html[data-page='departureHall'] .dep-stat__item {
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    padding: min(8px, 4cqw) min(6px, 2.7cqw);
-}
-
-/* 가운데 세로선 */
-html[data-page='departureHall'] .dep-stat__item:nth-child(2n)::before {
-    content: '';
-    position: absolute;
-    top: 14%;
-    bottom: 14%;
-    left: 0;
-    width: 1px;
-    background: #e2e5ec;
+    padding: min(6px, 2.7cqw) min(6px, 2.7cqw) min(8px, 4cqw);
 }
 
 /* 아래 칸 위의 가로선 */
-html[data-page='departureHall'] .dep-stat__item:nth-child(n + 3)::after {
+html[data-page='departureHall'] .dep-stat__item + .dep-stat__item::after {
     content: '';
     position: absolute;
     top: 0;

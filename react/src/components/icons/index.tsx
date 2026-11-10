@@ -60,7 +60,5 @@ export { default as T2WhiteIcon } from '@/assets/svg/t2-white.svg?react';
 
 /* 혼잡 현황 지표 아이콘 (일일 시뮬레이션 출국장)
    도면 배경은 맵형태보기와 같은 파일을 쓴다 (Terminal1Icon / Terminal2Plan) */
-export { default as WaitPeopleIcon } from '@/assets/svg/wait-people-icon.svg?react';
-export { default as WaitTimeIcon } from '@/assets/svg/wait-time-icon.svg?react';
-export { default as DonePeopleIcon } from '@/assets/svg/done-people-icon.svg?react';
-export { default as DoneTimeIcon } from '@/assets/svg/done-time-icon.svg?react';
+export { default as PersonIcon } from '@/assets/svg/person-icon.svg?react';
+export { default as TimeIcon } from '@/assets/svg/time-icon.svg?react';

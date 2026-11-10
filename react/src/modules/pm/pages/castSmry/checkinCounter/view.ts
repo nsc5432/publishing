@@ -33,8 +33,8 @@ import type {
  * 타임라인을 옮겨도 두 보기가 서로 다른 이야기를 하지 않는다.
  */
 
-interface MaxQueue {
-    psgCnt: number;
+interface IslandPeak {
+    value: number;
     island: string;
     hhmm: string;
 }
@@ -98,21 +98,31 @@ function toSummary(dto: ChknCounterDto): ChknSummaryItem[] {
  * 공용 Queue 결과 지표 4종.
  * P95 는 응답에 남지만 화면에 내보내지 않는다 — 근사값이라 운영 판단 기준이 되지 못한다.
  */
+function toPeakNote(peak: IslandPeak | null): string | undefined {
+    return peak === null ? undefined : `${peak.island} · ${formatHhmm(peak.hhmm)}`;
+}
+
 function toKpis(
     kpi: SmltKpiDto,
-    maxWaitMin: number,
-    maxQueue: MaxQueue | null,
+    maxWait: IslandPeak | null,
+    maxQueue: IslandPeak | null,
     prcsPsgCnt: number,
 ): ChknKpi[] {
     return [
         { id: 'avgWait', label: '평균 대기', value: formatCount(kpi.avgWaitMin), unit: '분' },
-        { id: 'maxWait', label: '최대 대기', value: formatCount(maxWaitMin), unit: '분' },
+        {
+            id: 'maxWait',
+            label: '최대 대기',
+            value: formatCount(toWaitMin(maxWait?.value ?? 0)),
+            unit: '분',
+            note: toPeakNote(maxWait),
+        },
         {
             id: 'maxQueue',
             label: '최대 Queue',
-            value: formatCount(maxQueue?.psgCnt ?? 0),
+            value: formatCount(maxQueue?.value ?? 0),
             unit: '명',
-            note: maxQueue === null ? undefined : `${maxQueue.island} · ${formatHhmm(maxQueue.hhmm)}`,
+            note: toPeakNote(maxQueue),
         },
         { id: 'prcs', label: '총 처리인원', value: formatCount(prcsPsgCnt), unit: '명' },
     ];
@@ -181,15 +191,21 @@ function toQueueSeries(
 }
 
 /** 터미널 합계 Queue 로는 아일랜드를 짚을 수 없어 아일랜드 단위 최댓값을 쓴다 */
-function toMaxQueue(islandList: ChknCounterIslandDto[], slotList: ChknCounterSlotDto[]): MaxQueue | null {
+function toIslandPeak(
+    islandList: ChknCounterIslandDto[],
+    slotList: ChknCounterSlotDto[],
+    pick: (rslt: MapChknRsltDto) => number,
+): IslandPeak | null {
     const nameMap = new Map(islandList.map((island) => [island.island, island.fcltNm]));
-    let result: MaxQueue | null = null;
+    let result: IslandPeak | null = null;
 
     for (const slot of slotList) {
         for (const rslt of slot.chknRsltList) {
-            if (rslt.maxQueuePsgCnt > (result?.psgCnt ?? 0)) {
+            const value = pick(rslt);
+
+            if (value > (result?.value ?? 0)) {
                 result = {
-                    psgCnt: rslt.maxQueuePsgCnt,
+                    value,
                     island: nameMap.get(rslt.unitCd) ?? rslt.unitCd,
                     hhmm: slot.hhmm,
                 };
@@ -198,6 +214,18 @@ function toMaxQueue(islandList: ChknCounterIslandDto[], slotList: ChknCounterSlo
     }
 
     return result;
+}
+
+function toMaxQueue(islandList: ChknCounterIslandDto[], slotList: ChknCounterSlotDto[]): IslandPeak | null {
+    return toIslandPeak(islandList, slotList, (rslt) => rslt.stat.wtngPsgCnt);
+}
+
+/**
+ * 서버의 여객 1명 최대 대기(`maxWaitMin`)는 아일랜드 · 시각을 잃어 화면에서 확인할 수 없다.
+ * 아일랜드 칩과 같은 슬롯 평균 대기의 하루 최댓값을 쓴다. 칩이 '-' 로 그리는 미운영 칸은 뺀다.
+ */
+function toMaxWait(islandList: ChknCounterIslandDto[], slotList: ChknCounterSlotDto[]): IslandPeak | null {
+    return toIslandPeak(islandList, slotList, (rslt) => (rslt.oprBoothCnt === 0 ? 0 : rslt.stat.wtngHr));
 }
 
 /* ================= 아일랜드 ================= */
@@ -267,7 +295,12 @@ export function toChknDay(dto: ChknCounterDto): ChknDay {
 
     return {
         summary: toSummary(dto),
-        kpis: toKpis(dto.kpi, dto.maxWaitMin, toMaxQueue(dto.islandList, dto.slotList), prcsPsgCnt),
+        kpis: toKpis(
+            dto.kpi,
+            toMaxWait(dto.islandList, dto.slotList),
+            toMaxQueue(dto.islandList, dto.slotList),
+            prcsPsgCnt,
+        ),
         queue: toQueueSeries(dto.islandList, dto.slotList, dto.waitMaxCnt),
         slots: Object.fromEntries(
             dto.slotList.map((slot) => [slot.hhmm, toSlot(dto.islandList, slot)]),

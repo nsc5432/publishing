@@ -25,7 +25,7 @@ export function DepMapView({ data, activeId, onDepGateHover }: DepMapViewProps) 
                 <button
                     type="button"
                     key={dptgtGate.id}
-                    className={`marker marker--dep-gate${dptgtGate.id === activeId ? ' is-active' : ''}`}
+                    className={`marker marker--dep-gate is-${toLevelKey(dptgtGate.level)}${dptgtGate.id === activeId ? ' is-active' : ''}`}
                     style={toStagePosition(dptgtGate.x, dptgtGate.y)}
                     aria-label={`출국장 ${dptgtGate.label}`}
                     onMouseEnter={() => onDepGateHover(dptgtGate)}

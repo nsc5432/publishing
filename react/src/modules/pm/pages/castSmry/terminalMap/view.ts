@@ -127,7 +127,7 @@ function toOperCards(cardList: MapOperCardDto[]): OperCard[] {
         dptgtNo: card.dptgtNo,
         rate: card.oprRate,
         time: `${formatHhmm(card.oprBgnTime)}-${formatHhmm(card.oprEndTime)}`,
-        desc: `하루 ${card.oprHr}시간 운영`,
+        desc: `${card.oprHr}시간`,
         dim: card.useYn === 'N',
     }));
 
@@ -135,11 +135,7 @@ function toOperCards(cardList: MapOperCardDto[]): OperCard[] {
 
     const middle = Math.floor(cards.length / 2);
 
-    return [
-        ...cards.slice(0, middle),
-        { id: 'o-gap', dptgtNo: '', rate: 0, time: '', desc: '', empty: true },
-        ...cards.slice(middle),
-    ];
+    return [...cards.slice(0, middle), { id: 'o-gap', dptgtNo: '', rate: 0, time: '', desc: '', empty: true }, ...cards.slice(middle)];
 }
 
 function toNotice(notice: MapNoticeDto): NoticeData {
@@ -225,9 +221,7 @@ function toIslandDetail(
 /* ================= 상업시설 매출 ================= */
 
 function toHrlyAmt(island: IslandCmrcSalesDto, hour: number): number | null {
-    const amtList = island.storeList
-        .map((store) => store.hrlyAmtList[hour] ?? null)
-        .filter((amt): amt is number => amt !== null);
+    const amtList = island.storeList.map((store) => store.hrlyAmtList[hour] ?? null).filter((amt): amt is number => amt !== null);
 
     return amtList.length === 0 ? null : amtList.reduce((sum, amt) => sum + amt, 0);
 }
@@ -277,9 +271,7 @@ function toIslandSalesDay(island: IslandCmrcSalesDto, slotList: SmltMapSlotDto[]
     return {
         storeCnt: island.storeList.length,
         hrlyAmtList,
-        hrlyOpenCntList: hours.map(
-            (hour) => island.storeList.filter((store) => (store.hrlyAmtList[hour] ?? 0) > 0).length,
-        ),
+        hrlyOpenCntList: hours.map((hour) => island.storeList.filter((store) => (store.hrlyAmtList[hour] ?? 0) > 0).length),
         hrlyPrcsList: toHrlyPrcsList(island.island, slotList),
         hrlyTopStoreList: hours.map((hour) => toTopStoreList(island, hour, hrlyAmtList[hour])),
         peakHour: toPeakHour(hrlyAmtList),
@@ -292,25 +284,18 @@ function toIslandSalesDay(island: IslandCmrcSalesDto, slotList: SmltMapSlotDto[]
 }
 
 function toSalesDays(sales: CmrcSalesDto | null, slotList: SmltMapSlotDto[]): Map<string, IslandSalesDay> {
-    return new Map(
-        (sales?.islandList ?? []).map((island) => [island.island, toIslandSalesDay(island, slotList)]),
-    );
+    return new Map((sales?.islandList ?? []).map((island) => [island.island, toIslandSalesDay(island, slotList)]));
 }
 
 function toAmtKpi(label: string, amt: number | null, unitAmt: number, unit: string): SalesKpi {
-    return amt === null
-        ? { label, value: EMPTY_VALUE, unit: '' }
-        : { label, value: formatCount(Math.round(amt / unitAmt)), unit };
+    return amt === null ? { label, value: EMPTY_VALUE, unit: '' } : { label, value: formatCount(Math.round(amt / unitAmt)), unit };
 }
 
 /** 매출은 1시간 단위라 30분 슬롯은 자기가 속한 시를 읽는다 (24:00 은 23시) */
 function toIslandSales(day: IslandSalesDay, hhmm: string): IslandSales {
     const hour = Math.min(Number(hhmm.slice(0, 2)), HOURS_PER_DAY - 1);
     const amt = day.hrlyAmtList[hour];
-    const cumAmt =
-        amt === null
-            ? null
-            : day.hrlyAmtList.slice(0, hour + 1).reduce<number>((sum, value) => sum + (value ?? 0), 0);
+    const cumAmt = amt === null ? null : day.hrlyAmtList.slice(0, hour + 1).reduce<number>((sum, value) => sum + (value ?? 0), 0);
     const prcsPsgCnt = day.hrlyPrcsList[hour];
     const amtPerPsg = amt === null || prcsPsgCnt === 0 ? null : amt / prcsPsgCnt;
 
@@ -344,12 +329,7 @@ function toFacilityDetail(rslt: MapUnitRsltDto, cmpr: MapCgnCmprDto): FacilityDe
 /* ================= 하루치 ================= */
 
 /** 슬롯 1칸 — 마커 색과 팝업이 같은 결과에서 나온다 */
-function toMapSlot(
-    dto: SmltMapDto,
-    slot: SmltMapSlotDto,
-    gates: GateMarker[],
-    salesDays: Map<string, IslandSalesDay>,
-): MapSlot {
+function toMapSlot(dto: SmltMapDto, slot: SmltMapSlotDto, gates: GateMarker[], salesDays: Map<string, IslandSalesDay>): MapSlot {
     const chknMap = toRsltMap(slot.chknRsltList);
     const dptgtMap = toRsltMap(slot.dptgtRsltList);
 
@@ -358,29 +338,14 @@ function toMapSlot(
         summaryInfo: toSummaryInfo(slot.landsideSmry),
         map: {
             stageAspect: STAGE_ASPECT,
-            dptgtGates: dto.dptgtMarkerList.map((marker) =>
-                toCongestionMarker(dto.tmnlId, 'dptgtGate', marker, dptgtMap.get(marker.label)),
-            ),
-            islands: dto.chknMarkerList.map((marker) =>
-                toCongestionMarker(dto.tmnlId, 'island', marker, chknMap.get(marker.label)),
-            ),
+            dptgtGates: dto.dptgtMarkerList.map((marker) => toCongestionMarker(dto.tmnlId, 'dptgtGate', marker, dptgtMap.get(marker.label))),
+            islands: dto.chknMarkerList.map((marker) => toCongestionMarker(dto.tmnlId, 'island', marker, chknMap.get(marker.label))),
             gates,
         },
         islandDetails: Object.fromEntries(
-            dto.chknInfoList.map((info) => [
-                info.island,
-                toIslandDetail(
-                    info,
-                    chknMap.get(info.island),
-                    slot.chknCmpr,
-                    salesDays.get(info.island),
-                    slot.hhmm,
-                ),
-            ]),
+            dto.chknInfoList.map((info) => [info.island, toIslandDetail(info, chknMap.get(info.island), slot.chknCmpr, salesDays.get(info.island), slot.hhmm)]),
         ),
-        dptgtGateDetails: Object.fromEntries(
-            slot.dptgtRsltList.map((rslt) => [rslt.unitCd, toFacilityDetail(rslt, slot.dptgtCmpr)]),
-        ),
+        dptgtGateDetails: Object.fromEntries(slot.dptgtRsltList.map((rslt) => [rslt.unitCd, toFacilityDetail(rslt, slot.dptgtCmpr)])),
     };
 }
 
@@ -392,9 +357,7 @@ export function toMapDay(dto: SmltMapDto, sales: CmrcSalesDto | null = null): Ma
     return {
         summary: toSummary(dto.summary),
         operCards: toOperCards(dto.operCardList),
-        slots: Object.fromEntries(
-            dto.slotList.map((slot) => [slot.hhmm, toMapSlot(dto, slot, gates, salesDays)]),
-        ),
+        slots: Object.fromEntries(dto.slotList.map((slot) => [slot.hhmm, toMapSlot(dto, slot, gates, salesDays)])),
     };
 }
 

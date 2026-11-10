@@ -1,15 +1,19 @@
 import type { ComponentType, SVGProps } from 'react';
 import { toStagePosition } from '@/lib/chart';
-import { DonePeopleIcon, DoneTimeIcon, WaitPeopleIcon, WaitTimeIcon } from '@/components/icons';
+import { PersonIcon, TimeIcon } from '@/components/icons';
 import { StatComparison } from '@/modules/pm/congestion/StatComparison';
 import { toLevelKey, toLevelLabel, type DepGateCard, type StatIcon } from '../types';
 
-const STAT_ICON: Record<StatIcon, ComponentType<SVGProps<SVGSVGElement>>> = {
-    'wait-people': WaitPeopleIcon,
-    'wait-time': WaitTimeIcon,
-    'done-people': DonePeopleIcon,
-    'done-time': DoneTimeIcon,
-};
+interface StatGroup {
+    key: string;
+    Icon: ComponentType<SVGProps<SVGSVGElement>>;
+    icons: StatIcon[];
+}
+
+const STAT_GROUPS: StatGroup[] = [
+    { key: 'people', Icon: PersonIcon, icons: ['wait-people', 'done-people'] },
+    { key: 'time', Icon: TimeIcon, icons: ['wait-time', 'done-time'] },
+];
 
 interface DepGateCardBoxProps {
     card: DepGateCard;
@@ -32,23 +36,27 @@ export function DepGateCardBox({ card, floating = true, active = false }: DepGat
                 <span className={`state-badge state-badge--${toLevelKey(card.level)}`}>{toLevelLabel(card.level)}</span>
             </div>
 
-            <ul className="dep-stat">
-                {card.stats.map((stat) => {
-                    const IconComponent = STAT_ICON[stat.icon];
-
-                    return (
-                        <li className="dep-stat__item" key={stat.icon}>
-                            <IconComponent className="dep-stat__ico" aria-hidden="true" focusable="false" />
-                            <span className="dep-stat__label">{stat.label}</span>
-                            <strong className={`dep-stat__value${stat.isHighlighted ? ' is-point' : ''}`}>
-                                {stat.value}
-                                <em>{stat.unit}</em>
-                            </strong>
-                            <StatComparison comparison={stat.cmpr} />
-                        </li>
-                    );
-                })}
-            </ul>
+            <div className="dep-stat">
+                {STAT_GROUPS.map(({ key, Icon, icons }) => (
+                    <div className="dep-stat__col" key={key}>
+                        <Icon className="dep-stat__ico" aria-hidden="true" focusable="false" />
+                        <ul className="dep-stat__list">
+                            {card.stats
+                                .filter((stat) => icons.includes(stat.icon))
+                                .map((stat) => (
+                                    <li className="dep-stat__item" key={stat.icon}>
+                                        <span className="dep-stat__label">{stat.label}</span>
+                                        <strong className={`dep-stat__value${stat.isHighlighted ? ' is-point' : ''}`}>
+                                            {stat.value}
+                                            <em>{stat.unit}</em>
+                                        </strong>
+                                        <StatComparison comparison={stat.cmpr} />
+                                    </li>
+                                ))}
+                        </ul>
+                    </div>
+                ))}
+            </div>
         </article>
     );
 }

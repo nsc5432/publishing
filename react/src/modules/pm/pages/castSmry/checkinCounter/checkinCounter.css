@@ -508,6 +508,32 @@ html[data-page='checkinCounter'] .chkn-chart__plot {
     min-height: 0;
 }
 
+html[data-page='checkinCounter'] .chkn-tip__title {
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #eceff5;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--c-text);
+}
+
+html[data-page='checkinCounter'] .chkn-tip__metrics {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid #eceff5;
+}
+
+html[data-page='checkinCounter'] .chkn-tip__row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+html[data-page='checkinCounter'] .chkn-tip__row b {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+}
+
 /* ==========================================================================
    7. 아일랜드 칩 줄 (차트 보기 하단)
    ========================================================================== */

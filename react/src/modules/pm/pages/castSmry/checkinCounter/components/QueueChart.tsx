@@ -90,6 +90,10 @@ function toIslandTipRows(islands: ChknIslandBooth[], index: number): string[] {
     return rows;
 }
 
+function toTipRow(label: string, value: string): string {
+    return `<div class="chkn-tip__row"><span>${label}</span><b>${value}</b></div>`;
+}
+
 export function QueueChart({ queue, step, time }: QueueChartProps) {
     const option = useMemo<EChartsOption>(() => {
         const boothMax = toAxisMax(Math.max(...queue.booth, 0));
@@ -113,16 +117,22 @@ export function QueueChart({ queue, step, time }: QueueChartProps) {
 
                     if (typeof index !== 'number') return '';
 
-                    const rows = [
+                    const boothRows = [
                         `${BOOTH_SERIES} ${queue.booth[index] ?? 0}개`,
                         ...toIslandTipRows(queue.islands, index),
-                        `${QUEUE_SERIES} ${queue.queue[index] ?? 0}명`,
-                        `${XOVIS_SERIES} ${formatPsgCnt(queue.xovisQueue[index])}`,
-                        `평균대기 ${toWaitMin(queue.waitSec[index] ?? 0)}분`,
-                        `처리인원 ${queue.prcsPsgCnt[index] ?? 0}명`,
+                    ];
+                    const metricRows = [
+                        toTipRow(QUEUE_SERIES, `${queue.queue[index] ?? 0}명`),
+                        toTipRow(XOVIS_SERIES, formatPsgCnt(queue.xovisQueue[index])),
+                        toTipRow('평균대기', `${toWaitMin(queue.waitSec[index] ?? 0)}분`),
+                        toTipRow('처리인원', `${queue.prcsPsgCnt[index] ?? 0}명`),
                     ];
 
-                    return [queue.timeLabels[index], ...rows].join('<br/>');
+                    return [
+                        `<div class="chkn-tip__title">${queue.timeLabels[index]}</div>`,
+                        ...boothRows.map((row) => `<div>${row}</div>`),
+                        `<div class="chkn-tip__metrics">${metricRows.join('')}</div>`,
+                    ].join('');
                 },
             },
             xAxis: {
