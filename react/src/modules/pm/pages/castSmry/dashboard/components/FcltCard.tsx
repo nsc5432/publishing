@@ -286,6 +286,7 @@ function ClearTrack({ track, targetPos }: ClearTrackProps) {
         <div className="fclt-clear-track" data-kind={kind} style={style} title={CLEAR_TRACK_TIP} aria-hidden="true">
             <span className="fclt-clear-fill" />
             <span className="fclt-clear-target" />
+            <span className="fclt-clear-target-label">30분</span>
             {kind !== 'unreachable' && kind !== 'unknown' && <span className="fclt-clear-dot" />}
         </div>
     );
@@ -339,14 +340,14 @@ function GaugeDonut({ label, data, accentColor }: GaugeDonutProps) {
                     detail: {
                         offsetCenter: [0, (averageText ? -5 : 0) * sizeRatio],
                         formatter: () => centerText,
-                        fontSize: 15.6 * sizeRatio,
+                        fontSize: 16.6 * sizeRatio,
                         fontWeight: 700,
                         color: '#23272f',
                         fontFamily: 'Pretendard, sans-serif',
                     },
                     title: {
                         offsetCenter: [0, 9 * sizeRatio],
-                        fontSize: 9.7 * sizeRatio,
+                        fontSize: 10.7 * sizeRatio,
                         fontWeight: 600,
                         color: AVERAGE_COLOR,
                         fontFamily: 'Pretendard, sans-serif',
