@@ -248,6 +248,9 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 			if (searchDto.getCategory() != DsbdCategory.CHKN && searchDto.getCategory() != DsbdCategory.DEP) {
 				// 랜드사이드 대기인원은 피크시간과 같은 CAST 원값이다. 체크인 몫을 공용 Queue 로 재구성하면 피크와 어긋난다
 				result.setSmryWtngPsgCnt(retrieveRsltWtngPsgCnt(wtngStng, tmnlId, evalDt));
+			} else if (searchDto.getCategory() == DsbdCategory.CHKN) {
+				Map<String, Integer> chknWtngMap = retrieveChknRsltWtngMap(wtngStng, tmnlId, evalDt, chknDay.unitCdList());
+				result.setSmryWtngPsgCnt(chknWtngMap.isEmpty() ? null : chknWtngMap.values().stream().mapToInt(Integer::intValue).sum());
 			}
 
 			List<DsbdFltIntrvlDto> intrvlList = retrieveFltIntrvlList(baseDate, fltTmnlIdList, bgnHhmm, intrvlMin);
@@ -329,6 +332,22 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		}
 
 		return rsltList.stream().mapToInt(SmltRsltRawDto::getWtngPsgCnt).sum();
+	}
+
+	// 공용 Queue 는 아일랜드 부스를 한 줄로 합쳐 항공사별 부스 Queue 합(원값)보다 작게 나온다 — 대기인원 표시는 원값을 쓴다
+	private Map<String, Integer> retrieveChknRsltWtngMap(SmltStngDto smltStng, TerminalKind tmnlId, LocalDateTime smltActlDt, List<String> islandList) {
+		Map<String, Integer> result = new LinkedHashMap<>();
+
+		for (SmltRsltRawDto rslt : castDsbdMapper.retrieveRsltByUnitList(smltStng.getSmltId(), tmnlId.getFcltTmnlId(),
+				null, null, smltActlDt, List.of("CC"), smltStng.getSmltMdlSn())) {
+			String island = normalizeUnitCd(rslt.getUnitCd());
+
+			if (islandList.contains(island)) {
+				result.merge(island, rslt.getWtngPsgCnt(), Integer::sum);
+			}
+		}
+
+		return result;
 	}
 
 	// 체크인 / 출국장 기준표가 달라 대기시간이 아니라 등급으로 비교한다
@@ -456,26 +475,28 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
 
 		List<FcltUnitDto> unitList = getChknUnitList(unitMap, wtngDay, evalDt);
+		Map<String, Integer> rsltWtngMap = retrieveChknRsltWtngMap(smltStng, tmnlId, evalDt, wtngDay.unitCdList());
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
-		for (String unitCd : sortedByWait(wtngDay, evalDt)) {
-			result.add(getChknFcltCard(unitCd, wtngDay, evalDt, prcsMin, unitMap.get(unitCd), unitList, islandMainAln, baseContext));
+		for (String unitCd : sortedByWait(wtngDay, evalDt, rsltWtngMap)) {
+			result.add(getChknFcltCard(unitCd, wtngDay, evalDt, prcsMin, unitMap.get(unitCd), unitList, islandMainAln, rsltWtngMap.getOrDefault(unitCd, 0), baseContext));
 		}
 
 		return result;
 	}
 
 	// 카드는 평균 대기시간이 긴 아일랜드부터 — 첫 카드가 화면에 먼저 보인다
-	private List<String> sortedByWait(FcltWtngDay wtngDay, LocalDateTime evalDt) {
+	private List<String> sortedByWait(FcltWtngDay wtngDay, LocalDateTime evalDt, Map<String, Integer> rsltWtngMap) {
 		Map<String, Double> avgWtngSecMap = new LinkedHashMap<>();
 		Map<String, Integer> queueMap = new LinkedHashMap<>();
 
 		for (String unitCd : wtngDay.unitCdList()) {
 			FcltWtngSlot slot = wtngDay.windowSlotOf(unitCd, evalDt);
+			int rsltWtngPsgCnt = rsltWtngMap.getOrDefault(unitCd, 0);
 
-			if (slot.getCurrentQueue() > 0 || slot.getPrcsPsgCnt() > 0 || slot.getOprBoothCnt() > 0) {
+			if (rsltWtngPsgCnt > 0 || slot.getCurrentQueue() > 0 || slot.getPrcsPsgCnt() > 0 || slot.getOprBoothCnt() > 0) {
 				avgWtngSecMap.put(unitCd, wtngDay.avgWtngSecOf(unitCd, evalDt).getValue());
-				queueMap.put(unitCd, slot.getCurrentQueue());
+				queueMap.put(unitCd, rsltWtngPsgCnt);
 			}
 		}
 
@@ -507,7 +528,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		return result;
 	}
 
-	private DsbdFcltCardDto getChknFcltCard(String unitCd, FcltWtngDay wtngDay, LocalDateTime evalDt, int prcsMin, FcltUnitRawDto unit, List<FcltUnitDto> unitList, IslandMainAln islandMainAln, String baseContext) {
+	private DsbdFcltCardDto getChknFcltCard(String unitCd, FcltWtngDay wtngDay, LocalDateTime evalDt, int prcsMin, FcltUnitRawDto unit, List<FcltUnitDto> unitList, IslandMainAln islandMainAln, int rsltWtngPsgCnt, String baseContext) {
 		String unitContext = unitContext(baseContext, FcltType.CHKN, unitCd);
 		FcltQueueClearance clearance = wtngDay.clearanceOf(unitCd, evalDt);
 
@@ -518,7 +539,6 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		FcltWtngSlot slot = wtngDay.windowSlotOf(unitCd, evalDt);
 		FcltQueueClearance.Recommend recommend = clearance.recommendOf(FcltQueueClearance.DFLT_TARGET_MIN);
 		Integer reqCnt = recommend.getReqCnt();
-		int queuePsgCnt = slot.getCurrentQueue();
 		String mainAlnNm = reqCnt == null ? EMPTY : islandMainAln.getAlnNm(unitCd, unitContext);
 		boolean needAssign = reqCnt != null && reqCnt > slot.getOprBoothCnt() && !mainAlnNm.isEmpty();
 
@@ -530,7 +550,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setFcltNm(unitCd);
 		result.setTotCnt(unit != null ? unit.getTotCnt() : 0);
 		result.setOprCnt(slot.getOprBoothCnt());
-		result.setWtngPsgCnt(queuePsgCnt);
+		result.setWtngPsgCnt(rsltWtngPsgCnt);
 		result.setHrlyArvlPsgCnt(wtngDay.arvlPsgCntOf(unitCd, evalDt, prcsMin));
 		result.setHrlyPrcsPsgCnt(wtngDay.slotOf(unitCd, evalDt, prcsMin).getPrcsPsgCnt());
 		applyClearance(result, clearance, recommend, prcsMin);

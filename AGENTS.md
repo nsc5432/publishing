@@ -135,6 +135,9 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
    - 2026-11-10 시설 카드 지표 줄을 현재 / 추천 적용 두 칸으로 나누며 `DsbdFcltCardDto.reqHrlyPrcsPsgCnt`(`Integer`, 추천 수량을
      평가시각부터 적용했을 때 `[hhmm, hhmm+60)` 예측 처리인원, 출국장은 보안검색대, 산정 불가면 null)를 더했다. 원천은
      `FcltQueueClearance.prcsPsgCntOf` → `WaitAvgForecast.forecastPrcsPsgCnt`(해소 예측과 같은 1분 유체 FIFO)다. **새 이름도 이제 고정이다.**
+   - 2026-11-11 체크인 대기인원 표시를 CAST 원값으로 바꿨다 (이름은 그대로). 체크인 `DsbdFcltCardDto.wtngPsgCnt` 와 CHKN 카테고리
+     `TmnlSmryDto.smryWtngPsgCnt` 는 평가시각 결과(`SMLT_ACTL_DT = hhmm`)의 CC 부스 `WTNG_PSG_CNT` 아일랜드 합이다(`CastDsbdServiceImpl.retrieveChknRsltWtngMap`).
+     랜드사이드 대기인원과 같은 원천이라 체크인 + 출국장 = 랜드사이드다. 등급 · 대기시간 · 추천 · 해소와 맵 · 체크인 상세의 대기인원은 공용 Queue(§13) 그대로다.
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).
@@ -725,6 +728,11 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 - 처리시간 fallback 순서는 **원천 → 같은 아일랜드 최근 60분 가중평균 → 터미널 CC 가중평균 →
   관측 처리량**이고, 모두 없으면 처리용량 0 + 로그다. 소수 처리용량은 버리지 않고 다음 분으로
   이월해 **반복 실행이 같은 결과**를 낸다.
+- **처리용량의 부스 수는 CAST 활성 부스**(구간 안에 대기 또는 처리가 있던 CC 부스)다 (2026-11-11). 이전에는 `max(배정 부스, 활성 부스)` 였다.
+  CAST 는 항공사 부스에만 줄을 세워 배정 부스 상당수가 노는데, 배정 부스로 아일랜드 한 줄을 처리하면 Queue 가 0 으로 비워진다
+  (사용자 CA 는 아일랜드 운영시간 내내 전 부스를 열어 특히 크다). 배정 부스(STNG CA 리소스)는 마지막 결과 뒤 꼬리 구간과 결과 전 분의
+  운영 대수에만 쓴다. 운영 대수(`oprCnt` · `oprBoothCnt`)와 추천의 현재 운영 수량도 이 활성 부스다.
+  이전 기준으로 저장된 CHKN 10분 결과는 `java/ddl/2026-11-11-fclt-wtng-rslt-chkn-recalc.sql` 로 지운다(배포 후 실행).
 - **혼잡등급 220 명 같은 하드코딩 fallback 을 두지 않는다.** 기준정보(`TN_PM_PSG_PRCS_GRD`)가
   없거나 겹치면 조회 실패로 떨어뜨린다. 인원 기준 판정(`CongestionStatus.ofWtngPsgCnt`)은 2026-10-24 에 없앴다.
 - 추천 `reqCnt` 는 추가 수량이 아니라 **현재 운영분을 포함한 총 소요 부스 수**다. 2026-10-17 부터
@@ -813,6 +821,7 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
   대기열/예상인원 = 팝업 `wtngPsgCnt`, 카드 `reqCnt` = 팝업 `recommend.reqCnt`, 카드 해소 시각 = 팝업
   `scenario.cgnClearDt` 의 시각이어야 한다. 카드는 **평가시각 직전 10분 기준**이며 CAST 의 앞으로 올 피크를 보지 않는다.
   카드 `cgnStatus` · `cgnWtngSec` 는 팝업 `cgnStatus` · `wtngAvgSec` 와 같다.
+  체크인 카드 대기인원은 2026-11-11 부터 CAST 원값(§3)이라 팝업 `wtngPsgCnt`(공용 Queue Q0)와 다를 수 있다.
   **출국장은 예외다** (2026-11-01): 카드의 대기열 · `cgnStatus` · `cgnWtngSec` 는 LGT, 팝업은 보안검색대 큐라 다를 수 있다.
   `reqCnt` · 해소 시각 · 부하율은 출국장도 팝업과 같다. 카드 처리인원은 LGT 다 (2026-11-08). 카드 `totCnt` · `oprCnt` 는 팝업과 같은 보안검색대 수
   (시설 마스터 SC 수 · 실행 리소스 운영표)다. LGT 가 막혀 카드 위쪽은 혼잡인데 추천은 추가 0대인 조합은 의도된 결과로 둔다.

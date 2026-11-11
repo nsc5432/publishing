@@ -24,6 +24,7 @@ public final class ChknQueueInterval {
 	private final int intvPrcsPsgCnt; // 구간 처리인원
 	private final BigDecimal avgPrcsSec; // 평균처리시간
 	private final int activeBoothCnt; // 부스갯수
+	private final boolean tail;
 
 	public ChknQueueInterval(
         int bgnMinute,
@@ -32,6 +33,18 @@ public final class ChknQueueInterval {
         int intvPrcsPsgCnt,
         BigDecimal avgPrcsSec,
         int activeBoothCnt
+	) {
+		this(bgnMinute, durationMin, wtngEndPsgCnt, intvPrcsPsgCnt, avgPrcsSec, activeBoothCnt, false);
+	}
+
+	private ChknQueueInterval(
+        int bgnMinute,
+        int durationMin,
+        int wtngEndPsgCnt,
+        int intvPrcsPsgCnt,
+        BigDecimal avgPrcsSec,
+        int activeBoothCnt,
+        boolean tail
 	) {
 		if (durationMin <= 0) {
 			throw new IllegalArgumentException("durationMin 은 양수입니다: " + durationMin);
@@ -43,6 +56,12 @@ public final class ChknQueueInterval {
 		this.intvPrcsPsgCnt = intvPrcsPsgCnt;
 		this.avgPrcsSec = avgPrcsSec;
 		this.activeBoothCnt = activeBoothCnt;
+		this.tail = tail;
+	}
+
+	// 결과가 없어 활성 부스를 알 수 없는 꼬리 구간 — 남은 Queue 를 배정 부스로 흘려보낸다
+	public static ChknQueueInterval tail(int bgnMinute, int durationMin, int wtngEndPsgCnt) {
+		return new ChknQueueInterval(bgnMinute, durationMin, wtngEndPsgCnt, 0, null, 0, true);
 	}
 
 	public int getBgnMinute() {
@@ -67,5 +86,9 @@ public final class ChknQueueInterval {
 
 	public int getActiveBoothCnt() {
 		return activeBoothCnt;
+	}
+
+	public boolean isTail() {
+		return tail;
 	}
 }

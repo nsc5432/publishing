@@ -101,7 +101,7 @@ public final class ChknQueueCalculator {
 
 			if (bgn >= 0 && interval.getActiveBoothCnt() > assignedAtBgn) {
 				String message = String.format(
-                    "시뮬레이션 결과의 부스 갯수가 실적에 할당된 부스 갯수보다 커서 보정했습니다. activeBoothCnt=%d, assignedBoothCnt=%d",
+                    "시뮬레이션 결과의 부스 갯수가 실적에 할당된 부스 갯수보다 큽니다. activeBoothCnt=%d, assignedBoothCnt=%d",
                     interval.getActiveBoothCnt(), assignedAtBgn
                 );
 
@@ -120,7 +120,8 @@ public final class ChknQueueCalculator {
 
 			for (int minute = bgn; minute < end; minute++) {
 				int at = minute - originMinute;
-				int booth = Math.max(boothCnt[at], interval.getActiveBoothCnt());
+				// CAST 는 항공사 부스에만 줄을 세워 배정 부스 상당수가 논다. 배정 부스로 처리용량을 잡으면 공용 Queue 가 0 으로 비워진다
+				int booth = interval.isTail() ? boothCnt[at] : interval.getActiveBoothCnt();
 				boothCnt[at] = booth;
 
 				BigDecimal capacityPerMin = capacityPerMin(interval, prcsSec, booth);

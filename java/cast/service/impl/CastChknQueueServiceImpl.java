@@ -202,14 +202,7 @@ public class CastChknQueueServiceImpl implements CastChknQueueService {
 			return;
 		}
 
-		intervalList.add(new ChknQueueInterval(
-            bgnMinute,
-            MINUTE_PER_DAY - bgnMinute,
-            last.getWtngEndPsgCnt(),
-            0,
-            null,
-            0
-        ));
+		intervalList.add(ChknQueueInterval.tail(bgnMinute, MINUTE_PER_DAY - bgnMinute, last.getWtngEndPsgCnt()));
 	}
 
 	// 가중/단순 평균 처리시간
