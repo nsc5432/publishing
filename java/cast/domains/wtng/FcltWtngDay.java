@@ -63,7 +63,7 @@ public final class FcltWtngDay {
 		secMap.forEach((unitCd, secList) -> {
 			TreeMap<LocalDateTime, FcltWtngSec> unitMap = new TreeMap<>();
 
-			secList.forEach(sec -> unitMap.put(sec.getSecBgngDt(), sec));
+			secList.forEach(sec -> unitMap.put(sec.getSecEndDt(), sec));
 			secMapByUnit.put(unitCd, unitMap);
 		});
 	}
@@ -106,7 +106,7 @@ public final class FcltWtngDay {
 
 		TreeMap<LocalDateTime, FcltWtngSec> secMap = secMapByUnit.getOrDefault(unitCd, new TreeMap<>());
 
-		return secMap.subMap(evalDt.minusMinutes(WINDOW_MIN + (long) SEC_MIN), true, evalDt, false).values().stream()
+		return secMap.subMap(evalDt.minusMinutes(WINDOW_MIN), true, evalDt, true).values().stream()
 				.anyMatch(sec -> sec.getWtngNocs() > 0);
 	}
 
@@ -169,7 +169,7 @@ public final class FcltWtngDay {
 
 		Integer result = null;
 
-		for (FcltWtngSec sec : secMap.subMap(bgnDt, true, bgnDt.plusMinutes(minutes), false).values()) {
+		for (FcltWtngSec sec : secMap.subMap(bgnDt, false, bgnDt.plusMinutes(minutes), true).values()) {
 			Integer arrival = arrivalOf(secMap, sec);
 
 			if (arrival != null) {
@@ -234,7 +234,7 @@ public final class FcltWtngDay {
 		double prevWtngSecSum = 0;
 
 		for (TreeMap<LocalDateTime, FcltWtngSec> secMap : secMapByUnit.values()) {
-			FcltWtngSec prev = secMap.get(bgnDt.minusMinutes(SEC_MIN));
+			FcltWtngSec prev = secMap.get(bgnDt);
 
 			if (prev != null) {
 				hasPrev = true;
@@ -253,7 +253,7 @@ public final class FcltWtngDay {
 				}
 			}
 
-			for (FcltWtngSec sec : secMap.subMap(bgnDt, true, endDt, false).values()) {
+			for (FcltWtngSec sec : secMap.subMap(bgnDt, false, endDt, true).values()) {
 				Integer arrival = arrivalOf(secMap, sec);
 
 				if (arrival != null) {
@@ -476,14 +476,14 @@ public final class FcltWtngDay {
 
 		for (int secIndex = 0; secIndex < SEC_PER_WINDOW; secIndex++) {
 			FcltWtngSec sec = window[secIndex];
-			LocalDateTime secDt = bgnDt.plusMinutes((long) secIndex * SEC_MIN);
+			LocalDateTime secDt = bgnDt.plusMinutes((secIndex + 1L) * SEC_MIN);
 
 			if (sec == null) {
-				return "직전 " + WINDOW_MIN + "분(" + bgnDt + "부터)을 채울 시뮬레이션 결과가 없습니다. unitCd=" + unitCd + ", secBgngDt=" + secDt;
+				return "직전 " + WINDOW_MIN + "분(" + bgnDt + "부터)을 채울 시뮬레이션 결과가 없습니다. unitCd=" + unitCd + ", secEndDt=" + secDt;
 			}
 
 			if (!sec.isObsrvn()) {
-				return "직전 " + WINDOW_MIN + "분 중 시뮬레이션 결과가 없는 구간이 있습니다. unitCd=" + unitCd + ", secBgngDt=" + secDt;
+				return "직전 " + WINDOW_MIN + "분 중 시뮬레이션 결과가 없는 구간이 있습니다. unitCd=" + unitCd + ", secEndDt=" + secDt;
 			}
 		}
 
@@ -491,7 +491,7 @@ public final class FcltWtngDay {
 			int wtngNullPsgCnt = sec.getPrcsPsgCnt() - sec.getWtngVldPsgCnt();
 
 			if (wtngNullPsgCnt > 0) {
-				return "대기시간이 비어 있는 처리 여객 " + wtngNullPsgCnt + "명이 있습니다. unitCd=" + unitCd + ", secBgngDt=" + sec.getSecBgngDt();
+				return "대기시간이 비어 있는 처리 여객 " + wtngNullPsgCnt + "명이 있습니다. unitCd=" + unitCd + ", secEndDt=" + sec.getSecEndDt();
 			}
 		}
 
@@ -505,7 +505,7 @@ public final class FcltWtngDay {
 			LocalDateTime evalDt,
 			LinkedList<QueueWaitWindow.PsgGroup> psgGroupList
 	) {
-		FcltWtngSec last = secMap.get(evalDt.minusMinutes(SEC_MIN));
+		FcltWtngSec last = secMap.get(evalDt);
 
 		if (last == null || last.getEndWtngPsgCnt() == null) {
 			return "평가시각의 잔여 대기열을 확인할 수 없습니다. unitCd=" + unitCd + ", evalDt=" + evalDt;
@@ -517,7 +517,7 @@ public final class FcltWtngDay {
 		long remaining = (long) last.getEndWtngPsgCnt() * SEC_MIN;
 
 		for (int back = 0; back < lookbackMin && remaining > 0; back += SEC_MIN) {
-			FcltWtngSec sec = secMap.get(evalDt.minusMinutes((long) back + SEC_MIN));
+			FcltWtngSec sec = secMap.get(evalDt.minusMinutes(back));
 			Integer arrival = sec == null ? null : arrivalOf(secMap, sec);
 
 			if (sec == null || !sec.isObsrvn() || arrival == null) {
@@ -542,7 +542,7 @@ public final class FcltWtngDay {
 	}
 
 	private static Integer bgngQueueOf(TreeMap<LocalDateTime, FcltWtngSec> secMap, FcltWtngSec sec) {
-		FcltWtngSec prev = secMap.get(sec.getSecBgngDt().minusMinutes(SEC_MIN));
+		FcltWtngSec prev = secMap.get(sec.getSecEndDt().minusMinutes(SEC_MIN));
 		return prev == null ? null : prev.getEndWtngPsgCnt();
 	}
 
@@ -559,7 +559,7 @@ public final class FcltWtngDay {
 			return List.of();
 		}
 
-		return new ArrayList<>(secMap.subMap(bgnDt, true, bgnDt.plusMinutes(minutes), false).values());
+		return new ArrayList<>(secMap.subMap(bgnDt, false, bgnDt.plusMinutes(minutes), true).values());
 	}
 
 	private FcltWtngSec[] windowOf(String unitCd, LocalDateTime evalDt) {
@@ -570,7 +570,7 @@ public final class FcltWtngDay {
 		LocalDateTime bgnDt = evalDt.minusMinutes(WINDOW_MIN);
 
 		for (int secIndex = 0; secIndex < SEC_PER_WINDOW; secIndex++) {
-			result[secIndex] = secMap.get(bgnDt.plusMinutes((long) secIndex * SEC_MIN));
+			result[secIndex] = secMap.get(bgnDt.plusMinutes((secIndex + 1L) * SEC_MIN));
 		}
 
 		return result;

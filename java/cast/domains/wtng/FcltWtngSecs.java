@@ -85,11 +85,11 @@ public final class FcltWtngSecs {
 						+ ", expected=" + expectedCnt + ", actual=" + (secList == null ? 0 : secList.size());
 			}
 
-			LocalDateTime expectedDt = rangeStart;
+			LocalDateTime expectedDt = rangeStart.plusMinutes(SEC_MIN);
 
 			for (FcltWtngSec sec : secList) {
-				if (!expectedDt.equals(sec.getSecBgngDt())) {
-					return "시설 결과 구간이 비었거나 중복되었습니다. unitCd=" + unitCd + ", expected=" + expectedDt + ", actual=" + sec.getSecBgngDt();
+				if (!expectedDt.equals(sec.getSecEndDt())) {
+					return "시설 결과 구간이 비었거나 중복되었습니다. unitCd=" + unitCd + ", expected=" + expectedDt + ", actual=" + sec.getSecEndDt();
 				}
 
 				expectedDt = expectedDt.plusMinutes(SEC_MIN);

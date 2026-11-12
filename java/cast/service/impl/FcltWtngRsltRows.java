@@ -49,7 +49,7 @@ final class FcltWtngRsltRows {
 				row.setTmnlId(tmnlId.getValue());
 				row.setFcltTypeCd(fcltType.getValue());
 				row.setFcltUnitCd(unitCd);
-				row.setSecBgngDt(sec.getSecBgngDt());
+				row.setSecEndDt(sec.getSecEndDt());
 				row.setEndWtngPsgCnt(sec.getEndWtngPsgCnt());
 				row.setPrcsPsgCnt(sec.getPrcsPsgCnt());
 				row.setWtngPsecSum(toPsec(sec.getWtngPsecSum(), unitCd, sec));
@@ -65,7 +65,7 @@ final class FcltWtngRsltRows {
 				row.setObsrvnYn(sec.isObsrvn() ? YN_Y : YN_N);
 
 				if (hasOutOfRangeMetric(row)) {
-					throw new IllegalStateException("시설 수치가 NUMBER(12,0) 범위를 넘습니다. unitCd=" + unitCd + ", secBgngDt=" + sec.getSecBgngDt());
+					throw new IllegalStateException("시설 수치가 NUMBER(12,0) 범위를 넘습니다. unitCd=" + unitCd + ", secEndDt=" + sec.getSecEndDt());
 				}
 
 				result.add(row);
@@ -78,25 +78,25 @@ final class FcltWtngRsltRows {
 	/** 행 자체가 잘못됐으면 사유. 정상이면 null */
 	static String findInvalidRow(List<FcltWtngRsltDto> rowList) {
 		for (FcltWtngRsltDto row : rowList) {
-			if (row.getSecBgngDt() == null || !FcltWtngSecs.isSecBoundary(row.getSecBgngDt())) {
-				return "10분 경계가 아닌 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secBgngDt=" + row.getSecBgngDt();
+			if (row.getSecEndDt() == null || !FcltWtngSecs.isSecBoundary(row.getSecEndDt())) {
+				return "10분 경계가 아닌 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secEndDt=" + row.getSecEndDt();
 			}
 
 			if (!YN_Y.equals(row.getObsrvnYn()) && !YN_N.equals(row.getObsrvnYn())) {
-				return "관측여부가 Y / N 이 아닌 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secBgngDt=" + row.getSecBgngDt();
+				return "관측여부가 Y / N 이 아닌 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secEndDt=" + row.getSecEndDt();
 			}
 
 			if (row.getWtngPsecSum() == null || row.getPrcsPsecSum() == null) {
-				return "시간 합계가 비어 있는 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secBgngDt=" + row.getSecBgngDt();
+				return "시간 합계가 비어 있는 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secEndDt=" + row.getSecEndDt();
 			}
 
 			if (row.getWtngPsecSum().stripTrailingZeros().scale() > PSEC_SCALE
 					|| row.getPrcsPsecSum().stripTrailingZeros().scale() > PSEC_SCALE) {
-				return "초단위 합계가 정수가 아닌 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secBgngDt=" + row.getSecBgngDt();
+				return "초단위 합계가 정수가 아닌 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secEndDt=" + row.getSecEndDt();
 			}
 
 			if (hasOutOfRangeMetric(row)) {
-				return "시설 수치가 NUMBER(12,0) 범위를 넘는 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secBgngDt=" + row.getSecBgngDt();
+				return "시설 수치가 NUMBER(12,0) 범위를 넘는 저장 행이 있습니다. unitCd=" + row.getFcltUnitCd() + ", secEndDt=" + row.getSecEndDt();
 			}
 		}
 
@@ -110,7 +110,7 @@ final class FcltWtngRsltRows {
 		for (FcltWtngRsltDto row : rowList) {
 			result.computeIfAbsent(row.getFcltUnitCd(), ignored -> new ArrayList<>()).add(FcltWtngSec.builder()
 					.unitCd(row.getFcltUnitCd())
-					.secBgngDt(row.getSecBgngDt())
+					.secEndDt(row.getSecEndDt())
 					.endWtngPsgCnt(row.getEndWtngPsgCnt())
 					.prcsPsgCnt(row.getPrcsPsgCnt())
 					.wtngPsecSum(row.getWtngPsecSum().doubleValue())
@@ -146,7 +146,7 @@ final class FcltWtngRsltRows {
 	private static BigDecimal toPsec(double value, String unitCd, FcltWtngSec sec) {
 		if (!Double.isFinite(value) || BigDecimal.valueOf(value).stripTrailingZeros().scale() > PSEC_SCALE) {
 			throw new IllegalStateException("초단위 합계는 유한한 정수여야 합니다. unitCd=" + unitCd
-					+ ", secBgngDt=" + sec.getSecBgngDt() + ", value=" + value);
+					+ ", secEndDt=" + sec.getSecEndDt() + ", value=" + value);
 		}
 
 		return BigDecimal.valueOf(value).setScale(PSEC_SCALE);

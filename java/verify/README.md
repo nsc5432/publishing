@@ -10,6 +10,8 @@ $verifyOut = Join-Path $env:TEMP 'pm-wtng-verify'
 New-Item -ItemType Directory -Force -Path $verifyOut | Out-Null
 javac -encoding UTF-8 -classpath "$env:PM_VERIFY_CLASSPATH;$env:PM_VERIFY_LOMBOK_JAR" `
     -processorpath $env:PM_VERIFY_LOMBOK_JAR -d $verifyOut `
+    java/cast/domains/chkn/ChknWtngSecBuilder.java `
+    java/cast/domains/dsbd/DepWtngSecBuilder.java `
     java/cast/domains/queue/QueueWaitWindow.java `
     java/cast/domains/queue/WaitAvgForecast.java `
     java/cast/domains/wtng/FcltWtngDay.java `
@@ -25,9 +27,11 @@ java -cp "$verifyOut;$env:PM_VERIFY_CLASSPATH" aoms.pm.cast.service.impl.FcltWtn
 python java/verify/verify_chkn_booth_overnight.py
 ```
 
-- Java 76개 검사: 등급 경계와 전후 값, 카드 · 팝업 · 예측 시작시각 평균 일치, 미관측 과거 이력,
+- Java 시설 대기 검사: 등급 경계와 전후 값, 카드 · 팝업 · 예측 시작시각 평균 일치, 미관측 과거 이력,
   미확인 경계 큐, 관측된 이력 복원, 확인된 빈 큐, 기존 생성자 호환.
-- Java 37개 정수 시간 합계 검사: 저장 · 조회 변환, 소수 · 비유한 합계 거부, 기존 소수 평균 보존,
+  `SEC_END_DT` 기준 10:10 · 당일 자정 · 익일 자정 경계, 직전 10분과 향후 30분 · 1시간 집계,
+  체크인 · 출국장 원천 변환, 저장 범위 완전성과 잔여 대기열 복원을 포함한다.
+- Java 정수 시간 합계 검사: 종료시각과 수치의 저장 · 조회 변환, 소수 · 비유한 합계 거부, 기존 소수 평균 보존,
   12자리 최댓값 허용 및 시간 · 큐 · 용량 · 운영대수 합계의 범위 초과 거부.
 - Python 28개 검사: 실제 Mapper의 CASE 식을 추출해 CAST 발행 SQL과 대조한다.
   익일 플래그, 자정 통과, LAST/EST 우선순위와 NULL 플래그를 검사한다.

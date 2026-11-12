@@ -93,7 +93,7 @@ public final class DepWtngSecBuilder {
 
 		return FcltWtngSec.builder()
 				.unitCd(unitCd)
-				.secBgngDt(bgnDt)
+				.secEndDt(endDt)
 				.endWtngPsgCnt(endQueue)
 				.prcsPsgCnt(prcs)
 				.wtngPsecSum(end == null ? 0 : end.wtngSecSum)

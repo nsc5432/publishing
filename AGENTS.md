@@ -853,11 +853,16 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 
 ## 15. 체크인 · 출국장 10분 대기 결과
 
-CAST 결과 수신 커밋 후 실행 · 모델마다 `TN_PM_SMLT_FCLT_WTNG_RSLT`에 10분 기본 통계를 한 번 저장하고,
+CAST 결과 수신 트랜잭션 안에서 실행 · 모델마다 `TN_PM_SMLT_FCLT_WTNG_RSLT`에 10분 기본 통계를 한 번 저장하고,
 카드 · 맵 · 체크인 상세 · 혼잡해소 팝업 · 출국장 화면의 등급 · 추천 · 해소는 이 통계를 읽는 공통 평가
 `domains/wtng/FcltWtngDay` 하나로 계산한다 ([설계 · 구현](docs/plans/2026-10-24-fclt-wtng-rslt-db-design.md) §12 · §14).
 
 `TN_PM_SMLT_FCLT_WTNG_RSLT` 는 2026-10-26 컬럼을 줄였다. 시작 대기 · 도착은 앞 행 종료 대기로 도출하고 관측은 `OBSRVN_YN` 만 둔다 ([계획](docs/plans/2026-10-26-fclt-wtng-rslt-slim.md)).
+
+2026-11-13 구간 키를 `SEC_BGNG_DT`에서 `SEC_END_DT`로 변경했다. 한 행은 `[SEC_END_DT−10분, SEC_END_DT)`이며,
+원천 `SMLT_ACTL_DT`와 같은 구간 종료시각을 저장한다. 평가시각 t의 현재 결과는 `SEC_END_DT = t`,
+앞으로의 `[t, u)` 집계는 종료시각 `(t, u]`를 읽는다. 수신 · 조회를 중지한 상태에서
+`java/ddl/2026-11-13-fclt-wtng-rslt-sec-end.sql`로 기존 시각을 10분 이동하고 새 코드를 배포한다.
 
 이 테이블의 데이터 수치 컬럼은 표본 수 `WTNG_NOCS` 만 `NUMBER(2,0)`, 나머지 11개는 `NUMBER(12,0)` 을 쓴다. `WTNG_PSEC_SUM` · `PRCS_PSEC_SUM` 은 정수 초 합계다. 저장 · 조회 경계에서 소수 합계와 12자리 범위 초과를 거부하며, 평균 · 1분 분배의 소수 계산은 유지한다.
 

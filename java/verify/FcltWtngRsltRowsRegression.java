@@ -12,16 +12,18 @@ import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.TerminalKind;
 
 public final class FcltWtngRsltRowsRegression {
-    private static final LocalDateTime START = LocalDateTime.of(2026, 10, 26, 10, 0);
+    private static final LocalDateTime END = LocalDateTime.of(2026, 10, 26, 10, 10);
     private static int checks;
 
     public static void main(String[] args) {
         for (FcltType type : List.of(FcltType.CHKN, FcltType.DEP, FcltType.SC)) {
             FcltWtngRsltDto row = rows(type, 61, 120).get(0);
+            equal(END, row.getSecEndDt(), type + " stored ending timestamp");
             equal(new BigDecimal("61"), row.getWtngPsecSum(), type + " integer wait sum");
             equal(new BigDecimal("120"), row.getPrcsPsecSum(), type + " integer processing sum");
             equal(null, FcltWtngRsltRows.findInvalidRow(List.of(row)), type + " valid row");
             FcltWtngSec restored = FcltWtngRsltRows.toSecMap(List.of(row)).get("A").get(0);
+            equal(END, restored.getSecEndDt(), type + " ending timestamp round trip");
             equal(61.0, restored.getWtngPsecSum(), type + " wait round trip");
             equal(120.0, restored.getPrcsPsecSum(), type + " processing round trip");
             equal(30.5, restored.getWtngPsecSum() / restored.getWtngVldPsgCnt(), type + " fractional average preserved");
@@ -45,6 +47,11 @@ public final class FcltWtngRsltRowsRegression {
         stored.setPrcsPsecSum(new BigDecimal("120.000001"));
         equal(true, FcltWtngRsltRows.findInvalidRow(List.of(stored)) != null, "fractional stored processing rejected");
         checkMetricRange();
+        FcltWtngRsltDto invalidEnd = rows(FcltType.CHKN, 61, 120).get(0);
+        invalidEnd.setSecEndDt(END.plusMinutes(1));
+        equal(true, FcltWtngRsltRows.findInvalidRow(List.of(invalidEnd)) != null, "non-boundary ending timestamp rejected");
+        invalidEnd.setSecEndDt(null);
+        equal(true, FcltWtngRsltRows.findInvalidRow(List.of(invalidEnd)) != null, "missing ending timestamp rejected");
         System.out.println("PASS " + checks + " integer time sum regression checks");
     }
 
@@ -85,7 +92,7 @@ public final class FcltWtngRsltRowsRegression {
     private static FcltWtngSec metricSec(double waitSum, double processingSum, long queueSum, long capacity, long operatingSum) {
         return FcltWtngSec.builder()
                 .unitCd("A")
-                .secBgngDt(START)
+                .secEndDt(END)
                 .wtngPsecSum(waitSum)
                 .prcsPsecSum(processingSum)
                 .wtngPsgCntSum(queueSum)
@@ -98,7 +105,7 @@ public final class FcltWtngRsltRowsRegression {
     private static List<FcltWtngRsltDto> rows(FcltType type, double waitSum, double processingSum) {
         FcltWtngSec sec = FcltWtngSec.builder()
                 .unitCd("A")
-                .secBgngDt(START)
+                .secEndDt(END)
                 .prcsPsgCnt(2)
                 .wtngPsecSum(waitSum)
                 .wtngVldPsgCnt(2)

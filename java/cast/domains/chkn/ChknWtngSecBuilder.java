@@ -98,7 +98,7 @@ public final class ChknWtngSecBuilder {
 
 		return FcltWtngSec.builder()
 				.unitCd(island)
-				.secBgngDt(dayStart.plusMinutes(bgn))
+				.secEndDt(dayStart.plusMinutes(end))
 				.endWtngPsgCnt(series.queueAt(end - 1))
 				.prcsPsgCnt(processed)
 				.wtngPsecSum((double) waitMinSum * SEC_PER_MIN)

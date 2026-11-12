@@ -1,5 +1,6 @@
 package aoms.pm.cast.verify;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -9,11 +10,20 @@ import java.util.Map;
 import java.util.Objects;
 
 import aoms.pm.cast.domains.CgnGradeScale;
+import aoms.pm.cast.domains.chkn.ChknQueueCalculator;
+import aoms.pm.cast.domains.chkn.ChknQueueInterval;
+import aoms.pm.cast.domains.chkn.ChknQueueSeries;
+import aoms.pm.cast.domains.chkn.ChknQueueTrajectory;
+import aoms.pm.cast.domains.chkn.ChknWtngSecBuilder;
+import aoms.pm.cast.domains.dsbd.DepQueueDay;
+import aoms.pm.cast.domains.dsbd.DepWtngSecBuilder;
 import aoms.pm.cast.domains.queue.QueueWaitWindow;
 import aoms.pm.cast.domains.wtng.FcltQueueClearance;
 import aoms.pm.cast.domains.wtng.FcltWtngDay;
 import aoms.pm.cast.domains.wtng.FcltWtngSec;
+import aoms.pm.cast.domains.wtng.FcltWtngSecs;
 import aoms.pm.cast.dto.PsgPrcsGradeRawDto;
+import aoms.pm.cast.dto.SmltRsltRawDto;
 import aoms.pm.cast.enums.CongestionStatus;
 import aoms.pm.cast.enums.FcltType;
 import aoms.pm.cast.enums.TerminalKind;
@@ -31,16 +41,20 @@ public final class FcltWtngRegression {
         checkBoundary(2401, CongestionStatus.BUSY);
         checkPsgGroupValidity();
         checkLegacyWindow();
+        checkEndDt(BASE.atTime(10, 10));
+        checkEndDt(BASE.atStartOfDay());
+        checkEndDt(BASE.atTime(23, 0));
+        checkBuilders();
         System.out.println("PASS " + checks + " facility waiting regression checks");
     }
 
     private static void checkBoundary(int waitSec, CongestionStatus expectedGrade) {
         for (FcltType type : List.of(FcltType.CHKN, FcltType.DEP, FcltType.SC)) {
             List<FcltWtngSec> rows = new ArrayList<>();
-            rows.add(row(EVAL.minusMinutes(40), 0, 0, 0, true, type));
+            rows.add(row(EVAL.minusMinutes(30), 0, 0, 0, true, type));
 
             for (int index = 0; index < 3; index++) {
-                rows.add(row(EVAL.minusMinutes(30 - index * 10L), 0, 1, waitSec, true, type));
+                rows.add(row(EVAL.minusMinutes(20 - index * 10L), 0, 1, waitSec, true, type));
             }
 
             FcltWtngDay day = day(type, rows);
@@ -49,7 +63,7 @@ public final class FcltWtngRegression {
 
             equal((double) waitSec, day.avgWtngSecOf("A", EVAL).getValue(), context + " observed average");
             equal(expectedGrade, day.gradeOf("A", EVAL).getValue(), context + " grade");
-            equal(3.0, day.waitWindowOf("A", EVAL).observedPrcsPsgCnt(), context + " processed total");
+            equal(1.0, day.waitWindowOf("A", EVAL).observedPrcsPsgCnt(), context + " processed total");
             equal((double) waitSec, day.sourceOf("A", EVAL).getAvgWtngSec(), context + " source average");
             equal((double) waitSec, clearance.getObservedWait().getValue(), context + " popup average");
             equal((double) waitSec, clearance.clearOf(1, 0).getFcstWtngSec().getValue(), context + " forecast at zero");
@@ -73,10 +87,10 @@ public final class FcltWtngRegression {
         equal(true, observed.clearanceOf("A", EVAL).clearOf(1, 30).getClearSec().hasValue(), "observed older row supports clearance");
 
         List<FcltWtngSec> emptyQueue = new ArrayList<>();
-        emptyQueue.add(row(EVAL.minusMinutes(40), 3, 2, 7200, false));
+        emptyQueue.add(row(EVAL.minusMinutes(30), 3, 2, 7200, false));
 
         for (int index = 0; index < 3; index++) {
-            emptyQueue.add(row(EVAL.minusMinutes(30 - index * 10L), 2 - index, 1, 1200, true));
+            emptyQueue.add(row(EVAL.minusMinutes(20 - index * 10L), 2 - index, 1, 1200, true));
         }
 
         FcltWtngDay empty = day(FcltType.CHKN, emptyQueue);
@@ -90,43 +104,132 @@ public final class FcltWtngRegression {
     }
 
     private static void checkLegacyWindow() {
-        double[] processed = new double[30];
-        double[] waits = new double[30];
+        double[] processed = new double[QueueWaitWindow.WINDOW_MIN];
+        double[] waits = new double[QueueWaitWindow.WINDOW_MIN];
         Arrays.fill(processed, 1);
         Arrays.fill(waits, 60);
         QueueWaitWindow window = new QueueWaitWindow(processed, waits, null, List.of(), null);
-        equal(30.0, window.observedPrcsPsgCnt(), "legacy constructor processed total");
+        equal((double) QueueWaitWindow.WINDOW_MIN, window.observedPrcsPsgCnt(), "legacy constructor processed total");
         equal(60.0, window.observedAvgWtngSec().getValue(), "legacy constructor average");
+    }
+
+    private static void checkEndDt(LocalDateTime eval) {
+        for (FcltType type : List.of(FcltType.CHKN, FcltType.DEP, FcltType.SC)) {
+            List<FcltWtngSec> rows = new ArrayList<>();
+
+            for (int index = -2; index <= 7; index++) {
+                int processed = (index + 3) * 10;
+                rows.add(row(eval.plusMinutes(index * 10L), index + 3, processed, processed * 60.0, true, type));
+            }
+
+            FcltWtngDay day = day(type, rows);
+            String context = type + " eval=" + eval;
+
+            equal(3, day.windowSlotOf("A", eval).getCurrentQueue(), context + " snapshot queue");
+            equal(30, day.windowSlotOf("A", eval).getPrcsPsgCnt(), context + " preceding ten-minute processing");
+            equal(30.0, day.waitWindowOf("A", eval).observedPrcsPsgCnt(), context + " observed processing");
+            equal(60.0, day.avgWtngSecOf("A", eval).getValue(), context + " observed wait");
+            equal(3, day.intrvlOf(eval, eval.plusHours(1)).getWtngPsgCnt(), context + " summary snapshot");
+            equal(30, day.intrvlOf(eval, eval.plusHours(1)).getIntvPrcsPsgCnt(), context + " summary ten-minute processing");
+            equal(31, day.intrvlOf(eval, eval.plusHours(1)).getIntvArvlPsgCnt(), context + " summary ten-minute arrivals");
+            equal(390, day.intrvlOf(eval, eval.plusHours(1)).getPrcsPsgCnt(), context + " next-hour processing");
+            equal(396, day.arvlPsgCntOf("A", eval, 60), context + " next-hour arrivals");
+            equal(150, day.slotOf("A", eval, 30).getPrcsPsgCnt(), context + " thirty-minute processing");
+            equal(6, day.slotOf("A", eval, 30).getCurrentQueue(), context + " thirty-minute ending queue");
+            equal(150.0, day.cmprOf(List.of("A"), eval, 30).getAvgPrcsPsgCnt(), context + " comparison processing");
+            equal(3.0, day.waitWindowOf("A", eval).queuePsgCnt(), context + " reconstructed queue");
+
+            Map<String, List<FcltWtngSec>> scope = Map.of("A", rows.subList(3, 6));
+            equal(null, FcltWtngSecs.findGap(scope, List.of("A"), eval, eval.plusMinutes(30)), context + " complete scope");
+            equal(true, FcltWtngSecs.findGap(Map.of("A", rows.subList(2, 5)), List.of("A"), eval, eval.plusMinutes(30)) != null,
+                    context + " start-based scope rejected");
+            equal(true, day(type, List.of(rows.get(1))).hasResult("A", eval), context + " beginning snapshot present");
+            equal(false, day(type, List.of(rows.get(0))).hasResult("A", eval), context + " older snapshot excluded");
+            equal(false, day(type, List.of(rows.get(3))).hasResult("A", eval), context + " future snapshot excluded");
+        }
+    }
+
+    private static void checkBuilders() {
+        LocalDateTime midnight = BASE.atStartOfDay();
+        LocalDateTime end = BASE.atTime(10, 10);
+        ChknQueueSeries series = ChknQueueCalculator.calculate("A", List.of(
+                new ChknQueueInterval(-10, 10, 10, 10, BigDecimal.valueOf(60), 1),
+                new ChknQueueInterval(600, 10, 20, 20, BigDecimal.valueOf(60), 2),
+                new ChknQueueInterval(1430, 10, 30, 10, BigDecimal.valueOf(60), 1)),
+                new int[1440], BigDecimal.valueOf(60), -10);
+        boolean[] covered = new boolean[1450];
+        Arrays.fill(covered, true);
+        ChknQueueTrajectory trajectory = new ChknQueueTrajectory(TerminalKind.T1, BASE, -10, covered, Map.of("A", series));
+        List<FcltWtngSec> chknRows = ChknWtngSecBuilder.build(trajectory).get("A");
+        FcltWtngSec chkn = chknRows.stream().filter(sec -> end.equals(sec.getSecEndDt())).findFirst().orElseThrow();
+
+        equal(midnight, chknRows.get(0).getSecEndDt(), "CHKN preceding-day interval ends at midnight");
+        equal(midnight.plusDays(1), chknRows.get(chknRows.size() - 1).getSecEndDt(), "CHKN last interval ends next midnight");
+        equal(20, chkn.getEndWtngPsgCnt(), "CHKN 10:10 ending queue");
+        equal(20, chkn.getPrcsPsgCnt(), "CHKN 10:10 preceding interval processing");
+        equal(null, FcltWtngSecs.findGap(Map.of("A", chknRows), List.of("A"),
+                ChknWtngSecBuilder.rangeStartOf(BASE, -10), ChknWtngSecBuilder.rangeEndOf(BASE)), "CHKN complete ending range");
+
+        for (FcltType type : List.of(FcltType.DEP, FcltType.SC)) {
+            DepQueueDay source = new DepQueueDay(TerminalKind.T1, List.of(
+                    raw(end.minusMinutes(10), 2, 5), raw(end, 7, 11), raw(midnight.plusDays(1), 9, 13)),
+                    type == FcltType.SC ? Map.of("A", 4) : Map.of());
+            LocalDateTime rangeStart = DepWtngSecBuilder.rangeStartOf(BASE, source.firstResultDt());
+            LocalDateTime rangeEnd = DepWtngSecBuilder.rangeEndOf(BASE);
+            Map<String, List<FcltWtngSec>> secMap = DepWtngSecBuilder.build(source, List.of("A"), rangeStart, rangeEnd);
+            List<FcltWtngSec> rows = secMap.get("A");
+            FcltWtngSec dep = rows.stream().filter(sec -> end.equals(sec.getSecEndDt())).findFirst().orElseThrow();
+
+            equal(7, dep.getEndWtngPsgCnt(), type + " raw 10:10 queue retained");
+            equal(11, dep.getPrcsPsgCnt(), type + " raw 10:10 processing retained");
+            equal(660.0, dep.getWtngPsecSum(), type + " raw 10:10 wait sum retained");
+            equal(true, dep.isObsrvn(), type + " both raw boundaries observed");
+            equal(type == FcltType.SC ? 4 : null, dep.getEndOperCntom(), type + " operating count retained");
+            equal(midnight.plusDays(1), rows.get(rows.size() - 1).getSecEndDt(), type + " next-midnight snapshot retained");
+            equal(9, rows.get(rows.size() - 1).getEndWtngPsgCnt(), type + " next-midnight queue retained");
+            equal(null, FcltWtngSecs.findGap(secMap, List.of("A"), rangeStart, rangeEnd), type + " complete ending range");
+        }
+    }
+
+    private static SmltRsltRawDto raw(LocalDateTime end, int queue, int processed) {
+        SmltRsltRawDto result = new SmltRsltRawDto();
+        result.setUnitCd("A");
+        result.setSmltActlDt(end);
+        result.setWtngPsgCnt(queue);
+        result.setTrnstPsgCnt(processed);
+        result.setWtngSecSum(processed * 60.0);
+        result.setPrcsHr(60);
+        return result;
     }
 
     private static List<FcltWtngSec> queueRows(boolean observed, Integer beginning, Integer ending) {
         List<FcltWtngSec> rows = new ArrayList<>();
 
         if (beginning != null) {
-            rows.add(row(EVAL.minusMinutes(50), beginning, 0, 0, observed));
+            rows.add(row(EVAL.minusMinutes(40), beginning, 0, 0, observed));
         }
 
-        rows.add(row(EVAL.minusMinutes(40), ending, 2, 7200, observed));
+        rows.add(row(EVAL.minusMinutes(30), ending, 2, 7200, observed));
 
         for (int index = 0; index < 3; index++) {
-            rows.add(row(EVAL.minusMinutes(30 - index * 10L), 7 - index, 1, 3600, true));
+            rows.add(row(EVAL.minusMinutes(20 - index * 10L), 7 - index, 1, 3600, true));
         }
 
         return rows;
     }
 
-    private static FcltWtngSec row(LocalDateTime start, Integer ending,
+    private static FcltWtngSec row(LocalDateTime end, Integer ending,
             int processed, double waitSecSum, boolean observed) {
-        return row(start, ending, processed, waitSecSum, observed, FcltType.CHKN);
+        return row(end, ending, processed, waitSecSum, observed, FcltType.CHKN);
     }
 
-    private static FcltWtngSec row(LocalDateTime start, Integer ending,
+    private static FcltWtngSec row(LocalDateTime end, Integer ending,
             int processed, double waitSecSum, boolean observed, FcltType type) {
         int samples = type == FcltType.CHKN ? 10 : 1;
 
         return FcltWtngSec.builder()
                 .unitCd("A")
-                .secBgngDt(start)
+                .secEndDt(end)
                 .endWtngPsgCnt(ending)
                 .prcsPsgCnt(processed)
                 .wtngPsecSum(waitSecSum)

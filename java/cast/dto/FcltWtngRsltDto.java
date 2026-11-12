@@ -29,7 +29,7 @@ public class FcltWtngRsltDto {
 	private String tmnlId;
 	private String fcltTypeCd;
 	private String fcltUnitCd;
-	private LocalDateTime secBgngDt;
+	private LocalDateTime secEndDt;
 	private Integer endWtngPsgCnt;
 	private int prcsPsgCnt;
 	private BigDecimal wtngPsecSum;
