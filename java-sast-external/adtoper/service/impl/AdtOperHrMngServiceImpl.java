@@ -19,8 +19,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import javax.annotation.processing.FilerException;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -559,7 +557,7 @@ public class AdtOperHrMngServiceImpl implements AdtOperHrMngService {
 	// 공문 다운로드 (.hwpx)
 	@SuppressWarnings("PMD.AvoidCatchingGenericException") // HWPXReader 라이브러리 내부에서 Exception 을 던지기 때문에 예외처리
 	@Override
-	public String[] downloadAdtOperHrMng(int mstrSeq, String webAppPath, boolean arrCheck, boolean depCheck, boolean tsCheck) throws FilerException {
+	public String[] downloadAdtOperHrMng(int mstrSeq, String webAppPath, boolean arrCheck, boolean depCheck, boolean tsCheck) throws Exception {
 		List<AdtOperHrMngDto> targetList = new ArrayList<>(adtOperHrTimelineService.retrieveDeploymentTimeline(mstrSeq));
 		String serverDirPath = webAppPath + File.separator + "template";
 
@@ -602,18 +600,14 @@ public class AdtOperHrMngServiceImpl implements AdtOperHrMngService {
 		Set<String> highlightKeys = new HashSet<>();
 		Map<String, String> variables = makeReplaceMap(list, highlightKeys);
 
-		try {
-			HWPXFile hwpxFile = HWPXReader.fromFilepath(srcFilePath);
-			deleteTemplateRows(hwpxFile, list, arrCheck, depCheck, tsCheck);
-			new HwpxUtils(hwpxFile)
-		        .setAll(variables)
-		        .setHighlightKeys(highlightKeys)
-		        .process()
-		        .clearEmptyContentByTableCnt(tableCnt)
-		        .save(destFilePath);
-		} catch (Exception ex) {
-			throw new FilerException(ex.getMessage());
-		}
+		HWPXFile hwpxFile = HWPXReader.fromFilepath(srcFilePath);
+		deleteTemplateRows(hwpxFile, list, arrCheck, depCheck, tsCheck);
+		new HwpxUtils(hwpxFile)
+	        .setAll(variables)
+	        .setHighlightKeys(highlightKeys)
+	        .process()
+	        .clearEmptyContentByTableCnt(tableCnt)
+	        .save(destFilePath);
 
 		return new String[] {destFilePath, destFileName};
 	}

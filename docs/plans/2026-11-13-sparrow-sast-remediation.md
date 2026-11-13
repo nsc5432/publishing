@@ -62,6 +62,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 |---|---|---|
 | `java-sast-external/adtoper/controller/AdtOperHrMngController.java` | 34 | 경로 조작 12 · 자원 삽입 16 · HTTP 응답 분할 6 |
 | `java-sast-external/adtoper/service/impl/AdtOperHrMngServiceImpl.java` | 1 | 부적절한 예외 처리 |
+| `java-sast-external/adtoper/service/AdtOperHrMngService.java` | 0 | 9단계 시그니처 변경용 추가 입고 (2026-11-13) |
 | `java-sast-external/bdpsgance/controller/BdpsgAnceInqController.java` | 10 | 경로 조작 4 · 자원 삽입 4 · HTTP 응답 분할 2 |
 | `java-sast-external/castrest/service/impl/CastRestServiceImpl.java` | 10 | 세션 간 데이터 누출 4 · 표준 널 반환 4 · XXE 1 · 정수 오버플로우 1 |
 
@@ -105,7 +106,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 | 6 | `UNCHECKED_NULL` | 누락된 널 값 검사 | 3 | 3 / 0 | 레포 반영 |
 | 7 | `SQL_INJECTION.MYBATIS` | myBatis에서의 SQL 삽입 | 68 | 68 / 0 | 레포 반영 |
 | 8 | `DATA_LEAK_BETWEEN_SESSIONS` | 세션 간 데이터 누출 | 4 | 0 / 4 (castrest) | 레포 반영 |
-| 9 | `IMPROPER_CHECK_FOR_UNUSUAL_OR_EXCEPTIONAL_CONDITION` | 부적절한 예외 처리 | 1 | 0 / 1 | 대기 |
+| 9 | `IMPROPER_CHECK_FOR_UNUSUAL_OR_EXCEPTIONAL_CONDITION` | 부적절한 예외 처리 | 1 | 0 / 1 | 레포 반영 |
 | 10 | `PATH_TRAVERSAL` | 경로 조작 | 16 | 0 / 16 | 대기 |
 | 11 | `RESOURCE_INJECTION` | 자원 삽입 | 20 | 0 / 20 | 대기 |
 | 12 | `HTTP_RESPONSE_SPLITTING` | HTTP 응답 분할 | 8 | 0 / 8 | 대기 |
@@ -553,7 +554,21 @@ WhatIfDefinitionTable 매핑) · 결과 삭제 응답이 변경 전과 같은지
   그 타입만 잡는다. unchecked 예외는 잡지 않고 전파한다.
 - `FilerException(ex.getMessage())` 는 원인을 잃는다. 원인을 실을 수 있는 생성자가 있으면 쓰고, 없으면 메시지 형식만 유지한다.
 
-**결과**: (작성)
+**결과**: 레포 반영 (2026-11-13) — 위 조치(구체 타입만 catch)는 불가능해 **예외 전파**로 바꿨다 (사용자 결정).
+
+- 원인: hwpxlib 의 `HWPXReader.fromFilepath` · `HWPXWriter.toFilepath`(→ `HwpxUtils.save`) 가 공개 메서드부터 `throws Exception` 만 선언한다
+  (원본 소스 확인). 내부에서는 `IOException` · XML 파서 예외가 나지만 선언이 `Exception` 이라 구체 타입만 잡으면 컴파일되지 않는다.
+- try/catch 를 없애고 `Exception` 을 위로 던진다. 시그니처를 `throws FilerException` → `throws Exception` 으로 바꿨다:
+  `AdtOperHrMngServiceImpl.downloadAdtOperHrMng` · 인터페이스 `AdtOperHrMngService`(2026-11-13 `java-sast-external/adtoper/service/` 에 추가 입고) ·
+  `AdtOperHrMngController.downloadAdtOperHrMng`. 세 파일의 `FilerException` import 를 지웠다. `BdpsgAnceInqController` 다운로드가 이미 `throws Exception` 이다.
+- 동작 차이: 실패 시 `FilerException(메시지)` 대신 원래 예외(`IOException` 등)가 원인 그대로 Spring 까지 올라간다. 응답 파일은 서비스가 끝난 뒤에 쓰므로
+  중간까지 쓰인 응답은 없다.
+- 남은 것: 메서드 위 `@SuppressWarnings("PMD.AvoidCatchingGenericException") // HWPXReader 라이브러리 내부에서 Exception 을 던지기 때문에 예외처리`
+  는 catch 가 없어져 필요 없지만 기존 주석이 붙어 있어 그대로 두었다. `deleteTemplateRows` 의 `throws Exception`(본문에 검사 예외 없음)도 그대로다.
+- `git diff --check` 통과. 이 레포에서는 컴파일 불가(§0.3).
+
+**실백엔드 확인 대기**: 빌드(인터페이스 · 구현 · 컨트롤러 시그니처 일치), PMD 에 `SignatureDeclareThrowsException` 이 켜져 있는지, 공문 다운로드 정상 · 템플릿 누락 시
+오류 응답(전역 예외 처리 · 화면 메시지)이 받아들일 만한지, Sparrow 재분석.
 
 ---
 

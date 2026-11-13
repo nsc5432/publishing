@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import javax.annotation.processing.FilerException;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -375,7 +374,7 @@ public class AdtOperHrMngController extends BaseAomsModelController {
 	 * 입출국장 운영시간 공문 다운로드 (.hwpx)
 	 */
 	@PostMapping(value = "/downloadAdtOperHrMng.do")
-	public void downloadAdtOperHrMng(HttpServletRequest request, HttpServletResponse response) throws FilerException {
+	public void downloadAdtOperHrMng(HttpServletRequest request, HttpServletResponse response) throws Exception {
 		int mstrSeq = Integer.parseInt(request.getParameter("mstrSeq"));
 		boolean arrCheck = Boolean.parseBoolean(request.getParameter("arrCheck"));
 		boolean depCheck = Boolean.parseBoolean(request.getParameter("depCheck"));
