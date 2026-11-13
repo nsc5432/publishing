@@ -103,7 +103,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 | 4 | `NULL_RETURN_STD` | 표준 라이브러리의 널 반환 값 역참조 | 9 | 5 / 4 (castrest) | 레포 반영 |
 | 5 | `NULL_RETURN` | 널 반환 값 역참조 | 4 | 4 / 0 | 레포 반영 |
 | 6 | `UNCHECKED_NULL` | 누락된 널 값 검사 | 3 | 3 / 0 | 레포 반영 |
-| 7 | `SQL_INJECTION.MYBATIS` | myBatis에서의 SQL 삽입 | 68 | 68 / 0 | 대기 |
+| 7 | `SQL_INJECTION.MYBATIS` | myBatis에서의 SQL 삽입 | 68 | 68 / 0 | 레포 반영 |
 | 8 | `DATA_LEAK_BETWEEN_SESSIONS` | 세션 간 데이터 누출 | 4 | 0 / 4 (castrest) | 대기 |
 | 9 | `IMPROPER_CHECK_FOR_UNUSUAL_OR_EXCEPTIONAL_CONDITION` | 부적절한 예외 처리 | 1 | 0 / 1 | 대기 |
 | 10 | `PATH_TRAVERSAL` | 경로 조작 | 16 | 0 / 16 | 대기 |
@@ -463,10 +463,43 @@ AGENTS §8: 이 매퍼는 **001 기준정보를 갱신하는 유일한 화면 �
   999 → 001(값 컬럼이 `prePrcsValueColumnList` 로 좁혀지는지), 이력 스냅샷(`insertAplyHstryDtl` 이 복사 **전**에 찍히는지), 되돌리기, 세트 되돌리기.
 
 ### 7단계 완료 기준
-- `rg -n '\$\{' --glob '*.xml' java/mapper` 결과가 주석 줄(CastConfigMapper 360행)뿐이다.
+- `rg -n '\$\{' --glob '*.xml' java/mapper` 결과가 주석 줄(CastConfigMapper 360행)뿐이다. (2026-11-13 주석 삭제로 0건)
 - 실백엔드 확인 항목을 통과한다.
 
-**결과**: (7-A · 7-B · 7-C 각각 작성)
+**결과**: 레포 반영 (2026-11-13)
+
+- 잔존 검사: `rg -n '\$\{' --glob '*.xml' java/mapper` → 0건. `insertAplyHstryDtl` 의 기존 주석 "`되돌릴 때 그대로 ${columnNm} 이 된다`"(조치 전 360행)는
+  컬럼명이 `cfgValueCol*` 분기로 들어가게 되어 문구가 낡아, 사용자가 삭제했다.
+- 렌더 대조 (이 레포): HEAD 와 작업본의 매퍼를 간이 렌더러(`include` · `choose` · `if` · `foreach` · `bind` · `${}` 치환)로 펼쳐 공백 정규화 후 비교했다.
+  CastConfigMapper 45개 조합(시트 4종 × statement 6종 × 편집 값 컬럼 목록 / 999 반영 컬럼 목록, `updateAtrbValue` 는 컬럼별) · `insertRsrcMstr` 7종 모두 차이 0건
+  (`insertAplyHstryDtl` 의 별칭 `T`/`S` → `A`/`B` 차이는 같은 것으로 봤다). MyBatis 실제 렌더 · Oracle 실행을 대신하지 않는다.
+- XML 파싱 · 로컬 `include` 참조 누락 검사 · `git diff --check` 통과. 이 레포에서는 컴파일 불가(§0.3).
+
+**7-A (11건)**
+- `CastApiMapper.dailyFlightScheduleRows` 의 `#{${ymdParam}}` 11곳을 `#{fsYmd}` 로 바꿨다. 조각 본문은 날짜 바인딩 외에 건드리지 않았다.
+- 호출부 2곳의 `<property name="ymdParam">` 을 빼고 include 바로 앞에 `<bind name="fsYmd" value="baseYmd"/>`(FS001, `<if>` 안) ·
+  `<bind name="fsYmd" value="excnYmd"/>`(`insertSchdlAtrbFromDaily`) 를 두었다. `fsYmd` 는 매퍼 전체에서 다른 파라미터 · bind 와 겹치지 않는다.
+
+**7-B (3건)**
+- `CastUserSnapshotMapper.insertRsrcMstr(@Param("rsrcTable") String rsrcTable, @Param("snapshot") …)` 로 바꾸고 `publishRsrc` 가 `table.name()` 을 넘긴다.
+- XML 은 `<choose>` 7분기에 `PMOWN.<테이블> (<ID 컬럼>, <명칭 컬럼>,` 을 리터럴로 쓴다. `<otherwise>` 없음.
+- `RsrcTable` 의 테이블 · 컬럼 필드와 생성자를 지우고 상수 7개만 남겼다 (기존 주석 없음).
+
+**7-C (54건)**
+- `CastConfigMapper.xml` 에 `<sql>` 조각 13개를 더했다: `cfgTable`(`PMOWN.` 포함) · `cfgGroupCol{,A,B}` · `cfgKeyCol{,A,B}` · `cfgDtlCol{,A,B}`(체크인유형 분기 없음) ·
+  `cfgValueCol{,A,B}`(값 컬럼 11종). 별칭은 분기 리터럴 안에 붙였다(`A.INPT_VL`). 테이블 뒤 별칭은 조각 밖에 둔다.
+- statement 6종의 `${}` 를 조각 `include` 로 바꾸고, 상세 조건 `<if test="dtlColumnNm != null and dtlColumnNm != ''">` 는 `<if test='sheetCd != "CKNCT_TYPE_ATRB"'>` 로 바꿨다.
+  `insertAplyHstryDtl` 의 별칭 `T`/`S` 는 `A`/`B` 로 바꿨다. `retrievePsgAtrbList` 는 4분기 `cfgTable` 을 그대로 쓴다. `foreach` 안의 값 컬럼 분기는 item `columnNm` 으로 판정한다.
+- Mapper 인터페이스: `tableNm` · `groupColumnNm` · `keyColumnNm` · `dtlColumnNm` 4개를 `@Param("sheetCd") String sheetCd` 하나로 줄였다 (6개 메서드).
+  서비스 호출부 11곳은 `sheet.name()` 을 넘긴다.
+- `CastConfigSheet` 의 `groupColumnNm` · `keyColumnNm` · `dtlColumnNm` 필드 · 생성자 인자를 지웠다 (매퍼로 옮겨져 쓰는 곳이 없다). `tableNm` 은
+  이력 `TBL_NM` · 저장 중복 키에 쓰여 남겼다. 시트 테이블 · 컬럼을 바꾸면 이제 매퍼 조각을 고친다.
+- 조치 5의 Java 사전 검사는 이미 있어 코드를 더하지 않았다: 셀 저장은 `sheet.getColumn()` + `isEditable()`, 되돌리기 · 세트 되돌리기는
+  `findColumnByPhysical`(편집 컬럼만), 값 컬럼 목록은 `getValueColumnList`(편집 컬럼) 또는 enum 상수 `prePrcsValueColumnList` 에서만 온다.
+
+**실백엔드 확인 대기**: 빌드, MyBatis SQL 로그의 변경 전후 렌더 SQL 대조(7-A 날짜 바인드 변수 포함), FS001 응답 · 사용자 FS 발행 행 수 · 내용,
+사용자 시뮬레이션 실행 1회로 MSTR 7개 테이블 행, Cast 설정 화면 시트 4종의 셀 저장 · 카테고리 추가 · 복제 · 운영 반영(사용자 카테고리 / 999) ·
+이력 스냅샷(복사 전) · 되돌리기 · 세트 되돌리기, Sparrow 재분석.
 
 ---
 

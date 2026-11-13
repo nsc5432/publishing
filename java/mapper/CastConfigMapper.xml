@@ -95,6 +95,141 @@
         )
     </insert>
 
+    <sql id="cfgTable">
+        <choose>
+            <when test='sheetCd == "PSG_ATRB"'>PMOWN.TN_PM_SMLT_PSG_ATRB</when>
+            <when test='sheetCd == "SHOW_UP_ATRB"'>PMOWN.TN_PM_SMLT_SHOW_UP_ATRB</when>
+            <when test='sheetCd == "SRVC_ATRB"'>PMOWN.TN_PM_SMLT_SRVC_ATRB</when>
+            <when test='sheetCd == "CKNCT_TYPE_ATRB"'>PMOWN.TN_PM_SMLT_CKNCT_TYPE_ATRB</when>
+        </choose>
+    </sql>
+
+    <sql id="cfgGroupCol">
+        <choose>
+            <when test='sheetCd == "PSG_ATRB"'>FIX_ATRB_GROUP_ID</when>
+            <when test='sheetCd == "SHOW_UP_ATRB"'>FIX_ATRB_GROUP_ID</when>
+            <when test='sheetCd == "SRVC_ATRB"'>FIX_ATRB_GROUP_ID</when>
+            <when test='sheetCd == "CKNCT_TYPE_ATRB"'>CKNCT_TYPE_ATRB_ID</when>
+        </choose>
+    </sql>
+
+    <sql id="cfgGroupColA">
+        <choose>
+            <when test='sheetCd == "PSG_ATRB"'>A.FIX_ATRB_GROUP_ID</when>
+            <when test='sheetCd == "SHOW_UP_ATRB"'>A.FIX_ATRB_GROUP_ID</when>
+            <when test='sheetCd == "SRVC_ATRB"'>A.FIX_ATRB_GROUP_ID</when>
+            <when test='sheetCd == "CKNCT_TYPE_ATRB"'>A.CKNCT_TYPE_ATRB_ID</when>
+        </choose>
+    </sql>
+
+    <sql id="cfgGroupColB">
+        <choose>
+            <when test='sheetCd == "PSG_ATRB"'>B.FIX_ATRB_GROUP_ID</when>
+            <when test='sheetCd == "SHOW_UP_ATRB"'>B.FIX_ATRB_GROUP_ID</when>
+            <when test='sheetCd == "SRVC_ATRB"'>B.FIX_ATRB_GROUP_ID</when>
+            <when test='sheetCd == "CKNCT_TYPE_ATRB"'>B.CKNCT_TYPE_ATRB_ID</when>
+        </choose>
+    </sql>
+
+    <sql id="cfgKeyCol">
+        <choose>
+            <when test='sheetCd == "PSG_ATRB"'>PSG_ATRB_CD</when>
+            <when test='sheetCd == "SHOW_UP_ATRB"'>PSG_ATRB_CD</when>
+            <when test='sheetCd == "SRVC_ATRB"'>FCLTY_SE_CD</when>
+            <when test='sheetCd == "CKNCT_TYPE_ATRB"'>ALN_CD</when>
+        </choose>
+    </sql>
+
+    <sql id="cfgKeyColA">
+        <choose>
+            <when test='sheetCd == "PSG_ATRB"'>A.PSG_ATRB_CD</when>
+            <when test='sheetCd == "SHOW_UP_ATRB"'>A.PSG_ATRB_CD</when>
+            <when test='sheetCd == "SRVC_ATRB"'>A.FCLTY_SE_CD</when>
+            <when test='sheetCd == "CKNCT_TYPE_ATRB"'>A.ALN_CD</when>
+        </choose>
+    </sql>
+
+    <sql id="cfgKeyColB">
+        <choose>
+            <when test='sheetCd == "PSG_ATRB"'>B.PSG_ATRB_CD</when>
+            <when test='sheetCd == "SHOW_UP_ATRB"'>B.PSG_ATRB_CD</when>
+            <when test='sheetCd == "SRVC_ATRB"'>B.FCLTY_SE_CD</when>
+            <when test='sheetCd == "CKNCT_TYPE_ATRB"'>B.ALN_CD</when>
+        </choose>
+    </sql>
+
+    <sql id="cfgDtlCol">
+        <choose>
+            <when test='sheetCd == "PSG_ATRB"'>PSG_DTL_SE_CD</when>
+            <when test='sheetCd == "SHOW_UP_ATRB"'>PSG_DTL_SE_CD</when>
+            <when test='sheetCd == "SRVC_ATRB"'>FCLTY_DTL_CD</when>
+        </choose>
+    </sql>
+
+    <sql id="cfgDtlColA">
+        <choose>
+            <when test='sheetCd == "PSG_ATRB"'>A.PSG_DTL_SE_CD</when>
+            <when test='sheetCd == "SHOW_UP_ATRB"'>A.PSG_DTL_SE_CD</when>
+            <when test='sheetCd == "SRVC_ATRB"'>A.FCLTY_DTL_CD</when>
+        </choose>
+    </sql>
+
+    <sql id="cfgDtlColB">
+        <choose>
+            <when test='sheetCd == "PSG_ATRB"'>B.PSG_DTL_SE_CD</when>
+            <when test='sheetCd == "SHOW_UP_ATRB"'>B.PSG_DTL_SE_CD</when>
+            <when test='sheetCd == "SRVC_ATRB"'>B.FCLTY_DTL_CD</when>
+        </choose>
+    </sql>
+
+    <sql id="cfgValueCol">
+        <choose>
+            <when test='columnNm == "INPT_VL"'>INPT_VL</when>
+            <when test='columnNm == "SWTC_FNC_ID"'>SWTC_FNC_ID</when>
+            <when test='columnNm == "MIN_VL"'>MIN_VL</when>
+            <when test='columnNm == "MAX_VL"'>MAX_VL</when>
+            <when test='columnNm == "DSTB_MAX_VL"'>DSTB_MAX_VL</when>
+            <when test='columnNm == "VL_TYPE"'>VL_TYPE</when>
+            <when test='columnNm == "VRFC_FNC_ID"'>VRFC_FNC_ID</when>
+            <when test='columnNm == "CKNCT_RT"'>CKNCT_RT</when>
+            <when test='columnNm == "KOS_RT"'>KOS_RT</when>
+            <when test='columnNm == "MOBL_RT"'>MOBL_RT</when>
+            <when test='columnNm == "SRVC_HR"'>SRVC_HR</when>
+        </choose>
+    </sql>
+
+    <sql id="cfgValueColA">
+        <choose>
+            <when test='columnNm == "INPT_VL"'>A.INPT_VL</when>
+            <when test='columnNm == "SWTC_FNC_ID"'>A.SWTC_FNC_ID</when>
+            <when test='columnNm == "MIN_VL"'>A.MIN_VL</when>
+            <when test='columnNm == "MAX_VL"'>A.MAX_VL</when>
+            <when test='columnNm == "DSTB_MAX_VL"'>A.DSTB_MAX_VL</when>
+            <when test='columnNm == "VL_TYPE"'>A.VL_TYPE</when>
+            <when test='columnNm == "VRFC_FNC_ID"'>A.VRFC_FNC_ID</when>
+            <when test='columnNm == "CKNCT_RT"'>A.CKNCT_RT</when>
+            <when test='columnNm == "KOS_RT"'>A.KOS_RT</when>
+            <when test='columnNm == "MOBL_RT"'>A.MOBL_RT</when>
+            <when test='columnNm == "SRVC_HR"'>A.SRVC_HR</when>
+        </choose>
+    </sql>
+
+    <sql id="cfgValueColB">
+        <choose>
+            <when test='columnNm == "INPT_VL"'>B.INPT_VL</when>
+            <when test='columnNm == "SWTC_FNC_ID"'>B.SWTC_FNC_ID</when>
+            <when test='columnNm == "MIN_VL"'>B.MIN_VL</when>
+            <when test='columnNm == "MAX_VL"'>B.MAX_VL</when>
+            <when test='columnNm == "DSTB_MAX_VL"'>B.DSTB_MAX_VL</when>
+            <when test='columnNm == "VL_TYPE"'>B.VL_TYPE</when>
+            <when test='columnNm == "VRFC_FNC_ID"'>B.VRFC_FNC_ID</when>
+            <when test='columnNm == "CKNCT_RT"'>B.CKNCT_RT</when>
+            <when test='columnNm == "KOS_RT"'>B.KOS_RT</when>
+            <when test='columnNm == "MOBL_RT"'>B.MOBL_RT</when>
+            <when test='columnNm == "SRVC_HR"'>B.SRVC_HR</when>
+        </choose>
+    </sql>
+
     <select id="retrievePsgAtrbList" resultType="aoms.pm.cast.dto.CastConfigAtrbRawDto">
         /* CastConfigMapper.retrievePsgAtrbList */
         SELECT
@@ -107,7 +242,7 @@
             NVL(D.PSG_FIX_PARA_CND_TYPE_CD, ' ') AS CND_TYPE_CD,
             NVL(D.PSG_FIX_PARA_CND_VL, ' ') AS CND_VL,
             NVL(D.PRE_PRCS_YN, 'N') AS PRE_PRCS_YN
-        FROM PMOWN.${tableNm} A
+        FROM <include refid="cfgTable"/> A
         JOIN PMOWN.TN_PM_SMLT_PSG_FIX_PARA_CD P
             ON P.PSG_FIX_PARA_CD = A.PSG_ATRB_CD
         JOIN PMOWN.TN_PM_SMLT_PSG_FIX_PARA_CD D
@@ -182,31 +317,31 @@
 
     <update id="updateAtrbValue">
         /* CastConfigMapper.updateAtrbValue */
-        UPDATE PMOWN.${tableNm}
-        SET ${columnNm} = #{value},
+        UPDATE <include refid="cfgTable"/>
+        SET <include refid="cfgValueCol"/> = #{value},
             LAST_MDFR_ID = #{loginUserId},
             LAST_MDFR_IP_ADDR = #{loginIpAddr},
             LAST_MDFCN_DT = CURRENT_TIMESTAMP
         WHERE 1 = 1
-        AND ${groupColumnNm} = #{fixAtrbGroupId}
-        AND ${keyColumnNm} = #{keyCd}
-        <if test="dtlColumnNm != null and dtlColumnNm != ''">
-        AND ${dtlColumnNm} = #{dtlSeCd}
+        AND <include refid="cfgGroupCol"/> = #{fixAtrbGroupId}
+        AND <include refid="cfgKeyCol"/> = #{keyCd}
+        <if test='sheetCd != "CKNCT_TYPE_ATRB"'>
+        AND <include refid="cfgDtlCol"/> = #{dtlSeCd}
         </if>
     </update>
 
     <update id="copyFromGroup">
         /* CastConfigMapper.copyFromGroup */
-        UPDATE PMOWN.${tableNm} A
+        UPDATE <include refid="cfgTable"/> A
         SET
         <foreach collection="valueColumnList" item="columnNm" separator=",">
-            A.${columnNm} = (
-                SELECT B.${columnNm}
-                FROM PMOWN.${tableNm} B
-                WHERE B.${groupColumnNm} = #{srcFixAtrbGroupId}
-                AND B.${keyColumnNm} = A.${keyColumnNm}
-                <if test="dtlColumnNm != null and dtlColumnNm != ''">
-                AND B.${dtlColumnNm} = A.${dtlColumnNm}
+            <include refid="cfgValueColA"/> = (
+                SELECT <include refid="cfgValueColB"/>
+                FROM <include refid="cfgTable"/> B
+                WHERE <include refid="cfgGroupColB"/> = #{srcFixAtrbGroupId}
+                AND <include refid="cfgKeyColB"/> = <include refid="cfgKeyColA"/>
+                <if test='sheetCd != "CKNCT_TYPE_ATRB"'>
+                AND <include refid="cfgDtlColB"/> = <include refid="cfgDtlColA"/>
                 </if>
             )
         </foreach>,
@@ -214,32 +349,32 @@
             A.LAST_MDFR_IP_ADDR = #{loginIpAddr},
             A.LAST_MDFCN_DT = CURRENT_TIMESTAMP
         WHERE 1 = 1
-        AND A.${groupColumnNm} = #{fixAtrbGroupId}
-        AND A.${keyColumnNm} = #{keyCd}
-        <if test="dtlColumnNm != null and dtlColumnNm != ''">
-        AND A.${dtlColumnNm} = #{dtlSeCd}
+        AND <include refid="cfgGroupColA"/> = #{fixAtrbGroupId}
+        AND <include refid="cfgKeyColA"/> = #{keyCd}
+        <if test='sheetCd != "CKNCT_TYPE_ATRB"'>
+        AND <include refid="cfgDtlColA"/> = #{dtlSeCd}
         </if>
         AND EXISTS (
             SELECT 1
-            FROM PMOWN.${tableNm} B
-            WHERE B.${groupColumnNm} = #{srcFixAtrbGroupId}
-            AND B.${keyColumnNm} = A.${keyColumnNm}
-            <if test="dtlColumnNm != null and dtlColumnNm != ''">
-            AND B.${dtlColumnNm} = A.${dtlColumnNm}
+            FROM <include refid="cfgTable"/> B
+            WHERE <include refid="cfgGroupColB"/> = #{srcFixAtrbGroupId}
+            AND <include refid="cfgKeyColB"/> = <include refid="cfgKeyColA"/>
+            <if test='sheetCd != "CKNCT_TYPE_ATRB"'>
+            AND <include refid="cfgDtlColB"/> = <include refid="cfgDtlColA"/>
             </if>
         )
     </update>
 
     <insert id="insertFromBaseGroup">
         /* CastConfigMapper.insertFromBaseGroup */
-        INSERT INTO PMOWN.${tableNm} (
-            ${groupColumnNm},
-            ${keyColumnNm},
-            <if test="dtlColumnNm != null and dtlColumnNm != ''">
-            ${dtlColumnNm},
+        INSERT INTO <include refid="cfgTable"/> (
+            <include refid="cfgGroupCol"/>,
+            <include refid="cfgKeyCol"/>,
+            <if test='sheetCd != "CKNCT_TYPE_ATRB"'>
+            <include refid="cfgDtlCol"/>,
             </if>
             <foreach collection="valueColumnList" item="columnNm" separator=",">
-                ${columnNm}
+                <include refid="cfgValueCol"/>
             </foreach>,
             FRST_RGTR_ID,
             FRST_RGTR_IP_ADDR,
@@ -247,31 +382,31 @@
         )
         SELECT
             #{fixAtrbGroupId},
-            A.${keyColumnNm},
-            <if test="dtlColumnNm != null and dtlColumnNm != ''">
-            A.${dtlColumnNm},
+            <include refid="cfgKeyColA"/>,
+            <if test='sheetCd != "CKNCT_TYPE_ATRB"'>
+            <include refid="cfgDtlColA"/>,
             </if>
             <foreach collection="valueColumnList" item="columnNm" separator=",">
-                A.${columnNm}
+                <include refid="cfgValueColA"/>
             </foreach>,
             #{loginUserId},
             #{loginIpAddr},
             CURRENT_TIMESTAMP
-        FROM PMOWN.${tableNm} A
+        FROM <include refid="cfgTable"/> A
         WHERE 1 = 1
-        AND A.${groupColumnNm} = '001'
+        AND <include refid="cfgGroupColA"/> = '001'
     </insert>
 
     <insert id="insertFromGroup">
         /* CastConfigMapper.insertFromGroup */
-        INSERT INTO PMOWN.${tableNm} (
-            ${groupColumnNm},
-            ${keyColumnNm},
-            <if test="dtlColumnNm != null and dtlColumnNm != ''">
-            ${dtlColumnNm},
+        INSERT INTO <include refid="cfgTable"/> (
+            <include refid="cfgGroupCol"/>,
+            <include refid="cfgKeyCol"/>,
+            <if test='sheetCd != "CKNCT_TYPE_ATRB"'>
+            <include refid="cfgDtlCol"/>,
             </if>
             <foreach collection="valueColumnList" item="columnNm" separator=",">
-                ${columnNm}
+                <include refid="cfgValueCol"/>
             </foreach>,
             FRST_RGTR_ID,
             FRST_RGTR_IP_ADDR,
@@ -279,18 +414,18 @@
         )
         SELECT
             #{fixAtrbGroupId},
-            A.${keyColumnNm},
-            <if test="dtlColumnNm != null and dtlColumnNm != ''">
-            A.${dtlColumnNm},
+            <include refid="cfgKeyColA"/>,
+            <if test='sheetCd != "CKNCT_TYPE_ATRB"'>
+            <include refid="cfgDtlColA"/>,
             </if>
             <foreach collection="valueColumnList" item="columnNm" separator=",">
-                A.${columnNm}
+                <include refid="cfgValueColA"/>
             </foreach>,
             #{loginUserId},
             #{loginIpAddr},
             CURRENT_TIMESTAMP
-        FROM PMOWN.${tableNm} A
-        WHERE A.${groupColumnNm} = #{srcFixAtrbGroupId}
+        FROM <include refid="cfgTable"/> A
+        WHERE <include refid="cfgGroupColA"/> = #{srcFixAtrbGroupId}
     </insert>
 
     <select id="retrieveAplyHstrySn" resultType="long">
@@ -357,7 +492,6 @@
 
     <insert id="insertAplyHstryDtl">
         /* CastConfigMapper.insertAplyHstryDtl */
-        <!-- 값 컬럼이 시트마다 달라 컬럼명을 행으로 눕힌다. 되돌릴 때 그대로 ${columnNm} 이 된다 -->
         INSERT INTO PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY_DTL (
             APLY_SN, ATRB_CD, DTL_SE_CD, COLUMN_NM, BEF_VL, AFT_VL,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
@@ -368,21 +502,21 @@
                 #{keyCd},
                 #{dtlSeCd},
                 #{columnNm},
-                TO_CHAR(T.${columnNm}),
-                TO_CHAR(S.${columnNm}),
+                TO_CHAR(<include refid="cfgValueColA"/>),
+                TO_CHAR(<include refid="cfgValueColB"/>),
                 #{loginUserId},
                 #{loginIpAddr},
                 CURRENT_TIMESTAMP
-            FROM PMOWN.${tableNm} T, PMOWN.${tableNm} S
-            WHERE T.${groupColumnNm} = #{tgtFixAtrbGroupId}
-            AND T.${keyColumnNm} = #{keyCd}
-            <if test="dtlColumnNm != null and dtlColumnNm != ''">
-            AND T.${dtlColumnNm} = #{dtlSeCd}
+            FROM <include refid="cfgTable"/> A, <include refid="cfgTable"/> B
+            WHERE <include refid="cfgGroupColA"/> = #{tgtFixAtrbGroupId}
+            AND <include refid="cfgKeyColA"/> = #{keyCd}
+            <if test='sheetCd != "CKNCT_TYPE_ATRB"'>
+            AND <include refid="cfgDtlColA"/> = #{dtlSeCd}
             </if>
-            AND S.${groupColumnNm} = #{srcFixAtrbGroupId}
-            AND S.${keyColumnNm} = #{keyCd}
-            <if test="dtlColumnNm != null and dtlColumnNm != ''">
-            AND S.${dtlColumnNm} = #{dtlSeCd}
+            AND <include refid="cfgGroupColB"/> = #{srcFixAtrbGroupId}
+            AND <include refid="cfgKeyColB"/> = #{keyCd}
+            <if test='sheetCd != "CKNCT_TYPE_ATRB"'>
+            AND <include refid="cfgDtlColB"/> = #{dtlSeCd}
             </if>
         </foreach>
     </insert>

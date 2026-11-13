@@ -307,7 +307,7 @@ BASE_GD AS (
              AND TO_NUMBER(A.PFR_BRDG_TNOPE) + TO_NUMBER(A.FREE_BRDG_TNOPE) + TO_NUMBER(A.TRNS_BRDG_TNOPE) BETWEEN 1 AND 1000)
             OR NVL(TO_NUMBER(TRIM(A.RSVT_BDPSG_CNT)), 0) > 0
           )
-      AND A.GD_SE_YMD = TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), 'YYYYMMDD')
+      AND A.GD_SE_YMD = TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD'), 'YYYYMMDD')
 ),
 /* 3) 항공사 카테고리 */
 ALN_INFO AS (
@@ -347,7 +347,7 @@ CIC_ALLOC_ALN AS (
     SELECT DISTINCT
         A.ALN_CD
     FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
-    WHERE A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), 'YYYYMMDD')
+    WHERE A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD'), 'YYYYMMDD')
 ),
 /* 8) FP 원본 - 당일/익일 04시 이전 */
 FP_DAY AS (
@@ -359,8 +359,8 @@ FP_DAY AS (
     FROM GOOWN.TI_GO_DALY_ARR_DEP B
     WHERE 1 = 1
       AND (
-            B.SCHDL_YMD = TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), 'YYYYMMDD')
-            OR (B.SCHDL_YMD = TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD') + 1, 'YYYYMMDD') AND B.SCHDL_HM < '0400')
+            B.SCHDL_YMD = TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD'), 'YYYYMMDD')
+            OR (B.SCHDL_YMD = TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') + 1, 'YYYYMMDD') AND B.SCHDL_HM < '0400')
           )
       AND B.FLT_SRVC_TYPE_CD NOT IN ('A', 'F', 'H', 'M', 'V', 'Z', 'P', 'X', 'D')
     GROUP BY
@@ -417,7 +417,7 @@ PAST_GATE_RANK AS (
       AND A.PSG_CGO_SE_CD = 'Y'
       AND A.FRY_YN = 'N'
       AND A.LCRFT_YN = 'N'
-      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), - 3), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD') - 1, 'YYYYMMDD')
+      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{fsYmd}, 'YYYYMMDD'), - 3), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
       AND A.TMNL_ID IS NOT NULL
       AND A.TMNL_ID != 'P'
       AND A.ACST_NO IS NOT NULL
@@ -448,7 +448,7 @@ ARR_CRS_HIST_RANK AS (
         ) AS RN
     FROM GOOWN.TN_GO_GD_DATA A
     WHERE 1 = 1
-      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), - 1), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD') - 1, 'YYYYMMDD')
+      AND A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{fsYmd}, 'YYYYMMDD'), - 1), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
       AND A.ARR_DEP_SE_CD = 'A'
       AND A.CSHR_STTS_CD != 'SL'
       AND A.DLY_RSN_CD NOT IN ('2', '3')
@@ -496,8 +496,8 @@ PAST_CIC_RANK AS (
         ) AS RN
     FROM GOOWN.TI_GO_DALY_ARR_DEP B
     WHERE B.CKNCT_RANGE_CN IS NOT NULL
-      AND B.SCHDL_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{${ymdParam}}, 'YYYYMMDD'), - 6), 'YYYYMMDD')
-                        AND TO_CHAR(TO_DATE(#{${ymdParam}}, 'YYYYMMDD') - 1, 'YYYYMMDD')
+      AND B.SCHDL_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{fsYmd}, 'YYYYMMDD'), - 6), 'YYYYMMDD')
+                        AND TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
     GROUP BY B.ALN_CD, B.CKNCT_RANGE_CN
 ),
 PAST_CIC AS (
@@ -754,7 +754,8 @@ LEFT JOIN GOOWN.TI_GO_FLTSH_RSRC B
             , REPLACE(TO_CHAR(SYSDATE,'yyyy-mm-dd hh24:mi:ss'),' ','T') AS lastModified
           FROM (
             <if test="resourceID == 'FS001'">
-            <include refid="dailyFlightScheduleRows"><property name="ymdParam" value="baseYmd"/></include>
+            <bind name="fsYmd" value="baseYmd"/>
+            <include refid="dailyFlightScheduleRows"/>
             <![CDATA[
 ORDER BY
     FFF.DomStatus,

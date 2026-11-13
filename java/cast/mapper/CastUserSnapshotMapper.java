@@ -11,9 +11,7 @@ public interface CastUserSnapshotMapper {
 
 
     void insertRsrcMstr(
-            @Param("mstrTableNm") String mstrTableNm,
-            @Param("mstrIdColumnNm") String mstrIdColumnNm,
-            @Param("mstrNmColumnNm") String mstrNmColumnNm,
+            @Param("rsrcTable") String rsrcTable,
             @Param("snapshot") UserSmltRsrcSnapshotDto snapshot
     );
 

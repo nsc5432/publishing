@@ -160,8 +160,7 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
             UserSmltRsrcSnapshotDto snapshot,
             Consumer<UserSmltRsrcSnapshotDto> insertAtrb
     ) {
-        castUserSnapshotMapper.insertRsrcMstr(
-                table.mstrTableNm, table.mstrIdColumnNm, table.mstrNmColumnNm, snapshot);
+        castUserSnapshotMapper.insertRsrcMstr(table.name(), snapshot);
         insertAtrb.accept(snapshot);
     }
 
@@ -187,27 +186,13 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
     }
 
     private enum RsrcTable {
-        FLT_SCHDL( "TN_PM_SMLT_SCHDL_MSTR", "SCHDL_ATRB_ID", "SCHDL_ATRB_NM"),
-        CKNCT("TN_PM_SMLT_CKNCT_MSTR", "CKNCT_ATRB_ID", "CKNCT_ATRB_NM"),
-        SBD("TN_PM_SMLT_SBD_MSTR", "SBD_ATRB_ID", "SBD_ATRB_NM"),
-        DPTGT("TN_PM_SMLT_FCLTY_OPNG_DPTGT_MSTR", "DPTGT_ATRB_ID", "DPTGT_ATRB_NM"),
-        SCRTY_CNTRL("TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_MSTR", "SCRTY_CNTRL_ATRB_ID", "SCRTY_CNTRL_ATRB_NM"),
-        ENTCNY("TN_PM_SMLT_FCLTY_OPNG_ENTCNY_MSTR", "ENTCNY_ATRB_ID", "ENTCNY_ATRB_NM"),
-        TRNST_SCRTY_CNTRL("TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_MSTR", "TRNST_SCRTY_CNTRL_ATRB_ID", "TRNST_SCRTY_CNTRL_ATRB_NM");
-
-        private final String mstrTableNm;
-        private final String mstrIdColumnNm;
-        private final String mstrNmColumnNm;
-
-        RsrcTable(
-                String mstrTableNm,
-                String mstrIdColumnNm,
-                String mstrNmColumnNm
-        ) {
-            this.mstrTableNm = mstrTableNm;
-            this.mstrIdColumnNm = mstrIdColumnNm;
-            this.mstrNmColumnNm = mstrNmColumnNm;
-        }
+        FLT_SCHDL,
+        CKNCT,
+        SBD,
+        DPTGT,
+        SCRTY_CNTRL,
+        ENTCNY,
+        TRNST_SCRTY_CNTRL
     }
 
     // 001 기준정보 / 002~499 Cast 설정 카테고리 / 999 전처리 결과와 겹치지 않게 PS 는 500~998 만 쓴다

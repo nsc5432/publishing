@@ -308,15 +308,12 @@ public class CastConfigServiceImpl implements CastConfigService {
 			for (CastConfigAtrbRawDto row : targetList) {
 				castConfigMapper.insertAplyHstryDtl(
 						aplySn,
-						sheet.getTableNm(),
+						sheet.name(),
 						valueColumnList,
-						sheet.getGroupColumnNm(),
 						srcFixAtrbGroupId,
 						BASE_FIX_ATRB_GROUP_ID,
 						row.getAtrbCd(),
 						row.getDtlSeCd(),
-						sheet.getKeyColumnNm(),
-						sheet.getDtlColumnNm(),
 						applyDto.getLoginUserId(),
 						applyDto.getLoginIpAddr()
 				);
@@ -324,15 +321,12 @@ public class CastConfigServiceImpl implements CastConfigService {
 
 			for (CastConfigAtrbRawDto row : targetList) {
 				int updated = castConfigMapper.copyFromGroup(
-						sheet.getTableNm(),
+						sheet.name(),
 						valueColumnList,
-						sheet.getGroupColumnNm(),
 						srcFixAtrbGroupId,
 						BASE_FIX_ATRB_GROUP_ID,
 						row.getAtrbCd(),
 						row.getDtlSeCd(),
-						sheet.getKeyColumnNm(),
-						sheet.getDtlColumnNm(),
 						applyDto.getLoginUserId(),
 						applyDto.getLoginIpAddr()
 				);
@@ -413,15 +407,12 @@ public class CastConfigServiceImpl implements CastConfigService {
 			}
 
 			int updated = castConfigMapper.updateAtrbValue(
-					sheet.getTableNm(),
+					sheet.name(),
 					detail.getColumnNm(),
 					toColumnValue(detail.getColumnNm(), detail.getBefVl()),
-					sheet.getGroupColumnNm(),
 					hstry.getTgtFixAtrbGroupId(),
 					detail.getAtrbCd(),
 					detail.getDtlSeCd(),
-					sheet.getKeyColumnNm(),
-					sheet.getDtlColumnNm(),
 					revertDto.getLoginUserId(),
 					revertDto.getLoginIpAddr()
 			);
@@ -485,12 +476,9 @@ public class CastConfigServiceImpl implements CastConfigService {
 
 		for (CastConfigSheet sheet : sheetSet) {
 			int inserted = castConfigMapper.insertFromBaseGroup(
-					sheet.getTableNm(),
+					sheet.name(),
 					getValueColumnList(sheet),
-					sheet.getGroupColumnNm(),
 					saveDto.getFixAtrbGroupId(),
-					sheet.getKeyColumnNm(),
-					sheet.getDtlColumnNm(),
 					saveDto.getLoginUserId(),
 					saveDto.getLoginIpAddr()
 			);
@@ -553,13 +541,10 @@ public class CastConfigServiceImpl implements CastConfigService {
 		String copySourceId = PRE_PRCS_FIX_ATRB_GROUP_ID.equals(sourceId) ? BASE_FIX_ATRB_GROUP_ID : sourceId;
 		for (CastConfigSheet sheet : CastConfigSheet.values()) {
 			int inserted = castConfigMapper.insertFromGroup(
-					sheet.getTableNm(),
+					sheet.name(),
 					getValueColumnList(sheet),
-					sheet.getGroupColumnNm(),
 					copySourceId,
 					newCategoryId,
-					sheet.getKeyColumnNm(),
-					sheet.getDtlColumnNm(),
 					cloneDto.getLoginUserId(),
 					cloneDto.getLoginIpAddr()
 			);
@@ -776,29 +761,23 @@ public class CastConfigServiceImpl implements CastConfigService {
 			for (CastConfigAtrbRawDto row : targets) {
 				castConfigMapper.insertAplyHstryDtl(
 						aplySn,
-						sheet.getTableNm(),
+						sheet.name(),
 						valueColumnList,
-						sheet.getGroupColumnNm(),
 						sourceId,
 						BASE_FIX_ATRB_GROUP_ID,
 						row.getAtrbCd(),
 						row.getDtlSeCd(),
-						sheet.getKeyColumnNm(),
-						sheet.getDtlColumnNm(),
 						searchDto.getLoginUserId(),
 						searchDto.getLoginIpAddr()
 				);
 
 				int updated = castConfigMapper.copyFromGroup(
-						sheet.getTableNm(),
+						sheet.name(),
 						valueColumnList,
-						sheet.getGroupColumnNm(),
 						sourceId,
 						BASE_FIX_ATRB_GROUP_ID,
 						row.getAtrbCd(),
 						row.getDtlSeCd(),
-						sheet.getKeyColumnNm(),
-						sheet.getDtlColumnNm(),
 						searchDto.getLoginUserId(),
 						searchDto.getLoginIpAddr()
 				);
@@ -871,15 +850,12 @@ public class CastConfigServiceImpl implements CastConfigService {
 				}
 
 				int updated = castConfigMapper.updateAtrbValue(
-						sheet.getTableNm(),
+						sheet.name(),
 						detail.getColumnNm(),
 						toColumnValue(detail.getColumnNm(), detail.getBefVl()),
-						sheet.getGroupColumnNm(),
 						hstry.getTgtFixAtrbGroupId(),
 						detail.getAtrbCd(),
 						detail.getDtlSeCd(),
-						sheet.getKeyColumnNm(),
-						sheet.getDtlColumnNm(),
 						revertDto.getLoginUserId(),
 						revertDto.getLoginIpAddr()
 				);
@@ -910,15 +886,12 @@ public class CastConfigServiceImpl implements CastConfigService {
 				}
 
 				int updated = castConfigMapper.copyFromGroup(
-						sheet.getTableNm(),
+						sheet.name(),
 						valueColumnList,
-						sheet.getGroupColumnNm(),
 						PRE_PRCS_FIX_ATRB_GROUP_ID,
 						targetCategoryId,
 						row.getAtrbCd(),
 						row.getDtlSeCd(),
-						sheet.getKeyColumnNm(),
-						sheet.getDtlColumnNm(),
 						loginUserId,
 						loginIpAddr
 				);
@@ -1071,15 +1044,12 @@ public class CastConfigServiceImpl implements CastConfigService {
 		CastConfigAtrbRawDto row = target.getRow();
 
 		return castConfigMapper.updateAtrbValue(
-				sheet.getTableNm(),
+				sheet.name(),
 				column.getPhysicalColumn(),
 				toColumnValue(column.getPhysicalColumn(), target.getValue()),
-				sheet.getGroupColumnNm(),
 				target.getFixAtrbGroupId(),
 				row.getAtrbCd(),
 				row.getDtlSeCd(),
-				sheet.getKeyColumnNm(),
-				sheet.getDtlColumnNm(),
 				loginUserId,
 				loginIpAddr
 		);
@@ -1107,7 +1077,7 @@ public class CastConfigServiceImpl implements CastConfigService {
 
 		if (sheet.getCatalogKind() == CastConfigCatalogKind.PSG_FIX) {
 			return castConfigMapper.retrievePsgAtrbList(
-					sheet.getTableNm(),
+					sheet.name(),
 					fixAtrbGroupId,
 					tmnlId.getValue(),
 					filterList

@@ -14,9 +14,6 @@ public enum CastConfigSheet {
 	PSG_ATRB(
 			"여객유형속성",
 			"TN_PM_SMLT_PSG_ATRB",
-			"FIX_ATRB_GROUP_ID",
-			"PSG_ATRB_CD",
-			"PSG_DTL_SE_CD",
 			psgColumns(),
 			"",
 			validation("SUM", "입력값", "제출속성코드", 100),
@@ -27,9 +24,6 @@ public enum CastConfigSheet {
 	SHOW_UP_ATRB(
 			"출현속성",
 			"TN_PM_SMLT_SHOW_UP_ATRB",
-			"FIX_ATRB_GROUP_ID",
-			"PSG_ATRB_CD",
-			"PSG_DTL_SE_CD",
 			psgColumns(),
 			"",
 			null,
@@ -40,9 +34,6 @@ public enum CastConfigSheet {
 	SRVC_ATRB(
 			"서비스속성",
 			"TN_PM_SMLT_SRVC_ATRB",
-			"FIX_ATRB_GROUP_ID",
-			"FCLTY_SE_CD",
-			"FCLTY_DTL_CD",
 			srvcColumns(),
 			"전환함수아이디",
 			null,
@@ -53,9 +44,6 @@ public enum CastConfigSheet {
 	CKNCT_TYPE_ATRB(
 			"체크인유형",
 			"TN_PM_SMLT_CKNCT_TYPE_ATRB",
-			"CKNCT_TYPE_ATRB_ID",
-			"ALN_CD",
-			"",
 			cknctTypeColumns(),
 			"",
 			null,
@@ -66,9 +54,6 @@ public enum CastConfigSheet {
 
 	private final String sheetNm;
 	private final String tableNm;
-	private final String groupColumnNm;
-	private final String keyColumnNm;
-	private final String dtlColumnNm;
 	private final List<CastConfigColumnDef> columnList;
 	private final String shapeColumn;
 	private final CastConfigValidationDto validation;
@@ -80,9 +65,6 @@ public enum CastConfigSheet {
 	CastConfigSheet(
 			String sheetNm,
 			String tableNm,
-			String groupColumnNm,
-			String keyColumnNm,
-			String dtlColumnNm,
 			List<CastConfigColumnDef> columnList,
 			String shapeColumn,
 			CastConfigValidationDto validation,
@@ -92,9 +74,6 @@ public enum CastConfigSheet {
 	) {
 		this.sheetNm = sheetNm;
 		this.tableNm = tableNm;
-		this.groupColumnNm = groupColumnNm;
-		this.keyColumnNm = keyColumnNm;
-		this.dtlColumnNm = dtlColumnNm;
 		this.columnList = Collections.unmodifiableList(columnList);
 		this.shapeColumn = shapeColumn;
 		this.validation = validation;

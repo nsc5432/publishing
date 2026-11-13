@@ -35,7 +35,7 @@ public interface CastConfigMapper {
 	);
 
 	List<CastConfigAtrbRawDto> retrievePsgAtrbList(
-			@Param("tableNm") String tableNm,
+			@Param("sheetCd") String sheetCd,
 			@Param("fixAtrbGroupId") String fixAtrbGroupId,
 			@Param("tmnlId") String tmnlId,
 			@Param("rootCdList") List<String> rootCdList
@@ -50,52 +50,40 @@ public interface CastConfigMapper {
 
 	/** value 는 대상 컬럼 타입에 맞춰 String 또는 BigDecimal 로 넘긴다. */
 	int updateAtrbValue(
-			@Param("tableNm") String tableNm,
+			@Param("sheetCd") String sheetCd,
 			@Param("columnNm") String columnNm,
 			@Param("value") Object value,
-			@Param("groupColumnNm") String groupColumnNm,
 			@Param("fixAtrbGroupId") String fixAtrbGroupId,
 			@Param("keyCd") String keyCd,
 			@Param("dtlSeCd") String dtlSeCd,
-			@Param("keyColumnNm") String keyColumnNm,
-			@Param("dtlColumnNm") String dtlColumnNm,
 			@Param("loginUserId") String loginUserId,
 			@Param("loginIpAddr") String loginIpAddr
 	);
 
 	int copyFromGroup(
-			@Param("tableNm") String tableNm,
+			@Param("sheetCd") String sheetCd,
 			@Param("valueColumnList") List<String> valueColumnList,
-			@Param("groupColumnNm") String groupColumnNm,
 			@Param("srcFixAtrbGroupId") String srcFixAtrbGroupId,
 			@Param("fixAtrbGroupId") String fixAtrbGroupId,
 			@Param("keyCd") String keyCd,
 			@Param("dtlSeCd") String dtlSeCd,
-			@Param("keyColumnNm") String keyColumnNm,
-			@Param("dtlColumnNm") String dtlColumnNm,
 			@Param("loginUserId") String loginUserId,
 			@Param("loginIpAddr") String loginIpAddr
 	);
 
 	int insertFromBaseGroup(
-			@Param("tableNm") String tableNm,
+			@Param("sheetCd") String sheetCd,
 			@Param("valueColumnList") List<String> valueColumnList,
-			@Param("groupColumnNm") String groupColumnNm,
 			@Param("fixAtrbGroupId") String fixAtrbGroupId,
-			@Param("keyColumnNm") String keyColumnNm,
-			@Param("dtlColumnNm") String dtlColumnNm,
 			@Param("loginUserId") String loginUserId,
 			@Param("loginIpAddr") String loginIpAddr
 	);
 
 	int insertFromGroup(
-			@Param("tableNm") String tableNm,
+			@Param("sheetCd") String sheetCd,
 			@Param("valueColumnList") List<String> valueColumnList,
-			@Param("groupColumnNm") String groupColumnNm,
 			@Param("srcFixAtrbGroupId") String srcFixAtrbGroupId,
 			@Param("fixAtrbGroupId") String fixAtrbGroupId,
-			@Param("keyColumnNm") String keyColumnNm,
-			@Param("dtlColumnNm") String dtlColumnNm,
 			@Param("loginUserId") String loginUserId,
 			@Param("loginIpAddr") String loginIpAddr
 	);
@@ -112,15 +100,12 @@ public interface CastConfigMapper {
 
 	int insertAplyHstryDtl(
 			@Param("aplySn") long aplySn,
-			@Param("tableNm") String tableNm,
+			@Param("sheetCd") String sheetCd,
 			@Param("valueColumnList") List<String> valueColumnList,
-			@Param("groupColumnNm") String groupColumnNm,
 			@Param("srcFixAtrbGroupId") String srcFixAtrbGroupId,
 			@Param("tgtFixAtrbGroupId") String tgtFixAtrbGroupId,
 			@Param("keyCd") String keyCd,
 			@Param("dtlSeCd") String dtlSeCd,
-			@Param("keyColumnNm") String keyColumnNm,
-			@Param("dtlColumnNm") String dtlColumnNm,
 			@Param("loginUserId") String loginUserId,
 			@Param("loginIpAddr") String loginIpAddr
 	);

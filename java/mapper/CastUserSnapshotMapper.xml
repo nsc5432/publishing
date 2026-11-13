@@ -4,8 +4,17 @@
 <mapper namespace="aoms.pm.cast.mapper.CastUserSnapshotMapper">
     <insert id="insertRsrcMstr">
         /* CastUserSnapshotMapper.insertRsrcMstr */
-        INSERT INTO PMOWN.${mstrTableNm} (
-            ${mstrIdColumnNm}, ${mstrNmColumnNm}, PRCS_STTS_CD, CFMTN_YN, USE_YN,
+        INSERT INTO
+        <choose>
+            <when test='rsrcTable == "FLT_SCHDL"'>PMOWN.TN_PM_SMLT_SCHDL_MSTR (SCHDL_ATRB_ID, SCHDL_ATRB_NM,</when>
+            <when test='rsrcTable == "CKNCT"'>PMOWN.TN_PM_SMLT_CKNCT_MSTR (CKNCT_ATRB_ID, CKNCT_ATRB_NM,</when>
+            <when test='rsrcTable == "SBD"'>PMOWN.TN_PM_SMLT_SBD_MSTR (SBD_ATRB_ID, SBD_ATRB_NM,</when>
+            <when test='rsrcTable == "DPTGT"'>PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_MSTR (DPTGT_ATRB_ID, DPTGT_ATRB_NM,</when>
+            <when test='rsrcTable == "SCRTY_CNTRL"'>PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_MSTR (SCRTY_CNTRL_ATRB_ID, SCRTY_CNTRL_ATRB_NM,</when>
+            <when test='rsrcTable == "ENTCNY"'>PMOWN.TN_PM_SMLT_FCLTY_OPNG_ENTCNY_MSTR (ENTCNY_ATRB_ID, ENTCNY_ATRB_NM,</when>
+            <when test='rsrcTable == "TRNST_SCRTY_CNTRL"'>PMOWN.TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_MSTR (TRNST_SCRTY_CNTRL_ATRB_ID, TRNST_SCRTY_CNTRL_ATRB_NM,</when>
+        </choose>
+            PRCS_STTS_CD, CFMTN_YN, USE_YN,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         ) VALUES (
             #{snapshot.rsrcNo},
@@ -66,9 +75,8 @@
                     ORDER BY F.RSVT_BDPSG_CNT DESC NULLS LAST
                 ) AS RN
             FROM (
-                <include refid="aoms.pm.castapi.mapper.CastApiMapper.dailyFlightScheduleRows">
-                    <property name="ymdParam" value="excnYmd"/>
-                </include>
+                <bind name="fsYmd" value="excnYmd"/>
+                <include refid="aoms.pm.castapi.mapper.CastApiMapper.dailyFlightScheduleRows"/>
             ) F
             WHERE F.SCHD_HM IS NOT NULL
         ) X
