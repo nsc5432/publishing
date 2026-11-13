@@ -46,26 +46,35 @@ python -c "import fitz; ..."                                       # PDF 텍스�
   | `java/aoms/pm/cast/…` | `java/cast/…` |
   | `java/aoms/pm/castapi/…` | `java/castapi/…` |
   | `resources/aoms/mapper/pm/*.xml` | `java/mapper/*.xml` |
-  | `java/aoms/pm/castrest/…` · `adtoper/…` · `bdpsgance/…` | **없음** (§0.4) |
+  | `java/aoms/pm/castrest/…` | `java-sast-external/castrest/…` (원본 입고 완료, §0.4) |
+  | `java/aoms/pm/adtoper/…` | `java-sast-external/adtoper/…` (원본 입고 완료, §0.4) |
+  | `java/aoms/pm/bdpsgance/…` | `java-sast-external/bdpsgance/…` (원본 입고 완료, §0.4) |
+
+- `java-sast-external/` 는 누락된 4개 Java 원본을 받아 보안 조치하는 별도 작업 폴더다. `java/` 와 마찬가지로
+  이 저장소에서는 컴파일 · 재진단할 수 없으며, 수정 후 실제 백엔드의 원래 경로에 반영한다.
 
 - **라인 번호 드리프트**: 매퍼 XML 은 스캔 라인과 현재 라인이 같다. Java 서비스는 11-10 이후 커밋으로 몇 줄 밀린 곳이 있어
   아래 표에 `스캔 → 현재` 를 함께 적었다. 착수 시 함수명과 지적 코드로 다시 찾는다.
 
-### 0.4 레포 밖 파일 (55건) — 미결정 사항
+### 0.4 별도 폴더 대상 4개 파일 (55건) — 원본 입고 완료 · 직접 조치 대기
 
-| 파일 | 건수 | 체커 |
+| 작업 경로 (저장소 루트 기준) | 건수 | 체커 |
 |---|---|---|
-| `adtoper/controller/AdtOperHrMngController.java` | 34 | 경로 조작 12 · 자원 삽입 16 · HTTP 응답 분할 6 |
-| `adtoper/service/impl/AdtOperHrMngServiceImpl.java` | 1 | 부적절한 예외 처리 |
-| `bdpsgance/controller/BdpsgAnceInqController.java` | 10 | 경로 조작 4 · 자원 삽입 4 · HTTP 응답 분할 2 |
-| `castrest/service/impl/CastRestServiceImpl.java` | 10 | 세션 간 데이터 누출 4 · 표준 널 반환 4 · XXE 1 · 정수 오버플로우 1 |
+| `java-sast-external/adtoper/controller/AdtOperHrMngController.java` | 34 | 경로 조작 12 · 자원 삽입 16 · HTTP 응답 분할 6 |
+| `java-sast-external/adtoper/service/impl/AdtOperHrMngServiceImpl.java` | 1 | 부적절한 예외 처리 |
+| `java-sast-external/bdpsgance/controller/BdpsgAnceInqController.java` | 10 | 경로 조작 4 · 자원 삽입 4 · HTTP 응답 분할 2 |
+| `java-sast-external/castrest/service/impl/CastRestServiceImpl.java` | 10 | 세션 간 데이터 누출 4 · 표준 널 반환 4 · XXE 1 · 정수 오버플로우 1 |
 
-- 이 파일들은 레포에 없어서, 해당 단계(2 · 3 · 4 일부, 8 · 9 · 10 · 11 · 12 전부)는 **원본 파일을 확보해야** 진행할 수 있다.
-  착수 전에 사용자에게 원본 확보 방법을 묻는다 (`java/` 아래 참조 사본으로 추가할지, 실제 백엔드에서 직접 작업할지).
-- **D-castrest (미결정)**: `castrest` 는 동료의 원본이고 `castapi` 가 그 대체 구현이다. AGENTS §11.3 에 따라 두 컨트롤러 중
-  하나만 `@RestController` 로 등록한다. 운영에서 `castapi` 를 쓴다면 `castrest` 를 빌드에서 빼거나 삭제해 10건을 한 번에 없애는 안이 있다.
-  계속 쓴다면 단계 2 · 3 · 4 · 8 에서 `castapi` 와 같은 방식으로 고친다. **castrest 부분 착수 전에 사용자에게 확인한다.**
-- **D-download (미결정)**: AdtOperHrMng · BdpsgAnce 다운로드 2곳을 이 작업 범위에서 직접 고칠지, 담당자에게 넘길지. 단계 9~12 착수 전에 확인한다.
+- **작업 방식 확정 (2026-11-13 사용자 요청)**: 위 4개 파일은 `java-sast-external/` 에 원본을 넣고 이 저장소에서 직접 수정한다.
+  원본 확보 방법 · 직접 수정 여부를 다시 묻지 않는다. **2026-11-13 Java 원본 4개 입고를 완료**했으며, 보안 조치는 아직 시작하지 않았다.
+- 실제 백엔드 `src/main/java/aoms/pm/` 아래의 원본을 위 경로로 복사한다. 패키지 선언 · 클래스명 · 기존 주석을 유지하고,
+  빈 Java 파일이나 대역 구현을 만들어 원본을 대신하지 않는다. 단계별 표의 `adtoper/…` · `bdpsgance/…` · `castrest` 표기는 위 작업 경로를 뜻한다.
+- 해당 단계(2 · 3 · 4 일부, 8 · 9 · 10 · 11 · 12 전부)에 착수할 때 필요한 원본의 존재를 확인한다. 파일이 없으면 해당 부분만
+  입고 대기로 남기고 다른 진행 가능한 작업을 수행한다. 입고 후에는 함수명 · 지적 코드로 위치를 다시 찾아 스캔 라인과 현재 라인을 대조한다.
+- **D-castrest (확정)**: `castrest` 원본의 10건을 단계 2 · 3 · 4 · 8 에서 코드로 조치한다. `castapi` 는 대체 구현이자 참고 대상이다.
+  AGENTS §11.3 의 컨트롤러 등록 제약은 유지하며, `castrest` 삭제 · 빌드 제외로 조치를 대신하지 않는다.
+- **D-download (확정)**: AdtOperHrMng · BdpsgAnce 다운로드 2곳은 단계 9~12 에서 위 사본을 직접 수정한다.
+  관련 서비스 · 공용 유틸 · 라이브러리의 계약을 확인할 자료가 부족하면 필요한 원본을 추가로 확보하며, 추측으로 구현하지 않는다.
 
 ### 0.5 공통 작업 규칙
 
@@ -86,7 +95,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 
 ### 0.7 진행 현황
 
-| 단계 | 체커 키 | 체커명 | 건수 | 레포 안 / 밖 | 상태 |
+| 단계 | 체커 키 | 체커명 | 건수 | 기존 사본 / 별도 폴더 대상 | 상태 |
 |:--:|---|---|:--:|---|---|
 | 1 | `RESOURCE_LEAK` | 자원 누수 | 1 | 1 / 0 | 대기 |
 | 2 | `INTEGER_OVERFLOW` | 정수 오버플로우 | 2 | 1 / 1 (castrest) | 대기 |
@@ -102,7 +111,9 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 | 12 | `HTTP_RESPONSE_SPLITTING` | HTTP 응답 분할 | 8 | 0 / 8 | 대기 |
 | | | **합계** | **138** | **83 / 55** | |
 
-순서는 레포 안의 작고 독립적인 단계 → 큰 단계(SQL) → 레포 밖 단계다. 단계끼리 코드 의존은 없지만,
+별도 폴더 대상 55건의 원본 4개는 입고 완료됐으며, 조치 상태는 모두 대기다. 원본 입고를 보안 조치 완료로 간주하지 않는다.
+
+순서는 기존 사본의 작고 독립적인 단계 → 큰 단계(SQL) → 별도 폴더 단계다. 단계끼리 코드 의존은 없지만,
 **10 · 11 · 12 는 같은 다운로드 메서드의 같은 줄**이라 이어서 진행하는 편이 좋다.
 상태 값: `대기` · `진행` · `레포 반영` (이 레포 수정 끝) · `실백엔드 반영` · `재진단 통과`.
 
@@ -138,7 +149,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 **조치**
 - `rRslt = Math.addExact(rRslt, updated);` 로 바꾼다. 반환 타입 `int` 는 유지한다(호출부 2523행).
   `ArithmeticException` 을 잡아 넘기지 않는다 (실제로 넘칠 수 없는 건수라 예외가 나면 버그다).
-- ID 680 은 D-castrest 결정에 따른다.
+- ID 680 은 §0.4 의 별도 폴더에 입고된 `CastRestServiceImpl.java` 에 같은 누적 연산 조치를 적용한다.
 
 **완료 기준**: 갱신 건수 합계가 이전과 같다. 실백엔드에서 WhatIf 상태 통보(Executing / Finished)가 정상 처리되는지 확인한다.
 
@@ -161,7 +172,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 **조치**
 - `dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");` · `dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");` 를 추가한다
   (`javax.xml.XMLConstants` import).
-- ID 774 는 D-castrest 결정에 따른다. castrest 를 유지하면 같은 두 줄을 넣는다.
+- ID 774 는 §0.4 의 별도 폴더에 입고된 `CastRestServiceImpl.java` 에 같은 두 줄을 넣는다.
 
 **주의**: 클래스패스에 JAXP 1.5 이전의 구형 Xerces 가 먼저 잡히면 `setAttribute` 가 `IllegalArgumentException` 을 던진다.
 실백엔드에서 CAST 요청(`REQ_GetResourceInformation` · `REQ_GetResource` · `REQ_SetResource`) 파싱이 정상인지 반드시 확인한다.
@@ -195,7 +206,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 - 674 · 676: `DocumentBuilder.parse()` · `getDocumentElement()` 를 표준 널 반환으로 본다. `parseXmlSafely` 에서 결과 null 이면
   `SAXException` 을 던지게 해 호출부 전체를 한 번에 보장하고, `getDocumentElement()` 결과도 지역 변수로 받아 검사한다.
   같은 패턴인 733 · 898행(`resourceInfoList(doc.getDocumentElement(), …)` · `resourceList(…)`)도 예방 조치한다.
-- castrest 4건은 D-castrest 결정에 따른다.
+- castrest 4건은 §0.4 의 별도 폴더에 입고된 `CastRestServiceImpl.java` 에 같은 null 검사 원칙을 적용한다.
 
 **검증**: 663 은 시설 대기 도메인이라 `java/verify` 의 `FcltWtngRegression` 대상이다 (환경이 없으면 실행 불가로 보고).
 실백엔드: 카테고리 세트 저장, CAST 결과 수신 · PropertySet 렌더(PS5xx)가 정상인지 확인한다.
@@ -392,9 +403,9 @@ AGENTS §8: 이 매퍼는 **001 기준정보를 갱신하는 유일한 화면 �
 
 ---
 
-## 8단계 — 세션 간 데이터 누출 `DATA_LEAK_BETWEEN_SESSIONS` (4건, 위험) — 레포 밖
+## 8단계 — 세션 간 데이터 누출 `DATA_LEAK_BETWEEN_SESSIONS` (4건, 위험) — 별도 폴더
 
-행안부 06.01 잘못된 세션에 의한 데이터 정보 노출 · AGENTS §16.9. **D-castrest 결정이 먼저다.**
+행안부 06.01 잘못된 세션에 의한 데이터 정보 노출 · AGENTS §16.9. **§0.4 의 CastRestServiceImpl.java 원본 입고를 확인한다.**
 
 | ID | castrest `CastRestServiceImpl.java` : 라인 | 함수 | 지적 코드 |
 |---|---|---|---|
@@ -409,16 +420,16 @@ AGENTS §8: 이 매퍼는 **001 기준정보를 갱신하는 유일한 화면 �
 (`java/castapi/service/impl/CastApiServiceImpl.java` 717행)로 바꾸고 진입점에서 `colTable.remove()`(747 · 912행)를 부른다. 이 형태는 진단에 걸리지 않았다.
 
 **조치**
-- castrest 를 삭제 · 제외하면 이 단계는 '해당 없음'으로 닫는다.
-- 유지하면 지역 변수 · 파라미터로 넘기는 방식(AGENTS §16.9 우선)을 먼저 검토하고, 재귀 파서 구조상 어렵다면 castapi 의 ThreadLocal + `remove()` 를 그대로 옮긴다.
+- 별도 폴더의 원본에서 지역 변수 · 파라미터로 넘기는 방식(AGENTS §16.9 우선)을 먼저 검토하고,
+  재귀 파서 구조상 어렵다면 castapi 의 ThreadLocal + `remove()` 를 그대로 옮긴다.
 
 **결과**: (작성)
 
 ---
 
-## 9단계 — 부적절한 예외 처리 `IMPROPER_CHECK_FOR_UNUSUAL_OR_EXCEPTIONAL_CONDITION` (1건, 위험) — 레포 밖
+## 9단계 — 부적절한 예외 처리 `IMPROPER_CHECK_FOR_UNUSUAL_OR_EXCEPTIONAL_CONDITION` (1건, 위험) — 별도 폴더
 
-행안부 04.03 부적절한 예외처리 · AGENTS §5 · §16.8. **D-download 결정이 먼저다.**
+행안부 04.03 부적절한 예외처리 · AGENTS §5 · §16.8. **§0.4 의 AdtOperHrMngServiceImpl.java 원본 입고를 확인한다.**
 
 | ID | 파일 : 라인 | 함수 | 지적 코드 |
 |---|---|---|---|
@@ -433,9 +444,9 @@ AGENTS §8: 이 매퍼는 **001 기준정보를 갱신하는 유일한 화면 �
 
 ---
 
-## 10단계 — 경로 조작 `PATH_TRAVERSAL` (16건, 매우위험) — 레포 밖
+## 10단계 — 경로 조작 `PATH_TRAVERSAL` (16건, 매우위험) — 별도 폴더
 
-행안부 01.03 경로 조작 및 자원 삽입 · AGENTS §16.2. **D-download 결정이 먼저다.** 11 · 12 단계와 같은 메서드다.
+행안부 01.03 경로 조작 및 자원 삽입 · AGENTS §16.2. **§0.4 의 두 컨트롤러 원본 입고를 확인한다.** 11 · 12 단계와 같은 메서드다.
 
 | ID | 파일 : 라인 | 함수 | 지적 코드 |
 |---|---|---|---|
@@ -459,7 +470,7 @@ AdtOperHrMng 은 `!file.exists()` 이면 `AomsBizException("FWIO25", …)`, Bdps
 
 ---
 
-## 11단계 — 자원 삽입 `RESOURCE_INJECTION` (20건, 매우위험) — 레포 밖
+## 11단계 — 자원 삽입 `RESOURCE_INJECTION` (20건, 매우위험) — 별도 폴더
 
 행안부 01.03 경로 조작 및 자원 삽입 · AGENTS §16.2. **10단계와 같은 줄이다.**
 
@@ -479,9 +490,9 @@ AdtOperHrMng 은 `!file.exists()` 이면 `AomsBizException("FWIO25", …)`, Bdps
 
 ---
 
-## 12단계 — HTTP 응답 분할 `HTTP_RESPONSE_SPLITTING` (8건, 매우위험) — 레포 밖
+## 12단계 — HTTP 응답 분할 `HTTP_RESPONSE_SPLITTING` (8건, 매우위험) — 별도 폴더
 
-행안부 01.13 HTTP 응답분할 · AGENTS §16.3. **D-download 결정이 먼저다.**
+행안부 01.13 HTTP 응답분할 · AGENTS §16.3. **§0.4 의 두 컨트롤러 원본 입고를 확인한다.**
 
 | ID | 파일 : 라인 | 함수 | 지적 코드 |
 |---|---|---|---|
@@ -503,6 +514,7 @@ AdtOperHrMng 은 `!file.exists()` 이면 `AomsBizException("FWIO25", …)`, Bdps
 
 ## 마무리 (12단계 이후)
 
-1. 이 레포 수정분(`java/cast` · `java/castapi` · `java/mapper`)을 실제 백엔드에 옮기고 빌드한다. 단계별 '실백엔드 확인'을 수행한다.
+1. 이 레포 수정분(`java/cast` · `java/castapi` · `java/mapper` · `java-sast-external`)을 §0.3 의 경로 대응에 따라 실제 백엔드에 옮기고 빌드한다.
+   `java-sast-external/` 아래 파일은 `src/main/java/aoms/pm/` 아래의 해당 원본에 반영한다. 단계별 '실백엔드 확인'을 수행한다.
 2. Sparrow 재분석을 요청하고, 결과 목록을 이 계획서의 이슈 ID 와 대조한다. 새로 생긴 이슈는 같은 형식의 단계로 추가한다.
 3. 진단 결과 엑셀의 `이슈 의견` 열에 단계별 조치 내용(무엇을 어떻게 바꿨는지, 커밋)을 기입해 제출한다. 소명 문구는 쓰지 않는다(§0.2).
