@@ -772,7 +772,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		for (Map<LocalDateTime, SmltRsltRawDto> unitRslt : rsltByUnit.values()) {
 			for (SmltRsltRawDto rslt : unitRslt.values()) {
 				LocalDateTime resultDt = rslt.getSmltActlDt();
-				if (resultDt.isBefore(dayStart)
+				if (resultDt == null || resultDt.isBefore(dayStart)
 						|| (category != DsbdCategory.DEP && resultDt.getMinute() != 0)) {
 					continue;
 				}

@@ -46,7 +46,11 @@ public class SmltUtils {
 	}
 
 	public static List<TimeRange> mergeTimeRanges(List<TimeRange> ranges) {
-		if (ranges == null || ranges.size() <= 1) {
+		if (ranges == null) {
+			return new ArrayList<>();
+		}
+
+		if (ranges.size() <= 1) {
 			return ranges;
 		}
 

@@ -102,7 +102,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 | 3 | `IMPROPER_REFERENCE_XML_EXTERNAL_ENTITY` | 부적절한 XML 외부 개체 참조 | 2 | 1 / 1 (castrest) | 레포 반영 |
 | 4 | `NULL_RETURN_STD` | 표준 라이브러리의 널 반환 값 역참조 | 9 | 5 / 4 (castrest) | 레포 반영 |
 | 5 | `NULL_RETURN` | 널 반환 값 역참조 | 4 | 4 / 0 | 레포 반영 |
-| 6 | `UNCHECKED_NULL` | 누락된 널 값 검사 | 3 | 3 / 0 | 대기 |
+| 6 | `UNCHECKED_NULL` | 누락된 널 값 검사 | 3 | 3 / 0 | 레포 반영 |
 | 7 | `SQL_INJECTION.MYBATIS` | myBatis에서의 SQL 삽입 | 68 | 68 / 0 | 대기 |
 | 8 | `DATA_LEAK_BETWEEN_SESSIONS` | 세션 간 데이터 누출 | 4 | 0 / 4 (castrest) | 대기 |
 | 9 | `IMPROPER_CHECK_FOR_UNUSUAL_OR_EXCEPTIONAL_CONDITION` | 부적절한 예외 처리 | 1 | 0 / 1 | 대기 |
@@ -315,7 +315,19 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 
 **검증**: 실백엔드에서 체크인카운터 상세 · 맵 아일랜드 운영시간, 요약보기 시간대별 유입 차트가 이전과 같은지 확인한다.
 
-**결과**: (작성)
+**결과**: 레포 반영 (2026-11-13)
+- 664 · 665: 원인은 `SmltUtils.mergeTimeRanges` 의 `if (ranges == null || ranges.size() <= 1) return ranges;` — 입력이 null 이면 null 을
+  그대로 돌려줘, 결과를 바로 `.stream()`(664) · `toOprTimeList`(665) 로 역참조하는 호출부가 검출됐다.
+  `ranges == null` 이면 빈 `ArrayList` 를 돌려주도록 분기를 나눴다 (1개 이하는 이전처럼 입력 그대로). 호출부 2곳은 고치지 않았다.
+  호출부 3곳(`CastChknCounterServiceImpl.getOprTimeList` · `CastChknServiceImpl.getAllotIslandList` · `UserConfigChknDto.factory`)은
+  모두 `collect(toList())` 결과를 넘겨 null 이 오지 않으므로 동작은 같다. `java-sast-external/` 에는 호출부가 없다.
+  `UserConfigChknDto.timeRanges` 에 저장될 수 있어 변경 가능한 `ArrayList` 를 썼다 (`Collections.emptyList()` 아님).
+- 669: `CastDsbdServiceImpl.retrieveArvlByHour` 의 앞 반복문이 `rslt.getSmltActlDt() != null` 로 거른 뒤 맵에 넣지만, 뒤 반복문은 같은
+  getter 를 다시 불러 검사 없이 `resultDt.isBefore(…)` 했다. 조건 맨 앞에 `resultDt == null ||` 를 더해 건너뛴다.
+  null 시각 행은 이미 앞에서 빠지므로 결과는 같다. 스캔 742 → 현재 775행.
+- 이 레포에서는 컴파일 불가(§0.3). 검증은 diff 검토 · `git diff --check` 만 했다.
+- 실백엔드 확인 대기: 빌드, 체크인카운터 상세 아일랜드 운영시간, 맵 체크인 팝업의 배정 아일랜드 운영시간, 사용자 시뮬레이션 체크인 부스 운영시간,
+  요약보기 시간대별 유입 차트(아일랜드 · 출국장 · 랜드사이드)가 이전과 같은지.
 
 ---
 
