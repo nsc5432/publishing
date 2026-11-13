@@ -1,14 +1,11 @@
 package aoms.pm.adtoper.controller;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -29,6 +26,7 @@ import aoms.pm.adtoper.dto.AdtOperHrMngSearchDto;
 import aoms.pm.adtoper.service.AdtOperHrMngService;
 import aoms.pm.cmmn.dto.PmConstants;
 import aoms.pm.cmmn.dto.ValidCheckDto;
+import aoms.pm.cmmn.util.FileDownloadUtils;
 
 import lombok.RequiredArgsConstructor;
 
@@ -56,6 +54,8 @@ public class AdtOperHrMngController extends BaseAomsModelController {
 	private static final String DS_MSTR_LIST_OUTPUT = "dsMstrListOutput";
 	private static final String DS_OPER_HR_MNG_LIST_OUTPUT = "dsOperHrMngListOutput";
 	private static final String DS_ELEMENT_LIST_OUTPUT = "dsElementListOutput";
+	private static final String OPER_PLAN_FILE_NAME = "operation-time-plan.hwpx";
+	private static final String OPER_PLAN_FILE_PATH = "template/" + OPER_PLAN_FILE_NAME;
 	private final AdtOperHrMngService adtOperHrMngService;
 	
 	@PostMapping(value = "/retrieveOperHr.do")
@@ -383,28 +383,12 @@ public class AdtOperHrMngController extends BaseAomsModelController {
 		String webAppPath = request.getSession().getServletContext().getRealPath("/");
 		String[] downloadFileInfo = adtOperHrMngService.downloadAdtOperHrMng(mstrSeq, webAppPath, arrCheck, depCheck, tsCheck);
 
-		int byteSize = 2048;
-		byte[] buffer = new byte[byteSize];
-
-		File file = new File(downloadFileInfo[0]);
-		if (!file.exists()) {
+		Path file = FileDownloadUtils.resolveFile(webAppPath, OPER_PLAN_FILE_PATH, downloadFileInfo[0], downloadFileInfo[1]);
+		if (!Files.exists(file)) {
 			throw new AomsBizException("FWIO25", new String[] { downloadFileInfo[1] });
 		}
 
-		try (
-			BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file));
-			ServletOutputStream outputStream = response.getOutputStream();
-		) {
-			response.setContentType("application/octet-stream;charset=utf-8");
-			response.setHeader("Content-Disposition", "attachment; filename=\"" + downloadFileInfo[1] + "\"");
-
-			int bytesRead;
-			while ((bytesRead = inputStream.read(buffer, 0, byteSize)) != -1) {
-				outputStream.write(buffer, 0, bytesRead);
-			}
-		} catch (IOException e) {
-			throw new AomsBizException("FWIO25", new String[] { downloadFileInfo[1] });
-		}
+		FileDownloadUtils.write(response, file, OPER_PLAN_FILE_NAME, "application/octet-stream;charset=utf-8");
 	}
 
 	private void applyOut(ModelAndView mav, NexacroObjectDto ncDto, Map<String, DataSetObject> outDatasetMap) {

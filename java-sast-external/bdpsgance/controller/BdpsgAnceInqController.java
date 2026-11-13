@@ -1,13 +1,12 @@
 package aoms.pm.bdpsgance.controller;
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -28,6 +27,7 @@ import aoms.pm.bdpsgance.service.BdpsgAnceInqService;
 import aoms.pm.cmmn.dto.BdpsgAnceCrtMntrDto;
 import aoms.pm.cmmn.dto.BdpsgAnceRsltDto;
 import aoms.pm.cmmn.dto.GdDataDto;
+import aoms.pm.cmmn.util.FileDownloadUtils;
 
 import lombok.RequiredArgsConstructor;                                                                                              
 
@@ -52,6 +52,8 @@ import lombok.RequiredArgsConstructor;
 public class BdpsgAnceInqController extends BaseAomsModelController {
     private static final String FWTR07 = "FWTR07";
 	private static final String DS_SEARCH = "dsSearch";
+	private static final String RSLT_FILE_DIR = "template/";
+	private static final Pattern RSLT_FILE_NAME = Pattern.compile("E(\\d{8})(T2)?\\.xlsx");
 	private final BdpsgAnceInqService bdpsgAnceInqService;
     
     /**
@@ -309,7 +311,6 @@ public class BdpsgAnceInqController extends BaseAomsModelController {
      **/
     @PostMapping(value = "/downloadBdpsgAnceRsltExcel.do")
 	public void downloadBdpsgAnceRsltExcel(HttpServletRequest request, HttpServletResponse response) throws Exception {
-    	final int buffSIZE = 2048;
 		String bdpsgAnceYmd = request.getParameter("bdpsgAnceYmd");
 		String tmnlId = request.getParameter("tmnlId");
 		
@@ -318,32 +319,38 @@ public class BdpsgAnceInqController extends BaseAomsModelController {
 		bdpsgAnceRsltDto.setBdpsgAnceYmd(bdpsgAnceYmd);
 		
 		if (StringUtils.isNotEmpty(bdpsgAnceYmd)) {
-			String[] fileInfo = bdpsgAnceInqService.makeBdpsgAnceRsltExcel(bdpsgAnceRsltDto, request.getSession().getServletContext().getRealPath("/"));
+			String webAppPath = request.getSession().getServletContext().getRealPath("/");
+			String[] fileInfo = bdpsgAnceInqService.makeBdpsgAnceRsltExcel(bdpsgAnceRsltDto, webAppPath);
 			
-			byte[] buffer = new byte[buffSIZE];
+			String fileName = toRsltFileName(fileInfo[1]);
+			Path file = FileDownloadUtils.resolveFile(webAppPath, RSLT_FILE_DIR + fileName, fileInfo[0], fileInfo[1]);
 			
-			
-			File file = new File(fileInfo[0]);
-			
-			if(file.exists()) {
-				try (
-					ServletOutputStream outStream = response.getOutputStream();
-					BufferedInputStream inStream  = new BufferedInputStream(new FileInputStream(file));
-				) {
-					response.setContentType("application/octet;charset=utf-8");
-					response.setHeader("Content-Disposition", "attachment; filename=\"" + fileInfo[1] + "\"");
-					
-					int bytesRead = 0;
-
-					while (bytesRead != -1) {
-						bytesRead = inStream.read(buffer, 0, buffSIZE);
-						outStream.write(buffer, 0, bytesRead);
-					}
-				} catch (IOException e) {
-					throw new AomsBizException("FWIO25", new String[] { fileInfo[1] });
-				}
+			if (Files.exists(file)) {
+				FileDownloadUtils.write(response, file, fileName, "application/octet;charset=utf-8");
 			}
 		}
+	}
+
+	/**
+	 * 서비스가 만든 결과 파일명(E{yyyyMMdd}.xlsx · E{yyyyMMdd}T2.xlsx)을 상수와 숫자로 다시 만든다.
+	 *
+	 * @Method Name : toRsltFileName
+	 * @param serverFileName
+	 * @return
+	 **/
+	private static String toRsltFileName(String serverFileName) throws AomsBizException {
+		if (serverFileName == null) {
+			throw new AomsBizException("FWIO25", new String[] { "" });
+		}
+
+		Matcher matcher = RSLT_FILE_NAME.matcher(serverFileName);
+		if (!matcher.matches()) {
+			throw new AomsBizException("FWIO25", new String[] { serverFileName });
+		}
+
+		int ymd = Integer.parseInt(matcher.group(1));
+		String suffix = matcher.group(2) == null ? ".xlsx" : "T2.xlsx";
+		return String.format("E%08d%s", ymd, suffix);
 	}
     
     /**

@@ -107,12 +107,12 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 | 7 | `SQL_INJECTION.MYBATIS` | myBatis에서의 SQL 삽입 | 68 | 68 / 0 | 레포 반영 |
 | 8 | `DATA_LEAK_BETWEEN_SESSIONS` | 세션 간 데이터 누출 | 4 | 0 / 4 (castrest) | 레포 반영 |
 | 9 | `IMPROPER_CHECK_FOR_UNUSUAL_OR_EXCEPTIONAL_CONDITION` | 부적절한 예외 처리 | 1 | 0 / 1 | 레포 반영 |
-| 10 | `PATH_TRAVERSAL` | 경로 조작 | 16 | 0 / 16 | 대기 |
-| 11 | `RESOURCE_INJECTION` | 자원 삽입 | 20 | 0 / 20 | 대기 |
-| 12 | `HTTP_RESPONSE_SPLITTING` | HTTP 응답 분할 | 8 | 0 / 8 | 대기 |
+| 10 | `PATH_TRAVERSAL` | 경로 조작 | 16 | 0 / 16 | 레포 반영 |
+| 11 | `RESOURCE_INJECTION` | 자원 삽입 | 20 | 0 / 20 | 레포 반영 |
+| 12 | `HTTP_RESPONSE_SPLITTING` | HTTP 응답 분할 | 8 | 0 / 8 | 레포 반영 |
 | | | **합계** | **138** | **83 / 55** | |
 
-별도 폴더 대상 55건의 원본 4개는 입고 완료됐으며, 조치 상태는 모두 대기다. 원본 입고를 보안 조치 완료로 간주하지 않는다.
+별도 폴더 대상 55건의 원본 4개는 입고 완료됐으며, 2026-11-13 에 55건 모두 이 레포에 조치를 반영했다(실백엔드 반영 · 재진단 전).
 
 순서는 기존 사본의 작고 독립적인 단계 → 큰 단계(SQL) → 별도 폴더 단계다. 단계끼리 코드 의존은 없지만,
 **10 · 11 · 12 는 같은 다운로드 메서드의 같은 줄**이라 이어서 진행하는 편이 좋다.
@@ -594,7 +594,30 @@ AdtOperHrMng 은 `!file.exists()` 이면 `AomsBizException("FWIO25", …)`, Bdps
 - 경로 조각에 쓰는 이름은 허용 문자(영문 · 숫자 · 한글 · `.` `_` `-`) 밖을 제거한다 (가이드 예시의 `/` `\` `..` `&` 제거와 같은 취지).
 - 기존 오류 코드(`FWIO25`)와 응답 형태는 유지한다.
 
-**결과**: (작성)
+**결과**: 레포 반영 (2026-11-13) — 10 · 11 · 12 단계를 한 번에 조치했다. 두 다운로드를 공용 유틸 하나로 모으고,
+열 파일의 경로는 컨트롤러가 정한 고정 목록으로만 만든다(11단계 결과 참고).
+
+- 신규 `java/cmmn/util/FileDownloadUtils.java` (`aoms.pm.cmmn.util`, `AtchFileUtils` 와 같은 패키지). 상태 없는 `final` 클래스의 static 메서드라 빈 · 멤버 필드가 없다(§16.9).
+  - `resolveFile(baseDirPath, relativePath, serverFilePath, downloadFileName)`: 기준 디렉터리(`webAppPath`)에 호출부 상수로 만든 `relativePath` 를 붙여
+    `normalize()` 한다. 결과가 기준 디렉터리 하위(`startsWith`)가 아니거나, 서비스가 돌려준 경로(`serverFilePath`, 같은 방식으로 정규화)와 다르거나,
+    인자가 null 이면 `AomsBizException("FWIO25", {파일명})` 으로 거부한다. 서비스 반환 경로는 대조에만 쓰고 파일을 여는 데 쓰지 않는다.
+  - `write(response, file, downloadFileName, contentType)`: `Files.newInputStream` 으로 열어 2048 바이트씩 쓴다. `IOException` 은 기존처럼 `FWIO25`.
+- 두 컨트롤러: `new File` · `FileInputStream` · `BufferedInputStream` · `ServletOutputStream` 과 스트리밍 루프를 지우고 `resolveFile` → 존재 확인 → `write` 로 바꿨다.
+  `java.io.*` · `ServletOutputStream` import 와 `buffSIZE` 를 지웠다. 기존 주석은 그대로다.
+- 유지한 동작: AdtOperHrMng 은 파일이 없으면 `FWIO25`, BdpsgAnce 는 파일이 없으면 아무것도 쓰지 않고 끝난다. Content-Type 은 화면별 기존 값
+  (`application/octet-stream;charset=utf-8` · `application/octet;charset=utf-8`)을 인자로 넘긴다.
+- 바뀐 동작: 서비스가 고정 목록 밖의 경로 · 파일명을 돌려주면 `FWIO25` 로 거부된다(BdpsgAnce 도 이 경우는 예외). BdpsgAnce 의 기존 루프는
+  EOF 에서 `write(buffer, 0, -1)` 을 한 번 더 불렀는데 공용 루프로 바뀌면서 없어졌다.
+- `git diff --check` 통과. 이 레포에서는 컴파일 불가(§0.3).
+
+**서비스 경로 확인 (2026-11-13)**:
+- AdtOperHrMng (원본): `webAppPath + File.separator + "template" + File.separator + "operation-time-plan.hwpx"`, 반환 `{destFilePath, destFileName}`.
+- BdpsgAnce (실백엔드 `BdpsgAnceInqServiceImpl.makeBdpsgAnceRsltExcel` 화면 사진으로 대조): `webappPath + "/template" + File.separator + copyFileName`,
+  `copyFileName = "E" + yyyyMMdd + (T1 ? ".xlsx" : "T2.xlsx")`(예: `E20261113.xlsx` · `E20261113T2.xlsx`), 반환 `{copyFilePath, copyFileName}`.
+  날짜는 `bdpsgAnceYmd` 를 `parse` 한 뒤 `format` 한 값이라 요청 문자열이 그대로 들어가지 않는다(파싱 실패 시 오늘).
+- 두 경로 모두 컨트롤러 고정 목록과 정규화 후 같아 정상 다운로드를 막지 않는다(`"/template" + "\"` 처럼 섞인 구분자는 `Paths` 가 정리한다). 다운로드 헤더 파일명은 ASCII 다.
+- 기존 동작 그대로인 점: BdpsgAnce 서비스는 템플릿 디렉터리 · 원본 파일이 없으면 빈 배열(`new String[0]`)을 돌려주고, 컨트롤러는 변경 전후 모두
+  `fileInfo[0]`(지금은 `fileInfo[1]`) 에서 `ArrayIndexOutOfBoundsException` 이 난다. 이번 체커 범위 밖이라 고치지 않았다.
 
 ---
 
@@ -614,7 +637,14 @@ AdtOperHrMng 은 `!file.exists()` 이면 `AomsBizException("FWIO25", …)`, Bdps
   파일 종류가 정해져 있으면(예: 템플릿 · 결과 엑셀) 종류 enum → 서버 경로 매핑으로 바꿔 요청값이 식별자에 닿지 않게 한다.
 - 10단계를 이미 그 방식으로 했다면 이 단계는 대조 · 기록만 하고 닫는다.
 
-**결과**: (작성)
+**결과**: 레포 반영 (2026-11-13) — 파일 종류별 고정 목록 → 서버 경로 매핑을 컨트롤러에 두었다.
+
+- AdtOperHrMng: 상수 `OPER_PLAN_FILE_NAME = "operation-time-plan.hwpx"` · `OPER_PLAN_FILE_PATH = "template/" + OPER_PLAN_FILE_NAME` 한 가지뿐이다.
+- BdpsgAnce: `toRsltFileName` 이 서비스 파일명을 `E(\d{8})(T2)?\.xlsx` 로 검사하고, 맞지 않으면 `FWIO25`. 맞으면 날짜를 `int` 로 바꿔
+  `String.format("E%08d%s", ymd, T2 여부에 따라 ".xlsx" | "T2.xlsx")` 로 다시 만든다. 경로는 상수 `RSLT_FILE_DIR = "template/"` + 이 이름이다.
+- 파일을 여는 경로와 응답 헤더 파일명은 위 상수 · 숫자로만 만든다. 서비스 반환값(경로 · 파일명)은 형식 검사와 `resolveFile` 의 일치 대조에만 쓰여
+  식별자에 닿지 않는다. 지적 줄(`new File(...)` · `new FileInputStream(file)`)은 없어졌다.
+- 대가: 서비스의 결과 파일 위치 · 이름 규칙을 바꾸면 컨트롤러 상수도 같이 바꿔야 한다. 어긋나면 조용히 다른 파일을 내리지 않고 `FWIO25` 로 실패한다.
 
 ---
 
@@ -636,13 +666,23 @@ AdtOperHrMng 은 `!file.exists()` 이면 `AomsBizException("FWIO25", …)`, Bdps
 **실백엔드 확인 (10~12 공통)**: 두 화면에서 정상 다운로드 · 한글 파일명 · 없는 파일 오류(`FWIO25`)가 이전과 같다.
 `../` 가 섞인 경로 · CR/LF 가 섞인 파일명이 거부되거나 제거된다.
 
-**결과**: (작성)
+**결과**: 레포 반영 (2026-11-13) — 10단계의 `FileDownloadUtils.write` 에서 조치했다.
+
+- 헤더 파일명은 11단계 고정 목록으로 만든 값(`operation-time-plan.hwpx` · `E{yyyyMMdd}(T2).xlsx`)이다. 그래도 `write` 가 `\r` · `\n` 을 제거한 뒤
+  `ContentDisposition.builder("attachment").filename(name, StandardCharsets.UTF_8).build().toString()` 으로 `Content-Disposition` 을 만든다(§16.3).
+  `FWIO25` 메시지 인자도 같은 제거를 거친다.
+- 헤더 형태가 바뀐다: Spring 5.x 는 UTF-8 지정 시 ASCII 이름도 `attachment; filename*=UTF-8''operation-time-plan.hwpx` 로 내린다
+  (6.x 는 `filename="=?UTF-8?Q?…?="; filename*=…` 를 함께 내린다). 기존 화면이 파일명을 따로 인코딩해 넘기는 코드는 두 컨트롤러에 없었다.
+- `git diff --check` 통과. 이 레포에서는 컴파일 불가(§0.3).
+
+**실백엔드 확인 대기 (10~12)**: 빌드(`AomsBizException` 이 checked 여도 `throws` 로 선언해 컴파일된다), Spring 버전별 헤더와 Nexacro 다운로드에서
+파일명이 그대로 저장되는지, 운영 서버의 `getRealPath("/")` 와 서비스 경로가 정규화 후 같은지(다르면 `FWIO25`), 위 '실백엔드 확인 (10~12 공통)' 항목, Sparrow 재분석.
 
 ---
 
 ## 마무리 (12단계 이후)
 
-1. 이 레포 수정분(`java/cast` · `java/castapi` · `java/mapper` · `java-sast-external`)을 §0.3 의 경로 대응에 따라 실제 백엔드에 옮기고 빌드한다.
+1. 이 레포 수정분(`java/cast` · `java/castapi` · `java/mapper` · `java/cmmn/util/FileDownloadUtils.java`(신규, `aoms/pm/cmmn/util/`) · `java-sast-external`)을 §0.3 의 경로 대응에 따라 실제 백엔드에 옮기고 빌드한다.
    `java-sast-external/` 아래 파일은 `src/main/java/aoms/pm/` 아래의 해당 원본에 반영한다. 단계별 '실백엔드 확인'을 수행한다.
 2. Sparrow 재분석을 요청하고, 결과 목록을 이 계획서의 이슈 ID 와 대조한다. 새로 생긴 이슈는 같은 형식의 단계로 추가한다.
 3. 진단 결과 엑셀의 `이슈 의견` 열에 단계별 조치 내용(무엇을 어떻게 바꿨는지, 커밋)을 기입해 제출한다. 소명 문구는 쓰지 않는다(§0.2).
