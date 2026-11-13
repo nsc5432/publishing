@@ -220,6 +220,7 @@ DTO→화면 변환은 전부 `view.ts` 에 모은다. 컴포넌트가 직접 `t
 - Java 예외 처리는 PMD `AvoidCatchingGenericException`을 따른다. 발생 가능한 구체적인 예외 타입만 `catch`하고,
   `Exception`·`RuntimeException`·`Throwable`·`NullPointerException`을 포괄 처리용으로 잡지 않는다.
   null은 사전에 검사하고 예상하지 못한 예외는 상위로 전파한다.
+- Java · 매퍼 XML 은 보안약점 재발 방지 규칙(§16 — MyBatis `${}` 금지 등)을 따른다.
 - **새로 작성하는 주석은 필요한 경우에만 단다.** 코드가 무엇을 하는지 설명하는 주석(변수·함수명으로 이미 드러나는 내용),
   작업 이력·호출자 설명("~때문에 추가", "~에서 사용")은 달지 않는다. 없어도 읽는 사람이 헷갈리지
   않으면 주석을 달지 않는다. 예외적으로 남길 만한 것은 코드만 봐서는 알 수 없는 이유
@@ -877,3 +878,97 @@ CAST 결과 수신 트랜잭션 안에서 실행 · 모델마다 `TN_PM_SMLT_FCL
 - 공통 평가는 10분 경계 시각만 받는다. 조회 API는 경계가 아닌 `hhmm`을 조건 오류로 거절한다.
 - 패키지 방향: `chkn` · `dsbd` → `wtng` → (루트) → `queue`. `wtng` 는 원천 계산 패키지를 참조하지 않는다
   ([계획](docs/plans/2026-10-25-domains-package-dependency.md)).
+
+---
+
+## 16. 보안약점 재발 방지 (Sparrow SAST)
+
+2026-11-10 Sparrow SAST 진단(행안부 보안약점 2021, 결과는 `보안점검결과/`)에서 138건이 나왔다.
+**지적 건은 소명(오탐 처리) 없이 전부 코드로 조치한다.** 검출은 값의 출처가 아니라 코드 형태로 정해지므로,
+서버 상수 · enum 에서 온 안전한 값이라도 아래 금지 형태를 쓰지 않는다.
+조치가 끝나기 전 기존 코드에 같은 형태가 남아 있어도 본보기로 삼지 않는다.
+
+### 16.1 SQL 삽입 — 매퍼 XML 에 `${}` 금지
+
+- 값 · 테이블명 · 컬럼명 · 정렬 · `<include>` 속성 어디에도 `${...}` 를 쓰지 않는다. 값은 `#{}` 로 받는다.
+  `LIKE` 는 `'%' || #{keyword} || '%'` 로 잇는다.
+- `<include>` 조각에 파라미터를 고르게 하려고 `<property name="ymdParam" …/>` + `#{${ymdParam}}` 를 쓰지 않는다.
+  호출하는 statement 에서 `<bind name="fsYmd" value="baseYmd"/>` 로 같은 이름을 만들고 조각은 `#{fsYmd}` 를 읽는다.
+- 시트 · 리소스마다 달라지는 테이블 · 컬럼 · 정렬은 `<choose>` 안의 리터럴로 쓴다. Java 에서 enum 으로 검증한 키를 넘기고,
+  매퍼는 enum 값을 빠짐없이 `<when>` 으로 나열한다.
+
+  ```xml
+  <choose>
+      <when test='sheet == "PSG_ATRB"'>PMOWN.TN_PM_SMLT_PSG_ATRB</when>
+      <when test='sheet == "SHOW_UP_ATRB"'>PMOWN.TN_PM_SMLT_SHOW_UP_ATRB</when>
+  </choose>
+  ```
+
+  `test` 의 문자열은 큰따옴표로 감싼다 — OGNL 은 `'A'` 같은 한 글자를 char 로 읽어 String 과 같지 않다고 본다.
+- 점(`.`)으로 이어지는 스키마 · 별칭은 분기 리터럴 안에 같이 쓴다(`PMOWN.TN_…` · `A.INPT_VL`). `A.<include …/>` 처럼
+  조각 앞에 두면 `A. INPT_VL` 로 렌더돼 동작하지 않는다. 별칭이 여럿이면 별칭별 조각을 둔다.
+- 자가 점검: `rg -n '\$\{' --glob '*.xml' java/mapper` 가 주석 줄을 빼고 0건이어야 한다.
+
+### 16.2 경로 조작 · 자원 삽입
+
+- 파일 경로 · 파일명 · URL · 포트 같은 자원 식별자를 요청값으로 만들지 않는다. 요청값으로 조회한 DB 값도 외부 입력으로 본다.
+- 파일 다운로드는 서버 ID 로 파일을 찾는다. 설정된 기준 디렉터리와 합친 경로를 `normalize()` 한 뒤
+  기준 디렉터리 하위(`startsWith(baseDir)`)가 아니면 거부한다.
+- 파일명은 경로 없이 이름만 받고 허용 문자(영문 · 숫자 · 한글 · `.` `_` `-`) 밖의 문자를 제거한다.
+  후보가 정해진 식별자는 미리 정한 목록(enum · `switch`)에서 고른다.
+
+### 16.3 HTTP 응답 분할
+
+- 응답 헤더(`Content-Disposition` · `Set-Cookie` · `Location` …)에 외부 입력이나 그로부터 나온 값을 넣기 전에 `\r` · `\n` 을 제거한다.
+- 다운로드 파일명 헤더는 문자열 연결(`"attachment; filename=\"" + name + "\""`) 대신
+  `ContentDisposition.builder("attachment").filename(name, StandardCharsets.UTF_8).build().toString()` 으로 만든다.
+
+### 16.4 XML 외부 개체 참조 (XXE)
+
+`DocumentBuilderFactory` 는 아래 7개를 모두 설정한다. feature 3개만 켜고 attribute 2개를 빠뜨려도 검출된다.
+
+```java
+dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+dbf.setFeature("http://xml.org/sax/features/external-general-entities", false);
+dbf.setFeature("http://xml.org/sax/features/external-parameter-entities", false);
+dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+dbf.setXIncludeAware(false);
+dbf.setExpandEntityReferences(false);
+```
+
+- `SAXParserFactory` · `XMLInputFactory` · `TransformerFactory` · `SchemaFactory` 도 외부 DTD · 엔티티 접근을 막고 쓴다.
+- 파서 생성 코드를 클래스마다 복사하지 않고 공용 메서드 한 곳에 둔다.
+
+### 16.5 정수 오버플로우
+
+- `int` 누적(`+=`) · 곱셈과 외부 입력 · DB 값을 쓰는 연산은 `Math.addExact` · `Math.multiplyExact` 또는 `long` 으로 한다.
+  Mapper 가 돌려준 처리 건수를 반복문에서 더하는 코드(`cnt += mapper.update(…)`)도 검출됐다.
+- 배열 · 컬렉션 크기로 쓰는 값은 음수 · 상한을 먼저 검사한다.
+
+### 16.6 Null 역참조
+
+- null 을 반환할 수 있는 호출은 결과를 지역 변수로 받아 검사한 뒤 쓴다. 호출 체인으로 바로 역참조하지 않는다.
+  - 표준 라이브러리: `Map.get` · `TreeMap.firstEntry`/`lastEntry`/`floorEntry`/`ceilingEntry` · `NodeList.item` ·
+    `Document.getDocumentElement` · `BufferedReader.readLine` · `File.listFiles`/`getParentFile` · `System.getProperty`
+  - 자체 코드: Mapper 단건 조회, `orElse(null)` 로 끝나는 조회(`CastConfigSheet.fromSheetNm` 등)
+  - `isEmpty()` 검사 뒤의 `map.lastEntry().getValue()` 도 검출된다. `Map.Entry` 를 받아 null 을 검사한다.
+- 한 번 null 검사한 변수는 이후 역참조마다 검사하거나, 검사 지점에서 반환 · 예외로 흐름을 끊어 뒤에서는 null 이 아니게 한다.
+- null 이 데이터 오류를 뜻하면 업무 예외를 던지고, 화면 표시값이면 null 그대로 내린다(§13 · §14 의 산정 불가).
+  NPE 를 `catch` 해서 넘기지 않는다(§5).
+
+### 16.7 자원 해제
+
+- 스트림 · Reader · Writer · Connection 등 `AutoCloseable` 은 try-with-resources 로 연다.
+  닫을 필요가 없는 `StringWriter` 를 감싼 `PrintWriter` 도 검출되므로 예외 없이 같은 형태로 쓴다.
+
+### 16.8 예외 처리
+
+- §5 의 PMD `AvoidCatchingGenericException` 규칙을 따른다. 발생 가능한 구체 예외를 나눠 잡고,
+  예상하지 못한 예외는 삼키지 않고 상위로 전파한다.
+
+### 16.9 세션 간 데이터 누출
+
+- 싱글톤 빈(`@Controller` · `@Service` · `@Component` · `@Repository`)과 서블릿에 요청마다 바뀌는 값을 멤버 필드로 두지 않는다.
+  필드는 `final` 주입 의존성과 불변 상수만 둔다.
+- 요청 처리 중 메서드 사이에 나눌 상태는 지역 변수 · 파라미터 · 요청 단위 객체로 넘긴다.
