@@ -720,7 +720,6 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 		WHATIF_MAP.put(SIMULATION_RESULT_SUFFIX, CastWhatIfCntrlDto::setSimulationResultSuffix);
 		WHATIF_MAP.put(STATUS, CastWhatIfCntrlDto::setStatus);
 	}
-	String colTable = "";			
 	String colValue = "";
 	String colName = "";
 	String pName = "";
@@ -797,7 +796,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 		String pStr = str;
 		if (PARAMETER.equals(str)) {
 			NamedNodeMap attributeMap = node.getAttributes();
-			colTable = getAttributeValue(attributeMap, "id").orElse("");
+			String colTable = getAttributeValue(attributeMap, "id").orElse("");
 			pStr = "m:" + colTable;
 		}
 
@@ -931,7 +930,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 	private void resourceList(Node node, String str, CastReqGetResourceDto sDto) {
 		NamedNodeMap attributeMap = node.getAttributes();
 		if (PARAMETER.equals(str)) {
-			colTable = getAttributeValue(attributeMap, "id").orElse("");
+			String colTable = getAttributeValue(attributeMap, "id").orElse("");
 			processResourceInfo(node, colTable, sDto);
 		} else if (RESOURCE_DESCRIPTION.equals(str)) {
 			String resourceType = getAttributeValue(attributeMap, RESOURCE_TYPE).orElse("");
@@ -2527,7 +2526,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
             Element node = parseRootElement(param);
             
         	// 3. 노드 정보 추출 및 DTO 변환
-            simRsltParser(node, RUN, simRslt, simRsltContentMap, simRsltContent, wDto);
+            simRsltParser(node, RUN, "", simRslt, simRsltContentMap, simRsltContent, wDto);
 			if (simRslt.getResourceType().equals(CAST_MODEL) || simRslt.getResourceType().equals(CAST_EXPRESS_MODEL)) {
 				ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
 		        if (attributes != null) {
@@ -2807,26 +2806,29 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
     * @param model
     * @return
     **/
-	private void simRsltParser(Node node, String str, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
-		processAttributes(node, str, simRslt, simRsltContentMap, simRsltContent, wDto);
-		
+	private String simRsltParser(Node node, String str, String colTable, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
+		String curColTable = processAttributes(node, str, colTable, simRslt, simRsltContentMap, simRsltContent, wDto);
+
 		if (node.hasChildNodes()) {
-			processChildNodes(node, simRslt, simRsltContentMap, simRsltContent, wDto);
+			curColTable = processChildNodes(node, curColTable, simRslt, simRsltContentMap, simRsltContent, wDto);
 		}
+		return curColTable;
 	}
-	
-	private void processAttributes(Node node, String str, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
+
+	private String processAttributes(Node node, String str, String colTable, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
 		NamedNodeMap attributeMap = node.getAttributes();
-		
+		String curColTable = colTable;
+
 		if(!"".equals(getAttributeValue(attributeMap, ID).orElse(""))) {
-			colTable = getAttributeValue(attributeMap, ID).orElse("");
-		} 
-		if (RESOURCE_INFO.equals(str) || (RUN.equals(colTable) && M_COL.equals(str)) || (RESOURCE.equals(colTable) && M_COL.equals(str)) || (INTERVAL.equals(colTable) && M_COL.equals(str)) || (WHAT_IF_DEFINITION_TABLE.equals(colTable) && M_COL.equals(str))) {
-			processStandarInfo(str, attributeMap, simRslt, simRsltContentMap, simRsltContent, wDto);
+			curColTable = getAttributeValue(attributeMap, ID).orElse("");
 		}
+		if (RESOURCE_INFO.equals(str) || (RUN.equals(curColTable) && M_COL.equals(str)) || (RESOURCE.equals(curColTable) && M_COL.equals(str)) || (INTERVAL.equals(curColTable) && M_COL.equals(str)) || (WHAT_IF_DEFINITION_TABLE.equals(curColTable) && M_COL.equals(str))) {
+			processStandarInfo(str, curColTable, attributeMap, simRslt, simRsltContentMap, simRsltContent, wDto);
+		}
+		return curColTable;
 	}
-	
-	private void processStandarInfo(String str, NamedNodeMap attributeMap, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
+
+	private void processStandarInfo(String str, String colTable, NamedNodeMap attributeMap, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
 		if (RESOURCE_INFO.equals(str)) {
 			processResourceInfo(attributeMap, simRslt, simRsltContentMap);
 		} else if (RUN.equals(colTable) && M_COL.equals(str)) {
@@ -2924,17 +2926,19 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 			}
 		}
 	}
-	private void processChildNodes(Node node, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
+	private String processChildNodes(Node node, String colTable, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
+		String curColTable = colTable;
 		NodeList nodeList = node.getChildNodes();
 		for (int i = 0; i < nodeList.getLength(); i++) {
 			Node childNode = nodeList.item(i);
-			
+
 			if (childNode.getNodeType() == Node.TEXT_NODE) {
 				continue;
 			}
-			
-			simRsltParser(childNode, childNode.getNodeName(), simRslt, simRsltContentMap, simRsltContent, wDto);
+
+			curColTable = simRsltParser(childNode, childNode.getNodeName(), curColTable, simRslt, simRsltContentMap, simRsltContent, wDto);
 		}
+		return curColTable;
 	}
 	
 	private void iterateAttributes(NamedNodeMap attributeMap, BiConsumer<String, String> action) {
@@ -2978,7 +2982,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 	private void resourceDelete(Node node, String str, CastResReqDto sDto) {
 		NamedNodeMap attributeMap = node.getAttributes();
 		if (PARAMETER.equals(str)) {
-			colTable = getAttributeValue(attributeMap, "id").orElse("");
+			String colTable = getAttributeValue(attributeMap, "id").orElse("");
 			processResourceDelete(node, colTable, sDto);
 		} else if (RESOURCE_DESCRIPTION.equals(str)) {
 			String resourceType = getAttributeValue(attributeMap, RESOURCE_TYPE).orElse("");

@@ -104,7 +104,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 | 5 | `NULL_RETURN` | 널 반환 값 역참조 | 4 | 4 / 0 | 레포 반영 |
 | 6 | `UNCHECKED_NULL` | 누락된 널 값 검사 | 3 | 3 / 0 | 레포 반영 |
 | 7 | `SQL_INJECTION.MYBATIS` | myBatis에서의 SQL 삽입 | 68 | 68 / 0 | 레포 반영 |
-| 8 | `DATA_LEAK_BETWEEN_SESSIONS` | 세션 간 데이터 누출 | 4 | 0 / 4 (castrest) | 대기 |
+| 8 | `DATA_LEAK_BETWEEN_SESSIONS` | 세션 간 데이터 누출 | 4 | 0 / 4 (castrest) | 레포 반영 |
 | 9 | `IMPROPER_CHECK_FOR_UNUSUAL_OR_EXCEPTIONAL_CONDITION` | 부적절한 예외 처리 | 1 | 0 / 1 | 대기 |
 | 10 | `PATH_TRAVERSAL` | 경로 조작 | 16 | 0 / 16 | 대기 |
 | 11 | `RESOURCE_INJECTION` | 자원 삽입 | 20 | 0 / 20 | 대기 |
@@ -523,7 +523,20 @@ AGENTS §8: 이 매퍼는 **001 기준정보를 갱신하는 유일한 화면 �
 - 별도 폴더의 원본에서 지역 변수 · 파라미터로 넘기는 방식(AGENTS §16.9 우선)을 먼저 검토하고,
   재귀 파서 구조상 어렵다면 castapi 의 ThreadLocal + `remove()` 를 그대로 옮긴다.
 
-**결과**: (작성)
+**결과**: 레포 반영 (2026-11-13) — ThreadLocal 없이 지역 변수 · 파라미터로 조치했다.
+
+- 멤버 필드 `colTable` 을 지웠다.
+- 777 `resourceInfoList` · 778 `resourceList` · 776 `resourceDelete`: 값이 그 호출 안에서만 쓰여 지역 변수 `String colTable` 로 바꿨다.
+- 775 `processAttributes`: 값이 재귀 순회 중 '마지막으로 본 `id`' 로 다음 노드(자식 · 뒤 형제 · 부모의 뒤 형제)에 이어진다.
+  이 전위 순회 상태를 그대로 두려고 `simRsltParser` · `processAttributes` · `processChildNodes` 가 `colTable` 을 받아 갱신값을 돌려주고,
+  `processChildNodes` 는 자식마다 돌려받은 값을 다음 자식에 넘긴다. `processStandarInfo` 는 파라미터로 받는다.
+  진입점 `saveResult` 는 `""` 로 시작한다 — 이전 요청의 값을 물려받던 동작이 없어진 것이 유일한 차이다(castapi 의 `remove()` 와 같은 결과).
+- 남은 것: 같은 위치의 멤버 필드 `colValue` · `colName` · `pName` · `pValue` 는 쓰는 곳이 없어 진단에 걸리지 않았고 이번 단계에서 건드리지 않았다.
+  §16.9(필드는 `final` 의존성 · 불변 상수만)에 맞지 않으므로 실백엔드에서 같은 패키지의 참조가 없는지 확인한 뒤 지우는 것을 검토한다.
+- `git diff --check` 통과. 이 레포에서는 컴파일 불가(§0.3).
+
+**실백엔드 확인 대기**: 빌드, CAST `REQ_GetResourceInformation` · `REQ_GetResource` · 결과 저장(`saveResult`: Run · Resource · Interval ·
+WhatIfDefinitionTable 매핑) · 결과 삭제 응답이 변경 전과 같은지, Sparrow 재분석.
 
 ---
 
