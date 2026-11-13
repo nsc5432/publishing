@@ -739,8 +739,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         List<Object> dbResults = null;
 		try {
             // 2. XML 파싱 (XXE 보안 설정 적용)
-            Document doc = parseXmlSafely(param);
-            Element node = doc.getDocumentElement();
+            Element node = parseRootElement(param);
             
             CastReqGetResourceInformationDto infoDto = new CastReqGetResourceInformationDto();
             infoDto.setBaseYmd(resolveBaseYmd());
@@ -907,8 +906,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
         try {
             // 2. XML 파싱 (XXE 보안 설정 적용)
-            Document doc = parseXmlSafely(param);
-            Element node = doc.getDocumentElement();
+            Element node = parseRootElement(param);
             
             CastReqGetResourceDto resourceDto = new CastReqGetResourceDto();
             resourceDto.setBaseYmd(resolveBaseYmd());
@@ -2466,8 +2464,21 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
         
         try (StringReader sr = new StringReader(xmlStr)) {
             DocumentBuilder db = dbf.newDocumentBuilder();
-            return db.parse(new InputSource(sr));
+            Document document = db.parse(new InputSource(sr));
+            if (document == null) {
+                throw new SAXException("XML 문서를 읽지 못했습니다.");
+            }
+            return document;
         }
+    }
+
+    private Element parseRootElement(String xmlStr) throws ParserConfigurationException, SAXException, IOException {
+        Document document = parseXmlSafely(xmlStr);
+        Element root = document.getDocumentElement();
+        if (root == null) {
+            throw new SAXException("XML 루트 요소가 없습니다.");
+        }
+        return root;
     }
 	
 	private Optional<String> getAttributeValue(NamedNodeMap attributeMap, String attributeName) {
@@ -2513,8 +2524,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 		
 		try {			
             // 2. XML 파싱 (XXE 보안 설정 적용)
-            Document doc = parseXmlSafely(param);
-            Element node = doc.getDocumentElement();
+            Element node = parseRootElement(param);
             
         	// 3. 노드 정보 추출 및 DTO 변환
             simRsltParser(node, RUN, simRslt, simRsltContentMap, simRsltContent, wDto);
@@ -2941,8 +2951,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 
         try {
         	// 2. XML 파싱 (XXE 보안 설정 적용)
-            Document doc = parseXmlSafely(param);
-            Element node = doc.getDocumentElement();
+            Element node = parseRootElement(param);
             
             CastResReqDto requestDto = new CastResReqDto();
             SessionUtils.setUserContext(requestDto, sessionService);

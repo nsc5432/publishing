@@ -100,7 +100,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 | 1 | `RESOURCE_LEAK` | 자원 누수 | 1 | 1 / 0 | 레포 반영 |
 | 2 | `INTEGER_OVERFLOW` | 정수 오버플로우 | 2 | 1 / 1 (castrest) | 레포 반영 |
 | 3 | `IMPROPER_REFERENCE_XML_EXTERNAL_ENTITY` | 부적절한 XML 외부 개체 참조 | 2 | 1 / 1 (castrest) | 레포 반영 |
-| 4 | `NULL_RETURN_STD` | 표준 라이브러리의 널 반환 값 역참조 | 9 | 5 / 4 (castrest) | 대기 |
+| 4 | `NULL_RETURN_STD` | 표준 라이브러리의 널 반환 값 역참조 | 9 | 5 / 4 (castrest) | 레포 반영 |
 | 5 | `NULL_RETURN` | 널 반환 값 역참조 | 4 | 4 / 0 | 대기 |
 | 6 | `UNCHECKED_NULL` | 누락된 널 값 검사 | 3 | 3 / 0 | 대기 |
 | 7 | `SQL_INJECTION.MYBATIS` | myBatis에서의 SQL 삽입 | 68 | 68 / 0 | 대기 |
@@ -237,7 +237,22 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 **검증**: 663 은 시설 대기 도메인이라 `java/verify` 의 `FcltWtngRegression` 대상이다 (환경이 없으면 실행 불가로 보고).
 실백엔드: 카테고리 세트 저장, CAST 결과 수신 · PropertySet 렌더(PS5xx)가 정상인지 확인한다.
 
-**결과**: (작성)
+**결과**: 레포 반영 (2026-11-13)
+- 663: `FcltWtngDay.depOprCntOf` 에서 `secMap` null 검사 후 `lastEntry()` 를 `Map.Entry` 지역 변수로 받아 null 이면 null 을 돌려준다.
+  빈 맵 · 시설 없음이 null(운영 수량 미상)인 것은 이전과 같다. `isEmpty()` 검사는 `lastEntry()` null 검사로 대체했다.
+- 666 · 667: `CastConfigServiceImpl.saveCategorySet` 에서 `scopeMap.get()` 결과가 null 이면 같은 메서드의 범위 오류와 같은
+  `"저장 범위를 확인해 주세요."` 로 끊는다. 두 맵은 같은 키로 함께 채워지므로 실제로는 도달하지 않는다. 갱신 전이라 롤백 대상도 없다.
+  669 · 743행 부근 `scope.getGroup()` 은 `getSetScopes()` 목록 순회라 맵 조회가 아니다 (조치 불필요).
+- 674 · 676 (castapi): `parseXmlSafely` 가 `parse()` 결과 null 이면 `SAXException("XML 문서를 읽지 못했습니다.")` 을 던진다.
+  루트 요소용 `parseRootElement` 를 더해 `getDocumentElement()` null 이면 `SAXException("XML 루트 요소가 없습니다.")` 을 던진다.
+  `saveResult`(676) 와 예방 조치로 `retrieveResourceInformation` · `retrieveResource`(733 · 898행)가 `parseRootElement` 를 쓴다.
+  `renderBasePropertySetXml`(674)는 `parseXmlSafely` 의 null 보장으로 해결된다. 모든 호출부가 이미 `SAXException` 을 잡으므로 오류 경로는 같다.
+- 677 · 678 · 679 · 681 (castrest): 같은 두 메서드를 넣고 `retrieveResourceInformation` · `retrieveResource` · `saveResult` · `deleteResult` 의
+  `parseXmlSafely` + `getDocumentElement()` 를 `parseRootElement` 로 바꿨다. 네 호출부 모두 `SAXException` 을 잡는다. 기존 주석은 그대로다.
+- 이 레포에서는 컴파일 불가(§0.3). 검증은 diff 검토 · `git diff --check` 만 했다.
+  `java/verify` `FcltWtngRegression` 은 **실행 불가** — JDK 17 은 있으나 `PM_VERIFY_CLASSPATH` · `PM_VERIFY_LOMBOK_JAR` 가 설정되지 않았다.
+- 실백엔드 확인 대기: 빌드, `FcltWtngRegression`, 카테고리 세트 저장, CAST `REQ_GetResourceInformation` · `REQ_GetResource` ·
+  `REQ_SetResource`(결과 수신) · castrest 결과 삭제, PropertySet 렌더(PS5xx), 출국장 카드 · 팝업의 보안검색대 운영 수량이 이전과 같은지.
 
 ---
 

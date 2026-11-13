@@ -729,9 +729,9 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
     @Override
     public String retrieveResourceInformation(String param, CastApiContext context) {
         return retrieveResourceInformation(() -> {
-            Document doc = parseXmlSafely(param);
+            Element root = parseRootElement(param);
             CastReqGetResourceInformationDto infoDto = new CastReqGetResourceInformationDto();
-            resourceInfoList(doc.getDocumentElement(), null, infoDto);
+            resourceInfoList(root, null, infoDto);
             return infoDto;
         }, context);
     }
@@ -894,9 +894,9 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
     @Override
     public String retrieveResource(String param, CastApiContext context) {
         return retrieveResource(() -> {
-            Document doc = parseXmlSafely(param);
+            Element root = parseRootElement(param);
             CastReqGetResourceDto resourceDto = new CastReqGetResourceDto();
-            resourceList(doc.getDocumentElement(), null, resourceDto);
+            resourceList(root, null, resourceDto);
             return resourceDto;
         }, context);
     }
@@ -2475,8 +2475,21 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
 
         try (StringReader sr = new StringReader(xmlStr)) {
             DocumentBuilder db = dbf.newDocumentBuilder();
-            return db.parse(new InputSource(sr));
+            Document document = db.parse(new InputSource(sr));
+            if (document == null) {
+                throw new SAXException("XML 문서를 읽지 못했습니다.");
+            }
+            return document;
         }
+    }
+
+    private Element parseRootElement(String xmlStr) throws ParserConfigurationException, SAXException, IOException {
+        Document document = parseXmlSafely(xmlStr);
+        Element root = document.getDocumentElement();
+        if (root == null) {
+            throw new SAXException("XML 루트 요소가 없습니다.");
+        }
+        return root;
     }
 
     private Optional<String> getAttributeValue(NamedNodeMap attributeMap, String attributeName) {
@@ -2509,8 +2522,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         SessionUtils.setUserContext(simRsltContent, sessionService);
 
         try {
-            Document doc = parseXmlSafely(param);
-            Element node = doc.getDocumentElement();
+            Element node = parseRootElement(param);
 
             simRsltParser(node, RUN, simRslt, simRsltContentMap, simRsltContent, wDto);
 

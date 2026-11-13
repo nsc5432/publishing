@@ -625,6 +625,10 @@ public class CastConfigServiceImpl implements CastConfigService {
 		List<UpdateTarget> targets = new ArrayList<>();
 		for (Map.Entry<String, List<CastConfigSaveItemDto>> entry : itemMap.entrySet()) {
 			ConfigScope scope = scopeMap.get(entry.getKey());
+			if (scope == null) {
+				return new JsonResponse().error("저장 범위를 확인해 주세요.");
+			}
+
 			JsonResponse validationError = appendUpdateTargets(
 					targets,
 					scope.getGroup(),

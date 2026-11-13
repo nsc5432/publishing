@@ -466,8 +466,16 @@ public final class FcltWtngDay {
 	// 출국장 운영 수량은 실행 리소스 운영표 값이라 하루 동안 같다
 	private Integer depOprCntOf(String unitCd) {
 		TreeMap<LocalDateTime, FcltWtngSec> secMap = secMapByUnit.get(unitCd);
+		if (secMap == null) {
+			return null;
+		}
 
-		return secMap == null || secMap.isEmpty() ? null : secMap.lastEntry().getValue().getEndOperCntom();
+		Map.Entry<LocalDateTime, FcltWtngSec> lastEntry = secMap.lastEntry();
+		if (lastEntry == null) {
+			return null;
+		}
+
+		return lastEntry.getValue().getEndOperCntom();
 	}
 
 	// 직전 10분 구간이 관측되고 처리 여객 전원의 대기시간이 있어야 평균을 낸다
