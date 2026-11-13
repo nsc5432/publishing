@@ -82,7 +82,8 @@ public class CastDsbdServiceImpl implements CastDsbdService {
     private static final int SEC_PER_MIN = 60;
 	private static final int MIN_PER_HOUR = 60;
 	private static final int MIN_PER_DAY = 24 * MIN_PER_HOUR;
-	private static final int DEFAULT_INTRVL_MIN = 60;	private static final String DEP_TARGET_NM = "보안검색대";
+	private static final int DEFAULT_INTRVL_MIN = 60;
+    private static final String DEP_TARGET_NM = "보안검색대";
 	private static final List<String> DEP_UNIT_FCLT_CD_LIST = List.of("LGT");
 	private static final List<String> SC_MAX_FCLT_CD_LIST = List.of("SC");
 	private static final Comparator<AssignmentSummary> MAIN_ALN_ORDER = Comparator.comparingInt(AssignmentSummary::getAssignedCount).reversed().thenComparing(AssignmentSummary::getAlnCd);

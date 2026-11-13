@@ -37,7 +37,6 @@ public class UserController {
 			return ResponseUtils.res(error("사용자 정보를 찾을 수 없습니다."));
 		}
 
-		// PM 롤이 하나도 없는 사용자는 오류가 아니다. 화면이 빈 목록을 보고 접근 권한 없음을 그린다
 		if (result.getRoleIdList() == null) {
 			result.setRoleIdList(List.of());
 		}
