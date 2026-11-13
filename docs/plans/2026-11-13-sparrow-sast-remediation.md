@@ -101,7 +101,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 | 2 | `INTEGER_OVERFLOW` | 정수 오버플로우 | 2 | 1 / 1 (castrest) | 레포 반영 |
 | 3 | `IMPROPER_REFERENCE_XML_EXTERNAL_ENTITY` | 부적절한 XML 외부 개체 참조 | 2 | 1 / 1 (castrest) | 레포 반영 |
 | 4 | `NULL_RETURN_STD` | 표준 라이브러리의 널 반환 값 역참조 | 9 | 5 / 4 (castrest) | 레포 반영 |
-| 5 | `NULL_RETURN` | 널 반환 값 역참조 | 4 | 4 / 0 | 대기 |
+| 5 | `NULL_RETURN` | 널 반환 값 역참조 | 4 | 4 / 0 | 레포 반영 |
 | 6 | `UNCHECKED_NULL` | 누락된 널 값 검사 | 3 | 3 / 0 | 대기 |
 | 7 | `SQL_INJECTION.MYBATIS` | myBatis에서의 SQL 삽입 | 68 | 68 / 0 | 대기 |
 | 8 | `DATA_LEAK_BETWEEN_SESSIONS` | 세션 간 데이터 누출 | 4 | 0 / 4 (castrest) | 대기 |
@@ -277,7 +277,21 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 **검증**: 카드 · 팝업 일치는 `java/verify` `FcltWtngRegression` 범위와 겹친다(환경 없으면 실행 불가 보고).
 실백엔드: 요약보기 출국장 카드와 혼잡해소 팝업을 같은 `smltId` · `hhmm` 로 열어 값이 같은지, 결과 없는 시각에 오류 없이 `-` 가 나오는지 확인한다.
 
-**결과**: (작성)
+**결과**: 레포 반영 (2026-11-13)
+- null 반환 메서드 확정: `FcltWtngDay.sourceOf` 는 **체크인(`CHKN`)에서 없는 아일랜드일 때만** null 이고, 출국장(`DEP` · `SC`)은
+  결과가 없어도 빈 원천을 돌려준다. `clearanceOf` 는 `sourceOf` 가 null 일 때만 null 이다. 따라서 4건 모두 실제로는 null 이 오지 않는
+  경로(`DEP` · `SC` 일자)이며, 산정 불가(null 수치)는 원천 안의 `Computed` 값이 담당하므로 화면 표시 동작은 바뀌지 않는다.
+- 668 · 670: `CastDsbdServiceImpl.getDepFcltCard` 가 `scClearance`(인자) 대신 `scDay` 를 받아 안에서 `clearanceOf` 를 부르고,
+  `depDay.sourceOf` 도 지역 변수로 받아 둘 중 하나라도 null 이면 체크인 카드(`getChknFcltCard`)와 같은
+  `IllegalStateException("선택한 시설의 시뮬레이션 결과를 찾을 수 없습니다. " + unitContext)` 로 끊는다.
+  문맥 문자열을 위해 `retrieveDailySmltFcltCard` 에서 `baseContext` 를 만들어 넘긴다. 시그니처는 체크인 카드와 같은 모양이 됐다.
+- 671 · 672: `CastFcltQueueScenarioServiceImpl.getDepSource` 에서 `sourceOf` 결과가 null 이면 null 을 돌려준다.
+  `getChknSource` 와 같은 처리이며, 호출부가 이미 null 을 팝업 실패(`"선택한 시설의 시뮬레이션 결과를 찾을 수 없습니다."`)로 내린다.
+- 카드 · 팝업 수치 계산식(§14)은 바꾸지 않았다. 호출 순서만 카드 조립 안으로 옮겼고 `FcltWtngDay` 조회는 부수효과가 없다.
+- 이 레포에서는 컴파일 불가(§0.3). 검증은 diff 검토 · `git diff --check` 만 했다.
+  `java/verify` `FcltWtngRegression` 은 **실행 불가** — `PM_VERIFY_CLASSPATH` · `PM_VERIFY_LOMBOK_JAR` 가 설정되지 않았다 (4단계와 같은 환경).
+- 실백엔드 확인 대기: 빌드, `FcltWtngRegression`, 요약보기 출국장 카드와 혼잡해소 팝업(출국장)을 같은 `smltId` · 터미널 · `hhmm` 로 열어
+  `reqCnt` · 해소 시각 · 운영 수량이 같은지, 결과 없는 시각에 카드가 오류 없이 `-` 를 그리는지.
 
 ---
 

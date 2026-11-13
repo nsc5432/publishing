@@ -214,6 +214,11 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		}
 
 		FcltQueueSource source = wtngDay.sourceOf(unitCd, evalDt);
+
+		if (source == null) {
+			return null;
+		}
+
 		MaxCount maxCount = toMaxCount(source.getOprCnt(), masterCnt, "보안검색대(SC)");
 
 		return source.toBuilder()

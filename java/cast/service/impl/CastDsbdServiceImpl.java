@@ -437,6 +437,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		FcltWtngDay scDay = castFcltWtngService.retrieveFcltWtngDay(smltStng, tmnlId, FcltType.SC);
 		LocalDateTime evalDt = depDay.dtOf(toMinutes(searchDto.getHhmm()));
 		int prcsMin = prcsWindowMin(searchDto.getHhmm());
+		String baseContext = baseContext(smltId, tmnlId, searchDto.getHhmm());
 
 		Map<String, FcltUnitRawDto> unitMap = castDsbdMapper.retrieveFcltUnitList(fcltTmnlId, DEP_UNIT_FCLT_CD_LIST)
 				.stream().collect(toMap(FcltUnitRawDto::getUnitCd, Function.identity(), (first, ignored) -> first));
@@ -450,7 +451,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		List<DsbdFcltCardDto> result = new ArrayList<>();
 
 		for (String unitCd : unitCdSet) {
-			result.add(getDepFcltCard(unitCd, depDay, evalDt, prcsMin, scDay.clearanceOf(unitCd, evalDt), scUnitMap.get(unitCd), unitList));
+			result.add(getDepFcltCard(unitCd, depDay, scDay, evalDt, prcsMin, scUnitMap.get(unitCd), unitList, baseContext));
 		}
 
 		result.sort(CgnOrder.byWaitDesc(DsbdFcltCardDto::getCgnWtngSec, DsbdFcltCardDto::getWtngPsgCnt, DsbdFcltCardDto::getDptgtNo));
@@ -586,12 +587,21 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 	private DsbdFcltCardDto getDepFcltCard(
 			String unitCd,
 			FcltWtngDay depDay,
+			FcltWtngDay scDay,
 			LocalDateTime evalDt,
 			int prcsMin,
-			FcltQueueClearance scClearance,
 			FcltUnitRawDto scUnit,
-			List<FcltUnitDto> unitList
+			List<FcltUnitDto> unitList,
+			String baseContext
 	) {
+		String unitContext = unitContext(baseContext, FcltType.DEP, unitCd);
+		FcltQueueClearance scClearance = scDay.clearanceOf(unitCd, evalDt);
+		FcltQueueSource depSource = depDay.sourceOf(unitCd, evalDt);
+
+		if (scClearance == null || depSource == null) {
+			throw new IllegalStateException("선택한 시설의 시뮬레이션 결과를 찾을 수 없습니다. " + unitContext);
+		}
+
 		FcltQueueClearance.Recommend recommend = scClearance.recommendOf(FcltQueueClearance.DFLT_TARGET_MIN);
 		Integer oprCnt = scClearance.getSource().getOprCnt();
 		Computed<Double> avgWtngSec = depDay.avgWtngSecOf(unitCd, evalDt);
@@ -604,7 +614,7 @@ public class CastDsbdServiceImpl implements CastDsbdService {
 		result.setFcltNm(unitCd + "번");
 		result.setTotCnt(scUnit != null ? scUnit.getTotCnt() : 0);
 		result.setOprCnt(oprCnt != null ? oprCnt : 0);
-		result.setWtngPsgCnt(queueOf(depDay.sourceOf(unitCd, evalDt)));
+		result.setWtngPsgCnt(queueOf(depSource));
 		result.setHrlyArvlPsgCnt(depDay.arvlPsgCntOf(unitCd, evalDt, prcsMin));
 		result.setHrlyPrcsPsgCnt(depDay.slotOf(unitCd, evalDt, prcsMin).getPrcsPsgCnt());
 		applyClearance(result, scClearance, recommend, prcsMin);
