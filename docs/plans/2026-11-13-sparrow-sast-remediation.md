@@ -97,7 +97,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 
 | 단계 | 체커 키 | 체커명 | 건수 | 기존 사본 / 별도 폴더 대상 | 상태 |
 |:--:|---|---|:--:|---|---|
-| 1 | `RESOURCE_LEAK` | 자원 누수 | 1 | 1 / 0 | 대기 |
+| 1 | `RESOURCE_LEAK` | 자원 누수 | 1 | 1 / 0 | 레포 반영 |
 | 2 | `INTEGER_OVERFLOW` | 정수 오버플로우 | 2 | 1 / 1 (castrest) | 대기 |
 | 3 | `IMPROPER_REFERENCE_XML_EXTERNAL_ENTITY` | 부적절한 XML 외부 개체 참조 | 2 | 1 / 1 (castrest) | 대기 |
 | 4 | `NULL_RETURN_STD` | 표준 라이브러리의 널 반환 값 역참조 | 9 | 5 / 4 (castrest) | 대기 |
@@ -133,7 +133,13 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 
 **완료 기준**: 출력 문자열이 바뀌지 않는다. 실백엔드에서 CAST API 오류 로그 한 건이 이전과 같은 형식으로 남는지 확인한다.
 
-**결과**: (작성)
+**결과**: 레포 반영 (2026-11-13)
+- `CastApiContext.formatErrors` 의 `PrintWriter` 를 try-with-resources 로 열었다. 본문 · `writer.flush()` 는 블록 안에 두고,
+  `output.toString()` 은 블록이 닫힌 뒤 읽는다. `PrintWriter.close()` 는 버퍼를 비운 뒤 `StringWriter.close()`(동작 없음)를 부르므로 출력 문자열은 같다.
+- 같은 클래스에 다른 `AutoCloseable` 생성 지점은 없다 (예방 조치 대상 없음).
+- 원래 빈 줄 2개에 있던 후행 공백을 들여쓰기 변경과 함께 없앴다 (출력과 무관).
+- 이 레포에서는 컴파일 불가(§0.3). 검증은 diff 검토 · `git diff --check` 만 했다.
+- 실백엔드 확인 대기: 빌드, CAST API 오류 로그 1건이 이전과 같은 형식(`API 유형 코드=…` · `오류[n]` · 스택트레이스/사유)으로 남는지.
 
 ---
 

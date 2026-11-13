@@ -23,16 +23,16 @@ public class CastApiContext {
 
     public String formatErrors(String castApiTypeCd) {
         StringWriter output = new StringWriter();
-        PrintWriter writer = new PrintWriter(output);
+        try (PrintWriter writer = new PrintWriter(output)) {
+            writer.println("API 유형 코드=" + castApiTypeCd);
 
-        writer.println("API 유형 코드=" + castApiTypeCd);
-        
-        for (int i = 0; i < errors.size(); i++) {
-            writer.println("오류[" + (i + 1) + "]");
-            errors.get(i).accept(writer);
+            for (int i = 0; i < errors.size(); i++) {
+                writer.println("오류[" + (i + 1) + "]");
+                errors.get(i).accept(writer);
+            }
+
+            writer.flush();
         }
-        
-        writer.flush();
         return output.toString();
     }
 }
