@@ -49,7 +49,8 @@ try {
     assert.equal(percent(), 50);
     assert.equal(percent(running, 900, Date.parse('2026-11-01T12:00:00+09:00')), 0);
     assert.equal(percent(running, 900, now + 60 * 60 * 1000), 99);
-    assert.equal(percent(running, null), null);
+    assert.equal(percent(running, null, Date.parse('2026-11-01T12:02:30+09:00')), 50);
+    assert.equal(percent(running, null), 99);
     assert.equal(percent(running, 0), null);
     assert.equal(percent({ ...running, smltFlfmtBgngDt: '' }), null);
     assert.equal(percent({ ...running, smltFlfmtBgngDt: '20260230120000' }), null);
@@ -73,7 +74,8 @@ try {
     assert.match(userHtml, /15분 00초/);
     assert.match(userHtml, /약 50%/);
     assert.match(userHtml, /<progress max="100" value="50"/);
-    assert.match(render(HistoryTable, { kind: 'user', rows: toHistoryRows([running]) }), /산정 불가/);
+    assert.match(render(HistoryTable, { kind: 'user', rows: toHistoryRows([running], null, now) }), /약 99%/);
+    assert.match(render(HistoryTable, { kind: 'user', rows: toHistoryRows([{ ...running, smltFlfmtBgngDt: '' }]) }), /산정 불가/);
     const header = render(MonitoringGnb, { title: '모니터링', range: defaultRange(), refreshSeconds: 30 });
     assert.deepEqual(REFRESH_SECONDS, [10, 30, 60, 90, 120, 180, 300]);
     for (const seconds of REFRESH_SECONDS) assert.match(header, new RegExp(`>${seconds}초</option>`));

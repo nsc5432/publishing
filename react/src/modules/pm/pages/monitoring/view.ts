@@ -10,6 +10,8 @@ import type { HistoryRow, RunStatus, StatCard, UserExecAverage } from './types';
 /** 값이 비었을 때 표기 */
 const EMPTY = '-';
 
+const FALLBACK_USER_EXEC_SECONDS = 5 * 60;
+
 /** 수행 상태 (서버 코드 → 화면 표기) */
 const EXEC_STATUS_TO_RUN_STATUS: Record<SmltExecStatus, RunStatus> = {
     WAITING: 'waiting',
@@ -68,12 +70,13 @@ export function toUserExecAverage(execList: SmltCastExecDto[]): UserExecAverage 
 }
 
 function toProgressPercent(exec: SmltCastExecDto, averageSeconds: number | null, now: number): number | null {
-    if (exec.smltType !== 'USER' || exec.smltFlfmtSttsCd !== 'RUNNING' || averageSeconds === null || averageSeconds <= 0) return null;
+    const expectedSeconds = averageSeconds ?? FALLBACK_USER_EXEC_SECONDS;
+    if (exec.smltType !== 'USER' || exec.smltFlfmtSttsCd !== 'RUNNING' || expectedSeconds <= 0) return null;
 
     const start = toExecTimestamp(exec.smltFlfmtBgngDt);
     if (start === null || start > now) return null;
 
-    return Math.min(99, Math.floor(((now - start) / (averageSeconds * 1000)) * 100));
+    return Math.min(99, Math.floor(((now - start) / (expectedSeconds * 1000)) * 100));
 }
 
 /** 상단 KPI 카드 4종 */

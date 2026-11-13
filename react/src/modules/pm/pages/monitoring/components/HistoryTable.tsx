@@ -92,7 +92,7 @@ export function HistoryTable({
                                     {showUser && row.status === 'running' && (
                                         <span
                                             className="tbl__progress"
-                                            title="경과시간 ÷ 사용자 평균 수행시간으로 추정합니다. 실제 완료 전까지 최대 99%로 표시합니다."
+                                            title="경과시간 ÷ 사용자 평균 수행시간으로 추정합니다. 조회 기간에 완료 건이 없으면 5분으로 가정합니다. 실제 완료 전까지 최대 99%로 표시합니다."
                                         >
                                             {row.progressPercent === null ? '산정 불가' : `약 ${row.progressPercent}%`}
                                             {row.progressPercent !== null && (
