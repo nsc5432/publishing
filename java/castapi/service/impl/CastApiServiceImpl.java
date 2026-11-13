@@ -3215,12 +3215,12 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
             wDto.setStatus(to.getValue());
 
             int updated = castApiMapper.updateWhatIfDefinitionTableStts(wDto);
-            rRslt += updated;
+            rRslt = Math.addExact(rRslt, updated);
         }
 
         for (String runId : currentSttsMap.keySet()) {
             if (!reportedSttsMap.containsKey(runId)) {
-                rRslt += castApiMapper.deleteWhatIfDefinitionTable(runId);
+                rRslt = Math.addExact(rRslt, castApiMapper.deleteWhatIfDefinitionTable(runId));
             }
         }
         return rRslt;

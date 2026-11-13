@@ -3296,7 +3296,7 @@ public class CastRestServiceImpl extends EgovAbstractServiceImpl implements Cast
 			wDto.setStatus(to.getValue());
 
 			int updated = castRestMapper.updateWhatIfDefinitionTableStts(wDto);
-			rRslt += updated;
+			rRslt = Math.addExact(rRslt, updated);
     	}
 		saveSimLog("22", "2");
 		return rRslt;

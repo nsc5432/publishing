@@ -98,7 +98,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 | 단계 | 체커 키 | 체커명 | 건수 | 기존 사본 / 별도 폴더 대상 | 상태 |
 |:--:|---|---|:--:|---|---|
 | 1 | `RESOURCE_LEAK` | 자원 누수 | 1 | 1 / 0 | 레포 반영 |
-| 2 | `INTEGER_OVERFLOW` | 정수 오버플로우 | 2 | 1 / 1 (castrest) | 대기 |
+| 2 | `INTEGER_OVERFLOW` | 정수 오버플로우 | 2 | 1 / 1 (castrest) | 레포 반영 |
 | 3 | `IMPROPER_REFERENCE_XML_EXTERNAL_ENTITY` | 부적절한 XML 외부 개체 참조 | 2 | 1 / 1 (castrest) | 대기 |
 | 4 | `NULL_RETURN_STD` | 표준 라이브러리의 널 반환 값 역참조 | 9 | 5 / 4 (castrest) | 대기 |
 | 5 | `NULL_RETURN` | 널 반환 값 역참조 | 4 | 4 / 0 | 대기 |
@@ -159,7 +159,15 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 
 **완료 기준**: 갱신 건수 합계가 이전과 같다. 실백엔드에서 WhatIf 상태 통보(Executing / Finished)가 정상 처리되는지 확인한다.
 
-**결과**: (작성)
+**결과**: 레포 반영 (2026-11-13)
+- ID 675: `CastApiServiceImpl.updateWhatIf` 3218행 `rRslt += updated;` → `rRslt = Math.addExact(rRslt, updated);`.
+- 예방 조치: 같은 함수 3223행 상태 목록에 없는 요청 삭제 건수 누적 `rRslt += castApiMapper.deleteWhatIfDefinitionTable(runId);` 도
+  같은 형태라 `Math.addExact` 로 바꿨다 (진단에는 없음).
+- ID 680: `java-sast-external/castrest/service/impl/CastRestServiceImpl.java` `updateWhatIf` 의 같은 누적을 바꿨다.
+  스캔 3300 → 현재 3299행. castrest 의 이 함수에는 삭제 누적이 없다.
+- 반환 타입 `int` · 호출부는 그대로다. `ArithmeticException` 은 잡지 않는다 (넘치면 버그).
+- 이 레포에서는 컴파일 불가(§0.3). 검증은 diff 검토 · `git diff --check` 만 했다.
+- 실백엔드 확인 대기: 빌드, WhatIf 상태 통보(Executing / Finished)와 상태 목록에 없는 요청 삭제가 정상 처리되는지.
 
 ---
 
