@@ -99,7 +99,7 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 |:--:|---|---|:--:|---|---|
 | 1 | `RESOURCE_LEAK` | 자원 누수 | 1 | 1 / 0 | 레포 반영 |
 | 2 | `INTEGER_OVERFLOW` | 정수 오버플로우 | 2 | 1 / 1 (castrest) | 레포 반영 |
-| 3 | `IMPROPER_REFERENCE_XML_EXTERNAL_ENTITY` | 부적절한 XML 외부 개체 참조 | 2 | 1 / 1 (castrest) | 대기 |
+| 3 | `IMPROPER_REFERENCE_XML_EXTERNAL_ENTITY` | 부적절한 XML 외부 개체 참조 | 2 | 1 / 1 (castrest) | 레포 반영 |
 | 4 | `NULL_RETURN_STD` | 표준 라이브러리의 널 반환 값 역참조 | 9 | 5 / 4 (castrest) | 대기 |
 | 5 | `NULL_RETURN` | 널 반환 값 역참조 | 4 | 4 / 0 | 대기 |
 | 6 | `UNCHECKED_NULL` | 누락된 널 값 검사 | 3 | 3 / 0 | 대기 |
@@ -193,7 +193,19 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 
 **완료 기준**: 정상 XML 파싱 결과가 같고, DOCTYPE 이 든 요청은 이전처럼 거부된다.
 
-**결과**: (작성)
+**결과**: 레포 반영 (2026-11-13)
+- ID 773: `CastApiServiceImpl.parseXmlSafely` 에 `ACCESS_EXTERNAL_DTD` · `ACCESS_EXTERNAL_SCHEMA` attribute 2줄을 feature 3개 뒤에 넣고
+  `javax.xml.XMLConstants` 를 import 했다. import 1줄이 늘어 함수는 2464 → 2465행, 지적 줄은 2466행이 됐다.
+- ID 774: `java-sast-external/castrest/service/impl/CastRestServiceImpl.java` `parseXmlSafely` 에 같은 2줄 · import 를 넣었다.
+  스캔 2456 → 현재 2456행(import 추가 후). 기존 주석("소나큐브 필수 보안 설정")은 그대로 뒀다.
+- 이로써 두 함수 모두 AGENTS §16.4 의 7개 설정을 갖춘다. 파싱 경로는 클래스마다 `parseXmlSafely` 하나뿐이고 호출부는 바꾸지 않았다.
+- 예방 조치 대상 없음: `java/` · `java-sast-external/` 에 다른 `DocumentBuilderFactory` · `SAXParserFactory` · `XMLInputFactory` ·
+  `TransformerFactory` · `SchemaFactory` 생성 지점이 없다.
+- `setAttribute` 가 `IllegalArgumentException` 을 던지는 경우(구형 Xerces)는 잡지 않는다 — 잡아 넘기면 보안 설정 없이 파싱하게 된다.
+- 이 레포에서는 컴파일 불가(§0.3). 검증은 diff 검토 · `git diff --check` 만 했다.
+- 실백엔드 확인 대기: 빌드, 클래스패스의 `DocumentBuilderFactory` 구현이 JAXP 1.5 attribute 를 받는지(기동 후 첫 CAST 요청에서
+  `IllegalArgumentException` 이 없는지), `REQ_GetResourceInformation` · `REQ_GetResource` · `REQ_SetResource` 정상 파싱,
+  DOCTYPE 이 든 요청은 이전처럼 거부되는지.
 
 ---
 

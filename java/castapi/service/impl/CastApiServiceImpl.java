@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -2467,6 +2468,8 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         dbf.setFeature(DISALLOW_DOCTYPE_DECL, true);
         dbf.setFeature(EXTERNAL_GENERAL_ENTITIES, false);
         dbf.setFeature(EXTERNAL_PARAMETER_ENTITIES, false);
+        dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        dbf.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
         dbf.setXIncludeAware(false);
         dbf.setExpandEntityReferences(false);
 
