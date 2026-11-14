@@ -10,7 +10,6 @@ import aoms.pm.cast.dto.CastConfigAplyHstryDto;
 import aoms.pm.cast.dto.CastConfigAplySetHstryDto;
 import aoms.pm.cast.dto.CastConfigAtrbRawDto;
 import aoms.pm.cast.dto.CastConfigCategoryDto;
-import aoms.pm.cast.dto.CastConfigCategorySaveDto;
 
 @Mapper
 public interface CastConfigMapper {
@@ -22,8 +21,6 @@ public interface CastConfigMapper {
 	CastConfigCategoryDto retrieveCategoryForUpdate(@Param("fixAtrbGroupId") String fixAtrbGroupId);
 
 	int retrieveCategoryCnt(@Param("fixAtrbGroupId") String fixAtrbGroupId);
-
-	int insertCategory(CastConfigCategorySaveDto saveDto);
 
 	String retrieveAvailableCategoryId();
 
@@ -71,14 +68,6 @@ public interface CastConfigMapper {
 			@Param("loginIpAddr") String loginIpAddr
 	);
 
-	int insertFromBaseGroup(
-			@Param("sheetCd") String sheetCd,
-			@Param("valueColumnList") List<String> valueColumnList,
-			@Param("fixAtrbGroupId") String fixAtrbGroupId,
-			@Param("loginUserId") String loginUserId,
-			@Param("loginIpAddr") String loginIpAddr
-	);
-
 	int insertFromGroup(
 			@Param("sheetCd") String sheetCd,
 			@Param("valueColumnList") List<String> valueColumnList,
@@ -110,14 +99,6 @@ public interface CastConfigMapper {
 			@Param("loginIpAddr") String loginIpAddr
 	);
 
-	List<CastConfigAplyHstryDto> retrieveAplyHstryList(
-			@Param("tgtFixAtrbGroupId") String tgtFixAtrbGroupId,
-			@Param("tmnlId") String tmnlId,
-			@Param("sheetNm") String sheetNm
-	);
-
-	CastConfigAplyHstryDto retrieveAplyHstry(@Param("aplySn") long aplySn);
-
 	List<CastConfigAplyHstryDtlDto> retrieveAplyHstryDtlList(@Param("aplySn") long aplySn);
 
 	List<CastConfigAplySetHstryDto> retrieveAplySetHstryList();
@@ -136,8 +117,4 @@ public interface CastConfigMapper {
 			@Param("loginUserId") String loginUserId
 	);
 
-	int updateAplyHstryCancel(
-			@Param("aplySn") long aplySn,
-			@Param("loginUserId") String loginUserId
-	);
 }

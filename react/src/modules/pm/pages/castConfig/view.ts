@@ -1,6 +1,5 @@
 import { formatCount, formatDateTime } from '@/lib/format';
 import type {
-    CastConfigAplyHstryListDto,
     CastConfigAplySetHstryListDto,
     CastConfigCategoryDto,
     CastConfigCategoryListDto,
@@ -12,7 +11,6 @@ import type {
 } from '@/types/api.types';
 import { toCellKey } from './cell';
 import type {
-    ApplyHistory,
     ApplySetHistory,
     Category,
     ColumnType,
@@ -120,18 +118,6 @@ function toCategory(dto: CastConfigCategoryDto): Category {
 
 export function toCastConfigCategories(dto: CastConfigCategoryListDto): Category[] {
     return dto.categoryList.map(toCategory);
-}
-
-export function toApplyHistories(dto: CastConfigAplyHstryListDto): ApplyHistory[] {
-    return dto.hstryList.map((hstry) => ({
-        sn: hstry.aplySn,
-        sheetName: hstry.sheetNm,
-        rowCount: hstry.aplyRowCnt,
-        canceled: hstry.cnclYn === 'Y',
-        revertable: hstry.revertableYn === 'Y',
-        appliedAt: formatDateTime(hstry.frstRegDt),
-        appliedBy: hstry.frstRgtrId,
-    }));
 }
 
 export function toApplySetHistories(dto: CastConfigAplySetHstryListDto): ApplySetHistory[] {
@@ -277,8 +263,6 @@ export const EMPTY_CAST_CONFIG_GROUPS: FacilityGroup[] = GROUP_IDS.map((id) => (
 }));
 
 export const EMPTY_CAST_CONFIG_CATEGORIES: Category[] = [];
-
-export const EMPTY_APPLY_HISTORIES: ApplyHistory[] = [];
 
 export const EMPTY_APPLY_SET_HISTORIES: ApplySetHistory[] = [];
 

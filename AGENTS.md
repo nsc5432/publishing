@@ -364,13 +364,13 @@ npm run build:prd  # 운영 빌드
 | 시설물 매핑 | `FCLT_MAP_LIST` / `_SAVE` | `/fclt/retrieveFcltMapList` · `saveFcltMapList` |
 | Cast 설정 | `CAST_CONFIG_GROUP_LIST` | `/cast-config/retrieveGroupList` |
 | 〃 | `CAST_CONFIG_DATASET` | `/cast-config/retrieveDataset` |
-| 〃 | `CAST_CONFIG_SAVE` | `/cast-config/saveDataset` |
 | 〃 | `CAST_CONFIG_CATEGORY_LIST` | `/cast-config/retrieveCategoryList` |
-| 〃 | `CAST_CONFIG_CATEGORY_SAVE` | `/cast-config/saveCategory` |
-| 〃 | `CAST_CONFIG_OPER_APPLY` | `/cast-config/applyOperation` |
+| 〃 | `CAST_CONFIG_CATEGORY_CLONE` | `/cast-config/cloneCategory` |
+| 〃 | `CAST_CONFIG_SET_SAVE` | `/cast-config/saveCategorySet` |
+| 〃 | `CAST_CONFIG_SET_RETRIEVE` | `/cast-config/retrieveCategorySet` |
 | 〃 | `CAST_CONFIG_SET_APPLY` | `/cast-config/applyCategorySet` |
-| 〃 | `CAST_CONFIG_PRE_PRCS_HSTRY` | `/cast-config/retrievePreProcessHistory` |
-| 〃 | `CAST_CONFIG_PRE_PRCS_REVERT` | `/cast-config/revertPreProcess` |
+| 〃 | `CAST_CONFIG_SET_HSTRY` | `/cast-config/retrieveApplySetHistory` |
+| 〃 | `CAST_CONFIG_SET_REVERT` | `/cast-config/revertApplySet` |
 
 Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `CastConfigMapper.xml` 에 있다.
 데이터 모델은 `java/ddl/cast-ddl.sql` 의 `TN_PM_SMLT_FIX_ATRB_GROUP`(속성그룹=화면의 '카테고리')과
@@ -397,16 +397,18 @@ Cast 설정 백엔드는 `CastConfigController` · `CastConfigServiceImpl` · `C
   이력 일련번호(`APLY_SN` · `APLY_SET_SN`)는 시퀀스 없이 `MAX + 1` 이다 (2026-10-28). 채번 전에 `001` 그룹 행을
   `retrieveCategoryForUpdate` 로 잠가야 동시 반영이 같은 번호를 받지 않는다.
 - **운영 반영(카테고리→001)이 001 을 갱신하는 유일한 화면 경로다.** 카테고리 바 오른쪽 버튼 하나가
-  그룹의 **전 시트를 한 번에** 밀고, 시트마다 이력 1건을 남긴다. `999` 를 고르면 구 '전처리 반영'과
+  **T1/T2 전체 설정을 한 번에** 밀고, 반영 세트 아래 시트마다 이력 1건을 남긴다. `999` 를 고르면 구 '전처리 반영'과
   같은 동작이라 그 버튼은 없애고 이쪽으로 흡수했다 (2026-09-04 결정).
   **소스가 `999` 일 때만 값 컬럼을 전처리 산출 컬럼으로 좁힌다** — 사용자 카테고리는 편집 가능한 전
   컬럼을 밀지만, `999` 는 파이프라인이 산출 컬럼만 채워 NULL 이 기준정보를 비운다.
-- 디폴트속성적용(001→카테고리) · 운영 반영(카테고리→001)은 **같은 SQL `copyFromGroup`** 을 방향만
-  바꿔 쓴다. `copyFromGroup` 은 UPDATE 만 하므로 001 에 없는 행은 반영되지 않고 조용히 빠진다 —
+- 카테고리 복제는 `insertFromGroup`, 운영 반영과 전처리 값 덮어쓰기는 `copyFromGroup` 을 쓴다.
+  `copyFromGroup` 은 UPDATE 만 하므로 001 에 없는 행은 반영되지 않고 조용히 빠진다 —
   반영 전에 행 키를 대조해 걸러 낸다.
 - 엑셀업로드·디폴트속성적용·전처리 반영은 **화면과 서버 양쪽에서 걷어냈다.** 그리드의 행 선택
   체크박스도 같이 사라졌다 — 선택값을 쓰던 곳이 디폴트속성적용 하나뿐이었다.
-  `CastConfigMapper` 는 그대로다. `copyFromGroup` 을 비롯한 모든 statement 를 남은 경로가 쓴다.
+- 개별 카테고리 생성·저장·운영 반영·이력 조회·되돌리기 API는 제거했다. 카테고리 생성은 복제로,
+  저장·반영·이력·되돌리기는 세트 단위로 처리한다. 전용 DTO·Mapper SQL·React 구현도 제거했으며,
+  `CastConfigSaveItemDto` · `CastConfigAplyHstryDto` 등 Java 세트 API의 공용 참조는 유지한다.
 - **터미널은 그룹이 아니라 속성코드가 가른다.** 전처리 결과가 `999` 하나에 모이므로 T1/T2 가 같은
   `PSG_ATRB_CD` 를 쓰면 뒤엣것이 앞엣것을 지운다. `step5_save.assert_unique_keys` 가 이걸 막는다.
 

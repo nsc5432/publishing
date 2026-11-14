@@ -36,16 +36,6 @@ export interface Category {
     modifiedAt: string;
 }
 
-export interface ApplyHistory {
-    sn: number;
-    sheetName: string;
-    rowCount: number;
-    canceled: boolean;
-    revertable: boolean;
-    appliedAt: string;
-    appliedBy: string;
-}
-
 export interface ApplySetDetail {
     sn: number;
     terminal: string;

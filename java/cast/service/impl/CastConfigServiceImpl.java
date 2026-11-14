@@ -3,7 +3,6 @@ package aoms.pm.cast.service.impl;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -17,7 +16,6 @@ import org.springframework.transaction.interceptor.TransactionAspectSupport;
 import aoms.framework.cmmn.service.SessionService;
 import aoms.pm.cast.dto.CastConfigAplyHstryDtlDto;
 import aoms.pm.cast.dto.CastConfigAplyHstryDto;
-import aoms.pm.cast.dto.CastConfigAplyHstryListDto;
 import aoms.pm.cast.dto.CastConfigAplySetHstryDto;
 import aoms.pm.cast.dto.CastConfigAplySetHstryListDto;
 import aoms.pm.cast.dto.CastConfigAplySetRevertDto;
@@ -26,7 +24,6 @@ import aoms.pm.cast.dto.CastConfigCategoryCloneDto;
 import aoms.pm.cast.dto.CastConfigCategoryCloneResultDto;
 import aoms.pm.cast.dto.CastConfigCategoryDto;
 import aoms.pm.cast.dto.CastConfigCategoryListDto;
-import aoms.pm.cast.dto.CastConfigCategorySaveDto;
 import aoms.pm.cast.dto.CastConfigColumnDto;
 import aoms.pm.cast.dto.CastConfigDatasetDto;
 import aoms.pm.cast.dto.CastConfigDatasetSummaryDto;
@@ -34,9 +31,6 @@ import aoms.pm.cast.dto.CastConfigGridCellDto;
 import aoms.pm.cast.dto.CastConfigGridRowDto;
 import aoms.pm.cast.dto.CastConfigGroupDto;
 import aoms.pm.cast.dto.CastConfigGroupListDto;
-import aoms.pm.cast.dto.CastConfigOperApplyDto;
-import aoms.pm.cast.dto.CastConfigPreProcessRevertDto;
-import aoms.pm.cast.dto.CastConfigSaveDto;
 import aoms.pm.cast.dto.CastConfigSaveItemDto;
 import aoms.pm.cast.dto.CastConfigSearchDto;
 import aoms.pm.cast.dto.CastConfigSetDatasetDto;
@@ -71,11 +65,9 @@ public class CastConfigServiceImpl implements CastConfigService {
 	private static final String VL_TYPE_FLOAT = "Float";
 	private static final String YN_Y = "Y";
 	private static final String YN_N = "N";
-	private static final String FRST_REG_DT_PATTERN = "\\d{14}";
 	private static final Set<String> NUMBER_COLUMN_SET = Set.of("MIN_VL", "MAX_VL", "DSTB_MAX_VL", "CKNCT_RT", "KOS_RT", "MOB_RT", "SRVC_HR");
 
 	private static final int FIRST_DATA_ROW_NO = 2;
-	private static final int FIX_ATRB_GROUP_ID_MAX_LENGTH = 8;
 
 	private final CastConfigMapper castConfigMapper;
 	private final SessionService sessionService;
@@ -167,328 +159,6 @@ public class CastConfigServiceImpl implements CastConfigService {
 		result.setValidation(sheet.getValidation());
 
 		return result;
-	}
-
-	@Override
-	public JsonResponse saveDataset(CastConfigSaveDto saveDto) {
-		SessionUtils.setUserContext(saveDto, sessionService);
-
-		if (StringUtils.isBlank(saveDto.getLoginUserId())) {
-			return new JsonResponse().error("로그인을 진행해주세요.");
-		}
-
-		if (saveDto.getTmnlId() == null) {
-			return new JsonResponse().error("터미널이 지정되지 않았습니다.");
-		}
-
-		CastConfigGroup group = CastConfigGroup.fromGroupId(saveDto.getGroupId());
-
-		if (group == null) {
-			return new JsonResponse().error("시설그룹이 지정되지 않았습니다.");
-		}
-
-		if (saveDto.getItemList() == null || saveDto.getItemList().isEmpty()) {
-			return new JsonResponse().error("저장할 변경 내용이 없습니다.");
-		}
-
-		Map<String, List<CastConfigSaveItemDto>> itemMap = new LinkedHashMap<>();
-
-		for (CastConfigSaveItemDto item : saveDto.getItemList()) {
-			String key = item.getFixAtrbGroupId() + "::" + item.getSheetNm();
-			itemMap.computeIfAbsent(key, ignored -> new ArrayList<>()).add(item);
-		}
-
-		List<UpdateTarget> updateTargetList = new ArrayList<>();
-
-		for (List<CastConfigSaveItemDto> itemList : itemMap.values()) {
-			JsonResponse validationError =
-					appendUpdateTargets(updateTargetList, group, saveDto.getTmnlId(), itemList);
-
-			if (validationError != null) {
-				return validationError;
-			}
-		}
-
-		for (UpdateTarget target : updateTargetList) {
-			if (update(target, saveDto.getLoginUserId(), saveDto.getLoginIpAddr()) != 1) {
-				return rollbackError("다른 사용자가 데이터를 변경했습니다. 다시 조회해 주세요.");
-			}
-		}
-
-		return new JsonResponse();
-	}
-
-	@Override
-	public JsonResponse applyOperation(CastConfigOperApplyDto applyDto) {
-		SessionUtils.setUserContext(applyDto, sessionService);
-
-		if (StringUtils.isBlank(applyDto.getLoginUserId())) {
-			return new JsonResponse().error("로그인을 진행해주세요.");
-		}
-
-		CastConfigGroup group = CastConfigGroup.fromGroupId(applyDto.getGroupId());
-
-		if (group == null) {
-			return new JsonResponse().error("시설그룹을 찾지 못했습니다.");
-		}
-
-		if (applyDto.getTmnlId() == null) {
-			return new JsonResponse().error("터미널이 지정되지 않았습니다.");
-		}
-
-		String srcFixAtrbGroupId = StringUtils.trimToEmpty(applyDto.getFixAtrbGroupId());
-
-		if (StringUtils.isBlank(srcFixAtrbGroupId)) {
-			return new JsonResponse().error("카테고리가 지정되지 않았습니다.");
-		}
-
-		if (BASE_FIX_ATRB_GROUP_ID.equals(srcFixAtrbGroupId)) {
-			return new JsonResponse().error("기준정보는 운영 반영 대상이 아닙니다.");
-		}
-
-		// 이력 일련번호를 MAX + 1 로 채번하므로 001 잠금으로 동시 반영을 직렬화한다.
-		if (castConfigMapper.retrieveCategoryForUpdate(BASE_FIX_ATRB_GROUP_ID) == null) {
-			return new JsonResponse().error("기준정보를 찾지 못했습니다.");
-		}
-
-		boolean fromPreProcess = PRE_PRCS_FIX_ATRB_GROUP_ID.equals(srcFixAtrbGroupId);
-
-		if (fromPreProcess && lockPreProcessCategory().isBusy()) {
-			return new JsonResponse().error(PRE_PRCS_BUSY_MESSAGE);
-		}
-
-		int totalRowCnt = 0;
-
-		for (CastConfigSheet sheet : group.getRootCdMap().keySet()) {
-			// 999 는 파이프라인이 전처리 산출 컬럼만 채운다. 나머지까지 복사하면 NULL 이 기준정보를 비운다.
-			List<String> valueColumnList = fromPreProcess
-					? sheet.getPrePrcsValueColumnList()
-					: getValueColumnList(sheet);
-
-			if (valueColumnList.isEmpty()) {
-				continue;
-			}
-
-			List<CastConfigAtrbRawDto> baseList =
-					retrieveRows(sheet, group, applyDto.getTmnlId(), BASE_FIX_ATRB_GROUP_ID);
-			Map<String, CastConfigAtrbRawDto> srcMap = toRowMap(
-					retrieveRows(sheet, group, applyDto.getTmnlId(), srcFixAtrbGroupId)
-			);
-			List<CastConfigAtrbRawDto> targetList = new ArrayList<>();
-
-			// copyFromGroup 은 UPDATE 만 한다. 기준정보에 없는 행은 조용히 빠지므로 미리 걱러 낸다.
-			for (CastConfigAtrbRawDto base : baseList) {
-				if (fromPreProcess && !YN_Y.equals(base.getPrePrcsYn())) {
-					continue;
-				}
-
-				if (srcMap.containsKey(toRowKey(base))) {
-					targetList.add(base);
-				}
-			}
-
-			if (targetList.isEmpty()) {
-				continue;
-			}
-
-			long aplySn = castConfigMapper.retrieveAplyHstrySn();
-			CastConfigAplyHstryDto hstry = new CastConfigAplyHstryDto();
-			hstry.setAplySn(aplySn);
-			hstry.setSrcFixAtrbGroupId(srcFixAtrbGroupId);
-			hstry.setTgtFixAtrbGroupId(BASE_FIX_ATRB_GROUP_ID);
-			hstry.setTmnlId(applyDto.getTmnlId().getValue());
-			hstry.setTblNm(sheet.getTableNm());
-			hstry.setSheetNm(sheet.getSheetNm());
-			hstry.setAplyRowCnt(targetList.size());
-			hstry.setLoginUserId(applyDto.getLoginUserId());
-			hstry.setLoginIpAddr(applyDto.getLoginIpAddr());
-			castConfigMapper.insertAplyHstry(hstry);
-
-			// 스냅샷을 먼저 남긴다. 복사 뒤에 찍으면 되돌릴 값이 이미 덮여 있다.
-			for (CastConfigAtrbRawDto row : targetList) {
-				castConfigMapper.insertAplyHstryDtl(
-						aplySn,
-						sheet.name(),
-						valueColumnList,
-						srcFixAtrbGroupId,
-						BASE_FIX_ATRB_GROUP_ID,
-						row.getAtrbCd(),
-						row.getDtlSeCd(),
-						applyDto.getLoginUserId(),
-						applyDto.getLoginIpAddr()
-				);
-			}
-
-			for (CastConfigAtrbRawDto row : targetList) {
-				int updated = castConfigMapper.copyFromGroup(
-						sheet.name(),
-						valueColumnList,
-						srcFixAtrbGroupId,
-						BASE_FIX_ATRB_GROUP_ID,
-						row.getAtrbCd(),
-						row.getDtlSeCd(),
-						applyDto.getLoginUserId(),
-						applyDto.getLoginIpAddr()
-				);
-
-				if (updated != 1) {
-					return rollbackError("카테고리와 일치하는 기준정보 행을 찾지 못했습니다.");
-				}
-			}
-
-			totalRowCnt += targetList.size();
-		}
-
-		if (totalRowCnt == 0) {
-			return rollbackError("반영할 행이 없습니다.");
-		}
-
-		return new JsonResponse();
-	}
-
-	@Override
-	public CastConfigAplyHstryListDto retrievePreProcessHistory(CastConfigSearchDto searchDto) {
-		CastConfigAplyHstryListDto result = new CastConfigAplyHstryListDto();
-		List<CastConfigAplyHstryDto> hstryList = castConfigMapper.retrieveAplyHstryList(
-				BASE_FIX_ATRB_GROUP_ID,
-				searchDto.getTmnlId() == null ? null : searchDto.getTmnlId().getValue(),
-				StringUtils.trimToEmpty(searchDto.getSheetNm())
-		);
-
-		result.setTotalCnt(hstryList.size());
-		result.setHstryList(hstryList);
-
-		return result;
-	}
-
-	@Override
-	public JsonResponse revertPreProcess(CastConfigPreProcessRevertDto revertDto) {
-		SessionUtils.setUserContext(revertDto, sessionService);
-
-		if (StringUtils.isBlank(revertDto.getLoginUserId())) {
-			return new JsonResponse().error("로그인을 진행해주세요.");
-		}
-
-		PreProcessLock lock = lockPreProcessCategory();
-
-		if (lock.isBusy()) {
-			return new JsonResponse().error(PRE_PRCS_BUSY_MESSAGE);
-		}
-
-		if (lock.getCategory() == null) {
-			return new JsonResponse().error("전처리 결과를 찾지 못했습니다.");
-		}
-
-		CastConfigAplyHstryDto hstry = castConfigMapper.retrieveAplyHstry(revertDto.getAplySn());
-
-		if (hstry == null) {
-			return new JsonResponse().error("반영 이력을 찾지 못했습니다.");
-		}
-
-		if (YN_Y.equals(hstry.getCnclYn())) {
-			return new JsonResponse().error("이미 되돌린 이력입니다.");
-		}
-
-		CastConfigSheet sheet = CastConfigSheet.fromSheetNm(hstry.getSheetNm());
-
-		if (sheet == null) {
-			return new JsonResponse().error("등록되지 않은 시트입니다.");
-		}
-
-		if (castConfigMapper.updateAplyHstryCancel(revertDto.getAplySn(), revertDto.getLoginUserId()) != 1) {
-			return new JsonResponse().error("최신 반영부터 되돌려 주세요.");
-		}
-
-		for (CastConfigAplyHstryDtlDto detail : castConfigMapper.retrieveAplyHstryDtlList(revertDto.getAplySn())) {
-			CastConfigColumnDef column = findColumnByPhysical(sheet, detail.getColumnNm());
-
-			if (column == null) {
-				return rollbackError("되돌릴 수 없는 컬럼이 포함되어 있습니다.");
-			}
-
-			int updated = castConfigMapper.updateAtrbValue(
-					sheet.name(),
-					detail.getColumnNm(),
-					toColumnValue(detail.getColumnNm(), detail.getBefVl()),
-					hstry.getTgtFixAtrbGroupId(),
-					detail.getAtrbCd(),
-					detail.getDtlSeCd(),
-					revertDto.getLoginUserId(),
-					revertDto.getLoginIpAddr()
-			);
-
-			if (updated != 1) {
-				return rollbackError("되돌릴 행을 찾지 못했습니다.");
-			}
-		}
-
-		return new JsonResponse();
-	}
-
-	@Override
-	public JsonResponse saveCategory(CastConfigCategorySaveDto saveDto) {
-		SessionUtils.setUserContext(saveDto, sessionService);
-
-		if (StringUtils.isBlank(saveDto.getLoginUserId())) {
-			return new JsonResponse().error("로그인을 진행해주세요.");
-		}
-
-		if (StringUtils.isBlank(saveDto.getFixAtrbGroupId())
-				|| saveDto.getFixAtrbGroupId().length() > FIX_ATRB_GROUP_ID_MAX_LENGTH) {
-			return new JsonResponse().error("카테고리 코드를 확인해 주세요.");
-		}
-
-		if (isReservedGroup(saveDto.getFixAtrbGroupId())) {
-			return new JsonResponse().error("예약된 카테고리 코드입니다.");
-		}
-
-		if (StringUtils.isBlank(saveDto.getAtrbGroupNm())) {
-			return new JsonResponse().error("카테고리명을 입력해 주세요.");
-		}
-
-		if (saveDto.getFrstRegDt() == null || !saveDto.getFrstRegDt().matches(FRST_REG_DT_PATTERN)) {
-			return new JsonResponse().error("최초등록일시 형식을 확인해 주세요.");
-		}
-
-		if (castConfigMapper.retrieveCategoryCnt(saveDto.getFixAtrbGroupId()) > 0) {
-			return new JsonResponse().error("이미 등록된 카테고리 코드입니다.");
-		}
-
-		Set<CastConfigSheet> sheetSet = new LinkedHashSet<>();
-
-		if (saveDto.getSheetNmList() != null) {
-			for (String sheetNm : saveDto.getSheetNmList()) {
-				CastConfigSheet sheet = CastConfigSheet.fromSheetNm(sheetNm);
-
-				if (sheet == null) {
-					return new JsonResponse().error("등록되지 않은 시트가 포함되어 있습니다.");
-				}
-
-				sheetSet.add(sheet);
-			}
-		}
-
-		if (sheetSet.isEmpty()) {
-			return new JsonResponse().error("복사할 시트를 선택해 주세요.");
-		}
-
-		castConfigMapper.insertCategory(saveDto);
-
-		for (CastConfigSheet sheet : sheetSet) {
-			int inserted = castConfigMapper.insertFromBaseGroup(
-					sheet.name(),
-					getValueColumnList(sheet),
-					saveDto.getFixAtrbGroupId(),
-					saveDto.getLoginUserId(),
-					saveDto.getLoginIpAddr()
-			);
-
-			if (inserted == 0) {
-				return rollbackError("기준정보에 복사할 시트 데이터가 없습니다.");
-			}
-		}
-
-		return new JsonResponse();
 	}
 
 	@Override

@@ -794,13 +794,6 @@ export interface CastConfigCategoryListDto extends JsonResponse {
     categoryList: CastConfigCategoryDto[];
 }
 
-export interface CastConfigCategorySaveDto {
-    fixAtrbGroupId: string;
-    atrbGroupNm: string;
-    frstRegDt: string;
-    sheetNmList: string[];
-}
-
 export interface CastConfigCategoryCloneDto {
     srcFixAtrbGroupId: string;
     atrbGroupNm: string;
@@ -853,14 +846,6 @@ export interface CastConfigGridCellDto {
     editableYn: YnFlag;
 }
 
-export interface CastConfigSaveItemDto {
-    fixAtrbGroupId: string;
-    sheetNm: string;
-    rowNo: number;
-    column: string;
-    value: string;
-}
-
 export interface CastConfigSetSaveItemDto {
     tmnlId: TmnlId;
     groupId: string;
@@ -880,25 +865,6 @@ export interface CastConfigSetDatasetDto {
 export interface CastConfigSetDto extends JsonResponse {
     fixAtrbGroupId: string;
     datasetList: CastConfigSetDatasetDto[];
-}
-
-export interface CastConfigAplyHstryDto {
-    aplySn: number;
-    srcFixAtrbGroupId: string;
-    tgtFixAtrbGroupId: string;
-    tmnlId: string;
-    tblNm: string;
-    sheetNm: string;
-    aplyRowCnt: number;
-    cnclYn: YnFlag;
-    revertableYn: YnFlag;
-    frstRegDt: string;
-    frstRgtrId: string;
-}
-
-export interface CastConfigAplyHstryListDto extends JsonResponse {
-    totalCnt: number;
-    hstryList: CastConfigAplyHstryDto[];
 }
 
 export interface CastConfigAplySetDetailDto {

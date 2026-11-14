@@ -45,29 +45,6 @@
         AND A.FIX_ATRB_GROUP_ID = #{fixAtrbGroupId}
     </select>
 
-    <insert id="insertCategory">
-        /* CastConfigMapper.insertCategory */
-        INSERT INTO PMOWN.TN_PM_SMLT_FIX_ATRB_GROUP (
-            FIX_ATRB_GROUP_ID,
-            ATRB_GROUP_NM,
-            CFMTN_YN,
-            GROUP_PRCS_STTS_CD,
-            DEL_YN,
-            FRST_RGTR_ID,
-            FRST_RGTR_IP_ADDR,
-            FRST_REG_DT
-        ) VALUES (
-            #{fixAtrbGroupId},
-            #{atrbGroupNm},
-            'N',
-            '01',
-            'N',
-            #{loginUserId},
-            #{loginIpAddr},
-            TO_TIMESTAMP(#{frstRegDt}, 'YYYYMMDDHH24MISS')
-        )
-    </insert>
-
     <!-- 002~499 만 쓴다. 500~998 은 사용자 실행 전용 PropertySet(PS5xx) 번호다 -->
     <select id="retrieveAvailableCategoryId" resultType="string">
         /* CastConfigMapper.retrieveAvailableCategoryId */
@@ -365,38 +342,6 @@
         )
     </update>
 
-    <insert id="insertFromBaseGroup">
-        /* CastConfigMapper.insertFromBaseGroup */
-        INSERT INTO <include refid="cfgTable"/> (
-            <include refid="cfgGroupCol"/>,
-            <include refid="cfgKeyCol"/>,
-            <if test='sheetCd != "CKNCT_TYPE_ATRB"'>
-            <include refid="cfgDtlCol"/>,
-            </if>
-            <foreach collection="valueColumnList" item="columnNm" separator=",">
-                <include refid="cfgValueCol"/>
-            </foreach>,
-            FRST_RGTR_ID,
-            FRST_RGTR_IP_ADDR,
-            FRST_REG_DT
-        )
-        SELECT
-            #{fixAtrbGroupId},
-            <include refid="cfgKeyColA"/>,
-            <if test='sheetCd != "CKNCT_TYPE_ATRB"'>
-            <include refid="cfgDtlColA"/>,
-            </if>
-            <foreach collection="valueColumnList" item="columnNm" separator=",">
-                <include refid="cfgValueColA"/>
-            </foreach>,
-            #{loginUserId},
-            #{loginIpAddr},
-            CURRENT_TIMESTAMP
-        FROM <include refid="cfgTable"/> A
-        WHERE 1 = 1
-        AND <include refid="cfgGroupColA"/> = '001'
-    </insert>
-
     <insert id="insertFromGroup">
         /* CastConfigMapper.insertFromGroup */
         INSERT INTO <include refid="cfgTable"/> (
@@ -521,44 +466,6 @@
         </foreach>
     </insert>
 
-    <select id="retrieveAplyHstryList" resultType="aoms.pm.cast.dto.CastConfigAplyHstryDto">
-        /* CastConfigMapper.retrieveAplyHstryList */
-        SELECT
-            A.APLY_SN AS APLY_SN,
-            A.SRC_FIX_ATRB_GROUP_ID AS SRC_FIX_ATRB_GROUP_ID,
-            A.TGT_FIX_ATRB_GROUP_ID AS TGT_FIX_ATRB_GROUP_ID,
-            NVL(A.TMNL_ID, ' ') AS TMNL_ID,
-            NVL(A.TBL_NM, ' ') AS TBL_NM,
-            NVL(A.SHEET_NM, ' ') AS SHEET_NM,
-            NVL(A.APLY_ROW_CNT, 0) AS APLY_ROW_CNT,
-            NVL(A.CNCL_YN, 'N') AS CNCL_YN,
-            CASE
-                WHEN NVL(A.CNCL_YN, 'N') = 'N'
-                 AND NOT EXISTS (
-                    SELECT 1
-                    FROM PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY N
-                    WHERE N.TGT_FIX_ATRB_GROUP_ID = A.TGT_FIX_ATRB_GROUP_ID
-                    AND NVL(N.TMNL_ID, ' ') = NVL(A.TMNL_ID, ' ')
-                    AND N.TBL_NM = A.TBL_NM
-                    AND NVL(N.CNCL_YN, 'N') = 'N'
-                    AND N.APLY_SN > A.APLY_SN
-                 ) THEN 'Y'
-                ELSE 'N'
-            END AS REVERTABLE_YN,
-            NVL(TO_CHAR(A.FRST_REG_DT, 'YYYYMMDDHH24MISS'), ' ') AS FRST_REG_DT,
-            NVL(A.FRST_RGTR_ID, ' ') AS FRST_RGTR_ID
-        FROM PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY A
-        WHERE 1 = 1
-        AND A.TGT_FIX_ATRB_GROUP_ID = #{tgtFixAtrbGroupId}
-        <if test="tmnlId != null and tmnlId != ''">
-            AND A.TMNL_ID = #{tmnlId}
-        </if>
-        <if test="sheetNm != null and sheetNm != ''">
-            AND A.SHEET_NM = #{sheetNm}
-        </if>
-        ORDER BY A.APLY_SN DESC
-    </select>
-
     <select id="retrieveAplyHstryDtlList" resultType="aoms.pm.cast.dto.CastConfigAplyHstryDtlDto">
         /* CastConfigMapper.retrieveAplyHstryDtlList */
         SELECT
@@ -573,42 +480,6 @@
         AND A.APLY_SN = #{aplySn}
         ORDER BY A.ATRB_CD, A.DTL_SE_CD, A.COLUMN_NM
     </select>
-
-    <select id="retrieveAplyHstry" resultType="aoms.pm.cast.dto.CastConfigAplyHstryDto">
-        /* CastConfigMapper.retrieveAplyHstry */
-        SELECT
-            A.APLY_SN AS APLY_SN,
-            A.SRC_FIX_ATRB_GROUP_ID AS SRC_FIX_ATRB_GROUP_ID,
-            A.TGT_FIX_ATRB_GROUP_ID AS TGT_FIX_ATRB_GROUP_ID,
-            NVL(A.TMNL_ID, ' ') AS TMNL_ID,
-            NVL(A.TBL_NM, ' ') AS TBL_NM,
-            NVL(A.SHEET_NM, ' ') AS SHEET_NM,
-            NVL(A.APLY_ROW_CNT, 0) AS APLY_ROW_CNT,
-            NVL(A.CNCL_YN, 'N') AS CNCL_YN,
-            NVL(TO_CHAR(A.FRST_REG_DT, 'YYYYMMDDHH24MISS'), ' ') AS FRST_REG_DT,
-            NVL(A.FRST_RGTR_ID, ' ') AS FRST_RGTR_ID
-        FROM PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY A
-        WHERE A.APLY_SN = #{aplySn}
-    </select>
-
-    <update id="updateAplyHstryCancel">
-        /* CastConfigMapper.updateAplyHstryCancel */
-        UPDATE PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY A
-        SET CNCL_YN = 'Y',
-            CNCL_DT = CURRENT_TIMESTAMP,
-            CNCL_RGTR_ID = #{loginUserId}
-        WHERE A.APLY_SN = #{aplySn}
-        AND A.CNCL_YN = 'N'
-        AND NOT EXISTS (
-            SELECT 1
-            FROM PMOWN.TH_PM_SMLT_ATRB_APLY_HSTRY N
-            WHERE N.TGT_FIX_ATRB_GROUP_ID = A.TGT_FIX_ATRB_GROUP_ID
-            AND NVL(N.TMNL_ID, ' ') = NVL(A.TMNL_ID, ' ')
-            AND N.TBL_NM = A.TBL_NM
-            AND NVL(N.CNCL_YN, 'N') = 'N'
-            AND N.APLY_SN > A.APLY_SN
-        )
-    </update>
 
     <select id="retrieveAplySetHstryList" resultType="aoms.pm.cast.dto.CastConfigAplySetHstryDto">
         /* CastConfigMapper.retrieveAplySetHstryList */
