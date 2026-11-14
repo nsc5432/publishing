@@ -64,9 +64,9 @@ import aoms.pm.cast.mapper.CastDsbdMapper;
 import aoms.pm.cast.mapper.CastFltPsgMapper;
 import aoms.pm.cast.mapper.CastSmltMapper;
 import aoms.pm.cast.service.CastChknQueueService;
-import aoms.pm.cast.service.CastDsbdService;
 import aoms.pm.cast.service.CastFcltWtngService;
 import aoms.pm.cast.service.CastSmltService;
+import aoms.pm.cast.service.CastSmryService;
 import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
 
@@ -75,7 +75,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
-public class CastDsbdServiceImpl implements CastDsbdService {
+public class CastSmryServiceImpl implements CastSmryService {
 	private static final String YMD_FORMAT = "yyyyMMdd";
 	private static final String DT_FORMAT = "yyyyMMddHHmmss";
 	private static final String EMPTY = "";

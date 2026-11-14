@@ -143,7 +143,7 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
      평가시각부터 적용했을 때 `[hhmm, hhmm+60)` 예측 처리인원, 출국장은 보안검색대, 산정 불가면 null)를 더했다. 원천은
      `FcltQueueClearance.prcsPsgCntOf` → `WaitAvgForecast.forecastPrcsPsgCnt`(해소 예측과 같은 1분 유체 FIFO)다. **새 이름도 이제 고정이다.**
    - 2026-11-11 체크인 대기인원 표시를 CAST 원값으로 바꿨다 (이름은 그대로). 체크인 `DsbdFcltCardDto.wtngPsgCnt` 와 CHKN 카테고리
-     `TmnlSmryDto.smryWtngPsgCnt` 는 평가시각 결과(`SMLT_ACTL_DT = hhmm`)의 CC 부스 `WTNG_PSG_CNT` 아일랜드 합이다(`CastDsbdServiceImpl.retrieveChknRsltWtngMap`).
+     `TmnlSmryDto.smryWtngPsgCnt` 는 평가시각 결과(`SMLT_ACTL_DT = hhmm`)의 CC 부스 `WTNG_PSG_CNT` 아일랜드 합이다(`CastSmryServiceImpl.retrieveChknRsltWtngMap`).
      랜드사이드 대기인원과 같은 원천이라 체크인 + 출국장 = 랜드사이드다. 등급 · 대기시간 · 추천 · 해소와 맵 · 체크인 상세의 대기인원은 공용 Queue(§13) 그대로다.
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
@@ -699,7 +699,7 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 - 서버는 `UserDto.roleIdList` 로 **롤 ID 원본만** 내려준다. 메뉴·경로는 화면 개념이라 서버가 모른다.
 - 롤이 하나도 없는 사용자는 오류가 아니다. `roleIdList: []` 를 정상 응답으로 받고 화면이
   `NoAccess` 를 그린다.
-- **매출은 화면에서 감추는 게 아니라 서버가 응답에서 뺀다.** `CastMapServiceImpl.getChknInfoList()`
+- **매출은 화면에서 감추는 게 아니라 서버가 응답에서 뺀다.** `CastSmryDtlServiceImpl.getChknInfoList()`
   가 `PmRole.SALES` 를 확인해 `MapChknInfoDto.sales` 를 null 로 내리고, 화면은 `sales == null`
   만 본다 — 같은 규칙이 두 곳에 중복되지 않는다.
 - 매출 외 다른 API 에는 서버 권한 검사가 없다. 프론트 차단은 URL 직접 입력으로 우회된다.
