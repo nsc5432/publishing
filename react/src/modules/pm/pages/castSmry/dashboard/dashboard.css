@@ -3507,14 +3507,9 @@ html[data-page='dashboard'] .trow.sel {
     font-weight: 700;
 }
 
-.fqs-muted,
-.fqs-summary {
+.fqs-muted {
     color: var(--fqs-muted);
     font-size: 13px;
-}
-
-.fqs-summary {
-    margin: 0;
 }
 
 .fqs-x {
@@ -3545,25 +3540,8 @@ html[data-page='dashboard'] .trow.sel {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 12px;
-}
-
-.fqs-lead {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-}
-
-.fqs-lead span {
-    color: var(--fqs-muted);
-    font-size: 12px;
-}
-
-.fqs-lead strong {
-    font-size: 15px;
-    font-weight: 700;
 }
 
 .fqs-goal-ctrl {
@@ -3898,7 +3876,7 @@ html[data-page='dashboard'] .trow.sel {
 }
 
 .fqs-time-chart {
-    height: 240px;
+    height: 220px;
 }
 
 .fqs-time-note {

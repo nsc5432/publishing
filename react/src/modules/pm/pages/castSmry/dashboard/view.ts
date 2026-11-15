@@ -725,15 +725,6 @@ function toQueueBasis(dto: FcltQueueScenarioDto, label: FcltQueueLabel): QueueBa
     return rows;
 }
 
-function toQueueSummaryText(dto: FcltQueueScenarioDto): string {
-    const parts = [`${formatDtClock(dto.baseDt)} 기준`];
-
-    if (dto.wtngPsgCnt !== null) parts.push(`대기 ${formatCount(dto.wtngPsgCnt)}명`);
-    if (dto.wtngAvgSec !== null) parts.push(`평균 대기 ${formatSeconds(dto.wtngAvgSec)}`);
-
-    return parts.join(' · ');
-}
-
 export function toFcltQueueScenarioView(dto: FcltQueueScenarioDto): FcltQueueScenarioView {
     const label = FCLT_QUEUE_LABEL[dto.fcltType];
     const targetMin = dto.recommend?.targetMin ?? dto.dfltTargetMin;
@@ -751,7 +742,6 @@ export function toFcltQueueScenarioView(dto: FcltQueueScenarioDto): FcltQueueSce
         label,
         tmnlId: dto.tmnlId,
         fcltNm: dto.fcltNm,
-        summaryText: toQueueSummaryText(dto),
         targetShort: toTargetShort(dto.normalUpperExclusiveSec),
         targetMin,
         targetRange: { min: dto.minTargetMin, max: dto.maxTargetMin },

@@ -266,8 +266,6 @@ export interface FcltQueueScenarioView {
     label: FcltQueueLabel;
     tmnlId: TerminalKind;
     fcltNm: string;
-    /** 헤더 한 줄 (예: 08:40 기준 · 대기 78명 · 평균 대기 58분 30초) */
-    summaryText: string;
     /** 해소 정의 (예: 평균 대기 40분 미만) */
     targetShort: string;
     targetMin: number;

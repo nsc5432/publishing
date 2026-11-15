@@ -42,7 +42,8 @@ interface ScenarioDetailProps {
 
 const TIME_COLOR = {
     wait: '#4338ca',
-    arvl: '#aab2c5',
+    arvl: '#cfd5e2',
+    arvlText: '#7a8396',
     threshold: '#a14a05',
     target: '#4338ca',
     grid: '#eef0f4',
@@ -50,23 +51,31 @@ const TIME_COLOR = {
 };
 
 const TIME_STEP_MIN = 10;
+const TIME_Y_SPLITS = 4;
+// 유입 막대가 평균 대기 선을 덮지 않도록 오른쪽 축을 최댓값보다 넉넉히 잡아 막대를 아래쪽에 둔다
+const ARVL_HEADROOM = 1.6;
 
-// 평균 대기와 유입은 단위가 달라 한 축에 겹치지 않고 같은 시간축의 위 · 아래 두 칸으로 나눈다
+function toNiceStep(raw: number): number {
+    const base = 10 ** Math.floor(Math.log10(raw));
+    const step = [1, 2, 5, 10].find((mul) => mul * base >= raw) ?? 10;
+
+    return step * base;
+}
+
 function toTimeChartOption(bar: QueueBarView, axis: QueueTimeAxis): EChartsOption {
     const points = bar.timeline;
     const clockByMinute = new Map(points.map((point) => [point.minute, point.clockText]));
     const waitMax = Math.max(axis.thresholdMin * 1.5, ...points.map((point) => point.waitMin ?? 0));
+    const arvlMax = Math.max(...points.map((point) => point.arvlPsgCnt ?? 0));
+    // 좌우 축의 눈금 수를 같게 맞춰 격자선을 하나로 쓴다
+    const waitStep = toNiceStep(Math.max(waitMax / TIME_Y_SPLITS, 1));
+    const arvlStep = toNiceStep(Math.max((arvlMax * ARVL_HEADROOM) / TIME_Y_SPLITS, 1));
     const interval = axis.judgeMin > 60 ? TIME_STEP_MIN * 2 : TIME_STEP_MIN;
-    const xBase = { type: 'value' as const, min: 0, max: axis.judgeMin, interval, splitLine: { show: false }, axisTick: { show: false } };
-    const yBase = { type: 'value' as const, axisLabel: AXIS_LABEL, splitLine: { lineStyle: { color: TIME_COLOR.grid } } };
+    const yBase = { type: 'value' as const, min: 0, axisLabel: AXIS_LABEL, axisTick: { show: false } };
 
     return {
         animation: false,
-        grid: [
-            { left: 44, right: 16, top: 26, height: 110 },
-            { left: 44, right: 16, top: 172, bottom: 24 },
-        ],
-        axisPointer: { link: [{ xAxisIndex: 'all' }] },
+        grid: { left: 40, right: 44, top: 34, bottom: 24 },
         tooltip: {
             trigger: 'axis',
             axisPointer: { type: 'line', snap: true, lineStyle: { color: TIME_COLOR.line } },
@@ -77,42 +86,61 @@ function toTimeChartOption(bar: QueueBarView, axis: QueueTimeAxis): EChartsOptio
                 const point = points.find((item) => item.minute === minute);
                 if (!point) return '';
 
+                const fromClock = clockByMinute.get(minute - TIME_STEP_MIN);
                 const lines = [
-                    `<strong>${point.clockText}</strong>`,
+                    `<strong>${fromClock ? `${fromClock} ~ ${point.clockText}` : point.clockText}</strong>`,
                     `평균 대기 ${point.waitMin === null ? '처리 여객 없음' : `${Math.round(point.waitMin)}분`}`,
                     `대기 ${formatCount(Math.round(point.queuePsgCnt))}명`,
                 ];
-                if (point.arvlPsgCnt !== null) lines.push(`직전 10분 유입 ${formatCount(Math.round(point.arvlPsgCnt))}명`);
+                if (point.arvlPsgCnt !== null) lines.push(`유입 ${formatCount(Math.round(point.arvlPsgCnt))}명`);
 
                 return lines.join('<br/>');
             },
         },
-        xAxis: [
-            { ...xBase, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: TIME_COLOR.line } } },
-            {
-                ...xBase,
-                gridIndex: 1,
-                axisLabel: { ...AXIS_LABEL, formatter: (value: number) => clockByMinute.get(value) ?? '' },
-                axisLine: { lineStyle: { color: TIME_COLOR.line } },
-            },
-        ],
+        xAxis: {
+            type: 'value',
+            min: 0,
+            max: axis.judgeMin,
+            interval,
+            splitLine: { show: false },
+            axisTick: { show: false },
+            axisLabel: { ...AXIS_LABEL, formatter: (value: number) => clockByMinute.get(value) ?? '' },
+            axisLine: { lineStyle: { color: TIME_COLOR.line } },
+        },
         yAxis: [
             {
                 ...yBase,
-                gridIndex: 0,
-                min: 0,
-                max: Math.ceil(waitMax / 10) * 10,
+                max: waitStep * TIME_Y_SPLITS,
+                interval: waitStep,
                 name: '평균 대기 (분)',
-                nameTextStyle: { ...AXIS_LABEL, align: 'left' },
+                nameTextStyle: { ...AXIS_LABEL, color: TIME_COLOR.wait, fontWeight: 600, align: 'left' },
+                splitLine: { lineStyle: { color: TIME_COLOR.grid } },
             },
-            { ...yBase, gridIndex: 1, min: 0, splitNumber: 2, name: '10분 유입 (명)', nameTextStyle: { ...AXIS_LABEL, align: 'left' } },
+            {
+                ...yBase,
+                position: 'right',
+                max: arvlStep * TIME_Y_SPLITS,
+                interval: arvlStep,
+                name: '10분 유입 (명)',
+                nameTextStyle: { ...AXIS_LABEL, color: TIME_COLOR.arvlText, fontWeight: 600, align: 'right' },
+                splitLine: { show: false },
+            },
         ],
         series: [
             {
+                type: 'bar',
+                name: '10분 유입',
+                yAxisIndex: 1,
+                data: points.flatMap((point) => (point.arvlPsgCnt === null ? [] : [[point.minute - TIME_STEP_MIN / 2, Math.round(point.arvlPsgCnt)]])),
+                barWidth: '60%',
+                barMaxWidth: 24,
+                itemStyle: { color: TIME_COLOR.arvl, borderRadius: [3, 3, 0, 0] },
+            },
+            {
                 type: 'line',
                 name: '평균 대기',
-                xAxisIndex: 0,
                 yAxisIndex: 0,
+                z: 3,
                 data: points.map((point) => [point.minute, point.waitMin === null ? null : Math.round(point.waitMin * 10) / 10]),
                 connectNulls: false,
                 symbolSize: 7,
@@ -135,16 +163,6 @@ function toTimeChartOption(bar: QueueBarView, axis: QueueTimeAxis): EChartsOptio
                         },
                     ],
                 },
-            },
-            {
-                type: 'bar',
-                name: '10분 유입',
-                xAxisIndex: 1,
-                yAxisIndex: 1,
-                data: points.flatMap((point) => (point.arvlPsgCnt === null ? [] : [[point.minute - TIME_STEP_MIN / 2, Math.round(point.arvlPsgCnt)]])),
-                barWidth: '60%',
-                barMaxWidth: 24,
-                itemStyle: { color: TIME_COLOR.arvl, borderRadius: [3, 3, 0, 0] },
             },
         ],
     };
@@ -192,11 +210,6 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                             </DialogTitle>
                             <span className="fqs-muted">{view?.fcltNm ?? target.unitCd}</span>
                         </div>
-                        {view && (
-                            <p className="fqs-summary">
-                                {view.summaryText} · 해소 = {view.targetShort}
-                            </p>
-                        )}
                     </div>
                     <DialogClose className="fqs-x" aria-label="팝업 닫기">
                         ×
@@ -207,10 +220,6 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                     {view && scenario.targetMin !== null ? (
                         <>
                             <div className="fqs-toolbar">
-                                <div className="fqs-lead">
-                                    <span>{label.resource} 수별 해소까지 걸리는 시간</span>
-                                    <strong>막대를 눌러 {label.resource} 수를 골라 보세요</strong>
-                                </div>
                                 <TargetStepper value={scenario.targetMin} range={view.targetRange} onStep={scenario.stepTarget} />
                             </div>
 
