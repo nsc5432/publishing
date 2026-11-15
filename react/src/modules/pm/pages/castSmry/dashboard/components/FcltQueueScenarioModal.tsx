@@ -1,88 +1,202 @@
-import { useId, type ReactNode } from 'react';
+import { useMemo, type CSSProperties } from 'react';
+import { EChart } from '@/components/charts/EChart';
 import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { AXIS_LABEL, TOOLTIP_TEXT_STYLE, toTooltipItems } from '@/lib/chart';
+import type { EChartsOption } from '@/lib/echarts';
 import { formatCount } from '@/lib/format';
-import { useFcltQueueScenario, type FcltQueueResultState } from '../hooks/useFcltQueueScenario';
-import { FCLT_QUEUE_LABEL, type FcltQueueContextView, type FcltQueueTarget, type QueueClearView, type QueueErlangView } from '../types';
+import { useFcltQueueScenario } from '../hooks/useFcltQueueScenario';
+import { FCLT_QUEUE_LABEL, type FcltQueueScenarioView, type FcltQueueTarget, type QueueBarView, type QueueTimeAxis } from '../types';
+import { toQueueBarDetail } from '../view';
 
 interface FcltQueueScenarioModalProps {
     target: FcltQueueTarget;
     onClose: () => void;
 }
 
-interface StepperProps {
-    label: string;
-    unit: string;
-    text: string;
-    value: number | null;
-    min: number;
-    max: number | null;
-    step: number;
-    disabled: boolean;
-    error: string;
-    note: string;
-    boundText: string;
-    onChange: (text: string) => void;
+interface TargetStepperProps {
+    value: number;
+    range: { min: number; max: number };
     onStep: (delta: number) => void;
 }
 
-interface CompareRow {
-    label: string;
-    clear: QueueClearView | null;
-    accent?: boolean;
+interface QueueBarChartProps {
+    view: FcltQueueScenarioView;
+    selected: QueueBarView | null;
+    pending: boolean;
+    onSelect: (cnt: number) => void;
 }
 
-const TARGET_STEP_MIN = 10;
+interface QueueTimeChartProps {
+    bar: QueueBarView;
+    axis: QueueTimeAxis;
+    resource: string;
+}
 
-const CLEAR_EMPTY: QueueClearView = {
-    kind: 'unavailable',
-    minutes: null,
-    mainText: '-',
-    unitText: '',
-    clockText: '-',
-    note: '',
-    nextWtngText: '',
-    fcstWtngText: '',
-    fcst: { sec: null, over: null, rangeText: '—', valueText: '—' },
+interface ScenarioDetailProps {
+    view: FcltQueueScenarioView;
+    selected: QueueBarView | null;
+    pending: boolean;
+    error: string;
+    onRetry: () => void;
+}
+
+const TIME_COLOR = {
+    wait: '#4338ca',
+    arvl: '#aab2c5',
+    threshold: '#a14a05',
+    target: '#4338ca',
+    grid: '#eef0f4',
+    line: '#e4e7ee',
 };
 
-function joinNotes(...notes: (string | undefined)[]): string {
-    return notes.filter(Boolean).join(' / ');
+const TIME_STEP_MIN = 10;
+
+// 평균 대기와 유입은 단위가 달라 한 축에 겹치지 않고 같은 시간축의 위 · 아래 두 칸으로 나눈다
+function toTimeChartOption(bar: QueueBarView, axis: QueueTimeAxis): EChartsOption {
+    const points = bar.timeline;
+    const clockByMinute = new Map(points.map((point) => [point.minute, point.clockText]));
+    const waitMax = Math.max(axis.thresholdMin * 1.5, ...points.map((point) => point.waitMin ?? 0));
+    const interval = axis.judgeMin > 60 ? TIME_STEP_MIN * 2 : TIME_STEP_MIN;
+    const xBase = { type: 'value' as const, min: 0, max: axis.judgeMin, interval, splitLine: { show: false }, axisTick: { show: false } };
+    const yBase = { type: 'value' as const, axisLabel: AXIS_LABEL, splitLine: { lineStyle: { color: TIME_COLOR.grid } } };
+
+    return {
+        animation: false,
+        grid: [
+            { left: 44, right: 16, top: 26, height: 110 },
+            { left: 44, right: 16, top: 172, bottom: 24 },
+        ],
+        axisPointer: { link: [{ xAxisIndex: 'all' }] },
+        tooltip: {
+            trigger: 'axis',
+            axisPointer: { type: 'line', snap: true, lineStyle: { color: TIME_COLOR.line } },
+            textStyle: TOOLTIP_TEXT_STYLE,
+            formatter: (params) => {
+                const value = Number(toTooltipItems(params)[0]?.axisValue);
+                const minute = Math.ceil(value / TIME_STEP_MIN) * TIME_STEP_MIN;
+                const point = points.find((item) => item.minute === minute);
+                if (!point) return '';
+
+                const lines = [
+                    `<strong>${point.clockText}</strong>`,
+                    `평균 대기 ${point.waitMin === null ? '처리 여객 없음' : `${Math.round(point.waitMin)}분`}`,
+                    `대기 ${formatCount(Math.round(point.queuePsgCnt))}명`,
+                ];
+                if (point.arvlPsgCnt !== null) lines.push(`직전 10분 유입 ${formatCount(Math.round(point.arvlPsgCnt))}명`);
+
+                return lines.join('<br/>');
+            },
+        },
+        xAxis: [
+            { ...xBase, gridIndex: 0, axisLabel: { show: false }, axisLine: { lineStyle: { color: TIME_COLOR.line } } },
+            {
+                ...xBase,
+                gridIndex: 1,
+                axisLabel: { ...AXIS_LABEL, formatter: (value: number) => clockByMinute.get(value) ?? '' },
+                axisLine: { lineStyle: { color: TIME_COLOR.line } },
+            },
+        ],
+        yAxis: [
+            {
+                ...yBase,
+                gridIndex: 0,
+                min: 0,
+                max: Math.ceil(waitMax / 10) * 10,
+                name: '평균 대기 (분)',
+                nameTextStyle: { ...AXIS_LABEL, align: 'left' },
+            },
+            { ...yBase, gridIndex: 1, min: 0, splitNumber: 2, name: '10분 유입 (명)', nameTextStyle: { ...AXIS_LABEL, align: 'left' } },
+        ],
+        series: [
+            {
+                type: 'line',
+                name: '평균 대기',
+                xAxisIndex: 0,
+                yAxisIndex: 0,
+                data: points.map((point) => [point.minute, point.waitMin === null ? null : Math.round(point.waitMin * 10) / 10]),
+                connectNulls: false,
+                symbolSize: 7,
+                lineStyle: { width: 2, color: TIME_COLOR.wait },
+                itemStyle: { color: TIME_COLOR.wait },
+                markLine: {
+                    silent: true,
+                    symbol: 'none',
+                    label: { ...AXIS_LABEL, fontWeight: 700 },
+                    data: [
+                        {
+                            yAxis: axis.thresholdMin,
+                            lineStyle: { type: 'dashed', width: 1.5, color: TIME_COLOR.threshold },
+                            label: { position: 'insideEndTop', color: TIME_COLOR.threshold, formatter: `해소 기준 ${formatCount(axis.thresholdMin)}분` },
+                        },
+                        {
+                            xAxis: axis.targetMin,
+                            lineStyle: { type: 'dashed', width: 1.5, color: TIME_COLOR.target },
+                            label: { position: 'end', color: TIME_COLOR.target, formatter: `목표 ${axis.targetClockText}` },
+                        },
+                    ],
+                },
+            },
+            {
+                type: 'bar',
+                name: '10분 유입',
+                xAxisIndex: 1,
+                yAxisIndex: 1,
+                data: points.flatMap((point) => (point.arvlPsgCnt === null ? [] : [[point.minute - TIME_STEP_MIN / 2, Math.round(point.arvlPsgCnt)]])),
+                barWidth: '60%',
+                barMaxWidth: 24,
+                itemStyle: { color: TIME_COLOR.arvl, borderRadius: [3, 3, 0, 0] },
+            },
+        ],
+    };
 }
 
-function toCountNote(context: FcltQueueContextView | null, value: number | null, locked: boolean): string {
-    if (!context) return '';
-    if (locked) return context.countLockReason;
-    if (value === null || context.currentCnt === null) return '';
+function toBarTone(bar: QueueBarView): string {
+    if (bar.kind === 'unreachable') return 'unreachable';
+    if (bar.kind === 'unavailable') return 'unavailable';
 
-    const diff = value - context.currentCnt;
+    return bar.goalMet ? 'met' : 'miss';
+}
 
-    if (diff > 0) return `현재보다 ${formatCount(diff)}개 추가 배정`;
-    if (diff < 0) return `현재보다 ${formatCount(-diff)}개 축소`;
+function toBarTag(bar: QueueBarView): string {
+    if (bar.isCurrent && bar.isRecommend) return '현재·추천';
+    if (bar.isRecommend) return '추천';
 
-    return '현재 운영 수량과 같음';
+    return bar.isCurrent ? '현재' : '';
+}
+
+// 고른 수량이 없으면 추천 → 현재 → 마지막 막대 순으로 보여준다
+function resolveSelected(view: FcltQueueScenarioView, selectedCnt: number | null): QueueBarView | null {
+    const { bars } = view;
+
+    return (
+        bars.find((bar) => bar.cnt === selectedCnt) ?? bars.find((bar) => bar.isRecommend) ?? bars.find((bar) => bar.isCurrent) ?? bars[bars.length - 1] ?? null
+    );
 }
 
 export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioModalProps) {
     const scenario = useFcltQueueScenario(target);
 
+    const { view } = scenario;
     const label = FCLT_QUEUE_LABEL[target.fcltType];
-    const context = scenario.context;
-    const isCount = scenario.mode === 'COUNT';
-    const { result } = scenario;
-    const readyView = result.status === 'ready' ? result.view : null;
-    const scenarioErlang = readyView?.scenarioErlang ?? null;
-    const availableCnt = context?.totCnt != null && context.currentCnt != null ? Math.max(0, context.totCnt - context.currentCnt) : null;
+    const selected = view ? resolveSelected(view, scenario.selectedCnt) : null;
 
     return (
         <Dialog open onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="fqs" aria-describedby={undefined}>
                 <header className="fqs-head">
-                    <div className="fqs-target">
-                        <span className="fqs-tmnl">{target.tmnlId}</span>
-                        <DialogTitle asChild>
-                            <strong>{label.title}</strong>
-                        </DialogTitle>
-                        <span className="fqs-muted">{context?.fcltNm ?? target.unitCd}</span>
+                    <div className="fqs-head-main">
+                        <div className="fqs-target">
+                            <span className="fqs-tmnl">{target.tmnlId}</span>
+                            <DialogTitle asChild>
+                                <strong>{label.title}</strong>
+                            </DialogTitle>
+                            <span className="fqs-muted">{view?.fcltNm ?? target.unitCd}</span>
+                        </div>
+                        {view && (
+                            <p className="fqs-summary">
+                                {view.summaryText} · 해소 = {view.targetShort}
+                            </p>
+                        )}
                     </div>
                     <DialogClose className="fqs-x" aria-label="팝업 닫기">
                         ×
@@ -90,137 +204,52 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
                 </header>
 
                 <div className="fqs-body">
-                    <div className="fqs-context">
-                        <p className="fqs-guide">{label.resource} 수를 조정해 혼잡 해소시간의 변화를 확인하세요.</p>
-                        <div className="fqs-clock">
-                            <span>
-                                계산 기준 <b>{context?.baseText ?? '-'}</b>
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="fqs-baseline">
-                        <div>
-                            <span className="fqs-k">{label.current}</span>
-                            <div className="fqs-v">
-                                <strong>{context?.currentCnt ?? '-'}</strong>
-                                <span>개</span>
+                    {view && scenario.targetMin !== null ? (
+                        <>
+                            <div className="fqs-toolbar">
+                                <div className="fqs-lead">
+                                    <span>{label.resource} 수별 해소까지 걸리는 시간</span>
+                                    <strong>막대를 눌러 {label.resource} 수를 골라 보세요</strong>
+                                </div>
+                                <TargetStepper value={scenario.targetMin} range={view.targetRange} onStep={scenario.stepTarget} />
                             </div>
-                            <BulletList
-                                items={[
-                                    context?.queueText === '—' ? '대기인원 —' : `대기인원 ${context?.queueText ?? '-'}명`,
-                                    context?.wtngAvgShort,
-                                    context?.current.nextWtngText,
-                                ]}
-                            />
-                        </div>
-                        <div>
-                            <span className="fqs-k">
-                                {context?.current.kind === 'none' ? `${context.current.fcst.rangeText} 예상 평균대기` : '현재 조건의 혼잡해소 예상'}
-                            </span>
-                            <ClearInline clear={context?.current ?? CLEAR_EMPTY} />
-                            <span className="fqs-sub">{context?.current.note}</span>
-                        </div>
-                        <div>
-                            <span className="fqs-k">추가 운영 가능</span>
-                            <div className="fqs-v">
-                                <strong>{availableCnt === null ? '-' : formatCount(availableCnt)}</strong>
-                                <span>개</span>
-                            </div>
-                            <span className="fqs-sub">
-                                {context?.totCnt != null && context.currentCnt != null
-                                    ? `보유 ${formatCount(context.totCnt)}개 중 현재 ${formatCount(context.currentCnt)}개 운영`
-                                    : '보유/운영 수량 미확인'}
-                            </span>
-                        </div>
-                    </div>
 
-                    <div className="fqs-modes" role="group" aria-label="계산 방식">
-                        <button type="button" aria-pressed={isCount} onClick={() => scenario.setMode('COUNT')}>
-                            {label.countTab}
-                        </button>
-                        <button type="button" aria-pressed={!isCount} onClick={() => scenario.setMode('TIME')}>
-                            목표 해소시간 설정
-                        </button>
-                    </div>
+                            {view.calm && <p className="fqs-calm">지금도 {view.targetShort}이라 혼잡하지 않습니다.</p>}
 
-                    <div className="fqs-workspace">
-                        <section className="fqs-editor">
-                            {isCount ? (
-                                <Stepper
-                                    label={label.input}
-                                    unit="개"
-                                    text={scenario.countText}
-                                    value={scenario.countValue}
-                                    min={0}
-                                    max={context?.totCnt ?? null}
-                                    step={1}
-                                    disabled={scenario.countLocked}
-                                    error={scenario.countError}
-                                    note={toCountNote(context, scenario.countValue, scenario.countLocked)}
-                                    boundText={context?.totCnt != null ? `보유 ${context.totCnt}개` : '보유 미확인'}
-                                    onChange={scenario.setCountText}
-                                    onStep={scenario.stepCount}
-                                />
-                            ) : (
-                                <Stepper
-                                    label="목표 혼잡해소 시간"
-                                    unit="분"
-                                    text={scenario.targetText}
-                                    value={scenario.targetValue}
-                                    min={context?.targetMin.min ?? 1}
-                                    max={context?.targetMin.max ?? null}
-                                    step={TARGET_STEP_MIN}
-                                    disabled={!context}
-                                    error={scenario.targetError}
-                                    note={context ? `기본 ${context.targetMin.dflt}분` : ''}
-                                    boundText={context ? `${context.targetMin.max}분` : ''}
-                                    onChange={scenario.setTargetText}
-                                    onStep={scenario.stepTarget}
-                                />
+                            <QueueBarChart view={view} selected={selected} pending={scenario.pending} onSelect={scenario.selectCnt} />
+
+                            <ScenarioDetail view={view} selected={selected} pending={scenario.pending} error={scenario.error} onRetry={scenario.retry} />
+
+                            {selected && view.timeAxis && selected.timeline.length > 0 && (
+                                <QueueTimeChart bar={selected} axis={view.timeAxis} resource={view.label.resource} />
                             )}
-                        </section>
 
-                        <section className="fqs-result" aria-live="polite" aria-busy={result.status === 'loading'}>
-                            <div className="fqs-section-label">
-                                <span className="fqs-step">2</span>
-                                <span>
-                                    {!isCount ? label.recommend : readyView?.scenario?.kind === 'none' ? '조정 후 예상 평균대기시간' : '조정 후 혼잡해소 예상'}
-                                </span>
-                            </div>
-                            <ResultBody result={result} isCount={isCount} onRetry={scenario.retry} />
-                        </section>
-                    </div>
-
-                    <Comparison
-                        rows={[
-                            { label: '현재', clear: context?.current ?? null },
-                            isCount
-                                ? { label: '조정 후', clear: readyView?.scenario ?? null, accent: true }
-                                : {
-                                      label: readyView?.recommend?.clearLabel || '조정 후',
-                                      clear: readyView?.recommend?.clear ?? null,
-                                      accent: true,
-                                  },
-                        ]}
-                    />
-
-                    <details className="fqs-basis">
-                        <summary>계산 기준</summary>
-                        <dl>
-                            <BasisItem term="해소 기준">{context?.targetText ?? '-'}</BasisItem>
-                            <BasisItem term="관측구간">{context ? `${context.obsText} / ${context.dataSrcText}` : '-'}</BasisItem>
-                            <BasisItem term="현재 평균대기">{context?.wtngAvgText ?? '-'}</BasisItem>
-                            <BasisItem term="유입률 λ">{context?.arvlText ?? '-'}</BasisItem>
-                            <BasisItem term="처리율 μ">{context?.srvcText ?? '-'}</BasisItem>
-                            <BasisItem term={`정상상태 / 현재 ${context?.currentCnt ?? '-'}개`}>
-                                {context ? <ErlangText erlang={context.currentErlang} /> : '-'}
-                            </BasisItem>
-                            <BasisItem term={`정상상태 / ${isCount ? '조정 후' : '추천 수량'}`}>
-                                {scenarioErlang ? <ErlangText erlang={scenarioErlang} /> : '-'}
-                            </BasisItem>
-                        </dl>
-                    </details>
+                            <details className="fqs-basis">
+                                <summary>계산 근거</summary>
+                                <dl>
+                                    {view.basis.map((row) => (
+                                        <div className="fqs-basis-row" key={row.term}>
+                                            <dt>{row.term}</dt>
+                                            <dd>{row.value}</dd>
+                                        </div>
+                                    ))}
+                                </dl>
+                            </details>
+                        </>
+                    ) : (
+                        <div className="fqs-state" aria-live="polite">
+                            {scenario.error ? (
+                                <>
+                                    <span className="fqs-state-err">{scenario.error}</span>
+                                    <button type="button" className="fqs-retry" onClick={scenario.retry}>
+                                        다시 계산
+                                    </button>
+                                </>
+                            ) : (
+                                '계산 중…'
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <footer className="fqs-foot">
@@ -231,265 +260,120 @@ export function FcltQueueScenarioModal({ target, onClose }: FcltQueueScenarioMod
     );
 }
 
-function ClearInline({ clear }: { clear: QueueClearView }) {
-    const tone = clear.kind === 'unreachable' ? ' warn' : clear.kind === 'none' && clear.fcst.over ? ' over' : '';
-
+function TargetStepper({ value, range, onStep }: TargetStepperProps) {
     return (
-        <div className={`fqs-v${tone}`}>
-            <strong>{clear.mainText}</strong>
-            {clear.unitText && <span>{clear.unitText}</span>}
-            {clear.kind === 'value' && <span className="fqs-clock-at">{clear.clockText}</span>}
-        </div>
-    );
-}
-
-function Stepper({ label, unit, text, value, min, max, step, disabled, error, note, boundText, onChange, onStep }: StepperProps) {
-    const id = useId();
-    const noteId = `${id}-note`;
-
-    return (
-        <>
-            <div className="fqs-section-label">
-                <span className="fqs-step">1</span>
-                <label htmlFor={id}>{label}</label>
-            </div>
+        <div className="fqs-goal-ctrl" role="group" aria-label="목표 해소시간">
+            <span>목표</span>
             <div className="fqs-stepper">
-                <button
-                    type="button"
-                    aria-label={`${label} ${step}${unit} 줄이기`}
-                    disabled={disabled || (value !== null && value <= min)}
-                    onClick={() => onStep(-step)}
-                >
+                <button type="button" aria-label="목표 해소시간 줄이기" disabled={value <= range.min} onClick={() => onStep(-1)}>
                     −
                 </button>
-                <div>
-                    <input
-                        id={id}
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete="off"
-                        value={text}
-                        disabled={disabled}
-                        aria-invalid={error !== ''}
-                        aria-describedby={noteId}
-                        onChange={(event) => onChange(event.target.value.trim())}
-                    />
-                    <span>{unit}</span>
-                </div>
-                <button
-                    type="button"
-                    aria-label={`${label} ${step}${unit} 늘리기`}
-                    disabled={disabled || (max !== null && value !== null && value >= max)}
-                    onClick={() => onStep(step)}
-                >
+                <strong aria-live="polite">{formatCount(value)}분</strong>
+                <button type="button" aria-label="목표 해소시간 늘리기" disabled={value >= range.max} onClick={() => onStep(1)}>
                     +
                 </button>
             </div>
-            {max !== null && (
-                <input
-                    className="fqs-range"
-                    type="range"
-                    min={min}
-                    max={max}
-                    step={1}
-                    value={Math.min(max, Math.max(min, value ?? min))}
-                    disabled={disabled}
-                    aria-label={`${label} 슬라이더`}
-                    onChange={(event) => onChange(event.target.value)}
-                />
-            )}
-            <div className="fqs-range-labels">
-                <span>
-                    {min}
-                    {unit}
-                </span>
-                <span>{boundText}</span>
-            </div>
-            <p id={noteId} className={`fqs-note${error ? ' err' : ''}`}>
-                {error || note}
-            </p>
-        </>
+        </div>
     );
 }
 
-function ResultBody({ result, isCount, onRetry }: { result: FcltQueueResultState; isCount: boolean; onRetry: () => void }) {
-    let main: ReactNode = null;
-    let mainTone = '';
-    let detail: ReactNode = null;
-    let sub: ReactNode = null;
-    let subWarn = false;
-    let bullets: (string | undefined)[] = [];
-    let diff: ReactNode = null;
-
-    if (result.status === 'loading') detail = '계산 중…';
-    else if (result.status === 'invalid') detail = '입력값을 확인하세요.';
-    else if (result.status === 'error') {
-        detail = <span className="fqs-state-err">{result.message}</span>;
-        diff = (
-            <button type="button" className="fqs-retry" onClick={onRetry}>
-                다시 계산
-            </button>
-        );
-    } else {
-        const { scenario, diffNote, recommend } = result.view;
-
-        if (isCount) {
-            if (scenario?.kind === 'none') {
-                mainTone = scenario.fcst.over ? ' over' : '';
-                main = <strong className="fqs-result-value">{scenario.mainText}</strong>;
-                detail = `${scenario.fcst.rangeText} 예상 평균대기`;
-                bullets = [scenario.nextWtngText];
-                diff = diffNote;
-            } else if (scenario) {
-                mainTone = scenario.kind === 'unreachable' ? ' warn' : '';
-                main = (
-                    <>
-                        <strong className="fqs-result-value">{scenario.mainText}</strong>
-                        {scenario.unitText && <span className="fqs-result-unit">{scenario.unitText}</span>}
-                    </>
-                );
-                detail = (
-                    <>
-                        해소 예상 시각 <b>{scenario.clockText}</b>
-                    </>
-                );
-                sub = scenario.note;
-                bullets = [scenario.fcstWtngText, scenario.nextWtngText];
-                diff = diffNote;
-            }
-        } else if (recommend && recommend.reqCnt !== null) {
-            main = (
-                <>
-                    <span className="fqs-result-unit">총</span>
-                    <strong className="fqs-result-value">{formatCount(recommend.reqCnt)}</strong>
-                    <span className="fqs-result-unit">개</span>
-                </>
-            );
-            detail = recommend.countNote;
-            sub = recommend.capaNote;
-            subWarn = recommend.capaShort;
-            if (recommend.clear) {
-                diff = joinNotes(
-                    `${recommend.clearLabel} ${
-                        recommend.clear.kind === 'value'
-                            ? `해소 ${recommend.clear.mainText}${recommend.clear.unitText} (${recommend.clear.clockText})`
-                            : recommend.clear.kind === 'none'
-                              ? '해소 - 이미 목표 미만'
-                              : recommend.clear.kind === 'unreachable'
-                                ? recommend.clear.mainText
-                                : `해소 ${recommend.clear.mainText}`
-                    }`,
-                    recommend.clear.fcstWtngText,
-                    recommend.clear.nextWtngText,
-                );
-            }
-        } else {
-            sub = recommend?.countNote;
-        }
+function QueueBarChart({ view, selected, pending, onSelect }: QueueBarChartProps) {
+    if (view.bars.length === 0) {
+        return <p className="fqs-chart-empty">비교할 수량이 없습니다. {view.recommend.subText}</p>;
     }
 
     return (
-        <>
-            <div className={`fqs-result-main${mainTone}`}>{main}</div>
-            <p className="fqs-result-detail">{detail}</p>
-            {sub && <p className={`fqs-result-sub${subWarn ? ' warn' : ''}`}>{sub}</p>}
-            <BulletList items={bullets} />
-            <div className="fqs-result-diff">{diff}</div>
-        </>
-    );
-}
-
-function Comparison({ rows }: { rows: CompareRow[] }) {
-    if (rows.length === 0) return null;
-
-    if (rows.every((row) => row.clear?.kind === 'none')) return <FcstComparison rows={rows} />;
-
-    const maxMinutes = Math.max(1, ...rows.map((row) => row.clear?.minutes ?? 0));
-
-    return (
-        <div className="fqs-compare">
-            <div className="fqs-compare-head">
-                <span>혼잡해소 소요시간 비교</span>
-                <span>분</span>
+        <div className="fqs-chart" aria-busy={pending}>
+            <div className="fqs-plot" style={{ '--fqs-goal': view.targetHeight } as CSSProperties}>
+                <div className="fqs-goal" aria-hidden="true">
+                    <span>목표 {formatCount(view.targetMin)}분</span>
+                </div>
+                <div className="fqs-cols" role="group" aria-label={`${view.label.resource} 수별 해소 예상`}>
+                    {view.bars.map((bar) => (
+                        <button
+                            type="button"
+                            key={bar.cnt}
+                            className={`fqs-col ${toBarTone(bar)}${bar === selected ? ' is-selected' : ''}`}
+                            aria-pressed={bar === selected}
+                            aria-label={`${bar.cnt}개, ${bar.kind === 'value' ? `${bar.valueText} 후 해소` : bar.valueText}`}
+                            onClick={() => onSelect(bar.cnt)}
+                        >
+                            <span className="fqs-col-val">{bar.valueText}</span>
+                            <span className="fqs-col-bar" style={{ '--fqs-h': bar.height } as CSSProperties} />
+                        </button>
+                    ))}
+                </div>
             </div>
-            {rows.map((row) => {
-                const clear = row.clear ?? CLEAR_EMPTY;
-                const unreachable = clear.kind === 'unreachable';
-                const width = unreachable ? 100 : ((clear.minutes ?? 0) / maxMinutes) * 100;
-
-                return (
-                    <div className="fqs-bar-row" key={row.label}>
-                        <span>{row.label}</span>
-                        <div className="fqs-track">
-                            <div className={`fqs-bar${row.accent ? ' accent' : ''}${unreachable ? ' over' : ''}`} style={{ width: `${width}%` }} />
-                        </div>
-                        <b>{clear.minutes === null ? clear.mainText : `${formatCount(clear.minutes)}분`}</b>
+            <div className="fqs-axis" aria-hidden="true">
+                {view.bars.map((bar) => (
+                    <div key={bar.cnt} className={bar === selected ? 'is-selected' : undefined}>
+                        <span>{bar.cnt}</span>
+                        <em className={bar.isRecommend ? 'rec' : undefined}>{toBarTag(bar)}</em>
                     </div>
-                );
-            })}
-        </div>
-    );
-}
-
-function FcstComparison({ rows }: { rows: CompareRow[] }) {
-    const fcstList = rows.map((row) => (row.clear ?? CLEAR_EMPTY).fcst);
-    const maxSec = Math.max(1, ...fcstList.map((fcst) => fcst.sec ?? 0));
-
-    return (
-        <div className="fqs-compare">
-            <div className="fqs-compare-head">
-                <span>예상 평균대기</span>
-                <span>{fcstList[0].rangeText} 기준</span>
+                ))}
             </div>
-            {rows.map((row, index) => {
-                const fcst = fcstList[index];
-
-                return (
-                    <div className="fqs-bar-row" key={row.label}>
-                        <span>{row.label}</span>
-                        <div className="fqs-track">
-                            <div
-                                className={`fqs-bar${row.accent ? ' accent' : ''}${fcst.over ? ' over' : ''}`}
-                                style={{ width: `${((fcst.sec ?? 0) / maxSec) * 100}%` }}
-                            />
-                        </div>
-                        <b>{fcst.valueText}</b>
-                    </div>
-                );
-            })}
+            <div className="fqs-chart-foot">
+                <span className="fqs-axis-cap">{view.axisText}</span>
+                <ul className="fqs-legend">
+                    <li className="met">목표 달성</li>
+                    <li className="miss">목표보다 늦음</li>
+                    <li className="unreachable">해소 불가</li>
+                </ul>
+            </div>
         </div>
     );
 }
 
-function BulletList({ items }: { items: (string | undefined)[] }) {
-    const list = items.filter((item): item is string => Boolean(item));
-
-    if (list.length === 0) return null;
+function QueueTimeChart({ bar, axis, resource }: QueueTimeChartProps) {
+    const option = useMemo(() => toTimeChartOption(bar, axis), [bar, axis]);
 
     return (
-        <ul className="fqs-bullets">
-            {list.map((item) => (
-                <li key={item}>{item}</li>
-            ))}
-        </ul>
+        <section className="fqs-time" aria-label={`${resource} ${bar.cnt}개 운영 시 시간대별 예측`}>
+            <div className="fqs-time-head">
+                <strong>{formatCount(bar.cnt)}개 운영 시 시간대별 예측</strong>
+                <span>{axis.rangeText} · 점선 아래로 내려가 끝까지 유지되고 줄이 늘지 않으면 해소</span>
+            </div>
+            <div className="fqs-time-chart">
+                <EChart option={option} />
+            </div>
+            {!axis.arvlProfiled && <p className="fqs-time-note">CAST 10분 유입이 없어 직전 10분 유입률 하나로 계산했습니다.</p>}
+        </section>
     );
 }
 
-function BasisItem({ term, children }: { term: string; children: ReactNode }) {
+function ScenarioDetail({ view, selected, pending, error, onRetry }: ScenarioDetailProps) {
+    const detail = selected ? toQueueBarDetail(view, selected) : null;
+    const { recommend } = view;
+
     return (
-        <div className="fqs-basis-row">
-            <dt>{term}</dt>
-            <dd>{children}</dd>
+        <div className="fqs-detail" aria-live="polite" aria-busy={pending}>
+            <div className="fqs-detail-sel">
+                {detail && (
+                    <>
+                        <span>{detail.title}</span>
+                        <strong className={detail.goalMet ? undefined : 'warn'}>{detail.mainText}</strong>
+                        {detail.subText && <p>{detail.subText}</p>}
+                    </>
+                )}
+            </div>
+            <div className="fqs-detail-rec">
+                <span>목표 {formatCount(view.targetMin)}분 추천</span>
+                {error ? (
+                    <>
+                        <strong className="warn">계산 실패</strong>
+                        <button type="button" className="fqs-retry" onClick={onRetry}>
+                            다시 계산
+                        </button>
+                    </>
+                ) : pending ? (
+                    <strong className="muted">계산 중…</strong>
+                ) : (
+                    <>
+                        <strong className={recommend.short ? 'warn' : undefined}>{recommend.mainText}</strong>
+                        {recommend.subText && <p className={recommend.short ? 'warn' : undefined}>{recommend.subText}</p>}
+                    </>
+                )}
+            </div>
         </div>
-    );
-}
-
-function ErlangText({ erlang }: { erlang: QueueErlangView }) {
-    if (erlang.note) return <>- ({erlang.note})</>;
-
-    return (
-        <>
-            대기확률 {erlang.wtngProb} / 이론 평균 대기 {erlang.thryWtng} / 부하율 ρ {erlang.load}
-        </>
     );
 }

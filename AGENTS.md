@@ -121,6 +121,12 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
      칩을 눌러 같은 숫자를 확인할 수 있는 대신 30분 슬롯 안의 1분 피크는 보지 않는다.
      같은 날 최대 대기도 `maxWaitMin`(여객 1명 최대) 대신 아일랜드 칩과 같은 슬롯 평균 대기(`stat.wtngHr`, 미운영 칸 제외)의
      하루 최댓값과 그 아일랜드 · 슬롯 시각으로 바꿨다. `maxWaitMin` 은 응답에 남지만 화면이 읽지 않는다.
+   - 2026-11-15 혼잡해소 팝업 막대 차트용으로 `FcltQueueScenarioDto.cntClearList`(`FcltQueueCntClearDto`: `fcltCnt` · `cgnClearMin` ·
+     `cgnClearDt` · `clearMetric` · `goalMetYn`)를 더했다. TIME 모드에서만 1개 ~ 최대수(모르면 현재 · 추천 중 큰 값, 최대 60개)를 채운다.
+     `goalMetYn` 은 추천과 같은 판정(`FcltQueueClearance.goalMetOf` = `WaitAvgForecast.verify`)이다. **새 이름도 이제 고정이다.**
+     같은 날 시간축 차트용으로 `FcltQueueCntClearDto.fcstList`(`FcltQueueFcstDto`: `fcstDt` · `fcstWtngSec` · `wtngPsgCnt`)와
+     `FcltQueueScenarioDto.clearJudgeMin` · `arvlProfileYn` · `arvlList`(`FcltQueueArvlDto`: `secEndDt` · `arvlPsgCnt`)를 더했다(TIME 전용).
+     `FcltQueueRecommendDto.stableMinCnt` 는 참고값으로만 남고 `stableAplyYn` 은 '지속 해소 조건으로 수량이 늘었으면 Y' 로 뜻이 바뀌었다. **새 이름도 이제 고정이다.**
    - 2026-11-01 체크인카운터 Queue 차트 비교선으로 `ChknCounterSlotDto.xovisWtngPsgCnt`(`Integer`, 없으면 null)를 더했다. 원천은
      `CastChknMapper.retrievePsgWtngSumBySlotList` — `TN_PM_PSG_WTNG_INFO` `Queue` 행의 슬롯 `[hhmm, hhmm+30)` 안 마지막 스냅샷 터미널 합이다.
      Xovis 는 A · G · I 를 재지 않으므로 Cast(CC 전 아일랜드) 선과 범위가 다르다. `-SBD` 줄은 2026-11-02 부터 뺀다. **새 이름도 이제 고정이다.**
@@ -751,6 +757,7 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
   평가시각 직전 10분 `[hhmm−10, hhmm)`(2026-11-03, 이전 30분)에서 뽑고 **그 유입이 그대로 이어진다고 가정**한다 — 곧 몰려올 피크를
   미리 반영하지 못한다. **2026-11-08 부터 λ 만 기준시각부터 1시간 CAST 유입 평균으로 바꿨다 (§14)** — 1시간 안의 피크는 평균으로 녹는다. `cgnClearMin` 은 추천 수량을 적용했을 때 평가시각부터 처리 여객 평균 대기시간이
   NORMAL 상한 미만이 되는 분(1분 해상도)이다.
+  **2026-11-15 부터 예측 유입은 10분 CAST 결과를 그대로 흘리고, 해소는 판정 구간 끝까지 기준 미만이 유지되기 시작하는 분이다 (§14).**
 - **요약보기 카드 · 맵형태보기 · 체크인 상세의 `reqCnt` · `cgnClearMin` 도 같은 조건에서 같아야 한다.**
   카드는 `clearanceOf` 를, 맵 · 상세는 `recommendOf` 를 부르지만 내부 계산은 하나다.
 - 처리시간이 없어(`UNAVAILABLE`) 산정할 수 없으면 `reqCnt` · `cgnClearMin` 을 **`null` 로 내려** 화면이
@@ -806,12 +813,23 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
 | 팝업 · 요청 경쟁 처리 | `dashboard/components/FcltQueueScenarioModal.tsx` · `hooks/useFcltQueueScenario.ts` |
 | 일반 Dialog (포커스 트랩 · 복귀) | `components/ui/dialog.tsx` (`@radix-ui/react-dialog`) |
 
+- **팝업은 수량별 해소시간 막대 차트 한 화면이다** (2026-11-15, 이전 '수량 조정 / 목표 해소시간' 두 탭을 대체). 목표 시간 스테퍼만 서버를 부르고
+  (TIME 모드, `cntClearList` 로 전 수량을 한 번에 받는다) 막대 선택은 서버를 부르지 않는다. 화면은 COUNT 모드를 더 이상 부르지 않지만 API 는 남아 있다.
+  막대 색은 `goalMetYn`(추천과 같은 판정)이다. 지속 해소 판정(아래) 뒤로는 목표선 아래인 막대가 회색이 되는 경우가 없다.
+  막대를 고르면 그 수량의 시간축 차트가 나온다 — 위 칸은 10분 간격 평균 대기 + 해소 기준 점선 + 목표 시각, 아래 칸은 10분 유입이다.
+  단위가 달라 두 칸으로 나누고 이중 축을 쓰지 않는다. 막대가 15개를 넘으면 현재 · 추천 수량 주변만 보인다(`view.ts` `toVisibleBars`).
+  λ·μ·대기확률·새로 줄 서면 대기 등은 접힌 '계산 근거' 안에만 있다.
 - **혼잡해소 시간은 처리 여객 평균 대기시간 예측(`WaitAvgForecast`), 대기확률·이론 대기시간은 M/M/s 정상상태값**이다.
   둘을 같은 라벨로 보여주지 않는다. 2026-10-24 전의 '대기인원 Q* 까지 유입/처리 차이 계산'은 대체됐다.
 - 예측: 수량 s 를 평가시각 t 부터 적용하고 미래 시각 u 의 `[u−10, u)` 처리 여객 평균을 낸다. 창의 t 이전은 실제 처리 이력,
   이후는 1분 유체 FIFO 예측이다. 남은 대기자의 대기시간은 t 에서 0 으로 되돌리지 않는다(체크인은 FIFO 재구성,
-  출국장은 10분 보존식 유입을 분 단위로 나눈 근사로 도착 시각을 얻는다). 해소 = W(u) < `normalUpperExclusiveSec` 인 첫 u.
-  관측 W(t) 가 이미 미만이면 0분, 24시간 안에 못 닿으면 처리능력 ≤ 유입은 `UNREACHABLE`, 아니면 `UNAVAILABLE` 이다.
+  출국장은 10분 보존식 유입을 분 단위로 나눈 근사로 도착 시각을 얻는다).
+  **해소는 지속 해소다 (2026-11-15).** 판정 구간 `[t, t+J]`(J = `WaitAvgForecast.JUDGE_MIN` 60분, 목표가 더 길면 목표 시간 · `clearJudgeMin`) 안에서
+  W(u) < `normalUpperExclusiveSec` 가 된 뒤 J 까지 다시 기준 이상이 되지 않는 첫 u 다. 처리 여객이 없는 분은 대기열이 비었을 때만 해소 상태로 본다.
+  **t+J 의 예측 대기인원이 t 보다 많으면(반올림 인원 비교) 해소가 아니다** — 평균 대기는 줄이 길어지는 동안에도 잠시 기준 아래일 수 있어
+  60분 창만 보면 처리능력이 유입보다 훨씬 작은 수량도 통과한다(목업 T1 D: 유입 약 950명/시간에 부스 6개가 추천됐다).
+  그런 u 가 없으면 `UNREACHABLE`(잠깐 내려갔다 다시 오르는 수량 포함)이고, 원천 결손은 `UNAVAILABLE` 이다. 예전의 '처음 미만이 되는 시각 · 24시간 탐색'은 대체됐다.
+  카드의 현재 운영 · 추천 해소 시각도 같은 판정이다(목표 30분 → J = 60분).
 - '새로 줄 서면 대기'(`FcltQueueClearDto.nextWtngSec`, 2026-10-14)는 `(Q0+1)/(s·μ)` 다. Q0 를 반영하고 λ 와 무관해
   ρ ≥ 1 에서도 나온다. 정상상태 이론 대기와 다른 값이며, Q0 = 0 이면 0, 운영 0개면 `UNREACHABLE` 이다.
 - λ·μ·Q0·s 는 **카드와 같은 관측구간 `[hhmm−10, hhmm)`** 에서 뽑고, 계산 기준시각(`baseDt`)은 평가시각 `hhmm`(Q0 스냅샷)이다
@@ -821,10 +839,11 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
   `targetQueueCnt` 는 환산 인원이 없어 `null` 이다. 기준정보가 없으면 실패로 내린다.
 - 출국장 팝업은 **SC+SR 합산을 한 큐**(`FcltType.SC`)로 본다 (LGT 제외). 요청 `fcltType` 은 `'DEP'` 그대로이고 서버가 SC 결과를 읽는다.
   직렬·병렬 관계는 미검증이라 응답의 적용 가정에 싣는다. 팝업의 등급 · 평균 대기 · 대기인원도 보안검색대 값이라 제목이 '보안검색대'다.
-- 추천 총수량은 목표 시간 H 안에 W < 목표가 되고(목표 시각 W 도 재확인) **s·μ > λ** 인 최소 s 다. 안정 하한은
-  `floor(λ/μ)+1` 이라 λ=0 이어도 1 이상이다. 후보마다 같은 시작 상태에서 따로 예측하고(단조성 가정 없음) 0 부터
-  포화 수량(대기열 + 분당 유입을 그 분에 다 처리하는 수량, 상한 100000)까지 훑는다. 포화 수량에서도 못 닿으면 `UNREACHABLE` 이다.
-  `flowBasedReqCnt` 는 목표 인원이 없어 `null`, `stableAplyYn` 은 안정 하한 때문에 목표 시간만 맞는 최소 수량보다 커졌을 때 Y 다.
+- 추천 총수량은 **목표 시간 H 안에 지속 해소되는**(구간 끝 대기인원 조건 포함) 최소 s 다 (2026-11-15. 그 전에는 H 안 W < 목표 + 목표 시각 W 재확인 + `s·μ > λ` 안정 하한
+  `floor(λ/μ)+1`). 유입이 시각마다 달라 하나의 λ 와 비교하는 안정 조건은 지속 해소 판정으로 대체했고, `stableMinCnt` 는 1시간 평균 λ 기준 참고값이다.
+  후보마다 같은 시작 상태에서 따로 예측하고(단조성 가정 없음) 0 부터
+  포화 수량(대기열 + 판정 구간 최대 분당 유입을 그 분에 다 처리하는 수량, 상한 100000)까지 훑는다. 포화 수량에서도 못 닿으면 `UNREACHABLE` 이다.
+  `flowBasedReqCnt` 는 목표 인원이 없어 `null`, `stableAplyYn` 은 지속 조건 때문에 '목표 시간 안에 한 번 미만이 되는 최소 수량'보다 커졌을 때 Y 다.
   기존 `FacilityQueueCalculator.estimateClearTimeSec` · `estimateRequiredServerCnt`(인원 목표)는 의미를 바꾸지 않고 남겨 두었다.
 - **카드는 팝업 첫 화면(TIME 모드 · 목표 30분)과 같은 계산이다** (2026-10-17,
   [계획](docs/plans/2026-10-17-fclt-card-domain-queue.md)). 같은 `smltId` · 터미널 · `hhmm` · 시설에서 카드의
@@ -849,6 +868,9 @@ Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증
   - **해소 예측 유입률 λ 는 기준시각부터 1시간 CAST 유입이다** (2026-11-08). `FcltWtngDay` 가 `[t, t+60)`(24시에서 자른다) 유입 합을
     `FcltQueueSource.fcstArvlPsgCnt` 로 싣고 `FcltQueueClearance` 가 시간당으로 바꿔 쓴다(`EXTERNAL_INPUT`). 그 구간 결과가 없을 때만
     관측구간 보존식으로 떨어진다. μ · Q0 · s 는 그대로 직전 10분이다. 공용 평가기라 카드 · 팝업 · 맵 · 체크인 상세의 추천 · 해소가 같이 바뀐다.
+    **2026-11-15 부터 예측은 1시간 평균 하나 대신 10분 CAST 유입(`FcltWtngDay.arvlSecListOf` → `FcltQueueSource.fcstArvlSecList`)을 그 10분에 균등하게 나눠 흘린다.**
+    마지막 결과 뒤 · 24시 이후는 유입 0 이다(체크인 꼬리 구간과 같다). 1시간 평균 λ 는 표시 · M/M/s 참고값과 결과 없음 판정(`fcstArvlPsgCnt == null` 이면
+    관측구간 유입률 하나를 이어 쓰고 `arvlProfileYn = N`)에만 쓴다.
     출국장 해소는 보안검색대(SC) 큐 유입이라 카드 왼쪽 유입(LGT)과 숫자가 다를 수 있다
   - 카드 처리율 중앙 숫자는 요약정보 '시간당 처리인원'과 같은 정의인 `[hhmm, hhmm+60)` 처리인원 합이다 (24시에서 자른다, 2026-11-08.
     이전에는 관측구간 처리인원의 시간당 환산). 평가시각 직전 10분 기준인 추천 · 해소와 달리 앞으로 1시간 CAST 결과를 읽는다.

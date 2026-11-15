@@ -1,5 +1,6 @@
 package aoms.pm.cast.dto;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import aoms.pm.cast.enums.CongestionStatus;
@@ -47,4 +48,8 @@ public class FcltQueueScenarioDto extends JsonResponse {
 	private FcltQueueClearDto scenario; // COUNT: 조정 수량, TIME: 추천 수량(최대수 이하일 때)
 	private FcltQueueClearDto totScenario; // TIME 에서 추천이 최대수를 넘을 때 최대수 전량 배정 결과
 	private FcltQueueRecommendDto recommend; // TIME 전용
+	private List<FcltQueueCntClearDto> cntClearList = new ArrayList<>(); // TIME 전용. 1개 ~ 최대수(모르면 현재 · 추천 중 큰 값) 수량별 해소 예상
+	private Integer clearJudgeMin; // TIME 전용. 지속 해소 판정 구간 (분) — 60분, 목표가 더 길면 목표 시간
+	private String arvlProfileYn; // TIME 전용. 예측이 10분 CAST 유입을 쓰면 Y, 관측구간 유입률 하나를 이어 쓰면 N
+	private List<FcltQueueArvlDto> arvlList = new ArrayList<>(); // TIME 전용. 판정 구간의 10분 예측 입력 유입
 }

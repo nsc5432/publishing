@@ -14,11 +14,15 @@ import aoms.pm.cast.domains.CgnGradeScale;
 import aoms.pm.cast.domains.dsbd.DepQueueDay;
 import aoms.pm.cast.domains.queue.Computed;
 import aoms.pm.cast.domains.queue.ErlangCResult;
+import aoms.pm.cast.domains.queue.WaitAvgForecast;
 import aoms.pm.cast.domains.wtng.FcltQueueClearance;
 import aoms.pm.cast.domains.wtng.FcltQueueSource;
 import aoms.pm.cast.domains.wtng.FcltWtngDay;
 import aoms.pm.cast.domains.wtng.FcltWtngSecs;
+import aoms.pm.cast.dto.FcltQueueArvlDto;
 import aoms.pm.cast.dto.FcltQueueClearDto;
+import aoms.pm.cast.dto.FcltQueueCntClearDto;
+import aoms.pm.cast.dto.FcltQueueFcstDto;
 import aoms.pm.cast.dto.FcltQueueRecommendDto;
 import aoms.pm.cast.dto.FcltQueueScenarioDto;
 import aoms.pm.cast.dto.FcltQueueScenarioSearchDto;
@@ -61,16 +65,20 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 	private static final int DFLT_TARGET_MIN = FcltQueueClearance.DFLT_TARGET_MIN; // 목표 해소시간 기본값(분)
 	private static final int MIN_TARGET_MIN = 1; // 목표 해소시간 최솟값(분)
 	private static final int MAX_TARGET_MIN = 120; // 목표 해소시간 최댓값(분)
+	private static final int MAX_CNT_CLEAR_CNT = 60; // 수량별 해소 예상 목록의 최대 수량(개)
+	private static final int FCST_STEP_MIN = FcltWtngSecs.SEC_MIN; // 시간축 차트 간격(분)
 
 	private static final List<String> CHKN_QUEUE_FCLT_CD_LIST = List.of("CC");
 	private static final List<String> DEP_MAX_FCLT_CD_LIST = List.of("SC");
 
 	private static final List<String> COMMON_ASMP_LIST = List.of(
-			"혼잡등급 / 해소 목표는 기준시각 직전 10분 [t-10분, t) 에 처리된 여객의 처리인원 가중평균 대기시간이다. 해소는 이 평균이 NORMAL 상한 미만이 되는 시각",
+			"혼잡등급 / 해소 목표는 기준시각 직전 10분 [t-10분, t) 에 처리된 여객의 처리인원 가중평균 대기시간이다. 해소는 이 평균이 NORMAL 상한 미만이 된 뒤 판정 구간 끝까지 유지되기 시작하는 시각",
+			"판정 구간은 기준시각부터 " + WaitAvgForecast.JUDGE_MIN + "분이고 목표 시간이 더 길면 목표 시간까지다. 구간 안에서 다시 기준 이상이 되거나 구간 끝 대기인원이 기준시각보다 많으면 해소 불가로 본다",
 			"미래 평균은 같은 정의의 이동평균이다. 창의 기준시각 이전은 실제 처리 이력, 이후는 1분 단위 유체 FIFO 예측이며 남은 대기자의 대기시간은 이어서 센다",
-			"추천 수량은 목표 시간 안에 목표 미만이 되고 처리능력(수량 × 처리율)이 유입률보다 큰 최소 총수다",
-			"예측 구간 동안 유입률 / 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다",
-			"유입률은 기준시각부터 1시간(24시에서 자른다) CAST 결과의 인원 보존식 유입 합이다. 그 결과가 없으면 관측구간 보존식(종료 대기 - 시작 대기 + 서비스 시작)으로 역산한다",
+			"추천 수량은 목표 시간 안에 해소되고 판정 구간 끝까지 유지되는 최소 총수다",
+			"예측 구간 동안 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다",
+			"예측 유입은 기준시각 뒤 CAST 10분 결과의 인원 보존식 유입을 그 10분에 균등하게 나눈 값이다. 결과가 없는 구간(마지막 결과 뒤 · 24시 이후)은 유입 0 이다",
+			"기준시각부터 1시간 CAST 결과가 없으면 관측구간 보존식(종료 대기 - 시작 대기 + 서비스 시작)으로 역산한 유입률 하나를 이어 쓴다. 표시 유입률은 기준시각부터 1시간 평균이다",
 			"M/M/s 적용 가정(정상상태 참고지표 전용): 포아송 도착 / 지수 처리시간 / 동일 처리율의 병렬 시설 / 공용 대기열 선착순 / 무한 대기공간 / 이탈 없음 (통계 검증 아님)");
 
 	private static final List<String> CHKN_ASMP_LIST = List.of(
@@ -146,6 +154,12 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		}
 
 		applyRecommend(result, clearance, targetMin);
+		FcltQueueRecommendDto recommend = result.getRecommend();
+		int judgeMin = clearance.judgeMinOf(targetMin);
+		result.setClearJudgeMin(judgeMin);
+		result.setArvlProfileYn(clearance.isArrivalProfiled() ? "Y" : "N");
+		result.setArvlList(toArvlList(clearance, judgeMin));
+		result.setCntClearList(toCntClearList(clearance, targetMin, recommend == null ? null : recommend.getReqCnt()));
 
 		return result;
 	}
@@ -281,6 +295,69 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		return result;
 	}
 
+	private List<FcltQueueCntClearDto> toCntClearList(FcltQueueClearance clearance, int targetMin, Integer reqCnt) {
+		FcltQueueSource source = clearance.getSource();
+		Integer oprCnt = source.getOprCnt();
+		int upperCnt = source.getTotCnt() != null
+				? source.getTotCnt()
+				: Math.max(oprCnt == null ? 0 : oprCnt, reqCnt == null ? 0 : reqCnt);
+		// 수량마다 예측을 세 번 돌리므로 시설 마스터 수량이 비정상적으로 커도 계산량을 묶는다
+		int lastCnt = Math.min(upperCnt, MAX_CNT_CLEAR_CNT);
+		int judgeMin = clearance.judgeMinOf(targetMin);
+		LocalDateTime baseDt = source.getObsEndDt();
+		List<FcltQueueCntClearDto> list = new ArrayList<>();
+
+		for (int cnt = 1; cnt <= lastCnt; cnt++) {
+			FcltQueueClearance.ClearanceResult clear = clearance.clearOf(cnt, targetMin);
+			Computed<Double> clearSec = clear.getClearSec();
+
+			FcltQueueCntClearDto item = new FcltQueueCntClearDto();
+			item.setFcltCnt(cnt);
+			item.setCgnClearMin(clear.getClearDt() == null ? null : clearSec.getValue() / SEC_PER_MIN);
+			item.setCgnClearDt(clear.getClearDt() == null ? EMPTY : formatDt(clear.getClearDt()));
+			item.setClearMetric(QueueMetricDto.of(clearSec));
+			item.setGoalMetYn(clearance.goalMetOf(cnt, targetMin) ? "Y" : "N");
+			item.setFcstList(toFcstList(clearance.timelineOf(cnt, judgeMin, FCST_STEP_MIN), baseDt));
+			list.add(item);
+		}
+
+		return list;
+	}
+
+	private List<FcltQueueFcstDto> toFcstList(List<WaitAvgForecast.Point> pointList, LocalDateTime baseDt) {
+		List<FcltQueueFcstDto> list = new ArrayList<>();
+
+		for (WaitAvgForecast.Point point : pointList) {
+			FcltQueueFcstDto item = new FcltQueueFcstDto();
+			item.setFcstDt(formatDt(baseDt.plusMinutes(point.getMinute())));
+			item.setFcstWtngSec(point.getAvgWtngSec());
+			item.setWtngPsgCnt(point.getQueuePsgCnt());
+			list.add(item);
+		}
+
+		return list;
+	}
+
+	private List<FcltQueueArvlDto> toArvlList(FcltQueueClearance clearance, int judgeMin) {
+		LocalDateTime baseDt = clearance.getSource().getObsEndDt();
+		List<FcltQueueArvlDto> list = new ArrayList<>();
+
+		for (int endMin = FCST_STEP_MIN; endMin <= judgeMin; endMin += FCST_STEP_MIN) {
+			Double arvlPsgCnt = clearance.arrivalSumOf(endMin - FCST_STEP_MIN, endMin);
+
+			if (arvlPsgCnt == null) {
+				return new ArrayList<>();
+			}
+
+			FcltQueueArvlDto item = new FcltQueueArvlDto();
+			item.setSecEndDt(formatDt(baseDt.plusMinutes(endMin)));
+			item.setArvlPsgCnt(arvlPsgCnt);
+			list.add(item);
+		}
+
+		return list;
+	}
+
 	private void applyRecommend(FcltQueueScenarioDto result, FcltQueueClearance clearance, int targetMin) {
 		Integer currentCnt = clearance.getSource().getOprCnt();
 		Integer totCnt = clearance.getSource().getTotCnt();
@@ -290,7 +367,7 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 		FcltQueueRecommendDto recommend = new FcltQueueRecommendDto();
 		recommend.setTargetMin(targetMin);
 		recommend.setReqMetric(QueueMetricDto.of(calculated.getReqMetric()));
-		recommend.setStableMinCnt(calculated.getStableMinCnt());
+		recommend.setStableMinCnt(toStableMinCnt(clearance));
 		result.setRecommend(recommend);
 
 		Integer reqCnt = calculated.getReqCnt();
@@ -317,6 +394,20 @@ public class CastFcltQueueScenarioServiceImpl implements CastFcltQueueScenarioSe
 
 		recommend.setGoalMetYn(calculated.getGoalMet() == null ? null : calculated.getGoalMet() ? "Y" : "N");
 		result.setScenario(toClear(calculated.getReqClear(), clearance.getSource().getObsEndDt()));
+	}
+
+	// 참고값 — 추천은 지속 해소 판정으로 정하고 이 하한을 쓰지 않는다
+	private Integer toStableMinCnt(FcltQueueClearance clearance) {
+		Computed<Double> arrival = clearance.getArrival();
+		Computed<Double> service = clearance.getService();
+
+		if (!arrival.hasValue() || !service.hasValue() || service.getValue() <= 0) {
+			return null;
+		}
+
+		double floor = Math.floor(arrival.getValue() / service.getValue()) + 1;
+
+		return Double.isFinite(floor) && floor <= Integer.MAX_VALUE ? (int) floor : null;
 	}
 
 	private FcltQueueScenarioDto toBaseResult(FcltQueueScenarioSearchDto searchDto, String unitCd, FcltQueueClearance clearance) {

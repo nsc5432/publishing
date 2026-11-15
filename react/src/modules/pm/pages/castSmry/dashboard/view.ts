@@ -3,7 +3,9 @@ import type {
     DsbdCategory,
     DsbdFcltCardDto,
     DsbdRsltDto,
+    FcltQueueArvlDto,
     FcltQueueClearDto,
+    FcltQueueCntClearDto,
     FcltQueueRecommendDto,
     FcltQueueScenarioDto,
     FcltUnitDto,
@@ -31,12 +33,15 @@ import {
     type FcltCardType,
     type FcltCardVariant,
     type GaugeData,
-    type FcltQueueContextView,
-    type FcltQueueResultView,
-    type QueueClearView,
-    type QueueErlangView,
-    type QueueFcstView,
-    type QueueRecommendView,
+    type FcltQueueLabel,
+    type FcltQueueScenarioView,
+    type QueueBarDetail,
+    type QueueBarView,
+    type QueueBasisRow,
+    type QueueClearKind,
+    type QueueRecommendSummary,
+    type QueueTimeAxis,
+    type QueueTimePoint,
     type SimulationType,
     type SummaryScopeChip,
     type SummarySlot,
@@ -102,6 +107,13 @@ const WTNG_WINDOW_MIN = 10;
 const MIN_PER_DAY = 24 * 60;
 const CLEAR_TARGET_MIN = 30;
 const CLEAR_AXIS_MIN = 60;
+
+const QUEUE_BAR_MAX = 15;
+const QUEUE_BAR_PAD = 3;
+const QUEUE_BAR_MIN_HEIGHT = 0.02;
+const QUEUE_AXIS_MIN = 120;
+const QUEUE_AXIS_TARGET_RATIO = 1.25;
+const QUEUE_VALUE_MAX_MIN = 999;
 
 const QUEUE_DATA_SRC_LABEL: Record<QueueDataSrc, string> = {
     CAST: 'CAST 예측',
@@ -486,14 +498,6 @@ function formatDtClock(dt: string): string {
     return formatHhmm(dt.slice(8, 12));
 }
 
-/** 예측 평균의 집계 구간 [dt−10분, dt) 표기 (예: 08:40~08:50) */
-function formatWtngWindow(dt: string): string {
-    const endMin = Number(dt.slice(8, 10)) * 60 + Number(dt.slice(10, 12));
-    const bgnMin = (endMin - WTNG_WINDOW_MIN + MIN_PER_DAY) % MIN_PER_DAY;
-
-    return `${pad2(Math.floor(bgnMin / 60))}:${pad2(bgnMin % 60)}~${formatDtClock(dt)}`;
-}
-
 function formatDtFull(dt: string): string {
     return dt.length === 14 ? `${formatYmd(dt.slice(0, 8), '-')} ${formatDtClock(dt)}` : '-';
 }
@@ -541,19 +545,14 @@ export function toSeoulClock(date: Date): string {
     }).format(date);
 }
 
+type QueueClearSource = Pick<FcltQueueClearDto, 'cgnClearMin' | 'cgnClearDt' | 'clearMetric'>;
+
 function toNextWtngText(clear: FcltQueueClearDto): string {
-    if (clear.nextWtngMetric.status === 'UNREACHABLE') return '새로 줄 서면 대기가 끝나지 않음';
-    if (clear.nextWtngSec === null) return '';
-    if (clear.nextWtngSec === 0) return '새로 줄 서면 대기 없음';
+    if (clear.nextWtngMetric.status === 'UNREACHABLE') return '대기가 끝나지 않음';
+    if (clear.nextWtngSec === null) return '—';
+    if (clear.nextWtngSec === 0) return '대기 없음';
 
-    return `새로 줄 서면 약 ${formatSeconds(clear.nextWtngSec)} 대기`;
-}
-
-// 신규 여객 예상과 다른 지표다 — 그 시각 직전 10분에 처리될 여객의 평균
-function toFcstWtngText(clear: FcltQueueClearDto): string {
-    if (clear.fcstWtngSec === null) return '';
-
-    return `${formatWtngWindow(clear.fcstDt)} 예상 평균대기 ${formatSeconds(clear.fcstWtngSec)}`;
+    return `약 ${formatSeconds(clear.nextWtngSec)} 대기`;
 }
 
 /** 해소 목표 문구 (예: 평균 대기 40분 미만) — 표시만 반올림하고 판정은 서버 원값으로 끝난다 */
@@ -561,156 +560,140 @@ function toTargetShort(normalUpperExclusiveSec: number): string {
     return `평균 대기 ${formatSeconds(normalUpperExclusiveSec)} 미만`;
 }
 
-function toQueueFcstView(clear: FcltQueueClearDto, normalUpperExclusiveSec: number): QueueFcstView {
-    const sec = clear.fcstWtngSec;
+function toErlangText(clear: FcltQueueClearDto): string {
+    if (clear.wtngProb === null || clear.loadRatio === null || clear.thryWtngSec === null) return `— (${clear.erlangMetric.reason})`;
 
-    return {
-        sec,
-        over: sec === null ? null : sec >= normalUpperExclusiveSec,
-        rangeText: clear.fcstDt.length === 14 ? formatWtngWindow(clear.fcstDt) : '—',
-        valueText: sec === null ? '—' : formatSeconds(sec),
-    };
+    return `대기확률 ${formatPercent(clear.wtngProb)} / 이론 평균 대기 ${formatSeconds(clear.thryWtngSec)} / 부하율 ρ ${formatPercent(clear.loadRatio)}`;
 }
 
-export function toQueueClearView(clear: FcltQueueClearDto, baseDt: string, normalUpperExclusiveSec: number): QueueClearView {
-    const { status, reason } = clear.clearMetric;
-    const targetShort = toTargetShort(normalUpperExclusiveSec);
-    const nextWtngText = toNextWtngText(clear);
-    const fcstWtngText = toFcstWtngText(clear);
-    const fcst = toQueueFcstView(clear, normalUpperExclusiveSec);
+function toQueueClearKind(clear: QueueClearSource): QueueClearKind {
+    if (clear.clearMetric.status === 'UNREACHABLE') return 'unreachable';
+    if (clear.cgnClearMin === null) return 'unavailable';
 
-    if (status === 'UNREACHABLE') {
-        return {
-            kind: 'unreachable',
-            minutes: null,
-            mainText: '해소 불가',
-            unitText: '',
-            clockText: '—',
-            note: reason,
-            nextWtngText,
-            fcstWtngText,
-            fcst,
-        };
-    }
+    return clear.cgnClearMin === 0 ? 'none' : 'value';
+}
 
-    if (clear.cgnClearMin === null) {
-        return {
-            kind: 'unavailable',
-            minutes: null,
-            mainText: '—',
-            unitText: '',
-            clockText: '—',
-            note: reason,
-            nextWtngText,
-            fcstWtngText,
-            fcst,
-        };
-    }
+function toClearValueText(kind: QueueClearKind, minutes: number | null): string {
+    if (kind === 'unreachable') return '불가';
+    if (minutes === null) return '—';
 
-    if (clear.cgnClearMin === 0) {
-        return {
-            kind: 'none',
-            minutes: 0,
-            mainText: fcst.valueText,
-            unitText: '',
-            clockText: formatDtClock(baseDt),
-            note: '',
-            nextWtngText,
-            fcstWtngText,
-            fcst,
-        };
-    }
+    return minutes > QUEUE_VALUE_MAX_MIN ? `${QUEUE_VALUE_MAX_MIN}분+` : `${formatCount(minutes)}분`;
+}
 
-    const minutes = ceilMinutes(clear.cgnClearMin);
+function toQueueBar(cnt: number, clear: QueueClearSource, baseDt: string, goalMet: boolean, timeline: QueueTimePoint[]): QueueBarView {
+    const kind = toQueueClearKind(clear);
+    const minutes = kind === 'value' ? ceilMinutes(clear.cgnClearMin ?? 0) : kind === 'none' ? 0 : null;
 
     return {
-        kind: 'value',
+        cnt,
+        kind,
         minutes,
-        mainText: formatCount(minutes),
-        unitText: '분 후',
-        clockText: toClockText(clear.cgnClearDt, baseDt),
-        note: `계산 기준 대비 ${formatCount(minutes)}분 후 ${targetShort}`,
-        nextWtngText,
-        fcstWtngText,
-        fcst,
+        valueText: toClearValueText(kind, minutes),
+        clockText: kind === 'value' ? toClockText(clear.cgnClearDt, baseDt) : '',
+        height: 0,
+        goalMet,
+        isCurrent: false,
+        isRecommend: false,
+        reason: clear.clearMetric.reason,
+        timeline,
     };
 }
 
-function toQueueErlangView(clear: FcltQueueClearDto): QueueErlangView {
-    if (clear.wtngProb === null || clear.loadRatio === null || clear.thryWtngSec === null) {
-        return { wtngProb: '—', thryWtng: '—', load: '—', note: clear.erlangMetric.reason };
-    }
+function toMinutesFrom(dt: string, baseDt: string): number {
+    const toUtc = (value: string) => Date.UTC(+value.slice(0, 4), +value.slice(4, 6) - 1, +value.slice(6, 8), +value.slice(8, 10), +value.slice(10, 12));
+
+    return Math.round((toUtc(dt) - toUtc(baseDt)) / 60_000);
+}
+
+// 유입은 [시각−10분, 시각) 구간이라 그 구간 끝 시각에 붙인다
+function toQueueTimeline(item: FcltQueueCntClearDto, arvlList: FcltQueueArvlDto[], baseDt: string): QueueTimePoint[] {
+    const arvlByDt = new Map(arvlList.map((arvl) => [arvl.secEndDt, arvl.arvlPsgCnt]));
+
+    return item.fcstList.map((point) => ({
+        minute: toMinutesFrom(point.fcstDt, baseDt),
+        clockText: toClockText(point.fcstDt, baseDt),
+        arvlPsgCnt: arvlByDt.get(point.fcstDt) ?? null,
+        waitMin: point.fcstWtngSec === null ? null : point.fcstWtngSec / 60,
+        queuePsgCnt: point.wtngPsgCnt,
+    }));
+}
+
+function toQueueTimeAxis(dto: FcltQueueScenarioDto, targetMin: number): QueueTimeAxis | null {
+    if (dto.clearJudgeMin === null) return null;
+
+    const baseMinute = toMinuteOfDay(dto.baseDt.slice(8, 12));
+    const clockAt = (minute: number) => {
+        const minuteOfDay = (baseMinute + minute) % MIN_PER_DAY;
+
+        return formatHhmm(`${pad2(Math.floor(minuteOfDay / 60))}${pad2(minuteOfDay % 60)}`);
+    };
 
     return {
-        wtngProb: formatPercent(clear.wtngProb),
-        thryWtng: formatSeconds(clear.thryWtngSec),
-        load: formatPercent(clear.loadRatio),
-        note: '',
+        judgeMin: dto.clearJudgeMin,
+        thresholdMin: dto.normalUpperExclusiveSec / 60,
+        targetMin,
+        targetClockText: clockAt(targetMin),
+        rangeText: `${clockAt(0)} ~ ${clockAt(dto.clearJudgeMin)}`,
+        arvlProfiled: dto.arvlProfileYn === 'Y',
     };
 }
 
-function toFcstDiffNote(current: QueueFcstView, scenario: QueueFcstView): string {
-    if (current.sec === null || scenario.sec === null) return '';
+// 막대가 너무 많으면 현재 · 추천 수량 주변만 보여준다
+function toVisibleBars(bars: QueueBarView[], anchors: number[]): QueueBarView[] {
+    if (bars.length <= QUEUE_BAR_MAX) return bars;
 
-    const diff = Math.round(scenario.sec - current.sec);
+    const first = bars[0].cnt;
+    const last = bars[bars.length - 1].cnt;
+    const inRange = anchors.filter((cnt) => cnt >= first && cnt <= last);
+    const low = inRange.length > 0 ? Math.min(...inRange) : last;
+    const high = inRange.length > 0 ? Math.max(...inRange) : last;
+    const hi = Math.min(last, Math.max(high + QUEUE_BAR_PAD, low - QUEUE_BAR_PAD + QUEUE_BAR_MAX - 1));
+    const lo = Math.max(first, Math.min(low - QUEUE_BAR_PAD, hi - QUEUE_BAR_MAX + 1));
 
-    if (diff === 0) return '예상 평균대기 현재 조건과 같음';
-
-    return `예상 평균대기 현재 조건보다 ${formatSeconds(Math.abs(diff))} ${diff < 0 ? '짧음' : '김'}`;
+    return bars.filter((bar) => bar.cnt >= lo && bar.cnt <= hi);
 }
 
-function toDiffNote(current: QueueClearView, scenario: QueueClearView): string {
-    if (current.kind === 'none' && scenario.kind === 'none') return toFcstDiffNote(current.fcst, scenario.fcst);
-    if (scenario.kind === 'unreachable') return '조정 후에도 해소 불가';
-    if (current.minutes === null || scenario.minutes === null) {
-        return current.kind === 'unreachable' && scenario.minutes !== null ? '현재 조건에서는 해소 불가 → 조정 시 해소' : '';
-    }
+// 아주 긴 해소시간 하나가 축을 늘려 목표선 근처 막대가 납작해지지 않게 축 상한을 묶는다
+function toScaledBars(bars: QueueBarView[], targetMin: number): { bars: QueueBarView[]; targetHeight: number } {
+    const floor = targetMin * QUEUE_AXIS_TARGET_RATIO;
+    const finite = bars.flatMap((bar) => (bar.minutes === null ? [] : [bar.minutes]));
+    const axisMax = Math.min(Math.max(floor, ...finite), Math.max(QUEUE_AXIS_MIN, floor));
 
-    const diff = current.minutes - scenario.minutes;
-
-    if (diff > 0) return `현재 조건보다 ${formatCount(diff)}분 단축`;
-    if (diff < 0) return `현재 조건보다 ${formatCount(-diff)}분 늘어남`;
-
-    return '현재 조건과 같음';
+    return {
+        bars: bars.map((bar) => ({
+            ...bar,
+            height: bar.kind === 'unreachable' ? 1 : bar.minutes === null ? 0 : Math.max(QUEUE_BAR_MIN_HEIGHT, Math.min(1, bar.minutes / axisMax)),
+        })),
+        targetHeight: Math.min(1, targetMin / axisMax),
+    };
 }
 
-function toQueueRecommendView(dto: FcltQueueScenarioDto, recommend: FcltQueueRecommendDto): QueueRecommendView {
-    const { reqCnt, extraCnt, reduceCnt } = recommend;
-
-    if (reqCnt === null) {
+function toQueueRecommendSummary(dto: FcltQueueScenarioDto, recommend: FcltQueueRecommendDto | null): QueueRecommendSummary {
+    if (!recommend || recommend.reqCnt === null) {
         return {
             reqCnt: null,
-            countNote: recommend.reqMetric.reason,
-            capaNote: '',
-            capaShort: false,
-            clear: null,
-            clearLabel: '',
+            mainText: recommend?.reqMetric.status === 'UNREACHABLE' ? '목표 달성 불가' : '산정 불가',
+            subText: recommend?.reqMetric.reason ?? '',
+            short: true,
         };
     }
 
-    const current = dto.oprFcltCnt === null ? '' : `현재 ${formatCount(dto.oprFcltCnt)}개 / `;
-    const countNote =
-        extraCnt !== null && extraCnt > 0
-            ? `${current}${formatCount(extraCnt)}개 추가 필요`
-            : reduceCnt !== null && reduceCnt > 0
-              ? `${current}${formatCount(reduceCnt)}개 감소 가능`
-              : `${current}현재 수량으로 충분`;
-    const capaNote =
-        recommend.capaAvlYn === 'N'
-            ? `보유 ${formatCount(dto.totCnt ?? 0)}개 초과 — 보유 수량으로 목표 달성 불가`
-            : recommend.capaAvlYn === 'Y'
-              ? `보유 ${formatCount(dto.totCnt ?? 0)}개 이내`
-              : dto.totCntRsn || '배정 가능한 최대 수량 미확인';
-    const clearSource = dto.scenario ?? dto.totScenario;
+    const { reqCnt, extraCnt, reduceCnt } = recommend;
+    const mainText = `${formatCount(reqCnt)}개`;
 
-    return {
-        reqCnt,
-        countNote,
-        capaNote,
-        capaShort: recommend.capaAvlYn === 'N',
-        clear: clearSource ? toQueueClearView(clearSource, dto.baseDt, dto.normalUpperExclusiveSec) : null,
-        clearLabel: dto.scenario ? '조정 후' : dto.totScenario ? `보유 ${formatCount(dto.totCnt ?? 0)}개 모두 배정 시` : '',
-    };
+    if (recommend.capaAvlYn === 'N') {
+        return { reqCnt, mainText, subText: `보유 ${formatCount(dto.totCnt ?? 0)}개 초과 — 보유 수량으로 목표 달성 불가`, short: true };
+    }
+
+    const subList: string[] = [];
+
+    if (extraCnt !== null && extraCnt > 0) subList.push(`지금보다 +${formatCount(extraCnt)}개`);
+    else if (reduceCnt !== null && reduceCnt > 0) subList.push(`지금보다 ${formatCount(reduceCnt)}개 적어도 충분`);
+    else if (extraCnt !== null) subList.push('지금 수량으로 충분');
+
+    if (recommend.capaAvlYn === null) subList.push('보유 수량 미확인');
+
+    return { reqCnt, mainText, subText: subList.join(' · '), short: false };
 }
 
 function toWtngAvgText(dto: FcltQueueScenarioDto): string {
@@ -721,48 +704,113 @@ function toWtngAvgText(dto: FcltQueueScenarioDto): string {
     return `${formatSeconds(dto.wtngAvgSec)} / 처리 ${formatCount(dto.wtngAvgPrcsPsgCnt ?? 0)}명 가중평균 / ${grade}`;
 }
 
-export function toFcltQueueContextView(dto: FcltQueueScenarioDto): FcltQueueContextView {
+function toQueueBasis(dto: FcltQueueScenarioDto, label: FcltQueueLabel): QueueBasisRow[] {
+    const rows: QueueBasisRow[] = [
+        { term: '계산 기준 시각', value: formatDtFull(dto.baseDt) },
+        { term: '해소 기준', value: `직전 ${WTNG_WINDOW_MIN}분 처리 여객 ${toTargetShort(dto.normalUpperExclusiveSec)} (혼잡등급 NORMAL 상한)` },
+        { term: '관측구간', value: `${formatDtClock(dto.obsBgnDt)} ~ ${toClockText(dto.obsEndDt, dto.obsBgnDt)} / ${QUEUE_DATA_SRC_LABEL[dto.dataSrc]}` },
+        { term: '현재 평균대기', value: toWtngAvgText(dto) },
+        {
+            term: '유입률 λ',
+            value: dto.arvlRate === null ? `— (${dto.arvlMetric.reason})` : `${dto.arvlRate.toFixed(1)}명/분 / ${QUEUE_METHOD_LABEL[dto.arvlMetric.method]}`,
+        },
+        { term: '처리율 μ', value: dto.srvcRate === null ? `— (${dto.srvcMetric.reason})` : `${label.resource} 1개당 ${dto.srvcRate.toFixed(2)}명/분` },
+        { term: '새로 줄 서면', value: toNextWtngText(dto.current) },
+        { term: `정상상태 / 현재 ${dto.oprFcltCnt ?? '-'}개`, value: toErlangText(dto.current) },
+    ];
+
+    if (dto.scenario) rows.push({ term: `정상상태 / 추천 ${dto.scenario.fcltCnt ?? '-'}개`, value: toErlangText(dto.scenario) });
+    if (dto.totCnt === null) rows.push({ term: '보유 수량', value: dto.totCntRsn || '배정 가능한 최대 수량 미확인' });
+
+    return rows;
+}
+
+function toQueueSummaryText(dto: FcltQueueScenarioDto): string {
+    const parts = [`${formatDtClock(dto.baseDt)} 기준`];
+
+    if (dto.wtngPsgCnt !== null) parts.push(`대기 ${formatCount(dto.wtngPsgCnt)}명`);
+    if (dto.wtngAvgSec !== null) parts.push(`평균 대기 ${formatSeconds(dto.wtngAvgSec)}`);
+
+    return parts.join(' · ');
+}
+
+export function toFcltQueueScenarioView(dto: FcltQueueScenarioDto): FcltQueueScenarioView {
     const label = FCLT_QUEUE_LABEL[dto.fcltType];
-    const targetShort = toTargetShort(dto.normalUpperExclusiveSec);
-    const countLockReason =
-        dto.oprFcltCnt === null
-            ? '현재 운영 수량이 확인되지 않아 수량을 조정할 수 없습니다.'
-            : dto.totCnt === null
-              ? `${dto.totCntRsn || '배정 가능한 최대 수량이 확인되지 않았습니다.'} 수량 조정을 할 수 없습니다.`
-              : '';
+    const targetMin = dto.recommend?.targetMin ?? dto.dfltTargetMin;
+    const reqCnt = dto.recommend?.reqCnt ?? null;
+    const currentCnt = dto.oprFcltCnt;
+    const allBars = dto.cntClearList.map((item) => ({
+        ...toQueueBar(item.fcltCnt, item, dto.baseDt, item.goalMetYn === 'Y', toQueueTimeline(item, dto.arvlList, dto.baseDt)),
+        isCurrent: item.fcltCnt === currentCnt,
+        isRecommend: item.fcltCnt === reqCnt,
+    }));
+    const anchors = [currentCnt, reqCnt].filter((cnt): cnt is number => cnt !== null);
+    const { bars, targetHeight } = toScaledBars(toVisibleBars(allBars, anchors), targetMin);
 
     return {
         label,
         tmnlId: dto.tmnlId,
         fcltNm: dto.fcltNm,
-        baseText: formatDtFull(dto.baseDt),
-        obsText: `${formatDtClock(dto.obsBgnDt)} ~ ${toClockText(dto.obsEndDt, dto.obsBgnDt)}`,
-        dataSrcText: QUEUE_DATA_SRC_LABEL[dto.dataSrc],
-        queueText: dto.wtngPsgCnt === null ? '—' : formatCount(dto.wtngPsgCnt),
-        targetText: `직전 ${WTNG_WINDOW_MIN}분 처리 여객 ${targetShort} (혼잡등급 NORMAL 상한)`,
-        wtngAvgText: toWtngAvgText(dto),
-        wtngAvgShort: dto.wtngAvgSec === null ? '' : `평균대기 ${formatSeconds(dto.wtngAvgSec)}`,
-        arvlText: dto.arvlRate === null ? `— (${dto.arvlMetric.reason})` : `${dto.arvlRate.toFixed(1)}명/분 / ${QUEUE_METHOD_LABEL[dto.arvlMetric.method]}`,
-        srvcText: dto.srvcRate === null ? `— (${dto.srvcMetric.reason})` : `${label.resource} 1개당 ${dto.srvcRate.toFixed(2)}명/분`,
-        asmpList: dto.asmpList,
-        currentCnt: dto.oprFcltCnt,
-        totCnt: dto.totCnt,
-        countLockReason,
-        targetMin: { dflt: dto.dfltTargetMin, min: dto.minTargetMin, max: dto.maxTargetMin },
-        current: toQueueClearView(dto.current, dto.baseDt, dto.normalUpperExclusiveSec),
-        currentErlang: toQueueErlangView(dto.current),
+        summaryText: toQueueSummaryText(dto),
+        targetShort: toTargetShort(dto.normalUpperExclusiveSec),
+        targetMin,
+        targetRange: { min: dto.minTargetMin, max: dto.maxTargetMin },
+        currentCnt,
+        current: toQueueBar(currentCnt ?? 0, dto.current, dto.baseDt, false, allBars.find((bar) => bar.isCurrent)?.timeline ?? []),
+        calm: dto.current.cgnClearMin === 0,
+        bars,
+        targetHeight,
+        axisText: `${label.resource} 수 (개) · ${dto.totCnt === null ? '보유 수량 미확인' : `보유 ${formatCount(dto.totCnt)}개`}`,
+        timeAxis: toQueueTimeAxis(dto, targetMin),
+        recommend: toQueueRecommendSummary(dto, dto.recommend),
+        basis: toQueueBasis(dto, label),
     };
 }
 
-export function toFcltQueueResultView(dto: FcltQueueScenarioDto): FcltQueueResultView {
-    const current = toQueueClearView(dto.current, dto.baseDt, dto.normalUpperExclusiveSec);
-    const scenario = dto.scenario ? toQueueClearView(dto.scenario, dto.baseDt, dto.normalUpperExclusiveSec) : null;
+function toUnreachableText(view: FcltQueueScenarioView, bar: QueueBarView): string {
+    const first = bar.timeline[0];
+    const last = bar.timeline[bar.timeline.length - 1];
+
+    if (!view.timeAxis || !first || !last) return bar.reason;
+
+    const firstCnt = Math.round(first.queuePsgCnt);
+    const lastCnt = Math.round(last.queuePsgCnt);
+
+    if (lastCnt > firstCnt) return `${last.clockText}까지 대기 ${formatCount(firstCnt)}명 → ${formatCount(lastCnt)}명으로 줄이 늘어요`;
+
+    return `${view.timeAxis.rangeText} 동안 기준 아래로 내려가 유지되지 않아요`;
+}
+
+function toQueueBarDetailSub(view: FcltQueueScenarioView, bar: QueueBarView): string {
+    if (bar.kind === 'unavailable') return bar.reason;
+    if (bar.kind === 'unreachable') return toUnreachableText(view, bar);
+    if (bar.cnt === view.currentCnt) return '현재 운영 수량';
+
+    const { current } = view;
+
+    if (current.kind === 'unreachable') return '지금은 해소 불가 → 해소 가능';
+    if (current.minutes === null || bar.minutes === null) return '';
+
+    const diff = current.minutes - bar.minutes;
+
+    if (diff > 0) return `지금보다 ${formatCount(diff)}분 빨라요`;
+    if (diff < 0) return `지금보다 ${formatCount(-diff)}분 늦어요`;
+
+    return '지금과 같아요';
+}
+
+export function toQueueBarDetail(view: FcltQueueScenarioView, bar: QueueBarView): QueueBarDetail {
+    let mainText = '산정 불가';
+
+    if (bar.kind === 'value') mainText = `${bar.valueText} 후 해소 · ${bar.clockText}`;
+    else if (bar.kind === 'none') mainText = '이미 해소 상태';
+    else if (bar.kind === 'unreachable') mainText = '해소 불가';
 
     return {
-        scenario,
-        scenarioErlang: dto.scenario ? toQueueErlangView(dto.scenario) : null,
-        diffNote: dto.mode === 'COUNT' && scenario ? toDiffNote(current, scenario) : '',
-        recommend: dto.mode === 'TIME' && dto.recommend ? toQueueRecommendView(dto, dto.recommend) : null,
+        title: `${formatCount(bar.cnt)}개 운영 시`,
+        mainText,
+        subText: toQueueBarDetailSub(view, bar),
+        goalMet: bar.goalMet,
     };
 }
 

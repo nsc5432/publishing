@@ -1,6 +1,7 @@
 package aoms.pm.cast.domains.wtng;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 import lombok.Getter;
 
@@ -51,7 +52,7 @@ public final class FcltQueueClearance {
 		this.arrival = arrivalOf(source, calculator);
 		this.service = calculator.estimateServiceRatePerHour();
 		this.observedWait = window.observedAvgWtngSec();
-		this.forecast = new WaitAvgForecast(window, arrival, service, normalUpperExclusiveSec);
+		this.forecast = new WaitAvgForecast(window, arrival, arrivalPerMinOf(source), service, normalUpperExclusiveSec);
 	}
 
 	public FcltQueueSource getSource() {
@@ -89,11 +90,11 @@ public final class FcltQueueClearance {
 
 	/**
 	 * 지정한 운영 수량으로 직전 10분 처리 여객 평균이 목표 미만이 되기까지의 시간.
-	 * @param fcstMin 예측 평균을 보고할 시각 (기준시각 + 분)
+	 * @param fcstMin 예측 평균을 보고할 시각 (기준시각 + 분). 목표 시간으로 넘기며 지속 해소 판정 구간도 이 값으로 정한다
 	 */
 	public ClearanceResult clearOf(Integer serverCnt, int fcstMin) {
 		FacilityQueueInput input = inputOf(serverCnt);
-		WaitAvgForecast.Projection projection = forecast.project(serverCnt, fcstMin, WaitAvgForecast.MAX_HORIZON_MIN);
+		WaitAvgForecast.Projection projection = forecast.project(serverCnt, fcstMin, judgeMinOf(fcstMin));
 		Computed<Double> clearSec = projection.getClearSec();
 
 		return new ClearanceResult(
@@ -112,13 +113,38 @@ public final class FcltQueueClearance {
 		return forecast.forecastPrcsPsgCnt(serverCnt, minutes);
 	}
 
-	/** 지정한 목표 시간 안에 평균 대기시간을 목표 미만으로 낮추고 처리능력이 유입보다 큰 총 운영 수량 */
+	/** 추천 수량과 같은 판정 — 목표 시간 안에 지속 해소 */
+	public boolean goalMetOf(int serverCnt, int targetMin) {
+		return forecast.verify(serverCnt, targetMin);
+	}
+
+	/** 지속 해소 판정 구간 (분) — 기준시각부터 60분, 목표가 더 길면 목표 시간 */
+	public int judgeMinOf(int targetMin) {
+		return WaitAvgForecast.judgeMinOf(targetMin);
+	}
+
+	/** 예측이 시간대별 CAST 유입을 쓰는지. false 면 관측구간 보존식 유입률 하나를 이어 쓴다 */
+	public boolean isArrivalProfiled() {
+		return forecast.isArrivalProfiled();
+	}
+
+	/** [기준시각+fromMin, 기준시각+toMin) 예측 입력 유입 합. 유입을 구할 수 없으면 null */
+	public Double arrivalSumOf(int fromMin, int toMin) {
+		return forecast.arrivalSum(fromMin, toMin);
+	}
+
+	/** 지정한 운영 수량의 [기준시각, 기준시각+endMin] stepMin 간격 예측. 산정 불가면 빈 목록 */
+	public List<WaitAvgForecast.Point> timelineOf(Integer serverCnt, int endMin, int stepMin) {
+		return forecast.timeline(serverCnt, endMin, stepMin);
+	}
+
+	/** 지정한 목표 시간 안에 평균 대기시간을 목표 미만으로 낮추고 판정 구간 끝까지 유지하는 최소 총 운영 수량 */
 	public Recommend recommendOf(int targetMin) {
 		WaitAvgForecast.Search search = forecast.search(targetMin);
 		Computed<Integer> reqMetric = search.getReqCnt();
 
 		if (!reqMetric.hasValue()) {
-			return new Recommend(targetMin, reqMetric, search.getStableMinCnt(), search.getGoalOnlyMinCnt(), null, null, null);
+			return new Recommend(targetMin, reqMetric, search.getGoalOnlyMinCnt(), null, null, null);
 		}
 
 		int reqCnt = reqMetric.getValue();
@@ -126,7 +152,6 @@ public final class FcltQueueClearance {
 		return new Recommend(
             targetMin,
             reqMetric,
-            search.getStableMinCnt(),
             search.getGoalOnlyMinCnt(),
             reqCnt,
             clearOf(reqCnt, targetMin),
@@ -136,6 +161,28 @@ public final class FcltQueueClearance {
 
 	private FacilityQueueInput inputOf(Integer serverCnt) {
 		return source.toScenarioInput(arrival, serverCnt);
+	}
+
+	// 10분 CAST 유입을 그 10분에 균등하게 나눈다. 목록 뒤(마지막 결과 뒤 · 24시 이후)는 유입 0 이다
+	private static double[] arrivalPerMinOf(FcltQueueSource source) {
+		List<Integer> secList = source.getFcstArvlSecList();
+
+		if (source.getFcstArvlPsgCnt() == null || secList == null) {
+			return null;
+		}
+
+		double[] result = new double[secList.size() * FcltWtngSecs.SEC_MIN];
+
+		for (int secIndex = 0; secIndex < secList.size(); secIndex++) {
+			Integer arvlPsgCnt = secList.get(secIndex);
+			double perMin = arvlPsgCnt == null ? 0 : arvlPsgCnt / (double) FcltWtngSecs.SEC_MIN;
+
+			for (int minute = 0; minute < FcltWtngSecs.SEC_MIN; minute++) {
+				result[secIndex * FcltWtngSecs.SEC_MIN + minute] = perMin;
+			}
+		}
+
+		return result;
 	}
 
 	// 앞으로 올 CAST 유입을 쓰면 직전 10분 유입이 이어진다는 가정보다 다가오는 피크 · 감소를 반영한다
@@ -173,9 +220,9 @@ public final class FcltQueueClearance {
 	@Getter
 	public static final class ClearanceResult {
 		private final Integer serverCnt;
-		/** 평균 대기시간이 목표 미만이 되기까지의 초 (1분 해상도). 이미 미만이면 0 */
+		/** 평균 대기시간이 목표 미만이 되고 판정 구간 끝까지 유지되기까지의 초 (1분 해상도). 이미 미만이고 유지되면 0 */
 		private final Computed<Double> clearSec;
-		/** 기준시각 + 해소 초. 산정 불가 / 해소 불가 / 예측 범위(하루) 초과면 null */
+		/** 기준시각 + 해소 초. 산정 불가 / 판정 구간 안 해소 불가면 null */
 		private final LocalDateTime clearDt;
 		private final int fcstMin;
 		/** 기준시각 + fcstMin 의 직전 10분 처리 여객 예측 평균 대기시간 (초) */
@@ -211,20 +258,18 @@ public final class FcltQueueClearance {
 	public static final class Recommend {
 		private final int targetMin;
 		private final Computed<Integer> reqMetric;
-		private final Integer stableMinCnt;
-		/** 처리능력 > 유입 조건 없이 목표 시간만 만족하는 최소 수량. 없으면 null */
+		/** 지속 해소 조건 없이 목표 시간 안에 한 번 목표 미만이 되는 최소 수량. 없으면 null */
 		private final Integer goalOnlyMinCnt;
 		/** 최종 총 소요 수량 (현재 운영분 포함). 산정 불가면 null */
 		private final Integer reqCnt;
 		/** 추천 수량을 적용했을 때의 해소 결과. reqCnt 가 null 이면 null */
 		private final ClearanceResult reqClear;
-		/** 추천 수량을 다시 예측해 목표 시간 / 목표 시각 평균 / 안정 조건을 모두 만족하는지. 검증할 수 없으면 null */
+		/** 추천 수량을 다시 예측해 목표 시간 안에 지속 해소되는지. 검증할 수 없으면 null */
 		private final Boolean goalMet;
 
 		private Recommend(
 				int targetMin,
 				Computed<Integer> reqMetric,
-				Integer stableMinCnt,
 				Integer goalOnlyMinCnt,
 				Integer reqCnt,
 				ClearanceResult reqClear,
@@ -232,7 +277,6 @@ public final class FcltQueueClearance {
 		) {
 			this.targetMin = targetMin;
 			this.reqMetric = reqMetric;
-			this.stableMinCnt = stableMinCnt;
 			this.goalOnlyMinCnt = goalOnlyMinCnt;
 			this.reqCnt = reqCnt;
 			this.reqClear = reqClear;

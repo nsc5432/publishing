@@ -253,6 +253,32 @@ export interface FcltQueueClearDto {
     erlangMetric: QueueMetricDto;
 }
 
+/** 혼잡해소 팝업 시간축 차트의 한 시각 */
+export interface FcltQueueFcstDto {
+    fcstDt: string;
+    /** 그 시각 직전 10분 처리 여객 예측 평균 대기시간(초). 처리 여객이 없으면 null */
+    fcstWtngSec: number | null;
+    wtngPsgCnt: number;
+}
+
+/** 혼잡해소 팝업 시간축 차트의 10분 유입 — [secEndDt−10분, secEndDt) */
+export interface FcltQueueArvlDto {
+    secEndDt: string;
+    arvlPsgCnt: number;
+}
+
+/** 혼잡해소 팝업 차트의 운영 수량 하나 */
+export interface FcltQueueCntClearDto {
+    fcltCnt: number;
+    cgnClearMin: number | null;
+    cgnClearDt: string;
+    clearMetric: QueueMetricDto;
+    /** 추천 수량과 같은 판정 — 목표 시간 안에 해소되고 판정 구간 끝까지 유지 · 구간 끝 대기인원이 기준시각 이하 */
+    goalMetYn: YnFlag;
+    /** 기준시각부터 판정 구간 끝까지 10분 간격 예측 */
+    fcstList: FcltQueueFcstDto[];
+}
+
 export interface FcltQueueRecommendDto {
     targetMin: number;
     reqCnt: number | null;
@@ -300,6 +326,14 @@ export interface FcltQueueScenarioDto extends JsonResponse {
     scenario: FcltQueueClearDto | null;
     totScenario: FcltQueueClearDto | null;
     recommend: FcltQueueRecommendDto | null;
+    /** TIME 전용. 1개 ~ 최대수(모르면 현재 · 추천 중 큰 값) 수량별 해소 예상 */
+    cntClearList: FcltQueueCntClearDto[];
+    /** TIME 전용. 지속 해소 판정 구간(분) — 60분, 목표가 더 길면 목표 시간 */
+    clearJudgeMin: number | null;
+    /** TIME 전용. 예측이 10분 CAST 유입을 쓰면 Y, 관측구간 유입률 하나를 이어 쓰면 N */
+    arvlProfileYn: YnFlag | null;
+    /** TIME 전용. 판정 구간의 10분 예측 입력 유입 */
+    arvlList: FcltQueueArvlDto[];
 }
 
 /* ================= 일일 시뮬레이션 - 맵형태보기 ================= */

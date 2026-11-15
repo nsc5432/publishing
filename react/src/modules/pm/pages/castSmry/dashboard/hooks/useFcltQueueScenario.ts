@@ -1,172 +1,90 @@
 import { useEffect, useMemo, useState } from 'react';
-import { isNotNullOrUndefined } from '@/components/utils/commonUtils';
 import { dashboardService } from '@/api/pm/services/dashboard.service';
 import { unwrap } from '@/api/pm/result';
 import { useErrorAlert } from '@/hooks/useErrorAlert';
 import { toErrorMessage, useFetched } from '@/hooks/useFetched';
-import type { ApiError, FcltQueueScenarioDto, FcltQueueScenarioMode, FcltQueueScenarioReq } from '@/types/api.types';
-import type { FcltQueueContextView, FcltQueueResultView, FcltQueueTarget } from '../types';
-import { toFcltQueueContextView, toFcltQueueResultView } from '../view';
-
-export type FcltQueueResultState =
-    { status: 'loading' } | { status: 'invalid' } | { status: 'error'; message: string } | { status: 'ready'; view: FcltQueueResultView };
+import type { ApiError, FcltQueueScenarioDto, FcltQueueScenarioReq } from '@/types/api.types';
+import type { FcltQueueScenarioView, FcltQueueTarget } from '../types';
+import { toFcltQueueScenarioView } from '../view';
 
 interface ScenarioRequest {
     req: FcltQueueScenarioReq;
-    key: string;
-    /** 실패해도 화면이 붙잡고 있을 마지막 기준 응답 */
-    context: FcltQueueScenarioDto | null;
+    /** 실패해도 화면이 붙잡고 있을 마지막 응답 */
+    last: FcltQueueScenarioDto | null;
 }
 
 interface ScenarioResult {
     request: ScenarioRequest;
     dto: FcltQueueScenarioDto | null;
     error: string;
-    context: FcltQueueScenarioDto | null;
-}
-
-interface ScenarioDraft {
-    countText: string;
-    targetText: string;
 }
 
 const FAIL = '혼잡해소 시나리오를 계산하지 못했습니다.';
 const DEBOUNCE_MS = 250;
-const INTEGER_PATTERN = /^\d+$/;
-
-function toInitialRequest(target: FcltQueueTarget): ScenarioRequest {
-    return { req: { ...target, mode: 'TIME' }, key: 'INIT', context: null };
-}
-
-// 응답이 어떤 입력의 결과인지 나타내는 키 — 지금 입력과 다르면 이전 결과를 보여주지 않는다
-function toResultKey(dto: FcltQueueScenarioDto): string | null {
-    const value = dto.mode === 'COUNT' ? dto.scenario?.fcltCnt : dto.recommend?.targetMin;
-
-    return `${dto.mode}|${value ?? ''}`;
-}
-
-function parseInteger(text: string): number | null {
-    return INTEGER_PATTERN.test(text) ? Number(text) : null;
-}
+const TARGET_STEP_MIN = 5;
 
 function loadScenario(request: ScenarioRequest): Promise<ScenarioResult> {
     return dashboardService
         .getFcltQueueScenario(request.req)
         .then((dto) => unwrap(dto, FAIL))
         .then(
-            (dto): ScenarioResult => ({ request, dto, error: '', context: dto }),
-            (error: ApiError): ScenarioResult => ({
-                request,
-                dto: null,
-                error: toErrorMessage(error, FAIL),
-                context: request.context,
-            }),
+            (dto): ScenarioResult => ({ request, dto, error: '' }),
+            (error: ApiError): ScenarioResult => ({ request, dto: null, error: toErrorMessage(error, FAIL) }),
         );
+}
+
+// 5분 눈금에 맞춰 움직인다 (예: 32 → 35 / 30)
+function stepTargetMin(value: number, delta: number, range: { min: number; max: number }): number {
+    const snapped = delta > 0 ? Math.floor(value / TARGET_STEP_MIN) * TARGET_STEP_MIN + delta : Math.ceil(value / TARGET_STEP_MIN) * TARGET_STEP_MIN + delta;
+
+    return Math.min(range.max, Math.max(range.min, snapped));
 }
 
 export function useFcltQueueScenario(target: FcltQueueTarget) {
     // 카드의 추천 수량 · 해소 시각과 같은 조건(목표 30분)으로 연다
-    const [mode, setMode] = useState<FcltQueueScenarioMode>('TIME');
-    const [draft, setDraft] = useState<ScenarioDraft | null>(null);
-    const [request, setRequest] = useState<ScenarioRequest>(() => toInitialRequest(target));
+    const [targetMin, setTargetMin] = useState<number | null>(null);
+    const [selectedCnt, setSelectedCnt] = useState<number | null>(null);
+    const [request, setRequest] = useState<ScenarioRequest>(() => ({ req: { ...target, mode: 'TIME' }, last: null }));
 
     const fetched = useFetched(request, loadScenario, FAIL);
     const latest = fetched.data;
-    const context = latest?.context ?? null;
+    const dto = latest?.dto ?? latest?.request.last ?? null;
 
-    const contextView = useMemo<FcltQueueContextView | null>(() => (context ? toFcltQueueContextView(context) : null), [context]);
+    const view = useMemo<FcltQueueScenarioView | null>(() => (dto ? toFcltQueueScenarioView(dto) : null), [dto]);
 
-    const countLocked = !contextView || contextView.countLockReason !== '';
-    const defaults: ScenarioDraft = {
-        countText: String(context?.oprFcltCnt ?? ''),
-        targetText: String(context?.dfltTargetMin ?? ''),
-    };
-    const inputs = draft ?? defaults;
-
-    const countValue = parseInteger(inputs.countText);
-    const targetValue = parseInteger(inputs.targetText);
-
-    let countError = '';
-    if (!countLocked && contextView) {
-        if (countValue === null) countError = '0 이상의 정수를 입력하세요.';
-        else if (contextView.totCnt !== null && countValue > contextView.totCnt) {
-            countError = `보유 ${contextView.totCnt}개 이하로 입력하세요.`;
-        }
-    }
-
-    let targetError = '';
-    if (contextView) {
-        const { min, max } = contextView.targetMin;
-        if (targetValue === null || targetValue < min || targetValue > max) {
-            targetError = `${min}~${max}분 사이의 정수를 입력하세요.`;
-        }
-    }
-
-    const nextReq = useMemo<FcltQueueScenarioReq | null>(() => {
-        if (!context) return null;
-
-        const base: FcltQueueScenarioReq = { ...target, mode };
-
-        if (mode === 'TIME') return targetError ? null : { ...base, targetMinutes: targetValue ?? undefined };
-        if (countLocked) return base;
-
-        return countError ? null : { ...base, oprFcltCnt: countValue ?? undefined };
-    }, [context, target, mode, countLocked, countError, countValue, targetError, targetValue]);
-
-    const nextKey = nextReq ? `${mode}|${mode === 'COUNT' ? (countLocked ? (context?.oprFcltCnt ?? '') : countValue) : targetValue}` : null;
-    const resultKey = latest?.dto ? toResultKey(latest.dto) : null;
-    const errorKey = latest?.error ? latest.request.key : null;
+    const answered = latest?.request === request;
+    const debouncing = targetMin !== null && targetMin !== request.req.targetMinutes;
+    const pending = !answered || debouncing;
+    const error = answered && !debouncing ? (latest?.error ?? '') : '';
 
     useEffect(() => {
-        if (!nextReq || !nextKey || nextKey === resultKey || nextKey === request.key) return;
+        if (!debouncing || targetMin === null) return;
 
-        const timer = window.setTimeout(() => setRequest({ req: nextReq, key: nextKey, context }), DEBOUNCE_MS);
+        const timer = window.setTimeout(() => setRequest({ req: { ...target, mode: 'TIME', targetMinutes: targetMin }, last: dto }), DEBOUNCE_MS);
 
         return () => window.clearTimeout(timer);
-    }, [nextReq, nextKey, resultKey, request.key, context]);
+    }, [debouncing, targetMin, target, dto]);
 
     useErrorAlert(latest?.error ?? '', fetched.responseSeq);
 
-    let result: FcltQueueResultState = { status: 'loading' };
-    if (!context && latest?.error) result = { status: 'error', message: latest.error };
-    else if (context && !nextKey) result = { status: 'invalid' };
-    else if (latest?.dto && nextKey === resultKey) result = { status: 'ready', view: toFcltQueueResultView(latest.dto) };
-    else if (nextKey === errorKey && latest?.error) result = { status: 'error', message: latest.error };
-
-    const updateDraft = (patch: Partial<ScenarioDraft>) => setDraft({ ...inputs, ...patch });
-
-    const stepCount = (delta: number) => {
-        const next = Math.max(0, (countValue ?? contextView?.currentCnt ?? 0) + delta);
-        const capped = isNotNullOrUndefined(contextView?.totCnt) ? Math.min(next, contextView.totCnt) : next;
-        updateDraft({ countText: String(capped) });
-    };
-
     const stepTarget = (delta: number) => {
-        if (!contextView) return;
+        if (!view) return;
 
-        const { dflt, min, max } = contextView.targetMin;
-        updateDraft({ targetText: String(Math.min(max, Math.max(min, (targetValue ?? dflt) + delta))) });
+        setTargetMin(stepTargetMin(targetMin ?? view.targetMin, delta * TARGET_STEP_MIN, view.targetRange));
+        setSelectedCnt(null);
     };
 
-    // 같은 입력이어도 새 요청 객체를 만들어 useFetched 가 다시 부르게 한다
+    // 같은 조건이어도 새 요청 객체를 만들어 useFetched 가 다시 부르게 한다
     const retry = () => setRequest((current) => ({ ...current }));
 
     return {
-        context: contextView,
-        mode,
-        setMode,
-        countText: inputs.countText,
-        countValue,
-        countLocked,
-        countError,
-        setCountText: (countText: string) => updateDraft({ countText }),
-        stepCount,
-        targetText: inputs.targetText,
-        targetValue,
-        targetError,
-        setTargetText: (targetText: string) => updateDraft({ targetText }),
+        view,
+        targetMin: targetMin ?? view?.targetMin ?? null,
+        pending,
+        error,
+        selectedCnt,
+        selectCnt: setSelectedCnt,
         stepTarget,
-        result,
         retry,
     };
 }

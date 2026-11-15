@@ -189,108 +189,101 @@ export interface FcltQueueTarget {
 export interface FcltQueueLabel {
     title: string;
     resource: string;
-    current: string;
-    input: string;
-    countTab: string;
-    recommend: string;
 }
 
 export const FCLT_QUEUE_LABEL: Record<FcltCardType, FcltQueueLabel> = {
-    CHKN: {
-        title: '체크인카운터',
-        resource: '부스',
-        current: '현재 배정 부스',
-        input: '배정 부스 수',
-        countTab: '부스 수 조정',
-        recommend: '추천 부스 수(총)',
-    },
-    DEP: {
-        title: '보안검색대',
-        resource: '보안검색대',
-        current: '현재 운영 보안검색대',
-        input: '운영 보안검색대 수',
-        countTab: '보안검색대 수 조정',
-        recommend: '추천 보안검색대 수(총)',
-    },
+    CHKN: { title: '체크인카운터', resource: '부스' },
+    DEP: { title: '보안검색대', resource: '보안검색대' },
 };
 
 /** value 는 해소 소요시간이 있는 경우, none 은 이미 목표 미만(0분) */
 export type QueueClearKind = 'value' | 'none' | 'unreachable' | 'unavailable';
 
-export interface QueueClearView {
+/** 운영 수량 하나의 해소 예상 막대 */
+export interface QueueBarView {
+    cnt: number;
     kind: QueueClearKind;
     /** 화면 표기용 올림 분. 소요시간이 없으면 null */
     minutes: number | null;
-    mainText: string;
-    unitText: string;
-    clockText: string;
-    note: string;
-    /** 계산 기준 시각에 새로 줄 선 여객의 예상 대기. 산정할 수 없으면 '' */
-    nextWtngText: string;
-    /** 목표 시각의 직전 10분 처리 여객 예측 평균 대기. 산정할 수 없으면 '' */
-    fcstWtngText: string;
-    /** 이미 목표 미만(none)이면 해소시간이 수량과 무관하게 0 이라, 수량 차이는 이 예측값으로 비교한다 */
-    fcst: QueueFcstView;
-}
-
-export interface QueueFcstView {
-    sec: number | null;
-    /** 예측 평균이 해소 목표 이상. 예측할 수 없으면 null */
-    over: boolean | null;
-    /** 예측 평균의 집계 구간 (예: 08:20~08:50) */
-    rangeText: string;
+    /** 막대 위 값 (예: 25분 · 불가 · —) */
     valueText: string;
+    clockText: string;
+    /** 플롯 높이 대비 막대 높이 0~1 */
+    height: number;
+    goalMet: boolean;
+    isCurrent: boolean;
+    isRecommend: boolean;
+    reason: string;
+    /** 기준시각부터 판정 구간 끝까지 10분 간격 예측. 산정 불가면 빈 배열 */
+    timeline: QueueTimePoint[];
 }
 
-export interface QueueErlangView {
-    wtngProb: string;
-    thryWtng: string;
-    load: string;
-    note: string;
+/** 시간축 차트의 한 시각 */
+export interface QueueTimePoint {
+    /** 기준시각부터 분 */
+    minute: number;
+    clockText: string;
+    /** 이 시각까지 10분 유입 (명). 기준시각 칸은 null */
+    arvlPsgCnt: number | null;
+    /** 이 시각 직전 10분 처리 여객 예측 평균 대기 (분). 처리 여객이 없으면 null */
+    waitMin: number | null;
+    queuePsgCnt: number;
 }
 
-export interface QueueRecommendView {
+/** 시간축 차트의 공통 축 정보 */
+export interface QueueTimeAxis {
+    judgeMin: number;
+    /** 해소 기준 (분) — 점선 */
+    thresholdMin: number;
+    targetMin: number;
+    targetClockText: string;
+    /** 판정 구간 안내 (예: 09:10 ~ 10:10) */
+    rangeText: string;
+    /** false 면 10분 CAST 유입 대신 유입률 하나를 이어 쓴 예측 */
+    arvlProfiled: boolean;
+}
+
+export interface QueueRecommendSummary {
     reqCnt: number | null;
-    countNote: string;
-    capaNote: string;
-    capaShort: boolean;
-    /** 추천 수량(또는 보유 최대수) 배정 시 해소 예상 */
-    clear: QueueClearView | null;
-    clearLabel: string;
+    mainText: string;
+    subText: string;
+    short: boolean;
 }
 
-/** 응답 하나에서 정해지는 기준 정보 — 수량 / 목표시간 입력과 무관하다 */
-export interface FcltQueueContextView {
+export interface QueueBarDetail {
+    title: string;
+    mainText: string;
+    subText: string;
+    goalMet: boolean;
+}
+
+export interface QueueBasisRow {
+    term: string;
+    value: string;
+}
+
+export interface FcltQueueScenarioView {
     label: FcltQueueLabel;
     tmnlId: TerminalKind;
     fcltNm: string;
-    baseText: string;
-    obsText: string;
-    dataSrcText: string;
-    queueText: string;
-    /** 해소 기준 — 처리 여객 평균 대기시간 NORMAL 상한 미만 */
-    targetText: string;
-    /** 관측구간 처리 여객 평균 대기 + 등급 (근거 목록용) */
-    wtngAvgText: string;
-    /** 기준선 요약 한 줄용. 산정할 수 없으면 '' */
-    wtngAvgShort: string;
-    arvlText: string;
-    srvcText: string;
-    asmpList: string[];
+    /** 헤더 한 줄 (예: 08:40 기준 · 대기 78명 · 평균 대기 58분 30초) */
+    summaryText: string;
+    /** 해소 정의 (예: 평균 대기 40분 미만) */
+    targetShort: string;
+    targetMin: number;
+    targetRange: { min: number; max: number };
     currentCnt: number | null;
-    totCnt: number | null;
-    /** 수량 조정을 막는 사유 (빈 값이면 조정 가능) */
-    countLockReason: string;
-    targetMin: { dflt: number; min: number; max: number };
-    current: QueueClearView;
-    currentErlang: QueueErlangView;
-}
-
-export interface FcltQueueResultView {
-    scenario: QueueClearView | null;
-    scenarioErlang: QueueErlangView | null;
-    diffNote: string;
-    recommend: QueueRecommendView | null;
+    current: QueueBarView;
+    /** 현재 평균 대기가 이미 해소 기준 미만 */
+    calm: boolean;
+    bars: QueueBarView[];
+    /** 목표선 높이 0~1 */
+    targetHeight: number;
+    axisText: string;
+    /** TIME 응답에 판정 구간이 없으면 null */
+    timeAxis: QueueTimeAxis | null;
+    recommend: QueueRecommendSummary;
+    basis: QueueBasisRow[];
 }
 
 export interface TerminalView {

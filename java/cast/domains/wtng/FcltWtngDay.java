@@ -180,6 +180,24 @@ public final class FcltWtngDay {
 		return result;
 	}
 
+	/** 기준시각부터 24시까지 10분 유입. 결과가 없거나 유입을 도출할 수 없는 구간은 0 (마지막 결과 뒤 꼬리 구간과 같다) */
+	public List<Integer> arvlSecListOf(String unitCd, LocalDateTime evalDt) {
+		requireBoundary(evalDt);
+
+		TreeMap<LocalDateTime, FcltWtngSec> secMap = secMapByUnit.getOrDefault(unitCd, new TreeMap<>());
+		LocalDateTime dayEnd = dayStart.plusDays(1);
+		List<Integer> result = new ArrayList<>();
+
+		for (LocalDateTime secEndDt = evalDt.plusMinutes(SEC_MIN); !secEndDt.isAfter(dayEnd); secEndDt = secEndDt.plusMinutes(SEC_MIN)) {
+			FcltWtngSec sec = secMap.get(secEndDt);
+			Integer arrival = sec == null ? null : arrivalOf(secMap, sec);
+
+			result.add(valueOf(arrival));
+		}
+
+		return result;
+	}
+
 	/** [bgnDt, bgnDt+minutes) 의 시설 비교 기준. 평균은 slotOf 와 같은 가중 방식으로 10분 행에서 다시 합산한다 */
 	public FcltWtngCmpr cmprOf(List<String> unitCdList, LocalDateTime bgnDt, int minutes) {
 		int unitCnt = 0;
@@ -411,6 +429,7 @@ public final class FcltWtngDay {
 				.waitWindow(waitWindow)
 				.fcstArvlPsgCnt(arvlPsgCntOf(unitCd, evalDt, fcstArvlMinOf(evalDt)))
 				.fcstArvlMin(fcstArvlMinOf(evalDt))
+				.fcstArvlSecList(arvlSecListOf(unitCd, evalDt))
 				.build();
 	}
 
@@ -460,6 +479,7 @@ public final class FcltWtngDay {
 				.waitWindow(waitWindow)
 				.fcstArvlPsgCnt(arvlPsgCntOf(unitCd, evalDt, fcstArvlMinOf(evalDt)))
 				.fcstArvlMin(fcstArvlMinOf(evalDt))
+				.fcstArvlSecList(arvlSecListOf(unitCd, evalDt))
 				.build();
 	}
 

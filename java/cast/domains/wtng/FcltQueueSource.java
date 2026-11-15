@@ -56,6 +56,8 @@ public final class FcltQueueSource {
 	/** 기준시각부터 fcstArvlMin 분 동안의 CAST 유입 합 — 해소 예측 유입률. 없으면 관측구간 보존식 유입률을 쓴다 */
 	private final Integer fcstArvlPsgCnt;
 	private final int fcstArvlMin;
+	/** 기준시각부터 24시까지 10분 CAST 유입. i 번째는 [기준시각+10i, 기준시각+10i+10). 결과가 없는 구간은 0 */
+	private final List<Integer> fcstArvlSecList;
 
 	public FacilityQueueInput toArrivalInput() {
 		return FacilityQueueInput.builder()

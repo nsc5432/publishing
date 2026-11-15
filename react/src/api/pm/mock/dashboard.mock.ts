@@ -6,7 +6,10 @@ import type {
     DsbdFcltCardDto,
     DsbdHeaderDto,
     DsbdRsltDto,
+    FcltQueueArvlDto,
     FcltQueueClearDto,
+    FcltQueueCntClearDto,
+    FcltQueueFcstDto,
     FcltQueueRecommendDto,
     FcltQueueScenarioDto,
     FcltQueueScenarioReq,
@@ -643,6 +646,7 @@ function buildFcltCardList(tmnlId: TmnlId, hhmm: string, fcltType: 'CHKN' | 'DEP
  *
  * 해소 = 직전 10분 처리 여객 평균 대기시간이 NORMAL 상한 미만이 되는 시각.
  * 창의 평가시각 이전은 관측 이력(평균 obsWtngSec 로 고르게 처리), 이후는 1분 단위 유체 FIFO 예측이다.
+ * 판정 구간(60분, 목표가 더 길면 목표 시간) 끝까지 다시 기준 이상이 되지 않고 구간 끝 대기인원이 시작보다 늘지 않아야 해소다.
  */
 
 interface QueueScenarioProfile {
@@ -653,7 +657,10 @@ interface QueueScenarioProfile {
     obsPrcsPerHour: number;
     /** 남은 대기열이 기다린 시간 — 1분 ~ 이 값(분)에 고르게 퍼져 있다고 본다 */
     queueAgeMaxMin: number;
+    /** 기준시각부터 1시간 평균 유입 (명/시간) */
     arvlPerHour: number;
+    /** 기준시각부터 24시까지 10분 유입. queueProfileAt 이 arvlPerHour 를 시간대별로 흔들어 채운다 */
+    arvlSecList?: number[];
     /** null 이면 처리율 미산출 경우 */
     prcsSec: number | null;
     oprCnt: number;
@@ -717,28 +724,47 @@ function queueShareAt(key: string, hhmm: string): number | null {
     return floors[index] + (bonusOrder.indexOf(index) < rest ? 1 : 0);
 }
 
+// 서버는 CAST 10분 유입을 그대로 쓴다. 목업은 시설마다 위상이 다른 물결로 피크 · 감소를 만든다
+function toArvlSecList(key: string, baseMinute: number, arvlPerHour: number): number[] {
+    const phase = QUEUE_LOAD_PHASE[key] ?? 0;
+    const list: number[] = [];
+
+    for (let endMin = baseMinute + RSLT_MIN; endMin <= MIN_PER_DAY; endMin += RSLT_MIN) {
+        const wave = 1 + 0.4 * Math.sin(((endMin / RSLT_MIN + phase * 3) * 2 * Math.PI) / 9);
+        list.push(Math.round((arvlPerHour / (MIN_PER_HOUR / RSLT_MIN)) * wave));
+    }
+
+    return list;
+}
+
 function queueProfileAt(key: string, hhmm: string): QueueScenarioProfile {
     const profile = QUEUE_SCENARIO_PROFILES[key] ?? QUEUE_SCENARIO_PROFILES['T1-CHKN-B'];
     const load = queueLoadAt(key, hhmm);
+    const arvlSecList = toArvlSecList(key, toMinuteOfDay(hhmm), profile.arvlPerHour);
+    const hourSecList = arvlSecList.slice(0, MIN_PER_HOUR / RSLT_MIN);
 
     return {
         ...profile,
         wtngPsgCnt: queueShareAt(key, hhmm) ?? Math.round(profile.wtngPsgCnt * load),
         obsWtngSec: profile.obsWtngSec === null ? null : profile.obsWtngSec * load,
         queueAgeMaxMin: Math.round(profile.queueAgeMaxMin * load),
+        arvlPerHour: hourSecList.length === 0 ? 0 : (sum(hourSecList) * MIN_PER_HOUR) / (hourSecList.length * RSLT_MIN),
+        arvlSecList,
     };
 }
 
 const QUEUE_OBS_MIN = 10;
 const QUEUE_TARGET_MIN = { dflt: 30, min: 1, max: 120 };
-const QUEUE_HORIZON_MIN = MIN_PER_DAY;
+const QUEUE_JUDGE_MIN = 60;
 const QUEUE_EPS = 1e-9;
 
 const QUEUE_ASMP_COMMON = [
-    `혼잡등급 / 해소 목표는 기준시각 직전 ${QUEUE_OBS_MIN}분 [t-${QUEUE_OBS_MIN}분, t) 에 처리된 여객의 처리인원 가중평균 대기시간이다. 해소는 이 평균이 NORMAL 상한 미만이 되는 시각`,
+    `혼잡등급 / 해소 목표는 기준시각 직전 ${QUEUE_OBS_MIN}분 [t-${QUEUE_OBS_MIN}분, t) 에 처리된 여객의 처리인원 가중평균 대기시간이다. 해소는 이 평균이 NORMAL 상한 미만이 된 뒤 판정 구간 끝까지 유지되기 시작하는 시각`,
+    `판정 구간은 기준시각부터 ${QUEUE_JUDGE_MIN}분이고 목표 시간이 더 길면 목표 시간까지다. 구간 안에서 다시 기준 이상이 되거나 구간 끝 대기인원이 기준시각보다 많으면 해소 불가로 본다`,
     '미래 평균은 같은 정의의 이동평균이다. 창의 기준시각 이전은 실제 처리 이력, 이후는 1분 단위 유체 FIFO 예측이며 남은 대기자의 대기시간은 이어서 센다',
-    '추천 수량은 목표 시간 안에 목표 미만이 되고 처리능력(수량 × 처리율)이 유입률보다 큰 최소 총수다',
-    '예측 구간 동안 유입률 / 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다',
+    '추천 수량은 목표 시간 안에 해소되고 판정 구간 끝까지 유지되는 최소 총수다',
+    '예측 구간 동안 처리율이 일정하고 시설 수는 즉시 바뀐다고 본다',
+    '예측 유입은 기준시각 뒤 CAST 10분 결과의 인원 보존식 유입을 그 10분에 균등하게 나눈 값이다. 결과가 없는 구간(마지막 결과 뒤 · 24시 이후)은 유입 0 이다',
     'M/M/s 적용 가정(정상상태 참고지표 전용): 포아송 도착 / 지수 처리시간 / 동일 처리율의 병렬 시설 / 공용 대기열 선착순 / 무한 대기공간 / 이탈 없음 (통계 검증 아님)',
 ];
 
@@ -795,9 +821,18 @@ function forecastGap(profile: QueueScenarioProfile, fcltCnt: number): string | n
     return null;
 }
 
+function arrivalAt(profile: QueueScenarioProfile, minute: number): number {
+    if (!profile.arvlSecList) return profile.arvlPerHour / MIN_PER_HOUR;
+
+    return (profile.arvlSecList[Math.floor(minute / RSLT_MIN)] ?? 0) / RSLT_MIN;
+}
+
+function judgeMinOf(targetMin: number): number {
+    return Math.max(targetMin, QUEUE_JUDGE_MIN);
+}
+
 function simulateQueue(profile: QueueScenarioProfile, fcltCnt: number, minutes: number): QueueTrace {
     const capPerMin = fcltCnt === 0 || profile.prcsSec === null ? 0 : (fcltCnt * 60) / profile.prcsSec;
-    const arrivalPerMin = profile.arvlPerHour / MIN_PER_HOUR;
     const histPrcsPerMin = profile.obsPrcsPerHour / MIN_PER_HOUR;
     const histWaitPerMin = histPrcsPerMin * (profile.obsWtngSec ?? 0);
     // 원소는 [도착 분(t 기준, 0 이하), 인원]
@@ -813,6 +848,8 @@ function simulateQueue(profile: QueueScenarioProfile, fcltCnt: number, minutes: 
     let queueCnt = profile.queueAgeMaxMin === 0 ? 0 : profile.wtngPsgCnt;
 
     for (let minute = 0; minute < minutes; minute++) {
+        const arrivalPerMin = arrivalAt(profile, minute);
+
         if (arrivalPerMin > 0) {
             queue.push([minute, arrivalPerMin]);
             queueCnt += arrivalPerMin;
@@ -868,6 +905,27 @@ function reachMinOf(trace: QueueTrace, horizonMin: number): number {
     return -1;
 }
 
+/** 판정 구간 끝에서 거꾸로 이어지는 해소 상태의 시작 분. 구간 끝이 해소 상태가 아니거나 대기인원이 시작보다 늘었으면 -1 */
+function sustainedMinOf(trace: QueueTrace, judgeMin: number): number {
+    if (isQueueGrown(trace, judgeMin)) return -1;
+
+    let result = -1;
+
+    for (let endMin = judgeMin; endMin >= 0; endMin--) {
+        const value = trace.avgAt(endMin);
+        const clear = value === null ? trace.remainAt(endMin) <= QUEUE_EPS : value < MOCK_NORMAL_UPPER_EXCLUSIVE_SEC;
+
+        if (!clear) break;
+        result = endMin;
+    }
+
+    return result;
+}
+
+function isQueueGrown(trace: QueueTrace, judgeMin: number): boolean {
+    return Math.round(trace.remainAt(judgeMin)) > Math.round(trace.remainAt(0));
+}
+
 function meetsTarget(trace: QueueTrace, targetMin: number): boolean {
     if (reachMinOf(trace, targetMin) < 0) return false;
 
@@ -882,8 +940,9 @@ function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: strin
     const mu = profile.prcsSec === null ? null : 3600 / profile.prcsSec;
     const capacity = mu === null ? null : fcltCnt * mu;
     const gap = forecastGap(profile, fcltCnt);
-    const trace = gap === null ? simulateQueue(profile, fcltCnt, Math.max(QUEUE_HORIZON_MIN, fcstMin)) : null;
-    const reachMin = trace === null ? -1 : reachMinOf(trace, QUEUE_HORIZON_MIN);
+    const judgeMin = judgeMinOf(fcstMin);
+    const trace = gap === null ? simulateQueue(profile, fcltCnt, Math.max(judgeMin, fcstMin)) : null;
+    const reachMin = trace === null ? -1 : sustainedMinOf(trace, judgeMin);
     const fcstWtngSec = trace === null ? null : trace.avgAt(fcstMin);
 
     let clearSec: number | null = null;
@@ -893,22 +952,30 @@ function toQueueClear(profile: QueueScenarioProfile, fcltCnt: number, ymd: strin
         clearMetric = queueMetric('UNAVAILABLE', 'WAIT_AVG_FORECAST', gap);
     } else if (reachMin === 0) {
         clearSec = 0;
-        clearMetric = queueMetric('CALCULATED', 'WAIT_AVG_FORECAST', `직전 ${QUEUE_OBS_MIN}분 처리 여객 평균이 이미 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만입니다.`);
+        clearMetric = queueMetric(
+            'CALCULATED',
+            'WAIT_AVG_FORECAST',
+            `직전 ${QUEUE_OBS_MIN}분 처리 여객 평균이 이미 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만이고 ${judgeMin}분 판정 구간 끝까지 유지됩니다.`,
+        );
     } else if (reachMin > 0) {
         clearSec = reachMin * 60;
         clearMetric = queueMetric(
             'ESTIMATED',
             'WAIT_AVG_FORECAST',
-            `${reachMin}분 후 직전 ${QUEUE_OBS_MIN}분 처리 여객 예측 평균이 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만이 됩니다.`,
+            `${reachMin}분 후 직전 ${QUEUE_OBS_MIN}분 처리 여객 예측 평균이 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만이 되고 ${judgeMin}분 판정 구간 끝까지 유지됩니다.`,
         );
-    } else if ((capacity ?? 0) <= lambda) {
+    } else if (trace !== null && isQueueGrown(trace, judgeMin)) {
         clearMetric = queueMetric(
             'UNREACHABLE',
             'WAIT_AVG_FORECAST',
-            '처리능력이 유입 이하라 예측 범위 안에서 평균 대기시간이 목표 미만으로 내려가지 않습니다.',
+            `${judgeMin}분 판정 구간 끝 예측 대기인원 ${Math.round(trace.remainAt(judgeMin))}명이 기준시각 ${Math.round(trace.remainAt(0))}명보다 많아 구간 뒤에 다시 혼잡해집니다.`,
         );
     } else {
-        clearMetric = queueMetric('UNAVAILABLE', 'WAIT_AVG_FORECAST', `${QUEUE_HORIZON_MIN}분 예측 범위 안에 목표 미만에 도달하지 않습니다.`);
+        clearMetric = queueMetric(
+            'UNREACHABLE',
+            'WAIT_AVG_FORECAST',
+            `${judgeMin}분 판정 구간 안에서 평균 대기시간이 목표 미만으로 내려간 뒤 끝까지 유지되지 않습니다.`,
+        );
     }
 
     const clear: FcltQueueClearDto = {
@@ -979,28 +1046,35 @@ function toQueueRecommend(profile: QueueScenarioProfile, targetMin: number): Fcl
 
     if (mu === null || stableMinCnt === null || forecastGap(profile, 1) !== null) return base;
 
+    const judgeMin = judgeMinOf(targetMin);
+    let peakArrivalPerMin = 0;
+
+    for (let minute = 0; minute < judgeMin; minute++) peakArrivalPerMin = Math.max(peakArrivalPerMin, arrivalAt(profile, minute));
+
     // 이 수량부터는 대기열과 매분 유입이 모두 그 분에 처리돼 결과가 같다
-    const upperCnt = Math.max(stableMinCnt, Math.ceil(((profile.wtngPsgCnt + lambda / MIN_PER_HOUR) * MIN_PER_HOUR) / mu));
+    const upperCnt = Math.max(1, Math.ceil(((profile.wtngPsgCnt + peakArrivalPerMin) * MIN_PER_HOUR) / mu));
     let goalOnlyMinCnt: number | null = null;
 
     for (let fcltCnt = 0; fcltCnt <= upperCnt; fcltCnt++) {
-        if (!meetsTarget(simulateQueue(profile, fcltCnt, targetMin), targetMin)) continue;
+        const trace = simulateQueue(profile, fcltCnt, judgeMin);
 
-        if (goalOnlyMinCnt === null) goalOnlyMinCnt = fcltCnt;
+        if (goalOnlyMinCnt === null && meetsTarget(trace, targetMin)) goalOnlyMinCnt = fcltCnt;
 
-        if (fcltCnt < stableMinCnt) continue;
+        const clearMin = sustainedMinOf(trace, judgeMin);
+
+        if (clearMin < 0 || clearMin > targetMin) continue;
 
         return {
             ...base,
             reqCnt: fcltCnt,
             extraCnt: Math.max(fcltCnt - profile.oprCnt, 0),
             reduceCnt: Math.max(profile.oprCnt - fcltCnt, 0),
-            stableAplyYn: fcltCnt > goalOnlyMinCnt ? 'Y' : 'N',
+            stableAplyYn: goalOnlyMinCnt !== null && fcltCnt > goalOnlyMinCnt ? 'Y' : 'N',
             capaAvlYn: profile.totCnt === null ? null : fcltCnt <= profile.totCnt ? 'Y' : 'N',
             reqMetric: queueMetric(
                 'ESTIMATED',
                 'WAIT_AVG_FORECAST',
-                `${targetMin}분 안에 직전 ${QUEUE_OBS_MIN}분 처리 여객 평균이 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만이 되고 처리능력이 유입보다 큰 최소 총수`,
+                `${targetMin}분 안에 직전 ${QUEUE_OBS_MIN}분 처리 여객 평균이 ${MOCK_NORMAL_UPPER_EXCLUSIVE_SEC}초 미만이 되고 ${judgeMin}분 판정 구간 끝까지 유지되며 구간 끝 대기인원이 기준시각보다 늘지 않는 최소 총수`,
             ),
         };
     }
@@ -1013,6 +1087,62 @@ function toQueueRecommend(profile: QueueScenarioProfile, targetMin: number): Fcl
             `${upperCnt}개 이상은 결과가 같습니다. 이미 처리된 여객과 오래 기다린 대기자의 대기시간이 창에 남아 ${targetMin}분 안에 목표 미만이 되지 않습니다.`,
         ),
     };
+}
+
+function isQueueGoalMet(profile: QueueScenarioProfile, fcltCnt: number, targetMin: number): boolean {
+    if (fcltCnt <= 0 || profile.prcsSec === null || forecastGap(profile, fcltCnt) !== null) return false;
+
+    const judgeMin = judgeMinOf(targetMin);
+    const clearMin = sustainedMinOf(simulateQueue(profile, fcltCnt, judgeMin), judgeMin);
+
+    return clearMin >= 0 && clearMin <= targetMin;
+}
+
+function toQueueFcstList(profile: QueueScenarioProfile, fcltCnt: number, ymd: string, baseMinute: number, judgeMin: number): FcltQueueFcstDto[] {
+    if (forecastGap(profile, fcltCnt) !== null) return [];
+
+    const trace = simulateQueue(profile, fcltCnt, judgeMin);
+    const list: FcltQueueFcstDto[] = [];
+
+    for (let minute = 0; minute <= judgeMin; minute += RSLT_MIN) {
+        list.push({ fcstDt: toDt(ymd, baseMinute + minute), fcstWtngSec: trace.avgAt(minute), wtngPsgCnt: trace.remainAt(minute) });
+    }
+
+    return list;
+}
+
+function toQueueArvlList(profile: QueueScenarioProfile, ymd: string, baseMinute: number, judgeMin: number): FcltQueueArvlDto[] {
+    const list: FcltQueueArvlDto[] = [];
+
+    for (let endMin = RSLT_MIN; endMin <= judgeMin; endMin += RSLT_MIN) {
+        let arvlPsgCnt = 0;
+
+        for (let minute = endMin - RSLT_MIN; minute < endMin; minute++) arvlPsgCnt += arrivalAt(profile, minute);
+        list.push({ secEndDt: toDt(ymd, baseMinute + endMin), arvlPsgCnt });
+    }
+
+    return list;
+}
+
+function toQueueCntClearList(profile: QueueScenarioProfile, reqCnt: number | null, ymd: string, baseMinute: number, targetMin: number): FcltQueueCntClearDto[] {
+    const upperCnt = profile.totCnt ?? Math.max(profile.oprCnt, reqCnt ?? 0);
+    const judgeMin = judgeMinOf(targetMin);
+    const list: FcltQueueCntClearDto[] = [];
+
+    for (let fcltCnt = 1; fcltCnt <= upperCnt; fcltCnt++) {
+        const { cgnClearMin, cgnClearDt, clearMetric } = toQueueClear(profile, fcltCnt, ymd, baseMinute, targetMin);
+
+        list.push({
+            fcltCnt,
+            cgnClearMin,
+            cgnClearDt,
+            clearMetric,
+            goalMetYn: isQueueGoalMet(profile, fcltCnt, targetMin) ? 'Y' : 'N',
+            fcstList: toQueueFcstList(profile, fcltCnt, ymd, baseMinute, judgeMin),
+        });
+    }
+
+    return list;
 }
 
 function failQueueScenario(errorMessage: string): FcltQueueScenarioDto {
@@ -1064,7 +1194,7 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
         totCntRsn: profile.totCnt === null ? '보안검색대(SC) 시설 마스터에서 배정 가능 수량을 찾지 못했습니다.' : '',
         arvlRate: profile.arvlPerHour / 60,
         srvcRate: mu === null ? null : mu / 60,
-        arvlMetric: queueMetric('ESTIMATED', 'QUEUE_BALANCE', '관측구간 보존식 유입인원 / 구간초 × 3600 (명/시간)'),
+        arvlMetric: queueMetric('ESTIMATED', 'EXTERNAL_INPUT', '기준시각부터 60분 CAST 유입 합 / 60분 × 60 (명/시간)'),
         srvcMetric:
             mu === null
                 ? queueMetric('UNAVAILABLE', 'SERVICE_TIME', '양수인 단일 시설 평균 처리시간이 필요합니다.')
@@ -1077,6 +1207,10 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
         scenario: null,
         totScenario: null,
         recommend: null,
+        cntClearList: [],
+        clearJudgeMin: null,
+        arvlProfileYn: null,
+        arvlList: [],
     };
 
     if (req.mode === 'COUNT') {
@@ -1087,19 +1221,27 @@ function buildFcltQueueScenario(req: FcltQueueScenarioReq): FcltQueueScenarioDto
     }
 
     const recommend = toQueueRecommend(profile, targetMin);
+    const judgeMin = judgeMinOf(targetMin);
+    const timeResult: FcltQueueScenarioDto = {
+        ...result,
+        recommend,
+        cntClearList: toQueueCntClearList(profile, recommend.reqCnt, ymd, baseMinute, targetMin),
+        clearJudgeMin: judgeMin,
+        arvlProfileYn: 'Y',
+        arvlList: toQueueArvlList(profile, ymd, baseMinute, judgeMin),
+    };
 
-    if (recommend.reqCnt === null) return { ...result, recommend };
+    if (recommend.reqCnt === null) return timeResult;
 
     if (profile.totCnt !== null && recommend.reqCnt > profile.totCnt) {
-        return { ...result, recommend, totScenario: toQueueClear(profile, profile.totCnt, ymd, baseMinute, targetMin) };
+        return { ...timeResult, totScenario: toQueueClear(profile, profile.totCnt, ymd, baseMinute, targetMin) };
     }
 
     const scenario = toQueueClear(profile, recommend.reqCnt, ymd, baseMinute, targetMin);
-    const stable = mu !== null && recommend.reqCnt * mu > profile.arvlPerHour;
-    const goalMet = stable && meetsTarget(simulateQueue(profile, recommend.reqCnt, targetMin), targetMin);
+    const goalMet = isQueueGoalMet(profile, recommend.reqCnt, targetMin);
 
     return {
-        ...result,
+        ...timeResult,
         scenario,
         recommend: { ...recommend, goalMetYn: goalMet ? 'Y' : 'N' },
     };
