@@ -359,6 +359,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
     private final SessionService sessionService;
     private final CastFcltWtngRsltCreateService castFcltWtngRsltCreateService;
 
+    // FS (Flight Schedule)
     private static class FsFieldInfo {
         private final String pKind;
         private final Function<CastFlightScheduleDto, Object> extractor;
@@ -400,6 +401,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         FS_FIELD_MAP.put(BAGGAGET2, new FsFieldInfo(P_KIND_DATE_TIME, CastFlightScheduleDto::getBaggageT2));
     }
 
+    // CA (카운터 할당)
     private static class CaFieldInfo {
         private final String pKind;
         private final Function<CastCounterAllocationDto, Object> extractor;
@@ -427,6 +429,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         CA_FIELD_MAP.put(CHECKINALLOCDESCRYPTION, new CaFieldInfo(P_KIND_STRING, CastCounterAllocationDto::getCheckInAllocDescryption));
     }
 
+    // SBD
     private static class SbdFieldInfo {
         private final String pKind;
         private final Function<CastSelfCheckInCountAndBagDropDto, Object> extractor;
@@ -454,6 +457,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         SBD_FIELD_MAP.put(CHECKINALLOCDESCRYPTION, new SbdFieldInfo(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getCheckInAllocDescryption));
     }
 
+    // 서비스 타임
     private static class StFieldInfo {
         private final String pKind;
         private final Function<CastCheckInCounterServiceTimeDto, Object> extractor;
@@ -470,6 +474,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         ST_FIELD_MAP.put(SERVICE_TIME, new StFieldInfo(P_KIND_FLOAT, CastCheckInCounterServiceTimeDto::getServiceTime));
     }
 
+    // 체크인카운터
     private static class CtFieldInfo {
         private final String pKind;
         private final Function<CastCheckinTypeDto, Object> extractor;
@@ -491,6 +496,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         CT_FIELD_MAP.put(MOBILE_VALUE, new CtFieldInfo(P_KIND_STRING, CastCheckinTypeDto::getMobileValue));
     }
 
+    // 출국장
     private static class DgFieldInfo {
         private final String pKind;
         private final Function<CastFcltyOpngTblDptgDto, Object> extractor;
@@ -514,6 +520,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         DG_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new DgFieldInfo(P_KIND_INTEGER, CastFcltyOpngTblDptgDto::getCurrentNumberofLanes));
     }
 
+    // 출국심사
     private static class EmFieldInfo {
         private final String pKind;
         private final Function<CastFcltyOpngTblEmigDto, Object> extractor;
@@ -532,6 +539,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         EM_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new EmFieldInfo(P_KIND_INTEGER, CastFcltyOpngTblEmigDto::getCurrentNumberofLanes));
     }
 
+    // 보안검색대
     private static class ScFieldInfo {
         private final String pKind;
         private final Function<CastFcltyOpngTblScrtyCntrlDto, Object> extractor;
@@ -549,6 +557,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         SC_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new ScFieldInfo(P_KIND_INTEGER, CastFcltyOpngTblScrtyCntrlDto::getCurrentNumberofLanes));
     }
 
+    // 입국심사
     private static class ImFieldInfo {
         private final String pKind;
         private final Function<CastFcltyOpngTblImmigDto, Object> extractor;
@@ -572,6 +581,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         IM_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new ImFieldInfo(P_KIND_INTEGER, CastFcltyOpngTblImmigDto::getCurrentNumberofLanes));
     }
 
+    // 환승장
     private static class TsFieldInfo {
         private final String pKind;
         private final Function<CastFcltyOpngTblTrnstScrtyCntrlDto, Object> extractor;
@@ -606,6 +616,8 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
             this.extractor = extractor;
         }
     }
+
+    // What-If
     private static class WiFieldInfo {
         private final String pKind;
         private final Function<CastWhatIfCntrlDto, Object> extractor;

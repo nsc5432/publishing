@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * @Classname   : CastApiController.java
- * @Description : 소스생성 관리 Controller
+ * @Description : Cast Api Controller
  *
  * @Copyright (c) 인천국제공항 통합정보시스템 아시아나IDT 컨소시엄 All right reserved.
  * <pre>
@@ -49,7 +49,7 @@ public class CastApiController extends BaseAomsRestController {
 	@PostMapping(value = "/REQ_GetResourceInformation.do")
     public String resGetResourceInformation(@RequestBody String param) {
         return castApiExecutor.execute(
-            "GetResourceInformation", 
+            "GetResourceIn결과 formation", 
             param,
             context -> castApiService.retrieveResourceInformation(param, context)
         );
