@@ -4,7 +4,7 @@
 다른 세션에서 이어 갈 때는 이 문서의 **§5 다음 작업**부터 시작한다.
 
 - 기준 커밋: `e486b22` (2026-11-17). 줄 번호는 이 커밋 기준이므로 파일이 바뀌면 메서드명으로 다시 찾는다.
-- 진행 상황: 1단계(골격) 훑기 완료 · **2단계(① 리소스 목록) 완료** · 3단계부터 미진행
+- 진행 상황: 1단계(골격) 훑기 완료 · 2단계(① 리소스 목록) 완료 · **3단계(② 발행 진입 · 분기) 완료** · 4단계부터 미진행
 
 ---
 
@@ -34,7 +34,7 @@ CAST ──① REQ_GetResourceInformation.do ──> retrieveResourceInformation
 | C1 | 1–360 | 클래스 골격 | 상수, XML 템플릿 상수(240–354), 의존성(355–360) | 훑기 |
 | C2 | 361–730 | 매핑 사전 | 발행용 `FS/CA/SBD/ST/CT/DG/EM/SC/IM/TS/RS/WI_FIELD_MAP`, 수신 파싱용 `RESOURCE_INFO_MAP` · `RUN_MAP` · `INTERVAL_MAP` · `WHATIF_MAP`, `colTable` ThreadLocal | 필요할 때만 참조 |
 | C3 | 732–901 | ① 리소스 목록 | `resolveBaseYmd` → 파싱 → `mapResourceFlags` → mapper → `buildResponseXml` | ✅ 완료 (§4) |
-| C4 | 902–1105 | ② 진입 · 분기 | `retrieveResource`, 사용자 PS(PS500~998) 분기, `renderUserPropertySet`, `renderBasePropertySetXml`, `processResourceData` switch | 정독 (핵심) |
+| C4 | 902–1105 | ② 진입 · 분기 | `retrieveResource`, 사용자 PS(PS500~998) 분기, `renderUserPropertySet`, `renderBasePropertySetXml`, `processResourceData` switch | ✅ 완료 (§4.2) |
 | C5 | 1106–1274 | ② 운항 · 카운터 | `handleFlightSchedule` · `handleCounterAllocation` · `handleSbdAllocation` | 정독 |
 | C6 | 1275–1928 | ② PropertySet | `handlePropertySet` → `processServiceProperties` → 분포별 `append*Xml` 14종(1422–1771) → `processPaxAndResourceInfo` → `appendT*` 5종 → `processPropertySetId` | 패턴 하나 정독 후 차이만 |
 | C7 | 1929–1985 | ② 모델 | `handleCastModel` | 정독 |
@@ -52,7 +52,7 @@ CAST ──① REQ_GetResourceInformation.do ──> retrieveResourceInformation
 
 1. **골격** (C0 → C1): 서비스는 예외를 `context.addException`에 넣고 XML을 돌려준다는 계약, 트랜잭션, 의존성
 2. **① 리소스 목록** (C3): 세 흐름이 함께 쓰는 공통 패턴을 익힌다 — ✅ 완료
-3. **② 발행 진입** (C4): `processResourceData` switch로 유형 → 핸들러 지도를 그리고, `renderUserPropertySet` 치환을 AGENTS.md §11.3과 대조
+3. **② 발행 진입** (C4): `processResourceData` switch로 유형 → 핸들러 지도를 그리고, `renderUserPropertySet` 치환을 AGENTS.md §11.3과 대조 — ✅ 완료
 4. **② 핸들러** (C5 → C8 → C7 → C6): 하나를 정독하고 나머지는 비교표로 정리. 규칙 대부분이 SQL에 있으므로 `CastApiMapper.xml`과 같이 본다
    - 비교표 열: 핸들러 / mapper 메서드 / FIELD_MAP / baseYmd·번호 사용 / 특이점
    - SQL 대조 대상(§11.3): SBD `AirlineCode`, 키오스크 `SUBSTR(ID,-3,1)`, `OPER_END_DT` HHMI, `CHKN_TYPE_CD='C'`, DepartureGate 레인 분배
@@ -75,8 +75,8 @@ CAST ──① REQ_GetResourceInformation.do ──> retrieveResourceInformation
 
 ### 미리 짚어 둔 확인 포인트 (3단계 이후)
 
-1. GenericTable 분기(`processResourceData`, 1080–1099줄)에 마지막 `else`가 없다. 어떤 ID에도 맞지 않으면 실패 기록 없이 빈 문자열을 응답한다.
-2. 분기 판정이 `contains()` 기반이다(CounterAllocation은 `contains("CA")`). 상수끼리 포함 관계가 없는지 확인한다.
+1. GenericTable 분기(`processResourceData`, 1080–1099줄)에 마지막 `else`가 없다. 어떤 ID에도 맞지 않으면 실패 기록 없이 빈 문자열을 응답한다. → 3단계에서 확인 (§4.2 확인 포인트 2)
+2. 분기 판정이 `contains()` 기반이다(CounterAllocation은 `contains("CA")`). 상수끼리 포함 관계가 없는지 확인한다. → 3단계에서 확인, 포함 관계 없음 (§4.2)
 3. 흐름마다 실패 처리가 다르다. ①·②는 예외를 삼키고 실패 XML이나 `INVALID_REQUEST`를 돌려주고, ③은 `setRollbackOnly`로 롤백한다.
 4. `colTable` ThreadLocal이 싱글톤 빈의 필드다(730줄). 진입마다 `remove()`를 부르는데, 종료 시 정리 여부와 §16.9 관점을 확인한다.
 5. `saveModel`은 파일 경로를 만든다. §16.2 점검 대상이다.
@@ -181,17 +181,124 @@ Executor finally
 - 실패하면 `context.addException` 후 실패 응답을 돌려준다. ②에서는 실패 응답이 `INVALID_REQUEST` 문자열이다.
 - `Parameter` 분기와 `colTable`은 ② 파서에서 실제로 쓰인다.
 
+### 4.2 ② 리소스 발행 진입과 분기 (C4)
+
+목록을 받은 CAST는 리소스를 하나씩 `REQ_GetResource.do`로 요청한다. 이 구간은 요청을 해석해 알맞은 핸들러로 보내는 관문이고, 사용자 PropertySet 치환도 여기서 처리한다.
+
+```
+retrieveResource(param, context)                                :907
+ └ retrieveResource(parser, context)                            :921  ← 본체
+    ├ colTable.remove()
+    ├ parser.parse() → resourceList                             (XML → resourceType · resourceID)
+    ├ setBaseYmd(resolveBaseYmd())
+    ├ [PropertySet이면]
+    │   ├ executionMapper.retrievePropertySetRequest(id)        (USER_MSTR에서 PS5xx 찾기)
+    │   ├ 찾음        → renderUserPropertySet(request)  ──→ 바로 return
+    │   └ PS500~998인데 없음 → IllegalStateException
+    └ processResourceData(type, dto, sb, context)               :1059 ← switch 분기
+```
+
+진입 오버로드 3개와 파서 람다 구조는 ①과 같다.
+
+**요청 파싱** (985–1021줄)
+
+요청 형식 두 가지를 모두 받는다.
+
+| 형식 | 읽는 위치 |
+|---|---|
+| `<Parameter id="ResourceType">FlightSchedule</Parameter>` | `id` 속성으로 칸을 정하고 텍스트를 읽음 |
+| `<m:ResourceDescription ResourceType="…" ResourceID="…"/>` | 속성을 직접 읽고, 없으면 `""` |
+
+- 여기서 `colTable`은 `set`한 값을 바로 다음 줄에서 `get`하는 지역 변수 역할만 한다. 상태를 실제로 이어서 쓰는 곳은 ③ 결과 파서(2827–2843줄)뿐이다.
+
+**PropertySet 3갈래**
+
+| 요청 ID | USER_MSTR 행 | 처리 |
+|---|---|---|
+| PS500~998 | 있음 | `renderUserPropertySet`: PS001을 렌더한 뒤 ID 치환 |
+| PS500~998 | 없음 (삭제됐거나 원래 없음) | `IllegalStateException` → `INVALID_REQUEST` |
+| PS001 · 002~499 · 999 | 해당 없음 | `processResourceData` → `handlePropertySet` 직행 |
+
+- "PS500~998" 범위 판정이 SQL(`java/mapper/CastExecutionMapper.xml` 117–121줄)과 Java(938–944줄)에 두 번 들어 있다. 둘 다 3자리 문자열 비교라 결과는 같다.
+- 요청이 삭제되면 두 번째 줄로 떨어진다. §11.4의 "삭제된 요청은 해당 사용자 PS의 재조회를 종료한다"가 이 동작이다.
+
+**사용자 PS 치환** (`renderUserPropertySet`, 958–983줄)
+
+PS001에 실리는 참조 ID는 `retrievePropertySetId`(`CastApiMapper.xml` 1326–1391줄)가 정한다. 시설 마스터 8곳에서 `ATRB_ID = '001'`인 행을 찾아 붙인다.
+
+| PS001에 실리는 참조 | 사용자 PS에서 | 치환 값 (USER_MSTR) |
+|---|---|---|
+| `PS001` (자기 ID) | 치환 | `prptStngRsrcId` |
+| `SBD001` | 치환 | `sbdCntrlAlctnId` |
+| `FacilityOpeningTable_DepartureGate001` | 치환 | `fcltyOpngDptcnySrngRsrcId` |
+| `FacilityOpeningTable_SecurityControl001` | 치환 | `fcltyOpngScrtyCntrlRsrcId` |
+| `FacilityOpeningTable_Immigration001` | 치환 | `fcltyOpngEntcnyRsrcId` |
+| `FacilityOpeningTable_TransferSecurityControl001` | 치환 | `fcltyOpngTrScrtyCntrlRsrcId` |
+| `FacilityOpeningTable_Emigration001` | 그대로 | — |
+| `CheckinType001` | 그대로 | — |
+| `CheckInCounterServiceTime001` | 그대로 | — |
+
+- 그대로 두는 세 줄은 §11.3의 "체크인유형·서비스시간·출국심사는 001 원천"과 일치한다.
+- FS와 CA는 PS에 실리지 않는다. 사용자 실행의 FS · CA 번호는 `WhatIfDefinitionTable`을 거쳐 CAST에 전달된다(4단계 C8의 `handleWhatIfControl`).
+- 치환은 XML 문자열 전체에 정규식을 걸어 처리한다. 키 6개가 모두 긴 접두어로 시작해 `SecurityControl001`과 `TransferSecurityControl001`이 서로 잘못 걸리지 않는다.
+- `request.getExcnYmd()`를 기준일자로 넘기지만, PS 조회 SQL 5개(Mst · Svc · Pax · PaxDtl · Id)에는 날짜 바인딩이 없다. 그래서 사용자 PS의 내용은 실행 시점이 아니라 CAST가 가져가는 시점의 PS001이다. §11.3의 "원천에 대한 의도된 변경은 그대로 참조"와 같은 동작이다(실행과 CAST 수신 사이에 운영 반영이 일어나면 새 값이 들어간다).
+
+**PS001 내용 검사** (`renderBasePropertySetXml`, 1023–1057줄)
+
+- PS001을 렌더한 뒤 다시 파싱해 `PName="values"` 칸에 값이 하나라도 있는지 본다. 없으면 "CAST 입력 내용이 없습니다", XML이 깨졌으면 "CAST 입력 XML이 유효하지 않습니다"로 실패한다.
+- PS001 그룹 행이 없으면 `handlePropertySet`이 `Result="false"` 껍데기를 만들고, 칸이 없으므로 첫 번째 실패로 이어진다.
+
+**디스패처** (`processResourceData`, 1059–1104줄)
+
+| ResourceType | 판정 | 핸들러 (4단계 청크) |
+|---|---|---|
+| `FlightSchedule` | — | `handleFlightSchedule` (C5) |
+| `CounterAllocation` | ID에 `CA`가 있으면 | `handleCounterAllocation` (C5) |
+| 〃 | 그 밖 | `handleSbdAllocation` (C5) |
+| `PropertySet` | — | `handlePropertySet` (C6) |
+| `CASTModel` · `CASTExpressModel` | — | `handleCastModel` (C7) |
+| `GenericTable` | ID `contains` 9단 체인 | ServiceTime · CheckinType · DepartureGate · Emigration · Immigration · SecurityControl · TransferSecurityControl · ReportingProfiles · WhatIf (C8) |
+| 그 밖 | `default` | `addFailure` + `<error>Unsupported Resource Type</error>` |
+
+GenericTable 체인의 접두어끼리는 포함 관계가 없어 판정 순서에 따른 오분기는 없다.
+
+**실패 응답 정리**
+
+같은 API인데 실패 형태가 다섯 가지다.
+
+| 상황 | 응답 본문 | errorMsg 로그 |
+|---|---|---|
+| XML 파싱 실패 · `IllegalStateException` | `Invalid Request: …` (SOAP 아님) | 남음 (`addException`) |
+| 지원하지 않는 ResourceType | `<error>Unsupported Resource Type</error>` (SOAP 아님) | 남음 (`addFailure`) |
+| PS 그룹 행 없음 (직접 요청) | SOAP `Result="false"` | 안 남음 |
+| GenericTable인데 9종 어디에도 안 맞음 | 빈 문자열 | 안 남음 |
+| 요청에 ResourceType 자체가 없음 | `switch(null)` NPE → HTTP 500 | 안 남음 (Executor도 NPE는 잡지 않음) |
+
+**확인 포인트** (중요한 순서)
+1. **ServiceTime ID의 대소문자가 맞지 않는다.** PS001이 참조로 싣는 ID는 `CheckInCounterServiceTime001`(대문자 I, `CastApiMapper.xml` 1388줄)이다. 목록 SQL(138줄), 디스패처(1082줄), 조회 SQL의 `REGEXP_REPLACE`(`CastApiMapper.xml` 1873줄)는 모두 소문자 i(`Checkin…`)를 대소문자 구분으로 비교한다.
+   - CAST가 PS에 적힌 ID 그대로 요청하면 GenericTable 체인을 모두 빠져나가 로그 없이 빈 응답이 나간다.
+   - §11.4에 "CAST가 결과에서 이 ID를 대소문자를 다르게 돌려보낸다"는 기록이 있다. CAST 안에서는 PS 쪽 표기를 쓰고 있다는 뜻이다.
+   - 실제 요청 표기는 GetResource payload 로그(Executor가 설정에 따라 저장)의 `ResourceID`로 확정한다.
+2. **GenericTable 미매칭이 조용히 빈 응답으로 나간다.** 1번이 실제로 일어나면 원인을 찾을 단서가 남지 않는다. 끝에 `else { addFailure(...); sb.append(RESOURCE_ERROR); }`가 있으면 추적할 수 있다.
+3. **참조가 빠져도 치환이 조용히 넘어간다.** `renderUserPropertySet`은 치환 값이 null인지만 검사하고, 키가 PS001 XML에 실제로 있었는지는 보지 않는다. 시설 마스터에 `'001'` 행이 없으면 참조 줄이 UNION에서 빠지고, 사용자 PS도 그 시설 참조 없이 발행된다.
+4. **PS001 내용 검사가 사용자 경로에만 있다.** 일일 실행이 PS001을 직접 요청하면 값이 비어 있어도 `Result="true"`로 나간다.
+5. **실패 응답 형식이 제각각이다**(위 표). CAST가 SOAP가 아닌 본문이나 빈 본문을 어떻게 처리하는지는 CAST 쪽 확인이 필요하다.
+6. 낮은 우선순위: 카테고리 PS(002~499)를 직접 요청하면 `retrievePropertySetId`가 같은 번호의 시설 마스터를 찾는다. 보통 없어서 참조 줄이 빠진 PS가 나간다. §4.1 확인 포인트 4(카테고리 PS 목록 노출)와 이어진다.
+
+**4단계로 가져갈 것**
+- 핸들러는 모두 `(idto, sb)`를 받아 `sb`에 SOAP을 직접 쓴다. 실패 시 각자 `Result="false"`를 쓰는지, 아무것도 쓰지 않는지 핸들러마다 비교한다.
+- C5 · C8은 SQL에서 `REPLACE` / `REGEXP_REPLACE`로 ID 접두어를 떼고 번호를 얻는 패턴이 반복된다. 확인 포인트 1의 대소문자 문제가 다른 핸들러에도 있는지 같이 본다.
+
 ---
 
 ## 5. 다음 작업
 
-**3단계 — C4 (902–1105줄)**: `retrieveResource` 진입, 사용자 PS 분기, `processResourceData` 디스패처.
+**4단계 — ② 핸들러**: C5(1106–1274줄) → C8(1986–2449줄 + 3097–3180줄) → C7(1929–1985줄) → C6(1275–1928줄) 순서. 핸들러가 많아 C5부터 끊어 진행한다.
 
-미리 본 내용:
-- `resourceType == PropertySet`이면 `executionMapper.retrievePropertySetRequest(resourceID)`로 사용자 요청을 찾는다. 있으면 `renderUserPropertySet`으로 처리하고, 없는데 ID가 `PS500`~`PS998`이면 "등록되지 않은 사용자 PropertySet" 예외를 던진다.
-- `renderUserPropertySet`은 `renderBasePropertySetXml(excnYmd)`로 PS001 XML을 만든 뒤 6개 참조(PS001 · SBD001 · DepartureGate001 · SecurityControl001 · Immigration001 · TransferSecurityControl001)를 정규식으로 요청의 리소스 ID로 치환한다. 참조가 하나라도 비면 예외를 던진다.
-- 실패 응답은 `INVALID_REQUEST`, 지원하지 않는 유형은 `context.addFailure` + `RESOURCE_ERROR`다.
+- 청크마다 §3의 비교표(핸들러 / mapper 메서드 / FIELD_MAP / baseYmd·번호 사용 / 특이점)를 채운다.
+- 실패 시 응답 형태와 §4.2의 "4단계로 가져갈 것" 두 항목을 같이 본다.
+- SQL 대조 대상(§11.3): SBD `AirlineCode`, 키오스크 `SUBSTR(ID,-3,1)`, `OPER_END_DT` HHMI, `CHKN_TYPE_CD='C'`, DepartureGate 레인 분배.
 
 새 세션에서 이어 갈 때 요청 예시:
 
-> `docs/cast-api-service-analysis.md`를 읽고 3단계(C4)부터 이어서 분석해줘. 끝나면 이 문서 §4에 결과를 추가하고 §5를 갱신해줘.
+> `docs/cast-api-service-analysis.md`를 읽고 4단계(C5)부터 이어서 분석해줘. 끝나면 이 문서 §4에 결과를 추가하고 §5를 갱신해줘.
