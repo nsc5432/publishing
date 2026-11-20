@@ -2475,7 +2475,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
     }
 
     private Document parseXmlSafely(String xmlStr) throws ParserConfigurationException, SAXException, IOException {
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+        DocumentBuilderFactory dbf = DocumentBuilderFactory.newDefaultInstance();
 
         dbf.setFeature(DISALLOW_DOCTYPE_DECL, true);
         dbf.setFeature(EXTERNAL_GENERAL_ENTITIES, false);
