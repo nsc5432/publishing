@@ -1488,14 +1488,6 @@ ORDER BY BlockID, DepArrTerminal, resourceID
       WHERE SMLT_MDL_EXPLN = #{modelResourceID}
     </select>
 
-    <select id="checkFcltCd" parameterType="aoms.pm.cmmn.dto.SimRsltDto" resultType="String">
-        /* CastApiMapper.checkFcltCd(SimRsltDto dto) */
-    SELECT PSG_FCLT_CD AS psgFcltCd
-    FROM PMOWN.TN_PM_SMLT_PSG_FCLT
-    WHERE USE_YN = 'Y'
-    AND SMLT_FCLT_NM = #{paxFcltCd}
-    </select>
-
     <select id="checkFcltCdList" parameterType="aoms.pm.cmmn.dto.SimRsltDto" resultType="aoms.pm.cmmn.dto.CastRsltFcltCdDto">
         /* CastApiMapper.checkFcltCdList(SimRsltDto dto) */
     SELECT PSG_FCLT_CD AS psgFcltCd
@@ -1646,135 +1638,6 @@ ORDER BY BlockID, DepArrTerminal, resourceID
         FROM DUAL
     </insert>
 
-    <select id="retrieveDelSetInfo" resultType="aoms.pm.cmmn.dto.SimSetDto">
-        /* CastApiMapper.retrieveDelSetInfo(SimSetDto dto) */
-        SELECT A.SMLT_ID AS smltId
-          FROM PMOWN.TN_PM_SMLT_STNG A
-         WHERE A.SMLT_ID NOT IN
-               (SELECT SMLT_ID
-                  FROM ((SELECT EXCN_YMD AS REGI_DT, MAX(TO_NUMBER(SMLT_ID)) AS SMLT_ID
-                           FROM PMOWN.TN_PM_SMLT_STNG
-                          GROUP BY EXCN_YMD)
-                          UNION
-                        (SELECT EXCN_YMD AS REGI_DT, MIN(TO_NUMBER(SMLT_ID)) AS SMLT_ID
-                           FROM PMOWN.TN_PM_SMLT_STNG
-                          GROUP BY EXCN_YMD)
-                          UNION
-                        (SELECT TO_CHAR(FRST_REG_DT, 'YYYYMMDD') AS REGI_DT, TO_NUMBER(SMLT_ID) AS SMLT_ID
-                           FROM PMOWN.TN_PM_SMLT_STNG
-                          WHERE FRST_REG_DT > CURRENT_TIMESTAMP - 1)
-                          UNION
-                        (SELECT EXCN_YMD AS REGI_DT, TO_NUMBER(SMLT_ID) AS SMLT_ID
-                           FROM PMOWN.TN_PM_SMLT_STNG
-                          WHERE BDPSG_ANCE_YN = 'N')
-                        ))
-      ORDER BY TO_NUMBER(A.SMLT_ID)
-    </select>
-
-    <delete id="deleteSimRsltDtl" parameterType="String">
-        /* CastApiMapper.deleteSimRsltDtl() */
-        DELETE FROM PMOWN.TN_PM_SMLT_RSLT_DTL
-         WHERE SMLT_ID = #{smltId}
-    </delete>
-
-    <delete id="deleteSimSetMst" parameterType="String">
-        /* CastApiMapper.deleteSimSetMst() */
-        DELETE FROM PMOWN.TN_PM_SMLT_STNG A
-         WHERE A.SMLT_ID = #{smltId}
-    </delete>
-
-    <select id="retrieveSimSetByPk" parameterType="aoms.pm.cmmn.dto.CastResReqDto" resultType="aoms.pm.cmmn.dto.CastResReqDto">
-        /* CastApiMapper.retrieveSimSetByPk(CastResReqDto dto) */
-    SELECT COUNT(SIM_ID) rsltCnt
-    FROM PMOWN.TN_PM_SMLT_STNG
-    WHERE SMLT_ID = #{smltId}
-       AND SMLT_MDL_SN = (SELECT SMLT_MDL_SN FROM PMOWN.TN_PM_SMLT_MDL WHERE SMLT_MDL_EXPLN = #{smltMdlExpln})
-    </select>
-
-    <delete id="deleteSimResultDtl" parameterType="aoms.pm.cmmn.dto.CastResReqDto">
-        /* CastApiMapper.deleteSimResultDtl(CastResReqDto dto) */
-    DELETE FROM PMOWN.TN_PM_SMLT_RSLT_DTL
-    WHERE SMLT_ID = REPLACE(#{smltId},'_','')
-       AND SMLT_MDL_SN = (SELECT SMLT_MDL_SN FROM PMOWN.TN_PM_SMLT_MDL WHERE SMLT_MDL_EXPLN = #{smltMdlExpln})
-    </delete>
-
-    <update id="updateSimResultDtl" parameterType="aoms.pm.cmmn.dto.CastResReqDto">
-        /* CastApiMapper.updateSimResultDtl(CastResReqDto dto) */
-    UPDATE INTO PMOWN.TN_PM_SMLT_RSLT_DTL SET
-              WTNG_PSG_CNT = INT(WTNG_PSG_CNT)+TO_NUMBER(#{wtngPsgCnt})
-            , TRNST_PSG_CNT = INT(TRNST_PSG_CNT)+TO_NUMBER(#{trnstPsgCnt})
-    WHERE SMLT_ID = #{smltId}
-        AND SMLT_MDL_SN = #{smltMdlSn}
-        AND SMLT_RSLT_SN = #{smltRsltSn}
-    </update>
-
-    <insert id="insertDwDelKeyValHst" parameterType = "aoms.pm.cmmn.dto.DwDelKeyValHstDto">
-        /* CastApiMapper.insertDwDelKeyValHst(DwDelKeyValHstDto dto) */
-    INSERT INTO PMOWN.TH_PM_DW_DEL_KEY_HSTRY
-         ( DEL_YMD
-         , TBL_NM
-         , DEL_SN
-         , KEY_1_VL
-         , KEY_2_VL
-         , KEY_3_VL
-         , KEY_4_VL
-         , KEY_5_VL
-         , KEY_6_VL
-         , KEY_7_VL
-         , KEY_8_VL
-         , KEY_9_VL
-         , KEY_10_VL
-         , FRST_RGTR_ID
-         , FRST_RGTR_IP_ADDR
-         , FRST_REG_DT
-         )
-    VALUES
-         ( TO_CHAR(CURRENT_TIMESTAMP,'YYYYMMDD')
-         , #{tblNm}
-         , PMOWN.SQ1_TH_PX_DW_DEL_KEY_VAL_HST.NEXTVAL
-         , #{key1Vl}
-         , #{key2Vl}
-         , #{key3Vl}
-         , #{key4Vl}
-         , #{key5Vl}
-         , #{key6Vl}
-         , #{key7Vl}
-         , #{key8Vl}
-         , #{key9Vl}
-         , #{key10Vl}
-         , #{loginUserId}
-         , #{loginIpAddr}
-         , CURRENT_TIMESTAMP
-         )
-    </insert>
-
-    <!-- 첨부파일 리스트 조회 -->
-    <select id="retrieveAtchFileList" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto" resultType="aoms.pm.cmmn.dto.PmAtchFileDto">
-        /* CastApiMapper.retrieveAtchFileList(PmAtchFileDto dto) */
-        SELECT ATCH_FILE_ID AS atchFileId                           /* 첨부파일ID */
-             , ATCH_FILE_SN AS atchFileSn                         /* 첨부파일일련번호 */
-             , ATCH_FILE_TASK_SE_CD AS atchFileTaskSeCd               /* 첨부파일업무구분코드 */
-             , ATCH_FILE_TYPE_CD AS atchFileTypeCd                      /* 첨부파일유형코드 */
-             , STRG_FILE_NM AS atchFileNm                           /* to-be에는 별도 첨부파일명 컬럼이 없어 저장파일명 사용 */
-             , STRG_FILE_NM AS strgFileNm                         /* 저장파일명 */
-             , ATCH_FILE_PATH_NM AS atchFilePathNm                  /* 첨부파일경로명 */
-             , ATCH_FILE_SZ AS atchFileSz                           /* 첨부파일사이즈 */
-             , ATCH_FILE_EXTN_NM AS atchFileExtnNm                /* 첨부파일확장자명 */
-             , ATCH_FILE_EXPLN AS atchFileExpln                       /* 첨부파일설명 */
-          FROM PMOWN.TN_PM_PSG_MNG_ATFL                 /* 첨부파일 */
-        <where>
-            <if test="atchFileIdSrch == ''.toString()">
-                AND 1 = 2
-            </if>
-            <if test="atchFileIdSrch != null and atchFileIdSrch != ''">
-                AND ATCH_FILE_ID = #{atchFileId}          /* 첨부파일ID */
-            </if>
-            <if test="atchFileSnoSrch != null and atchFileSnoSrch != ''">
-                AND ATCH_FILE_SN = #{atchFileSn}            /* 첨부파일일련번호 */
-            </if>
-        </where>
-    </select>
-
     <!-- 첨부파일 저장 -->
     <insert id="insertAtchFile" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto">
         /* CastApiMapper.insertAtchFile(PmAtchFileDto dto) */
@@ -1805,23 +1668,6 @@ ORDER BY BlockID, DepArrTerminal, resourceID
             , #{loginIpAddr}                   /* 최초등록자IP */
             , CURRENT_TIMESTAMP)            /* 최초등록타임스탬프 */
     </insert>
-
-    <!-- 첨부파일 수정 -->
-    <update id="updateAtchFile" parameterType="aoms.pm.cmmn.dto.PmAtchFileDto">
-        /* CastApiMapper.updateAtchFile(PmAtchFileDto dto) */
-        UPDATE PMOWN.TN_PM_PSG_MNG_ATFL                 /* 첨부파일 */
-           SET ATCH_FILE_TASK_SE_CD = #{atchFileTaskSeCd}           /* 첨부파일업무구분코드 */
-             , ATCH_FILE_TYPE_CD = #{atchFileTypeCd}              /* 첨부파일유형코드 */
-             , STRG_FILE_NM = #{strgFileNm}                 /* 저장파일명 */
-             , ATCH_FILE_PATH_NM = #{atchFilePathNm}          /* 첨부파일경로명 */
-             , ATCH_FILE_SZ = #{atchFileSz}                       /* 첨부파일사이즈 */
-             , ATCH_FILE_EXTN_NM = #{atchFileExtnNm}            /* 첨부파일확장자명 */
-             , LAST_MDFR_ID = #{loginUserId}                       /* 최종수정자ID */
-             , LAST_MDFR_IP_ADDR = #{loginIpAddr}                           /* 최종수정자IP */
-             , LAST_MDFCN_DT = CURRENT_TIMESTAMP                  /* 최종수정일시 */
-         WHERE ATCH_FILE_ID = #{atchFileId}                   /* 첨부파일ID */
-           AND ATCH_FILE_SN = #{atchFileSn}              /* 첨부파일일련번호 */
-    </update>
 
     <!-- 첨부파일 ATCH_FILE_ID PK 채번 -->
     <select id="retrieveIdMaxPk" resultType="String">
@@ -2208,13 +2054,6 @@ ORDER BY BlockID, DepArrTerminal, resourceID
         SELECT *
         FROM PMOWN.TN_PM_SMLT_USER_MSTR
         WHERE FLT_SCHDL_RSRC_ID = #{fltSchdlRsrcId}
-    </select>
-
-    <select id="retrieveUserReqByKey" resultType="aoms.pm.cast.dto.UserSmltReqDto">
-        /* CastApiMapper.retrieveUserReqByKey(String smltReqId) */
-        SELECT *
-        FROM PMOWN.TN_PM_SMLT_USER_MSTR
-        WHERE SMLT_REQ_ID = #{smltReqId}
     </select>
 
     <update id="updateUserReqFinished" parameterType="aoms.pm.cast.dto.UserSmltReqDto">
