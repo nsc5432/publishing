@@ -91,16 +91,13 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastApiService {
-
     @FunctionalInterface
     private interface ResourceRequestParser<T> {
         T parse() throws ParserConfigurationException, SAXException, IOException;
     }
 
     private static final String DAILY_PRPT_SET_RSRC_ID = "PS001";
-
     private final CastApiMapper castApiMapper;
-
     private final CastExecutionMapper executionMapper;
     private final CastExecutionService executionService;
     private final SessionService sessionService;
@@ -147,7 +144,6 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
             return buildResponseXml(dbResults, true);
         } catch (IllegalStateException | ParserConfigurationException | SAXException | IOException e) {
             context.addException(e);
-
             return buildResponseXml(dbResults, false);
         }
     }
@@ -156,21 +152,21 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         String types = dto.getResourceTypes();
         if (types == null) return;
 
-        dto.setModelYn(types.contains(CAST_MODEL) ? "1" : "");
-        dto.setExModelYn(types.contains(CAST_EXPRESS_MODEL) ? "1" : "");
-        dto.setFlightYn(types.contains(FLIGHT_SCHEDULE) ? "1" : "");
-        dto.setCounterYn(types.contains(COUNTER_ALLOCATION) ? "1" : "");
-        dto.setSbdYn(types.contains(COUNTER_ALLOCATION) ? "1" : "");
-        dto.setStYn(types.contains(GENERIC_TABLE) ? "1" : "");
-        dto.setCtYn(types.contains(GENERIC_TABLE) ? "1" : "");
-        dto.setDgYn(types.contains(GENERIC_TABLE) ? "1" : "");
-        dto.setImmiYn(types.contains(GENERIC_TABLE) ? "1" : "");
-        dto.setEmiYn(types.contains(GENERIC_TABLE) ? "1" : "");
-        dto.setScYn(types.contains(GENERIC_TABLE) ? "1" : "");
-        dto.setTsYn(types.contains(GENERIC_TABLE) ? "1" : "");
-        dto.setRptYn(types.contains(GENERIC_TABLE) ? "1" : "");
-        dto.setIfYn(types.contains(GENERIC_TABLE) ? "1" : "");
-        dto.setHandleYn(types.contains(PROPERTY_SET) ? "1" : "");
+        dto.setModelYn(types.contains(CAST_MODEL) ? "1" : ""); // CAST 모델 (SMLT_MDL_TYPE_CD = '1')
+        dto.setExModelYn(types.contains(CAST_EXPRESS_MODEL) ? "1" : ""); // CAST Express 모델 (SMLT_MDL_TYPE_CD = '2')
+        dto.setFlightYn(types.contains(FLIGHT_SCHEDULE) ? "1" : ""); // 운항 스케줄
+        dto.setCounterYn(types.contains(COUNTER_ALLOCATION) ? "1" : ""); // 체크인카운터 배정
+        dto.setSbdYn(types.contains(COUNTER_ALLOCATION) ? "1" : ""); // 셀프백드롭 배정
+        dto.setStYn(types.contains(GENERIC_TABLE) ? "1" : ""); // 체크인카운터 서비스시간 (CheckinCounterServiceTime)
+        dto.setCtYn(types.contains(GENERIC_TABLE) ? "1" : ""); // 체크인유형 (CheckinType)
+        dto.setDgYn(types.contains(GENERIC_TABLE) ? "1" : ""); // 출국장 운영시간표 (FacilityOpeningTable_DepartureGate)
+        dto.setImmiYn(types.contains(GENERIC_TABLE) ? "1" : ""); // 입국심사 운영시간표 (FacilityOpeningTable_Immigration)
+        dto.setEmiYn(types.contains(GENERIC_TABLE) ? "1" : ""); // 출국심사 운영시간표 (FacilityOpeningTable_Emigration)
+        dto.setScYn(types.contains(GENERIC_TABLE) ? "1" : ""); // 보안검색 운영시간표 (FacilityOpeningTable_SecurityControl)
+        dto.setTsYn(types.contains(GENERIC_TABLE) ? "1" : ""); // 환승보안검색 운영시간표 (FacilityOpeningTable_TransferSecurityControl)
+        dto.setRptYn(types.contains(GENERIC_TABLE) ? "1" : ""); // 리포팅 시간그룹 (ReportingProfilesTimeGroups)
+        dto.setIfYn(types.contains(GENERIC_TABLE) ? "1" : ""); // WhatIf 정의 테이블 (WhatIfDefinitionTable)
+        dto.setHandleYn(types.contains(PROPERTY_SET) ? "1" : ""); // 속성 세트 (PS+속성그룹 ID / 사용자 PS5xx)
     }
 
     private void resourceInfoList(Node node, String str, CastReqGetResourceInformationDto sDto) {
