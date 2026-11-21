@@ -120,14 +120,6 @@
                 AND A.CKNCT_ID NOT LIKE 'Y%'
                 AND A.CKNCT_ID NOT LIKE 'R%'
                 AND A.CKNCT_ID NOT LIKE 'S%'
-                AND EXISTS (
-                    SELECT 1
-                    FROM CAOWN.TN_CA_ALN_PGE B
-                    WHERE B.ALN_CD = A.ALN_CD
-                    AND B.PGE_NO = A.CHKN_PGE_NO
-                    AND B.TMNL_ID = A.TMNL_ID
-                    AND B.USE_YN = 'Y'
-                )
             ) Y
             WHERE Y.STA_HM IS NOT NULL
             AND Y.END_HM IS NOT NULL

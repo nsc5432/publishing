@@ -397,14 +397,6 @@ CIC_ALOT AS (
           AND A.CKNCT_ID NOT LIKE 'Y%'
           AND A.CKNCT_ID NOT LIKE 'R%'
           AND A.CKNCT_ID NOT LIKE 'S%'
-          AND EXISTS (
-              SELECT 1
-              FROM CAOWN.TN_CA_ALN_PGE B
-              WHERE B.ALN_CD = A.ALN_CD
-                AND B.PGE_NO = A.CHKN_PGE_NO
-                AND B.TMNL_ID = A.TMNL_ID
-                AND B.USE_YN = 'Y'
-          )
     ) Y
     WHERE Y.STA_HM != Y.END_HM
 ),
@@ -912,25 +904,13 @@ ORDER BY
                   END                                       AS domIntlSeCd       -- 국내국제구분코드
                   , t1                                                          -- 체크인오픈예정시분
                   , t2                                                          -- 체크인클로즈예정시분
-                  , (SELECT D.COM_CD_NM FROM CAOWN.TC_CA_COM_CD D WHERE D.COM_CD_SE_CD = 'CA263' AND D.COM_CD = trvlClss)       AS trvlClss         -- 체크인등급코드
-                  , (SELECT D.COM_CD_NM FROM CAOWN.TC_CA_COM_CD D WHERE D.COM_CD_SE_CD = 'CA264' AND D.COM_CD = grpStat)        AS grpStat          -- 체크인그룹코드
-                  , (SELECT D.COM_CD_NM FROM CAOWN.TC_CA_COM_CD D WHERE D.COM_CD_SE_CD = 'CA265' AND D.COM_CD = cicType)        AS cicType          -- 체크인종류코드
-                  , (SELECT D.COM_CD_NM FROM CAOWN.TC_CA_COM_CD D WHERE D.COM_CD_SE_CD = 'CA266' AND D.COM_CD = nonfuncStat)    AS nonfuncStat  -- 체크인기능코드
+                  , ' '                                     AS trvlClss         -- 체크인등급코드
+                  , ' '                                     AS grpStat          -- 체크인그룹코드
+                  , ' '                                     AS cicType          -- 체크인종류코드
+                  , ' '                                     AS nonfuncStat  -- 체크인기능코드
                   , CHKIN_TY_CD                             AS chknTypeCd   -- 체크인유형코드
                   , CASE
-                    WHEN CHKIN_TY_CD = 'C' THEN
-                        (
-                            SELECT '"' || LISTAGG(ALN_CD, ',') WITHIN GROUP (ORDER BY ALN_CD) || '"'
-                            FROM (
-                                SELECT DISTINCT C.ALN_CD
-                                FROM CAOWN.TN_CA_ALN_PGE C
-                                WHERE C.ALN_CD = ALN_CD
-                                AND C.PGE_NO = CHKIN_PG_NO
-                                AND C.TMNL_ID = TER_ID
-                                AND C.PGE_SE_CD = 'C'
-                                AND C.UNIT_SYS_ID = UNIT_SYS_ID
-                            )
-                        )
+                    WHEN CHKIN_TY_CD = 'C' THEN '"' || ALN_CD || '"'
                     WHEN CHKIN_TY_CD = 'D' THEN MSTR_FLT_NM
                     ELSE CHKIN_TY_CD
                     END  AS chknTypeDtlInfo  -- 체크인유형상세정보
@@ -941,7 +921,6 @@ ORDER BY
                         , Y.ALN_CD
                         , Y.DOM_INT_SE_CD
                         , Y.CHKIN_TY_CD
-                        , Y.UNIT_SYS_ID
                         , Y.MSTR_FLT_NM
                         , TO_CHAR(TO_DATE(Y.OPR_DT || Y.STA_HM, 'YYYYMMDDHH24MI'), 'YYYY-MM-DD"T"HH24:MI":00"') AS t1
                         , TO_CHAR(TO_DATE(
@@ -949,30 +928,19 @@ ORDER BY
                                 ELSE TO_CHAR(TO_DATE(Y.OPR_DT, 'YYYYMMDD') + 1, 'YYYYMMDD')
                             END || Y.END_HM, 'YYYYMMDDHH24MI'
                         ), 'YYYY-MM-DD"T"HH24:MI":00"') AS t2
-                        , Y.TRVL_CLSS AS trvlClss
-                        , Y.GRP_STAT AS grpStat
-                        , Y.CIC_TYPE AS cicType
-                        , Y.NONFUNC_STAT AS nonfuncStat
                         , Y.OPR_DT
                         , Y.STA_HM
                         , Y.END_HM
                         , CASE WHEN TO_NUMBER(Y.STA_HM) <= TO_NUMBER(Y.END_HM) THEN 'N' ELSE 'Y' END AS RON_YN
-                        , Y.CHKIN_PG_NO
                     FROM (SELECT X.TER_ID
                                 , X.CIC_ID
                                 , X.OPR_DT
                                 , X.DOM_INT_SE_CD
                                 , X.CHKIN_TY_CD
-                                , X.UNIT_SYS_ID
                                 , X.MSTR_FLT_NM
                                 , X.STA_HM
                                 , X.END_HM
                                 , X.ALN_CD
-                                , X.CHKIN_PG_NO
-                                , X.TRVL_CLSS
-                                , X.GRP_STAT
-                                , X.CIC_TYPE
-                                , X.NONFUNC_STAT
                                 , X.RON_YN
                             FROM (
                                      SELECT A.TMNL_ID AS TER_ID
@@ -983,13 +951,7 @@ ORDER BY
                                         , NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM) AS STA_HM
                                         , NVL(A.EST_END_HM, A.LAST_END_HM) AS END_HM
                                         , A.ALN_CD
-                                        , A.CHKN_PGE_NO AS CHKIN_PG_NO
-                                        , CIC.UNIT_SYS_ID
                                         , A.MSTR_FLTNM AS MSTR_FLT_NM
-                                        , (SELECT C.CHKN_GRD_CD     FROM CAOWN.TN_CA_ALN_PGE C WHERE C.ALN_CD = A.ALN_CD AND C.PGE_NO = A.CHKN_PGE_NO AND C.TMNL_ID = A.TMNL_ID AND C.PGE_SE_CD = 'C' AND C.UNIT_SYS_ID = CIC.UNIT_SYS_ID ) AS TRVL_CLSS
-                                        , (SELECT C.CHKN_GROUP_CD   FROM CAOWN.TN_CA_ALN_PGE C WHERE C.ALN_CD = A.ALN_CD AND C.PGE_NO = A.CHKN_PGE_NO AND C.TMNL_ID = A.TMNL_ID AND C.PGE_SE_CD = 'C' AND C.UNIT_SYS_ID = CIC.UNIT_SYS_ID ) AS GRP_STAT
-                                        , (SELECT C.CHKN_KND_CD     FROM CAOWN.TN_CA_ALN_PGE C WHERE C.ALN_CD = A.ALN_CD AND C.PGE_NO = A.CHKN_PGE_NO AND C.TMNL_ID = A.TMNL_ID AND C.PGE_SE_CD = 'C' AND C.UNIT_SYS_ID = CIC.UNIT_SYS_ID ) AS CIC_TYPE
-                                        , (SELECT C.CHKN_FWK_CD     FROM CAOWN.TN_CA_ALN_PGE C WHERE C.ALN_CD = A.ALN_CD AND C.PGE_NO = A.CHKN_PGE_NO AND C.TMNL_ID = A.TMNL_ID AND C.PGE_SE_CD = 'C' AND C.UNIT_SYS_ID = CIC.UNIT_SYS_ID ) AS NONFUNC_STAT
                                         , CIC.CKNCT_USE_CRG_APLCN_TYPE_CD
                                         , CASE
                                             -- 1순위: 시작시간(22:00) > 종료시간(01:00) 이면 무조건 익일(Y)
@@ -1013,14 +975,6 @@ ORDER BY
                                         AND A.CKNCT_ID NOT LIKE 'Y%'
                                         AND A.CKNCT_ID NOT LIKE 'R%'
                                         AND A.CKNCT_ID NOT LIKE 'S%'
-                                        AND EXISTS (
-                                            SELECT 1
-                                            FROM CAOWN.TN_CA_ALN_PGE B
-                                            WHERE B.ALN_CD = A.ALN_CD
-                                            AND B.PGE_NO = A.CHKN_PGE_NO
-                                            AND B.TMNL_ID = A.TMNL_ID
-                                            AND B.USE_YN = 'Y'
-                                        )
                                      ) X
                             WHERE (X.OPR_DT = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD')-1,'YYYYMMDD'))
                                 OR (X.OPR_DT = TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD'),'YYYYMMDD'))

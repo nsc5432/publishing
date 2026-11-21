@@ -557,7 +557,7 @@ AGENTS.md와 docs/plans/2026-10-24-fclt-wtng-rslt-db-design.md를 읽고 구현�
 
 1. **배정 부스 입력**: STNG `CKNCT_ALCTN_RSRC_ID`를 분 단위로 읽는다. CA001은 발행 SQL과 같이
    `NVL(EST, LAST)` 시각, 시작 > 종료이면 익일 종료하며 그 외에는 발행 SQL의 `LAST_RON_YN` · `EST_RON_YN` 선택 규칙,
-   `TN_CA_ALN_PGE` 존재, A/B 유형, X/Y/R/S 제외를 따른다.
+   A/B 유형, X/Y/R/S 제외를 따른다. `TN_CA_ALN_PGE` 존재 조건은 2026-11-21 발행 SQL(CA001 · FS001)과 함께 뺐다.
    사용자 CA는 `CHKN_OPEN/CLOSE_PRNMNT_DT`를 그대로 읽는다. 기준일자는 `EXCN_YMD`다.
    차트 · KPI의 1분 경로도 같은 입력을 쓴다 — 카드와 차트의 큐가 갈리지 않게 하기 위해서다.
    기존 운영표 시 단위(시작 내림 · 종료 올림)에서 분 단위로 바뀌어 기존 화면 값과 달라질 수 있다.
