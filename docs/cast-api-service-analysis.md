@@ -137,7 +137,7 @@ POST /REQ_GetResourceInformation.do
 | 유형 | ResourceID | 목록에 나오는 조건 | LastModified 출처 |
 |---|---|---|---|
 | CASTModel / Express | `SMLT_MDL_EXPLN` | 모델 `DEL_YN='N'`, 유형 코드 1/2 | 모델 수정일 |
-| FlightSchedule | `FS001` | GO `TI_GO_DALY_ARR_DEP`에 기준일자 행이 있을 때만 | GO 최대 `LAST_MDFCN_DT` |
+| FlightSchedule | `FS001` | GO `TN_GO_GD_DATA`에 `BASE_GD`(FS001 내용)와 같은 조건의 기준일자(`GD_SE_YMD`) 편이 있을 때만 | 그 편들의 최대 `NVL(LAST_MDFCN_DT, FRST_REG_DT)` |
 | 〃 | `FS`+번호 | `SCHDL_MSTR.USE_YN='Y'`이고 ATRB 행이 있을 때 | 마스터 수정일 |
 | CounterAllocation | `CA001` · `SBD001` | GO `TI_GO_CKNCT_DALY_ALOT`에 기준일자 행이 있을 때만 | 해당 행 |
 | 〃 | `CA`+번호 · `SBD`+번호 | 마스터 `USE_YN='Y'`이고 ATRB 행이 있을 때 | 마스터 수정일 |
