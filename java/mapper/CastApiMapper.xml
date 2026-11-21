@@ -351,50 +351,114 @@ SBD_INFO AS (
     FROM PMOWN.TN_PM_SBD_OPER_PLCY
     WHERE SYSTIMESTAMP BETWEEN TO_TIMESTAMP(PLCY_BGNG_DT, 'YYYY-MM-DD HH24:MI:SS') AND TO_TIMESTAMP(PLCY_END_DT, 'YYYY-MM-DD HH24:MI:SS')
 ),
-/* 7) 당일 CIC 배정이 존재하는 항공사 */
-CIC_ALLOC_ALN AS (
-    SELECT DISTINCT
-        A.ALN_CD
-    FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
-    WHERE A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD'), 'YYYYMMDD')
-),
-/* 8) FP 원본 - 당일/익일 04시 이전 */
-FP_DAY AS (
+/* 7) 체크인카운터 배정 - CA001 과 같은 원천 · 필터 */
+CIC_ALOT AS (
     SELECT
-        B.FLTNM AS FLT_NM,
-        B.SCHDL_YMD AS SCHD_DT,
-        B.SCHDL_HM AS SCHD_HM,
-        MIN(B.DALY_FLTSH_ID) AS ACT_FLT_ID
-    FROM GOOWN.TI_GO_DALY_ARR_DEP B
-    WHERE 1 = 1
-      AND (
-            B.SCHDL_YMD = TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD'), 'YYYYMMDD')
-            OR (B.SCHDL_YMD = TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') + 1, 'YYYYMMDD') AND B.SCHDL_HM < '0400')
+        Y.TMNL_ID,
+        Y.ALN_CD,
+        Y.CHKN_TYPE_CD,
+        Y.MSTR_FLTNM,
+        Y.CKNCT_ID,
+        TO_DATE(Y.OPER_YMD || Y.STA_HM, 'YYYYMMDDHH24MI') AS BGN_DT,
+        TO_DATE(
+            CASE
+                WHEN Y.RON_YN = 'N' THEN Y.OPER_YMD
+                ELSE TO_CHAR(TO_DATE(Y.OPER_YMD, 'YYYYMMDD') + 1, 'YYYYMMDD')
+            END || Y.END_HM,
+            'YYYYMMDDHH24MI'
+        ) AS END_DT
+    FROM (
+        SELECT
+            A.TMNL_ID,
+            A.ALN_CD,
+            A.CHKN_TYPE_CD,
+            A.MSTR_FLTNM,
+            A.CKNCT_ID,
+            A.OPER_YMD,
+            NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM) AS STA_HM,
+            NVL(A.EST_END_HM, A.LAST_END_HM) AS END_HM,
+            CASE
+                WHEN TO_NUMBER(NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM)) > TO_NUMBER(NVL(A.EST_END_HM, A.LAST_END_HM))
+                THEN 'Y'
+                ELSE
+                    CASE
+                        WHEN NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM) IS NOT NULL AND NVL(A.EST_END_HM, A.LAST_END_HM) IS NOT NULL THEN
+                            CASE WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_RON_YN ELSE A.EST_RON_YN END
+                        ELSE A.EST_RON_YN
+                    END
+            END AS RON_YN
+        FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
+            JOIN CAOWN.TN_CA_CKNCT CIC ON A.CKNCT_ID = CIC.CKNCT_ID AND A.TMNL_ID = CIC.TMNL_ID
+        WHERE A.USE_YN = 'Y'
+          AND CIC.USE_YN = 'Y'
+          AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
+          AND A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD'), 'YYYYMMDD')
+          AND A.CKNCT_ID NOT LIKE 'X%'
+          AND A.CKNCT_ID NOT LIKE 'Y%'
+          AND A.CKNCT_ID NOT LIKE 'R%'
+          AND A.CKNCT_ID NOT LIKE 'S%'
+          AND EXISTS (
+              SELECT 1
+              FROM CAOWN.TN_CA_ALN_PGE B
+              WHERE B.ALN_CD = A.ALN_CD
+                AND B.PGE_NO = A.CHKN_PGE_NO
+                AND B.TMNL_ID = A.TMNL_ID
+                AND B.USE_YN = 'Y'
           )
-      AND B.FLT_SRVC_TYPE_CD NOT IN ('A', 'F', 'H', 'M', 'V', 'Z', 'P', 'X', 'D')
-    GROUP BY
-        B.FLTNM, B.SCHDL_YMD, B.SCHDL_HM
+    ) Y
+    WHERE Y.STA_HM != Y.END_HM
 ),
-/* 9) CIC_RANGE_CTT - ACT_FLT_ID 기준 */
-FP_CIC_BY_ACT AS (
+/* 8) 편별 배정 카운터 - 출발 2시간 전에 열려 있는 편 전용(D) 배정, 없으면 같은 터미널의 항공사 배정 */
+CIC_FLT_CNTR AS (
     SELECT
-        DALY_FLTSH_ID AS ACT_FLT_ID,
-        MIN(CKNCT_RANGE_CN) AS CIC_RANGE_CTT
-    FROM GOOWN.TI_GO_DALY_ARR_DEP
-    WHERE CKNCT_RANGE_CN IS NOT NULL
-    GROUP BY DALY_FLTSH_ID
+        B.FLT_ID,
+        CASE WHEN AL.CHKN_TYPE_CD = 'D' THEN 1 ELSE 2 END AS PRIO,
+        SUBSTR(AL.CKNCT_ID, 1, 1) AS ISL,
+        AL.CKNCT_ID
+    FROM (
+        SELECT
+            FLT_ID,
+            ALN_CD,
+            FLT_NM,
+            CLOSING_FLT_NM,
+            CASE WHEN CF_TER_ID_X = 'P02' THEN 'P01' ELSE CF_TER_ID_X END AS CIC_TMNL_ID,
+            TO_DATE(SCHD_DT, 'YYYYMMDD')
+                + (TO_NUMBER(SUBSTR(SCHD_HM, 1, 2)) * 60 + TO_NUMBER(SUBSTR(SCHD_HM, 3, 2)) - 120) / 1440 AS CK_DT
+        FROM BASE_GD
+        WHERE ARR_DEP_SE_CD = 'D'
+          AND TRDOMFLT_YN = 'N'
+          AND FLT_ID IS NOT NULL
+    ) B
+    JOIN CIC_ALOT AL
+        ON B.CK_DT >= AL.BGN_DT
+       AND B.CK_DT < AL.END_DT
+       AND (
+             (AL.CHKN_TYPE_CD = 'D' AND AL.MSTR_FLTNM IN (B.FLT_NM, B.CLOSING_FLT_NM))
+          OR (NVL(AL.CHKN_TYPE_CD, ' ') != 'D' AND AL.ALN_CD = B.ALN_CD AND AL.TMNL_ID = B.CIC_TMNL_ID)
+           )
 ),
-/* 10) CIC_RANGE_CTT - FLT_NM/SCHD_DT/SCHD_HM 기준 fallback */
-FP_CIC_BY_FLT AS (
+/* 9) 편별 체크인카운터 범위(D01-D18) - 아일랜드가 갈리면 카운터가 많은 아일랜드 하나 */
+CIC_RANGE AS (
     SELECT
-        FLTNM AS FLT_NM,
-        SCHDL_YMD AS SCHD_DT,
-        SCHDL_HM AS SCHD_HM,
-        MIN(CKNCT_RANGE_CN) AS CIC_RANGE_CTT
-    FROM GOOWN.TI_GO_DALY_ARR_DEP
-    WHERE CKNCT_RANGE_CN IS NOT NULL
-    GROUP BY
-        FLTNM, SCHDL_YMD, SCHDL_HM
+        FLT_ID,
+        MIN(CKNCT_ID) || '-' || MAX(CKNCT_ID) AS CIC_RANGE_CTT
+    FROM (
+        SELECT
+            FLT_ID,
+            CKNCT_ID,
+            DENSE_RANK() OVER (PARTITION BY FLT_ID ORDER BY PRIO, ISL_CNT DESC, ISL) AS RK
+        FROM (
+            SELECT
+                C.FLT_ID,
+                C.PRIO,
+                C.ISL,
+                C.CKNCT_ID,
+                COUNT(DISTINCT C.CKNCT_ID) OVER (PARTITION BY C.FLT_ID, C.PRIO, C.ISL) AS ISL_CNT
+            FROM CIC_FLT_CNTR C
+        )
+    )
+    WHERE RK = 1
+    GROUP BY FLT_ID
 ),
 /* 11) RS 캐로셀 정보 */
 RS_CRS_DAILY AS (
@@ -493,29 +557,6 @@ CA_CRS_PICK AS (
         ) AS RN
     FROM CAOWN.TN_CA_CRSL
 ),
-/* ★ [추가] 14-2) 최근 6개월 항공사별 가장 많이 할당된 카운터 범위 (최빈값 구하기) */
-PAST_CIC_RANK AS (
-    SELECT
-        B.ALN_CD,
-        B.CKNCT_RANGE_CN AS CIC_RANGE_CTT,
-        COUNT(*) AS CNT,
-        ROW_NUMBER() OVER (
-            PARTITION BY B.ALN_CD
-            ORDER BY COUNT(*) DESC, MAX(B.SCHDL_YMD) DESC  -- 많이 쓴 순서, 같으면 최근 날짜 우선
-        ) AS RN
-    FROM GOOWN.TI_GO_DALY_ARR_DEP B
-    WHERE B.CKNCT_RANGE_CN IS NOT NULL
-      AND B.SCHDL_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{fsYmd}, 'YYYYMMDD'), - 6), 'YYYYMMDD')
-                        AND TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
-    GROUP BY B.ALN_CD, B.CKNCT_RANGE_CN
-),
-PAST_CIC AS (
-    SELECT
-        ALN_CD,
-        CIC_RANGE_CTT
-    FROM PAST_CIC_RANK
-    WHERE RN = 1
-),
 /* 15) 기준 운항 + 과거 대표값 + FP/RS/CIC 결합 */
 BASE_PRE AS (
     SELECT
@@ -565,33 +606,13 @@ BASE_PRE AS (
             B.CRS_NO_RAW,
             RCD.CRS_NO
         ) AS CRS_NO_BASE,
-        /* ★ [수정] 당일 CIC 데이터가 없을 경우 6개월 통계치(PC.CIC_RANGE_CTT)를 Fallback으로 연결 */
-
-        CASE WHEN B.ARR_DEP_SE_CD = 'D' AND B.TRDOMFLT_YN = 'N' THEN
-            CASE
-                WHEN CA.ALN_CD IS NULL THEN ''
-                ELSE COALESCE(F1.CIC_RANGE_CTT, F2.CIC_RANGE_CTT, PC.CIC_RANGE_CTT, '')
-            END
-            ELSE ''
-        END AS CIC_RANGE_CTT
+        CR.CIC_RANGE_CTT
     FROM BASE_GD B
     LEFT JOIN PAST_GATE PG ON B.FLT_NM = PG.CLOSING_FLT_NM
-    LEFT JOIN FP_DAY FD
-        ON B.FLT_NM  = FD.FLT_NM
-       AND B.SCHD_DT = FD.SCHD_DT
-       AND B.SCHD_HM = FD.SCHD_HM
     LEFT JOIN RS_CRS_DAILY RCD
-        ON FD.ACT_FLT_ID = RCD.ARR_ACT_FLT_ID
-    LEFT JOIN CIC_ALLOC_ALN CA
-        ON B.ALN_CD = CA.ALN_CD
-    LEFT JOIN FP_CIC_BY_ACT F1
-        ON B.FLT_ID = F1.ACT_FLT_ID
-    LEFT JOIN FP_CIC_BY_FLT F2
-        ON B.CLOSING_FLT_NM = F2.FLT_NM
-       AND B.SCHD_DT        = F2.SCHD_DT
-       AND B.SCHD_HM        = F2.SCHD_HM
-    LEFT JOIN PAST_CIC PC
-        ON B.ALN_CD = PC.ALN_CD
+        ON B.FLT_ID = RCD.ARR_ACT_FLT_ID
+    LEFT JOIN CIC_RANGE CR
+        ON B.FLT_ID = CR.FLT_ID
 ),
 /* 16) 최종 FFF */
 FFF AS (
