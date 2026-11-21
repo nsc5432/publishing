@@ -726,9 +726,6 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         WHATIF_MAP.put(STATUS, CastWhatIfCntrlDto::setStatus);
     }
 
-    // 동시 응답을 받는 경우 ThreadLocal 로 변수 관리가 되어야 각각의 응답에 종속
-    private final ThreadLocal<String> colTable = ThreadLocal.withInitial(() -> "");
-
     private String resolveBaseYmd() {
         return castApiMapper.selectBaseYmdForCalibration();
     }
@@ -757,8 +754,6 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         ResourceRequestParser<CastReqGetResourceInformationDto> requestParser,
         CastApiContext context
     ) {
-        colTable.remove();
-
         List<Object> dbResults = null;
         try {
 
@@ -802,8 +797,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         String pStr = str;
         if (PARAMETER.equals(str)) {
             NamedNodeMap attributeMap = node.getAttributes();
-            colTable.set(getAttributeValue(attributeMap, "id").orElse(""));
-            pStr = "m:" + colTable.get();
+            pStr = "m:" + getAttributeValue(attributeMap, "id").orElse("");
         }
 
         processResourceInformationInfo(node, pStr, sDto);
@@ -922,8 +916,6 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         ResourceRequestParser<CastReqGetResourceDto> requestParser,
         CastApiContext context
     ) {
-        colTable.remove();
-
         try {
 
             CastReqGetResourceDto resourceDto = requestParser.parse();
@@ -985,8 +977,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
     private void resourceList(Node node, String str, CastReqGetResourceDto sDto) {
         NamedNodeMap attributeMap = node.getAttributes();
         if (PARAMETER.equals(str)) {
-            colTable.set(getAttributeValue(attributeMap, "id").orElse(""));
-            processResourceInfo(node, colTable.get(), sDto);
+            processResourceInfo(node, getAttributeValue(attributeMap, "id").orElse(""), sDto);
         } else if (RESOURCE_DESCRIPTION.equals(str)) {
             String resourceType = getAttributeValue(attributeMap, RESOURCE_TYPE).orElse("");
             sDto.setResourceType(resourceType);
@@ -1021,8 +1012,6 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
     }
 
     private String renderBasePropertySetXml(String baseYmd) {
-        colTable.remove();
-
         CastReqGetResourceDto dto = new CastReqGetResourceDto();
         dto.setResourceType(PROPERTY_SET);
         dto.setResourceID(DAILY_PRPT_SET_RSRC_ID);
@@ -2522,8 +2511,6 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
 
     @Override
     public String saveResult(String param, CastApiContext context) {
-        colTable.remove();
-
         CastResReqDto simRslt = new CastResReqDto();
         CastRsltRunDto simRsltContent = new CastRsltRunDto();
         List<CastRsltRunDto> simRsltContentMap = new ArrayList<>();
@@ -2536,7 +2523,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         try {
             Element node = parseRootElement(param);
 
-            simRsltParser(node, RUN, simRslt, simRsltContentMap, simRsltContent, wDto);
+            simRsltParser(node, RUN, "", simRslt, simRsltContentMap, simRsltContent, wDto);
 
             if (simRslt.getResourceType().equals(CAST_MODEL) || simRslt.getResourceType().equals(CAST_EXPRESS_MODEL)) {
                 ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
@@ -2812,35 +2799,35 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
         return sb.toString();
     }
 
-    private void simRsltParser(Node node, String str, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
-        processAttributes(node, str, simRslt, simRsltContentMap, simRsltContent, wDto);
+    private void simRsltParser(Node node, String str, String tableId, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
+        String id = getAttributeValue(node.getAttributes(), ID).orElse("");
+        String curTableId = id.isEmpty() ? tableId : id;
+
+        processAttributes(node, str, curTableId, simRslt, simRsltContentMap, simRsltContent, wDto);
 
         if (node.hasChildNodes()) {
-            processChildNodes(node, simRslt, simRsltContentMap, simRsltContent, wDto);
+            processChildNodes(node, curTableId, simRslt, simRsltContentMap, simRsltContent, wDto);
         }
     }
 
-    private void processAttributes(Node node, String str, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
+    private void processAttributes(Node node, String str, String tableId, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
         NamedNodeMap attributeMap = node.getAttributes();
 
-        if(!"".equals(getAttributeValue(attributeMap, ID).orElse(""))) {
-            colTable.set(getAttributeValue(attributeMap, ID).orElse(""));
-        }
-        if (RESOURCE_INFO.equals(str) || (RUN.equals(colTable.get()) && M_COL.equals(str)) || (RESOURCE.equals(colTable.get()) && M_COL.equals(str)) || (INTERVAL.equals(colTable.get()) && M_COL.equals(str)) || (WHAT_IF_DEFINITION_TABLE.equals(colTable.get()) && M_COL.equals(str))) {
-            processStandarInfo(str, attributeMap, simRslt, simRsltContentMap, simRsltContent, wDto);
+        if (RESOURCE_INFO.equals(str) || (RUN.equals(tableId) && M_COL.equals(str)) || (RESOURCE.equals(tableId) && M_COL.equals(str)) || (INTERVAL.equals(tableId) && M_COL.equals(str)) || (WHAT_IF_DEFINITION_TABLE.equals(tableId) && M_COL.equals(str))) {
+            processStandarInfo(str, tableId, attributeMap, simRslt, simRsltContentMap, simRsltContent, wDto);
         }
     }
 
-    private void processStandarInfo(String str, NamedNodeMap attributeMap, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
+    private void processStandarInfo(String str, String tableId, NamedNodeMap attributeMap, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
         if (RESOURCE_INFO.equals(str)) {
             processResourceInfo(attributeMap, simRslt, simRsltContentMap);
-        } else if (RUN.equals(colTable.get()) && M_COL.equals(str)) {
+        } else if (RUN.equals(tableId) && M_COL.equals(str)) {
             processRunInfo(attributeMap, simRslt);
-        } else if (RESOURCE.equals(colTable.get()) && M_COL.equals(str)) {
+        } else if (RESOURCE.equals(tableId) && M_COL.equals(str)) {
             handleResourceMapping(attributeMap, simRsltContent);
-        } else if (INTERVAL.equals(colTable.get()) && M_COL.equals(str)) {
+        } else if (INTERVAL.equals(tableId) && M_COL.equals(str)) {
             processIntervalInfo(attributeMap, simRsltContent, simRsltContentMap);
-        } else if (WHAT_IF_DEFINITION_TABLE.equals(colTable.get()) && M_COL.equals(str)) {
+        } else if (WHAT_IF_DEFINITION_TABLE.equals(tableId) && M_COL.equals(str)) {
             whatIfParser(attributeMap, wDto);
         }
     }
@@ -2929,7 +2916,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
             }
         }
     }
-    private void processChildNodes(Node node, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
+    private void processChildNodes(Node node, String tableId, CastResReqDto simRslt, List<CastRsltRunDto> simRsltContentMap, CastRsltRunDto simRsltContent, CastWhatIfCntrlDto wDto) {
         NodeList nodeList = node.getChildNodes();
         for (int i = 0; i < nodeList.getLength(); i++) {
             Node childNode = nodeList.item(i);
@@ -2938,7 +2925,7 @@ public class CastApiServiceImpl extends EgovAbstractServiceImpl implements CastA
                 continue;
             }
 
-            simRsltParser(childNode, childNode.getNodeName(), simRslt, simRsltContentMap, simRsltContent, wDto);
+            simRsltParser(childNode, childNode.getNodeName(), tableId, simRslt, simRsltContentMap, simRsltContent, wDto);
         }
     }
 
