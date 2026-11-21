@@ -17,12 +17,27 @@ END_DAY_PATTERN = re.compile(
 )
 
 
+def statement_text(root, element):
+    parts = [element.text or ""]
+    for child in element:
+        if child.tag == "include":
+            fragment_id = child.get("refid").rsplit(".", 1)[-1]
+            fragment = root.find(f"./sql[@id='{fragment_id}']")
+            if fragment is None:
+                raise AssertionError(f"Missing sql fragment: {fragment_id}")
+            parts.append(statement_text(root, fragment))
+        else:
+            parts.append(statement_text(root, child))
+        parts.append(child.tail or "")
+    return "".join(parts)
+
+
 def expressions(filename, statement_id):
     root = ET.parse(ROOT / "java" / "mapper" / filename).getroot()
     statement = root.find(f"./select[@id='{statement_id}']")
     if statement is None:
         raise AssertionError(f"Missing statement: {statement_id}")
-    sql = re.sub(r"--[^\n]*", "", html.unescape("".join(statement.itertext())))
+    sql = re.sub(r"--[^\n]*", "", html.unescape(statement_text(root, statement)))
     ron = RON_PATTERN.search(sql)
     ending = END_DAY_PATTERN.search(sql)
     if ron is None or ending is None:

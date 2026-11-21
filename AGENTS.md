@@ -591,7 +591,7 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 - 사용자 FS002~999·PS500~998은 USER_MSTR·STNG에 쓰인 최대 번호 다음의 미사용 번호를 할당하고, 그 위가 차면
   가장 작은 미사용 번호로 돌아간다. 요청·결과·원천에 남아 있는 번호는 상태와 관계없이 제외하고, 빈 번호가 없으면
   명확히 실패한다. 다시 쓰이는 번호는 운영자가 오래된 실행을 정리해 비운 번호뿐이다. 리소스 DELETE 후 INSERT·lease를 두지 않는다.
-- PropertySet은 `CastApiServiceImpl.DAILY_PRPT_SET_RSRC_ID`로 고정한 PS001을 읽고 해당 요청의 시설 리소스 ID로 참조를 바꿔 렌더한다.
+- PropertySet은 `CastPropertySetRenderer.DAILY_PRPT_SET_RSRC_ID`로 고정한 PS001을 읽고 해당 요청의 시설 리소스 ID로 참조를 바꿔 렌더한다.
   원천 PS ID는 USER_MSTR에 저장하지 않는다(2026-10-17 SRC_PRPT_SET_RSRC_ID 제거).
   XML 사본을 저장하지 않는다. 모델·서비스시간·체크인유형·출국심사·리포팅은 지정된 원본 ID로 조회한다.
 - COND_SNAPSHOT·INPUT_SNAPSHOT·RSRC_LEASE를 제거했다. 적용·복구 절차와 최종 목록은
@@ -637,7 +637,7 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   처리 인원이 0이 된다.
 - SecurityControl은 일일·사용자 모두 시각 없이 수량만 보낸다. 사용자는 운영 Y·scshCntom > 0 출국장마다 1행.
 - 사용자가 편집하지 않는 모델(ICN001)·원천 PS·서비스시간·체크인유형·출국심사·입국/환승보안 원천·리포팅은
-  일일과 같은 001 원천이다. 원천 PS는 `CastApiServiceImpl`, 나머지는 `CastUserSnapshotServiceImpl` 상수다(2026-10-16 INPUT_BASE 제거). 실행 등록 시
+  일일과 같은 001 원천이다. 원천 PS는 `CastPropertySetRenderer`, 나머지는 `CastUserSnapshotServiceImpl` 상수다(2026-10-16 INPUT_BASE 제거). 실행 등록 시
   리소스를 미리 렌더해 검사하지 않으므로 원천 누락은 CAST 단계에서 드러난다.
   운영자료가 없는 것과 사용자가 저장한 미운영 조건을 구분한다.
 

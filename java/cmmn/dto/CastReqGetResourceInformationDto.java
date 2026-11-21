@@ -25,30 +25,11 @@ import lombok.Setter;
 public class CastReqGetResourceInformationDto extends AomsDefaultDto {
 	private static final long serialVersionUID = 1L;
 	private String resourceTypes = "";
-	private String modelYn = "";
-	private String exModelYn = "";
-	private String flightYn = "";
-	private String counterYn = "";
-	private String beltYn = "";
-	private String sbdYn = "";
-	private String stYn = "";
-	private String ctYn = "";
-	private String dgYn = "";
-	private String immiYn = "";
-	private String emiYn = "";
-	private String scYn = "";
-	private String tsYn = "";	
-	private String handleYn = "";
-	private String rptYn = "";
-	private String ifYn = "";
 	// CAST 는 요청에 날짜를 싣지 않아 서버가 채운다
 	private String baseYmd = "";
 
 	@Override
 	public String toString() {
-		return "CastReqGetResourceInformationDto [resourceTypes=" + resourceTypes + ", modelYn=" + modelYn
-				+ ", exModelYn=" + exModelYn + ", flightYn=" + flightYn + ", counterYn=" + counterYn + ", sbdYn="
-				+ sbdYn + ", stYn=" + stYn + ", ctYn=" + ctYn + ", dgYn=" + dgYn + ", immiYn=" + immiYn
-				+ ", emiYn=" + emiYn + ", scYn=" + scYn + ", tsYn=" + tsYn + ", handleYn=" + handleYn + ", rptYn=" + rptYn + "]";
+		return "CastReqGetResourceInformationDto [resourceTypes=" + resourceTypes + ", baseYmd=" + baseYmd + "]";
 	}
 }

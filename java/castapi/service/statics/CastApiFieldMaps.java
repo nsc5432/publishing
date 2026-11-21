@@ -125,294 +125,184 @@ public final class CastApiFieldMaps {
     private static final String STATUS = "Status";
     private static final String WHAT_IF_RUN_ID = "WhatIfRunID";
 
-    // FS (Flight Schedule)
-    public static class FsFieldInfo {
+    public static final class FieldInfo<T> {
         public final String pKind;
-        public final Function<CastFlightScheduleDto, Object> extractor;
+        public final Function<T, Object> extractor;
 
-        FsFieldInfo(String pKind, Function<CastFlightScheduleDto, Object> extractor) {
+        FieldInfo(String pKind, Function<T, Object> extractor) {
             this.pKind = pKind;
             this.extractor = extractor;
         }
     }
 
-    public static final Map<String, FsFieldInfo> FS_FIELD_MAP = new LinkedHashMap<>();
+    // FS (Flight Schedule)
+    public static final Map<String, FieldInfo<CastFlightScheduleDto>> FS_FIELD_MAP = new LinkedHashMap<>();
     static {
-        FS_FIELD_MAP.put(DOM_STATUS, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getDomStatus));
-        FS_FIELD_MAP.put(FLIGHT_DIRECTION, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getFlightDirection));
-        FS_FIELD_MAP.put(DEP_ARR_TERMINAL, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getDepArrTerminal));
-        FS_FIELD_MAP.put(AIRLINE_CODE, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getAirlineCode));
-        FS_FIELD_MAP.put(OPERATOR_CAT, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getOperatorCat));
-        FS_FIELD_MAP.put(FLIGHT_NUMBER, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getFlightNumber));
-        FS_FIELD_MAP.put(FLIGHT_NUMBER_ID, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getFlightNumberID));
-        FS_FIELD_MAP.put(SCHEDULE_TIME, new FsFieldInfo(P_KIND_DATE_TIME, CastFlightScheduleDto::getScheduleTime));
-        FS_FIELD_MAP.put(ESTIMATED_TIME, new FsFieldInfo(P_KIND_DATE_TIME, CastFlightScheduleDto::getEstimatedTime));
-        FS_FIELD_MAP.put(ACTUAL_TIME, new FsFieldInfo(P_KIND_DATE_TIME, CastFlightScheduleDto::getActualTime));
-        FS_FIELD_MAP.put(AIRPORT_CODE, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getAirportCode));
-        FS_FIELD_MAP.put(STAND_NUMBER, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getStandNumber));
-        FS_FIELD_MAP.put(GATE, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getGate));
-        FS_FIELD_MAP.put(CONTACT_REMOTE, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getContactRemote));
-        FS_FIELD_MAP.put(SEATS, new FsFieldInfo(P_KIND_INTEGER, CastFlightScheduleDto::getSeats));
-        FS_FIELD_MAP.put(PAX_COUNT, new FsFieldInfo(P_KIND_INTEGER, CastFlightScheduleDto::getPaxCount));
-        FS_FIELD_MAP.put(TRANSFER_PAX, new FsFieldInfo(P_KIND_INTEGER, CastFlightScheduleDto::getTransferPax));
-        FS_FIELD_MAP.put(BELT, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getBelt));
-        FS_FIELD_MAP.put(AIRCRAFT_TYPE, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getAircraftType));
-        FS_FIELD_MAP.put(CHECK_IN_RANGE, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getCheckInRange));
-        FS_FIELD_MAP.put(FLIGHT_TYPE, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getFlightType));
-        FS_FIELD_MAP.put(SBD_AVAILABLE, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getSbdAvailable));
-        FS_FIELD_MAP.put(TRIANGLE, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getTriangle));
-        FS_FIELD_MAP.put(BUS, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getBus));
-        FS_FIELD_MAP.put(ARRIVAL_GATE, new FsFieldInfo(P_KIND_STRING, CastFlightScheduleDto::getArrivalGate));
-        FS_FIELD_MAP.put(BAGGAGET1, new FsFieldInfo(P_KIND_DATE_TIME, CastFlightScheduleDto::getBaggageT1));
-        FS_FIELD_MAP.put(BAGGAGET2, new FsFieldInfo(P_KIND_DATE_TIME, CastFlightScheduleDto::getBaggageT2));
+        FS_FIELD_MAP.put(DOM_STATUS, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getDomStatus));
+        FS_FIELD_MAP.put(FLIGHT_DIRECTION, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getFlightDirection));
+        FS_FIELD_MAP.put(DEP_ARR_TERMINAL, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getDepArrTerminal));
+        FS_FIELD_MAP.put(AIRLINE_CODE, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getAirlineCode));
+        FS_FIELD_MAP.put(OPERATOR_CAT, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getOperatorCat));
+        FS_FIELD_MAP.put(FLIGHT_NUMBER, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getFlightNumber));
+        FS_FIELD_MAP.put(FLIGHT_NUMBER_ID, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getFlightNumberID));
+        FS_FIELD_MAP.put(SCHEDULE_TIME, new FieldInfo<>(P_KIND_DATE_TIME, CastFlightScheduleDto::getScheduleTime));
+        FS_FIELD_MAP.put(ESTIMATED_TIME, new FieldInfo<>(P_KIND_DATE_TIME, CastFlightScheduleDto::getEstimatedTime));
+        FS_FIELD_MAP.put(ACTUAL_TIME, new FieldInfo<>(P_KIND_DATE_TIME, CastFlightScheduleDto::getActualTime));
+        FS_FIELD_MAP.put(AIRPORT_CODE, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getAirportCode));
+        FS_FIELD_MAP.put(STAND_NUMBER, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getStandNumber));
+        FS_FIELD_MAP.put(GATE, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getGate));
+        FS_FIELD_MAP.put(CONTACT_REMOTE, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getContactRemote));
+        FS_FIELD_MAP.put(SEATS, new FieldInfo<>(P_KIND_INTEGER, CastFlightScheduleDto::getSeats));
+        FS_FIELD_MAP.put(PAX_COUNT, new FieldInfo<>(P_KIND_INTEGER, CastFlightScheduleDto::getPaxCount));
+        FS_FIELD_MAP.put(TRANSFER_PAX, new FieldInfo<>(P_KIND_INTEGER, CastFlightScheduleDto::getTransferPax));
+        FS_FIELD_MAP.put(BELT, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getBelt));
+        FS_FIELD_MAP.put(AIRCRAFT_TYPE, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getAircraftType));
+        FS_FIELD_MAP.put(CHECK_IN_RANGE, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getCheckInRange));
+        FS_FIELD_MAP.put(FLIGHT_TYPE, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getFlightType));
+        FS_FIELD_MAP.put(SBD_AVAILABLE, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getSbdAvailable));
+        FS_FIELD_MAP.put(TRIANGLE, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getTriangle));
+        FS_FIELD_MAP.put(BUS, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getBus));
+        FS_FIELD_MAP.put(ARRIVAL_GATE, new FieldInfo<>(P_KIND_STRING, CastFlightScheduleDto::getArrivalGate));
+        FS_FIELD_MAP.put(BAGGAGET1, new FieldInfo<>(P_KIND_DATE_TIME, CastFlightScheduleDto::getBaggageT1));
+        FS_FIELD_MAP.put(BAGGAGET2, new FieldInfo<>(P_KIND_DATE_TIME, CastFlightScheduleDto::getBaggageT2));
     }
 
     // CA (카운터 할당)
-    public static class CaFieldInfo {
-        public final String pKind;
-        public final Function<CastCounterAllocationDto, Object> extractor;
-
-        CaFieldInfo(String pKind, Function<CastCounterAllocationDto, Object> extractor) {
-            this.pKind = pKind;
-            this.extractor = extractor;
-        }
-    }
-
-    public static final Map<String, CaFieldInfo> CA_FIELD_MAP = new LinkedHashMap<>();
+    public static final Map<String, FieldInfo<CastCounterAllocationDto>> CA_FIELD_MAP = new LinkedHashMap<>();
     static {
-        CA_FIELD_MAP.put(BLOCKID, new CaFieldInfo(P_KIND_STRING, CastCounterAllocationDto::getBlockID));
-        CA_FIELD_MAP.put(DEPARRTERMINAL, new CaFieldInfo(P_KIND_STRING, CastCounterAllocationDto::getDepArrTerminal));
-        CA_FIELD_MAP.put(RESOURCEID, new CaFieldInfo(P_KIND_STRING, CastCounterAllocationDto::getResourceID));
-        CA_FIELD_MAP.put(AIRLINECODE, new CaFieldInfo(P_KIND_STRING, CastCounterAllocationDto::getAirlineCode));
-        CA_FIELD_MAP.put(DOMSTATUS, new CaFieldInfo(P_KIND_STRING, CastCounterAllocationDto::getDomStatus));
-        CA_FIELD_MAP.put(T1, new CaFieldInfo(P_KIND_DATE_TIME, CastCounterAllocationDto::getT1));
-        CA_FIELD_MAP.put(T2, new CaFieldInfo(P_KIND_DATE_TIME, CastCounterAllocationDto::getT2));
-        CA_FIELD_MAP.put(TRAVELCLASS, new CaFieldInfo(P_KIND_DATE_TIME, CastCounterAllocationDto::getTravelClass));
-        CA_FIELD_MAP.put(GROUPSTATUS, new CaFieldInfo(P_KIND_DATE_TIME, CastCounterAllocationDto::getGroupStatus));
-        CA_FIELD_MAP.put(CHECKINTYPE, new CaFieldInfo(P_KIND_STRING, CastCounterAllocationDto::getCheckinType));
-        CA_FIELD_MAP.put(NONFUNCTIONALSTATUS, new CaFieldInfo(P_KIND_STRING, CastCounterAllocationDto::getNonFunctionalStatus));
-        CA_FIELD_MAP.put(CHECKINALLOCTYPE, new CaFieldInfo(P_KIND_STRING, CastCounterAllocationDto::getCheckinAllocType));
-        CA_FIELD_MAP.put(CHECKINALLOCDESCRYPTION, new CaFieldInfo(P_KIND_STRING, CastCounterAllocationDto::getCheckInAllocDescryption));
+        CA_FIELD_MAP.put(BLOCKID, new FieldInfo<>(P_KIND_STRING, CastCounterAllocationDto::getBlockID));
+        CA_FIELD_MAP.put(DEPARRTERMINAL, new FieldInfo<>(P_KIND_STRING, CastCounterAllocationDto::getDepArrTerminal));
+        CA_FIELD_MAP.put(RESOURCEID, new FieldInfo<>(P_KIND_STRING, CastCounterAllocationDto::getResourceID));
+        CA_FIELD_MAP.put(AIRLINECODE, new FieldInfo<>(P_KIND_STRING, CastCounterAllocationDto::getAirlineCode));
+        CA_FIELD_MAP.put(DOMSTATUS, new FieldInfo<>(P_KIND_STRING, CastCounterAllocationDto::getDomStatus));
+        CA_FIELD_MAP.put(T1, new FieldInfo<>(P_KIND_DATE_TIME, CastCounterAllocationDto::getT1));
+        CA_FIELD_MAP.put(T2, new FieldInfo<>(P_KIND_DATE_TIME, CastCounterAllocationDto::getT2));
+        CA_FIELD_MAP.put(TRAVELCLASS, new FieldInfo<>(P_KIND_DATE_TIME, CastCounterAllocationDto::getTravelClass));
+        CA_FIELD_MAP.put(GROUPSTATUS, new FieldInfo<>(P_KIND_DATE_TIME, CastCounterAllocationDto::getGroupStatus));
+        CA_FIELD_MAP.put(CHECKINTYPE, new FieldInfo<>(P_KIND_STRING, CastCounterAllocationDto::getCheckinType));
+        CA_FIELD_MAP.put(NONFUNCTIONALSTATUS, new FieldInfo<>(P_KIND_STRING, CastCounterAllocationDto::getNonFunctionalStatus));
+        CA_FIELD_MAP.put(CHECKINALLOCTYPE, new FieldInfo<>(P_KIND_STRING, CastCounterAllocationDto::getCheckinAllocType));
+        CA_FIELD_MAP.put(CHECKINALLOCDESCRYPTION, new FieldInfo<>(P_KIND_STRING, CastCounterAllocationDto::getCheckInAllocDescryption));
     }
 
     // SBD
-    public static class SbdFieldInfo {
-        public final String pKind;
-        public final Function<CastSelfCheckInCountAndBagDropDto, Object> extractor;
-
-        SbdFieldInfo(String pKind, Function<CastSelfCheckInCountAndBagDropDto, Object> extractor) {
-            this.pKind = pKind;
-            this.extractor = extractor;
-        }
-    }
-
-    public static final Map<String, SbdFieldInfo> SBD_FIELD_MAP = new LinkedHashMap<>();
+    public static final Map<String, FieldInfo<CastSelfCheckInCountAndBagDropDto>> SBD_FIELD_MAP = new LinkedHashMap<>();
     static {
-        SBD_FIELD_MAP.put(BLOCKID, new SbdFieldInfo(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getBlockID));
-        SBD_FIELD_MAP.put(DEPARRTERMINAL, new SbdFieldInfo(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getDepArrTerminal));
-        SBD_FIELD_MAP.put(RESOURCEID, new SbdFieldInfo(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getResourceID));
-        SBD_FIELD_MAP.put(AIRLINECODE, new SbdFieldInfo(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getAirlineCode));
-        SBD_FIELD_MAP.put(DOMSTATUS, new SbdFieldInfo(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getDomStatus));
-        SBD_FIELD_MAP.put(T1, new SbdFieldInfo(P_KIND_DATE_TIME, CastSelfCheckInCountAndBagDropDto::getT1));
-        SBD_FIELD_MAP.put(T2, new SbdFieldInfo(P_KIND_DATE_TIME, CastSelfCheckInCountAndBagDropDto::getT2));
-        SBD_FIELD_MAP.put(TRAVELCLASS, new SbdFieldInfo(P_KIND_DATE_TIME, CastSelfCheckInCountAndBagDropDto::getTravelClass));
-        SBD_FIELD_MAP.put(GROUPSTATUS, new SbdFieldInfo(P_KIND_DATE_TIME, CastSelfCheckInCountAndBagDropDto::getGroupStatus));
-        SBD_FIELD_MAP.put(CHECKINTYPE, new SbdFieldInfo(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getCheckinType));
-        SBD_FIELD_MAP.put(NONFUNCTIONALSTATUS, new SbdFieldInfo(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getNonFunctionalStatus));
-        SBD_FIELD_MAP.put(CHECKINALLOCTYPE, new SbdFieldInfo(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getCheckinAllocType));
-        SBD_FIELD_MAP.put(CHECKINALLOCDESCRYPTION, new SbdFieldInfo(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getCheckInAllocDescryption));
+        SBD_FIELD_MAP.put(BLOCKID, new FieldInfo<>(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getBlockID));
+        SBD_FIELD_MAP.put(DEPARRTERMINAL, new FieldInfo<>(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getDepArrTerminal));
+        SBD_FIELD_MAP.put(RESOURCEID, new FieldInfo<>(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getResourceID));
+        SBD_FIELD_MAP.put(AIRLINECODE, new FieldInfo<>(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getAirlineCode));
+        SBD_FIELD_MAP.put(DOMSTATUS, new FieldInfo<>(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getDomStatus));
+        SBD_FIELD_MAP.put(T1, new FieldInfo<>(P_KIND_DATE_TIME, CastSelfCheckInCountAndBagDropDto::getT1));
+        SBD_FIELD_MAP.put(T2, new FieldInfo<>(P_KIND_DATE_TIME, CastSelfCheckInCountAndBagDropDto::getT2));
+        SBD_FIELD_MAP.put(TRAVELCLASS, new FieldInfo<>(P_KIND_DATE_TIME, CastSelfCheckInCountAndBagDropDto::getTravelClass));
+        SBD_FIELD_MAP.put(GROUPSTATUS, new FieldInfo<>(P_KIND_DATE_TIME, CastSelfCheckInCountAndBagDropDto::getGroupStatus));
+        SBD_FIELD_MAP.put(CHECKINTYPE, new FieldInfo<>(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getCheckinType));
+        SBD_FIELD_MAP.put(NONFUNCTIONALSTATUS, new FieldInfo<>(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getNonFunctionalStatus));
+        SBD_FIELD_MAP.put(CHECKINALLOCTYPE, new FieldInfo<>(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getCheckinAllocType));
+        SBD_FIELD_MAP.put(CHECKINALLOCDESCRYPTION, new FieldInfo<>(P_KIND_STRING, CastSelfCheckInCountAndBagDropDto::getCheckInAllocDescryption));
     }
 
     // 서비스 타임
-    public static class StFieldInfo {
-        public final String pKind;
-        public final Function<CastCheckInCounterServiceTimeDto, Object> extractor;
-
-        StFieldInfo(String pKind, Function<CastCheckInCounterServiceTimeDto, Object> extractor) {
-            this.pKind = pKind;
-            this.extractor = extractor;
-        }
-    }
-
-    public static final Map<String, StFieldInfo> ST_FIELD_MAP = new LinkedHashMap<>();
+    public static final Map<String, FieldInfo<CastCheckInCounterServiceTimeDto>> ST_FIELD_MAP = new LinkedHashMap<>();
     static {
-        ST_FIELD_MAP.put(AIRLINE, new StFieldInfo(P_KIND_STRING, CastCheckInCounterServiceTimeDto::getAirline));
-        ST_FIELD_MAP.put(SERVICE_TIME, new StFieldInfo(P_KIND_FLOAT, CastCheckInCounterServiceTimeDto::getServiceTime));
+        ST_FIELD_MAP.put(AIRLINE, new FieldInfo<>(P_KIND_STRING, CastCheckInCounterServiceTimeDto::getAirline));
+        ST_FIELD_MAP.put(SERVICE_TIME, new FieldInfo<>(P_KIND_FLOAT, CastCheckInCounterServiceTimeDto::getServiceTime));
     }
 
     // 체크인카운터
-    public static class CtFieldInfo {
-        public final String pKind;
-        public final Function<CastCheckinTypeDto, Object> extractor;
-
-        CtFieldInfo(String pKind, Function<CastCheckinTypeDto, Object> extractor) {
-            this.pKind = pKind;
-            this.extractor = extractor;
-        }
-    }
-
-    public static final Map<String, CtFieldInfo> CT_FIELD_MAP = new LinkedHashMap<>();
+    public static final Map<String, FieldInfo<CastCheckinTypeDto>> CT_FIELD_MAP = new LinkedHashMap<>();
     static {
-        CT_FIELD_MAP.put(AIRLINE_CODE, new CtFieldInfo(P_KIND_STRING, CastCheckinTypeDto::getAirlineCode));
-        CT_FIELD_MAP.put(COUNTER_SHARE, new CtFieldInfo(P_KIND_FLOAT, CastCheckinTypeDto::getCounterShare));
-        CT_FIELD_MAP.put(COUNTER_VALUE, new CtFieldInfo(P_KIND_STRING, CastCheckinTypeDto::getCounterValue));
-        CT_FIELD_MAP.put(KIOSK_SHARE, new CtFieldInfo(P_KIND_FLOAT, CastCheckinTypeDto::getKioskShare));
-        CT_FIELD_MAP.put(KIOSK_VALUE, new CtFieldInfo(P_KIND_STRING, CastCheckinTypeDto::getKioskValue));
-        CT_FIELD_MAP.put(MOBILE_SHARE, new CtFieldInfo(P_KIND_FLOAT, CastCheckinTypeDto::getMobileShare));
-        CT_FIELD_MAP.put(MOBILE_VALUE, new CtFieldInfo(P_KIND_STRING, CastCheckinTypeDto::getMobileValue));
+        CT_FIELD_MAP.put(AIRLINE_CODE, new FieldInfo<>(P_KIND_STRING, CastCheckinTypeDto::getAirlineCode));
+        CT_FIELD_MAP.put(COUNTER_SHARE, new FieldInfo<>(P_KIND_FLOAT, CastCheckinTypeDto::getCounterShare));
+        CT_FIELD_MAP.put(COUNTER_VALUE, new FieldInfo<>(P_KIND_STRING, CastCheckinTypeDto::getCounterValue));
+        CT_FIELD_MAP.put(KIOSK_SHARE, new FieldInfo<>(P_KIND_FLOAT, CastCheckinTypeDto::getKioskShare));
+        CT_FIELD_MAP.put(KIOSK_VALUE, new FieldInfo<>(P_KIND_STRING, CastCheckinTypeDto::getKioskValue));
+        CT_FIELD_MAP.put(MOBILE_SHARE, new FieldInfo<>(P_KIND_FLOAT, CastCheckinTypeDto::getMobileShare));
+        CT_FIELD_MAP.put(MOBILE_VALUE, new FieldInfo<>(P_KIND_STRING, CastCheckinTypeDto::getMobileValue));
     }
 
     // 출국장
-    public static class DgFieldInfo {
-        public final String pKind;
-        public final Function<CastFcltyOpngTblDptgDto, Object> extractor;
-
-        DgFieldInfo(String pKind, Function<CastFcltyOpngTblDptgDto, Object> extractor) {
-            this.pKind = pKind;
-            this.extractor = extractor;
-        }
-    }
-
-    public static final Map<String, DgFieldInfo> DG_FIELD_MAP = new LinkedHashMap<>();
+    public static final Map<String, FieldInfo<CastFcltyOpngTblDptgDto>> DG_FIELD_MAP = new LinkedHashMap<>();
     static {
-        DG_FIELD_MAP.put(TERMINAL, new DgFieldInfo(P_KIND_STRING, CastFcltyOpngTblDptgDto::getTerminal));
-        DG_FIELD_MAP.put(LOCATION, new DgFieldInfo(P_KIND_STRING, CastFcltyOpngTblDptgDto::getLocation));
-        DG_FIELD_MAP.put(START_DATE, new DgFieldInfo(P_KIND_DATE_TIME, CastFcltyOpngTblDptgDto::getStartDate));
-        DG_FIELD_MAP.put(END_DATE, new DgFieldInfo(P_KIND_DATE_TIME, CastFcltyOpngTblDptgDto::getEndDate));
-        DG_FIELD_MAP.put(START_TIME, new DgFieldInfo(P_KIND_DURATION, CastFcltyOpngTblDptgDto::getStartTime));
-        DG_FIELD_MAP.put(END_TIME, new DgFieldInfo(P_KIND_DURATION, CastFcltyOpngTblDptgDto::getEndTime));
-        DG_FIELD_MAP.put(SIDE_DOOR, new DgFieldInfo(P_KIND_STRING, CastFcltyOpngTblDptgDto::getSideDoor));
-        DG_FIELD_MAP.put(FACIAL_RECOGNITION, new DgFieldInfo(P_KIND_STRING, CastFcltyOpngTblDptgDto::getFacialRecognition));
-        DG_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new DgFieldInfo(P_KIND_INTEGER, CastFcltyOpngTblDptgDto::getCurrentNumberofLanes));
+        DG_FIELD_MAP.put(TERMINAL, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblDptgDto::getTerminal));
+        DG_FIELD_MAP.put(LOCATION, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblDptgDto::getLocation));
+        DG_FIELD_MAP.put(START_DATE, new FieldInfo<>(P_KIND_DATE_TIME, CastFcltyOpngTblDptgDto::getStartDate));
+        DG_FIELD_MAP.put(END_DATE, new FieldInfo<>(P_KIND_DATE_TIME, CastFcltyOpngTblDptgDto::getEndDate));
+        DG_FIELD_MAP.put(START_TIME, new FieldInfo<>(P_KIND_DURATION, CastFcltyOpngTblDptgDto::getStartTime));
+        DG_FIELD_MAP.put(END_TIME, new FieldInfo<>(P_KIND_DURATION, CastFcltyOpngTblDptgDto::getEndTime));
+        DG_FIELD_MAP.put(SIDE_DOOR, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblDptgDto::getSideDoor));
+        DG_FIELD_MAP.put(FACIAL_RECOGNITION, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblDptgDto::getFacialRecognition));
+        DG_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new FieldInfo<>(P_KIND_INTEGER, CastFcltyOpngTblDptgDto::getCurrentNumberofLanes));
     }
 
     // 출국심사
-    public static class EmFieldInfo {
-        public final String pKind;
-        public final Function<CastFcltyOpngTblEmigDto, Object> extractor;
-
-        EmFieldInfo(String pKind, Function<CastFcltyOpngTblEmigDto, Object> extractor) {
-            this.pKind = pKind;
-            this.extractor = extractor;
-        }
-    }
-
-    public static final Map<String, EmFieldInfo> EM_FIELD_MAP = new LinkedHashMap<>();
+    public static final Map<String, FieldInfo<CastFcltyOpngTblEmigDto>> EM_FIELD_MAP = new LinkedHashMap<>();
     static {
-        EM_FIELD_MAP.put(TERMINAL, new EmFieldInfo(P_KIND_STRING, CastFcltyOpngTblEmigDto::getTerminal));
-        EM_FIELD_MAP.put(LOCATION, new EmFieldInfo(P_KIND_STRING, CastFcltyOpngTblEmigDto::getLocation));
-        EM_FIELD_MAP.put(IMMIGRATION_TYPE, new EmFieldInfo(P_KIND_STRING, CastFcltyOpngTblEmigDto::getImmigrationType));
-        EM_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new EmFieldInfo(P_KIND_INTEGER, CastFcltyOpngTblEmigDto::getCurrentNumberofLanes));
+        EM_FIELD_MAP.put(TERMINAL, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblEmigDto::getTerminal));
+        EM_FIELD_MAP.put(LOCATION, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblEmigDto::getLocation));
+        EM_FIELD_MAP.put(IMMIGRATION_TYPE, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblEmigDto::getImmigrationType));
+        EM_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new FieldInfo<>(P_KIND_INTEGER, CastFcltyOpngTblEmigDto::getCurrentNumberofLanes));
     }
 
     // 보안검색대
-    public static class ScFieldInfo {
-        public final String pKind;
-        public final Function<CastFcltyOpngTblScrtyCntrlDto, Object> extractor;
-
-        ScFieldInfo(String pKind, Function<CastFcltyOpngTblScrtyCntrlDto, Object> extractor) {
-            this.pKind = pKind;
-            this.extractor = extractor;
-        }
-    }
-
-    public static final Map<String, ScFieldInfo> SC_FIELD_MAP = new LinkedHashMap<>();
+    public static final Map<String, FieldInfo<CastFcltyOpngTblScrtyCntrlDto>> SC_FIELD_MAP = new LinkedHashMap<>();
     static {
-        SC_FIELD_MAP.put(TERMINAL, new ScFieldInfo(P_KIND_STRING, CastFcltyOpngTblScrtyCntrlDto::getTerminal));
-        SC_FIELD_MAP.put(LOCATION, new ScFieldInfo(P_KIND_STRING, CastFcltyOpngTblScrtyCntrlDto::getLocation));
-        SC_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new ScFieldInfo(P_KIND_INTEGER, CastFcltyOpngTblScrtyCntrlDto::getCurrentNumberofLanes));
+        SC_FIELD_MAP.put(TERMINAL, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblScrtyCntrlDto::getTerminal));
+        SC_FIELD_MAP.put(LOCATION, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblScrtyCntrlDto::getLocation));
+        SC_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new FieldInfo<>(P_KIND_INTEGER, CastFcltyOpngTblScrtyCntrlDto::getCurrentNumberofLanes));
     }
 
     // 입국심사
-    public static class ImFieldInfo {
-        public final String pKind;
-        public final Function<CastFcltyOpngTblImmigDto, Object> extractor;
-
-        ImFieldInfo(String pKind, Function<CastFcltyOpngTblImmigDto, Object> extractor) {
-            this.pKind = pKind;
-            this.extractor = extractor;
-        }
-    }
-
-    public static final Map<String, ImFieldInfo> IM_FIELD_MAP = new LinkedHashMap<>();
+    public static final Map<String, FieldInfo<CastFcltyOpngTblImmigDto>> IM_FIELD_MAP = new LinkedHashMap<>();
     static {
-        IM_FIELD_MAP.put(TERMINAL, new ImFieldInfo(P_KIND_STRING, CastFcltyOpngTblImmigDto::getTerminal));
-        IM_FIELD_MAP.put(LOCATION, new ImFieldInfo(P_KIND_STRING, CastFcltyOpngTblImmigDto::getLocation));
-        IM_FIELD_MAP.put(START_DATE, new ImFieldInfo(P_KIND_DATE_TIME, CastFcltyOpngTblImmigDto::getStartDate));
-        IM_FIELD_MAP.put(END_DATE, new ImFieldInfo(P_KIND_DATE_TIME, CastFcltyOpngTblImmigDto::getEndDate));
-        IM_FIELD_MAP.put(START_TIME, new ImFieldInfo(P_KIND_DURATION, CastFcltyOpngTblImmigDto::getStartTime));
-        IM_FIELD_MAP.put(END_TIME, new ImFieldInfo(P_KIND_DURATION, CastFcltyOpngTblImmigDto::getEndTime));
-        IM_FIELD_MAP.put(PASSPORT, new ImFieldInfo(P_KIND_STRING, CastFcltyOpngTblImmigDto::getPassport));
-        IM_FIELD_MAP.put(IMMIGRATION_TYPE, new ImFieldInfo(P_KIND_STRING, CastFcltyOpngTblImmigDto::getImmigrationType));
-        IM_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new ImFieldInfo(P_KIND_INTEGER, CastFcltyOpngTblImmigDto::getCurrentNumberofLanes));
+        IM_FIELD_MAP.put(TERMINAL, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblImmigDto::getTerminal));
+        IM_FIELD_MAP.put(LOCATION, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblImmigDto::getLocation));
+        IM_FIELD_MAP.put(START_DATE, new FieldInfo<>(P_KIND_DATE_TIME, CastFcltyOpngTblImmigDto::getStartDate));
+        IM_FIELD_MAP.put(END_DATE, new FieldInfo<>(P_KIND_DATE_TIME, CastFcltyOpngTblImmigDto::getEndDate));
+        IM_FIELD_MAP.put(START_TIME, new FieldInfo<>(P_KIND_DURATION, CastFcltyOpngTblImmigDto::getStartTime));
+        IM_FIELD_MAP.put(END_TIME, new FieldInfo<>(P_KIND_DURATION, CastFcltyOpngTblImmigDto::getEndTime));
+        IM_FIELD_MAP.put(PASSPORT, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblImmigDto::getPassport));
+        IM_FIELD_MAP.put(IMMIGRATION_TYPE, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblImmigDto::getImmigrationType));
+        IM_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new FieldInfo<>(P_KIND_INTEGER, CastFcltyOpngTblImmigDto::getCurrentNumberofLanes));
     }
 
     // 환승장
-    public static class TsFieldInfo {
-        public final String pKind;
-        public final Function<CastFcltyOpngTblTrnstScrtyCntrlDto, Object> extractor;
-
-        TsFieldInfo(String pKind, Function<CastFcltyOpngTblTrnstScrtyCntrlDto, Object> extractor) {
-            this.pKind = pKind;
-            this.extractor = extractor;
-        }
-    }
-
-    public static final Map<String, TsFieldInfo> TS_FIELD_MAP = new LinkedHashMap<>();
+    public static final Map<String, FieldInfo<CastFcltyOpngTblTrnstScrtyCntrlDto>> TS_FIELD_MAP = new LinkedHashMap<>();
     static {
-        TS_FIELD_MAP.put(TERMINAL, new TsFieldInfo(P_KIND_STRING, CastFcltyOpngTblTrnstScrtyCntrlDto::getTerminal));
-        TS_FIELD_MAP.put(LOCATION, new TsFieldInfo(P_KIND_STRING, CastFcltyOpngTblTrnstScrtyCntrlDto::getLocation));
-        TS_FIELD_MAP.put(START_DATE, new TsFieldInfo(P_KIND_DATE_TIME, CastFcltyOpngTblTrnstScrtyCntrlDto::getStartDate));
-        TS_FIELD_MAP.put(END_DATE, new TsFieldInfo(P_KIND_DATE_TIME, CastFcltyOpngTblTrnstScrtyCntrlDto::getEndDate));
-        TS_FIELD_MAP.put(START_TIME, new TsFieldInfo(P_KIND_DURATION, CastFcltyOpngTblTrnstScrtyCntrlDto::getStartTime));
-        TS_FIELD_MAP.put(END_TIME, new TsFieldInfo(P_KIND_DURATION, CastFcltyOpngTblTrnstScrtyCntrlDto::getEndTime));
-        TS_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new TsFieldInfo(P_KIND_INTEGER, CastFcltyOpngTblTrnstScrtyCntrlDto::getCurrentNumberofLanes));
+        TS_FIELD_MAP.put(TERMINAL, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblTrnstScrtyCntrlDto::getTerminal));
+        TS_FIELD_MAP.put(LOCATION, new FieldInfo<>(P_KIND_STRING, CastFcltyOpngTblTrnstScrtyCntrlDto::getLocation));
+        TS_FIELD_MAP.put(START_DATE, new FieldInfo<>(P_KIND_DATE_TIME, CastFcltyOpngTblTrnstScrtyCntrlDto::getStartDate));
+        TS_FIELD_MAP.put(END_DATE, new FieldInfo<>(P_KIND_DATE_TIME, CastFcltyOpngTblTrnstScrtyCntrlDto::getEndDate));
+        TS_FIELD_MAP.put(START_TIME, new FieldInfo<>(P_KIND_DURATION, CastFcltyOpngTblTrnstScrtyCntrlDto::getStartTime));
+        TS_FIELD_MAP.put(END_TIME, new FieldInfo<>(P_KIND_DURATION, CastFcltyOpngTblTrnstScrtyCntrlDto::getEndTime));
+        TS_FIELD_MAP.put(CURRENT_NUMBER_OF_LANES, new FieldInfo<>(P_KIND_INTEGER, CastFcltyOpngTblTrnstScrtyCntrlDto::getCurrentNumberofLanes));
     }
-    public static final Map<String, RsFieldInfo> RS_FIELD_MAP = new LinkedHashMap<>();
+    public static final Map<String, FieldInfo<CastRptStngHrGroupCntrlDto>> RS_FIELD_MAP = new LinkedHashMap<>();
     static {
-        RS_FIELD_MAP.put(SCHEDULEDHOUR, new RsFieldInfo(P_KIND_INTEGER, CastRptStngHrGroupCntrlDto::getScheduledHour));
-        RS_FIELD_MAP.put(GROUPNAME, new RsFieldInfo(P_KIND_STRING, CastRptStngHrGroupCntrlDto::getGroupName));
+        RS_FIELD_MAP.put(SCHEDULEDHOUR, new FieldInfo<>(P_KIND_INTEGER, CastRptStngHrGroupCntrlDto::getScheduledHour));
+        RS_FIELD_MAP.put(GROUPNAME, new FieldInfo<>(P_KIND_STRING, CastRptStngHrGroupCntrlDto::getGroupName));
     }
-    public static class RsFieldInfo {
-        public final String pKind;
-        public final Function<CastRptStngHrGroupCntrlDto, Object> extractor;
-
-        RsFieldInfo(String pKind, Function<CastRptStngHrGroupCntrlDto, Object> extractor) {
-            this.pKind = pKind;
-            this.extractor = extractor;
-        }
-    }
-
     // What-If
-    public static class WiFieldInfo {
-        public final String pKind;
-        public final Function<CastWhatIfCntrlDto, Object> extractor;
-
-        WiFieldInfo(String pKind, Function<CastWhatIfCntrlDto, Object> extractor) {
-            this.pKind = pKind;
-            this.extractor = extractor;
-        }
-    }
-
-    public static final Map<String, WiFieldInfo> WI_FIELD_MAP = new LinkedHashMap<>();
+    public static final Map<String, FieldInfo<CastWhatIfCntrlDto>> WI_FIELD_MAP = new LinkedHashMap<>();
     static {
-        WI_FIELD_MAP.put("LastChange", new WiFieldInfo(P_KIND_DATE_TIME, CastWhatIfCntrlDto::getLastChange));
-        WI_FIELD_MAP.put(WHAT_IF_RUN_ID, new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getWhatIfRunId));
-        WI_FIELD_MAP.put(MODEL, new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getModel));
-        WI_FIELD_MAP.put("FS", new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getFs));
-        WI_FIELD_MAP.put("CA", new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getCa));
-        WI_FIELD_MAP.put("SBD", new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getSbd));
-        WI_FIELD_MAP.put("PS", new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getPs));
-        WI_FIELD_MAP.put(FACILITY_OPENING_TABLE_DEPARTURE_GATE, new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getFacilityOpeningTableDepartureGate));
-        WI_FIELD_MAP.put(FACILITY_OPENING_TABLE_EMIGRATION, new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getFacilityOpeningTableEmigration));
-        WI_FIELD_MAP.put(FACILITY_OPENING_TABLE_IMMIGRATION, new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getFacilityOpeningTableImmigration));
-        WI_FIELD_MAP.put(FACILITY_OPENING_TABLE_SECURITY_CONTROL, new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getFacilityOpeningTableSecurityControl));
-        WI_FIELD_MAP.put(FACILITY_OPENING_TABLE_TRANSFER_SECURITY_CONTROL, new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getFacilityOpeningTableTransferSecurityControl));
-        WI_FIELD_MAP.put(CHECK_IN_COUNTER_SERVICE_TIME, new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getCheckinCounterServiceTime));
-        WI_FIELD_MAP.put(CHECK_IN_TYPE, new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getCheckinType));
-        WI_FIELD_MAP.put(REPORTING_PROFILES_TIME_GROUPS, new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getRptStngId));
-        WI_FIELD_MAP.put(SIMULATION_RESULT_SUFFIX, new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getSimulationResultSuffix));
-        WI_FIELD_MAP.put(STATUS, new WiFieldInfo(P_KIND_STRING, CastWhatIfCntrlDto::getStatus));
+        WI_FIELD_MAP.put("LastChange", new FieldInfo<>(P_KIND_DATE_TIME, CastWhatIfCntrlDto::getLastChange));
+        WI_FIELD_MAP.put(WHAT_IF_RUN_ID, new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getWhatIfRunId));
+        WI_FIELD_MAP.put(MODEL, new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getModel));
+        WI_FIELD_MAP.put("FS", new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getFs));
+        WI_FIELD_MAP.put("CA", new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getCa));
+        WI_FIELD_MAP.put("SBD", new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getSbd));
+        WI_FIELD_MAP.put("PS", new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getPs));
+        WI_FIELD_MAP.put(FACILITY_OPENING_TABLE_DEPARTURE_GATE, new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getFacilityOpeningTableDepartureGate));
+        WI_FIELD_MAP.put(FACILITY_OPENING_TABLE_EMIGRATION, new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getFacilityOpeningTableEmigration));
+        WI_FIELD_MAP.put(FACILITY_OPENING_TABLE_IMMIGRATION, new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getFacilityOpeningTableImmigration));
+        WI_FIELD_MAP.put(FACILITY_OPENING_TABLE_SECURITY_CONTROL, new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getFacilityOpeningTableSecurityControl));
+        WI_FIELD_MAP.put(FACILITY_OPENING_TABLE_TRANSFER_SECURITY_CONTROL, new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getFacilityOpeningTableTransferSecurityControl));
+        WI_FIELD_MAP.put(CHECK_IN_COUNTER_SERVICE_TIME, new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getCheckinCounterServiceTime));
+        WI_FIELD_MAP.put(CHECK_IN_TYPE, new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getCheckinType));
+        WI_FIELD_MAP.put(REPORTING_PROFILES_TIME_GROUPS, new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getRptStngId));
+        WI_FIELD_MAP.put(SIMULATION_RESULT_SUFFIX, new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getSimulationResultSuffix));
+        WI_FIELD_MAP.put(STATUS, new FieldInfo<>(P_KIND_STRING, CastWhatIfCntrlDto::getStatus));
 
     }
 

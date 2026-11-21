@@ -55,7 +55,7 @@ FS는 998개, PS는 499개로 한정되므로 빈 번호가 없으면 실행 등
 
 ## PropertySet 제공
 
-원천 PS는 CastApiServiceImpl.DAILY_PRPT_SET_RSRC_ID의 PS001로 고정하며 USER_MSTR에 원천 PS ID를 저장하지 않는다.
+원천 PS는 CastPropertySetRenderer.DAILY_PRPT_SET_RSRC_ID의 PS001로 고정하며 USER_MSTR에 원천 PS ID를 저장하지 않는다.
 CAST가 사용자 PS를 요청하면 PS001을 렌더하고 PS ID와 SBD·DepartureGate·SecurityControl·Immigration·TransferSecurityControl
 참조를 해당 요청의 리소스 ID로 바꿔 반환한다. 모델·서비스시간·체크인유형·출국심사·리포팅은 기존 원본 ID를 사용한다.
 PS001 내용의 의도된 변경은 기존 실행의 PS 재조회에도 반영된다.
@@ -182,7 +182,7 @@ RunID 빈값 검사도 묶음 키에만 쓰였으므로 제거했다. 다음을 
 
 일일 시뮬레이션은 001 원천 고정이고, 사용자 실행은 KPI 비교를 위해 같은 원천을 쓴다. 그래서 사용자가 편집하지 않는
 리소스를 소스 상수로 고정하고 날짜 유효 설정 테이블을 제거했다.
-원천 PS 상수는 현재 `CastApiServiceImpl`, 나머지는 `CastUserSnapshotServiceImpl`에 있다.
+원천 PS 상수는 현재 `CastPropertySetRenderer`, 나머지는 `CastUserSnapshotServiceImpl`에 있다.
 실행별로 쓴 조합은 USER_MSTR의 리소스 컬럼에 남으며, 원천 PS ID는 2026-10-17에 제거했다.
 
 | 항목 | 고정값 |
