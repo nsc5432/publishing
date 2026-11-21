@@ -661,7 +661,13 @@ FFF AS (
         BP.ACTL_HM,
         BP.GD_IRR_YN,
         BP.RSVT_BDPSG_CNT,
-        BP.RSVT_TRNS_BDPSG_CNT
+        BP.RSVT_TRNS_BDPSG_CNT,
+        CASE
+            WHEN BP.ARR_DEP_SE_CD = 'A' THEN
+                TO_DATE(BP.SCHD_DT, 'YYYYMMDD')
+                    + (TO_NUMBER(SUBSTR(COALESCE(BP.ACTL_HM, BP.PREDC_HM, BP.SCHD_HM), 1, 2)) * 60
+                        + TO_NUMBER(SUBSTR(COALESCE(BP.ACTL_HM, BP.PREDC_HM, BP.SCHD_HM), 3, 2))) / 1440
+        END AS ARR_DT
     FROM BASE_PRE BP
     LEFT JOIN GATE_INFO GI
         ON BP.GATE_NO = GI.GATE_NO
@@ -705,26 +711,15 @@ SELECT
     FFF.SBDAvailable,
     FFF.FlightType,
     FFF.Triangle,
-    NVL(B.BUS_NEED_YN, 'N') AS BUS,
-    B.WAYO_ID AS ArrivalGate,
+    'N' AS BUS,
     CASE
-        WHEN B.FRST_BAG_INPUT_DT IS NULL OR B.FRST_BAG_INPUT_DT = '' THEN NULL
-        ELSE
-            SUBSTR(B.FRST_BAG_INPUT_DT, 1, 4) || '-'
-            || SUBSTR(B.FRST_BAG_INPUT_DT, 5, 2) || '-'
-            || SUBSTR(B.FRST_BAG_INPUT_DT, 7, 2) || 'T'
-            || SUBSTR(B.FRST_BAG_INPUT_DT, 9, 2) || ':'
-            || SUBSTR(B.FRST_BAG_INPUT_DT, 11, 2) || ':00.000'
-    END AS BaggageT1,
-    CASE
-        WHEN B.LAST_BAG_INPUT_DT IS NULL OR B.LAST_BAG_INPUT_DT = '' THEN NULL
-        ELSE
-            SUBSTR(B.LAST_BAG_INPUT_DT, 1, 4) || '-'
-            || SUBSTR(B.LAST_BAG_INPUT_DT, 5, 2) || '-'
-            || SUBSTR(B.LAST_BAG_INPUT_DT, 7, 2) || 'T'
-            || SUBSTR(B.LAST_BAG_INPUT_DT, 9, 2) || ':'
-            || SUBSTR(B.LAST_BAG_INPUT_DT, 11, 2) || ':00.000'
-    END AS BaggageT2,
+        WHEN FFF.FlightDirection != 'A' THEN NULL
+        WHEN FFF.DepArrTerminal = 'P01' THEN 'E'
+        WHEN FFF.DepArrTerminal = 'P02' THEN 'D'
+        WHEN FFF.DepArrTerminal = 'P03' THEN 'A'
+    END AS ArrivalGate,
+    TO_CHAR(FFF.ARR_DT + 20 / 1440, 'YYYY-MM-DD"T"HH24:MI":00.000"') AS BaggageT1,
+    TO_CHAR(FFF.ARR_DT + 40 / 1440, 'YYYY-MM-DD"T"HH24:MI":00.000"') AS BaggageT2,
     FFF.CF_TER_ID_X,
     FFF.SCHD_DT,
     FFF.SCHD_HM,
@@ -734,11 +729,9 @@ SELECT
     FFF.GD_IRR_YN,
     FFF.RSVT_BDPSG_CNT,
     FFF.RSVT_TRNS_BDPSG_CNT,
-    B.FRST_BAG_INPUT_DT AS FRST_BAG_INPUT_DT_RAW,
-    B.LAST_BAG_INPUT_DT AS LAST_BAG_INPUT_DT_RAW
+    TO_CHAR(FFF.ARR_DT + 20 / 1440, 'YYYYMMDDHH24MI') AS FRST_BAG_INPUT_DT_RAW,
+    TO_CHAR(FFF.ARR_DT + 40 / 1440, 'YYYYMMDDHH24MI') AS LAST_BAG_INPUT_DT_RAW
 FROM FFF
-LEFT JOIN GOOWN.TI_GO_FLTSH_RSRC B
-  ON FFF.FLT_ID = B.DALY_FLTSH_ID
         ]]>
     </sql>
 
