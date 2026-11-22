@@ -38,8 +38,7 @@ public class UserSmltRsrcSnapshotDto extends AomsDefaultDto {
 
 	private List<FltAjmtRow> fltAjmtList = new ArrayList<>();
 	private List<ChknIslRow> chknIslList = new ArrayList<>();
-	private List<OperHrRow> chknOperHrList = new ArrayList<>();
-	private List<ChknBoothRow> chknBoothList = new ArrayList<>();
+	private List<ChknBoothAltmntRow> chknBoothAltmntList = new ArrayList<>();
 	private List<DptgtRow> dptgtList = new ArrayList<>();
 	private List<OperHrRow> dptgtOperHrList = new ArrayList<>();
 
@@ -62,11 +61,14 @@ public class UserSmltRsrcSnapshotDto extends AomsDefaultDto {
 
 	@Getter
 	@AllArgsConstructor
-	public static class ChknBoothRow {
+	public static class ChknBoothAltmntRow {
 		private String tmnlId;
 		private String chknIslCd;
 		private int boothNo;
+		private int altmntSn;
 		private String alnCd;
+		private int operBgngHour;
+		private int operEndHour;
 	}
 
 	@Getter

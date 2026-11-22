@@ -151,6 +151,10 @@ DTO·필드·폴더 이름에 그대로 쓰인다. **이 약어들은 표준이�
    - 2026-11-11 체크인 대기인원 표시를 CAST 원값으로 바꿨다 (이름은 그대로). 체크인 `DsbdFcltCardDto.wtngPsgCnt` 와 CHKN 카테고리
      `TmnlSmryDto.smryWtngPsgCnt` 는 평가시각 결과(`SMLT_ACTL_DT = hhmm`)의 CC 부스 `WTNG_PSG_CNT` 아일랜드 합이다(`CastSmryServiceImpl.retrieveChknRsltWtngMap`).
      랜드사이드 대기인원과 같은 원천이라 체크인 + 출국장 = 랜드사이드다. 등급 · 대기시간 · 추천 · 해소와 맵 · 체크인 상세의 대기인원은 공용 Queue(§13) 그대로다.
+   - 2026-11-22 사용자 시뮬레이션 체크인을 부스 × 시간 × 항공사 배정으로 바꿨다. `ChknBoothDto` 를 `{ boothNo, altmntList }` 로,
+     새 `ChknBoothAltmntDto`(`alnCd` · `operBgngHour` · `operEndHour`)를 더하고 `ChknBoothDto.alnCd` · `cstmAltmntYn`, `ChknIslandDto.oprTimeList` 를 지웠다.
+     저장 요청 `UserSmltChknSaveReq.islandList` 와 실행 요청 `chknList` 도 같이 바뀐다. 같은 부스의 구간은 겹치지 않고 서버가 붙은 같은 항공사 구간을 합친다.
+     `OprTimeDto` 는 출국장이 계속 쓴다([계획](docs/plans/2026-11-22-user-smlt-chkn-booth-altmnt.md)). **새 이름도 이제 고정이다.**
    - `UserSmltDepItemDto.planList` 와 `ScPlanDto`, 그 원천 `TN_PM_SMLT_SCSH_OPER_PLAN` 은 2026-10-12 에
      삭제됐다. CAST SC 리소스에 시각이 없어 시간별 계획이 도달하지 않았다. 보안검색대는 출국장별
      `scshCntom` 하나가 최종 수량이다 (`docs/plans/2026-10-11-user-smlt-cast-insert-review.md` §3-2).
@@ -534,7 +538,9 @@ docs/user-smlt-master-redesign.md를 따른다.
 
 ### 11.1 현재상태와 실행
 
-- 편집용 8개 테이블의 키는 (OWNER_USER_ID, EXCN_YMD, TMNL_ID, 기존 시설·시간·부스 키)다.
+- 편집용 7개 테이블의 키는 (OWNER_USER_ID, EXCN_YMD, TMNL_ID, 기존 시설·시간·부스 키)다.
+  체크인은 아일랜드(`TN_PM_SMLT_USER_CHKN_ISL`)와 부스 배정 구간(`TN_PM_SMLT_USER_CHKN_BOOTH_ALTMNT`) 두 개다. 아일랜드 운영시간 · 부스 항공사 테이블은
+  2026-11-22 에 없앴다(`java/ddl/2026-11-22-user-chkn-booth-altmnt.sql`, [계획](docs/plans/2026-11-22-user-smlt-chkn-booth-altmnt.md)).
   운항 시간대별 비율 `TN_PM_SMLT_USER_FLT_PSG_TMZN_AJMT` 는 2026-11-02 추가(`java/ddl/2026-11-02-user-flt-psg-hourly-ratio.sql`).
   OWNER_USER_ID는 세션 사용자로 강제하며 요청의 사용자 필드를 신뢰하지 않는다.
 - 현재상태 조회·저장은 ymd + tmnlId를 사용한다. 과거 결과 ID가 없어도 조회·저장한다.
@@ -607,6 +613,10 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   일일 CA001 · 체크인 운영 부스(`retrieveChknBoothOperList`) · 기본 운영시간 · 대시보드 항공사 배정(`CastDsbdMapper.retrieveChknAlnAssignmentList`)은
   예정 시작 · 종료가 둘 다 있으면 예정, 아니면 최종 한 벌에서 시각을 읽는다(2026-11-22, 이전 칸별 NVL(EST, LAST) · 대시보드는 최종 우선).
   익일 종료는 원천 `*_RON_YN` 대신 시작 > 종료로 판정한다 — 시각과 어긋난 플래그가 08:00~익일 10:00 같은 26시간 배정을 만들었다.
+  사용자 CA 는 부스 배정 구간 1건(`TN_PM_SMLT_USER_CHKN_BOOTH_ALTMNT`)마다 1행이다(2026-11-22). 운영자료 기본값은 `retrieveChknList` 행을 부스별로 묶고,
+  시 단위 내림 · 올림으로 겹친 칸은 시작이 늦은 구간의 항공사로 정한다. 사용자 SBD 는 일일 SBD001 과 같은 조각 `CastApiMapper.dailySbdIslandRows`
+  (아일랜드 정책 항공사 출발편 첫 편 −5시간 ~ 마지막 편 −1시간)의 시각 · 항공사, 키오스크는 전날 12:00 ~ 당일 23:59 이고 사용자는 대수만 정한다.
+  정책 항공사 출발편이 없는 아일랜드는 SBD 를 발행하지 않는다.
   원천 `GOOWN.TI_GO_CKNCT_DALY_ALOT` 는 재전송마다 INSERT 되므로 위 네 조회와 사용자 탭 항공사 목록은 공용 조각 `CastApiMapper.cknctDailyAlotLatestRows` 로
   키 `(OPER_YMD, TMNL_ID, CKNCT_ID, ALN_CD)` 의 최신 `ALOT_SN` 1행을 먼저 고르고, 그 행이 `CHKN_TYPE_CD = 'C'` · `USE_YN = 'Y'` 일 때만 쓴다(2026-11-22). 편 기준(`'D'`)은 쓰지 않는다.
 - 사용자 FS(일일 운영자료 기반)는 FS001과 같은 SQL 조각 `CastApiMapper.dailyFlightScheduleRows`의 행을 저장한다

@@ -10,8 +10,18 @@ import { useTerminalData } from '../../hooks/useTerminalData';
 import { BLOCK_COLORS, TERMINALS, enabledTerminals, type BlockItem, type SmltTabProps, type TerminalKind } from '../../types';
 import { CheckinCounterEditDock } from './components/CheckinCounterEditDock';
 import { ISLAND_BOOTHS } from './constants';
-import type { CheckinIsland, TerminalCheckinCounter } from './types';
-import { EMPTY_CHECKIN_COUNTER, assignedBoothCount, toBooths, toCheckinCounter, toCheckinCounterKpis, toSaveReq } from './view';
+import type { CellRange, CheckinIsland, TerminalCheckinCounter } from './types';
+import {
+    EMPTY_CHECKIN_COUNTER,
+    assignedBoothCount,
+    isBoothAssigned,
+    operatingBoothCount,
+    toBooths,
+    toCheckinCounter,
+    toCheckinCounterKpis,
+    toIslandRanges,
+    toSaveReq,
+} from './view';
 
 type EditState = Record<TerminalKind, CheckinIsland[]>;
 
@@ -19,12 +29,12 @@ interface DockState {
     terminal: TerminalKind;
     draft: CheckinIsland | null;
     target: string | null;
-    selectedBooths: number[];
+    selection: CellRange | null;
     changed: boolean;
 }
 
 const EMPTY_EDIT: EditState = { T1: [], T2: [] };
-const EMPTY_DOCK: DockState = { terminal: 'T1', draft: null, target: null, selectedBooths: [], changed: false };
+const EMPTY_DOCK: DockState = { terminal: 'T1', draft: null, target: null, selection: null, changed: false };
 const FETCH_FAIL = '체크인 카운터 정보를 불러오지 못했습니다.';
 
 const CHART_LEVELS = 13;
@@ -43,9 +53,9 @@ function toBlockItems(islands: CheckinIsland[]): BlockItem[] {
     return islands.map((island) => ({
         label: island.label,
         color: island.color,
-        ranges: island.ranges,
+        ranges: toIslandRanges(island),
         size: assignedBoothCount(island),
-        sides: (['L', 'R'] as const).filter((side) => island.booths.some((booth) => booth.side === side && booth.airline)),
+        sides: (['L', 'R'] as const).filter((side) => island.booths.some((booth) => booth.side === side && isBoothAssigned(booth))),
     }));
 }
 
@@ -53,7 +63,6 @@ function newIsland(terminalData: TerminalCheckinCounter, label: string): Checkin
     return {
         label,
         color: BLOCK_COLORS[terminalData.islandCodes.indexOf(label) % BLOCK_COLORS.length],
-        ranges: [],
         booths: toBooths([]),
         kiosk: 0,
         bagdrop: 0,
@@ -67,7 +76,7 @@ function toDock(terminal: TerminalKind, label: string, islands: CheckinIsland[],
         terminal,
         draft: island ?? newIsland(source, label),
         target: island ? label : null,
-        selectedBooths: [],
+        selection: null,
         changed: false,
     };
 }
@@ -142,7 +151,7 @@ export function CheckinCounterTab({
         updateActiveDock((current) => (current.draft ? { ...current, changed: true, draft: { ...current.draft, ...patch } } : current));
     };
 
-    const selectBooths = (boothNos: number[]) => updateActiveDock((current) => ({ ...current, selectedBooths: boothNos }));
+    const selectCells = (selection: CellRange | null) => updateActiveDock((current) => ({ ...current, selection }));
 
     const handleConfirm = () => {
         const { terminal, draft: edited, target } = activeDock;
@@ -156,7 +165,7 @@ export function CheckinCounterTab({
                     ? [...previousIslands[terminal], edited]
                     : previousIslands[terminal].map((island) => (island.label === target ? edited : island)),
         }));
-        setDock({ terminal, draft: edited, target: edited.label, selectedBooths: [], changed: false });
+        setDock({ terminal, draft: edited, target: edited.label, selection: null, changed: false });
     };
 
     const handleCancel = () => {
@@ -235,9 +244,11 @@ export function CheckinCounterTab({
                             line={panelData.wait}
                             selected={terminal === focusTerminal && draft ? [draft.label] : []}
                             onBlockSelect={(label) => openIsland(terminal, label)}
-                            formatTip={(item, hour) =>
-                                `아일랜드 ${item.label} ${item.size}대 / ${ISLAND_BOOTHS}대 · ${formatHour(hour)} ~ ${formatHour(hour + 1)}`
-                            }
+                            formatTip={(item, hour) => {
+                                const island = panelIslands.find((candidate) => candidate.label === item.label);
+                                const count = island ? operatingBoothCount(island, hour) : item.size;
+                                return `아일랜드 ${item.label} ${count}대 / ${ISLAND_BOOTHS}대 · ${formatHour(hour)} ~ ${formatHour(hour + 1)}`;
+                            }}
                             disabled={!terminalEnabled}
                         />
                     </TerminalPanel>
@@ -255,8 +266,8 @@ export function CheckinCounterTab({
                 changed={activeDock.changed}
                 onPatch={patchDraft}
                 airlines={focusData.airlines}
-                selectedBooths={activeDock.selectedBooths}
-                onSelectBooths={selectBooths}
+                selection={activeDock.selection}
+                onSelectCells={selectCells}
                 onConfirm={handleConfirm}
                 onCancel={handleCancel}
             />

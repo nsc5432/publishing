@@ -2,13 +2,12 @@ import { useEffect, useRef } from 'react';
 import { T1WhiteIcon, T2WhiteIcon } from '@/components/icons';
 import type { TerminalKind } from '../../../types';
 import { CountStepper } from '../../../components/CountStepper';
-import { TimeBar } from '../../../components/TimeBar';
 import { useDockHeight } from '../../../hooks/useDockHeight';
 import { ISLAND_BOOTHS } from '../constants';
-import type { CheckinIsland } from '../types';
-import { assignedBoothCount } from '../view';
+import type { CellRange, CheckinIsland } from '../types';
+import { assignedBoothCount, cellCount, paintBooths } from '../view';
 import { AirlinePalette } from './AirlinePalette';
-import { BoothGrid } from './BoothGrid';
+import { BoothMatrix } from './BoothMatrix';
 
 interface CheckinCounterEditDockProps {
     disabled: boolean;
@@ -23,18 +22,21 @@ interface CheckinCounterEditDockProps {
     onPatch: (next: Partial<CheckinIsland>) => void;
 
     airlines: string[];
-    selectedBooths: number[];
-    onSelectBooths: (nos: number[]) => void;
+    selection: CellRange | null;
+    onSelectCells: (range: CellRange | null) => void;
 
     onConfirm: () => void;
     onCancel: () => void;
 }
 
-function toGuide(draft: CheckinIsland | null, selectedBoothCount: number, changed: boolean) {
+function toGuide(draft: CheckinIsland | null, selection: CellRange | null, changed: boolean) {
     if (!draft) return '차트의 블록이나 아일랜드 버튼을 눌러 편집할 아일랜드를 고르세요.';
-    if (selectedBoothCount > 0) return `선택한 부스 ${selectedBoothCount}대에 배정할 항공사를 고르세요.`;
+    if (selection) {
+        const booths = selection.boothFrom === selection.boothTo ? `${selection.boothFrom}번` : `${selection.boothFrom}~${selection.boothTo}번`;
+        return `${booths} 부스 ${selection.hourFrom}~${selection.hourTo + 1}시(${cellCount(selection)}칸)에 배정할 항공사를 고르세요.`;
+    }
     if (changed) return `변경한 내용은 적용을 눌러 ${draft.label} 아일랜드에 반영하세요.`;
-    return `${draft.label} 아일랜드의 부스를 클릭하거나 끌어서 고르세요.`;
+    return `${draft.label} 아일랜드의 부스 × 시간 칸을 클릭하거나 끌어서 고르세요.`;
 }
 
 export function CheckinCounterEditDock({
@@ -48,8 +50,8 @@ export function CheckinCounterEditDock({
     changed,
     onPatch,
     airlines,
-    selectedBooths,
-    onSelectBooths,
+    selection,
+    onSelectCells,
     onConfirm,
     onCancel,
 }: CheckinCounterEditDockProps) {
@@ -60,16 +62,16 @@ export function CheckinCounterEditDock({
     useDockHeight(dockRef);
 
     useEffect(() => {
-        if (selectedBooths.length === 0) return;
+        if (!selection) return;
 
         const handleOutsidePointerDown = (event: Event) => {
             const target = event.target as Node | null;
             if (target && dockRef.current?.contains(target)) return;
 
-            onSelectBooths([]);
+            onSelectCells(null);
         };
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') onSelectBooths([]);
+            if (event.key === 'Escape') onSelectCells(null);
         };
 
         document.addEventListener('pointerdown', handleOutsidePointerDown);
@@ -78,19 +80,16 @@ export function CheckinCounterEditDock({
             document.removeEventListener('pointerdown', handleOutsidePointerDown);
             document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [selectedBooths, onSelectBooths]);
+    }, [selection, onSelectCells]);
 
     const assignAirline = (airline: string) => {
-        if (disabled || !draft || selectedBooths.length === 0) return;
+        if (disabled || !draft || !selection) return;
 
-        const selectedBoothNos = new Set(selectedBooths);
-        onPatch({
-            booths: draft.booths.map((booth) => (selectedBoothNos.has(booth.no) ? { ...booth, airline } : booth)),
-        });
+        onPatch({ booths: paintBooths(draft.booths, selection, airline) });
     };
 
     return (
-        <section ref={dockRef} className="dock" aria-label="아일랜드 편집">
+        <section ref={dockRef} className="dock" data-editor="checkin" aria-label="아일랜드 편집">
             <div className="dock__head">
                 <span className="dock__tmnl" data-terminal={terminal} role="img" aria-label={terminal}>
                     <BadgeIcon aria-hidden="true" />
@@ -119,7 +118,7 @@ export function CheckinCounterEditDock({
                 </div>
                 {!disabled && (
                     <p className="dock__guide" role="status">
-                        {toGuide(draft, selectedBooths.length, changed)}
+                        {toGuide(draft, selection, changed)}
                     </p>
                 )}
             </div>
@@ -131,31 +130,13 @@ export function CheckinCounterEditDock({
                     <div className="dock__cols">
                         <section className="dock__col">
                             <p className="dsec__title">
-                                {draft.label} 아일랜드 {assignedBoothCount(draft)}대 / {ISLAND_BOOTHS}대<span className="dsec__hint">끌어서 여러 대 선택</span>
+                                {draft.label} 아일랜드 {assignedBoothCount(draft)}대 / {ISLAND_BOOTHS}대
+                                <span className="dsec__hint">부스 × 시간(1시간) 칸을 끌어서 선택 · 머리글을 누르면 줄 전체</span>
                             </p>
 
-                            <div className="booths">
-                                <div className="booths__row">
-                                    <span className="booths__side">L</span>
-                                    <BoothGrid booths={draft.booths} side="L" selected={selectedBooths} onSelect={onSelectBooths} disabled={disabled} />
-                                </div>
+                            <BoothMatrix booths={draft.booths} airlines={airlines} selection={selection} onSelect={onSelectCells} disabled={disabled} />
 
-                                <span className="booths__spine" aria-hidden="true" />
-
-                                <div className="booths__row">
-                                    <span className="booths__side">R</span>
-                                    <BoothGrid booths={draft.booths} side="R" selected={selectedBooths} onSelect={onSelectBooths} disabled={disabled} />
-                                </div>
-
-                                {!disabled && <AirlinePalette airlines={airlines} count={selectedBooths.length} onPick={assignAirline} />}
-                            </div>
-                        </section>
-
-                        <section className="dock__col">
-                            <p className="dsec__title">
-                                운영시간<span className="dsec__hint">1시간 단위</span>
-                            </p>
-                            <TimeBar disabled={disabled} label="운영시간" ranges={draft.ranges} onChange={(ranges) => onPatch({ ranges })} />
+                            {!disabled && <AirlinePalette airlines={airlines} count={cellCount(selection)} onPick={assignAirline} />}
                         </section>
 
                         <section className="dock__col">
@@ -164,6 +145,7 @@ export function CheckinCounterEditDock({
                             </p>
                             <CountStepper label="셀프체크인 키오스크" value={draft.kiosk} onChange={(kiosk) => onPatch({ kiosk })} disabled={disabled} />
                             <CountStepper label="셀프백드롭" value={draft.bagdrop} onChange={(bagdrop) => onPatch({ bagdrop })} disabled={disabled} />
+                            <p className="dock__note">키오스크 · 셀프백드롭의 운영시간과 항공사는 일일 시뮬레이션 정책을 따릅니다.</p>
                         </section>
                     </div>
 

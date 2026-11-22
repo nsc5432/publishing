@@ -1,5 +1,7 @@
 import { commonMock } from './common.mock';
 import type {
+    ChknBoothAltmntDto,
+    ChknBoothDto,
     ChknIslandDto,
     FcltType,
     FltPsgChartDto,
@@ -96,32 +98,79 @@ const ALN_CD_LIST: Record<TmnlId, string[]> = {
     T2: ['AF', 'CI', 'CZ', 'DL', 'GA', 'KE', 'KL', 'MU', 'VN'],
 };
 
-type IslandSeed = [string, number, number, string[], number, number];
+/** 문자열은 아일랜드 시간 내내 한 항공사, 배열은 시간 구간별 [항공사, 시작, 종료] */
+type BoothSeed = string | Array<[string, number, number]>;
+type IslandSeed = [string, number, number, BoothSeed[], number, number];
 
-function toIsland([island, operBgngHour, operEndHour, alnCds, kioskCnt, bagDropCnt]: IslandSeed): ChknIslandDto {
+const ISLAND_BOOTHS = 36;
+
+function toAltmntList(seed: BoothSeed, operBgngHour: number, operEndHour: number): ChknBoothAltmntDto[] {
+    if (typeof seed === 'string') return seed ? [{ alnCd: seed, operBgngHour, operEndHour }] : [];
+    return seed.map(([alnCd, bgng, end]) => ({ alnCd, operBgngHour: bgng, operEndHour: end }));
+}
+
+function toIsland([island, operBgngHour, operEndHour, booths, kioskCnt, bagDropCnt]: IslandSeed): ChknIslandDto {
+    const boothList = booths.map((seed, i) => ({ boothNo: i + 1, altmntList: toAltmntList(seed, operBgngHour, operEndHour) }));
+
     return {
         island,
-        boothCnt: alnCds.length,
+        boothCnt: boothList.filter((booth) => booth.altmntList.length > 0).length,
         kioskCnt,
         bagDropCnt,
-        oprTimeList: [{ operBgngHour, operEndHour }],
-        boothList: alnCds.map((alnCd, i) => ({ boothNo: i + 1, alnCd, cstmAltmntYn: 'N' })),
+        boothList,
     };
+}
+
+/** 서버 `CastChknServiceImpl.normalizeIslandList` 와 같은 검증 · 붙은 같은 항공사 구간 합치기 */
+function normalizeBooths(island: string, boothList: ChknBoothDto[]): ChknBoothDto[] {
+    const hoursByBooth = new Map<number, (string | null)[]>();
+
+    for (const booth of boothList) {
+        if (!Number.isInteger(booth.boothNo) || booth.boothNo < 1 || booth.boothNo > ISLAND_BOOTHS)
+            throw new Error(`${island} 아일랜드 부스 번호(${booth.boothNo})가 범위를 벗어났습니다.`);
+        const hours = hoursByBooth.get(booth.boothNo) ?? Array<string | null>(24).fill(null);
+        hoursByBooth.set(booth.boothNo, hours);
+        for (const altmnt of booth.altmntList) {
+            const label = `${island} 아일랜드 ${booth.boothNo}번 부스`;
+            if (!altmnt.alnCd) throw new Error(`${label}의 항공사가 비어 있습니다.`);
+            const { operBgngHour: bgng, operEndHour: end } = altmnt;
+            if (!Number.isInteger(bgng) || !Number.isInteger(end) || bgng < 0 || end > 24 || bgng >= end)
+                throw new Error(`${label}의 운영시간(${bgng}~${end}시)이 올바르지 않습니다.`);
+            for (let hour = bgng; hour < end; hour += 1) {
+                if (hours[hour] !== null) throw new Error(`${label}의 배정 시간이 겹칩니다(${hour}시).`);
+                hours[hour] = altmnt.alnCd;
+            }
+        }
+    }
+
+    return [...hoursByBooth.entries()]
+        .sort(([a], [b]) => a - b)
+        .map(([boothNo, hours]) => {
+            const altmntList: ChknBoothAltmntDto[] = [];
+            hours.forEach((alnCd, hour) => {
+                const last = altmntList.at(-1);
+                if (alnCd === null) return;
+                if (last && last.alnCd === alnCd && last.operEndHour === hour) last.operEndHour = hour + 1;
+                else altmntList.push({ alnCd, operBgngHour: hour, operEndHour: hour + 1 });
+            });
+            return { boothNo, altmntList };
+        })
+        .filter((booth) => booth.altmntList.length > 0);
 }
 
 const NA = '';
 
 const CHKN_ISLANDS: Record<TmnlId, IslandSeed[]> = {
     T1: [
-        ['A', 5, 22, ['KE', 'KE', 'KE', 'KE', 'OZ', 'OZ', 'OZ', NA], 2, 2],
+        ['A', 5, 22, ['KE', 'KE', 'KE', [['KE', 5, 12], ['OZ', 12, 22]], 'OZ', 'OZ', 'OZ', NA], 2, 2],
         ['B', 6, 20, ['KE', 'KE', 'KE', 'OZ', 'OZ', NA], 2, 1],
         ['C', 7, 19, ['OZ', 'OZ', 'KE', NA], 1, 1],
-        ['D', 9, 17, ['OZ', 'OZ', 'OZ', 'KE', 'KE', NA], 2, 1],
+        ['D', 9, 17, ['OZ', 'OZ', 'OZ', 'KE', 'KE', [['7C', 9, 13], ['LJ', 13, 17]]], 2, 1],
         ['E', 11, 15, ['KE', 'KE', NA], 1, 1],
         ['F', 13, 15, ['OZ', NA, NA], 0, 0],
     ],
     T2: [
-        ['A', 5, 21, ['KE', 'KE', 'KE', 'KE', 'OZ', NA], 2, 1],
+        ['A', 5, 21, ['KE', 'KE', 'KE', 'KE', [['OZ', 5, 13], ['KE', 13, 21]], NA], 2, 1],
         ['B', 7, 19, ['KE', 'KE', 'OZ', NA], 2, 1],
         ['C', 10, 16, ['KE', 'OZ', NA], 1, 1],
     ],
@@ -141,8 +190,12 @@ function peakCounterCnt(islands: ChknIslandDto[]): number {
     const byHour: number[] = Array(24).fill(0);
 
     islands.forEach((island) => {
-        island.oprTimeList.forEach(({ operBgngHour, operEndHour }) => {
-            for (let hour = operBgngHour; hour < operEndHour; hour += 1) byHour[hour] += island.boothCnt;
+        island.boothList.forEach((booth) => {
+            const hours = new Set<number>();
+            booth.altmntList.forEach(({ operBgngHour, operEndHour }) => {
+                for (let hour = operBgngHour; hour < operEndHour; hour += 1) hours.add(hour);
+            });
+            hours.forEach((hour) => (byHour[hour] += 1));
         });
     });
 
@@ -361,10 +414,10 @@ function saveChkn(request: UserSmltChknSaveReq, state: Map<string, CurrentCondit
     const id = key(request.ymd, request.tmnlId);
     const value = structuredClone(state.get(id) ?? {});
     const chkn = defaults(request.tmnlId).chkn;
-    chkn.islandList = structuredClone(request.islandList).map((island) => ({
-        ...island,
-        boothCnt: island.boothList.filter((booth) => booth.alnCd).length,
-    }));
+    chkn.islandList = structuredClone(request.islandList).map((island) => {
+        const boothList = normalizeBooths(island.island, island.boothList);
+        return { ...island, boothList, boothCnt: boothList.length };
+    });
     if (chkn.islandList.length > 0) value.chkn = { value: chkn, saveDt: stamp() };
     else delete value.chkn;
     state.set(id, value);
@@ -400,11 +453,11 @@ function publishResources(id: string, values: Record<TmnlId, Conditions>): Recor
             resource.flt.psgChart.maxCnt = Math.max(0, ...resource.flt.psgChart.itemList.map((item) => item.cnt));
             resource.flt.ajmtRt = 0;
             resource.chkn.islandList = resource.chkn.islandList
-                .filter((island) => island.oprTimeList.length > 0)
                 .map((island) => ({
                     ...island,
-                    boothList: island.boothList.filter((booth) => booth.alnCd),
-                }));
+                    boothList: island.boothList.filter((booth) => booth.altmntList.length > 0),
+                }))
+                .filter((island) => island.boothList.length > 0);
             resource.dep.dptgtList = resource.dep.dptgtList.filter((gate) => gate.oprYn === 'Y' && gate.oprTimeList.length > 0);
             mockResources.set(resourceId, resource);
             return [terminal, resourceId];

@@ -36,6 +36,44 @@
            AND L.USE_YN = 'Y'
     </sql>
 
+    <!-- 셀프백드롭 아일랜드별 운영. 기준일 하루와 겹치는 아일랜드 정책 항공사의 출발편(전날 · 당일) 첫 편 −5시간 ~ 마지막 편 −1시간.
+         SBD001 과 사용자 SBD 발행(CastUserSnapshotMapper.insertSbdAtrb)이 같이 쓴다. 정책 항공사 출발편이 없는 아일랜드는 행이 없다 -->
+    <sql id="dailySbdIslandRows">
+        SELECT P.TMNL_ID
+             , P.CHKN_ISL_CD
+             , MIN(P.ALN_CD) AS ALN_CD
+             , LISTAGG(P.ALN_CD, ',') WITHIN GROUP (ORDER BY P.ALN_CD) AS ALN_CD_LIST
+             , MIN(P.OPEN_TM) AS OPEN_TM
+             , MAX(P.CLOSE_TM) AS CLOSE_TM
+          FROM (
+            SELECT PLCY.TMNL_ID
+                 , PLCY.SBD_CTR_NM AS CHKN_ISL_CD
+                 , PLCY.ALN_CD
+                 , MIN(GD.OPEN_TM) AS OPEN_TM
+                 , MAX(GD.CLOSE_TM) AS CLOSE_TM
+              FROM PMOWN.TN_PM_SBD_OPER_PLCY PLCY
+             INNER JOIN (
+                SELECT A.GD_SE_YMD
+                     , A.TMNL_ID
+                     , A.ALN_CD
+                     , MIN(TO_CHAR(TO_DATE(A.GD_SE_YMD || A.SCHDL_HM, 'YYYYMMDDHH24MISS') - 5/24, 'YYYYMMDDHH24MISS')) AS OPEN_TM
+                     , MAX(TO_CHAR(TO_DATE(A.GD_SE_YMD || A.SCHDL_HM, 'YYYYMMDDHH24MISS') - 1/24, 'YYYYMMDDHH24MISS')) AS CLOSE_TM
+                  FROM GOOWN.TN_GO_GD_DATA A
+                 WHERE A.GD_SE_YMD BETWEEN TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND #{baseYmd}
+                   AND A.ARR_DEP_SE_CD = 'D'
+                   <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataFltCond"/>
+                 GROUP BY A.GD_SE_YMD, A.TMNL_ID, A.ALN_CD
+             ) GD
+                ON GD.ALN_CD = PLCY.ALN_CD
+               AND GD.TMNL_ID = PLCY.TMNL_ID
+             WHERE TO_TIMESTAMP(PLCY.PLCY_BGNG_DT, 'YYYY-MM-DD HH24:MI:SS') &lt; TO_TIMESTAMP(#{baseYmd}, 'YYYYMMDD') + INTERVAL '1' DAY
+               AND TO_TIMESTAMP(PLCY.PLCY_END_DT, 'YYYY-MM-DD HH24:MI:SS') >= TO_TIMESTAMP(#{baseYmd}, 'YYYYMMDD')
+               AND GD.OPEN_TM IS NOT NULL
+             GROUP BY PLCY.TMNL_ID, PLCY.SBD_CTR_NM, PLCY.ALN_CD
+          ) P
+         GROUP BY P.TMNL_ID, P.CHKN_ISL_CD
+    </sql>
+
     <!-- 체크인카운터 일일 배정 -->
     <sql id="cknctDailyAlotRows">
         SELECT Y.TMNL_ID
@@ -808,38 +846,19 @@
                     END                                       AS BlockID          -- BlockID
                     , CIC.TMNL_ID                                  AS DepArrTerminal   -- 터미널아이디
                     , CIC.CKNCT_ID                                  AS resourceID       -- 체크인카운터번호
-                    , LISTAGG(PLCY.ALN_CD, ',') WITHIN GROUP (ORDER BY PLCY.ALN_CD) AS AirlineCode      -- 항공사코드
+                    , S.ALN_CD_LIST                                 AS AirlineCode      -- 항공사코드
                     , CASE
                         WHEN CIC.DOM_INTL_SE_CD = 'I' THEN 'Int'
                         ELSE 'Dom'
                     END                                       AS DomStatus        -- 국내국제구분코드
-                    , TO_CHAR(TO_DATE(MIN(GD.OPEN_TM), 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD"T"HH24:MI:SS".000"')                            AS t1
-                    , TO_CHAR(TO_DATE(MAX(GD.CLOSE_TM), 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD"T"HH24:MI:SS".000"')                           AS t2
+                    , TO_CHAR(TO_DATE(S.OPEN_TM, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD"T"HH24:MI:SS".000"')                            AS t1
+                    , TO_CHAR(TO_DATE(S.CLOSE_TM, 'YYYYMMDDHH24MISS'), 'YYYY-MM-DD"T"HH24:MI:SS".000"')                           AS t2
                 FROM CAOWN.TN_CA_CKNCT CIC
-                    LEFT JOIN PMOWN.TN_PM_SBD_OPER_PLCY PLCY
-                    ON CIC.TMNL_ID = PLCY.TMNL_ID
-                    AND SUBSTR(CIC.CKNCT_ID, 1, 1) = PLCY.SBD_CTR_NM
-                    AND TO_TIMESTAMP(PLCY.PLCY_BGNG_DT, 'YYYY-MM-DD HH24:MI:SS') &lt; TO_TIMESTAMP(#{baseYmd}, 'YYYYMMDD') + INTERVAL '1' DAY
-                    AND TO_TIMESTAMP(PLCY.PLCY_END_DT, 'YYYY-MM-DD HH24:MI:SS') >= TO_TIMESTAMP(#{baseYmd}, 'YYYYMMDD')
-                    LEFT JOIN (
-                                SELECT
-                                    A.GD_SE_YMD
-                                    , A.TMNL_ID
-                                    , A.ALN_CD
-                                    , MIN(TO_CHAR(TO_DATE(A.GD_SE_YMD || A.SCHDL_HM, 'YYYYMMDDHH24MISS') - 5/24, 'YYYYMMDDHH24MISS')) AS OPEN_TM
-                                    , MAX(TO_CHAR(TO_DATE(A.GD_SE_YMD || A.SCHDL_HM, 'YYYYMMDDHH24MISS') - 1/24, 'YYYYMMDDHH24MISS')) AS CLOSE_TM
-                                FROM GOOWN.TN_GO_GD_DATA A
-                                WHERE A.GD_SE_YMD BETWEEN TO_CHAR(TO_DATE(#{baseYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND #{baseYmd}
-                                AND A.ARR_DEP_SE_CD = 'D'
-                                <include refid="gdDataFltCond"/>
-                                GROUP BY A.GD_SE_YMD, A.TMNL_ID, A.ALN_CD
-                    ) GD
-                     ON PLCY.ALN_CD = GD.ALN_CD
-                    AND CIC.TMNL_ID = GD.TMNL_ID
+                    INNER JOIN (<include refid="dailySbdIslandRows"/>) S
+                    ON S.TMNL_ID = CIC.TMNL_ID
+                    AND S.CHKN_ISL_CD = SUBSTR(CIC.CKNCT_ID, 1, 1)
                 WHERE CIC.USE_YN = 'Y'
                 AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD = 'H'
-                AND GD.OPEN_TM IS NOT NULL
-                GROUP BY CIC.TMNL_ID, CIC.CKNCT_ID, CIC.DOM_INTL_SE_CD
             ) SBD
             </when>
             <otherwise>

@@ -43,7 +43,7 @@ export function AirlinePalette({ airlines, count, onPick }: AirlinePaletteProps)
 
     return (
         <div className={`airpal${ready ? ' is-ready' : ''}`}>
-            <p className="airpal__head">{ready ? `${count}대에 배정할 항공사` : '항공사'}</p>
+            <p className="airpal__head">{ready ? `${count}칸에 배정할 항공사` : '항공사'}</p>
 
             <div className={`airpop__rail${rail.scrollable ? ' is-scrollable' : ''}${rail.atStart ? '' : ' is-scrolled'}${rail.atEnd ? ' is-end' : ''}`}>
                 <div

@@ -101,11 +101,14 @@ try {
     check(api.getDepInfo({ ymd, smltId: third.smltId }, 'T1').dptgtList.length > 0, 'execution uses operative departure defaults after empty save');
     check(api.getChknCounterInfo({ ymd, smltId: third.smltId }, 'T2').islandList.length > 0 && api.getDepInfo({ ymd, smltId: third.smltId }, 'T2').dptgtList.length > 0, 'empty auto saves also resolve to operative defaults');
     check(api.getChknCounterInfo({ ymd, smltId: first.smltId }, 'T1').islandList.length > 0, 'new empty does not mutate older conditions');
-    const inactiveChkn = api.getChknCounterInfo({ ymd: otherDay }, 'T2').islandList.map((island) => ({ ...island, oprTimeList: [] }));
+    const inactiveChkn = api.getChknCounterInfo({ ymd: otherDay }, 'T2').islandList.map((island) => ({
+        ...island,
+        boothList: island.boothList.map((booth) => ({ ...booth, altmntList: [] })),
+    }));
     const inactiveDep = api.getDepInfo({ ymd: otherDay }, 'T2').dptgtList.map((gate) => ({ ...gate, oprYn: 'N', oprTimeList: [] }));
     api.saveChknCounterInfo({ ymd: otherDay, tmnlId: 'T2', islandList: inactiveChkn });
     api.saveDepInfo({ ymd: otherDay, tmnlId: 'T2', dptgtList: inactiveDep });
-    check(api.getChknCounterInfo({ ymd: otherDay }, 'T2').islandList.every((island) => island.oprTimeList.length === 0) && api.getDepInfo({ ymd: otherDay }, 'T2').dptgtList.every((gate) => gate.oprYn === 'N'), 'nonempty inactive facilities do not fall back to operative data');
+    check(api.getChknCounterInfo({ ymd: otherDay }, 'T2').islandList.length > 0 && api.getChknCounterInfo({ ymd: otherDay }, 'T2').islandList.every((island) => island.boothList.every((booth) => booth.altmntList.length === 0)) && api.getDepInfo({ ymd: otherDay }, 'T2').dptgtList.every((gate) => gate.oprYn === 'N'), 'nonempty inactive facilities do not fall back to operative data');
     check(api.getInfo(otherDay, 'T2').saveDt !== '', 'remaining facility rows supply save time');
     api.saveChknCounterInfo({ ymd: otherDay, tmnlId: 'T2', islandList: [] });
     api.saveDepInfo({ ymd: otherDay, tmnlId: 'T2', dptgtList: [] });
@@ -121,6 +124,39 @@ try {
     const resource = mockResources.get(mockExecutions.get(first.smltId).resourceIds.T1);
     resource.dep.dptgtList.length = 0;
     check(api.getDepInfo({ ymd, smltId: first.smltId }, 'T1').dptgtList.length === 0, 'intentional source changes are reflected in execution condition views');
+
+    const boothYmd = '20261015';
+    const boothBase = api.getChknCounterInfo({ ymd: boothYmd }, 'T1');
+    check(
+        boothBase.islandList.some((island) => island.boothList.some((booth) => new Set(booth.altmntList.map((altmnt) => altmnt.alnCd)).size > 1)),
+        'operative defaults include a booth whose airline changes by hour',
+    );
+    const boothEdit = structuredClone(boothBase.islandList);
+    boothEdit[0].boothList = [
+        { boothNo: 1, altmntList: [{ alnCd: 'KE', operBgngHour: 6, operEndHour: 9 }, { alnCd: 'KE', operBgngHour: 9, operEndHour: 12 }, { alnCd: 'OZ', operBgngHour: 14, operEndHour: 18 }] },
+        { boothNo: 20, altmntList: [{ alnCd: '7C', operBgngHour: 0, operEndHour: 24 }] },
+        { boothNo: 2, altmntList: [] },
+    ];
+    const expectedBooths = JSON.stringify([
+        { boothNo: 1, altmntList: [{ alnCd: 'KE', operBgngHour: 6, operEndHour: 12 }, { alnCd: 'OZ', operBgngHour: 14, operEndHour: 18 }] },
+        { boothNo: 20, altmntList: [{ alnCd: '7C', operBgngHour: 0, operEndHour: 24 }] },
+    ]);
+    api.saveChknCounterInfo({ ymd: boothYmd, tmnlId: 'T1', islandList: boothEdit });
+    const savedIsland = api.getChknCounterInfo({ ymd: boothYmd }, 'T1').islandList[0];
+    check(JSON.stringify(savedIsland.boothList) === expectedBooths && savedIsland.boothCnt === 2, 'booth time slots round-trip with adjacent same-airline slots merged');
+    const rejectBooths = (boothList) => api.saveChknCounterInfo({ ymd: boothYmd, tmnlId: 'T1', islandList: [{ ...boothEdit[0], boothList }] });
+    assert.throws(() => rejectBooths([{ boothNo: 1, altmntList: [{ alnCd: 'KE', operBgngHour: 6, operEndHour: 10 }, { alnCd: 'OZ', operBgngHour: 9, operEndHour: 12 }] }]), /겹칩니다/);
+    assert.throws(() => rejectBooths([{ boothNo: 1, altmntList: [{ alnCd: 'KE', operBgngHour: 20, operEndHour: 25 }] }]), /올바르지 않습니다/);
+    assert.throws(() => rejectBooths([{ boothNo: 37, altmntList: [{ alnCd: 'KE', operBgngHour: 6, operEndHour: 9 }] }]), /범위/);
+    assert.throws(() => rejectBooths([{ boothNo: 1, altmntList: [{ alnCd: '', operBgngHour: 6, operEndHour: 9 }] }]), /비어 있습니다/);
+    check(JSON.stringify(api.getChknCounterInfo({ ymd: boothYmd }, 'T1').islandList[0].boothList) === expectedBooths, 'rejected booth save keeps the draft');
+    const chknView = await server.ssrLoadModule('/src/modules/pm/pages/userSmlt/tabs/checkinCounter/view.ts');
+    const boothIslands = chknView.toCheckinCounter({ ...api.getChknCounterInfo({ ymd: boothYmd }, 'T1'), flightPax: api.getFltPsgInfo({ ymd: boothYmd }, 'T1') }).islands;
+    check(JSON.stringify(chknView.toSaveReq(boothYmd, 'T1', boothIslands).islandList[0].boothList) === expectedBooths, 'view model round-trips booth time slots');
+    check(chknView.operatingBoothCount(boothIslands[0], 7) === 2 && chknView.operatingBoothCount(boothIslands[0], 13) === 1, 'operating booth count follows booth time slots');
+    check(JSON.stringify(chknView.toIslandRanges(boothIslands[0])) === JSON.stringify([{ start: 0, end: 24 }]), 'island hours are the union of booth slots');
+    const boothExec = api.execute({ ymd: boothYmd, fltPsgList: [], chknList: [], depList: [] });
+    check(JSON.stringify(api.getChknCounterInfo({ ymd: boothYmd, smltId: boothExec.smltId }, 'T1').islandList[0].boothList) === expectedBooths, 'execution resource keeps booth time slots');
 
     const now = new Date();
     const day = [now.getFullYear(), now.getMonth() + 1, now.getDate()].map((v, i) => String(v).padStart(i === 0 ? 4 : 2, '0')).join('');

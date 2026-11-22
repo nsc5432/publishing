@@ -127,19 +127,13 @@
             CHKN_TYPE_DTL_INFO,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
         )
-        WITH BOOTH AS (
+        WITH ALTMNT AS (
             SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
-                   CAST(NULL AS NUMBER) AS BOOTH_NO, CAST(NULL AS VARCHAR2(3)) AS ALN_CD
+                   CAST(NULL AS NUMBER) AS BOOTH_NO, CAST(NULL AS NUMBER) AS ALTMNT_SN, CAST(NULL AS VARCHAR2(3)) AS ALN_CD,
+                   CAST(NULL AS NUMBER) AS OPER_BGNG_HOUR, CAST(NULL AS NUMBER) AS OPER_END_HOUR
             FROM DUAL WHERE 1 = 0
-            <foreach collection="chknBoothList" item="row">
-            UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.boothNo}, #{row.alnCd} FROM DUAL
-            </foreach>
-        ), OPER_HR AS (
-            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
-                   CAST(NULL AS NUMBER) AS OPER_HR_SN, CAST(NULL AS NUMBER) AS OPER_BGNG_HOUR, CAST(NULL AS NUMBER) AS OPER_END_HOUR
-            FROM DUAL WHERE 1 = 0
-            <foreach collection="chknOperHrList" item="row">
-            UNION ALL SELECT #{row.tmnlId}, #{row.fcltCd}, #{row.operHrSn}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
+            <foreach collection="chknBoothAltmntList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.boothNo}, #{row.altmntSn}, #{row.alnCd}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
             </foreach>
         )
         SELECT
@@ -154,16 +148,13 @@
             B.ALN_CD,
             NVL(C.DOM_INTL_SE_CD, 'I'),
             #{excnYmd},
-            #{excnYmd} || LPAD(H.OPER_BGNG_HOUR, 2, '0') || '00',
-            #{excnYmd} || LPAD(DECODE(H.OPER_END_HOUR, 24, 23, H.OPER_END_HOUR), 2, '0')
-                       || DECODE(H.OPER_END_HOUR, 24, '59', '00'),
+            #{excnYmd} || LPAD(B.OPER_BGNG_HOUR, 2, '0') || '00',
+            #{excnYmd} || LPAD(DECODE(B.OPER_END_HOUR, 24, 23, B.OPER_END_HOUR), 2, '0')
+                       || DECODE(B.OPER_END_HOUR, 24, '59', '00'),
             'C',
             B.ALN_CD,
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM BOOTH B
-            INNER JOIN OPER_HR H
-                ON  H.TMNL_ID = B.TMNL_ID
-                AND H.CHKN_ISL_CD = B.CHKN_ISL_CD
+        FROM ALTMNT B
             INNER JOIN (
                 SELECT
                     K.TMNL_ID,
@@ -181,8 +172,10 @@
         WHERE B.ALN_CD IS NOT NULL
     </insert>
 
+    <!-- 운영시간 · 항공사는 일일 SBD001 과 같은 아일랜드 값(CastApiMapper.dailySbdIslandRows)이고 사용자는 대수만 정한다 -->
     <insert id="insertSbdAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSbdAtrb */
+        <bind name="baseYmd" value="excnYmd"/>
         INSERT INTO PMOWN.TN_PM_SMLT_SBD_ATRB (
             SCHDL_ATRB_GROUP_ID, BLCK_ID, TMNL_ID, CKNCT_ID, ALN_CD, DOM_INTL_SE_CD,
             CRTR_YMD, OPER_BGNG_DT, OPER_END_DT, CHKN_TYPE_CD, CHKN_TYPE_DTL_INFO,
@@ -195,39 +188,22 @@
             <foreach collection="chknIslList" item="row">
             UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.kosCnt}, #{row.sbdCnt} FROM DUAL
             </foreach>
-        ), OPER_HR AS (
-            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
-                   CAST(NULL AS NUMBER) AS OPER_HR_SN, CAST(NULL AS NUMBER) AS OPER_BGNG_HOUR, CAST(NULL AS NUMBER) AS OPER_END_HOUR
-            FROM DUAL WHERE 1 = 0
-            <foreach collection="chknOperHrList" item="row">
-            UNION ALL SELECT #{row.tmnlId}, #{row.fcltCd}, #{row.operHrSn}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
-            </foreach>
-        ), BOOTH AS (
-            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
-                   CAST(NULL AS NUMBER) AS BOOTH_NO, CAST(NULL AS VARCHAR2(3)) AS ALN_CD
-            FROM DUAL WHERE 1 = 0
-            <foreach collection="chknBoothList" item="row">
-            UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.boothNo}, #{row.alnCd} FROM DUAL
-            </foreach>
         )
         SELECT
             #{rsrcNo},
             CASE WHEN I.TMNL_ID = 'P03' THEN 'P03SBD' ELSE 'P01SBD' END,
             I.TMNL_ID,
             C.CKNCT_ID,
-            A.ALN_CD,
+            S.ALN_CD,
             NVL(C.DOM_INTL_SE_CD, 'I'),
-            #{excnYmd},
-            #{excnYmd} || LPAD(H.OPER_BGNG_HOUR, 2, '0') || '00',
-            #{excnYmd} || LPAD(DECODE(H.OPER_END_HOUR, 24, 23, H.OPER_END_HOUR), 2, '0')
-                       || DECODE(H.OPER_END_HOUR, 24, '59', '00'),
+            <!-- 렌더가 CRTR_YMD 와 종료 HHMI 로 T2 를 만들므로 종료 시각의 일자를 넣는다 -->
+            SUBSTR(S.CLOSE_TM, 1, 8),
+            SUBSTR(S.OPEN_TM, 1, 12),
+            SUBSTR(S.CLOSE_TM, 1, 12),
             'C',
-            SUBSTR(A.ALN_CD_LIST, 1, 200),
+            SUBSTR(S.ALN_CD_LIST, 1, 200),
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM ISL I
-            INNER JOIN OPER_HR H
-                ON  H.TMNL_ID = I.TMNL_ID
-                AND H.CHKN_ISL_CD = I.CHKN_ISL_CD
             INNER JOIN (
                 SELECT
                     K.TMNL_ID,
@@ -242,22 +218,12 @@
                 ON C.TMNL_ID = I.TMNL_ID
                 AND C.CHKN_ISL_CD = I.CHKN_ISL_CD
                 AND C.DEVICE_NO &lt;= NVL(I.SBD_CNT, 0)
-            LEFT OUTER JOIN (
-                SELECT
-                    TMNL_ID, CHKN_ISL_CD,
-                    MIN(ALN_CD) AS ALN_CD,
-                    LISTAGG(ALN_CD, ',') WITHIN GROUP (ORDER BY ALN_CD) AS ALN_CD_LIST
-                FROM (
-                    SELECT DISTINCT TMNL_ID, CHKN_ISL_CD, ALN_CD
-                    FROM BOOTH
-                    WHERE ALN_CD IS NOT NULL
-                )
-                GROUP BY TMNL_ID, CHKN_ISL_CD
-            ) A
-                ON  A.TMNL_ID = I.TMNL_ID
-                AND A.CHKN_ISL_CD = I.CHKN_ISL_CD
+            INNER JOIN (<include refid="aoms.pm.castapi.mapper.CastApiMapper.dailySbdIslandRows"/>) S
+                ON  S.TMNL_ID = I.TMNL_ID
+                AND S.CHKN_ISL_CD = I.CHKN_ISL_CD
     </insert>
 
+    <!-- 운영시간은 일일 SBD001 키오스크와 같은 전날 12:00 ~ 당일 23:59 다 -->
     <insert id="insertSbdAtrbKiosk" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSbdAtrbKiosk */
         INSERT INTO PMOWN.TN_PM_SMLT_SBD_ATRB (
@@ -272,13 +238,6 @@
             <foreach collection="chknIslList" item="row">
             UNION ALL SELECT #{row.tmnlId}, #{row.chknIslCd}, #{row.kosCnt}, #{row.sbdCnt} FROM DUAL
             </foreach>
-        ), OPER_HR AS (
-            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(1)) AS CHKN_ISL_CD,
-                   CAST(NULL AS NUMBER) AS OPER_HR_SN, CAST(NULL AS NUMBER) AS OPER_BGNG_HOUR, CAST(NULL AS NUMBER) AS OPER_END_HOUR
-            FROM DUAL WHERE 1 = 0
-            <foreach collection="chknOperHrList" item="row">
-            UNION ALL SELECT #{row.tmnlId}, #{row.fcltCd}, #{row.operHrSn}, #{row.operBgngHour}, #{row.operEndHour} FROM DUAL
-            </foreach>
         )
         SELECT
             #{rsrcNo},
@@ -288,16 +247,12 @@
             C.ALN_CD,
             'I',
             #{excnYmd},
-            #{excnYmd} || LPAD(H.OPER_BGNG_HOUR, 2, '0') || '00',
-            #{excnYmd} || LPAD(DECODE(H.OPER_END_HOUR, 24, 23, H.OPER_END_HOUR), 2, '0')
-                       || DECODE(H.OPER_END_HOUR, 24, '59', '00'),
+            TO_CHAR(TO_DATE(#{excnYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') || '1200',
+            #{excnYmd} || '2359',
             'C',
             SUBSTR(C.ALN_CD_LIST, 1, 200),
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM ISL I
-            INNER JOIN OPER_HR H
-                ON  H.TMNL_ID = I.TMNL_ID
-                AND H.CHKN_ISL_CD = I.CHKN_ISL_CD
             INNER JOIN (
                 SELECT
                     P.TMNL_ID,

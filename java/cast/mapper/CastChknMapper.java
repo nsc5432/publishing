@@ -12,8 +12,7 @@ import aoms.pm.cast.dto.ChknQueueRawDto;
 import aoms.pm.cast.dto.ChknRawDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
 import aoms.pm.cast.dto.PsgWtngRawDto;
-import aoms.pm.cast.dto.UserChknBoothRawDto;
-import aoms.pm.cast.dto.UserChknOperHrRawDto;
+import aoms.pm.cast.dto.UserChknBoothAltmntRawDto;
 import aoms.pm.cast.dto.UserSmltChknSaveDto;
 
 @Mapper
@@ -42,19 +41,13 @@ public interface CastChknMapper {
 
     List<ChknIslandDto> retrieveUserChknIslandList(UserSmltCurrentDto scope);
 
-    List<UserChknOperHrRawDto> retrieveUserChknOperHrList(UserSmltCurrentDto scope);
-
-    List<UserChknBoothRawDto> retrieveUserChknBoothList(UserSmltCurrentDto scope);
+    List<UserChknBoothAltmntRawDto> retrieveUserChknBoothAltmntList(UserSmltCurrentDto scope);
 
     void deleteUserChknIslandList(UserSmltChknSaveDto saveDto);
 
-    void deleteUserChknOperHrList(UserSmltChknSaveDto saveDto);
-
-    void deleteUserChknBoothList(UserSmltChknSaveDto saveDto);
+    void deleteUserChknBoothAltmntList(UserSmltChknSaveDto saveDto);
 
     void insertUserChknIslandList(UserSmltChknSaveDto saveDto);
 
-    void insertUserChknOperHrList(UserSmltChknSaveDto saveDto);
-
-    void insertUserChknBoothList(UserSmltChknSaveDto saveDto);
+    void insertUserChknBoothAltmntList(UserSmltChknSaveDto saveDto);
 }

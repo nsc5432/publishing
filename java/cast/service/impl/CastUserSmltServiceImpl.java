@@ -104,7 +104,7 @@ public class CastUserSmltServiceImpl implements CastUserSmltService {
         if (flt.getFltCnt() == 0) 
             throw new IllegalStateException(terminal.getValue() + " " + ymd + " 운항 운영자료가 없습니다.");
         
-        if (!executionService.hasCurrentConditions(chknQuery, "CHKN") && chkn.getIslandList().stream().noneMatch(island -> !island.getOprTimeList().isEmpty() && island.getBoothList().stream().anyMatch(booth -> booth.getAlnCd() != null && !booth.getAlnCd().isBlank()))) 
+        if (!executionService.hasCurrentConditions(chknQuery, "CHKN") && chkn.getIslandList().stream().noneMatch(island -> island.getBoothList().stream().anyMatch(booth -> !booth.getAltmntList().isEmpty())))
             throw new IllegalStateException(terminal.getValue() + " 체크인 운영자료가 없습니다.");
         
         if (!executionService.hasCurrentConditions(depQuery, "DEP") && dep.getDptgtList().stream().noneMatch(gate -> !gate.getOprTimeList().isEmpty())) 

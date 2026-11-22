@@ -626,10 +626,15 @@ export interface SmltKpiDto {
 
 /* --------- 체크인 카운터 탭 (셀프체크인/백드롭 흡수) --------- */
 
+export interface ChknBoothAltmntDto {
+    alnCd: string;
+    operBgngHour: number;
+    operEndHour: number;
+}
+
 export interface ChknBoothDto {
     boothNo: number;
-    alnCd: string;
-    cstmAltmntYn: YnFlag;
+    altmntList: ChknBoothAltmntDto[];
 }
 
 export interface ChknIslandDto {
@@ -637,7 +642,6 @@ export interface ChknIslandDto {
     boothCnt: number;
     kioskCnt: number;
     bagDropCnt: number;
-    oprTimeList: OprTimeDto[];
     boothList: ChknBoothDto[];
 }
 
@@ -658,7 +662,7 @@ export interface UserSmltChknDto extends JsonResponse {
 export interface UserSmltChknSaveReq {
     ymd: string;
     tmnlId: TmnlId;
-    islandList: Array<Pick<ChknIslandDto, 'island' | 'oprTimeList' | 'boothList' | 'kioskCnt' | 'bagDropCnt'>>;
+    islandList: Array<Pick<ChknIslandDto, 'island' | 'boothList' | 'kioskCnt' | 'bagDropCnt'>>;
 }
 
 /* --------- 출국장 탭 (보안 검색대 흡수) --------- */

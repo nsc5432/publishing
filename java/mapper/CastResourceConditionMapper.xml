@@ -29,9 +29,12 @@
             WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{sbdId}, 'SBD', '') AND A.TMNL_ID = #{tmnlId}
         ) GROUP BY ISLAND ORDER BY ISLAND
     </select>
-    <select id="retrieveBooths" resultType="aoms.pm.cast.dto.ChknBoothDto">
-        SELECT NVL(C.BOOTH_NO, TO_NUMBER(REGEXP_REPLACE(A.CKNCT_ID, '[^0-9]', ''))) AS BOOTH_NO,
-               MIN(A.ALN_CD) AS ALN_CD, 'N' AS CSTM_ALTMNT_YN
+    <select id="retrieveBooths" resultType="aoms.pm.cast.dto.UserChknBoothAltmntRawDto">
+        SELECT SUBSTR(A.CKNCT_ID, 1, 1) AS ISLAND,
+               NVL(C.BOOTH_NO, TO_NUMBER(REGEXP_REPLACE(A.CKNCT_ID, '[^0-9]', ''))) AS BOOTH_NO,
+               A.ALN_CD,
+               TO_NUMBER(SUBSTR(A.CHKN_OPEN_PRNMNT_DT, 9, 2)) AS OPER_BGNG_HOUR,
+               CASE WHEN SUBSTR(A.CHKN_CLOSE_PRNMNT_DT, 9, 4) = '2359' THEN 24 ELSE TO_NUMBER(SUBSTR(A.CHKN_CLOSE_PRNMNT_DT, 9, 2)) END AS OPER_END_HOUR
         FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
         LEFT JOIN (
             SELECT K.TMNL_ID, K.CKNCT_ID,
@@ -41,26 +44,8 @@
         ) C ON C.TMNL_ID = A.TMNL_ID AND C.CKNCT_ID = A.CKNCT_ID
         WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{caId}, 'CA', '')
         AND A.TMNL_ID = #{tmnlId} AND SUBSTR(A.CKNCT_ID, 1, 1) = #{island}
-        GROUP BY A.CKNCT_ID, C.BOOTH_NO ORDER BY BOOTH_NO
-    </select>
-    <select id="retrieveCheckinHours" resultType="aoms.pm.cast.dto.OprTimeDto">
-        SELECT DISTINCT TO_NUMBER(SUBSTR(BGN_DT, 9, 2)) AS OPER_BGNG_HOUR,
-               CASE WHEN SUBSTR(END_DT, 9, 4) = '2359' THEN 24 ELSE TO_NUMBER(SUBSTR(END_DT, 9, 2)) END AS OPER_END_HOUR
-        FROM (
-            SELECT SUBSTR(A.CKNCT_ID, 1, 1) AS ISLAND, A.CKNCT_ID AS BOOTH_ID,
-                   CAST(NULL AS VARCHAR2(100)) AS KIOSK_ID, CAST(NULL AS VARCHAR2(100)) AS SBD_ID,
-                   A.CHKN_OPEN_PRNMNT_DT AS BGN_DT, A.CHKN_CLOSE_PRNMNT_DT AS END_DT
-            FROM PMOWN.TN_PM_SMLT_CKNCT_ATRB A
-            WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{caId}, 'CA', '') AND A.TMNL_ID = #{tmnlId}
-            UNION ALL
-            SELECT CASE WHEN A.BLCK_ID IN ('P01Self', 'P03Self') THEN SUBSTR(A.CKNCT_ID, -3, 1) ELSE SUBSTR(A.CKNCT_ID, 1, 1) END, NULL,
-                   CASE WHEN A.BLCK_ID IN ('P01Self', 'P03Self') THEN A.CKNCT_ID END,
-                   CASE WHEN A.BLCK_ID IN ('P01SBD', 'P03SBD') THEN A.CKNCT_ID END,
-                   A.OPER_BGNG_DT, A.OPER_END_DT
-            FROM PMOWN.TN_PM_SMLT_SBD_ATRB A
-            WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{sbdId}, 'SBD', '') AND A.TMNL_ID = #{tmnlId}
-        ) WHERE ISLAND = #{island}
-        ORDER BY OPER_BGNG_HOUR, OPER_END_HOUR
+        AND A.CHKN_OPEN_PRNMNT_DT IS NOT NULL AND A.CHKN_CLOSE_PRNMNT_DT IS NOT NULL
+        ORDER BY BOOTH_NO, OPER_BGNG_HOUR
     </select>
     <select id="retrieveGates" resultType="aoms.pm.cast.dto.DepGateDto">
         SELECT D.GATE_NO AS DPTGT_NO, D.GATE_NO AS DPTGT_NM, 'Y' AS OPR_YN,

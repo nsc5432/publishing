@@ -12,6 +12,5 @@ public class ChknIslandDto {
 	private int boothCnt; // 운영 부스 수 — 블럭 수의 근거
 	private int kioskCnt; // 셀프체크인 키오스크 대수
 	private int bagDropCnt; // 셀프백드랍 대수
-	private List<OprTimeDto> oprTimeList; // 아일랜드 운영시간 구간
-	private List<ChknBoothDto> boothList; // 부스별 항공사 배정
+	private List<ChknBoothDto> boothList; // 부스별 시간 구간 · 항공사 배정
 }

@@ -7,23 +7,22 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import aoms.pm.cast.dto.ChknBoothAltmntDto;
 import aoms.pm.cast.dto.ChknBoothDto;
 import aoms.pm.cast.dto.ChknIslandDto;
 import aoms.pm.cast.dto.ChknRawDto;
 import aoms.pm.cast.dto.CknctCntRawDto;
 import aoms.pm.cast.dto.JsonResponse;
 import aoms.pm.cast.dto.SmltStngDto;
-import aoms.pm.cast.dto.OprTimeDto;
 import aoms.pm.cast.dto.SlfDeviceCntRawDto;
 import aoms.pm.cast.dto.SmltKpiDto;
-import aoms.pm.cast.dto.TimeRange;
-import aoms.pm.cast.dto.UserChknBoothRawDto;
-import aoms.pm.cast.dto.UserChknOperHrRawDto;
+import aoms.pm.cast.dto.UserChknBoothAltmntRawDto;
 import aoms.pm.cast.dto.UserConfigChknDto;
 import aoms.pm.cast.dto.UserSmltChknDto;
 import aoms.pm.cast.dto.UserSmltChknSaveDto;
@@ -36,7 +35,6 @@ import aoms.pm.cast.service.CastChknService;
 import aoms.pm.cast.service.CastSlfchknService;
 import aoms.pm.cast.service.CastSmltService;
 
-import aoms.pm.utils.SmltUtils;
 import aoms.pm.utils.TimeBucketUtils;
 
 import lombok.RequiredArgsConstructor;
@@ -46,10 +44,8 @@ import lombok.RequiredArgsConstructor;
 @Transactional(rollbackFor = Exception.class)
 public class CastChknServiceImpl implements CastChknService {
     private static final List<String> UP_PSG_FCLT_CD_LIST = List.of("CC");
-    private static final String CUSTOM_YN_Y = "Y";
-    private static final String CUSTOM_YN_N = "N";
-    private static final String EMPTY_ALN_CD = "";
     private static final int PERCENT = 100;
+    private static final int HOURS = 24;
 
     private static final int SIDE_BOOTHS = 18;
 
@@ -128,7 +124,11 @@ public class CastChknServiceImpl implements CastChknService {
         result.setWaitMaxCnt(waitList.stream().mapToInt(WaitPsgDto::getWaitPsgCnt).max().orElse(0));
         result.setIslandCdList(refs == null ? islandCdList : islandList.stream().map(ChknIslandDto::getIsland).collect(toList()));
         result.setAlnCdList(refs == null ? castChknMapper.retrieveAlnCdList(excnYmd, fcltTmnlId)
-                : islandList.stream().flatMap(island -> island.getBoothList().stream()).map(ChknBoothDto::getAlnCd).distinct().sorted().collect(toList()));
+                : islandList.stream()
+                        .flatMap(island -> island.getBoothList().stream())
+                        .flatMap(booth -> booth.getAltmntList().stream())
+                        .map(ChknBoothAltmntDto::getAlnCd)
+                        .distinct().sorted().collect(toList()));
         result.setIslandList(islandList);
         result.setWaitList(waitList);
         result.setKpi(kpi);
@@ -147,10 +147,14 @@ public class CastChknServiceImpl implements CastChknService {
         }
 
         saveDto.setFcltTmnlId(saveDto.getTmnlId().getFcltTmnlId());
-        saveDto.setIslandList(normalizeIslandList(saveDto.getIslandList()));
 
-        castChknMapper.deleteUserChknBoothList(saveDto);
-        castChknMapper.deleteUserChknOperHrList(saveDto);
+        String islandError = normalizeIslandList(saveDto);
+
+        if (islandError != null) {
+            return new JsonResponse().error(islandError);
+        }
+
+        castChknMapper.deleteUserChknBoothAltmntList(saveDto);
         castChknMapper.deleteUserChknIslandList(saveDto);
 
         if (saveDto.getIslandList().isEmpty()) {
@@ -159,12 +163,8 @@ public class CastChknServiceImpl implements CastChknService {
 
         castChknMapper.insertUserChknIslandList(saveDto);
 
-        if (saveDto.getIslandList().stream().anyMatch(island -> !island.getOprTimeList().isEmpty())) {
-            castChknMapper.insertUserChknOperHrList(saveDto);
-        }
-
-        if (saveDto.getIslandList().stream().anyMatch(island -> !island.getBoothList().isEmpty())) {
-            castChknMapper.insertUserChknBoothList(saveDto);
+        if (saveDto.getIslandList().stream().anyMatch(island -> island.getBoothCnt() > 0)) {
+            castChknMapper.insertUserChknBoothAltmntList(saveDto);
         }
 
         return new JsonResponse();
@@ -184,12 +184,12 @@ public class CastChknServiceImpl implements CastChknService {
             return savedIslandList;
         }
 
-        Map<String, List<UserConfigChknDto>> allotBoothMap =
-                retrieveChknMapGroupByIsland(excnYmd, fcltTmnlId);
+        Map<String, List<ChknRawDto>> allotMap = castChknMapper.retrieveChknList(excnYmd, fcltTmnlId)
+                .stream().collect(Collectors.groupingBy(ChknRawDto::getIsland));
         Map<String, List<SlfDeviceCntRawDto>> slfDeviceMap = castSlfchknService.retrieveSlfDeviceCntList(fcltTmnlId)
                 .stream().collect(Collectors.groupingBy(SlfDeviceCntRawDto::getIsland));
 
-        return getAllotIslandList(islandCdList, allotBoothMap, slfDeviceMap);
+        return getAllotIslandList(islandCdList, allotMap, slfDeviceMap);
     }
 
     private List<ChknIslandDto> getSavedIslandList(UserSmltChknSearchDto scope) {
@@ -199,27 +199,18 @@ public class CastChknServiceImpl implements CastChknService {
             return result;
         }
 
-        Map<String, List<UserChknOperHrRawDto>> operHrMap = castChknMapper.retrieveUserChknOperHrList(scope)
-                .stream().collect(Collectors.groupingBy(UserChknOperHrRawDto::getIsland));
-        Map<String, List<UserChknBoothRawDto>> boothMap = castChknMapper.retrieveUserChknBoothList(scope)
-                .stream().collect(Collectors.groupingBy(UserChknBoothRawDto::getIsland));
+        Map<String, List<UserChknBoothAltmntRawDto>> altmntMap = castChknMapper.retrieveUserChknBoothAltmntList(scope)
+                .stream().collect(Collectors.groupingBy(UserChknBoothAltmntRawDto::getIsland));
 
         for (ChknIslandDto island : result) {
-            List<UserChknBoothRawDto> savedBoothList = boothMap.getOrDefault(island.getIsland(), new ArrayList<>());
-            Map<Integer, String> alnCdMap = new LinkedHashMap<>();
-            Map<Integer, String> customYnMap = new LinkedHashMap<>();
+            Map<Integer, List<ChknBoothAltmntDto>> boothAltmntMap = new TreeMap<>();
 
-            for (UserChknBoothRawDto booth : savedBoothList) {
-                alnCdMap.put(booth.getBoothNo(), emptyIfNull(booth.getAlnCd()));
-                customYnMap.put(booth.getBoothNo(), toCustomYn(booth.getCstmAltmntYn()));
+            for (UserChknBoothAltmntRawDto raw : altmntMap.getOrDefault(island.getIsland(), new ArrayList<>())) {
+                boothAltmntMap.computeIfAbsent(raw.getBoothNo(), boothNo -> new ArrayList<>())
+                        .add(toAltmnt(raw.getAlnCd(), raw.getOperBgngHour(), raw.getOperEndHour()));
             }
 
-            island.setOprTimeList(operHrMap.getOrDefault(island.getIsland(), new ArrayList<>()).stream()
-                    .map(operHr -> new OprTimeDto()
-                            .withOperBgngHour(operHr.getOperBgngHour())
-                            .withOperEndHour(operHr.getOperEndHour()))
-                    .collect(toList()));
-            island.setBoothList(toBoothList(alnCdMap, customYnMap));
+            island.setBoothList(toBoothList(boothAltmntMap));
         }
 
         return result;
@@ -227,32 +218,33 @@ public class CastChknServiceImpl implements CastChknService {
 
     private List<ChknIslandDto> getAllotIslandList(
             List<String> islandCdList,
-            Map<String, List<UserConfigChknDto>> allotBoothMap,
+            Map<String, List<ChknRawDto>> allotMap,
             Map<String, List<SlfDeviceCntRawDto>> slfDeviceMap
     ) {
         List<ChknIslandDto> result = new ArrayList<>();
 
         for (String islandCd : islandCdList) {
-            List<UserConfigChknDto> allotBoothList = allotBoothMap.getOrDefault(islandCd, new ArrayList<>());
+            Map<Integer, List<ChknRawDto>> counterMap = allotMap.getOrDefault(islandCd, new ArrayList<>()).stream()
+                    .collect(Collectors.groupingBy(ChknRawDto::getCounterNum, TreeMap::new, toList()));
+            Map<Integer, List<ChknBoothAltmntDto>> boothAltmntMap = new TreeMap<>();
 
-            if (allotBoothList.isEmpty()) {
+            counterMap.forEach((counterNum, rows) -> {
+                List<ChknBoothAltmntDto> altmntList = toAllotAltmntList(rows);
+                if (!altmntList.isEmpty()) boothAltmntMap.put(counterNum, altmntList);
+            });
+
+            if (boothAltmntMap.isEmpty()) {
                 continue;
             }
 
-            List<TimeRange> boothTimeRangeList = allotBoothList.stream()
-                    .flatMap(booth -> booth.getTimeRanges().stream())
-                    .collect(toList());
             List<SlfDeviceCntRawDto> slfDeviceList = slfDeviceMap.getOrDefault(islandCd, new ArrayList<>());
-            Map<Integer, String> alnCdMap = toAlnCdMap(allotBoothList);
 
             ChknIslandDto island = new ChknIslandDto();
             island.setIsland(islandCd);
-
-            island.setBoothCnt(alnCdMap.size());
+            island.setBoothCnt(boothAltmntMap.size());
             island.setKioskCnt(getDeviceCnt(slfDeviceList, SlfType.KIOSK));
             island.setBagDropCnt(getDeviceCnt(slfDeviceList, SlfType.SBD));
-            island.setOprTimeList(toOprTimeList(SmltUtils.mergeTimeRanges(boothTimeRangeList)));
-            island.setBoothList(toBoothList(alnCdMap, new LinkedHashMap<>()));
+            island.setBoothList(toBoothList(boothAltmntMap));
 
             result.add(island);
         }
@@ -260,35 +252,68 @@ public class CastChknServiceImpl implements CastChknService {
         return result;
     }
 
-    private Map<Integer, String> toAlnCdMap(List<UserConfigChknDto> allotBoothList) {
-        Map<Integer, String> result = new LinkedHashMap<>();
+    /**
+     * 시 단위로 내림 · 올림하면 분 단위로 붙어 있던 구간이 겹친다(KE 06:00~09:30 → 6~10, OZ 09:30~12:00 → 9~12).
+     * 시각마다 시작이 늦은 구간의 항공사를 쓴다(계획 §3.2). 시작이 같으면 항공사 코드가 앞선 쪽.
+     */
+    private List<ChknBoothAltmntDto> toAllotAltmntList(List<ChknRawDto> rows) {
+        String[] alnCdByHour = new String[HOURS];
 
-        allotBoothList.stream()
-                .sorted(Comparator.comparingInt(UserConfigChknDto::getCounterNum))
-                .forEach(booth -> result.put(booth.getCounterNum(), emptyIfNull(booth.getAlnCd())));
+        rows.stream()
+                .sorted(Comparator.comparingInt(ChknRawDto::getStart)
+                        .thenComparing(ChknRawDto::getAlnCd, Comparator.nullsFirst(Comparator.reverseOrder())))
+                .filter(row -> row.getAlnCd() != null && !row.getAlnCd().isEmpty())
+                .forEach(row -> paint(alnCdByHour, row.getAlnCd(), row.getStart(), row.getEnd()));
 
-        return result;
+        return toAltmntList(alnCdByHour);
     }
 
-    private List<ChknBoothDto> toBoothList(Map<Integer, String> alnCdMap, Map<Integer, String> customYnMap) {
-        List<ChknBoothDto> result = new ArrayList<>();
+    private void paint(String[] alnCdByHour, String alnCd, int bgngHour, int endHour) {
+        for (int hour = Math.max(bgngHour, 0); hour < Math.min(endHour, HOURS); hour++) {
+            alnCdByHour[hour] = alnCd;
+        }
+    }
 
-        int maxBoothNo = alnCdMap.keySet().stream().mapToInt(Integer::intValue).max().orElse(0);
+    private List<ChknBoothAltmntDto> toAltmntList(String[] alnCdByHour) {
+        List<ChknBoothAltmntDto> result = new ArrayList<>();
+        int hour = 0;
 
-        for (int boothNo = 1; boothNo <= Math.max(ISLAND_BOOTHS, maxBoothNo); boothNo++) {
-            result.add(new ChknBoothDto()
-                    .withBoothNo(boothNo)
-                    .withAlnCd(alnCdMap.getOrDefault(boothNo, EMPTY_ALN_CD))
-                    .withCstmAltmntYn(customYnMap.getOrDefault(boothNo, CUSTOM_YN_N)));
+        while (hour < HOURS) {
+            String alnCd = alnCdByHour[hour];
+
+            if (alnCd == null) {
+                hour++;
+                continue;
+            }
+
+            int bgngHour = hour;
+
+            while (hour < HOURS && alnCd.equals(alnCdByHour[hour])) {
+                hour++;
+            }
+
+            result.add(toAltmnt(alnCd, bgngHour, hour));
         }
 
         return result;
     }
 
-    private List<OprTimeDto> toOprTimeList(List<TimeRange> timeRangeList) {
-        return timeRangeList.stream()
-                .map(range -> new OprTimeDto().withOperBgngHour(range.getStart()).withOperEndHour(range.getEnd()))
-                .collect(toList());
+    private ChknBoothAltmntDto toAltmnt(String alnCd, int bgngHour, int endHour) {
+        return new ChknBoothAltmntDto().withAlnCd(alnCd).withOperBgngHour(bgngHour).withOperEndHour(endHour);
+    }
+
+    private List<ChknBoothDto> toBoothList(Map<Integer, List<ChknBoothAltmntDto>> boothAltmntMap) {
+        List<ChknBoothDto> result = new ArrayList<>();
+
+        int maxBoothNo = boothAltmntMap.keySet().stream().mapToInt(Integer::intValue).max().orElse(0);
+
+        for (int boothNo = 1; boothNo <= Math.max(ISLAND_BOOTHS, maxBoothNo); boothNo++) {
+            result.add(new ChknBoothDto()
+                    .withBoothNo(boothNo)
+                    .withAltmntList(boothAltmntMap.getOrDefault(boothNo, new ArrayList<>())));
+        }
+
+        return result;
     }
 
     private int getDeviceCnt(List<SlfDeviceCntRawDto> slfDeviceList, SlfType slfType) {
@@ -303,18 +328,18 @@ public class CastChknServiceImpl implements CastChknService {
 
         for (String hour : TimeBucketUtils.hourList()) {
             int hourValue = Integer.parseInt(hour);
-            result.add(islandList.stream()
-                    .filter(island -> isOpr(island.getOprTimeList(), hourValue))
-                    .mapToInt(ChknIslandDto::getBoothCnt)
-                    .sum());
+            result.add((int) islandList.stream()
+                    .flatMap(island -> island.getBoothList().stream())
+                    .filter(booth -> isOpr(booth.getAltmntList(), hourValue))
+                    .count());
         }
 
         return result;
     }
 
-    private boolean isOpr(List<OprTimeDto> oprTimeList, int hour) {
-        return oprTimeList.stream()
-                .anyMatch(oprTime -> oprTime.getOperBgngHour() <= hour && hour < oprTime.getOperEndHour());
+    private boolean isOpr(List<ChknBoothAltmntDto> altmntList, int hour) {
+        return altmntList.stream()
+                .anyMatch(altmnt -> altmnt.getOperBgngHour() <= hour && hour < altmnt.getOperEndHour());
     }
 
     private int getUtilRate(List<Integer> hourlyOprBoothCntList, int totCnt) {
@@ -339,46 +364,67 @@ public class CastChknServiceImpl implements CastChknService {
         return null;
     }
 
-    private List<ChknIslandDto> normalizeIslandList(List<ChknIslandDto> islandList) {
-        if (islandList == null) {
-            return new ArrayList<>();
-        }
+    /** 부스 배정을 검증하고 같은 항공사의 붙은 구간을 합친다. 검증 실패면 오류 문구를 돌려준다. */
+    private String normalizeIslandList(UserSmltChknSaveDto saveDto) {
+        List<ChknIslandDto> islandList = saveDto.getIslandList() == null ? new ArrayList<>() : saveDto.getIslandList();
+        Map<String, Integer> cknctCntMap = castChknMapper.retrieveCknctCntList(saveDto.getFcltTmnlId()).stream()
+                .collect(Collectors.toMap(CknctCntRawDto::getIsland, CknctCntRawDto::getCknctCnt, Integer::sum));
 
         List<ChknIslandDto> result = islandList.stream()
                 .filter(island -> island.getIsland() != null && !island.getIsland().isEmpty())
                 .collect(toList());
 
         for (ChknIslandDto island : result) {
-            island.setOprTimeList(island.getOprTimeList() != null ? island.getOprTimeList() : new ArrayList<>());
-            island.setBoothList(normalizeBoothList(island.getBoothList()));
+            int maxBoothNo = Math.max(ISLAND_BOOTHS, cknctCntMap.getOrDefault(island.getIsland(), 0));
+            Map<Integer, String[]> hourMap = new TreeMap<>();
+            List<ChknBoothDto> boothList = island.getBoothList() == null ? new ArrayList<>() : island.getBoothList();
 
-            island.setBoothCnt(island.getBoothList().size());
+            for (ChknBoothDto booth : boothList) {
+                if (booth.getBoothNo() < 1 || booth.getBoothNo() > maxBoothNo) {
+                    return island.getIsland() + " 아일랜드 부스 번호(" + booth.getBoothNo() + ")가 범위를 벗어났습니다.";
+                }
+
+                String[] alnCdByHour = hourMap.computeIfAbsent(booth.getBoothNo(), boothNo -> new String[HOURS]);
+                List<ChknBoothAltmntDto> altmntList = booth.getAltmntList() == null ? new ArrayList<>() : booth.getAltmntList();
+
+                for (ChknBoothAltmntDto altmnt : altmntList) {
+                    String altmntError = checkAltmnt(island.getIsland(), booth.getBoothNo(), altmnt, alnCdByHour);
+                    if (altmntError != null) return altmntError;
+                    paint(alnCdByHour, altmnt.getAlnCd(), altmnt.getOperBgngHour(), altmnt.getOperEndHour());
+                }
+            }
+
+            List<ChknBoothDto> normalized = new ArrayList<>();
+            hourMap.forEach((boothNo, alnCdByHour) -> {
+                List<ChknBoothAltmntDto> altmntList = toAltmntList(alnCdByHour);
+                if (!altmntList.isEmpty()) normalized.add(new ChknBoothDto().withBoothNo(boothNo).withAltmntList(altmntList));
+            });
+
+            island.setBoothList(normalized);
+            island.setBoothCnt(normalized.size());
         }
 
-        return result;
+        saveDto.setIslandList(result);
+        return null;
     }
 
-    private List<ChknBoothDto> normalizeBoothList(List<ChknBoothDto> boothList) {
-        if (boothList == null) {
-            return new ArrayList<>();
+    private String checkAltmnt(String island, int boothNo, ChknBoothAltmntDto altmnt, String[] alnCdByHour) {
+        String booth = island + " 아일랜드 " + boothNo + "번 부스";
+
+        if (altmnt.getAlnCd() == null || altmnt.getAlnCd().isEmpty()) {
+            return booth + "의 항공사가 비어 있습니다.";
         }
 
-        List<ChknBoothDto> result = boothList.stream()
-                .filter(booth -> booth.getAlnCd() != null && !booth.getAlnCd().isEmpty())
-                .collect(toList());
-
-        for (ChknBoothDto booth : result) {
-            booth.setCstmAltmntYn(toCustomYn(booth.getCstmAltmntYn()));
+        if (altmnt.getOperBgngHour() < 0 || altmnt.getOperEndHour() > HOURS || altmnt.getOperBgngHour() >= altmnt.getOperEndHour()) {
+            return booth + "의 운영시간(" + altmnt.getOperBgngHour() + "~" + altmnt.getOperEndHour() + "시)이 올바르지 않습니다.";
         }
 
-        return result;
-    }
+        for (int hour = altmnt.getOperBgngHour(); hour < altmnt.getOperEndHour(); hour++) {
+            if (alnCdByHour[hour] != null) {
+                return booth + "의 배정 시간이 겹칩니다(" + hour + "시).";
+            }
+        }
 
-    private String emptyIfNull(String value) {
-        return value != null ? value : EMPTY_ALN_CD;
-    }
-
-    private String toCustomYn(String value) {
-        return CUSTOM_YN_Y.equals(value) ? CUSTOM_YN_Y : CUSTOM_YN_N;
+        return null;
     }
 }

@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import aoms.framework.cmmn.service.SessionService;
+import aoms.pm.cast.dto.ChknBoothAltmntDto;
 import aoms.pm.cast.dto.ChknBoothDto;
 import aoms.pm.cast.dto.ChknIslandDto;
 import aoms.pm.cast.dto.DepGateDto;
@@ -19,7 +20,7 @@ import aoms.pm.cast.dto.FltPsgHourDto;
 import aoms.pm.cast.dto.OprTimeDto;
 import aoms.pm.cast.dto.UserSmltCustomCondDto;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto;
-import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.ChknBoothRow;
+import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.ChknBoothAltmntRow;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.ChknIslRow;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.DptgtRow;
 import aoms.pm.cast.dto.UserSmltRsrcSnapshotDto.FltAjmtRow;
@@ -124,10 +125,13 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         }
         for (ChknIslandDto island : list(cond.getChkn().getIslandList())) {
             snapshot.getChknIslList().add(new ChknIslRow(tmnlId, island.getIsland(), island.getKioskCnt(), island.getBagDropCnt()));
-            addOperHrRows(snapshot.getChknOperHrList(), tmnlId, island.getIsland(), island.getOprTimeList());
             for (ChknBoothDto booth : list(island.getBoothList())) {
-                if (booth.getAlnCd() == null || booth.getAlnCd().isBlank()) continue;
-                snapshot.getChknBoothList().add(new ChknBoothRow(tmnlId, island.getIsland(), booth.getBoothNo(), booth.getAlnCd()));
+                List<ChknBoothAltmntDto> altmntList = list(booth.getAltmntList());
+                for (int i = 0; i < altmntList.size(); i++) {
+                    ChknBoothAltmntDto altmnt = altmntList.get(i);
+                    snapshot.getChknBoothAltmntList().add(new ChknBoothAltmntRow(tmnlId, island.getIsland(), booth.getBoothNo(), i + 1,
+                            altmnt.getAlnCd(), altmnt.getOperBgngHour(), altmnt.getOperEndHour()));
+                }
             }
         }
         for (DepGateDto gate : list(cond.getDep().getDptgtList())) {
