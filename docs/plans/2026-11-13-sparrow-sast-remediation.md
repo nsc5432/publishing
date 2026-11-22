@@ -46,17 +46,20 @@ python -c "import fitz; ..."                                       # PDF 텍스�
   | `java/aoms/pm/cast/…` | `java/cast/…` |
   | `java/aoms/pm/castapi/…` | `java/castapi/…` |
   | `resources/aoms/mapper/pm/*.xml` | `java/mapper/*.xml` |
-  | `java/aoms/pm/castrest/…` | `java-sast-external/castrest/…` (원본 입고 완료, §0.4) |
-  | `java/aoms/pm/adtoper/…` | `java-sast-external/adtoper/…` (원본 입고 완료, §0.4) |
-  | `java/aoms/pm/bdpsgance/…` | `java-sast-external/bdpsgance/…` (원본 입고 완료, §0.4) |
+  | `java/aoms/pm/castrest/…` | 없음 — `java-sast-external/castrest/…` 에서 조치 후 삭제 (§0.4) |
+  | `java/aoms/pm/adtoper/…` | 없음 — `java-sast-external/adtoper/…` 에서 조치 후 삭제 (§0.4) |
+  | `java/aoms/pm/bdpsgance/…` | 없음 — `java-sast-external/bdpsgance/…` 에서 조치 후 삭제 (§0.4) |
 
-- `java-sast-external/` 는 누락된 4개 Java 원본을 받아 보안 조치하는 별도 작업 폴더다. `java/` 와 마찬가지로
-  이 저장소에서는 컴파일 · 재진단할 수 없으며, 수정 후 실제 백엔드의 원래 경로에 반영한다.
+- `java-sast-external/` 는 누락된 4개 Java 원본을 받아 보안 조치하던 별도 작업 폴더다. 2026-11-22 실제 백엔드 반영을 마치고
+  폴더를 삭제했다. 조치한 최종본은 커밋 `36432f7` 에 있다 (`git show 36432f7:java-sast-external/<경로>`).
 
 - **라인 번호 드리프트**: 매퍼 XML 은 스캔 라인과 현재 라인이 같다. Java 서비스는 11-10 이후 커밋으로 몇 줄 밀린 곳이 있어
   아래 표에 `스캔 → 현재` 를 함께 적었다. 착수 시 함수명과 지적 코드로 다시 찾는다.
 
-### 0.4 별도 폴더 대상 4개 파일 (55건) — 원본 입고 완료 · 직접 조치 대기
+### 0.4 별도 폴더 대상 4개 파일 (55건) — 실백엔드 반영 완료 · 작업 폴더 삭제
+
+> **2026-11-22**: 아래 4개 파일(과 `AdtOperHrMngService.java`)의 조치를 실제 백엔드에 반영하고 `java-sast-external/` 를 삭제했다.
+> 이 절과 단계별 결과의 `java-sast-external/…` 경로는 작업 당시 기록이다. 파일은 커밋 `52f49f3`(원본 입고) ~ `36432f7`(최종 조치)에서 꺼낸다.
 
 | 작업 경로 (저장소 루트 기준) | 건수 | 체커 |
 |---|---|---|
@@ -105,14 +108,15 @@ python -c "import fitz; ..."                                       # PDF 텍스�
 | 5 | `NULL_RETURN` | 널 반환 값 역참조 | 4 | 4 / 0 | 레포 반영 |
 | 6 | `UNCHECKED_NULL` | 누락된 널 값 검사 | 3 | 3 / 0 | 레포 반영 |
 | 7 | `SQL_INJECTION.MYBATIS` | myBatis에서의 SQL 삽입 | 68 | 68 / 0 | 레포 반영 |
-| 8 | `DATA_LEAK_BETWEEN_SESSIONS` | 세션 간 데이터 누출 | 4 | 0 / 4 (castrest) | 레포 반영 |
-| 9 | `IMPROPER_CHECK_FOR_UNUSUAL_OR_EXCEPTIONAL_CONDITION` | 부적절한 예외 처리 | 1 | 0 / 1 | 레포 반영 |
-| 10 | `PATH_TRAVERSAL` | 경로 조작 | 16 | 0 / 16 | 레포 반영 |
-| 11 | `RESOURCE_INJECTION` | 자원 삽입 | 20 | 0 / 20 | 레포 반영 |
-| 12 | `HTTP_RESPONSE_SPLITTING` | HTTP 응답 분할 | 8 | 0 / 8 | 레포 반영 |
+| 8 | `DATA_LEAK_BETWEEN_SESSIONS` | 세션 간 데이터 누출 | 4 | 0 / 4 (castrest) | 실백엔드 반영 |
+| 9 | `IMPROPER_CHECK_FOR_UNUSUAL_OR_EXCEPTIONAL_CONDITION` | 부적절한 예외 처리 | 1 | 0 / 1 | 실백엔드 반영 |
+| 10 | `PATH_TRAVERSAL` | 경로 조작 | 16 | 0 / 16 | 실백엔드 반영 |
+| 11 | `RESOURCE_INJECTION` | 자원 삽입 | 20 | 0 / 20 | 실백엔드 반영 |
+| 12 | `HTTP_RESPONSE_SPLITTING` | HTTP 응답 분할 | 8 | 0 / 8 | 실백엔드 반영 |
 | | | **합계** | **138** | **83 / 55** | |
 
-별도 폴더 대상 55건의 원본 4개는 입고 완료됐으며, 2026-11-13 에 55건 모두 이 레포에 조치를 반영했다(실백엔드 반영 · 재진단 전).
+별도 폴더 대상 55건의 원본 4개는 입고 완료됐으며, 2026-11-13 에 55건 모두 이 레포에 조치를 반영했다.
+2026-11-22 이 55건을 실제 백엔드에 반영하고 `java-sast-external/` 를 삭제했다(재진단 전). 단계 2 · 3 · 4 의 기존 사본 몫은 이 갱신에 포함하지 않았다.
 
 순서는 기존 사본의 작고 독립적인 단계 → 큰 단계(SQL) → 별도 폴더 단계다. 단계끼리 코드 의존은 없지만,
 **10 · 11 · 12 는 같은 다운로드 메서드의 같은 줄**이라 이어서 진행하는 편이 좋다.
@@ -684,5 +688,6 @@ AdtOperHrMng 은 `!file.exists()` 이면 `AomsBizException("FWIO25", …)`, Bdps
 
 1. 이 레포 수정분(`java/cast` · `java/castapi` · `java/mapper` · `java/cmmn/util/FileDownloadUtils.java`(신규, `aoms/pm/cmmn/util/`) · `java-sast-external`)을 §0.3 의 경로 대응에 따라 실제 백엔드에 옮기고 빌드한다.
    `java-sast-external/` 아래 파일은 `src/main/java/aoms/pm/` 아래의 해당 원본에 반영한다. 단계별 '실백엔드 확인'을 수행한다.
+   - `java-sast-external` 몫은 2026-11-22 반영을 마치고 폴더를 삭제했다(§0.4). 재진단에서 이 파일들이 다시 잡히면 실제 백엔드 원본을 고친다.
 2. Sparrow 재분석을 요청하고, 결과 목록을 이 계획서의 이슈 ID 와 대조한다. 새로 생긴 이슈는 같은 형식의 단계로 추가한다.
 3. 진단 결과 엑셀의 `이슈 의견` 열에 단계별 조치 내용(무엇을 어떻게 바꿨는지, 커밋)을 기입해 제출한다. 소명 문구는 쓰지 않는다(§0.2).
