@@ -329,6 +329,7 @@
         WITH VALID_ASSIGNMENT AS (
         <choose>
             <when test="cknctAlctnRsrcId == 'CA001'">
+            <bind name="alotYmd" value="excnYmd"/>
             SELECT X.CKNCT_ID, X.ALN_CD
             FROM (
                 SELECT
@@ -344,15 +345,13 @@
                         A.OPER_YMD,
                         CASE WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL THEN A.EST_BGNG_HM ELSE A.LAST_BGNG_HM END AS STA_HM,
                         CASE WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL THEN A.EST_END_HM ELSE A.LAST_END_HM END AS END_HM
-                    FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
+                    FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotLatestRows"/>) A
                         INNER JOIN CAOWN.TN_CA_CKNCT B
                         ON A.CKNCT_ID = B.CKNCT_ID
                         AND A.TMNL_ID = B.TMNL_ID
-                    WHERE A.USE_YN = 'Y'
-                    AND B.USE_YN = 'Y'
+                    WHERE B.USE_YN = 'Y'
                     AND B.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
                     AND A.TMNL_ID = #{tmnlId}
-                    AND A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{excnYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND #{excnYmd}
                     AND A.CKNCT_ID NOT LIKE 'X%'
                     AND A.CKNCT_ID NOT LIKE 'Y%'
                     AND A.CKNCT_ID NOT LIKE 'R%'

@@ -22,6 +22,20 @@
                )
     </sql>
 
+    <!-- 체크인카운터 일일 배정 원천. 재전송마다 INSERT 되므로 키별 최신(ALOT_SN) 1행만 쓴다. 유형 · 사용 여부는 최신 행으로 판정한다 -->
+    <sql id="cknctDailyAlotLatestRows">
+        SELECT L.*
+          FROM (
+            SELECT A.*
+                 , ROW_NUMBER() OVER (PARTITION BY A.OPER_YMD, A.TMNL_ID, A.CKNCT_ID, A.ALN_CD ORDER BY A.ALOT_SN DESC) AS RN
+              FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
+             WHERE A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{alotYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND #{alotYmd}
+          ) L
+         WHERE L.RN = 1
+           AND L.CHKN_TYPE_CD = 'C'
+           AND L.USE_YN = 'Y'
+    </sql>
+
     <!-- 체크인카운터 일일 배정 -->
     <sql id="cknctDailyAlotRows">
         SELECT Y.TMNL_ID
@@ -29,7 +43,6 @@
              , Y.ALN_CD
              , Y.DOM_INTL_SE_CD
              , Y.CHKN_TYPE_CD
-             , Y.MSTR_FLTNM
              , TO_DATE(Y.OPER_YMD || Y.STA_HM, 'YYYYMMDDHH24MI') AS BGN_DT
              , TO_DATE(Y.OPER_YMD || Y.END_HM, 'YYYYMMDDHH24MI') + CASE WHEN TO_NUMBER(Y.STA_HM) > TO_NUMBER(Y.END_HM) THEN 1 ELSE 0 END AS END_DT
           FROM (
@@ -38,9 +51,8 @@
                  , A.ALN_CD
                  , A.DOM_INTL_SE_CD
                  , A.CHKN_TYPE_CD
-                 , A.MSTR_FLTNM
                  , A.OPER_YMD
-                 ,  CASE 
+                 ,  CASE
                         WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL 
                         THEN A.EST_BGNG_HM 
                         ELSE A.LAST_BGNG_HM 
@@ -50,13 +62,11 @@
                         THEN A.EST_END_HM 
                         ELSE A.LAST_END_HM 
                     END AS END_HM
-              FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
-              JOIN CAOWN.TN_CA_CKNCT CIC 
+              FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotLatestRows"/>) A
+              JOIN CAOWN.TN_CA_CKNCT CIC
               ON A.CKNCT_ID = CIC.CKNCT_ID AND A.TMNL_ID = CIC.TMNL_ID
-             WHERE A.USE_YN = 'Y'
-               AND CIC.USE_YN = 'Y'
+             WHERE CIC.USE_YN = 'Y'
                AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
-               AND A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{alotYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{alotYmd}, 'YYYYMMDD'), 'YYYYMMDD')
                AND A.CKNCT_ID NOT LIKE 'X%'
                AND A.CKNCT_ID NOT LIKE 'Y%'
                AND A.CKNCT_ID NOT LIKE 'R%'
@@ -680,11 +690,7 @@
                  , ' ' AS checkinType
                  , ' ' AS nonFunctionalStatus
                  , Y.CHKN_TYPE_CD AS checkinAllocType
-                 , CASE
-                   WHEN Y.CHKN_TYPE_CD = 'C' THEN '"' || Y.ALN_CD || '"'
-                   WHEN Y.CHKN_TYPE_CD = 'D' THEN Y.MSTR_FLTNM
-                   ELSE Y.CHKN_TYPE_CD
-                   END AS checkInAllocDescryption
+                 , '"' || Y.ALN_CD || '"' AS checkInAllocDescryption
               FROM (<include refid="cknctDailyAlotRows"/>) Y
             </when>
             <otherwise>

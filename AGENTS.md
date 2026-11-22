@@ -607,6 +607,8 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   일일 CA001 · 체크인 운영 부스(`retrieveChknBoothOperList`) · 기본 운영시간 · 대시보드 항공사 배정(`CastDsbdMapper.retrieveChknAlnAssignmentList`)은
   예정 시작 · 종료가 둘 다 있으면 예정, 아니면 최종 한 벌에서 시각을 읽는다(2026-11-22, 이전 칸별 NVL(EST, LAST) · 대시보드는 최종 우선).
   익일 종료는 원천 `*_RON_YN` 대신 시작 > 종료로 판정한다 — 시각과 어긋난 플래그가 08:00~익일 10:00 같은 26시간 배정을 만들었다.
+  원천 `GOOWN.TI_GO_CKNCT_DALY_ALOT` 는 재전송마다 INSERT 되므로 위 네 조회와 사용자 탭 항공사 목록은 공용 조각 `CastApiMapper.cknctDailyAlotLatestRows` 로
+  키 `(OPER_YMD, TMNL_ID, CKNCT_ID, ALN_CD)` 의 최신 `ALOT_SN` 1행을 먼저 고르고, 그 행이 `CHKN_TYPE_CD = 'C'` · `USE_YN = 'Y'` 일 때만 쓴다(2026-11-22). 편 기준(`'D'`)은 쓰지 않는다.
 - 사용자 FS(일일 운영자료 기반)는 FS001과 같은 SQL 조각 `CastApiMapper.dailyFlightScheduleRows`의 행을 저장한다
   (2026-10-19). 게이트·주기장 3자리 패딩·fallback, OperatorCat·ContactRemote·CheckinRange·SBDAvailable 등을
   따로 만들지 않는다 — GO 원값을 그대로 쓰면 출발편이 게이트에 배정되지 않고 CAST가 계산 없이 끝난다.
