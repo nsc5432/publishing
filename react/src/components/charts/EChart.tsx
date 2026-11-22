@@ -42,13 +42,30 @@ function toLayoutOffset(event: Event) {
     Object.defineProperty(event, 'offsetY', { configurable: true, value: (clientY - rect.top) * scaleY });
 }
 
+// echarts-for-react 는 init 시 잰 크기로 캔버스를 만들고 첫 resize 알림을 버린다. 그 사이 컨테이너 폭이 바뀌면 캔버스가 옛 크기로 남는다.
+function syncSize(chart: EChartsInstance) {
+    if (chart.isDisposed()) return;
+    const dom = chart.getDom();
+    if (dom.clientWidth === 0 || dom.clientHeight === 0) return;
+    if (dom.clientWidth === chart.getWidth() && dom.clientHeight === chart.getHeight()) return;
+    chart.resize();
+}
+
 export function EChart({ option, className, style, onClick, onChartReady }: EChartProps) {
     const clickRef = useRef(onClick);
     const chartReadyRef = useRef(onChartReady);
+    const sizeObserverRef = useRef<ResizeObserver | null>(null);
 
     const handleChartReady = useCallback((chart: EChartsInstance) => {
         const dom = chart.getDom();
         for (const type of POINTER_EVENT_TYPES) dom.addEventListener(type, toLayoutOffset, { capture: true, passive: true });
+
+        sizeObserverRef.current?.disconnect();
+        const observer = new ResizeObserver(() => syncSize(chart));
+        observer.observe(dom);
+        sizeObserverRef.current = observer;
+        syncSize(chart);
+
         chartReadyRef.current?.(chart);
     }, []);
 
@@ -56,6 +73,14 @@ export function EChart({ option, className, style, onClick, onChartReady }: ECha
         clickRef.current = onClick;
         chartReadyRef.current = onChartReady;
     }, [onClick, onChartReady]);
+
+    useEffect(
+        () => () => {
+            sizeObserverRef.current?.disconnect();
+            sizeObserverRef.current = null;
+        },
+        [],
+    );
 
     const events = useMemo(() => ({ click: (params: ECElementEvent) => clickRef.current?.(params) }), []);
 
