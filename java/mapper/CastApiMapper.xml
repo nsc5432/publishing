@@ -3,8 +3,6 @@
 <mapper namespace="aoms.pm.castapi.mapper.CastApiMapper">
 
     <!-- ===================== 공통 조각 ===================== -->
-
-    <!-- 운항 원천 공통 조건. 별칭 A = GOOWN.TN_GO_GD_DATA -->
     <sql id="gdDataFltCond">
            AND A.CSHR_STTS_CD != 'SL'
            AND A.DLY_RSN_CD NOT IN ('2', '3')
@@ -16,7 +14,6 @@
            AND A.LCRFT_YN = 'N'
     </sql>
 
-    <!-- 좌석이 있고 실탑승 또는 예약 여객이 있는 편. 별칭 A = GOOWN.TN_GO_GD_DATA -->
     <sql id="gdDataPaxCond">
            AND NVL(TO_NUMBER(TRIM(A.ARCFT_STGCP)), 0) > 0
            AND (
@@ -25,8 +22,8 @@
                )
     </sql>
 
-    <!-- 체크인카운터 일일 배정 (#{alotYmd} 와 그 전날). CA001 발행과 FS001 체크인 범위가 같이 쓴다.
-         RON_YN · 종료일 CASE 는 CastChknMapper.retrieveChknBoothOperList 와 같아야 한다 (java/verify/verify_chkn_booth_overnight.py) -->
+    <!-- 체크인카운터 일일 배정
+        시각 선택 · 종료일 계산은 CastChknMapper.retrieveChknBoothOperList 와 같아야 한다 -->
     <sql id="cknctDailyAlotRows">
         SELECT Y.TMNL_ID
              , Y.CKNCT_ID
@@ -35,14 +32,10 @@
              , Y.CHKN_TYPE_CD
              , Y.MSTR_FLTNM
              , TO_DATE(Y.OPER_YMD || Y.STA_HM, 'YYYYMMDDHH24MI') AS BGN_DT
-             , TO_DATE(
-                   CASE
-                       WHEN Y.RON_YN = 'N' THEN Y.OPER_YMD
-                       ELSE TO_CHAR(TO_DATE(Y.OPER_YMD, 'YYYYMMDD') + 1, 'YYYYMMDD')
-                   END || Y.END_HM,
-                   'YYYYMMDDHH24MI'
-               ) AS END_DT
+             , TO_DATE(Y.OPER_YMD || Y.END_HM, 'YYYYMMDDHH24MI')
+                   + CASE WHEN TO_NUMBER(Y.STA_HM) > TO_NUMBER(Y.END_HM) THEN 1 ELSE 0 END AS END_DT
           FROM (
+            <!-- 원천 RON 플래그는 시각과 어긋나는 행이 있어 쓰지 않는다. 시각은 예정 · 최종 중 한 벌에서만 읽는다 -->
             SELECT A.TMNL_ID
                  , A.CKNCT_ID
                  , A.ALN_CD
@@ -50,19 +43,8 @@
                  , A.CHKN_TYPE_CD
                  , A.MSTR_FLTNM
                  , A.OPER_YMD
-                 , NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM) AS STA_HM
-                 , NVL(A.EST_END_HM, A.LAST_END_HM) AS END_HM
-                 , CASE
-                       -- 1순위: 시작시간(22:00) > 종료시간(01:00) 이면 무조건 익일(Y)
-                       WHEN TO_NUMBER(NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM)) > TO_NUMBER(NVL(A.EST_END_HM, A.LAST_END_HM))
-                       THEN 'Y'
-                       ELSE
-                           CASE
-                               WHEN NVL(A.EST_BGNG_HM, A.LAST_BGNG_HM) IS NOT NULL AND NVL(A.EST_END_HM, A.LAST_END_HM) IS NOT NULL THEN
-                                   CASE WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_RON_YN ELSE A.EST_RON_YN END
-                               ELSE A.EST_RON_YN
-                           END
-                   END AS RON_YN
+                 , CASE WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL THEN A.EST_BGNG_HM ELSE A.LAST_BGNG_HM END AS STA_HM
+                 , CASE WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL THEN A.EST_END_HM ELSE A.LAST_END_HM END AS END_HM
               FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
               JOIN CAOWN.TN_CA_CKNCT CIC ON A.CKNCT_ID = CIC.CKNCT_ID AND A.TMNL_ID = CIC.TMNL_ID
              WHERE A.USE_YN = 'Y'

@@ -332,50 +332,35 @@
             SELECT X.CKNCT_ID, X.ALN_CD
             FROM (
                 SELECT
-                    A.CKNCT_ID,
-                    A.ALN_CD,
-                    TO_DATE(
-                        A.OPER_YMD || CASE
-                            WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_BGNG_HM
-                            ELSE A.EST_BGNG_HM
-                        END,
-                        'YYYYMMDDHH24MI'
-                    ) AS BGN_DT,
-                    TO_DATE(
-                        CASE
-                            WHEN CASE
-                                WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_RON_YN
-                                ELSE A.EST_RON_YN
-                            END = 'Y'
-                            THEN TO_CHAR(TO_DATE(A.OPER_YMD, 'YYYYMMDD') + 1, 'YYYYMMDD')
-                            ELSE A.OPER_YMD
-                        END || CASE
-                            WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_END_HM
-                            ELSE A.EST_END_HM
-                        END,
-                        'YYYYMMDDHH24MI'
-                    ) AS END_DT
-                FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
-                    INNER JOIN CAOWN.TN_CA_CKNCT B
-                    ON A.CKNCT_ID = B.CKNCT_ID
-                    AND A.TMNL_ID = B.TMNL_ID
-                WHERE A.USE_YN = 'Y'
-                AND B.USE_YN = 'Y'
-                AND B.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
-                AND A.TMNL_ID = #{tmnlId}
-                AND A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{excnYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND #{excnYmd}
-                AND A.CKNCT_ID NOT LIKE 'X%'
-                AND A.CKNCT_ID NOT LIKE 'Y%'
-                AND A.CKNCT_ID NOT LIKE 'R%'
-                AND A.CKNCT_ID NOT LIKE 'S%'
-                AND CASE
-                    WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_BGNG_HM
-                    ELSE A.EST_BGNG_HM
-                END IS NOT NULL
-                AND CASE
-                    WHEN A.LAST_BGNG_HM IS NOT NULL AND A.LAST_END_HM IS NOT NULL THEN A.LAST_END_HM
-                    ELSE A.EST_END_HM
-                END IS NOT NULL
+                    Y.CKNCT_ID,
+                    Y.ALN_CD,
+                    TO_DATE(Y.OPER_YMD || Y.STA_HM, 'YYYYMMDDHH24MI') AS BGN_DT,
+                    TO_DATE(Y.OPER_YMD || Y.END_HM, 'YYYYMMDDHH24MI')
+                        + CASE WHEN TO_NUMBER(Y.STA_HM) &gt; TO_NUMBER(Y.END_HM) THEN 1 ELSE 0 END AS END_DT
+                FROM (
+                    SELECT
+                        A.CKNCT_ID,
+                        A.ALN_CD,
+                        A.OPER_YMD,
+                        CASE WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL THEN A.EST_BGNG_HM ELSE A.LAST_BGNG_HM END AS STA_HM,
+                        CASE WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL THEN A.EST_END_HM ELSE A.LAST_END_HM END AS END_HM
+                    FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
+                        INNER JOIN CAOWN.TN_CA_CKNCT B
+                        ON A.CKNCT_ID = B.CKNCT_ID
+                        AND A.TMNL_ID = B.TMNL_ID
+                    WHERE A.USE_YN = 'Y'
+                    AND B.USE_YN = 'Y'
+                    AND B.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
+                    AND A.TMNL_ID = #{tmnlId}
+                    AND A.OPER_YMD BETWEEN TO_CHAR(TO_DATE(#{excnYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND #{excnYmd}
+                    AND A.CKNCT_ID NOT LIKE 'X%'
+                    AND A.CKNCT_ID NOT LIKE 'Y%'
+                    AND A.CKNCT_ID NOT LIKE 'R%'
+                    AND A.CKNCT_ID NOT LIKE 'S%'
+                ) Y
+                WHERE Y.STA_HM IS NOT NULL
+                AND Y.END_HM IS NOT NULL
+                AND Y.STA_HM != Y.END_HM
             ) X
             WHERE X.BGN_DT &lt;= #{bgnDt}
             AND X.END_DT &gt; #{bgnDt}

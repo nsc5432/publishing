@@ -602,8 +602,11 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   키오스크 기기 ID는 ICN1SB01 형식이라 아일랜드는 SUBSTR(ID, -3, 1)이다. 첫 글자로 자르면 전부 I가 되어 키오스크가 0대로 발행된다.
   사용자 SBD·키오스크 T2는 OPER_END_DT의 HHMI 4자리로 렌더한다(2026-10-27). 시만 자르면 24시(2359)가 23:00이 되어
   23–24 구간이 0분이 되고, CAST는 SBD를 읽은 직후 결과 없이 Finished로 끝낸다.
-  같은 이유로 체크인 기본 운영시간(`CastChknMapper.retrieveChknList`)은 일일 CA001처럼 NVL(EST, LAST)를 쓰고
+  같은 이유로 체크인 기본 운영시간(`CastChknMapper.retrieveChknList`)은 일일 CA001과 같은 시각을 쓰고
   NULL·시작=종료 행을 빼며, 종료 시가 시작 시 이하면 24로 올린다.
+  일일 CA001 · 체크인 운영 부스(`retrieveChknBoothOperList`) · 기본 운영시간 · 대시보드 항공사 배정(`CastDsbdMapper.retrieveChknAlnAssignmentList`)은
+  예정 시작 · 종료가 둘 다 있으면 예정, 아니면 최종 한 벌에서 시각을 읽는다(2026-11-22, 이전 칸별 NVL(EST, LAST) · 대시보드는 최종 우선).
+  익일 종료는 원천 `*_RON_YN` 대신 시작 > 종료로 판정한다 — 시각과 어긋난 플래그가 08:00~익일 10:00 같은 26시간 배정을 만들었다.
 - 사용자 FS(일일 운영자료 기반)는 FS001과 같은 SQL 조각 `CastApiMapper.dailyFlightScheduleRows`의 행을 저장한다
   (2026-10-19). 게이트·주기장 3자리 패딩·fallback, OperatorCat·ContactRemote·CheckinRange·SBDAvailable 등을
   따로 만들지 않는다 — GO 원값을 그대로 쓰면 출발편이 게이트에 배정되지 않고 CAST가 계산 없이 끝난다.
