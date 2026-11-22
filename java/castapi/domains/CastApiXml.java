@@ -1,4 +1,4 @@
-package aoms.pm.castapi.service.impl;
+package aoms.pm.castapi.domains;
 
 import static aoms.pm.castapi.service.statics.CastApiConstants.*;
 
@@ -22,7 +22,7 @@ import org.w3c.dom.Node;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
-final class CastApiXml {
+public final class CastApiXml {
     private CastApiXml() {
         throw new UnsupportedOperationException("생성자를 제공하지 않습니다.");
     }
@@ -48,7 +48,7 @@ final class CastApiXml {
         }
     }
 
-    static Element parseRootElement(String xmlStr) throws ParserConfigurationException, SAXException, IOException {
+    public static Element parseRootElement(String xmlStr) throws ParserConfigurationException, SAXException, IOException {
         Document document = parseXmlSafely(xmlStr);
         Element root = document.getDocumentElement();
         if (root == null) {
@@ -57,7 +57,7 @@ final class CastApiXml {
         return root;
     }
 
-    static Optional<String> getAttributeValue(NamedNodeMap attributeMap, String attributeName) {
+    public static Optional<String> getAttributeValue(NamedNodeMap attributeMap, String attributeName) {
         if (attributeMap == null) return Optional.empty();
 
         Node attr = attributeMap.getNamedItem(attributeName);
@@ -104,7 +104,7 @@ final class CastApiXml {
           .append(SOAP_ENVELOPE_END);
     }
 
-    static String setResourceResponse(boolean result) {
+    public static String setResourceResponse(boolean result) {
         StringBuilder sb = new StringBuilder();
         sb.append(XML_VERSION)
           .append(System.lineSeparator())

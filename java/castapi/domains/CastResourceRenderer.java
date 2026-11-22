@@ -1,4 +1,4 @@
-package aoms.pm.castapi.service.impl;
+package aoms.pm.castapi.domains;
 
 import static aoms.pm.castapi.service.statics.CastApiConstants.*;
 import static aoms.pm.castapi.service.statics.CastApiFieldMaps.*;
