@@ -53,7 +53,6 @@ import aoms.pm.utils.SessionUtils;
 
 import lombok.RequiredArgsConstructor;
 
-// 트랜잭션과 실패 시 롤백은 호출하는 CastApiServiceImpl 이 맡는다
 @Component
 @RequiredArgsConstructor
 public class CastSetResourceHandler {
@@ -171,7 +170,6 @@ public class CastSetResourceHandler {
     }
 
     private static void requireResource(String expected, String actual) {
-        // CAST 는 CheckInCounterServiceTime001 처럼 발행한 ID 와 대소문자를 다르게 돌려보낸다
         if (expected != null && !expected.isBlank() && !expected.equalsIgnoreCase(actual))
             throw new IllegalStateException("결과 입력 리소스가 요청과 다릅니다: " + expected);
     }

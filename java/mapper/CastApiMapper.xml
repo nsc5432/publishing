@@ -22,8 +22,7 @@
                )
     </sql>
 
-    <!-- 체크인카운터 일일 배정
-        시각 선택 · 종료일 계산은 CastChknMapper.retrieveChknBoothOperList 와 같아야 한다 -->
+    <!-- 체크인카운터 일일 배정 -->
     <sql id="cknctDailyAlotRows">
         SELECT Y.TMNL_ID
              , Y.CKNCT_ID
@@ -32,10 +31,8 @@
              , Y.CHKN_TYPE_CD
              , Y.MSTR_FLTNM
              , TO_DATE(Y.OPER_YMD || Y.STA_HM, 'YYYYMMDDHH24MI') AS BGN_DT
-             , TO_DATE(Y.OPER_YMD || Y.END_HM, 'YYYYMMDDHH24MI')
-                   + CASE WHEN TO_NUMBER(Y.STA_HM) > TO_NUMBER(Y.END_HM) THEN 1 ELSE 0 END AS END_DT
+             , TO_DATE(Y.OPER_YMD || Y.END_HM, 'YYYYMMDDHH24MI') + CASE WHEN TO_NUMBER(Y.STA_HM) > TO_NUMBER(Y.END_HM) THEN 1 ELSE 0 END AS END_DT
           FROM (
-            <!-- 원천 RON 플래그는 시각과 어긋나는 행이 있어 쓰지 않는다. 시각은 예정 · 최종 중 한 벌에서만 읽는다 -->
             SELECT A.TMNL_ID
                  , A.CKNCT_ID
                  , A.ALN_CD
@@ -43,10 +40,19 @@
                  , A.CHKN_TYPE_CD
                  , A.MSTR_FLTNM
                  , A.OPER_YMD
-                 , CASE WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL THEN A.EST_BGNG_HM ELSE A.LAST_BGNG_HM END AS STA_HM
-                 , CASE WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL THEN A.EST_END_HM ELSE A.LAST_END_HM END AS END_HM
+                 ,  CASE 
+                        WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL 
+                        THEN A.EST_BGNG_HM 
+                        ELSE A.LAST_BGNG_HM 
+                    END AS STA_HM
+                 ,  CASE 
+                        WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL 
+                        THEN A.EST_END_HM 
+                        ELSE A.LAST_END_HM 
+                    END AS END_HM
               FROM GOOWN.TI_GO_CKNCT_DALY_ALOT A
-              JOIN CAOWN.TN_CA_CKNCT CIC ON A.CKNCT_ID = CIC.CKNCT_ID AND A.TMNL_ID = CIC.TMNL_ID
+              JOIN CAOWN.TN_CA_CKNCT CIC 
+              ON A.CKNCT_ID = CIC.CKNCT_ID AND A.TMNL_ID = CIC.TMNL_ID
              WHERE A.USE_YN = 'Y'
                AND CIC.USE_YN = 'Y'
                AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
@@ -59,12 +65,7 @@
          WHERE Y.STA_HM != Y.END_HM
     </sql>
 
-    <!-- 운영시간표 · 사용자 출국장이 따르는 일자. 리소스 번호(#{rsrcNo})의 FS 그룹 일자, 없으면 기준일자 (AGENTS §8) -->
-    <sql id="opngYmd">
-        REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = #{rsrcNo} GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '')
-    </sql>
-
-    <!-- 운영계 출입국장 운영시간 중 배포(DPL)되어 그 일자에 유효한 행. 터미널 · 시설구분마다 가장 최근 상관번호만 남긴다 -->
+    <!-- 운영계 출입국장 운영시간 -->
     <sql id="dplOperHrRows">
         SELECT D.OPER_HR_CRLTN_SN, D.ELMNT_SN, D.TMNL_ID, D.FCLT_SE_CD, D.SORT_SEQ
              , D.PRD_SN, D.FCLTY_TYPE_ID, D.BSC_OPER_HR_YN, D.BGNG_YMD, D.END_YMD, D.OPER_BGNG_1_HR, D.OPER_END_1_HR
@@ -81,13 +82,12 @@
              INNER JOIN PMOWN.TN_PM_ENTGT_DPTGT_OPER_HR_MNG C
                 ON A.OPER_HR_CRLTN_SN = C.OPER_HR_CRLTN_SN AND B.ELMNT_SN = C.ELMNT_SN
              WHERE A.OPER_HR_STTS_CD = 'DPL'
-               AND <include refid="opngYmd"/> BETWEEN C.OPER_BGNG_YMD AND NVL(C.OPER_END_YMD, '21001231')
+               AND REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = #{rsrcNo} GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '') BETWEEN C.OPER_BGNG_YMD AND NVL(C.OPER_END_YMD, '21001231')
           ) D
          WHERE D.OPER_HR_CRLTN_SN = D.LATEST_CRLTN_SN
     </sql>
 
     <!-- ===================== 리소스 목록 (REQ_GetResourceInformation) ===================== -->
-
     <select id="retrieveResourceInformation" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceInformationDto" resultType="aoms.pm.cmmn.dto.CastResourceInformationDto">
         /* CastApiMapper.retrieveResourceInformation(CastReqGetResourceInformationDto dto) */
         <bind name="types" value="resourceTypes == null ? '' : resourceTypes"/>
@@ -98,7 +98,6 @@
              , R.LastModified
              , R.tableID
           FROM (
-            <!-- 요청한 유형이 하나도 맞지 않아도 SQL 이 성립하도록 두는 빈 행. 컬럼 이름도 여기서 정해진다 -->
             SELECT NULL AS ResourceType, NULL AS ResourceID, NULL AS Description, NULL AS LastModified, NULL AS tableID
               FROM DUAL
              WHERE 1 = 0
@@ -243,7 +242,6 @@
     <!-- ===================== 운항 스케줄 (FlightSchedule) ===================== -->
 
     <!-- 사용자 FS 발행(insertSchdlAtrbFromDaily)이 이 행을 그대로 저장하므로 컬럼을 바꾸면 그쪽도 맞춘다 -->
-    <!-- CastUserSnapshotMapper 가 다른 namespace 에서 include 하므로 안쪽 refid 는 namespace 까지 적는다 -->
     <sql id="dailyFlightScheduleRows">
         <bind name="alotYmd" value="fsYmd"/>
 WITH
@@ -1074,7 +1072,7 @@ LEFT JOIN (
                   , 'CheckInCounterServiceTime Resource ID' AS pFriendlyName
                   , 'String' AS vlType
                   , '' AS unitName
-                  , 'CheckInCounterServiceTime'||A.CKNCT_SRVC_ATRB_ID AS val
+                  , 'CheckinCounterServiceTime'||A.CKNCT_SRVC_ATRB_ID AS val
           FROM PMOWN.TN_PM_SMLT_CKNCT_SRVC_MSTR A
         WHERE A.CKNCT_SRVC_ATRB_ID = #{rsrcNo}
     </select>
@@ -1273,7 +1271,7 @@ LEFT JOIN (
              , TO_CHAR(A.FCLTY_CNT) AS currentNumberofLanes
              , (SELECT TO_CHAR(NVL(M.LAST_MDFCN_DT, M.FRST_REG_DT), 'YYYY-MM-DD"T"HH24:MI:SS') FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_MSTR M WHERE M.USE_YN = 'Y' AND M.DPTGT_ATRB_ID = #{rsrcNo}) AS lastModified
           FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_ATRB A
-         CROSS JOIN (SELECT <include refid="opngYmd"/> AS EXCN_YMD FROM DUAL) D
+         CROSS JOIN (SELECT REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = #{rsrcNo} GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '') AS EXCN_YMD FROM DUAL) D
           LEFT OUTER JOIN (<include refid="dplOperHrRows"/>) B
             ON A.OPER_BGNG_HM IS NULL
            AND A.TMNL_ID = B.TMNL_ID

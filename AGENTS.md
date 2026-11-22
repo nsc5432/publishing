@@ -652,7 +652,9 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   모호하거나 다른 입력이면 최신 요청에 임의 연결하지 않는다. 사용자 결과에 새 ID를 발급하지 않는다.
   일자는 대조하지 않는다 — `StartTime` 은 CAST 실행 시각이고, FS 가 요청 일자로 발행돼 리소스 대조로 충분하다.
   STNG.EXCN_YMD 는 요청의 EXCN_YMD 를 쓴다. CAST 가 CA 를 `""` 로 보내므로 CA 는 값이 올 때만 대조하고
-  STNG 에는 요청의 CA 를 기록한다. 리소스 ID 는 대소문자를 구분하지 않는다 (`CheckInCounterServiceTime001`, 2026-10-19).
+  STNG 에는 요청의 CA 를 기록한다. 리소스 ID 는 대소문자를 구분하지 않는다 (2026-10-19).
+  CAST 는 PropertySet 참조값을 그대로 돌려보내는데, PS 가 `CheckInCounterServiceTime001` 로 발행해 목록 ID(`CheckinCounterServiceTime001`)와
+  달랐다. 2026-11-22 에 PS 참조값을 `CheckinCounterServiceTime` 으로 맞췄다. pName `CheckInCounterServiceTimeResourceID` 는 CAST 이름이라 그대로다.
 - STNG 의 `PLAN_BGNG_DT`·`PLAN_END_DT` 는 CAST `StartTime`·`StopTime`(실제 수행 시각), `SMLT_BGNG_DT`·`SMLT_END_DT` 는
   시뮬레이션 속 시각(대상일 전날 12시~)이다. 모니터링의 시작·종료·소요시간과 일일 기간 필터는 `PLAN_*` 를 읽는다 (2026-10-19).
 - 일일(Auto)은 Run 하나에 모델 결과 1건이라 결과마다 새 공통 ID를 받는다(2026-10-16 RESULT_GROUP·
