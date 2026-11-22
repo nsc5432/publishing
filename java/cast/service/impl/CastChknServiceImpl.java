@@ -46,7 +46,6 @@ import lombok.RequiredArgsConstructor;
 @Transactional(rollbackFor = Exception.class)
 public class CastChknServiceImpl implements CastChknService {
     private static final List<String> UP_PSG_FCLT_CD_LIST = List.of("CC");
-    private static final List<String> BOOTH_USE_CRG_TYPE_CD_LIST = List.of("A", "B");
     private static final String CUSTOM_YN_Y = "Y";
     private static final String CUSTOM_YN_N = "N";
     private static final String EMPTY_ALN_CD = "";
@@ -109,7 +108,7 @@ public class CastChknServiceImpl implements CastChknService {
         String fcltTmnlId = tmnlId.getFcltTmnlId();
         String excnYmd = getExcnYmd(searchDto);
 
-        List<CknctCntRawDto> cknctCntList = castChknMapper.retrieveCknctCntList(fcltTmnlId, BOOTH_USE_CRG_TYPE_CD_LIST);
+        List<CknctCntRawDto> cknctCntList = castChknMapper.retrieveCknctCntList(fcltTmnlId);
         List<String> islandCdList = cknctCntList.stream().map(CknctCntRawDto::getIsland).collect(toList());
         List<ChknIslandDto> islandList = refs == null
                 ? getIslandList(searchDto, excnYmd, fcltTmnlId, islandCdList)

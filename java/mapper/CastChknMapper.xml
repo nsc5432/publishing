@@ -11,7 +11,7 @@
         WHERE 1 = 1
         AND A.TMNL_ID = #{tmnlId}
         AND A.USE_YN = 'Y'
-        AND A.CKNCT_USE_CRG_APLCN_TYPE_CD IN (<foreach collection="useCrgTypeCdList" item="item" separator=",">#{item}</foreach>)
+        AND A.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
         GROUP BY SUBSTR(A.CKNCT_ID, 1, 1)
         ORDER BY ISLAND
     </select>

@@ -106,8 +106,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Transactional(rollbackFor = Exception.class)
 public class CastSmryDtlServiceImpl implements CastSmryDtlService {
-	/** 보유 카운터 집계 대상 : A, B 유인 체크인카운터 */
-	private static final List<String> BOOTH_USE_CRG_TYPE_CD_LIST = List.of("A", "B");
 	/** 아일랜드 마커 색을 맞추기 위한 체크인 구역 시설 */
 	private static final List<String> CHKN_FCLT_CD_LIST = List.of("CC", "CK", "SBD");
 	private static final List<String> DPTGT_FCLT_CD_LIST = List.of("LGT");
@@ -484,7 +482,7 @@ public class CastSmryDtlServiceImpl implements CastSmryDtlService {
 		String fcltTmnlId = tmnlId.getFcltTmnlId();
 		SmltStngDto smltStng = castSmltService.retrieveUniqueSmltStng(searchDto.getSmltId());
 
-		List<CknctCntRawDto> cknctCntList = castChknMapper.retrieveCknctCntList(fcltTmnlId, BOOTH_USE_CRG_TYPE_CD_LIST);
+		List<CknctCntRawDto> cknctCntList = castChknMapper.retrieveCknctCntList(fcltTmnlId);
 		List<ChknCounterIslandDto> islandList = getIslandList(fcltTmnlId, smltStng, cknctCntList);
 		ChknQueueDay queueDay = castChknQueueService.retrieveChknQueueDay(smltStng, tmnlId);
 		// 혼잡등급 / 추천은 요약보기 카드 · 맵형태보기와 같은 10분 대기 결과로 평가한다

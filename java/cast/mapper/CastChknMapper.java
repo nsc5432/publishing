@@ -18,7 +18,7 @@ import aoms.pm.cast.dto.UserSmltChknSaveDto;
 
 @Mapper
 public interface CastChknMapper {
-    List<CknctCntRawDto> retrieveCknctCntList(@Param("tmnlId") String tmnlId, @Param("useCrgTypeCdList") List<String> useCrgTypeCdList);
+    List<CknctCntRawDto> retrieveCknctCntList(@Param("tmnlId") String tmnlId);
 
     /** @param smltMdlSn null 이면 모델을 거르지 않는다 (기존 차트 경로) */
     List<ChknQueueRawDto> retrieveChknQueueRawList(
