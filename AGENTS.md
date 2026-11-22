@@ -617,6 +617,10 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   과거 3개월 평균·좌석×0.75 추정은 쓰지 않는다(castrest 원본 fallback 제거).
   FS 부속 자원 원천 `GOOWN.TI_GO_FLTSH_RSRC` 는 2026-11-21 에 뺐다. `Bus` 는 `N`, 도착편 `ArrivalGate` 는 터미널별 최빈 출구
   (P01 `E` · P02 `D` · P03 `A`), `BaggageT1` · `T2` 는 도착편 기준 시각(실제 → 예정 → 계획) + 20분 · + 40분 추정값이다. 출발편은 둘 다 비운다.
+  2026-11-22 FS 조각 정리: 대표값을 `DBMS_RANDOM` 으로 고르지 않는다 — 과거 3개월 대표 게이트는 `FLTNM` · 출도착 · 터미널 그룹(T1 = P01 + P02 / T2 = P03)별,
+  최근 1개월 대표 캐로셀은 `FLTNM` · 게이트 · 주기장별이며 둘 다 사용 빈도 → 최근 일자 → 번호 순이다. 과거 편 대조에 `DDLN_FLTNM` 을 쓰지 않는다. 게이트가 기본값 `112` 이면 `DepArrTerminal` · `ArrivalGate` 는 운항 원천 터미널을 쓴다.
+  원천에 예측 일자가 없어 예측 · 실제 시각이 계획보다 12시간 넘게 이르면 다음 날로 본다(사용자 FS 읽기 · 수하물 시각도 같은 규칙).
+  `SBDAvailable` 과 SBD001 기기 배정은 기준일 하루와 겹치는 `TN_PM_SBD_OPER_PLCY` 정책만 본다. 편별 캐로셀(`TI_GO_CRSL_DALY_OPER`)은 `ALTMNT_YMD` 기준일 ±1일만 읽는다.
 - 운항 조정은 국제선 출발 GREATEST(예약-환승,0) 몫만 늘린다. 조회와 발행의 필터를 맞춘다
   (발행 INSERT 의 ROW_NUMBER 는 위 PK 보호용이고 조회에는 두지 않는다, 2026-11-04).
   기준 여객수는 FS001 값이고, 늘리는 몫만 조회 화면과 같은 예약 기준이다.

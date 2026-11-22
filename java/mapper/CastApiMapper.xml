@@ -250,8 +250,7 @@ FLT AS (
     SELECT
         CASE
             WHEN A.DOM_INTL_SE_CD = 'I' THEN 'Int'
-            WHEN A.DOM_INTL_SE_CD = 'D' AND A.TDFLT_YN = 'Y' THEN 'Int'
-            WHEN A.DOM_INTL_SE_CD = 'D' AND (A.TDFLT_YN != 'Y' OR A.TDFLT_YN IS NULL) THEN 'Dom'
+            WHEN A.DOM_INTL_SE_CD = 'D' THEN 'Dom'
             ELSE ''
         END AS DOM_INT_SE_CD,
         A.ARR_DEP_SE_CD,
@@ -260,7 +259,6 @@ FLT AS (
         A.GD_SE_YMD AS SCHD_DT,
         A.SCHDL_HM AS SCHD_HM,
         A.FLTNM AS FLT_NM,
-        A.DDLN_FLTNM AS CLOSING_FLT_NM,
         A.FLTSH_ID AS FLT_ID,
         A.FLTNM || '_'
             || SUBSTR(A.GD_SE_YMD, 1, 4) || '-' || SUBSTR(A.GD_SE_YMD, 5, 2) || '-' || SUBSTR(A.GD_SE_YMD, 7, 2)
@@ -271,20 +269,10 @@ FLT AS (
             || 'T'
             || SUBSTR(A.SCHDL_HM, 1, 2) || ':' || SUBSTR(A.SCHDL_HM, 3, 2) || ':00.000'
             AS SCHD_TIME,
-        CASE
-            WHEN TRIM(A.PREDC_HM) IS NOT NULL THEN
-                SUBSTR(A.GD_SE_YMD, 1, 4) || '-' || SUBSTR(A.GD_SE_YMD, 5, 2) || '-' || SUBSTR(A.GD_SE_YMD, 7, 2)
-                || 'T'
-                || SUBSTR(A.PREDC_HM, 1, 2) || ':' || SUBSTR(A.PREDC_HM, 3, 2) || ':00.000'
-            ELSE ''
-        END AS ESTM_TIME,
-        CASE
-            WHEN TRIM(A.ACTL_HM) IS NOT NULL THEN
-                SUBSTR(A.GD_SE_YMD, 1, 4) || '-' || SUBSTR(A.GD_SE_YMD, 5, 2) || '-' || SUBSTR(A.GD_SE_YMD, 7, 2)
-                || 'T'
-                || SUBSTR(A.ACTL_HM, 1, 2) || ':' || SUBSTR(A.ACTL_HM, 3, 2) || ':00.000'
-            ELSE ''
-        END AS ACTL_TIME,
+        A.FS_GD_DT + A.FS_SCHD_MIN / 1440 AS SCHD_DTM,
+        /* 계획보다 12시간 넘게 이른 예측 · 실제 시각은 자정을 넘긴 다음 날로 본다 */
+        A.FS_GD_DT + (A.FS_PREDC_MIN + CASE WHEN A.FS_PREDC_MIN &lt; A.FS_SCHD_MIN - 720 THEN 1440 ELSE 0 END) / 1440 AS ESTM_DTM,
+        A.FS_GD_DT + (A.FS_ACTL_MIN + CASE WHEN A.FS_ACTL_MIN &lt; A.FS_SCHD_MIN - 720 THEN 1440 ELSE 0 END) / 1440 AS ACTL_DTM,
         A.ARPT_CD AS ARR_DEP_APT_CD,
         NULLIF(TRIM(A.ACST_NO), '') AS STND_NO_RAW,
         NULLIF(TRIM(A.GATE_NO), '') AS GATE_NO_RAW,
@@ -308,37 +296,37 @@ FLT AS (
             WHEN A.GD_IRR_YN IN ('1', 'Y') THEN 'Charter'
             ELSE ''
         END AS IRR_FLT_YN,
-        A.TDFLT_YN AS TRDOMFLT_YN,
         A.DOM_INTL_SE_CD,
         TRIM(A.PREDC_HM) AS PREDC_HM,
         TRIM(A.ACTL_HM) AS ACTL_HM,
         A.GD_IRR_YN,
         A.RSVT_BDPSG_CNT,
-        A.RSVT_TRNS_BDPSG_CNT,
-        CASE
-            WHEN A.ARR_DEP_SE_CD = 'A' THEN
-                TO_DATE(A.GD_SE_YMD, 'YYYYMMDD')
-                    + (TO_NUMBER(SUBSTR(COALESCE(TRIM(A.ACTL_HM), TRIM(A.PREDC_HM), A.SCHDL_HM), 1, 2)) * 60
-                        + TO_NUMBER(SUBSTR(COALESCE(TRIM(A.ACTL_HM), TRIM(A.PREDC_HM), A.SCHDL_HM), 3, 2))) / 1440
-        END AS ARR_DT
-    FROM GOOWN.TN_GO_GD_DATA A
-    WHERE A.GD_SE_YMD = TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD'), 'YYYYMMDD')
-      <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataFltCond"/>
-      <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataPaxCond"/>
+        A.RSVT_TRNS_BDPSG_CNT
+    FROM (
+        SELECT
+            A.*,
+            TO_DATE(A.GD_SE_YMD, 'YYYYMMDD') AS FS_GD_DT,
+            TO_NUMBER(SUBSTR(A.SCHDL_HM, 1, 2)) * 60 + TO_NUMBER(SUBSTR(A.SCHDL_HM, 3, 2)) AS FS_SCHD_MIN,
+            TO_NUMBER(SUBSTR(TRIM(A.PREDC_HM), 1, 2)) * 60 + TO_NUMBER(SUBSTR(TRIM(A.PREDC_HM), 3, 2)) AS FS_PREDC_MIN,
+            TO_NUMBER(SUBSTR(TRIM(A.ACTL_HM), 1, 2)) * 60 + TO_NUMBER(SUBSTR(TRIM(A.ACTL_HM), 3, 2)) AS FS_ACTL_MIN
+        FROM GOOWN.TN_GO_GD_DATA A
+        WHERE A.GD_SE_YMD = TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD'), 'YYYYMMDD')
+          <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataFltCond"/>
+          <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataPaxCond"/>
+    ) A
 ),
 /* 9) 편별 체크인카운터 범위(D01-D18) - 아일랜드가 갈리면 카운터가 많은 아일랜드 하나 */
 CIC_RANGE AS (
-    /* 순위 = 편 전용 배정 우선 → 카운터 수 많은 아일랜드 → 아일랜드 이름. 1순위 (배정 종류, 아일랜드) 묶음의 처음 · 끝 카운터 */
+    /* 순위 = 카운터 수 많은 아일랜드 → 아일랜드 이름. 1순위 아일랜드의 처음 · 끝 카운터 */
     SELECT
         G.FLT_ID,
-        MIN(G.MIN_CKNCT_ID) KEEP (DENSE_RANK FIRST ORDER BY G.PRIO, G.CKNCT_CNT DESC, G.ISL)
+        MIN(G.MIN_CKNCT_ID) KEEP (DENSE_RANK FIRST ORDER BY G.CKNCT_CNT DESC, G.ISL)
             || '-' ||
-        MAX(G.MAX_CKNCT_ID) KEEP (DENSE_RANK FIRST ORDER BY G.PRIO, G.CKNCT_CNT DESC, G.ISL) AS CIC_RANGE_CTT
+        MAX(G.MAX_CKNCT_ID) KEEP (DENSE_RANK FIRST ORDER BY G.CKNCT_CNT DESC, G.ISL) AS CIC_RANGE_CTT
     FROM (
-        /* 8) 편별 배정 카운터 - 출발 2시간 전에 열려 있는 편 전용(D) 배정, 없으면 같은 터미널의 항공사 배정 */
+        /* 8) 편별 배정 카운터 - 출발 2시간 전에 열려 있는 같은 터미널의 항공사(C) 배정 */
         SELECT
             B.FLT_ID,
-            CASE WHEN AL.CHKN_TYPE_CD = 'D' THEN 1 ELSE 2 END AS PRIO,
             SUBSTR(AL.CKNCT_ID, 1, 1) AS ISL,
             COUNT(DISTINCT AL.CKNCT_ID) AS CKNCT_CNT,
             MIN(AL.CKNCT_ID) AS MIN_CKNCT_ID,
@@ -347,39 +335,37 @@ CIC_RANGE AS (
             SELECT
                 FLT_ID,
                 ALN_CD,
-                FLT_NM,
-                CLOSING_FLT_NM,
                 CASE WHEN CF_TER_ID_X = 'P02' THEN 'P01' ELSE CF_TER_ID_X END AS CIC_TMNL_ID,
                 TO_DATE(SCHD_DT, 'YYYYMMDD')
                     + (TO_NUMBER(SUBSTR(SCHD_HM, 1, 2)) * 60 + TO_NUMBER(SUBSTR(SCHD_HM, 3, 2)) - 120) / 1440 AS CK_DT
             FROM FLT
             WHERE ARR_DEP_SE_CD = 'D'
-              AND TRDOMFLT_YN = 'N'
               AND FLT_ID IS NOT NULL
         ) B
         /* 7) 체크인카운터 배정 - CA001 과 같은 원천 · 필터 */
         JOIN (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotRows"/>) AL
             ON B.CK_DT >= AL.BGN_DT
            AND B.CK_DT &lt; AL.END_DT
-           AND (
-                 (AL.CHKN_TYPE_CD = 'D' AND AL.MSTR_FLTNM IN (B.FLT_NM, B.CLOSING_FLT_NM))
-              OR (NVL(AL.CHKN_TYPE_CD, ' ') != 'D' AND AL.ALN_CD = B.ALN_CD AND AL.TMNL_ID = B.CIC_TMNL_ID)
-               )
-        GROUP BY B.FLT_ID, CASE WHEN AL.CHKN_TYPE_CD = 'D' THEN 1 ELSE 2 END, SUBSTR(AL.CKNCT_ID, 1, 1)
+           AND AL.CHKN_TYPE_CD = 'C'
+           AND AL.ALN_CD = B.ALN_CD
+           AND AL.TMNL_ID = B.CIC_TMNL_ID
+        GROUP BY B.FLT_ID, SUBSTR(AL.CKNCT_ID, 1, 1)
     ) G
     GROUP BY G.FLT_ID
 ),
-/* 12) 최근 3개월 기준 closing_flt_nm별 대표 gate/stnd/ter */
+/* 12) 최근 3개월 기준 편명 · 출도착 · 터미널(T1/T2)별 대표 gate/stnd */
 PAST_GATE AS (
-    SELECT CLOSING_FLT_NM, STND_NO, GATE_NO
+    SELECT FLT_NM, ARR_DEP_SE_CD, TMNL_GRP, STND_NO, GATE_NO
     FROM (
         SELECT
-            A.DDLN_FLTNM AS CLOSING_FLT_NM,
+            A.FLTNM AS FLT_NM,
+            A.ARR_DEP_SE_CD,
+            CASE WHEN A.TMNL_ID = 'P03' THEN 'T2' ELSE 'T1' END AS TMNL_GRP,
             A.ACST_NO AS STND_NO,
             A.GATE_NO,
             ROW_NUMBER() OVER (
-                PARTITION BY A.DDLN_FLTNM
-                ORDER BY COUNT(*) DESC, DBMS_RANDOM.VALUE
+                PARTITION BY A.FLTNM, A.ARR_DEP_SE_CD, CASE WHEN A.TMNL_ID = 'P03' THEN 'T2' ELSE 'T1' END
+                ORDER BY COUNT(*) DESC, MAX(A.GD_SE_YMD) DESC, A.GATE_NO, A.ACST_NO
             ) AS RN
         FROM GOOWN.TN_GO_GD_DATA A
         WHERE A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{fsYmd}, 'YYYYMMDD'), - 3), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
@@ -389,7 +375,7 @@ PAST_GATE AS (
           AND A.ACST_NO IS NOT NULL
           AND A.ACST_NO != '0000'
           AND A.GATE_NO IS NOT NULL
-        GROUP BY A.DDLN_FLTNM, A.TMNL_ID, A.ACST_NO, A.GATE_NO
+        GROUP BY A.FLTNM, A.ARR_DEP_SE_CD, CASE WHEN A.TMNL_ID = 'P03' THEN 'T2' ELSE 'T1' END, A.ACST_NO, A.GATE_NO
     )
     WHERE RN = 1
 ),
@@ -408,17 +394,27 @@ FLT_RSRC AS (
             WHEN PG.STND_NO IS NOT NULL THEN REPLACE(REPLACE(PG.STND_NO, 'L', ''), 'R', '')
             ELSE '112'
         END AS GATE_NO,
+        CASE
+            WHEN F.GATE_NO_RAW IS NULL AND PG.GATE_NO IS NULL AND PG.STND_NO IS NULL THEN 'Y'
+            ELSE 'N'
+        END AS GATE_DFLT_YN,
+        CASE
+            WHEN F.ARR_DEP_SE_CD = 'A' THEN COALESCE(F.ACTL_DTM, F.ESTM_DTM, F.SCHD_DTM)
+        END AS ARR_DT,
         COALESCE(F.CRS_NO_RAW, RCD.CRS_NO) AS CRS_NO_BASE,
         CR.CIC_RANGE_CTT
     FROM FLT F
     LEFT JOIN PAST_GATE PG
-        ON F.FLT_NM = PG.CLOSING_FLT_NM
+        ON F.FLT_NM = PG.FLT_NM
+       AND F.ARR_DEP_SE_CD = PG.ARR_DEP_SE_CD
+       AND CASE WHEN F.CF_TER_ID_X = 'P03' THEN 'T2' ELSE 'T1' END = PG.TMNL_GRP
     LEFT JOIN (
         /* 11) RS 캐로셀 정보 */
         SELECT
             ARR_DALY_FLTSH_ID AS ARR_ACT_FLT_ID,
             MIN(CASE WHEN CRSL_NO = '0' THEN NULL ELSE CRSL_NO END) AS CRS_NO
         FROM GOOWN.TI_GO_CRSL_DALY_OPER
+        WHERE ALTMNT_YMD BETWEEN TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') + 1, 'YYYYMMDD')
         GROUP BY ARR_DALY_FLTSH_ID
     ) RCD
         ON F.FLT_ID = RCD.ARR_ACT_FLT_ID
@@ -429,7 +425,7 @@ FLT_RSRC AS (
 SELECT
     R.DOM_INT_SE_CD AS DomStatus,
     R.ARR_DEP_SE_CD AS FlightDirection,
-    COALESCE(GI.TER_ID, R.CF_TER_ID_X) AS DepArrTerminal,
+    COALESCE(CASE WHEN R.GATE_DFLT_YN = 'N' THEN GI.TER_ID END, R.CF_TER_ID_X) AS DepArrTerminal,
     R.ALN_CD AS AirlineCode,
     /* 3) 항공사 카테고리 */
     CASE
@@ -439,8 +435,8 @@ SELECT
     R.FLT_NM AS FlightNumber,
     R.FLT_NM_ID AS FlightNumberID,
     R.SCHD_TIME AS ScheduleTime,
-    R.ESTM_TIME AS EstimatedTime,
-    R.ACTL_TIME AS ActualTime,
+    TO_CHAR(R.ESTM_DTM, 'YYYY-MM-DD"T"HH24:MI":00.000"') AS EstimatedTime,
+    TO_CHAR(R.ACTL_DTM, 'YYYY-MM-DD"T"HH24:MI":00.000"') AS ActualTime,
     R.ARR_DEP_APT_CD AS AirportCode,
     LPAD(REGEXP_SUBSTR(R.STND_NO, '^[0-9]+'), 3, '0')
         || REGEXP_SUBSTR(R.STND_NO, '[^0-9]+$') AS StandNumber,
@@ -472,18 +468,18 @@ SELECT
             SELECT 1
             FROM PMOWN.TN_PM_SBD_OPER_PLCY P
             WHERE P.ALN_CD = R.ALN_CD
-              AND SYSTIMESTAMP BETWEEN TO_TIMESTAMP(P.PLCY_BGNG_DT, 'YYYY-MM-DD HH24:MI:SS') AND TO_TIMESTAMP(P.PLCY_END_DT, 'YYYY-MM-DD HH24:MI:SS')
+              AND P.TMNL_ID = CASE WHEN R.CF_TER_ID_X = 'P02' THEN 'P01' ELSE R.CF_TER_ID_X END
+              AND TO_TIMESTAMP(P.PLCY_BGNG_DT, 'YYYY-MM-DD HH24:MI:SS') &lt; TO_TIMESTAMP(#{fsYmd}, 'YYYYMMDD') + INTERVAL '1' DAY
+              AND TO_TIMESTAMP(P.PLCY_END_DT, 'YYYY-MM-DD HH24:MI:SS') >= TO_TIMESTAMP(#{fsYmd}, 'YYYYMMDD')
         ) THEN 'Y'
         ELSE 'N'
     END AS SBDAvailable,
     R.IRR_FLT_YN AS FlightType,
-    R.TRDOMFLT_YN AS Triangle,
+    'N' AS Triangle,
     'N' AS BUS,
     CASE
-        WHEN R.ARR_DEP_SE_CD != 'A' THEN NULL
-        WHEN COALESCE(GI.TER_ID, R.CF_TER_ID_X) = 'P01' THEN 'E'
-        WHEN COALESCE(GI.TER_ID, R.CF_TER_ID_X) = 'P02' THEN 'D'
-        WHEN COALESCE(GI.TER_ID, R.CF_TER_ID_X) = 'P03' THEN 'A'
+        WHEN R.ARR_DEP_SE_CD = 'A' THEN
+            DECODE(COALESCE(CASE WHEN R.GATE_DFLT_YN = 'N' THEN GI.TER_ID END, R.CF_TER_ID_X), 'P01', 'E', 'P02', 'D', 'P03', 'A')
     END AS ArrivalGate,
     TO_CHAR(R.ARR_DT + 20 / 1440, 'YYYY-MM-DD"T"HH24:MI":00.000"') AS BaggageT1,
     TO_CHAR(R.ARR_DT + 40 / 1440, 'YYYY-MM-DD"T"HH24:MI":00.000"') AS BaggageT2,
@@ -512,14 +508,14 @@ LEFT JOIN (
 /* 13) 최근 1개월 도착편 기준 대표 캐로셀 */
 LEFT JOIN (
     SELECT
-        A.DDLN_FLTNM AS CLOSING_FLT_NM,
+        A.FLTNM AS FLT_NM,
         A.ARR_DEP_SE_CD,
         A.GATE_NO,
         A.ACST_NO AS STND_NO,
         A.CRSL_NO AS CRS_NO,
         ROW_NUMBER() OVER (
-            PARTITION BY A.DDLN_FLTNM, A.GATE_NO, A.ACST_NO
-            ORDER BY DBMS_RANDOM.VALUE
+            PARTITION BY A.FLTNM, A.GATE_NO, A.ACST_NO
+            ORDER BY COUNT(*) DESC, MAX(A.GD_SE_YMD) DESC, A.CRSL_NO
         ) AS RN
     FROM GOOWN.TN_GO_GD_DATA A
     WHERE A.GD_SE_YMD BETWEEN TO_CHAR(ADD_MONTHS(TO_DATE(#{fsYmd}, 'YYYYMMDD'), - 1), 'YYYYMMDD') AND TO_CHAR(TO_DATE(#{fsYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')
@@ -528,9 +524,10 @@ LEFT JOIN (
       AND A.CRSL_NO != '0'
       AND TRIM(A.GATE_NO) IS NOT NULL
       AND TRIM(A.CRSL_NO) IS NOT NULL
+    GROUP BY A.FLTNM, A.ARR_DEP_SE_CD, A.GATE_NO, A.ACST_NO, A.CRSL_NO
 ) AH
     ON AH.RN = 1
-   AND R.FLT_NM        = AH.CLOSING_FLT_NM
+   AND R.FLT_NM        = AH.FLT_NM
    AND R.GATE_NO       = AH.GATE_NO
    AND R.STND_NO       = AH.STND_NO
    AND R.ARR_DEP_SE_CD = AH.ARR_DEP_SE_CD
@@ -542,7 +539,7 @@ LEFT JOIN (
         CRSL_NO AS CRS_NO,
         ROW_NUMBER() OVER (
             PARTITION BY CASE WHEN TMNL_ID = 'P02' THEN 'P01' ELSE TMNL_ID END, CRSL_GROUP_CD
-            ORDER BY DBMS_RANDOM.VALUE
+            ORDER BY CRSL_NO
         ) AS RN
     FROM CAOWN.TN_CA_CRSL
 ) CCP
@@ -620,8 +617,7 @@ LEFT JOIN (
               FROM (
                 SELECT CASE
                        WHEN A.DOM_INTL_SE_CD = 'I' THEN 'Int'
-                       WHEN A.DOM_INTL_SE_CD = 'D' AND A.TDFLT_YN = 'Y' THEN 'Int'
-                       WHEN A.DOM_INTL_SE_CD = 'D' AND (A.TDFLT_YN != 'Y' OR A.TDFLT_YN IS NULL) THEN 'Dom'
+                       WHEN A.DOM_INTL_SE_CD = 'D' THEN 'Dom'
                        ELSE ''
                        END AS domStatus
                      , A.ARR_DEP_SE_CD AS flightDirection
@@ -634,18 +630,13 @@ LEFT JOIN (
                        TO_CHAR(TO_DATE(A.DEP_ARR_HM || '00', 'HH24:MI:SS'), 'HH24:MI:SS') || '.000' AS flightNumberID
                      , TO_CHAR(TO_DATE(A.DEP_ARR_YMD, 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T' ||
                        TO_CHAR(TO_DATE(A.DEP_ARR_HM || '00', 'HH24:MI:SS'), 'HH24:MI:SS') || '.000' AS scheduleTime
-                     , CASE
-                       WHEN A.PREDC_HM IS NOT NULL
-                       THEN TO_CHAR(TO_DATE(A.DEP_ARR_YMD, 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T' ||
-                                TO_CHAR(TO_DATE(A.PREDC_HM || '00', 'HH24:MI:SS'), 'HH24:MI:SS') || '.000'
-                       ELSE ''
-                       END AS estimatedTime
-                     , CASE
-                       WHEN A.ACTL_HM IS NOT NULL
-                       THEN TO_CHAR(TO_DATE(A.DEP_ARR_YMD, 'YYYY-MM-DD'), 'YYYY-MM-DD') || 'T' ||
-                                TO_CHAR(TO_DATE(A.ACTL_HM || '00', 'HH24:MI:SS'), 'HH24:MI:SS') || '.000'
-                       ELSE ''
-                       END AS actualTime
+                     -- 계획보다 12시간 넘게 이른 예측 · 실제 시각은 자정을 넘긴 다음 날로 본다 (FS001 조각과 같은 규칙)
+                     , TO_CHAR(TO_DATE(A.DEP_ARR_YMD, 'YYYY-MM-DD')
+                           + (A.FS_PREDC_MIN + CASE WHEN A.FS_PREDC_MIN &lt; A.FS_SCHD_MIN - 720 THEN 1440 ELSE 0 END) / 1440,
+                           'YYYY-MM-DD"T"HH24:MI":00.000"') AS estimatedTime
+                     , TO_CHAR(TO_DATE(A.DEP_ARR_YMD, 'YYYY-MM-DD')
+                           + (A.FS_ACTL_MIN + CASE WHEN A.FS_ACTL_MIN &lt; A.FS_SCHD_MIN - 720 THEN 1440 ELSE 0 END) / 1440,
+                           'YYYY-MM-DD"T"HH24:MI":00.000"') AS actualTime
                      , A.ARR_DEP_ARPT_CD AS airportCode
                      , A.ACST_NO AS standNumber
                      , CASE
@@ -667,7 +658,7 @@ LEFT JOIN (
                        THEN 'Charter'
                        ELSE ''
                        END AS flightType
-                     , A.TDFLT_YN AS triangle
+                     , 'N' AS triangle
                      , A.BUS_NEED_YN AS bus
                      , A.WAYO_ID AS arrivalGate
                      , CASE
@@ -678,8 +669,14 @@ LEFT JOIN (
                        WHEN A.LAST_BAG_INPUT_DT IS NULL OR A.LAST_BAG_INPUT_DT = '' THEN NULL
                        ELSE TO_CHAR(A.LAST_BAG_INPUT_DT, 'YYYY-MM-DD"T"HH24:MI":00.000"')
                        END AS baggageT2       -- 최종수하물투입일시(RS의 운항편자원 정보)
-                  FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB A
-                 WHERE A.SCHDL_ATRB_GROUP_ID = #{rsrcNo}
+                  FROM (
+                    SELECT A.*
+                         , TO_NUMBER(SUBSTR(TRIM(A.DEP_ARR_HM), 1, 2)) * 60 + TO_NUMBER(SUBSTR(TRIM(A.DEP_ARR_HM), 3, 2)) AS FS_SCHD_MIN
+                         , TO_NUMBER(SUBSTR(TRIM(A.PREDC_HM), 1, 2)) * 60 + TO_NUMBER(SUBSTR(TRIM(A.PREDC_HM), 3, 2)) AS FS_PREDC_MIN
+                         , TO_NUMBER(SUBSTR(TRIM(A.ACTL_HM), 1, 2)) * 60 + TO_NUMBER(SUBSTR(TRIM(A.ACTL_HM), 3, 2)) AS FS_ACTL_MIN
+                      FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB A
+                     WHERE A.SCHDL_ATRB_GROUP_ID = #{rsrcNo}
+                  ) A
               ) X
              ORDER BY X.domStatus, X.flightDirection, X.depArrTerminal, X.flightNumber, X.flightNumberID
             </otherwise>
@@ -863,6 +860,8 @@ LEFT JOIN (
                     LEFT JOIN PMOWN.TN_PM_SBD_OPER_PLCY PLCY
                     ON CIC.TMNL_ID = PLCY.TMNL_ID
                     AND SUBSTR(CIC.CKNCT_ID, 1, 1) = PLCY.SBD_CTR_NM
+                    AND TO_TIMESTAMP(PLCY.PLCY_BGNG_DT, 'YYYY-MM-DD HH24:MI:SS') &lt; TO_TIMESTAMP(#{baseYmd}, 'YYYYMMDD') + INTERVAL '1' DAY
+                    AND TO_TIMESTAMP(PLCY.PLCY_END_DT, 'YYYY-MM-DD HH24:MI:SS') >= TO_TIMESTAMP(#{baseYmd}, 'YYYYMMDD')
                     LEFT JOIN (
                                 SELECT
                                     A.GD_SE_YMD
