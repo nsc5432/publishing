@@ -43,23 +43,19 @@
         )
         SELECT
             #{rsrcNo}, X.DOM_INTL_SE_CD, X.FLIGHTDIRECTION, X.DEPARRTERMINAL, X.AIRLINECODE, X.OPERATORCAT,
-            X.FLIGHTNUMBER, X.SCHD_DT, X.SCHD_HM, X.PREDC_HM, X.ACTL_HM,
+            X.FLIGHTNUMBER, X.GD_SE_YMD, X.SCHDL_HM, X.PREDC_HM, X.ACTL_HM,
             X.AIRPORTCODE, X.STANDNUMBER, X.GATE, X.CONTACTREMOTE, X.SEATS,
             -- 실탑승 입력 편은 PAXCOUNT 가 예약-환승보다 작을 수 있어 감소 조정이 음수를 만든다
             GREATEST(X.PAXCOUNT + ROUND(
                 CASE
                     WHEN X.FLIGHTDIRECTION = 'D' AND X.DOM_INTL_SE_CD != 'D'
-                    THEN GREATEST(
-                        NVL(TO_NUMBER(TRIM(X.RSVT_BDPSG_CNT)), 0) - NVL(TO_NUMBER(TRIM(X.RSVT_TRNS_BDPSG_CNT)), 0),
-                        0
-                    )
+                    THEN GREATEST(NVL(X.RSVT_BDPSG_CNT, 0) - NVL(X.RSVT_TRNS_BDPSG_CNT, 0), 0)
                     ELSE 0
                 END * X.AJMT_RT / 100
             ), 0),
             X.TRANSFERPAX, X.BELT, X.AIRCRAFTTYPE, X.CHECKINRANGE,
             X.SBDAVAILABLE, X.GD_IRR_YN, X.TRIANGLE, X.BUS, X.ARRIVALGATE,
-            TO_TIMESTAMP(SUBSTR(X.FRST_BAG_INPUT_DT_RAW, 1, 12), 'YYYYMMDDHH24MI'),
-            TO_TIMESTAMP(SUBSTR(X.LAST_BAG_INPUT_DT_RAW, 1, 12), 'YYYYMMDDHH24MI'),
+            X.FRST_BAG_INPUT_DT, X.LAST_BAG_INPUT_DT,
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM (
             SELECT
@@ -67,18 +63,17 @@
                 NVL((
                     SELECT NVL(J.AJMT_RT, 0)
                     FROM AJMT J
-                    WHERE J.TMNL_ID = DECODE(F.CF_TER_ID_X, 'P01', 'P01', 'P02', 'P01', 'P03', 'P03')
-                    AND J.HOUR = SUBSTR(NVL(F.PREDC_HM, F.SCHD_HM), 1, 2)
+                    WHERE J.TMNL_ID = F.TMNL_GRP_ID
+                    AND J.HOUR = SUBSTR(NVL(F.PREDC_HM, F.SCHDL_HM), 1, 2)
                 ), 0) AS AJMT_RT,
                 ROW_NUMBER() OVER (
-                    PARTITION BY F.FLIGHTDIRECTION, F.FLIGHTNUMBER, F.SCHD_DT, F.SCHD_HM
+                    PARTITION BY F.FLIGHTDIRECTION, F.FLIGHTNUMBER, F.GD_SE_YMD, F.SCHDL_HM
                     ORDER BY F.RSVT_BDPSG_CNT DESC NULLS LAST
                 ) AS RN
             FROM (
                 <bind name="fsYmd" value="excnYmd"/>
                 <include refid="aoms.pm.castapi.mapper.CastApiMapper.dailyFlightScheduleRows"/>
             ) F
-            WHERE F.SCHD_HM IS NOT NULL
         ) X
         WHERE X.RN = 1
     </insert>
