@@ -619,7 +619,9 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   (아일랜드 정책 항공사 출발편 첫 편 −5시간 ~ 마지막 편 −1시간)의 시각 · 항공사, 키오스크는 전날 12:00 ~ 당일 23:59 이고 사용자는 대수만 정한다.
   정책 항공사 출발편이 없는 아일랜드는 SBD 를 발행하지 않는다.
   원천 `GOOWN.TI_GO_CKNCT_DALY_ALOT` 는 재전송마다 INSERT 되므로 위 네 조회와 사용자 탭 항공사 목록은 공용 조각 `CastApiMapper.cknctDailyAlotLatestRows` 로
-  키 `(OPER_YMD, TMNL_ID, CKNCT_ID, ALN_CD)` 의 최신 `ALOT_SN` 1행을 먼저 고르고, 그 행이 `CHKN_TYPE_CD = 'C'` · `USE_YN = 'Y'` 일 때만 쓴다(2026-11-22). 편 기준(`'D'`)은 쓰지 않는다.
+  키 `(OPER_YMD, TMNL_ID, CKNCT_ID, ALN_CD)` 안에서 구간이 겹치는(같은 구간 포함) 나중 `ALOT_SN` 행이 있으면 앞 행을 버리고, 남은 행이 `CHKN_TYPE_CD = 'C'` · `USE_YN = 'Y'` 일 때만 쓴다. 편 기준(`'D'`)은 쓰지 않는다.
+  2026-11-22 에는 키별 최신 1행만 남겨 같은 카운터 · 항공사의 하루 여러 근무조(2026-02-12 기준 420건)가 마지막 한 구간으로 줄었다. 2026-11-23 에 겹침 기준으로 바꿨다.
+  겹치지 않는 시각으로 다시 보낸 재배정은 앞 구간과 구분할 수 없어 둘 다 남는다.
 - 사용자 FS(일일 운영자료 기반)는 FS001과 같은 SQL 조각 `CastApiMapper.dailyFlightScheduleRows`의 행을 저장한다
   (2026-10-19). 게이트·주기장 3자리 패딩·fallback, OperatorCat·ContactRemote·CheckinRange·SBDAvailable 등을
   따로 만들지 않는다 — GO 원값을 그대로 쓰면 출발편이 게이트에 배정되지 않고 CAST가 계산 없이 끝난다.
