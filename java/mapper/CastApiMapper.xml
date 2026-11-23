@@ -44,8 +44,21 @@
     <!-- 체크인카운터 일일 배정 원천. 재전송마다 INSERT 되므로 같은 키 (OPER_YMD, TMNL_ID, CKNCT_ID, ALN_CD) 에서
          구간이 겹치는(같은 구간 포함) 나중 행(ALOT_SN)이 있으면 앞 행을 버린다. 겹치지 않는 구간은 하루 여러 근무조라 모두 남긴다.
          유형 · 사용 여부는 살아남은 행으로 판정한다. 시각이 없는 나중 행은 그 키의 앞 행을 모두 덮는다 -->
-    <sql id="cknctDailyAlotLatestRows">
-        SELECT L.*
+    <sql id="cknctDailyAlotActualRows">
+        SELECT L.OPER_YMD
+             , L.TMNL_ID
+             , L.CKNCT_ID
+             , L.ALN_CD
+             , L.DOM_INTL_SE_CD
+             , L.CHKN_TYPE_CD
+             , L.USE_YN
+             , L.EST_BGNG_HM
+             , L.EST_END_HM
+             , L.LAST_BGNG_HM
+             , L.LAST_END_HM
+             , L.ALOT_STA_HM
+             , L.ALOT_END_HM
+             , 'N' AS FLBK_YN
           FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotWindowRows"/>) L
          WHERE L.CHKN_TYPE_CD = 'C'
            AND L.USE_YN = 'Y'
@@ -61,6 +74,186 @@
                         OR (N.ALOT_BGN_MIN = L.ALOT_BGN_MIN AND N.ALOT_END_MIN = L.ALOT_END_MIN)
                         OR (N.ALOT_BGN_MIN &lt; L.ALOT_END_MIN AND L.ALOT_BGN_MIN &lt; N.ALOT_END_MIN))
            )
+    </sql>
+
+    <!-- 실배정 중 CA001 에 실리는 행(cknctDailyAlotRows 와 같은 카운터 필터)과 그 구간 -->
+    <sql id="cknctDailyAlotActualDtRows">
+        SELECT A.TMNL_ID
+             , A.CKNCT_ID
+             , A.ALN_CD
+             , TO_DATE(A.OPER_YMD || A.ALOT_STA_HM, 'YYYYMMDDHH24MI') AS BGN_DT
+             , TO_DATE(A.OPER_YMD || A.ALOT_END_HM, 'YYYYMMDDHH24MI')
+               + CASE WHEN TO_NUMBER(A.ALOT_STA_HM) > TO_NUMBER(A.ALOT_END_HM) THEN 1 ELSE 0 END AS END_DT
+          FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotActualRows"/>) A
+          JOIN CAOWN.TN_CA_CKNCT CIC
+            ON A.CKNCT_ID = CIC.CKNCT_ID
+           AND A.TMNL_ID = CIC.TMNL_ID
+         WHERE CIC.USE_YN = 'Y'
+           AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
+           AND SUBSTR(A.CKNCT_ID, 1, 1) NOT IN ('X', 'Y', 'R', 'S')
+           AND A.ALOT_STA_HM != A.ALOT_END_HM
+    </sql>
+
+    <!-- 실배정을 못 찾은 출발편(FS CheckinRange 와 같은 판정: 같은 터미널 · 항공사 배정이 출발 2시간 전에 열려 있지 않음)의 대체 배정.
+         터미널 · 항공사 · 국내외별로 대상 편 첫 편 −3시간 ~ 마지막 편 −1시간(예측 · 계획 시각 중 이른 / 늦은 쪽) 동안
+         실배정이 없는 같은 아일랜드 연속 부스 4개를 연다. 블록은 터미널 안 대체 배정 순번대로 돌려 써서 한 블록에 몰리지 않게 하고,
+         대체 배정이 블록보다 많으면 겹친다. 빈 블록이 없으면 열지 않는다. 전날로 넘어가는 구간은 OPER_YMD 를 나눠 2행으로 낸다 -->
+    <sql id="cknctDailyAlotFallbackRows">
+        SELECT X.OPER_YMD
+             , X.TMNL_ID
+             , X.CKNCT_ID
+             , X.ALN_CD
+             , X.DOM_INTL_SE_CD
+             , 'C' AS CHKN_TYPE_CD
+             , 'Y' AS USE_YN
+             , X.STA_HM AS EST_BGNG_HM
+             , X.END_HM AS EST_END_HM
+             , CAST(NULL AS VARCHAR2(4)) AS LAST_BGNG_HM
+             , CAST(NULL AS VARCHAR2(4)) AS LAST_END_HM
+             , X.STA_HM AS ALOT_STA_HM
+             , X.END_HM AS ALOT_END_HM
+             , 'Y' AS FLBK_YN
+          FROM (
+            SELECT TO_CHAR(B.BASE_DT - CASE WHEN D.PART = 1 THEN 1 ELSE 0 END, 'YYYYMMDD') AS OPER_YMD
+                 , B.TMNL_GRP_ID AS TMNL_ID
+                 , B.CKNCT_ID
+                 , B.ALN_CD
+                 , B.DOM_INTL_SE_CD
+                 , TO_CHAR(CASE WHEN D.PART = 1 THEN B.W_BGN_DT ELSE GREATEST(B.W_BGN_DT, B.BASE_DT) END, 'HH24MI') AS STA_HM
+                 , CASE
+                       WHEN D.PART = 1 AND B.W_END_DT >= B.BASE_DT THEN '0000'
+                       WHEN D.PART = 2 AND B.W_END_DT >= B.BASE_DT + 1 THEN '2359'
+                       ELSE TO_CHAR(B.W_END_DT, 'HH24MI')
+                   END AS END_HM
+              FROM (
+                /* 대체 배정 순번으로 고른 블록의 부스 */
+                SELECT K.*
+                  FROM (
+                    SELECT BK.*
+                         , MAX(BK.BLK_SN) OVER (PARTITION BY BK.TMNL_GRP_ID, BK.ALN_CD, BK.DOM_INTL_SE_CD) AS BLK_CNT
+                      FROM (
+                        /* 빈 부스 연속 구간을 앞에서부터 4개씩 자른 블록 중 4개가 다 찬 블록 */
+                        SELECT Q.*
+                             , DENSE_RANK() OVER (
+                                   PARTITION BY Q.TMNL_GRP_ID, Q.ALN_CD, Q.DOM_INTL_SE_CD
+                                   ORDER BY Q.ISLAND, Q.RUN_KEY, FLOOR(Q.RUN_POS / 4)
+                               ) AS BLK_SN
+                          FROM (
+                            SELECT P.*
+                                 , ROW_NUMBER() OVER (
+                                       PARTITION BY P.TMNL_GRP_ID, P.ALN_CD, P.DOM_INTL_SE_CD, P.ISLAND, P.RUN_KEY
+                                       ORDER BY P.BOOTH_NO
+                                   ) - 1 AS RUN_POS
+                                 , COUNT(*) OVER (PARTITION BY P.TMNL_GRP_ID, P.ALN_CD, P.DOM_INTL_SE_CD, P.ISLAND, P.RUN_KEY) AS RUN_LEN
+                              FROM (
+                                SELECT FB.*
+                                     , FB.BOOTH_NO - ROW_NUMBER() OVER (
+                                           PARTITION BY FB.TMNL_GRP_ID, FB.ALN_CD, FB.DOM_INTL_SE_CD, FB.ISLAND
+                                           ORDER BY FB.BOOTH_NO
+                                       ) AS RUN_KEY
+                                  FROM (
+                                    /* 대체 배정 구간 동안 실배정이 없는 부스 */
+                                    SELECT G.TMNL_GRP_ID
+                                         , G.ALN_CD
+                                         , G.DOM_INTL_SE_CD
+                                         , G.GRP_SN
+                                         , G.BASE_DT
+                                         , G.W_BGN_DT
+                                         , G.W_END_DT
+                                         , C.CKNCT_ID
+                                         , SUBSTR(C.CKNCT_ID, 1, 1) AS ISLAND
+                                         , TO_NUMBER(SUBSTR(C.CKNCT_ID, 2)) AS BOOTH_NO
+                                      FROM (
+                                        /* 대체 배정 대상: 터미널 · 항공사 · 국내외별 구간 */
+                                        SELECT F.TMNL_GRP_ID
+                                             , F.ALN_CD
+                                             , F.DOM_INTL_SE_CD
+                                             , MIN(F.BASE_DT) AS BASE_DT
+                                             , MIN(F.W_BGN_DT) AS W_BGN_DT
+                                             , MAX(F.W_END_DT) AS W_END_DT
+                                             , ROW_NUMBER() OVER (
+                                                   PARTITION BY F.TMNL_GRP_ID
+                                                   ORDER BY MIN(F.W_BGN_DT), F.ALN_CD, F.DOM_INTL_SE_CD
+                                               ) AS GRP_SN
+                                          FROM (
+                                            SELECT T.TMNL_GRP_ID
+                                                 , T.ALN_CD
+                                                 , T.DOM_INTL_SE_CD
+                                                 , T.BASE_DT
+                                                 , T.SCHDL_DT - 120 / 1440 AS CHKN_BASE_DT
+                                                 , LEAST(T.SCHDL_DT, NVL(T.PREDC_DT, T.SCHDL_DT)) - 180 / 1440 AS W_BGN_DT
+                                                 , GREATEST(T.SCHDL_DT, NVL(T.PREDC_DT, T.SCHDL_DT)) - 60 / 1440 AS W_END_DT
+                                              FROM (
+                                                SELECT S.TMNL_GRP_ID
+                                                     , S.ALN_CD
+                                                     , S.DOM_INTL_SE_CD
+                                                     , S.BASE_DT
+                                                     , S.GD_DT + S.SCHDL_MIN / 1440 AS SCHDL_DT
+                                                     /* dailyFlightScheduleRows 와 같은 규칙: 계획보다 12시간 넘게 이른 예측 시각은 다음 날 */
+                                                     , S.GD_DT + (S.PREDC_MIN + CASE WHEN S.PREDC_MIN &lt; S.SCHDL_MIN - 720 THEN 1440 ELSE 0 END) / 1440 AS PREDC_DT
+                                                  FROM (
+                                                    SELECT CASE WHEN A.TMNL_ID = 'P02' THEN 'P01' ELSE A.TMNL_ID END AS TMNL_GRP_ID
+                                                         , A.ALN_CD
+                                                         , A.DOM_INTL_SE_CD
+                                                         , TO_DATE(#{alotYmd}, 'YYYYMMDD') AS BASE_DT
+                                                         , TO_DATE(A.GD_SE_YMD, 'YYYYMMDD') AS GD_DT
+                                                         , TO_NUMBER(SUBSTR(A.SCHDL_HM, 1, 2)) * 60 + TO_NUMBER(SUBSTR(A.SCHDL_HM, 3, 2)) AS SCHDL_MIN
+                                                         , TO_NUMBER(SUBSTR(TRIM(A.PREDC_HM), 1, 2)) * 60 + TO_NUMBER(SUBSTR(TRIM(A.PREDC_HM), 3, 2)) AS PREDC_MIN
+                                                      FROM GOOWN.TN_GO_GD_DATA A
+                                                     WHERE A.GD_SE_YMD = #{alotYmd}
+                                                       AND A.ARR_DEP_SE_CD = 'D'
+                                                       <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataFltCond"/>
+                                                       <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataPaxCond"/>
+                                                  ) S
+                                              ) T
+                                          ) F
+                                         WHERE NOT EXISTS (
+                                                SELECT 1
+                                                  FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotActualDtRows"/>) R
+                                                 WHERE R.TMNL_ID = F.TMNL_GRP_ID
+                                                   AND R.ALN_CD = F.ALN_CD
+                                                   AND F.CHKN_BASE_DT >= R.BGN_DT
+                                                   AND F.CHKN_BASE_DT &lt; R.END_DT
+                                               )
+                                         GROUP BY F.TMNL_GRP_ID, F.ALN_CD, F.DOM_INTL_SE_CD
+                                      ) G
+                                      JOIN (
+                                        SELECT DISTINCT TMNL_ID, CKNCT_ID
+                                          FROM CAOWN.TN_CA_CKNCT
+                                         WHERE USE_YN = 'Y'
+                                           AND CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
+                                           AND REGEXP_LIKE(CKNCT_ID, '^[A-Z][0-9]+$')
+                                           AND SUBSTR(CKNCT_ID, 1, 1) NOT IN ('X', 'Y', 'R', 'S')
+                                      ) C
+                                        ON C.TMNL_ID = G.TMNL_GRP_ID
+                                     WHERE NOT EXISTS (
+                                            SELECT 1
+                                              FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotActualDtRows"/>) R
+                                             WHERE R.TMNL_ID = C.TMNL_ID
+                                               AND R.CKNCT_ID = C.CKNCT_ID
+                                               AND R.BGN_DT &lt; G.W_END_DT
+                                               AND G.W_BGN_DT &lt; R.END_DT
+                                           )
+                                  ) FB
+                              ) P
+                          ) Q
+                         WHERE FLOOR(Q.RUN_POS / 4) * 4 + 4 &lt;= Q.RUN_LEN
+                      ) BK
+                  ) K
+                 WHERE K.BLK_SN = MOD(K.GRP_SN - 1, K.BLK_CNT) + 1
+              ) B
+              JOIN (SELECT 1 AS PART FROM DUAL UNION ALL SELECT 2 FROM DUAL) D
+                ON (D.PART = 1 AND B.W_BGN_DT &lt; B.BASE_DT)
+                OR (D.PART = 2 AND B.W_END_DT > B.BASE_DT)
+          ) X
+    </sql>
+
+    <!-- 체크인카운터 일일 배정 = 실배정(FLBK_YN = 'N') + 대체 배정(FLBK_YN = 'Y').
+         FS CheckinRange · CA001 · 사용자 기본 부스 배정 · 대시보드가 모두 이 조각을 읽어 같은 부스를 본다 -->
+    <sql id="cknctDailyAlotLatestRows">
+        <include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotActualRows"/>
+        UNION ALL
+        <include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotFallbackRows"/>
     </sql>
 
     <!-- 셀프백드롭 아일랜드별 운영. 기준일 하루와 겹치는 아일랜드 정책 항공사의 출발편(전날 · 당일) 첫 편 −5시간 ~ 마지막 편 −1시간.
@@ -108,6 +301,7 @@
              , Y.ALN_CD
              , Y.DOM_INTL_SE_CD
              , Y.CHKN_TYPE_CD
+             , Y.FLBK_YN
              , TO_DATE(Y.OPER_YMD || Y.STA_HM, 'YYYYMMDDHH24MI') AS BGN_DT
              , TO_DATE(Y.OPER_YMD || Y.END_HM, 'YYYYMMDDHH24MI') + CASE WHEN TO_NUMBER(Y.STA_HM) > TO_NUMBER(Y.END_HM) THEN 1 ELSE 0 END AS END_DT
           FROM (
@@ -116,6 +310,7 @@
                  , A.ALN_CD
                  , A.DOM_INTL_SE_CD
                  , A.CHKN_TYPE_CD
+                 , A.FLBK_YN
                  , A.OPER_YMD
                  ,  CASE
                         WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL 
@@ -368,14 +563,15 @@
         ),
         /* 편별 체크인카운터 범위(D01-D18) - 아일랜드가 갈리면 카운터가 많은 아일랜드 하나 */
         CKNCT_RANGE AS (
-            /* 순위 = 카운터 수 많은 아일랜드 → 아일랜드 이름. 1순위 아일랜드의 처음 · 끝 카운터 */
+            /* 순위 = 실배정 → 카운터 수 많은 아일랜드 → 아일랜드 이름. 1순위 아일랜드의 처음 · 끝 카운터 */
             SELECT G.FLTSH_ID
-                 , MIN(G.MIN_CKNCT_ID) KEEP (DENSE_RANK FIRST ORDER BY G.CKNCT_CNT DESC, G.ISLAND)
+                 , MIN(G.MIN_CKNCT_ID) KEEP (DENSE_RANK FIRST ORDER BY G.FLBK_YN, G.CKNCT_CNT DESC, G.ISLAND)
                    || '-'
-                   || MAX(G.MAX_CKNCT_ID) KEEP (DENSE_RANK FIRST ORDER BY G.CKNCT_CNT DESC, G.ISLAND) AS CKNCT_RANGE_CN
+                   || MAX(G.MAX_CKNCT_ID) KEEP (DENSE_RANK FIRST ORDER BY G.FLBK_YN, G.CKNCT_CNT DESC, G.ISLAND) AS CKNCT_RANGE_CN
               FROM (
                 /* 편별 배정 카운터 - 출발 2시간 전에 열려 있는 같은 터미널의 항공사(C) 배정 */
                 SELECT F.FLTSH_ID
+                     , AL.FLBK_YN
                      , SUBSTR(AL.CKNCT_ID, 1, 1) AS ISLAND
                      , COUNT(DISTINCT AL.CKNCT_ID) AS CKNCT_CNT
                      , MIN(AL.CKNCT_ID) AS MIN_CKNCT_ID
@@ -396,7 +592,7 @@
                    AND AL.CHKN_TYPE_CD = 'C'
                    AND F.CHKN_BASE_DT >= AL.BGN_DT
                    AND F.CHKN_BASE_DT &lt; AL.END_DT
-                 GROUP BY F.FLTSH_ID, SUBSTR(AL.CKNCT_ID, 1, 1)
+                 GROUP BY F.FLTSH_ID, AL.FLBK_YN, SUBSTR(AL.CKNCT_ID, 1, 1)
               ) G
              GROUP BY G.FLTSH_ID
         ),

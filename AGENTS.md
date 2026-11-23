@@ -622,6 +622,12 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   키 `(OPER_YMD, TMNL_ID, CKNCT_ID, ALN_CD)` 안에서 구간이 겹치는(같은 구간 포함) 나중 `ALOT_SN` 행이 있으면 앞 행을 버리고, 남은 행이 `CHKN_TYPE_CD = 'C'` · `USE_YN = 'Y'` 일 때만 쓴다. 편 기준(`'D'`)은 쓰지 않는다.
   2026-11-22 에는 키별 최신 1행만 남겨 같은 카운터 · 항공사의 하루 여러 근무조(2026-02-12 기준 420건)가 마지막 한 구간으로 줄었다. 2026-11-23 에 겹침 기준으로 바꿨다.
   겹치지 않는 시각으로 다시 보낸 재배정은 앞 구간과 구분할 수 없어 둘 다 남는다.
+  2026-11-23 부터 이 조각은 실배정(`cknctDailyAlotActualRows`, `FLBK_YN = 'N'`)에 대체 배정(`cknctDailyAlotFallbackRows`, `'Y'`)을 더한다.
+  출발 2시간 전에 같은 터미널 · 항공사 실배정이 없는 편(원천 누락 · 터미널 불일치 · 시각 밖 등)을 터미널 · 항공사 · 국내외로 묶어
+  첫 편 −3시간 ~ 마지막 편 −1시간 동안 실배정이 없는 같은 아일랜드 연속 부스 4개를 연다. 블록은 터미널 안 순번대로 돌려 쓰고 모자라면 대체 배정끼리 겹친다.
+  FS `CheckinRange` 는 실배정을 먼저 고른다. CA001 · FS 범위 · 사용자 기본 부스 배정 · 대시보드가 같은 대체 부스를 본다.
+  사용자 FS 의 `CKNCT_RANGE_CN` 은 CA 발행 뒤 그 실행의 CA 행에서 다시 계산해 덮어쓴다(`CastUserSnapshotMapper.updateSchdlAtrbCknctRange`).
+  부스를 고친 사용자 조건과 FS 범위가 어긋나지 않게 하려는 것이며, 사용자 CA 가 실행 일자 하루치라 00:00~01:59 출발편은 범위가 비어 있다.
 - 사용자 FS(일일 운영자료 기반)는 FS001과 같은 SQL 조각 `CastApiMapper.dailyFlightScheduleRows`의 행을 저장한다
   (2026-10-19). 게이트·주기장 3자리 패딩·fallback, OperatorCat·ContactRemote·CheckinRange·SBDAvailable 등을
   따로 만들지 않는다 — GO 원값을 그대로 쓰면 출발편이 게이트에 배정되지 않고 CAST가 계산 없이 끝난다.

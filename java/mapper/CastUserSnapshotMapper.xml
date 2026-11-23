@@ -172,6 +172,64 @@
         WHERE B.ALN_CD IS NOT NULL
     </insert>
 
+    <!-- CAST 가 CheckinRange 를 쓰므로 FS 범위를 이 실행이 발행한 CA(사용자 부스 배정)에서 다시 계산한다.
+         규칙은 일일 FS(dailyFlightScheduleRows.CKNCT_RANGE)와 같다: 출발 2시간 전에 열려 있는 같은 터미널 · 항공사 배정, 카운터가 많은 아일랜드 하나.
+         사용자 CA 는 실행 일자 하루치라 출발 2시간 전이 전날인 편(00:00~01:59 출발)은 비어 있다 -->
+    <update id="updateSchdlAtrbCknctRange" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
+        /* CastUserSnapshotMapper.updateSchdlAtrbCknctRange */
+        MERGE INTO PMOWN.TN_PM_SMLT_SCHDL_ATRB T
+        USING (
+            SELECT G.ARR_DEP_SE_CD
+                 , G.FLTNM
+                 , G.DEP_ARR_YMD
+                 , G.DEP_ARR_HM
+                 , CASE WHEN MAX(G.CKNCT_CNT) > 0 THEN
+                       MIN(G.MIN_CKNCT_ID) KEEP (DENSE_RANK FIRST ORDER BY G.CKNCT_CNT DESC, G.ISLAND)
+                       || '-'
+                       || MAX(G.MAX_CKNCT_ID) KEEP (DENSE_RANK FIRST ORDER BY G.CKNCT_CNT DESC, G.ISLAND)
+                   END AS CKNCT_RANGE_CN
+              FROM (
+                SELECT F.ARR_DEP_SE_CD
+                     , F.FLTNM
+                     , F.DEP_ARR_YMD
+                     , F.DEP_ARR_HM
+                     , SUBSTR(C.CKNCT_ID, 1, 1) AS ISLAND
+                     , COUNT(DISTINCT C.CKNCT_ID) AS CKNCT_CNT
+                     , MIN(C.CKNCT_ID) AS MIN_CKNCT_ID
+                     , MAX(C.CKNCT_ID) AS MAX_CKNCT_ID
+                  FROM (
+                    SELECT S.ARR_DEP_SE_CD
+                         , S.FLTNM
+                         , S.DEP_ARR_YMD
+                         , S.DEP_ARR_HM
+                         , S.ALN_CD
+                         , CASE WHEN S.TMNL_ID = 'P02' THEN 'P01' ELSE S.TMNL_ID END AS TMNL_GRP_ID
+                         , TO_DATE(REPLACE(S.DEP_ARR_YMD, '-'), 'YYYYMMDD')
+                           + (TO_NUMBER(SUBSTR(S.DEP_ARR_HM, 1, 2)) * 60 + TO_NUMBER(SUBSTR(S.DEP_ARR_HM, 3, 2)) - 120) / 1440 AS CHKN_BASE_DT
+                      FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB S
+                     WHERE S.SCHDL_ATRB_GROUP_ID = #{rsrcNo}
+                       AND S.ARR_DEP_SE_CD = 'D'
+                  ) F
+                  LEFT JOIN PMOWN.TN_PM_SMLT_CKNCT_ATRB C
+                    ON C.SCHDL_ATRB_GROUP_ID = #{rsrcNo}
+                   AND C.TMNL_ID = F.TMNL_GRP_ID
+                   AND C.ALN_CD = F.ALN_CD
+                   AND F.CHKN_BASE_DT >= TO_DATE(C.CHKN_OPEN_PRNMNT_DT, 'YYYYMMDDHH24MI')
+                   AND F.CHKN_BASE_DT &lt; TO_DATE(C.CHKN_CLOSE_PRNMNT_DT, 'YYYYMMDDHH24MI')
+                 GROUP BY F.ARR_DEP_SE_CD, F.FLTNM, F.DEP_ARR_YMD, F.DEP_ARR_HM, SUBSTR(C.CKNCT_ID, 1, 1)
+              ) G
+             GROUP BY G.ARR_DEP_SE_CD, G.FLTNM, G.DEP_ARR_YMD, G.DEP_ARR_HM
+        ) U
+        ON (
+                T.SCHDL_ATRB_GROUP_ID = #{rsrcNo}
+            AND T.ARR_DEP_SE_CD = U.ARR_DEP_SE_CD
+            AND T.FLTNM = U.FLTNM
+            AND T.DEP_ARR_YMD = U.DEP_ARR_YMD
+            AND T.DEP_ARR_HM = U.DEP_ARR_HM
+        )
+        WHEN MATCHED THEN UPDATE SET T.CKNCT_RANGE_CN = U.CKNCT_RANGE_CN
+    </update>
+
     <!-- 운영시간 · 항공사는 일일 SBD001 과 같은 아일랜드 값(CastApiMapper.dailySbdIslandRows)이고 사용자는 대수만 정한다 -->
     <insert id="insertSbdAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertSbdAtrb */

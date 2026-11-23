@@ -70,6 +70,7 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
 
         publishRsrc(RsrcTable.FLT_SCHDL, snapshot, this::insertSchdlAtrb);
         publishRsrc(RsrcTable.CKNCT, snapshot, castUserSnapshotMapper::insertCknctAtrb);
+        castUserSnapshotMapper.updateSchdlAtrbCknctRange(snapshot);
         publishRsrc(RsrcTable.SBD, snapshot, this::insertSbdAtrb);
         publishRsrc(RsrcTable.DPTGT, snapshot, castUserSnapshotMapper::insertDptgtAtrb);
         publishRsrc(RsrcTable.SCRTY_CNTRL, snapshot, castUserSnapshotMapper::insertScrtyCntrlAtrb);
