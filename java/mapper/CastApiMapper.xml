@@ -1364,6 +1364,8 @@
            AND A.FCLT_SE_CD = B.FCLT_SE_CD
            AND A.FCLTY_TYPE_ID = B.FCLTY_TYPE_ID
          WHERE A.TRNST_SCRTY_CNTRL_ATRB_ID = #{rsrcNo}
+           <!-- 시작 = 종료(미운영 0000~0000)는 길이 0 구간이라 CAST 가 결과 없이 끝난다 -->
+           AND NVL(B.OPER_BGNG_1_HR, '0000') != NVL(B.OPER_END_1_HR, '2359')
          ORDER BY A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID, B.PRD_SN, B.ELMNT_SN
     </select>
 

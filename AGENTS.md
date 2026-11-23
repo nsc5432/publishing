@@ -592,6 +592,7 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 - FS001 / CA001 / SBD001은 일일 운영자료다. 사용자 자료는 002~999 번호를 FS·CA·SBD·DepartureGate·
   SecurityControl·Immigration·TransferSecurityControl 7종이 공유한다. 출국장·입국심사·환승보안 렌더 SQL이
   번호로 FS 그룹 일자를 찾으므로 타입별 번호를 분리하지 않는다. 입국심사·환승보안은 001 원천을 번호로 복사한다.
+  환승보안 운영표(`retrieveFcltyOpngTblTrnstScrtyCntrl`)는 시작 = 종료 행(미운영 West 0000~0000)을 뺀다(2026-11-23). 길이 0 구간이 섞이면 CAST 가 결과 없이 끝난다.
 - FS001은 매일 변경 가능한 일일 세트다. 그 외 지정 리소스는 자동으로 덮어쓰거나 재사용하지 않는다.
   원천에 대한 의도된 변경은 그대로 참조한다. 기존 001계열의 일일 운영자료 조회 경로는 유지한다.
 - 사용자 FS002~999·PS500~998은 USER_MSTR·STNG에 쓰인 최대 번호 다음의 미사용 번호를 할당하고, 그 위가 차면
