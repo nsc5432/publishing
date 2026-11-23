@@ -132,7 +132,8 @@ public class CastResourceRenderer {
         GENERIC_TABLE_SPECS.put(FACILITY_OPENING_TABLE_IMMIGRATION, TableSpec.of(
                 GENERIC_TABLE, -1, "Facility Opening Table_Immigration", FACILITY_OPENING_TABLE_IMMIGRATION,
                 CastApiMapper::retrieveFcltyOpngTblImmig, CastFcltyOpngTblImmigDto::getLastModified,
-                IM_FIELD_MAP, ColumnNaming.PASCAL_SPACED));
+                IM_FIELD_MAP, ColumnNaming.PASCAL_SPACED)
+                .escaping());
         GENERIC_TABLE_SPECS.put(FACILITY_OPENING_TABLE_SECURITY_CONTROL, TableSpec.of(
                 GENERIC_TABLE, 0, "Facility Opening Table_Security Control", FACILITY_OPENING_TABLE_SECURITY_CONTROL,
                 CastApiMapper::retrieveFcltyOpngTblScrtyCntrl, CastFcltyOpngTblScrtyCntrlDto::getLastModified,
