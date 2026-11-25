@@ -29,9 +29,7 @@ public interface CastUserSnapshotMapper {
 
     void insertDptgtAtrb(UserSmltRsrcSnapshotDto dto);
 
+    int countScrtyCntrlDiffFromDaily(UserSmltRsrcSnapshotDto dto);
+
     void insertScrtyCntrlAtrb(UserSmltRsrcSnapshotDto dto);
-
-    void insertEntcnyAtrb(UserSmltRsrcSnapshotDto dto);
-
-    void insertTrnstScrtyCntrlAtrb(UserSmltRsrcSnapshotDto dto);
 }

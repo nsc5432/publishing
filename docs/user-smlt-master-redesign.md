@@ -98,14 +98,15 @@ peakScshCntom은 운영 중인 출국장의 scshCntom 합의 시간대별 최댓
   ReportingProfilesTimeGroups001이다. 원천 PS는 CastPropertySetRenderer, 나머지는 CastUserSnapshotServiceImpl에 정의한다.
   실행별 조합은 USER_MSTR의 리소스 컬럼에 기록하되 원천 PS는 저장하지 않는다.
   실행 등록 시 리소스를 미리 렌더해 보던 검사(capture)도 함께 제거했다. 원천 누락은 CAST 단계에서 드러난다.
-- 002~999는 실행 ID와 별개인 전송 번호다. 한 요청이 FS·CA·SBD·DepartureGate·SecurityControl·
-  Immigration·TransferSecurityControl 7종에 같은 번호를 쓴다. 입국심사·환승보안은 001 원천 행을
-  번호로 복사한다(렌더 SQL이 번호로 FS 그룹 일자를 찾기 때문).
+- 002~999는 실행 ID와 별개인 전송 번호다. 한 요청이 FS·CA·SBD·DepartureGate·SecurityControl
+  5종에 같은 번호를 쓴다. 입국심사·환승보안은 2026-11-25 부터 번호로 복사하지 않고 001 을 참조한다.
+  운영시간 기간은 실행일자 대신 CAST 조회 시점의 일일 기준일자로 고르므로, 두 일자 사이에 운영시간 개편이 끼면 어긋난다.
+  SecurityControl 은 발행할 행이 001 행과 같으면 발행하지 않고 001 을 참조한다.
 - 번호는 쓰인 최대 번호 다음의 미사용 값을 우선 할당한다. 요청·결과·원천 테이블에 존재하는 번호를 제외하고,
   기존 리소스를 DELETE하거나 UPDATE해 새 실행에 재사용하지 않는다. FS002~999, PS500~998에 빈 번호가 없으면 실패하며,
   운영자가 오래된 실행을 정리해 비운 번호는 그 뒤 다시 할당된다.
 - PropertySet은 PS500~998에서 FS와 독립적으로 신규 할당한다. CAST 요청 시 상수로 지정한 PS001을 렌더한 뒤
-  PS ID와 해당 요청의 SBD·출국장·보안검색·입국심사·환승보안 리소스 ID로 참조를 바꾼다.
+  PS ID와 해당 요청의 SBD·출국장·보안검색·입국심사·환승보안 리소스 ID로 참조를 바꾼다(001 을 참조하는 리소스는 그대로 남는다).
   XML과 원천 PS ID는 저장하지 않는다. PS001 내용의 의도된 변경은 기존 실행의 PS 재조회에도 반영된다.
 - 모델·서비스시간·체크인유형·출국심사·리포팅은 원본 ID로 조회한다. 리소스 목록은 USER_MSTR의 사용자 PS도 포함한다.
 - 2026-10-18 완료 요청 정리는 배치 대신 CAST 상태 통보 목록을 기준으로 한다.
@@ -194,7 +195,7 @@ RESULT_IDENTITY 제거는 `java/ddl/2026-10-16-remove-result-identity.sql`로 �
 
 1. 같은 실행의 모델·터미널 결과가 RunID·계획/실제 시각·FS를 공유하는지, 다른 실행이 같은 키를 쓰지 않는지.
    RunID가 모델마다 다르면 현재 키는 분리 실행이 되므로 적용 전에 그룹 함수를 고쳐야 한다.
-2. ModelResourceID 및 모든 입력 ID(PS5xx, 번호 입국심사·환승보안 포함)가 발행한 ID 그대로 돌아오는지.
+2. ModelResourceID 및 모든 입력 ID(PS5xx, 001 을 참조하는 입국심사·환승보안 · 보안검색 포함)가 발행한 ID 그대로 돌아오는지.
    PropertySet의 체크인유형 참조, 모델 안의 입력 참조, ResourceInformation 목록 대조 여부도 확인한다.
 3. StartTime은 대상일자, SimulationStart/StopTime은 실제 수행시각이라는 의미와 시간대.
 4. 사용자 요청이 단일 모델 전체 결과인지, 다중 모델 각각인지와 전체 완료를 판정할 수 있는 신호.

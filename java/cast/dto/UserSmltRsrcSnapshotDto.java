@@ -22,9 +22,9 @@ public class UserSmltRsrcSnapshotDto extends AomsDefaultDto {
 	private String cknctAlctnRsrcId; // CA002
 	private String sbdCntrlAlctnId; // SBD002
 	private String fcltyOpngDptcnySrngRsrcId; // FacilityOpeningTable_DepartureGate002
-	private String fcltyOpngScrtyCntrlRsrcId; // FacilityOpeningTable_SecurityControl002
-	private String fcltyOpngEntcnyRsrcId; // FacilityOpeningTable_Immigration002
-	private String fcltyOpngTrScrtyCntrlRsrcId; // FacilityOpeningTable_TransferSecurityControl002
+	private String fcltyOpngScrtyCntrlRsrcId; // FacilityOpeningTable_SecurityControl002, 001과 같으면 001
+	private String fcltyOpngEntcnyRsrcId; // FacilityOpeningTable_Immigration001
+	private String fcltyOpngTrScrtyCntrlRsrcId; // FacilityOpeningTable_TransferSecurityControl001
 	private String prptStngRsrcId; // PS500
 
 	private String mdlRsrcId;
@@ -33,8 +33,6 @@ public class UserSmltRsrcSnapshotDto extends AomsDefaultDto {
 	private String rptStngAtrbId;
 	private String fcltyOpngDptcnyRsrcId;
 	private String srcFltSchdlRsrcId;
-	private String srcFcltyOpngEntcnyRsrcId;
-	private String srcFcltyOpngTrScrtyCntrlRsrcId;
 
 	private List<FltAjmtRow> fltAjmtList = new ArrayList<>();
 	private List<ChknIslRow> chknIslList = new ArrayList<>();

@@ -44,8 +44,6 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
     private static final String SBD = "SBD";
     private static final String DEPARTURE_GATE = "FacilityOpeningTable_DepartureGate";
     private static final String SECURITY_CONTROL = "FacilityOpeningTable_SecurityControl";
-    private static final String IMMIGRATION = "FacilityOpeningTable_Immigration";
-    private static final String TRANSFER_SECURITY_CONTROL = "FacilityOpeningTable_TransferSecurityControl";
     private static final String PS = "PS";
     private static final String OPR_YN_Y = "Y";
 
@@ -56,6 +54,9 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
     private static final String DAILY_CHKN_TYPE_RSRC_ID = "CheckinType" + DAILY_RSRC_NO;
     private static final String DAILY_EMIGRATION_RSRC_ID = "FacilityOpeningTable_Emigration" + DAILY_RSRC_NO;
     private static final String DAILY_RPT_STNG_ATRB_ID = "ReportingProfilesTimeGroups" + DAILY_RSRC_NO;
+    // 운영시간 기간은 실행일자가 아니라 CAST 조회 시점의 일일 기준일자로 고른다 (dplOperHrRows)
+    private static final String DAILY_IMMIGRATION_RSRC_ID = "FacilityOpeningTable_Immigration" + DAILY_RSRC_NO;
+    private static final String DAILY_TRANSFER_SECURITY_CONTROL_RSRC_ID = "FacilityOpeningTable_TransferSecurityControl" + DAILY_RSRC_NO;
 
     private final CastUserSnapshotMapper castUserSnapshotMapper;
     private final SessionService sessionService;
@@ -73,11 +74,17 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         castUserSnapshotMapper.updateSchdlAtrbCknctRange(snapshot);
         publishRsrc(RsrcTable.SBD, snapshot, this::insertSbdAtrb);
         publishRsrc(RsrcTable.DPTGT, snapshot, castUserSnapshotMapper::insertDptgtAtrb);
-        publishRsrc(RsrcTable.SCRTY_CNTRL, snapshot, castUserSnapshotMapper::insertScrtyCntrlAtrb);
-        publishRsrc(RsrcTable.ENTCNY, snapshot, castUserSnapshotMapper::insertEntcnyAtrb);
-        publishRsrc(RsrcTable.TRNST_SCRTY_CNTRL, snapshot, castUserSnapshotMapper::insertTrnstScrtyCntrlAtrb);
+        publishScrtyCntrl(snapshot);
 
         return snapshot;
+    }
+
+    private void publishScrtyCntrl(UserSmltRsrcSnapshotDto snapshot) {
+        if (castUserSnapshotMapper.countScrtyCntrlDiffFromDaily(snapshot) == 0) {
+            snapshot.setFcltyOpngScrtyCntrlRsrcId(SECURITY_CONTROL + DAILY_RSRC_NO);
+            return;
+        }
+        publishRsrc(RsrcTable.SCRTY_CNTRL, snapshot, castUserSnapshotMapper::insertScrtyCntrlAtrb);
     }
 
     private UserSmltRsrcSnapshotDto getSnapshot(String smltId, String excnYmd) {
@@ -96,8 +103,6 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         result.setSbdCntrlAlctnId(SBD + rsrcNo);
         result.setFcltyOpngDptcnySrngRsrcId(DEPARTURE_GATE + rsrcNo);
         result.setFcltyOpngScrtyCntrlRsrcId(SECURITY_CONTROL + rsrcNo);
-        result.setFcltyOpngEntcnyRsrcId(IMMIGRATION + rsrcNo);
-        result.setFcltyOpngTrScrtyCntrlRsrcId(TRANSFER_SECURITY_CONTROL + rsrcNo);
         result.setPrptStngRsrcId(PS + psNo);
 
         result.setMdlRsrcId(MDL_RSRC_ID);
@@ -105,10 +110,10 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         result.setChknTypeRsrcId(DAILY_CHKN_TYPE_RSRC_ID);
         result.setRptStngAtrbId(DAILY_RPT_STNG_ATRB_ID);
         result.setFcltyOpngDptcnyRsrcId(DAILY_EMIGRATION_RSRC_ID);
+        result.setFcltyOpngEntcnyRsrcId(DAILY_IMMIGRATION_RSRC_ID);
+        result.setFcltyOpngTrScrtyCntrlRsrcId(DAILY_TRANSFER_SECURITY_CONTROL_RSRC_ID);
 
         result.setSrcFltSchdlRsrcId(DAILY_FLT_SCHDL_RSRC_ID);
-        result.setSrcFcltyOpngEntcnyRsrcId(IMMIGRATION + DAILY_RSRC_NO);
-        result.setSrcFcltyOpngTrScrtyCntrlRsrcId(TRANSFER_SECURITY_CONTROL + DAILY_RSRC_NO);
 
         return result;
     }
@@ -195,9 +200,7 @@ public class CastUserSnapshotServiceImpl implements CastUserSnapshotService {
         CKNCT,
         SBD,
         DPTGT,
-        SCRTY_CNTRL,
-        ENTCNY,
-        TRNST_SCRTY_CNTRL
+        SCRTY_CNTRL
     }
 
     // 001 기준정보 / 002~499 Cast 설정 카테고리 / 999 전처리 결과와 겹치지 않게 PS 는 500~998 만 쓴다

@@ -11,8 +11,6 @@
             <when test='rsrcTable == "SBD"'>PMOWN.TN_PM_SMLT_SBD_MSTR (SBD_ATRB_ID, SBD_ATRB_NM,</when>
             <when test='rsrcTable == "DPTGT"'>PMOWN.TN_PM_SMLT_FCLTY_OPNG_DPTGT_MSTR (DPTGT_ATRB_ID, DPTGT_ATRB_NM,</when>
             <when test='rsrcTable == "SCRTY_CNTRL"'>PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_MSTR (SCRTY_CNTRL_ATRB_ID, SCRTY_CNTRL_ATRB_NM,</when>
-            <when test='rsrcTable == "ENTCNY"'>PMOWN.TN_PM_SMLT_FCLTY_OPNG_ENTCNY_MSTR (ENTCNY_ATRB_ID, ENTCNY_ATRB_NM,</when>
-            <when test='rsrcTable == "TRNST_SCRTY_CNTRL"'>PMOWN.TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_MSTR (TRNST_SCRTY_CNTRL_ATRB_ID, TRNST_SCRTY_CNTRL_ATRB_NM,</when>
         </choose>
             PRCS_STTS_CD, CFMTN_YN, USE_YN,
             FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
@@ -407,6 +405,36 @@
                 AND H.DPTGT_NO = L.DPTGT_NO
     </insert>
 
+    <!-- insertScrtyCntrlAtrb 가 만들 행과 001 행이 같으면 0. 0 이면 발행하지 않고 SecurityControl001 을 참조한다 -->
+    <select id="countScrtyCntrlDiffFromDaily" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto" resultType="int">
+        /* CastUserSnapshotMapper.countScrtyCntrlDiffFromDaily */
+        WITH DPTGT AS (
+            SELECT CAST(NULL AS VARCHAR2(4)) AS TMNL_ID, CAST(NULL AS VARCHAR2(2)) AS DPTGT_NO, CAST(NULL AS VARCHAR2(1)) AS OPER_YN,
+                   CAST(NULL AS NUMBER) AS SCSH_CNTOM
+            FROM DUAL WHERE 1 = 0
+            <foreach collection="dptgtList" item="row">
+            UNION ALL SELECT #{row.tmnlId}, #{row.dptgtNo}, #{row.oprYn}, #{row.scshCntom} FROM DUAL
+            </foreach>
+        ), USER_ROWS AS (
+            SELECT D.TMNL_ID, CAST('D' AS VARCHAR2(1)) AS FCLT_SE_CD, D.DPTGT_NO AS GATE_NO, D.SCSH_CNTOM AS FCLTY_CNT
+            FROM DPTGT D
+            WHERE D.OPER_YN = 'Y'
+            AND D.SCSH_CNTOM > 0
+        ), DAILY_ROWS AS (
+            <!-- 사용자 행은 0대를 만들지 않으므로 001 의 0대 행(닫힌 출국장)도 비교에서 뺀다. 같으면 0대 행이 포함된 001 이 그대로 나간다 -->
+            SELECT A.TMNL_ID, A.FCLT_SE_CD, A.GATE_NO, A.FCLTY_CNT
+            FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB A
+            WHERE A.SCRTY_CNTRL_ATRB_ID = '001'
+            AND A.FCLTY_CNT > 0
+        )
+        SELECT
+            (SELECT COUNT(*) FROM (SELECT * FROM USER_ROWS MINUS SELECT * FROM DAILY_ROWS))
+            + (SELECT COUNT(*) FROM (SELECT * FROM DAILY_ROWS MINUS SELECT * FROM USER_ROWS))
+            <!-- MINUS 는 중복을 지우므로 행 수도 맞춘다 -->
+            + ABS((SELECT COUNT(*) FROM USER_ROWS) - (SELECT COUNT(*) FROM DAILY_ROWS))
+        FROM DUAL
+    </select>
+
     <insert id="insertScrtyCntrlAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
         /* CastUserSnapshotMapper.insertScrtyCntrlAtrb */
         INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_SCRTY_CNTRL_ATRB (
@@ -432,34 +460,5 @@
         FROM DPTGT D
         WHERE D.OPER_YN = 'Y'
         AND D.SCSH_CNTOM > 0
-    </insert>
-
-    <!-- 입국심사/환승보안은 편집 영역이 아니지만 렌더 SQL 이 번호로 FS 그룹 일자를 찾으므로 원천을 번호로 복사한다 -->
-    <insert id="insertEntcnyAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertEntcnyAtrb */
-        INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_ENTCNY_ATRB (
-            ENTCNY_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, FCLTY_TYPE_ID,
-            PSPRT, ENTCNY_TYPE_CD, FCLTY_CNT,
-            FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
-        )
-        SELECT
-            #{rsrcNo}, A.FCLTY_OPNG_SN, A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID,
-            A.PSPRT, A.ENTCNY_TYPE_CD, A.FCLTY_CNT,
-            #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_ENTCNY_ATRB A
-        WHERE A.ENTCNY_ATRB_ID = REGEXP_REPLACE(#{srcFcltyOpngEntcnyRsrcId}, 'FOTI|FacilityOpeningTable_Immigration', '')
-    </insert>
-
-    <insert id="insertTrnstScrtyCntrlAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">
-        /* CastUserSnapshotMapper.insertTrnstScrtyCntrlAtrb */
-        INSERT INTO PMOWN.TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_ATRB (
-            TRNST_SCRTY_CNTRL_ATRB_ID, FCLTY_OPNG_SN, TMNL_ID, FCLT_SE_CD, FCLTY_TYPE_ID, FCLTY_CNT,
-            FRST_RGTR_ID, FRST_RGTR_IP_ADDR, FRST_REG_DT
-        )
-        SELECT
-            #{rsrcNo}, A.FCLTY_OPNG_SN, A.TMNL_ID, A.FCLT_SE_CD, A.FCLTY_TYPE_ID, A.FCLTY_CNT,
-            #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
-        FROM PMOWN.TN_PM_SMLT_FCLTY_OPNG_TRNST_SCRTY_CNTRL_ATRB A
-        WHERE A.TRNST_SCRTY_CNTRL_ATRB_ID = REGEXP_REPLACE(#{srcFcltyOpngTrScrtyCntrlRsrcId}, 'FOTTSC|FacilityOpeningTable_TransferSecurityControl', '')
     </insert>
 </mapper>

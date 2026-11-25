@@ -590,8 +590,11 @@ REQ_SetResource.do를 호출한다. 서버가 CAST를 호출하거나 선점하�
 CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한다.
 
 - FS001 / CA001 / SBD001은 일일 운영자료다. 사용자 자료는 002~999 번호를 FS·CA·SBD·DepartureGate·
-  SecurityControl·Immigration·TransferSecurityControl 7종이 공유한다. 출국장·입국심사·환승보안 렌더 SQL이
-  번호로 FS 그룹 일자를 찾으므로 타입별 번호를 분리하지 않는다. 입국심사·환승보안은 001 원천을 번호로 복사한다.
+  SecurityControl 5종이 공유한다. 출국장 렌더 SQL이 번호로 FS 그룹 일자를 찾으므로 타입별 번호를 분리하지 않는다.
+  입국심사·환승보안은 2026-11-25 부터 번호로 복사하지 않고 `Immigration001` · `TransferSecurityControl001` 을 그대로 참조한다.
+  레인 수는 001 과 같고, 운영시간 기간(`dplOperHrRows`)만 실행일자가 아니라 CAST 조회 시점의 일일 기준일자로 고른다 —
+  두 일자 사이에 운영시간 개편이 끼면 어긋난다. SecurityControl 은 발행할 행이 001 행과 같으면(`countScrtyCntrlDiffFromDaily` = 0)
+  발행하지 않고 `SecurityControl001` 을 참조한다. 이전 실행이 만든 번호 입국심사·환승보안 행은 지우지 않는다.
   환승보안 운영표(`retrieveFcltyOpngTblTrnstScrtyCntrl`)는 시작 = 종료 행(미운영 West 0000~0000)을 뺀다(2026-11-23). 길이 0 구간이 섞이면 CAST 가 결과 없이 끝난다.
 - FS001은 매일 변경 가능한 일일 세트다. 그 외 지정 리소스는 자동으로 덮어쓰거나 재사용하지 않는다.
   원천에 대한 의도된 변경은 그대로 참조한다. 기존 001계열의 일일 운영자료 조회 경로는 유지한다.
@@ -671,6 +674,8 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
 - 사용자 CA의 `CHKN_TYPE_CD`는 일일 CA001과 같은 `'C'`(항공사 기준)다. `'M'`이면 CAST가 편명 기준 배정으로 읽어
   처리 인원이 0이 된다.
 - SecurityControl은 일일·사용자 모두 시각 없이 수량만 보낸다. 사용자는 운영 Y·scshCntom > 0 출국장마다 1행.
+  그 행 집합이 001(`TMNL_ID` · `FCLT_SE_CD` · `GATE_NO` · `FCLTY_CNT`, 행 수 포함)과 같으면 001 을 참조한다.
+  001 의 `FCLTY_CNT = 0` 행은 비교에서 뺀다 — 사용자 행은 0대를 만들지 않아 이 행이 있으면 항상 '다름'이 된다(2026-11-25 실DB 확인).
 - 사용자가 편집하지 않는 모델(ICN001)·원천 PS·서비스시간·체크인유형·출국심사·입국/환승보안 원천·리포팅은
   일일과 같은 001 원천이다. 원천 PS는 `CastPropertySetRenderer`, 나머지는 `CastUserSnapshotServiceImpl` 상수다(2026-10-16 INPUT_BASE 제거). 실행 등록 시
   리소스를 미리 렌더해 검사하지 않으므로 원천 누락은 CAST 단계에서 드러난다.
@@ -715,7 +720,7 @@ stage는 전송 7쌍의 002~999 행을 *_LGC로 백업하고 RSRC_FS 시작점�
 원본·대응표·미확정 사유를 보존하고, 모든 미확정 건과 별도 환경 검증을 해결하기 전 cutover하지 않는다.
 
 실연계 검증 대상: 키오스크 기기 ID 4자리 제약 (GO FS 부속 NULL 컬럼·아일랜드 추출은 2026-10-19 결과 대조로 확인·수정),
-EMI/IMMI 컬럼 의미, PS5xx·번호 입국심사/환승보안 리소스 왕복과 리소스 목록 대조 여부,
+EMI/IMMI 컬럼 의미, PS5xx 리소스 왕복(사용자 PS 안의 001 입국심사/환승보안 · 보안검색 참조 포함)과 리소스 목록 대조 여부,
 결과 묶음 키·전체 완료 단위, 실제 시각/대상일자 의미다.
 Java 실제 빌드·Oracle 이관·CAST 통합 검증은 실제 백엔드/검증 DB에서 수행한다.
 
