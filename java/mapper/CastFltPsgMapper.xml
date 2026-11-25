@@ -5,6 +5,7 @@
     <select id="retrieveFltPsgHourList" resultType="aoms.pm.cast.dto.FltPsgRawDto">
         /* CastFltPsgMapper.retrieveFltPsgHourList */
         <!-- 대상 편 조건 · 여객수는 CastDsbdMapper.retrieveFltSmry 와 같아야 한다 -->
+        <bind name="alotYmd" value="ymd"/>
         SELECT
             SUBSTR(X.HM, 1, 2) AS HOUR,
             COUNT(*) AS FLT_CNT,
@@ -33,6 +34,7 @@
             AND A.LCRFT_YN = 'N'
             AND A.SCHDL_HM IS NOT NULL
             AND NVL(TO_NUMBER(TRIM(A.ARCFT_STGCP)), 0) &gt; 0
+            <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataChknAlotCond"/>
         ) X
         WHERE 1 = 1
         AND X.DOM_INTL_SE_CD != 'D'

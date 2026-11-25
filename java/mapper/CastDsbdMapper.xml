@@ -32,6 +32,7 @@
         /* CastDsbdMapper.retrieveFltSmry */
         <!-- 대상 편 조건 · 여객수는 CastFltPsgMapper.retrieveFltPsgHourList 와 같아야 한다.
              정각 1시간 구간 값이 요약보기 시간대별 차트의 운항편 · 여객수와 같아지는 근거다 -->
+        <bind name="alotYmd" value="ymd"/>
         SELECT
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'D' THEN 1 ELSE 0 END), 0) AS DEP_FLT_CNT,
             NVL(SUM(CASE WHEN A.ARR_DEP_SE_CD = 'A' THEN 1 ELSE 0 END), 0) AS ARR_FLT_CNT,
@@ -71,6 +72,7 @@
         AND A.DOM_INTL_SE_CD != 'D'
         AND A.SCHDL_HM IS NOT NULL
         AND NVL(TO_NUMBER(TRIM(A.ARCFT_STGCP)), 0) &gt; 0
+        <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataChknAlotCond"/>
     </select>
 
     <select id="retrieveHourlyBdpsgAnceList" resultType="aoms.pm.cast.dto.BdpsgAnceRawDto">
