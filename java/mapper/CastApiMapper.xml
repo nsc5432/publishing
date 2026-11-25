@@ -662,6 +662,7 @@
             SELECT GATE_NO
                  , MAX(TMNL_ID) AS TMNL_ID
                  , MAX(CRSL_GROUP_CD) AS CRSL_GROUP_CD
+                 , MAX(CASE WHEN USE_YN = 'Y' THEN BUS_NEED_YN END) AS BUS_NEED_YN
               FROM CAOWN.TN_CA_GATE
              GROUP BY GATE_NO
         ),
@@ -698,6 +699,7 @@
                  , COALESCE(CASE WHEN R.GATE_DFLT_YN = 'N' THEN GI.TMNL_ID END, R.TMNL_ID) AS DEP_ARR_TMNL_ID
                  , CASE WHEN GI.TMNL_ID = 'P02' THEN 'P01' ELSE GI.TMNL_ID END AS GATE_TMNL_GRP_ID
                  , GI.CRSL_GROUP_CD
+                 , GI.BUS_NEED_YN AS GATE_BUS_NEED_YN
               FROM FLT_RSRC R
               LEFT JOIN GATE_INFO GI
                 ON GI.GATE_NO = R.GATE_NO
@@ -745,7 +747,7 @@
                    WHEN R.GD_IRR_YN IN ('1', 'Y') THEN 'Charter'
                END AS FlightType
              , 'N' AS Triangle
-             , 'N' AS Bus
+             , CASE WHEN R.GATE_DFLT_YN = 'N' AND R.GATE_BUS_NEED_YN = 'Y' THEN 'Y' ELSE 'N' END AS Bus
              , CASE WHEN R.ARR_DEP_SE_CD = 'A' THEN DECODE(R.DEP_ARR_TMNL_ID, 'P01', 'E', 'P02', 'D', 'P03', 'A') END AS ArrivalGate
              , TO_CHAR(R.ARVL_DT + 20 / 1440, 'YYYY-MM-DD"T"HH24:MI":00.000"') AS BaggageT1
              , TO_CHAR(R.ARVL_DT + 40 / 1440, 'YYYY-MM-DD"T"HH24:MI":00.000"') AS BaggageT2
@@ -908,6 +910,40 @@
     </select>
 
     <!-- ===================== 체크인카운터 · 셀프백드롭 배정 (CounterAllocation) ===================== -->
+    <sql id="transferCheckinRows">
+        SELECT T.TMNL_ID || 'TransferCKIN'         AS blockID
+             , T.TMNL_ID                            AS depArrTerminal
+             , LPAD(N.SN, 2, '0')                   AS resourceID
+             , NULL                                 AS airlineCode
+             , NULL                                 AS domStatus
+             , TO_CHAR(TO_DATE(D.EXCN_YMD, 'YYYYMMDD') - 1, 'YYYY-MM-DD') || 'T12:00:00' AS t1
+             , TO_CHAR(TO_DATE(D.EXCN_YMD, 'YYYYMMDD') + 1, 'YYYY-MM-DD') || 'T03:00:00' AS t2
+             , ' '                                  AS travelClass
+             , ' '                                  AS groupStatus
+             , ' '                                  AS checkinType
+             , ' '                                  AS nonFunctionalStatus
+             , NULL                                 AS checkinAllocType
+             , NULL                                 AS checkInAllocDescryption
+          FROM (SELECT 'P01' AS TMNL_ID, 11 AS CNTR_CNT FROM DUAL
+                UNION ALL
+                SELECT 'P02', 12 FROM DUAL
+                UNION ALL
+                SELECT 'P03', 14 FROM DUAL) T
+          JOIN (SELECT LEVEL AS SN FROM DUAL CONNECT BY LEVEL &lt;= 14) N
+            ON N.SN &lt;= T.CNTR_CNT
+         CROSS JOIN (
+        <choose>
+            <when test='resourceID == "CA001"'>
+                SELECT #{baseYmd} AS EXCN_YMD FROM DUAL
+            </when>
+            <otherwise>
+                <bind name="trnsRsrcNo" value="resourceID.replace('CA', '')"/>
+                SELECT REPLACE(NVL((SELECT DEP_ARR_YMD FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB WHERE SCHDL_ATRB_GROUP_ID = #{trnsRsrcNo} GROUP BY DEP_ARR_YMD), #{baseYmd}), '/', '') AS EXCN_YMD
+                  FROM DUAL
+            </otherwise>
+        </choose>
+               ) D
+    </sql>
 
     <select id="retrieveCounterAllocation" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastCounterAllocationDto" fetchSize="1000">
         /* CastApiMapper.retrieveCounterAllocation(CastReqGetResourceDto dto) */
@@ -1001,8 +1037,11 @@
                      WHERE A.SCHDL_ATRB_GROUP_ID = #{rsrcNo}) Y
             </otherwise>
         </choose>
+             UNION ALL
+            <include refid="transferCheckinRows"/>
           ) C
-         ORDER BY C.depArrTerminal, C.resourceID, C.t1, C.t2, C.airlineCode, C.checkInAllocDescryption
+         ORDER BY CASE WHEN C.blockID LIKE '%TransferCKIN' THEN 1 ELSE 0 END
+                , C.depArrTerminal, C.resourceID, C.t1, C.t2, C.airlineCode, C.checkInAllocDescryption
     </select>
 
     <select id="retrieveSelfCheckInCountAndBagDrop" parameterType="aoms.pm.cmmn.dto.CastReqGetResourceDto" resultType="aoms.pm.cmmn.dto.CastSelfCheckInCountAndBagDropDto" fetchSize="1000">

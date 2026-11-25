@@ -605,6 +605,9 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   docs/resource-reference-cleanup.md를 따른다. 최초 설계·구 이관 스크립트는 역사 기록이며 현재 계약의 근거로 쓰지 않는다.
 - CA 블록은 P01CKINInt / P01CKINDom / P03CKIN, SBD는 P01SBD / P03SBD,
   키오스크는 P01Self / P03Self다. 발행과 조회의 값이 같아야 한다.
+  CA001 · 사용자 CA 에는 환승 체크인 `P01TransferCKIN`(01~11) · `P02TransferCKIN`(01~12) · `P03TransferCKIN`(01~14)을
+  실행 일자 전날 12:00 ~ 익일 03:00 으로 덧붙인다(2026-11-25, `CastApiMapper.transferCheckinRows`). ICN001 모델 기본 배정이
+  2026-02-11 ~ 02-13 에 묶여 다른 일자에서는 닫혀 있었다. CAST 가 같은 블록을 교체하는지 덧붙이는지는 실연계로 확인한다.
   SBD AirlineCode는 ALN_CD가 아니라 CHKN_TYPE_DTL_INFO다.
   키오스크 기기 ID는 ICN1SB01 형식이라 아일랜드는 SUBSTR(ID, -3, 1)이다. 첫 글자로 자르면 전부 I가 되어 키오스크가 0대로 발행된다.
   사용자 SBD·키오스크 T2는 OPER_END_DT의 HHMI 4자리로 렌더한다(2026-10-27). 시만 자르면 24시(2359)가 23:00이 되어
@@ -636,7 +639,8 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   여객수는 실탑승 합(유상 + 무상 + 환승) > 0 이면 실탑승, 아니면 예약승객수이며, 둘 다 없는 편은 제외한다.
   `INPT_YN` 은 보지 않는다(2026-11-21) — `N` 인데 실탑승이 들어 있는 편이 잦다. 환승객도 같은 기준으로 실탑승 · 예약 중 하나를 고른다.
   과거 3개월 평균·좌석×0.75 추정은 쓰지 않는다(castrest 원본 fallback 제거).
-  FS 부속 자원 원천 `GOOWN.TI_GO_FLTSH_RSRC` 는 2026-11-21 에 뺐다. `Bus` 는 `N`, 도착편 `ArrivalGate` 는 터미널별 최빈 출구
+  FS 부속 자원 원천 `GOOWN.TI_GO_FLTSH_RSRC` 는 2026-11-21 에 뺐다. `Bus` 는 2026-11-25 부터 게이트 마스터
+  `CAOWN.TN_CA_GATE.BUS_NEED_YN`(사용 행 중 하나라도 `Y`)이고, 게이트 기본값 `112` 로 나간 편은 `N` 이다. 도착편 `ArrivalGate` 는 터미널별 최빈 출구
   (P01 `E` · P02 `D` · P03 `A`), `BaggageT1` · `T2` 는 도착편 기준 시각(실제 → 예정 → 계획) + 20분 · + 40분 추정값이다. 출발편은 둘 다 비운다.
   2026-11-22 FS 조각 정리: 대표값을 `DBMS_RANDOM` 으로 고르지 않는다 — 과거 3개월 대표 게이트는 `FLTNM` · 출도착 · 터미널 그룹(T1 = P01 + P02 / T2 = P03)별,
   최근 1개월 대표 캐로셀은 `FLTNM` · 게이트 · 주기장별이며 둘 다 사용 빈도 → 최근 일자 → 번호 순이다. 과거 편 대조에 `DDLN_FLTNM` 을 쓰지 않는다. 게이트가 기본값 `112` 이면 `DepArrTerminal` · `ArrivalGate` 는 운항 원천 터미널을 쓴다.
