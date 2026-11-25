@@ -544,6 +544,7 @@
                  , TO_NUMBER(SUBSTR(TRIM(A.ACTL_HM), 1, 2)) * 60 + TO_NUMBER(SUBSTR(TRIM(A.ACTL_HM), 3, 2)) AS ACTL_MIN
               FROM GOOWN.TN_GO_GD_DATA A
              WHERE A.GD_SE_YMD = #{fsYmd}
+               AND A.ARR_DEP_SE_CD = 'D'
                <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataFltCond"/>
                <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataPaxCond"/>
         ),

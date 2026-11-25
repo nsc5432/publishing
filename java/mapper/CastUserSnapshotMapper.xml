@@ -117,6 +117,7 @@
             #{loginUserId}, #{loginIpAddr}, CURRENT_TIMESTAMP
         FROM PMOWN.TN_PM_SMLT_SCHDL_ATRB A
         WHERE A.SCHDL_ATRB_GROUP_ID = REPLACE(#{srcFltSchdlRsrcId}, 'FS', '')
+          AND A.ARR_DEP_SE_CD = 'D'
     </insert>
 
     <insert id="insertCknctAtrb" parameterType="aoms.pm.cast.dto.UserSmltRsrcSnapshotDto">

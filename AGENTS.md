@@ -635,6 +635,9 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   (2026-10-19). 게이트·주기장 3자리 패딩·fallback, OperatorCat·ContactRemote·CheckinRange·SBDAvailable 등을
   따로 만들지 않는다 — GO 원값을 그대로 쓰면 출발편이 게이트에 배정되지 않고 CAST가 계산 없이 끝난다.
   PK 때문에 같은 편 중복은 ROW_NUMBER로 1행만 남긴다.
+  FS 는 일일 · 사용자 모두 출발편(`ARR_DEP_SE_CD = 'D'`)만 보낸다(2026-11-25). 화면이 출국 프로세스만 쓰는데 도착편이 섞이면 CAST 계산 시간 · 결과량이
+  두 배였다. 사용자 FS 를 다른 FS 에서 복사할 때(`insertSchdlAtrbFromSrc`)도 출발편만 옮긴다. 입국심사 운영표(`FacilityOpeningTable_Immigration001`)는
+  FS 와 무관하게 그대로 발행한다. 아래 도착편 전용 값(`ArrivalGate` · `BaggageT1` · `T2` · `Belt`)은 이제 항상 비고 그 계산 CTE 만 남아 있다.
   좌석수(`ARCFT_STGCP`) 0·NULL 편은 이 조각에서 제외한다(2026-10-27). 섞이면 CAST가 결과 없이 Finished로 끝난다.
   여객수는 실탑승 합(유상 + 무상 + 환승) > 0 이면 실탑승, 아니면 예약승객수이며, 둘 다 없는 편은 제외한다.
   `INPT_YN` 은 보지 않는다(2026-11-21) — `N` 인데 실탑승이 들어 있는 편이 잦다. 환승객도 같은 기준으로 실탑승 · 예약 중 하나를 고른다.
