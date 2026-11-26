@@ -1,5 +1,6 @@
 import html
 from pathlib import Path
+import random
 import re
 import sqlite3
 from datetime import datetime, timedelta
@@ -144,6 +145,80 @@ def check_chkn_alot_with(mappers):
     return checked
 
 
+ALOT_COLUMNS = (
+    "OPER_YMD", "TMNL_ID", "CKNCT_ID", "ALN_CD", "ALOT_SN", "DOM_INTL_SE_CD", "CHKN_TYPE_CD", "USE_YN",
+    "EST_BGNG_HM", "EST_END_HM", "LAST_BGNG_HM", "LAST_END_HM",
+)
+ALOT_TIMES = ("0800", "1000", "1200", "2200", "0100", "0000", "2400", "08:0", None)
+
+
+def reference_minutes(row):
+    sta, end = (row[8], row[9]) if row[8] is not None and row[9] is not None else (row[10], row[11])
+    if not all(value is not None and re.fullmatch(r"[0-9]{4}", value) for value in (sta, end)):
+        return None, None
+    bgn = int(sta[:2]) * 60 + int(sta[2:])
+    return bgn, int(end[:2]) * 60 + int(end[2:]) + (1440 if int(sta) > int(end) else 0)
+
+
+def reference_survivors(rows):
+    minutes = [reference_minutes(row) for row in rows]
+    survivors = []
+    for index, row in enumerate(rows):
+        if row[6] != "C" or row[7] != "Y":
+            continue
+        bgn, end = minutes[index]
+        superseded = False
+        for other_index, other in enumerate(rows):
+            if other[:4] != row[:4] or not other[4] > row[4]:
+                continue
+            other_bgn, other_end = minutes[other_index]
+            known = None not in (bgn, other_bgn)
+            if other_bgn is None or (known and (other_bgn, other_end) == (bgn, end)) \
+                    or (known and other_bgn < end and bgn < other_end):
+                superseded = True
+                break
+        if not superseded:
+            survivors.append(row[:5])
+    return sorted(survivors)
+
+
+def check_actual_rows(mappers):
+    sql = fragment_sql(mappers, ACTUAL_FRAGMENT)
+    sql = sql.replace("TO_CHAR(TO_DATE(#{alotYmd}, 'YYYYMMDD') - 1, 'YYYYMMDD')", "'20261022'")
+    sql = sql.replace("#{alotYmd}", "'20261023'")
+    if "#{" in sql:
+        raise AssertionError(f"{ACTUAL_FRAGMENT}: unexpected parameter left")
+    query = f"SELECT OPER_YMD, TMNL_ID, CKNCT_ID, ALN_CD, ALOT_SN FROM ({sql}) X ORDER BY 1, 2, 3, 4, 5"
+
+    connection = sqlite3.connect(":memory:")
+    connection.execute("ATTACH DATABASE ':memory:' AS GOOWN")
+    connection.execute(f"CREATE TABLE GOOWN.TI_GO_CKNCT_DALY_ALOT ({', '.join(ALOT_COLUMNS)})")
+    connection.create_function("TO_NUMBER", 1, lambda value: None if value is None else int(value))
+    connection.create_function("TO_DATE", 2, lambda value, fmt: None)
+    connection.create_function("REGEXP_LIKE", 2, regexp_like)
+    rng = random.Random(20261126)
+    checks = 0
+    for _ in range(500):
+        rows = []
+        # ALOT_SN 은 원천의 등록 키라 유일하다. 덮인 행을 (키, ALOT_SN) 으로 찾으므로 중복을 만들지 않는다
+        for alot_sn in rng.sample(range(1, 40), rng.randint(0, 14)):
+            rows.append((
+                rng.choice(("20261021", "20261022", "20261023")), "P01", rng.choice(("A01", "A02")),
+                rng.choice(("KE", "OZ")), alot_sn, "I", rng.choice(("C", "C", "D")),
+                rng.choice(("Y", "Y", "N")), rng.choice(ALOT_TIMES), rng.choice(ALOT_TIMES),
+                rng.choice(ALOT_TIMES), rng.choice(ALOT_TIMES),
+            ))
+        connection.execute("DELETE FROM GOOWN.TI_GO_CKNCT_DALY_ALOT")
+        connection.executemany(f"INSERT INTO GOOWN.TI_GO_CKNCT_DALY_ALOT VALUES ({', '.join('?' * len(ALOT_COLUMNS))})", rows)
+        expected = reference_survivors([row for row in rows if row[0] in ("20261022", "20261023")])
+        actual = [tuple(row) for row in connection.execute(query).fetchall()]
+        if actual != expected:
+            raise AssertionError(f"{ACTUAL_FRAGMENT} differs: rows={rows} expected={expected} actual={actual}")
+        checks += 1
+    connection.close()
+    return checks
+
+
 def main():
     mappers = load_mappers()
     window_sql = fragment_sql(mappers, WINDOW_FRAGMENT)
@@ -157,6 +232,7 @@ def main():
 
     check_sources(mappers)
     with_statements = check_chkn_alot_with(mappers)
+    actual_checks = check_actual_rows(mappers)
 
     default_sql = statement_sql(mappers, *DEFAULT_HOURS)
     for label, expression in (("start", sta_expression), ("end", end_expression)):
@@ -206,7 +282,7 @@ def main():
     connection.close()
     print(
         f"PASS {checks} allocation time checks, {len(SOURCES)} sources on shared fragment, "
-        f"{with_statements} CHKN_ALOT statements (Oracle execution not covered)"
+        f"{with_statements} CHKN_ALOT statements, {actual_checks} superseded-row datasets (Oracle execution not covered)"
     )
 
 

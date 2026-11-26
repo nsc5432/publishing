@@ -627,6 +627,8 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   정책 항공사 출발편이 없는 아일랜드는 SBD 를 발행하지 않는다.
   원천 `GOOWN.TI_GO_CKNCT_DALY_ALOT` 는 재전송마다 INSERT 되므로 위 네 조회와 사용자 탭 항공사 목록은 공용 조각 `CastApiMapper.cknctDailyAlotLatestRows` 로
   키 `(OPER_YMD, TMNL_ID, CKNCT_ID, ALN_CD)` 안에서 구간이 겹치는(같은 구간 포함) 나중 `ALOT_SN` 행이 있으면 앞 행을 버리고, 남은 행이 `CHKN_TYPE_CD = 'C'` · `USE_YN = 'Y'` 일 때만 쓴다. 편 기준(`'D'`)은 쓰지 않는다.
+  이 판정은 원천을 한 번 읽은 `MATERIALIZE` CTE 를 같은 키끼리 조인해 덮인 `(키, ALOT_SN)` 을 빼는 방식이다(2026-11-26). 행마다 `NOT EXISTS` 로 원천을 다시 읽으면 이 조각만 4초가 걸렸다.
+  `ALOT_SN` 이 등록 키라 유일하다는 전제이고, 조각이 WITH 로 시작하므로 `FROM (…)` 인라인 뷰로만 include 한다.
   2026-11-22 에는 키별 최신 1행만 남겨 같은 카운터 · 항공사의 하루 여러 근무조(2026-02-12 기준 420건)가 마지막 한 구간으로 줄었다. 2026-11-23 에 겹침 기준으로 바꿨다.
   겹치지 않는 시각으로 다시 보낸 재배정은 앞 구간과 구분할 수 없어 둘 다 남는다.
   2026-11-23 에 더했던 대체 배정(배정 없는 편에 빈 연속 부스 4개를 여는 `cknctDailyAlotFallbackRows`)은 2026-11-25 에 없앴다 — 시간 · 부스 수 가정의 근거가 없었다.

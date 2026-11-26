@@ -88,11 +88,52 @@
     <!-- 체크인카운터 일일 배정 원천. 재전송마다 INSERT 되므로 같은 키 (OPER_YMD, TMNL_ID, CKNCT_ID, ALN_CD) 에서
          구간이 겹치는(같은 구간 포함) 나중 행(ALOT_SN)이 있으면 앞 행을 버린다. 겹치지 않는 구간은 하루 여러 근무조라 모두 남긴다.
          유형 · 사용 여부는 살아남은 행으로 판정한다. 시각이 없는 나중 행은 그 키의 앞 행을 모두 덮는다 -->
+    <!-- 원천을 한 번만 읽어 같은 키끼리 조인한다. 행마다 NOT EXISTS 로 원천을 다시 읽으면 이 조각만 4초가 걸렸다 -->
     <sql id="cknctDailyAlotActualRows">
-        SELECT L.OPER_YMD
+        WITH ALOT_SRC AS (
+            SELECT /*+ MATERIALIZE */
+                   W.OPER_YMD
+                 , W.TMNL_ID
+                 , W.CKNCT_ID
+                 , W.ALN_CD
+                 , W.ALOT_SN
+                 , W.DOM_INTL_SE_CD
+                 , W.CHKN_TYPE_CD
+                 , W.USE_YN
+                 , W.EST_BGNG_HM
+                 , W.EST_END_HM
+                 , W.LAST_BGNG_HM
+                 , W.LAST_END_HM
+                 , W.ALOT_STA_HM
+                 , W.ALOT_END_HM
+                 , W.ALOT_BGN_MIN
+                 , W.ALOT_END_MIN
+              FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotWindowRows"/>) W
+        ),
+        ALOT_SPRSD AS (
+            SELECT /*+ MATERIALIZE USE_HASH(L N) */ DISTINCT
+                   L.OPER_YMD
+                 , L.TMNL_ID
+                 , L.CKNCT_ID
+                 , L.ALN_CD
+                 , L.ALOT_SN
+              FROM ALOT_SRC L
+              JOIN ALOT_SRC N
+                ON N.OPER_YMD = L.OPER_YMD
+               AND N.TMNL_ID = L.TMNL_ID
+               AND N.CKNCT_ID = L.CKNCT_ID
+               AND N.ALN_CD = L.ALN_CD
+             WHERE N.ALOT_SN > L.ALOT_SN
+               AND (N.ALOT_BGN_MIN IS NULL
+                    OR (N.ALOT_BGN_MIN = L.ALOT_BGN_MIN AND N.ALOT_END_MIN = L.ALOT_END_MIN)
+                    OR (N.ALOT_BGN_MIN &lt; L.ALOT_END_MIN AND L.ALOT_BGN_MIN &lt; N.ALOT_END_MIN))
+        )
+        SELECT /*+ USE_HASH(L S) */
+               L.OPER_YMD
              , L.TMNL_ID
              , L.CKNCT_ID
              , L.ALN_CD
+             , L.ALOT_SN
              , L.DOM_INTL_SE_CD
              , L.CHKN_TYPE_CD
              , L.USE_YN
@@ -105,21 +146,16 @@
              /* 종료 2400 은 TO_DATE(…, 'YYYYMMDDHH24MI') 가 거부하므로 일시는 분으로 만든다 */
              , TO_DATE(L.OPER_YMD, 'YYYYMMDD') + L.ALOT_BGN_MIN / 1440 AS ALOT_BGN_DT
              , TO_DATE(L.OPER_YMD, 'YYYYMMDD') + L.ALOT_END_MIN / 1440 AS ALOT_END_DT
-          FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotWindowRows"/>) L
+          FROM ALOT_SRC L
+          LEFT JOIN ALOT_SPRSD S
+            ON S.OPER_YMD = L.OPER_YMD
+           AND S.TMNL_ID = L.TMNL_ID
+           AND S.CKNCT_ID = L.CKNCT_ID
+           AND S.ALN_CD = L.ALN_CD
+           AND S.ALOT_SN = L.ALOT_SN
          WHERE L.CHKN_TYPE_CD = 'C'
            AND L.USE_YN = 'Y'
-           AND NOT EXISTS (
-                SELECT 1
-                  FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotWindowRows"/>) N
-                 WHERE N.OPER_YMD = L.OPER_YMD
-                   AND N.TMNL_ID = L.TMNL_ID
-                   AND N.CKNCT_ID = L.CKNCT_ID
-                   AND N.ALN_CD = L.ALN_CD
-                   AND N.ALOT_SN > L.ALOT_SN
-                   AND (N.ALOT_BGN_MIN IS NULL
-                        OR (N.ALOT_BGN_MIN = L.ALOT_BGN_MIN AND N.ALOT_END_MIN = L.ALOT_END_MIN)
-                        OR (N.ALOT_BGN_MIN &lt; L.ALOT_END_MIN AND L.ALOT_BGN_MIN &lt; N.ALOT_END_MIN))
-           )
+           AND S.ALOT_SN IS NULL
     </sql>
 
     <!-- 체크인카운터 일일 배정 = 실배정만. 배정이 없는 출발편은 카운터를 만들지 않고 운항편에서 뺀다(gdDataChknAlotCond).

@@ -38,6 +38,7 @@ python java/verify/verify_chkn_booth_overnight.py
   자정 통과, 종료 `2400`, 원천 RON 플래그 무시, 예정/최종 한 벌 선택과 일부만 있는 예정 시각, 시작 = 종료 · 형식 오류 제외를 검사하고,
   사용자 체크인 기본 운영시간(`retrieveChknList`)이 같은 시각 선택 식을 쓰는지,
   `CHKN_ALOT` 을 읽는 statement 가 WITH 에 `gdDataChknAlotWith` 를 두는지 확인한다.
+  `cknctDailyAlotActualRows` 는 SQLite 에서 실제로 실행해 무작위 배정 500벌의 남는 행을 원래 규칙(나중 행과 겹치면 버림)의 전수 계산과 대조한다.
   Python 표준 라이브러리 SQLite와 날짜 함수 대역을 사용하며 Oracle SQL 전체 실행 검증은 아니다.
 
 Oracle DDL · 삽입, 실제 Spring 트랜잭션 연결, CAST 연계는 실제 환경에서 별도로 확인해야 한다.
