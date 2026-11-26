@@ -620,6 +620,7 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   일일 CA001 · 체크인 운영 부스(`retrieveChknBoothOperList`) · 기본 운영시간 · 대시보드 항공사 배정(`CastDsbdMapper.retrieveChknAlnAssignmentList`)은
   예정 시작 · 종료가 둘 다 있으면 예정, 아니면 최종 한 벌에서 시각을 읽는다(2026-11-22, 이전 칸별 NVL(EST, LAST) · 대시보드는 최종 우선).
   익일 종료는 원천 `*_RON_YN` 대신 시작 > 종료로 판정한다 — 시각과 어긋난 플래그가 08:00~익일 10:00 같은 26시간 배정을 만들었다.
+  배정 일시는 공용 조각의 `ALOT_BGN_DT` · `ALOT_END_DT`(일자 + 분)만 읽는다(2026-11-26). `TO_DATE(OPER_YMD || HHMI)` 는 종료 `2400` 에서 실패한다.
   사용자 CA 는 부스 배정 구간 1건(`TN_PM_SMLT_USER_CHKN_BOOTH_ALTMNT`)마다 1행이다(2026-11-22). 운영자료 기본값은 `retrieveChknList` 행을 부스별로 묶고,
   시 단위 내림 · 올림으로 겹친 칸은 시작이 늦은 구간의 항공사로 정한다. 사용자 SBD 는 일일 SBD001 과 같은 조각 `CastApiMapper.dailySbdIslandRows`
   (아일랜드 정책 항공사 출발편 첫 편 −5시간 ~ 마지막 편 −1시간)의 시각 · 항공사, 키오스크는 전날 12:00 ~ 당일 23:59 이고 사용자는 대수만 정한다.
@@ -632,6 +633,7 @@ CAST가 New 요청을 polling하고 Executing / Finished / Failed를 통보한�
   대신 **체크인 배정이 없는 출발편은 운항편에서 뺀다** (`CastApiMapper.gdDataChknAlotCond`). 출발 기준 시각(예측, 없으면 계획 · 12시간 규칙 동일) −3시간 ~ −1시간과
   겹치는 같은 터미널(P02 는 P01) · 항공사 배정이 CA001(`cknctDailyAlotRows`)에 있어야 남는다. 배정 누락은 원천 정합성 문제로 보고 메우지 않는다.
   FS001 · 사용자 FS(`dailyFlightScheduleRows`)와 화면 조회 `retrieveFltSmry` · `retrieveFltPsgHourList` 가 같은 조각을 읽으므로 요약보기 운항편 · 여객수도 빠진 편을 세지 않는다.
+  이 조각은 WITH 의 `CHKN_ALOT`(`gdDataChknAlotWith`)을 읽으므로 호출부가 함께 둔다 — 인라인 뷰였을 때 운항편마다 배정 원천을 다시 계산해 1분을 넘겼다(2026-11-26).
   FS `CheckinRange` 도 같은 구간 겹침으로 고르므로 남은 출발편은 범위가 비지 않는다. SBD 운영시각(`dailySbdIslandRows`)과 과거 대표 게이트 · 캐로셀 조회에는 걸지 않는다.
   사용자 FS 의 `CKNCT_RANGE_CN` 은 CA 발행 뒤 그 실행의 CA 행에서 같은 구간 겹침으로 다시 계산해 덮어쓴다(`CastUserSnapshotMapper.updateSchdlAtrbCknctRange`).
   부스를 고친 사용자 조건과 FS 범위가 어긋나지 않게 하려는 것이며, 사용자 CA 가 실행 일자 하루치라 01:00 이전 출발편은 범위가 비어 있다.

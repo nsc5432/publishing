@@ -38,19 +38,32 @@
 
     <!-- 체크인카운터 배정이 없는 출발편은 여객이 갈 카운터가 없어 CAST 가 결과 없이 끝날 수 있으므로 발행 · 화면 조회에서 함께 뺀다.
          출발 기준 시각 −3시간 ~ −1시간과 겹치는 같은 터미널(탑승동은 T1) · 항공사 배정이 CA001 에 있어야 한다. 호출부가 #{alotYmd} 를 편 일자로 묶는다 -->
+    <!-- 호출부는 WITH 절에 gdDataChknAlotWith(CHKN_ALOT)를 둔다. 인라인 뷰로 두면 운항편마다 배정 원천을 다시 계산해 1분 넘게 걸렸다 -->
     <sql id="gdDataChknAlotCond">
            AND (
                  A.ARR_DEP_SE_CD != 'D'
                  OR EXISTS (
                      SELECT 1
-                       FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotRows"/>) AL
+                       FROM CHKN_ALOT AL
                       WHERE AL.TMNL_ID = CASE WHEN A.TMNL_ID = 'P02' THEN 'P01' ELSE A.TMNL_ID END
                         AND AL.ALN_CD = A.ALN_CD
-                        AND AL.CHKN_TYPE_CD = 'C'
                         AND AL.BGN_DT &lt; <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataDepBaseDt"/> - 60 / 1440
                         AND AL.END_DT > <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataDepBaseDt"/> - 180 / 1440
                  )
                )
+    </sql>
+
+    <sql id="gdDataChknAlotWith">
+        CHKN_ALOT AS (
+            SELECT /*+ MATERIALIZE */
+                   AL.TMNL_ID
+                 , AL.CKNCT_ID
+                 , AL.ALN_CD
+                 , AL.BGN_DT
+                 , AL.END_DT
+              FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotRows"/>) AL
+             WHERE AL.CHKN_TYPE_CD = 'C'
+        )
     </sql>
 
     <!-- 체크인카운터 일일 배정 원천 + 배정 구간(분, 익일 종료는 +1440). 시각은 예정 시작 · 종료가 둘 다 있으면 예정, 아니면 최종 -->
@@ -89,6 +102,9 @@
              , L.LAST_END_HM
              , L.ALOT_STA_HM
              , L.ALOT_END_HM
+             /* 종료 2400 은 TO_DATE(…, 'YYYYMMDDHH24MI') 가 거부하므로 일시는 분으로 만든다 */
+             , TO_DATE(L.OPER_YMD, 'YYYYMMDD') + L.ALOT_BGN_MIN / 1440 AS ALOT_BGN_DT
+             , TO_DATE(L.OPER_YMD, 'YYYYMMDD') + L.ALOT_END_MIN / 1440 AS ALOT_END_DT
           FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotWindowRows"/>) L
          WHERE L.CHKN_TYPE_CD = 'C'
            AND L.USE_YN = 'Y'
@@ -152,41 +168,23 @@
 
     <!-- 체크인카운터 일일 배정 -->
     <sql id="cknctDailyAlotRows">
-        SELECT Y.TMNL_ID
-             , Y.CKNCT_ID
-             , Y.ALN_CD
-             , Y.DOM_INTL_SE_CD
-             , Y.CHKN_TYPE_CD
-             , TO_DATE(Y.OPER_YMD || Y.STA_HM, 'YYYYMMDDHH24MI') AS BGN_DT
-             , TO_DATE(Y.OPER_YMD || Y.END_HM, 'YYYYMMDDHH24MI') + CASE WHEN TO_NUMBER(Y.STA_HM) > TO_NUMBER(Y.END_HM) THEN 1 ELSE 0 END AS END_DT
-          FROM (
-            SELECT A.TMNL_ID
-                 , A.CKNCT_ID
-                 , A.ALN_CD
-                 , A.DOM_INTL_SE_CD
-                 , A.CHKN_TYPE_CD
-                 , A.OPER_YMD
-                 ,  CASE
-                        WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL 
-                        THEN A.EST_BGNG_HM 
-                        ELSE A.LAST_BGNG_HM 
-                    END AS STA_HM
-                 ,  CASE 
-                        WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL 
-                        THEN A.EST_END_HM 
-                        ELSE A.LAST_END_HM 
-                    END AS END_HM
-              FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotLatestRows"/>) A
-              JOIN CAOWN.TN_CA_CKNCT CIC
-              ON A.CKNCT_ID = CIC.CKNCT_ID AND A.TMNL_ID = CIC.TMNL_ID
-             WHERE CIC.USE_YN = 'Y'
-               AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
-               AND A.CKNCT_ID NOT LIKE 'X%'
-               AND A.CKNCT_ID NOT LIKE 'Y%'
-               AND A.CKNCT_ID NOT LIKE 'R%'
-               AND A.CKNCT_ID NOT LIKE 'S%'
-          ) Y
-         WHERE Y.STA_HM != Y.END_HM
+        SELECT A.TMNL_ID
+             , A.CKNCT_ID
+             , A.ALN_CD
+             , A.DOM_INTL_SE_CD
+             , A.CHKN_TYPE_CD
+             , A.ALOT_BGN_DT AS BGN_DT
+             , A.ALOT_END_DT AS END_DT
+          FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotLatestRows"/>) A
+          JOIN CAOWN.TN_CA_CKNCT CIC
+            ON A.CKNCT_ID = CIC.CKNCT_ID AND A.TMNL_ID = CIC.TMNL_ID
+         WHERE CIC.USE_YN = 'Y'
+           AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
+           AND A.CKNCT_ID NOT LIKE 'X%'
+           AND A.CKNCT_ID NOT LIKE 'Y%'
+           AND A.CKNCT_ID NOT LIKE 'R%'
+           AND A.CKNCT_ID NOT LIKE 'S%'
+           AND A.ALOT_BGN_DT &lt; A.ALOT_END_DT
     </sql>
 
     <!-- 운영계 출입국장 운영시간 -->
@@ -369,6 +367,7 @@
     <sql id="dailyFlightScheduleRows">
         <bind name="alotYmd" value="fsYmd"/>
         WITH
+        <include refid="aoms.pm.castapi.mapper.CastApiMapper.gdDataChknAlotWith"/>,
         /* 기준 운항 원천 */
         FLT_SRC AS (
             SELECT A.DOM_INTL_SE_CD
@@ -442,10 +441,9 @@
                        AND FLTSH_ID IS NOT NULL
                   ) F
                   /* 체크인카운터 배정 - CA001 과 같은 원천 · 필터 */
-                  JOIN (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotRows"/>) AL
+                  JOIN CHKN_ALOT AL
                     ON AL.TMNL_ID = F.TMNL_GRP_ID
                    AND AL.ALN_CD = F.ALN_CD
-                   AND AL.CHKN_TYPE_CD = 'C'
                    AND AL.BGN_DT &lt; F.CHKN_END_DT
                    AND AL.END_DT > F.CHKN_BGN_DT
                  GROUP BY F.FLTSH_ID, SUBSTR(AL.CKNCT_ID, 1, 1)

@@ -83,31 +83,21 @@
             <when test="cknctAlctnRsrcId == 'CA001'">
             <bind name="alotYmd" value="excnYmd"/>
             SELECT
-                Y.CKNCT_ID,
-                TO_DATE(Y.OPER_YMD || Y.STA_HM, 'YYYYMMDDHH24MI') AS BGN_DT,
-                TO_DATE(Y.OPER_YMD || Y.END_HM, 'YYYYMMDDHH24MI')
-                    + CASE WHEN TO_NUMBER(Y.STA_HM) &gt; TO_NUMBER(Y.END_HM) THEN 1 ELSE 0 END AS END_DT
-            FROM (
-                SELECT
-                    A.CKNCT_ID,
-                    A.OPER_YMD,
-                    CASE WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL THEN A.EST_BGNG_HM ELSE A.LAST_BGNG_HM END AS STA_HM,
-                    CASE WHEN A.EST_BGNG_HM IS NOT NULL AND A.EST_END_HM IS NOT NULL THEN A.EST_END_HM ELSE A.LAST_END_HM END AS END_HM
-                FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotLatestRows"/>) A
-                    INNER JOIN CAOWN.TN_CA_CKNCT CIC
-                    ON A.CKNCT_ID = CIC.CKNCT_ID
-                    AND A.TMNL_ID = CIC.TMNL_ID
-                WHERE CIC.USE_YN = 'Y'
-                AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
-                AND A.TMNL_ID = #{tmnlId}
-                AND A.CKNCT_ID NOT LIKE 'X%'
-                AND A.CKNCT_ID NOT LIKE 'Y%'
-                AND A.CKNCT_ID NOT LIKE 'R%'
-                AND A.CKNCT_ID NOT LIKE 'S%'
-            ) Y
-            WHERE Y.STA_HM IS NOT NULL
-            AND Y.END_HM IS NOT NULL
-            AND Y.STA_HM != Y.END_HM
+                A.CKNCT_ID,
+                A.ALOT_BGN_DT AS BGN_DT,
+                A.ALOT_END_DT AS END_DT
+            FROM (<include refid="aoms.pm.castapi.mapper.CastApiMapper.cknctDailyAlotLatestRows"/>) A
+                INNER JOIN CAOWN.TN_CA_CKNCT CIC
+                ON A.CKNCT_ID = CIC.CKNCT_ID
+                AND A.TMNL_ID = CIC.TMNL_ID
+            WHERE CIC.USE_YN = 'Y'
+            AND CIC.CKNCT_USE_CRG_APLCN_TYPE_CD IN ('A', 'B')
+            AND A.TMNL_ID = #{tmnlId}
+            AND A.CKNCT_ID NOT LIKE 'X%'
+            AND A.CKNCT_ID NOT LIKE 'Y%'
+            AND A.CKNCT_ID NOT LIKE 'R%'
+            AND A.CKNCT_ID NOT LIKE 'S%'
+            AND A.ALOT_BGN_DT &lt; A.ALOT_END_DT
             </when>
             <otherwise>
             SELECT
